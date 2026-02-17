@@ -1,0 +1,106 @@
+# Multi-Factor Screener Configuration
+# Version 2.0 | Last Updated: 2026-02-12
+
+# Universe Selection
+universe:
+  index: 'SP500'  # Options: 'SP500', 'R1000', 'R2000'
+  min_market_cap: 2e9  # $2B minimum
+  min_avg_volume: 10e6  # $10M average daily volume
+  exclude_sectors: []  # e.g., ['Utilities'] to exclude a sector
+  exclude_tickers: []  # e.g., ['BRK.B'] for manual exclusions
+
+# Factor Category Weights (must sum to 100)
+factor_weights:
+  valuation: 25
+  quality: 25
+  growth: 15
+  momentum: 15
+  risk: 10
+  revisions: 10  # Set to 0 if analyst data unavailable
+
+# Within-Category Metric Weights (each category sums to 100)
+metric_weights:
+  valuation:
+    ev_ebitda: 25
+    fcf_yield: 40
+    earnings_yield: 20
+    ev_sales: 15
+
+  quality:
+    roic: 30
+    gross_profit_assets: 25
+    debt_equity: 20
+    piotroski_f_score: 15
+    accruals: 10
+
+  growth:
+    forward_eps_growth: 35
+    peg_ratio: 20
+    revenue_growth: 30
+    sustainable_growth: 15
+
+  momentum:
+    return_12_1: 50
+    return_6m: 50
+
+  risk:
+    volatility: 60
+    beta: 40
+
+  revisions:
+    eps_revision_ratio: 40
+    eps_estimate_change: 35
+    analyst_surprise: 25
+
+# Sector Neutrality
+sector_neutral:
+  enabled: true
+  gics_level: 'Sector'  # Options: 'Sector' (11 groups) or 'IndustryGroup' (24 groups)
+  sector_cap_multiplier: 2.0  # Max 2x benchmark weight per sector
+  sector_relative_composite: false  # If true, min-max normalize composite within each sector
+
+# Value Trap Filters
+value_trap_filters:
+  enabled: true
+  quality_floor_percentile: 30  # Exclude bottom 30% quality
+  momentum_floor_percentile: 30  # Exclude bottom 30% momentum
+  revisions_floor_percentile: 30  # Exclude bottom 30% revisions
+  flag_only: true  # If true, flag but don't exclude (allow manual override)
+
+# Portfolio Construction
+portfolio:
+  num_stocks: 25
+  weighting: 'equal'  # Options: 'equal', 'risk_parity'
+  max_position_pct: 5.0
+  min_position_pct: 2.0
+  max_sector_concentration: 8  # Max 8 stocks per sector
+  rebalance_frequency: 'quarterly'  # Options: 'monthly', 'quarterly'
+
+# Data Caching
+caching:
+  price_data_refresh_days: 1
+  fundamental_data_refresh_days: 7
+  estimate_data_refresh_days: 7
+  cache_format: 'parquet'  # Options: 'parquet', 'csv'
+
+# Data Quality
+data_quality:
+  winsorize_percentiles: [1, 99]  # Winsorize at 1st and 99th percentiles
+  min_data_coverage_pct: 60  # Exclude stocks with < 60% of metrics available
+  max_missing_metrics: 6  # Out of ~15 total metrics
+  metric_alert_threshold_pct: 50  # Warn if any metric is >50% missing
+
+# Output
+output:
+  excel_file: 'factor_output.xlsx'
+  factor_scores_sheet: 'FactorScores'
+  write_to_cache: true
+  generate_validation_report: false  # Set true to run backtest and generate report
+
+# Backtesting (for validation)
+backtesting:
+  start_date: '2015-01-01'
+  end_date: '2025-12-31'
+  rebalance_frequency: 'monthly'
+  transaction_cost_bps: 10  # 10 bps per one-way trade
+  initial_capital: 1000000  # $1M
