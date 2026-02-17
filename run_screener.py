@@ -117,6 +117,7 @@ def run_factor_engine(cfg, args, ctx=None):
         winsorize_metrics, compute_sector_percentiles,
         compute_category_scores, compute_composite,
         apply_value_trap_flags, rank_stocks,
+        compute_factor_correlation,
         write_scores_parquet, METRIC_COLS, METRIC_DIR,
     )
 
@@ -150,9 +151,10 @@ def run_factor_engine(cfg, args, ctx=None):
     print(f"  Universe: {universe_size} tickers")
     ticker_meta = universe_df.set_index("Ticker")[["Company", "Sector"]].to_dict("index")
 
-    # ---- Check cache freshness ----
+    # ---- Check cache freshness (config-aware) ----
     fresh_days = cfg.get("caching", {}).get("fundamental_data_refresh_days", 7)
-    cached_path, cached_dt = _find_latest_cache("factor_scores")
+    cfg_hash = ctx.config_hash(cfg) if ctx else None
+    cached_path, cached_dt = _find_latest_cache("factor_scores", config_hash=cfg_hash)
     use_cache = False
 
     if args.refresh:
@@ -385,10 +387,15 @@ def run_factor_engine(cfg, args, ctx=None):
             drift_alerts += 1
     stats["drift_alerts"] = drift_alerts
 
-    # ---- Write Parquet cache ----
+    # ---- Factor correlation matrix (for transparency) ----
+    corr = compute_factor_correlation(df)
+    if ctx is not None and not corr.empty:
+        ctx.save_artifact("06_factor_correlation", corr.reset_index())
+
+    # ---- Write Parquet cache (config-aware) ----
     print("Writing cache Parquet...")
     try:
-        write_scores_parquet(df)
+        write_scores_parquet(df, config_hash=cfg_hash)
     except Exception as e:
         print(f"  WARNING: Failed to write Parquet cache: {e}")
 

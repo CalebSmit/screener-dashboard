@@ -423,6 +423,17 @@ class TestSustainableGrowth:
         row = _compute_one(_make_rec(totalEquity=-10e9))
         assert np.isnan(row["sustainable_growth"])
 
+    def test_unknown_dividends_is_nan(self):
+        """When dividend data is entirely unavailable, sustainable_growth = NaN.
+
+        Previously assumed full retention (divs=0), which biased growth
+        estimates upward for companies that do pay dividends.
+        """
+        row = _compute_one(_make_rec(
+            dividendsPaid=np.nan, dividendRate=np.nan,
+            sharesOutstanding=np.nan))
+        assert np.isnan(row["sustainable_growth"])
+
 
 # =====================================================================
 # MOMENTUM METRICS

@@ -99,35 +99,47 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # C. Tiered Parquet caching (Blueprint SS7.4)
 # =========================================================================
-def _find_latest_cache(tier_name: str):
-    """Find most recent cache file for a tier. Returns (path, date) or (None, None)."""
-    files = sorted(CACHE_DIR.glob(f"{tier_name}_*.parquet"), reverse=True)
+def _find_latest_cache(tier_name: str, config_hash: str | None = None):
+    """Find most recent cache file for a tier. Returns (path, date) or (None, None).
+
+    If config_hash is provided, only matches files whose name contains
+    that hash (e.g. ``factor_scores_a1b2c3_20260217.parquet``).
+    """
+    pattern = f"{tier_name}_*.parquet"
+    files = sorted(CACHE_DIR.glob(pattern), reverse=True)
     for f in files:
         try:
-            date_str = f.stem.rsplit("_", 1)[-1]
+            parts = f.stem.split("_")
+            date_str = parts[-1]
             file_date = datetime.strptime(date_str, "%Y%m%d")
+            # If a config_hash was provided, require it to appear in the filename
+            if config_hash and config_hash not in f.stem:
+                continue
             return f, file_date
         except ValueError:
             continue
     return None, None
 
 
-def cache_is_fresh(tier_name: str, max_age_days: int) -> bool:
-    path, dt = _find_latest_cache(tier_name)
+def cache_is_fresh(tier_name: str, max_age_days: int, config_hash: str | None = None) -> bool:
+    path, dt = _find_latest_cache(tier_name, config_hash=config_hash)
     if path is None:
         return False
     return (datetime.now() - dt) < timedelta(days=max_age_days)
 
 
-def load_cache(tier_name: str) -> pd.DataFrame:
-    path, _ = _find_latest_cache(tier_name)
+def load_cache(tier_name: str, config_hash: str | None = None) -> pd.DataFrame:
+    path, _ = _find_latest_cache(tier_name, config_hash=config_hash)
     print(f"[CACHE HIT] Loading {tier_name} from cache")
     return pd.read_parquet(path)
 
 
-def save_cache(tier_name: str, df: pd.DataFrame) -> str:
+def save_cache(tier_name: str, df: pd.DataFrame, config_hash: str | None = None) -> str:
     today = datetime.now().strftime("%Y%m%d")
-    path = CACHE_DIR / f"{tier_name}_{today}.parquet"
+    if config_hash:
+        path = CACHE_DIR / f"{tier_name}_{config_hash}_{today}.parquet"
+    else:
+        path = CACHE_DIR / f"{tier_name}_{today}.parquet"
     df.to_parquet(str(path), index=False)
     return str(path)
 
@@ -139,7 +151,8 @@ def _safe(d: dict, key: str, default=np.nan):
     try:
         v = d.get(key, default)
         return default if v is None else v
-    except Exception:
+    except Exception as e:
+        warnings.warn(f"_safe failed for key='{key}': {e}")
         return default
 
 
@@ -171,7 +184,8 @@ def _stmt_val(stmt, label, col=0, default=np.nan):
                 if len(vals) > col:
                     return float(vals.iloc[col])
         return default
-    except Exception:
+    except Exception as e:
+        warnings.warn(f"_stmt_val failed for label='{label}', col={col}: {e}")
         return default
 
 
@@ -291,8 +305,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 if stmt_obj is not None and not stmt_obj.empty:
                     most_recent = stmt_obj.columns[0]
                     rec[f"_stmt_date_{stmt_name}"] = str(most_recent.date()) if hasattr(most_recent, "date") else str(most_recent)
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"{ticker_str}: data freshness check failed: {e}")
 
         # ---- price history (13 months for 12-1 momentum) ----
         try:
@@ -322,8 +336,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                     dt.strftime("%Y-%m-%d"): v
                     for dt, v in zip(daily_ret.index, daily_ret.values)
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"{ticker_str}: price history extraction failed: {e}")
 
         # ---- earnings surprises ----
         try:
@@ -335,8 +349,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                     if pd.notna(a) and pd.notna(e) and abs(e) > 0.001:
                         surs.append((a - e) / abs(e))
                 rec["analyst_surprise"] = float(np.mean(surs)) if len(surs) >= 2 else np.nan
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"{ticker_str}: earnings surprise extraction failed: {e}")
 
     except Exception as exc:
         err_str = str(exc)
@@ -376,7 +390,8 @@ def fetch_market_returns(max_retries: int = 3) -> pd.Series:
             hist = yf.Ticker("^GSPC").history(period="1y", auto_adjust=True)
             closes = hist["Close"].dropna()
             return np.log(closes / closes.shift(1)).dropna()
-        except Exception:
+        except Exception as e:
+            warnings.warn(f"Market returns fetch attempt {attempt+1}/{max_retries} failed: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
     return pd.Series(dtype=float)
@@ -650,11 +665,14 @@ def compute_metrics(raw_data: list, market_returns: pd.Series) -> pd.DataFrame:
                     if pd.notna(_div_rate) and pd.notna(_shares):
                         divs = abs(_div_rate * _shares)
                     else:
-                        divs = 0  # truly unknown; assume full retention
+                        divs = np.nan  # truly unknown; NaN instead of assuming full retention
                 else:
                     divs = abs(_divs_raw)
-                ret = max(0, 1 - divs / ni) if ni > 0 else 0
-                rec["sustainable_growth"] = roe * ret
+                if pd.isna(divs):
+                    rec["sustainable_growth"] = np.nan  # Can't compute without dividend data
+                else:
+                    ret = max(0, 1 - divs / ni) if ni > 0 else 0
+                    rec["sustainable_growth"] = roe * ret
             else:
                 rec["sustainable_growth"] = np.nan
         except Exception as e:
@@ -731,8 +749,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series) -> pd.DataFrame:
                 if age_days > stale_days:
                     rec["_stale_data"] = True
                     warnings.warn(f"{ticker}: financial data is {age_days} days old (>{stale_days}d)")
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"{ticker}: data freshness check failed: {e}")
 
         records.append(rec)
 
@@ -919,6 +937,18 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict):
 # =========================================================================
 # K. Rank stocks
 # =========================================================================
+def compute_factor_correlation(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute cross-metric Spearman rank correlation matrix.
+
+    Returns a DataFrame of correlations between percentile-ranked metrics.
+    Useful for detecting double-counting (e.g. EV/EBITDA ~ EV/Sales).
+    """
+    pct_cols = [f"{m}_pct" for m in METRIC_COLS if f"{m}_pct" in df.columns]
+    if not pct_cols:
+        return pd.DataFrame()
+    return df[pct_cols].corr(method="spearman").round(3)
+
+
 def rank_stocks(df: pd.DataFrame):
     df["Rank"] = df["Composite"].rank(ascending=False, method="min").astype(int)
     return df.sort_values("Rank").reset_index(drop=True)
@@ -965,9 +995,12 @@ def write_excel(df: pd.DataFrame, cfg: dict) -> str:
 # =========================================================================
 # M. Write scored DataFrame to cache Parquet
 # =========================================================================
-def write_scores_parquet(df: pd.DataFrame) -> str:
+def write_scores_parquet(df: pd.DataFrame, config_hash: str | None = None) -> str:
     today = datetime.now().strftime("%Y%m%d")
-    path = CACHE_DIR / f"factor_scores_{today}.parquet"
+    if config_hash:
+        path = CACHE_DIR / f"factor_scores_{config_hash}_{today}.parquet"
+    else:
+        path = CACHE_DIR / f"factor_scores_{today}.parquet"
     keep = [c for c in df.columns if not c.startswith("_")]
     df[keep].to_parquet(str(path), index=False)
     return str(path)

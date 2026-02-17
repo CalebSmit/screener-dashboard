@@ -32,6 +32,9 @@ from factor_engine import (
 )
 
 # Approximate S&P 500 sector weights (%)
+# Source: S&P Dow Jones Indices, as of ~Q1 2025. These are approximate
+# and should be updated periodically. Used for sector concentration caps
+# in portfolio construction — NOT for scoring/ranking.
 SPX_SECTOR_WEIGHTS = {
     "Information Technology": 30.0,
     "Financials": 14.0,

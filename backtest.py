@@ -166,10 +166,11 @@ def _recompute_momentum_risk(prices_df: pd.DataFrame, month_end: pd.Timestamp,
     else:
         result["return_12_1"] = np.nan
 
-    # 6-month return
+    # 6-1 month return (exclude most recent month for consistency with 12-1M)
     if len(series) >= 7:
         p_6m_ago = series.iloc[-7]
-        result["return_6m"] = (latest - p_6m_ago) / p_6m_ago if p_6m_ago > 0 else np.nan
+        p_1m_ago = series.iloc[-2]
+        result["return_6m"] = (p_1m_ago - p_6m_ago) / p_6m_ago if p_6m_ago > 0 else np.nan
     else:
         result["return_6m"] = np.nan
 
@@ -553,17 +554,27 @@ def run_value_trap_comparison(monthly_scores: dict,
 # =========================================================================
 # F. Output & diagnostics
 # =========================================================================
+_BACKTEST_DISCLAIMER = (
+    "# DISCLAIMER: ILLUSTRATIVE ONLY — NOT REPRESENTATIVE OF ACHIEVABLE PERFORMANCE\n"
+    "# This backtest uses current financial data and today's index constituents applied\n"
+    "# retroactively. Survivorship bias and look-ahead bias are present.\n"
+    "# Fundamental scores (Valuation, Quality, Growth, Revisions) are held constant from\n"
+    "# the most recent snapshot. Only Momentum and Risk are recomputed monthly.\n"
+    "# Do NOT use these results for strategy validation or investor marketing.\n"
+)
+
+
 def write_outputs(decile_perf: dict, ic_summary: pd.DataFrame,
                   ic_df: pd.DataFrame, vtf: pd.DataFrame):
-    """Write all three CSV files."""
-    # 1. Decile performance
-    decile_perf.to_csv(VALIDATION_DIR / "backtest_results.csv", index=False)
-
-    # 2. IC time series
-    ic_df.to_csv(VALIDATION_DIR / "factor_ic_timeseries.csv", index=False)
-
-    # 3. Value trap comparison
-    vtf.to_csv(VALIDATION_DIR / "value_trap_comparison.csv", index=False)
+    """Write all three CSV files with disclaimers."""
+    for path, df in [
+        (VALIDATION_DIR / "backtest_results.csv", decile_perf),
+        (VALIDATION_DIR / "factor_ic_timeseries.csv", ic_df),
+        (VALIDATION_DIR / "value_trap_comparison.csv", vtf),
+    ]:
+        with open(path, "w", newline="") as f:
+            f.write(_BACKTEST_DISCLAIMER)
+            df.to_csv(f, index=False)
 
 
 def print_summary(bt_result, decile_perf_df, ic_summary, vtf_df,

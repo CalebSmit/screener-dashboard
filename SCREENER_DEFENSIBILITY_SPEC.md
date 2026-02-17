@@ -50,7 +50,7 @@ Rationale: Price momentum is one of the most robust anomalies in finance (Jegade
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
 | **12-1 Month Return** | 50% | `(Price_1m_ago - Price_12m_ago) / Price_12m_ago` | Classic momentum signal. Skips the most recent month to avoid short-term reversal contamination. |
-| **6-Month Return** | 50% | `(Price_current - Price_6m_ago) / Price_6m_ago` | Medium-term momentum. **Known limitation:** Currently includes the most recent month (should be 6-1M for consistency). |
+| **6-1 Month Return** | 50% | `(Price_1m_ago - Price_6m_ago) / Price_6m_ago` | Medium-term momentum. Uses 6-1M convention (excludes most recent month) for consistency with 12-1M and to avoid short-term reversal contamination. |
 
 ### 1.5 Risk (Weight: 10%)
 
@@ -236,12 +236,14 @@ Revisions:  EPS Revision 40, EPS Est Change 35, Analyst Surprise 25
 
 ## 6. Reproducibility Requirements
 
-### 6.1 Current State (Gaps)
-- No run_id is generated
-- No config snapshot is saved per run
-- No raw data is preserved
-- No intermediate tables are saved
-- No code versioning (not a git repo)
+### 6.1 Current State
+- Run_id generated (UUID4) per pipeline run via `RunContext`
+- Config snapshot saved as `runs/{run_id}/config.yaml`
+- 5 intermediate Parquet artifacts saved per run (raw, winsorized, percentiles, category scores, final)
+- Universe and effective weights saved per run
+- Structured JSON logging with per-ticker timing
+- Git repo initialized with pinned dependencies
+- Config-aware caching (cache includes config hash in filename)
 
 ### 6.2 Required (Phase 1 Implementation)
 Each run must produce:
@@ -268,10 +270,14 @@ Each run must produce:
 - **Wikipedia S&P 500 list may be stale.** The list reflects the most recent index rebalance and may not match the official S&P Dow Jones list exactly.
 
 ### 7.2 Methodological Limitations
-- **Factor weights are heuristic, not optimized.** They reflect reasonable priors, not backtested optimal values.
-- **Sector-relative ranking with small sectors is noisy.** Sectors with < 25 stocks (e.g., Materials, Real Estate) produce less reliable percentile rankings.
-- **Momentum and value factors can conflict.** In regime transitions, the composite may produce confusing rankings.
+- **Factor weights are heuristic, not optimized.** They reflect reasonable priors, not backtested optimal values. This is intentional — optimized weights would be overfit to historical data.
+- **Sector-relative ranking with small sectors is noisy.** Sectors with < 25 stocks (e.g., Materials, Real Estate) produce less reliable percentile rankings. Sectors with < 3 valid values for a metric receive the neutral 50th percentile.
+- **Momentum and value factors can conflict.** In regime transitions, the composite may produce confusing rankings. Factor weights are static and do not adapt to market regimes.
 - **No transaction cost modeling in ranking.** The screener does not account for liquidity, market impact, or trading costs.
+- **Factor correlation / double-counting.** Within-category metrics are correlated: EV/EBITDA ~ EV/Sales (both use EV), Volatility ~ Beta (~0.6-0.8 empirically), 12-1M ~ 6-1M momentum (~6 months overlap). Effective independent factors are ~8-10 rather than 17. A correlation matrix is computed at runtime via `compute_factor_correlation()` for transparency.
+- **EV time mismatch.** Enterprise Value uses current market cap (real-time) combined with balance sheet debt/cash from the most recent annual filing — up to 12 months stale. Standard for live screening but not point-in-time safe.
+- **PEG ratio input opacity.** The `earningsGrowth` field from yfinance `.info` is a black-box — it may be trailing or forward-looking, and its definition varies. The PEG ratio should be treated as approximate.
+- **Value trap filter uses OR logic.** Any single floor breach (quality < 30th, momentum < 30th, or revisions < 30th percentile) triggers the flag. A stock with excellent quality but poor momentum will be flagged. This is documented in config.yaml.
 
 ### 7.3 What This Screener Is NOT
 - It is NOT a recommendation to buy or sell any security

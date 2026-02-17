@@ -60,6 +60,11 @@ sector_neutral:
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
 # Value Trap Filters
+# Logic: OR — a stock is flagged if ANY single floor is breached.
+# This means a stock with excellent quality but poor momentum WILL be flagged.
+# Rationale: a single severe weakness can indicate a value trap even if other
+# dimensions look attractive. For AND logic (all floors breached), set
+# quality/momentum/revisions to 0 for the dimensions you want to ignore.
 value_trap_filters:
   enabled: true
   quality_floor_percentile: 30  # Exclude bottom 30% quality
