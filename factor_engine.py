@@ -285,17 +285,39 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         if np.isnan(rec["dividendsPaid"]):
             rec["dividendsPaid"]      = _stmt_val(cf, "Dividends Paid")
 
+        # ---- data freshness: record most recent filing date ----
+        try:
+            for stmt_name, stmt_obj in [("financials", fins), ("balance_sheet", bs), ("cashflow", cf)]:
+                if stmt_obj is not None and not stmt_obj.empty:
+                    most_recent = stmt_obj.columns[0]
+                    rec[f"_stmt_date_{stmt_name}"] = str(most_recent.date()) if hasattr(most_recent, "date") else str(most_recent)
+        except Exception:
+            pass
+
         # ---- price history (13 months for 12-1 momentum) ----
         try:
             hist = t.history(period="13mo", auto_adjust=True)
             if hist is not None and len(hist) >= 10:
                 closes = hist["Close"].dropna()
                 daily_ret = np.log(closes / closes.shift(1)).dropna()
-                rec["price_latest"]   = float(closes.iloc[-1])
-                rec["price_1m_ago"]   = float(closes.iloc[-22]) if len(closes) >= 22 else np.nan
-                rec["price_6m_ago"]   = float(closes.iloc[-126]) if len(closes) >= 126 else np.nan
-                rec["price_12m_ago"]  = float(closes.iloc[-252]) if len(closes) >= 252 else np.nan
-                rec["volatility_1y"]  = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
+                rec["price_latest"] = float(closes.iloc[-1])
+
+                # Calendar-based lookback: find the closest trading day
+                # to each target date instead of using fixed index offsets
+                # (iloc[-22] ≈ 1 month but varies with holidays).
+                last_date = closes.index[-1]
+                for label, delta_days in [("price_1m_ago", 30),
+                                          ("price_6m_ago", 182),
+                                          ("price_12m_ago", 365)]:
+                    target = last_date - pd.Timedelta(days=delta_days)
+                    # Find the closest trading day on or before the target
+                    mask = closes.index <= target
+                    if mask.any():
+                        rec[label] = float(closes.loc[mask].iloc[-1])
+                    else:
+                        rec[label] = np.nan
+
+                rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
                 rec["_daily_returns"] = {
                     dt.strftime("%Y-%m-%d"): v
                     for dt, v in zip(daily_ret.index, daily_ret.values)
@@ -591,8 +613,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series) -> pd.DataFrame:
                 n_testable += 1; f += int((gp_v/rev_c) > (gp_p/rev_p))
             if all(pd.notna(x) for x in [rev_c, rev_p, ta, ta_p]) and ta > 0 and ta_p > 0:
                 n_testable += 1; f += int((rev_c/ta) > (rev_p/ta_p))
-            # Normalize to 0-9 scale based on available signals
-            rec["piotroski_f_score"] = round((f / n_testable) * 9, 2) if n_testable >= 4 else np.nan
+            # Use raw integer score (0-9).  Do NOT proportionally normalize —
+            # a company that passes 7 of 7 testable signals is NOT the same
+            # quality as one passing 9 of 9; it simply has less data.
+            rec["piotroski_f_score"] = f if n_testable >= 4 else np.nan
 
             # 9. Accruals
             rec["accruals"] = ((ni - ocfv) / ta) if (pd.notna(ni) and pd.notna(ocfv) and pd.notna(ta) and ta > 0) else np.nan
@@ -643,10 +667,9 @@ def compute_metrics(raw_data: list, market_returns: pd.Series) -> pd.DataFrame:
             p1m = d.get("price_1m_ago", np.nan)
             rec["return_12_1"] = ((p1m - p12) / p12) if (pd.notna(p12) and pd.notna(p1m) and p12 > 0) else np.nan
 
-            # 14. 6-Month Return
+            # 14. 6-1 Month Return (exclude most recent month to match 12-1M convention)
             p6m = d.get("price_6m_ago", np.nan)
-            pnow = d.get("price_latest", np.nan)
-            rec["return_6m"] = ((pnow - p6m) / p6m) if (pd.notna(p6m) and pd.notna(pnow) and p6m > 0) else np.nan
+            rec["return_6m"] = ((p1m - p6m) / p6m) if (pd.notna(p6m) and pd.notna(p1m) and p6m > 0) else np.nan
         except Exception as e:
             warnings.warn(f"{ticker}: momentum metrics failed: {e}")
 
@@ -696,6 +719,20 @@ def compute_metrics(raw_data: list, market_returns: pd.Series) -> pd.DataFrame:
             rec["eps_estimate_change"] = np.nan
         except Exception as e:
             warnings.warn(f"{ticker}: revisions metrics failed: {e}")
+
+        # -- Data freshness check --
+        try:
+            stale_days = 400  # Flag if most recent filing is > 400 days old
+            stmt_date_str = d.get("_stmt_date_financials")
+            if stmt_date_str:
+                stmt_date = pd.Timestamp(stmt_date_str)
+                age_days = (pd.Timestamp.now() - stmt_date).days
+                rec["_stmt_age_days"] = age_days
+                if age_days > stale_days:
+                    rec["_stale_data"] = True
+                    warnings.warn(f"{ticker}: financial data is {age_days} days old (>{stale_days}d)")
+        except Exception:
+            pass
 
         records.append(rec)
 
@@ -785,9 +822,16 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict):
         for m in metrics:
             pc = f"{m}_pct"
             w = ws.get(m, 0) / 100.0
-            if pc in df.columns:
-                df[col] += df[pc].fillna(50) * w
-                tw += w
+            if pc not in df.columns:
+                continue
+            # Skip metrics that are entirely NaN (placeholder / unavailable)
+            # so their weight is redistributed to metrics with real data.
+            if df[pc].isna().all() or (df[pc] == 50.0).all():
+                # Check if the underlying raw metric is entirely NaN
+                if m in df.columns and df[m].isna().all():
+                    continue  # truly unavailable — skip entirely
+            df[col] += df[pc].fillna(50) * w
+            tw += w
         if tw > 0 and abs(tw - 1.0) > 0.01:
             df[col] /= tw
     return df

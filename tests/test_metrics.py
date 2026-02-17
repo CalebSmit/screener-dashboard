@@ -159,16 +159,14 @@ class TestEarningsYield:
         assert abs(row["earnings_yield"] - 0.05) < 0.001
 
     def test_negative_eps(self):
-        """Currently: negative EPS → NaN (audit finding #14)."""
+        """Negative EPS → negative earnings yield (not NaN).
+
+        Value investors need to see that a company is unprofitable.
+        Masking negative yields as NaN (→ 50th percentile) would
+        silently boost loss-making companies' valuation scores.
+        """
         row = _compute_one(_make_rec(trailingEps=-3.0, currentPrice=100.0))
-        # Current behavior: NaN (because code checks nothing about sign,
-        # but eps=-3, price=100 → -3/100 = -0.03, which IS computed)
-        # Actually let's verify what actually happens:
-        if np.isnan(row["earnings_yield"]):
-            pass  # Current NaN behavior
-        else:
-            # If negative EPS produces a negative yield, that's also acceptable
-            assert row["earnings_yield"] < 0
+        assert abs(row["earnings_yield"] - (-0.03)) < 0.001
 
     def test_zero_price(self):
         row = _compute_one(_make_rec(currentPrice=0))
@@ -268,7 +266,7 @@ class TestDebtEquity:
 
 class TestPiotroskiFScore:
     def test_all_passing(self):
-        """All 9 signals testable and passing → score 9."""
+        """All 9 signals testable and passing → raw score 9."""
         row = _compute_one(_make_rec(
             netIncome=10e9, netIncome_prior=9e9,
             operatingCashFlow=14e9,
@@ -280,10 +278,33 @@ class TestPiotroskiFScore:
             grossProfit=25e9, grossProfit_prior=22e9,
             totalRevenue=50e9, totalRevenue_prior=45e9,
         ))
-        # NI > 0 ✓, OCF > 0 ✓, ROA↑ ✓, OCF > NI ✓, LTD/TA↓ ✓,
-        # CR↑ (25/15 > 23/14) ✓, Shares↓ ✓, GM↑ ✓, ATO↑ ✓
-        # All 9 pass → (9/9)*9 = 9.0
-        assert row["piotroski_f_score"] == 9.0
+        assert row["piotroski_f_score"] == 9
+
+    def test_partial_data_not_inflated(self):
+        """5 of 5 testable signals pass → raw score 5 (NOT 9).
+
+        Old proportional normalization would have returned (5/5)*9 = 9.0,
+        falsely equating partial data with perfect quality.
+        """
+        row = _compute_one(_make_rec(
+            netIncome=10e9,
+            operatingCashFlow=14e9,
+            # These 3 are testable: NI>0 ✓, OCF>0 ✓, OCF>NI ✓
+            # Need at least 4 testable; add shares test
+            sharesBS=1e9, sharesBS_prior=1.02e9,
+            # And revenue/assets for ATO
+            totalRevenue=50e9, totalRevenue_prior=45e9,
+            totalAssets=80e9, totalAssets_prior=75e9,
+            # Disable remaining signals
+            netIncome_prior=np.nan,  # ROA change untestable (need both NI periods)
+            longTermDebt=np.nan, longTermDebt_prior=np.nan,
+            currentAssets=np.nan, currentAssets_prior=np.nan,
+            currentLiabilities=np.nan, currentLiabilities_prior=np.nan,
+            grossProfit=np.nan, grossProfit_prior=np.nan,
+        ))
+        # Testable: NI>0 ✓, OCF>0 ✓, OCF>NI ✓, Shares↓ ✓, ATO↑ ✓ = 5 of 5
+        # Raw score = 5 (not 9)
+        assert row["piotroski_f_score"] == 5
 
     def test_insufficient_data(self):
         """Fewer than 4 testable signals → NaN."""
@@ -298,6 +319,12 @@ class TestPiotroskiFScore:
             grossProfit=np.nan, grossProfit_prior=np.nan,
         ))
         assert np.isnan(row["piotroski_f_score"])
+
+    def test_is_integer(self):
+        """F-Score should be an integer (not a float like 6.43)."""
+        row = _compute_one(_make_rec())
+        if not np.isnan(row["piotroski_f_score"]):
+            assert row["piotroski_f_score"] == int(row["piotroski_f_score"])
 
 
 class TestAccruals:
@@ -422,12 +449,24 @@ class TestReturn12_1:
 
 class TestReturn6M:
     def test_normal(self):
-        row = _compute_one(_make_rec(price_latest=100.0, price_6m_ago=85.0))
-        expected = (100 - 85) / 85
+        """6-1M return: (price_1m_ago - price_6m_ago) / price_6m_ago."""
+        row = _compute_one(_make_rec(price_1m_ago=98.0, price_6m_ago=85.0))
+        expected = (98 - 85) / 85
+        assert abs(row["return_6m"] - expected) < 0.001
+
+    def test_excludes_recent_month(self):
+        """6-1M convention excludes the most recent month (uses p1m, not pnow)."""
+        row = _compute_one(_make_rec(price_latest=110.0, price_1m_ago=98.0, price_6m_ago=85.0))
+        expected = (98 - 85) / 85  # Should use p1m=98, NOT pnow=110
         assert abs(row["return_6m"] - expected) < 0.001
 
     def test_missing_6m(self):
         row = _compute_one(_make_rec(price_6m_ago=np.nan))
+        assert np.isnan(row["return_6m"])
+
+    def test_missing_1m(self):
+        """Missing price_1m_ago → NaN (needed for 6-1M calculation)."""
+        row = _compute_one(_make_rec(price_1m_ago=np.nan, price_6m_ago=85.0))
         assert np.isnan(row["return_6m"])
 
 
