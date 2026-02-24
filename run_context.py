@@ -22,9 +22,10 @@ import json
 import logging
 import platform
 import shutil
+import subprocess
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -40,7 +41,7 @@ class _JSONFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         entry = {
-            "ts": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "level": record.levelname,
             "module": record.module,
             "func": record.funcName,
@@ -96,13 +97,18 @@ class RunContext:
         return path
 
     def config_hash(self, cfg: dict) -> str:
-        """Compute a deterministic hash of scoring-relevant config keys."""
+        """Compute a deterministic hash of scoring-relevant config keys.
+
+        Includes 'universe' so that two runs with different excluded tickers
+        or different market-cap thresholds produce different cache keys.
+        """
         relevant = {
             "factor_weights": cfg.get("factor_weights", {}),
             "metric_weights": cfg.get("metric_weights", {}),
             "data_quality": cfg.get("data_quality", {}),
             "sector_neutral": cfg.get("sector_neutral", {}),
             "value_trap_filters": cfg.get("value_trap_filters", {}),
+            "universe": cfg.get("universe", {}),
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]
@@ -147,6 +153,7 @@ class RunContext:
             "start_time": self.start_time.isoformat(),
             "end_time": end_time.isoformat(),
             "elapsed_seconds": round((end_time - self.start_time).total_seconds(), 1),
+            "git_sha": _get_git_sha(),
             "python_version": sys.version,
             "platform": platform.platform(),
             "packages": _get_package_versions(),
@@ -158,6 +165,21 @@ class RunContext:
             json.dump(meta, f, indent=2, default=str)
         self.log.info("Run metadata saved", extra={"run_id": self.run_id})
         return path
+
+
+def _get_git_sha() -> str:
+    """Get the current git commit SHA, or 'unknown' if not in a git repo."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+            cwd=str(ROOT),
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return "unknown"
 
 
 def _get_package_versions() -> dict:

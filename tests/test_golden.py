@@ -40,6 +40,7 @@ COMPARE_COLS = (
     + METRIC_COLS
     + ["valuation_score", "quality_score", "growth_score",
        "momentum_score", "risk_score", "revisions_score",
+       "size_score", "investment_score",
        "Composite", "Rank"]
 )
 

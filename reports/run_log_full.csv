@@ -1,0 +1,18 @@
+#,Time,Type,Duration,Operation,Caller,Status,Details
+1,21:24:00,INIT,2031 ms (2.0s),Import factor_engine module,run_audit.py:run_instrumented_pipeline:76,OK,
+2,21:24:00,INIT,15 ms (0.015s),Load config.yaml,run_audit.py:run_instrumented_pipeline:91,OK,
+3,21:24:00,INIT,0 ms (0.000s),Parse CLI / set test tickers,run_audit.py:run_instrumented_pipeline:96,OK,"tickers=['AAPL', 'JPM', 'JNJ', 'XOM', 'AMZN']"
+4,21:24:01,INIT,265 ms (0.265s),Load S&P 500 universe from Wikipedia/fallback,run_audit.py:run_instrumented_pipeline:100,OK,
+5,21:24:01,INIT,13 ms (0.013s),Filter universe to 5 test tickers,run_audit.py:run_instrumented_pipeline:104,OK,
+6,21:24:01,CALC,7 ms (0.007s),Generate sample data for 5 tickers,run_audit.py:run_instrumented_pipeline:133,OK,
+7,21:24:01,CALC,38 ms (0.038s),Coverage filter (min_data_coverage_pct),run_audit.py:run_instrumented_pipeline:179,OK,
+8,21:24:01,CALC,0 ms (0.000s),Check revisions coverage / auto-disable,run_audit.py:run_instrumented_pipeline:200,OK,
+9,21:24:01,CALC,2 ms (0.002s),Winsorize metrics at 1st/99th percentiles,run_audit.py:run_instrumented_pipeline:220,OK,
+10,21:24:01,CALC,208 ms (0.208s),Compute sector-relative percentile ranks,run_audit.py:run_instrumented_pipeline:224,OK,
+11,21:24:01,CALC,42 ms (0.042s),Compute within-category scores (6 categories),run_audit.py:run_instrumented_pipeline:228,OK,
+12,21:24:01,CALC,10 ms (0.010s),Compute composite scores (weighted category average),run_audit.py:run_instrumented_pipeline:232,OK,
+13,21:24:01,CALC,8 ms (0.008s),Apply value trap flags (2-of-3 majority logic),run_audit.py:run_instrumented_pipeline:236,OK,
+14,21:24:01,CALC,3 ms (0.003s),Rank stocks by composite score,run_audit.py:run_instrumented_pipeline:240,OK,
+15,21:24:01,CALC,9 ms (0.009s),Compute factor correlation matrix (Spearman),run_audit.py:run_instrumented_pipeline:244,OK,
+16,21:24:01,INIT,0 ms (0.000s),Pipeline complete — preparing reports,run_audit.py:run_instrumented_pipeline:248,OK,scored=5 tickers
+17,21:24:01,WRITE,11 ms (0.011s),Flush run log to CSV/MD/HTML,run_audit.py:main:889,OK,path=C:\Users\Caleb\OneDrive - Dordt University\Desktop\Screener-1\reports

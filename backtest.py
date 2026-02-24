@@ -281,10 +281,14 @@ def _monthly_forward_returns(prices_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _assign_deciles(scores: pd.Series, n_deciles: int = 10) -> pd.Series:
-    """Assign decile labels (1 = worst, 10 = best) based on composite score."""
-    # Use labels=False to avoid label/bin count mismatch when duplicates are dropped
-    return pd.qcut(scores, q=n_deciles, labels=False,
-                   duplicates="drop") + 1
+    """Assign decile labels (1 = worst, 10 = best) based on composite score.
+
+    Uses rank-based assignment to guarantee exactly n_deciles bins.
+    pd.qcut with duplicates="drop" can silently produce fewer bins
+    when tied values fall on quantile boundaries, causing deciles 9-10
+    to have zero members and biasing their returns toward zero.
+    """
+    return np.ceil(scores.rank(pct=True, method="first") * n_deciles).clip(1, n_deciles).astype(int)
 
 
 def run_decile_backtest(monthly_scores: dict, forward_returns: pd.DataFrame,
@@ -555,12 +559,18 @@ def run_value_trap_comparison(monthly_scores: dict,
 # F. Output & diagnostics
 # =========================================================================
 _BACKTEST_DISCLAIMER = (
+    "# ===========================================================================\n"
     "# DISCLAIMER: ILLUSTRATIVE ONLY — NOT REPRESENTATIVE OF ACHIEVABLE PERFORMANCE\n"
-    "# This backtest uses current financial data and today's index constituents applied\n"
-    "# retroactively. Survivorship bias and look-ahead bias are present.\n"
-    "# Fundamental scores (Valuation, Quality, Growth, Revisions) are held constant from\n"
-    "# the most recent snapshot. Only Momentum and Risk are recomputed monthly.\n"
+    "# ===========================================================================\n"
+    "# This backtest has TWO KNOWN BIASES:\n"
+    "#   1. SURVIVORSHIP BIAS: Uses today's S&P 500 constituents throughout.\n"
+    "#      Companies that went bankrupt or were removed are excluded.\n"
+    "#   2. LOOK-AHEAD BIAS: Fundamental scores (Valuation, Quality, Growth,\n"
+    "#      Revisions — 75% of factor weight) are held constant from the latest\n"
+    "#      snapshot. These were NOT available at historical rebalance dates.\n"
+    "# Estimated return inflation: 2-6% annualized. Sharpe inflation: 0.3-0.6.\n"
     "# Do NOT use these results for strategy validation or investor marketing.\n"
+    "# ===========================================================================\n"
 )
 
 
@@ -675,7 +685,42 @@ def print_summary(bt_result, decile_perf_df, ic_summary, vtf_df,
 # =========================================================================
 # MAIN
 # =========================================================================
+_BIAS_WARNING = """
+================================================================================
+                      BACKTEST BIAS DISCLOSURE
+================================================================================
+This backtest has TWO KNOWN BIASES that make results unreliable for strategy
+validation or performance claims:
+
+  1. SURVIVORSHIP BIAS: Uses today's S&P 500 constituents for all historical
+     periods. Companies that went bankrupt, were acquired, or were removed
+     from the index are excluded — inflating apparent returns.
+
+  2. LOOK-AHEAD BIAS: Fundamental scores (Valuation, Quality, Growth,
+     Revisions) are held constant from the latest snapshot. These data were
+     NOT available at each historical rebalance date.
+
+Results are for MODEL VALIDATION ONLY (factor monotonicity, IC stability,
+value trap filter effectiveness). They do NOT represent achievable live
+trading performance.
+
+To acknowledge these biases and proceed, re-run with:
+    python backtest.py --confirm-biases
+================================================================================
+"""
+
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Multi-Factor Backtest")
+    parser.add_argument("--confirm-biases", action="store_true",
+                        help="Acknowledge survivorship and look-ahead biases")
+    args = parser.parse_args()
+
+    if not args.confirm_biases:
+        print(_BIAS_WARNING)
+        return
+
     t0 = time.time()
 
     # ---- Load config & universe ----
@@ -702,7 +747,7 @@ def main():
     print(f"  Loaded {len(base_scores)} scored tickers from {scores_path.name}")
 
     # Check revisions coverage and auto-disable if needed
-    rev_m = ["analyst_surprise", "eps_revision_ratio", "eps_estimate_change"]
+    rev_m = ["analyst_surprise", "price_target_upside"]
     rev_avail = sum(base_scores[c].notna().sum() for c in rev_m if c in base_scores.columns)
     rev_total = len(base_scores) * len(rev_m)
     rev_pct = rev_avail / rev_total * 100 if rev_total else 0

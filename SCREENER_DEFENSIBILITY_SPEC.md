@@ -1,6 +1,6 @@
 # SCREENER DEFENSIBILITY SPEC
-**Version:** 1.0
-**Date:** 2026-02-17
+**Version:** 1.1
+**Date:** 2026-02-22
 **Status:** DRAFT — pending owner review
 
 ---
@@ -9,41 +9,41 @@
 
 Each factor below exists to capture a distinct dimension of stock attractiveness. Together, they form a multi-factor model that diversifies across well-documented equity return premia.
 
-### 1.1 Valuation (Weight: 25%)
+### 1.1 Valuation (Weight: 22%)
 
 Rationale: Value stocks (cheap relative to fundamentals) have historically outperformed over long horizons (Fama & French 1992, 1993).
 
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
-| **EV/EBITDA** | 25% | `Enterprise Value / EBITDA` | Capital-structure-neutral valuation; preferred over P/E for cross-sector comparability because it removes the effect of leverage and tax differences |
+| **EV/EBITDA** | 25% | `Enterprise Value / (EBIT + D&A)` where D&A is from cashflow; falls back to reported EBITDA if D&A unavailable | Capital-structure-neutral valuation; EBITDA is recomputed from components (EBIT + D&A) for consistency, as yfinance's reported EBITDA can include non-operating items |
 | **FCF Yield** | 40% | `(Operating Cash Flow - CapEx) / Enterprise Value` | Cash-based valuation; resistant to accounting manipulation. Highest weight because cash flow is the most reliable indicator of intrinsic value. |
 | **Earnings Yield** | 20% | `Trailing EPS / Current Price` | Inverse of P/E; directly comparable across stocks. Uses trailing (realized) earnings, not estimates. |
 | **EV/Sales** | 15% | `Enterprise Value / Total Revenue` | Revenue-based valuation; useful for loss-making or early-stage companies where earnings-based metrics are unavailable. Lowest weight because it ignores margins entirely. |
 
-### 1.2 Quality (Weight: 25%)
+### 1.2 Quality (Weight: 22%)
 
 Rationale: High-quality companies (profitable, low leverage, strong fundamentals) command a premium and experience lower drawdowns (Novy-Marx 2013, Asness et al. 2019).
 
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
-| **ROIC** | 30% | `EBIT × (1 - tax_rate) / (Equity + Debt - Cash)` | Measures management's ability to deploy capital profitably. Tax rate = actual (clamped 0-50%) or 21% default. |
+| **ROIC** | 30% | `EBIT × (1 - tax_rate) / IC` where IC = Equity + Debt_BS - ExcessCash; ExcessCash = min(max(0, Cash - 2%×Rev), 50%×Cash); IC = max(IC, 10%×TotalAssets) | Measures management's ability to deploy capital profitably. Tax rate: actual effective rate (clamped 0-50%) when pretax > 0; **0% when pretax ≤ 0** (tax-loss position — no fictional tax charge); 21% default when both pretax and tax expense are missing. Excess cash capped at 50% of total cash; IC floored at 10% of total assets to prevent denominator collapse. |
 | **Gross Profit / Assets** | 25% | `Gross Profit / Total Assets` | Novy-Marx quality factor; closer to "economic profitability" than net margin because it's above operating expenses. |
-| **Debt/Equity** | 20% | `Total Debt / Stockholders' Equity` | Leverage risk; lower is better. Set to 999.0 for negative equity (distress signal). |
+| **Debt/Equity** | 20% | `Total Debt (balance sheet) / Stockholders' Equity` | Leverage risk; lower is better. Uses balance sheet debt (not info dict) for temporal consistency with equity. NaN for negative equity (distress signal). |
 | **Piotroski F-Score** | 15% | 9 binary signals scored 0-9 | Composite financial health indicator covering profitability, leverage, liquidity, and operating efficiency (Piotroski 2000). |
 | **Accruals** | 10% | `(Net Income - OCF) / Total Assets` | Earnings quality; lower accruals = more cash-backed earnings = higher quality (Sloan 1996). |
 
-### 1.3 Growth (Weight: 15%)
+### 1.3 Growth (Weight: 13%)
 
 Rationale: Earnings and revenue growth are priced by markets. Forward growth expectations (when reliable) add information beyond trailing metrics.
 
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
-| **Forward EPS Growth** | 35% | `(Forward EPS - Trailing EPS) / \|Trailing EPS\|` | Consensus-based forward-looking growth. Highest weight because forward estimates incorporate market expectations. |
-| **PEG Ratio** | 20% | `(Price / Trailing EPS) / (Earnings Growth % × 100)` | Valuation-adjusted growth; identifies growth at a reasonable price. |
+| **Forward EPS Growth** | 35% | `(Forward EPS - Trailing EPS) / max(\|Trailing EPS\|, $1.00)`, clamped to [-75%, +150%] | Consensus-based forward-looking growth. Denominator floored at $1.00. Clamp tightened from 300% to 150% to prevent GAAP/non-GAAP EPS mismatches from distorting PEG ratios. |
+| **PEG Ratio** | 20% | `(Price / Trailing EPS) / (Forward EPS Growth % × 100)` | Valuation-adjusted growth; identifies growth at a reasonable price. Benefits from the tightened FEG clamp. |
 | **Revenue Growth** | 30% | `(Revenue_TTM - Revenue_Prior) / Revenue_Prior` | Top-line growth; harder to manipulate than earnings growth. |
-| **Sustainable Growth** | 15% | `ROE × (1 - Dividend Payout Ratio)` | Internally funded growth capacity; companies that can grow without external financing. |
+| **Sustainable Growth** | 15% | `ROE × (1 - Payout Ratio)`, clamped to [0%, 100%]. ROE uses avg equity (current + prior year). Payout ratio prefers `payoutRatio` from info; falls back to `dividendsPaid/netIncome`. | Internally funded growth capacity; companies that can grow without external financing. Average equity smooths year-to-year balance sheet swings. |
 
-### 1.4 Momentum (Weight: 15%)
+### 1.4 Momentum (Weight: 13%)
 
 Rationale: Price momentum is one of the most robust anomalies in finance (Jegadeesh & Titman 1993). The 12-1 month window is standard.
 
@@ -67,11 +67,30 @@ Rationale: Upward revisions in analyst estimates predict future outperformance (
 
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
-| **Analyst Surprise** | 25% (100% effective) | `mean((Actual EPS - Estimate) / \|Estimate\|)` over last 4 quarters | Measures whether the company consistently beats expectations. |
-| **EPS Revision Ratio** | 40% (NOT IMPLEMENTED) | Placeholder — always NaN | **Requires institutional data source (IBES/FactSet).** |
-| **EPS Estimate Change** | 35% (NOT IMPLEMENTED) | Placeholder — always NaN | **Requires institutional data source (IBES/FactSet).** |
+| **Analyst Surprise** | 40% | `median((Actual EPS - Estimate) / max(\|Estimate\|, $0.10))` over last 4 quarters | Measures whether the company consistently beats expectations. Hardest backward-looking signal. |
+| **Price Target Upside** | 20% | `(Mean Target Price - Current Price) / Current Price`, clamped [-50%, +100%] | Forward-looking analyst sentiment. |
+| **Earnings Acceleration** | 20% | Delta between most recent and prior quarter surprise %. Continuous, winsorized. | Captures improving/deteriorating trajectory of beats. |
+| **Beat Score** | 20% | Recency-weighted beat score: each of last 4 quarters weighted by recency (Q1=1..Q4=4). Range 0-10. | Captures consistency and recency of beats. |
 
-**Auto-disable rule:** If <30% of the universe has any revisions data, the entire category weight (10%) is redistributed proportionally to the other 5 categories.
+**Auto-disable rule:** If <30% of the universe has any revisions data, the entire category weight (10%) is redistributed proportionally to the other categories.
+
+### 1.7 Size (Weight: 5%)
+
+Rationale: The Fama-French SMB factor captures the historical tendency for smaller companies to outperform larger ones (Fama & French 1993).
+
+| Metric | Weight | Formula | Why It Exists |
+|--------|--------|---------|---------------|
+| **Log Market Cap** | 100% | `-log(marketCap)` | Smaller companies get higher values. Within S&P 500, creates a mild mid-cap tilt. |
+
+### 1.8 Investment (Weight: 5%)
+
+Rationale: The Fama-French CMA factor captures the tendency for conservative-investment firms to outperform aggressive ones.
+
+| Metric | Weight | Formula | Why It Exists |
+|--------|--------|---------|---------------|
+| **Asset Growth** | 100% | `(Total Assets_yr0 - Total Assets_yr1) / Total Assets_yr1` | Lower asset growth = conservative investment = higher score. Uses annual balance sheet data. |
+
+**Auto-disable rule:** If <30% of the universe has asset growth data, the category weight is redistributed.
 
 ---
 
@@ -93,27 +112,40 @@ Each ticker fetch must produce the following fields. Types and acceptable ranges
 | `sharesOutstanding` | float | yf.info | > 0 | No |
 | `earningsGrowth` | float | yf.info | any | No |
 | `dividendRate` | float | yf.info | >= 0 | No |
-| `totalRevenue` | float | financials[0] | > 0 | Yes |
-| `totalRevenue_prior` | float | financials[1] | > 0 | No |
-| `grossProfit` | float | financials[0] | any | Yes (for quality) |
-| `ebit` | float | financials[0] | any | Yes (for ROIC) |
-| `ebitda` | float | financials[0] | any | Yes (for valuation) |
-| `netIncome` | float | financials[0] | any | Yes |
-| `incomeTaxExpense` | float | financials[0] | any | No |
-| `pretaxIncome` | float | financials[0] | any | No |
-| `totalAssets` | float | balance_sheet[0] | > 0 | Yes |
-| `totalEquity` | float | balance_sheet[0] | any | Yes (for ROIC, D/E) |
-| `longTermDebt` | float | balance_sheet[0] | >= 0 | No |
-| `currentAssets` | float | balance_sheet[0] | >= 0 | No |
-| `currentLiabilities` | float | balance_sheet[0] | >= 0 | No |
-| `operatingCashFlow` | float | cashflow[0] | any | Yes |
-| `capex` | float | cashflow[0] | any (usually negative) | Yes |
-| `dividendsPaid` | float | cashflow[0] | any (usually negative) | No |
+| `totalRevenue` | float | LTM: sum(quarterly_financials[0:4]) | > 0 | Yes |
+| `totalRevenue_prior` | float | Prior-year LTM: sum(quarterly_financials[4:8]) | > 0 | No |
+| `grossProfit` | float | LTM: sum(quarterly_financials[0:4]) | any | Yes (for quality) |
+| `ebit` | float | LTM: sum(quarterly_financials[0:4]) | any | Yes (for ROIC) |
+| `ebitda` | float | LTM: sum(quarterly_financials[0:4]) | any | Yes (for valuation) |
+| `netIncome` | float | LTM: sum(quarterly_financials[0:4]) | any | Yes |
+| `incomeTaxExpense` | float | LTM: sum(quarterly_financials[0:4]) | any | No |
+| `pretaxIncome` | float | LTM: sum(quarterly_financials[0:4]) | any | No |
+| `totalAssets` | float | MRQ: quarterly_balance_sheet[0] | > 0 | Yes |
+| `totalEquity` | float | MRQ: quarterly_balance_sheet[0] | any | Yes (for ROIC, D/E) |
+| `longTermDebt` | float | MRQ: quarterly_balance_sheet[0] | >= 0 | No |
+| `currentAssets` | float | MRQ: quarterly_balance_sheet[0] | >= 0 | No |
+| `currentLiabilities` | float | MRQ: quarterly_balance_sheet[0] | >= 0 | No |
+| `operatingCashFlow` | float | LTM: sum(quarterly_cashflow[0:4]) | any | Yes |
+| `capex` | float | LTM: sum(quarterly_cashflow[0:4]) | any (usually negative) | Yes |
+| `dividendsPaid` | float | LTM: sum(quarterly_cashflow[0:4]) | any (usually negative) | No |
+| `da_cf` | float | LTM: sum(quarterly_cashflow[0:4]) | >= 0 | No (fallback: reported EBITDA) |
+| `totalEquity_prior` | float | Year-ago MRQ: quarterly_balance_sheet[4] | any | No (fallback: current equity) |
+| `payoutRatio` | float | yf.info | [0, 2.0] | No (fallback: dividendsPaid/NI) |
 | Daily Close prices | Series[float] | history("13mo") | > 0, length >= 200 | Yes |
 | `epsActual` | float | earnings_history | any | No |
 | `epsEstimate` | float | earnings_history | any | No |
 
-### 2.2 Field Naming Convention
+### 2.2 Data Frequency: LTM / MRQ
+
+All financial statement data uses **quarterly** filings from yfinance for maximum freshness:
+
+- **Flow metrics** (income statement + cash flow): **LTM** = sum of the 4 most recent quarterly filings. This reduces data staleness from up to 12 months (annual filings) to at most 3 months.
+- **Balance sheet items**: **MRQ** (Most Recent Quarter) = col=0 of `quarterly_balance_sheet`. Prior-period balance sheet items use col=4 (same quarter one year ago).
+- **Prior-period comparisons**: Revenue growth, asset growth, and Piotroski YoY signals compare current LTM/MRQ against prior-year LTM (quarters 4-7) or year-ago MRQ (col=4).
+- **Partial data**: If only 3 of 4 quarters are available for LTM, the sum is annualized as `sum × (4/3)`. If fewer than 3 quarters are available, the field returns NaN.
+- **Annual fallback**: If quarterly financial statements are entirely unavailable for a ticker (e.g., foreign ADRs, very recent IPOs), the screener falls back to annual filings.
+
+### 2.3 Field Naming Convention
 - Raw yfinance fields use camelCase (e.g., `marketCap`, `trailingEps`)
 - Computed metrics use snake_case (e.g., `ev_ebitda`, `fcf_yield`)
 - Prior-period fields have `_prior` suffix (e.g., `totalRevenue_prior`)
@@ -156,8 +188,8 @@ To achieve point-in-time safety, the system would need:
 
 | Scenario | Rule | Rationale |
 |----------|------|-----------|
-| Individual metric is NaN | Assign 50th percentile for that metric's sector rank | Conservative neutral assumption; does not reward or penalize |
-| Sector has < 3 valid values for a metric | All stocks in sector get 50th percentile for that metric | Insufficient data for meaningful ranking |
+| Individual metric is NaN | Left as NaN; weight redistributed to available metrics within the category | Honest handling — missing data contributes 0 weight, not a fake 50th percentile |
+| Sector has < 10 valid values for a metric | Fall back to universe-wide percentile ranking for that metric | Insufficient data for meaningful within-sector ranking; universe-wide is more informative than a flat 50th percentile |
 | Stock has < 60% of metrics populated | **Exclude from scoring** | Insufficient coverage for reliable composite |
 | Revisions category < 30% coverage universe-wide | **Auto-disable category**, redistribute weight | Prevents noise from dominating the composite |
 
@@ -167,7 +199,7 @@ To achieve point-in-time safety, the system would need:
 |------|--------|------------|-------------|
 | 1. Winsorization | `scipy.stats.mstats.winsorize` | limits=(0.01, 0.01) | Before percentile ranking; requires >= 10 non-NaN values |
 | 2. Percentile ranking | `pd.rank(pct=True)` within sector | - | Inherently robust to remaining outliers |
-| 3. Debt/Equity sentinel | Set to 999.0 if equity <= 0 | - | At metric computation time |
+| 3. Debt/Equity negative equity | NaN (negative equity = financial distress) | - | At metric computation time |
 
 ### 4.3 Negative Denominator Rules
 
@@ -179,10 +211,11 @@ To achieve point-in-time safety, the system would need:
 | Earnings Yield | Price | NaN (should not occur) |
 | EV/Sales | Revenue | NaN |
 | EV/Sales | EV | NaN |
-| ROIC | Invested Capital | NaN |
-| ROIC | Pretax Income (for tax rate) | Use default 21% tax rate |
+| ROIC | Invested Capital (after 50% cash cap + 10% TA floor) | NaN |
+| ROIC | Pretax Income ≤ 0 (tax-loss) | Use 0% tax rate (no fictional tax on losses) |
+| ROIC | Pretax Income missing (NaN) | Use default 21% tax rate |
 | Gross Profit/Assets | Total Assets | NaN |
-| Debt/Equity | Equity | Set to 999.0 (distress) |
+| Debt/Equity | Equity | NaN (negative equity = financial distress) |
 | Piotroski | Various | Signal marked as untestable |
 | Accruals | Total Assets | NaN |
 | Forward EPS Growth | Trailing EPS | NaN if |trail| < 0.01 |
@@ -197,35 +230,37 @@ To achieve point-in-time safety, the system would need:
 ## 5. Scoring Methodology
 
 ### 5.1 Pipeline Steps (in order)
-1. **Compute raw metrics** (17 metrics from yfinance data)
+1. **Compute raw metrics** (17 generic + 4 bank-specific metrics from yfinance data)
 2. **Winsorize** at 1st/99th percentiles per metric (universe-wide)
 3. **Sector-relative percentile rank** per metric (within each GICS Sector)
 4. **Weighted category scores** = Σ(metric_pct × metric_weight) per category
-5. **Composite score** = Σ(category_score × category_weight), min-max scaled to [0, 100]
-6. **Value trap flags** = OR(quality < 30th pctile, momentum < 30th pctile, revisions < 30th pctile)
+5. **Composite score** = Σ(category_score × category_weight) with per-row weight redistribution for NaN categories, then percentile-ranked to [0, 100]
+6. **Value trap flags** = 2-of-3 majority: flagged if at least 2 of (quality < 30th pctile, momentum < 30th pctile, revisions < 30th pctile)
 7. **Final ranking** by Composite descending (ties use "min" method)
 
 ### 5.2 Weight Configuration
 
 **Factor Weights** (sum to 100):
 ```
-Valuation: 25  |  Quality: 25  |  Growth: 15  |  Momentum: 15  |  Risk: 10  |  Revisions: 10
+Valuation: 22  |  Quality: 22  |  Growth: 13  |  Momentum: 13  |  Risk: 10  |  Revisions: 10  |  Size: 5  |  Investment: 5
 ```
 
 **Metric Weights** (each category sums to 100):
 ```
-Valuation:  FCF Yield 40, EV/EBITDA 25, Earnings Yield 20, EV/Sales 15
-Quality:    ROIC 30, GP/Assets 25, Debt/Equity 20, Piotroski 15, Accruals 10
-Growth:     Forward EPS 35, Revenue Growth 30, PEG 20, Sustainable Growth 15
-Momentum:   12-1M Return 50, 6M Return 50
+Valuation:  FCF Yield 40, EV/EBITDA 25 (EBIT+D&A), Earnings Yield 20, EV/Sales 15
+Quality:    ROIC 30 (50% cash cap, 10% TA floor, 0% tax for losses), GP/Assets 25, Debt/Equity 20 (BS debt), Piotroski 15, Accruals 10
+Growth:     Forward EPS 35 (clamp [-75%,+150%]), Revenue Growth 30, PEG 20, Sustainable Growth 15 (avg equity, SGR [0%,100%])
+Momentum:   12-1M Return 50, 6-1M Return 50
 Risk:       Volatility 60, Beta 40
-Revisions:  EPS Revision 40, EPS Est Change 35, Analyst Surprise 25
+Revisions:  Analyst Surprise 40, Price Target Upside 20, Earnings Acceleration 20, Beat Score 20
+Size:       -log(Market Cap) 100
+Investment: Asset Growth 100
 ```
 
 ### 5.3 Normalization Justification
 - **Why percentile ranking?** Rank-based scoring is robust to outliers and non-normal distributions. Raw z-scores would be dominated by extreme values even after winsorization.
 - **Why sector-relative?** Different sectors have structurally different metric distributions (e.g., Financials have higher D/E than Tech). Sector-relative ranking ensures fair comparison.
-- **Why min-max final scaling?** Converts the composite to an intuitive 0-100 scale for portfolio construction and display.
+- **Why percentile-rank final scaling?** Converts the weighted composite to a 0-100 scale via `rank(pct=True) * 100`. Unlike min-max scaling, percentile ranking is robust to a single extreme composite pulling the entire scale.
 
 ### 5.4 Tie-Breaking
 - Ranking uses `method="min"`: tied scores receive the same rank, next rank is skipped.
@@ -261,25 +296,106 @@ Each run must produce:
 
 ---
 
-## 7. Disclaimers & Limitations
+## 7. Defensibility & Transparency Features
 
-### 7.1 Data Source Limitations
+### 7.1 Weight Sensitivity Analysis
+
+**Purpose:** Demonstrate that the portfolio output is robust to reasonable changes in factor weights — a key requirement for any defensible quantitative process.
+
+**Implementation:**
+- After scoring, each factor category weight is perturbed ±5% (one at a time, others renormalized to sum to 100)
+- The composite score is recomputed for each perturbation
+- **Jaccard similarity** of the top-20 portfolio (perturbed vs. baseline) is calculated: `|intersection| / |union|`
+- Results: one row per category showing upward and downward Jaccard values
+
+**Interpretation:**
+| Jaccard | Assessment |
+|---------|-----------|
+| ≥ 0.85 | **Robust** — small weight changes barely affect the portfolio |
+| 0.70–0.84 | **Moderate** — some sensitivity, acceptable for most purposes |
+| < 0.70 | **Sensitive** — the ranking depends heavily on this factor's exact weight |
+
+**Output:** Excel "WeightSensitivity" sheet with color-coded Jaccard values (green ≥ 0.85, yellow 0.70–0.84, red < 0.70).
+
+### 7.2 EPS Basis Mismatch Detection
+
+**Purpose:** Flag stocks where the forward EPS growth and PEG ratio metrics may be unreliable due to GAAP vs. normalized (non-GAAP) EPS inconsistency.
+
+**Problem:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus EPS. For companies with large non-cash charges, write-downs, or unrealized gains, the ratio between these can produce misleading growth signals.
+
+**Implementation:**
+- For each stock, compute `eps_ratio = forwardEps / trailingEps`
+- If `|trailingEps| > $0.10` and `eps_ratio > 2.0` or `eps_ratio < 0.3`: set `_eps_basis_mismatch = True`
+- The `_eps_ratio` field stores the raw ratio for inspection
+
+**Output:**
+- `_eps_basis_mismatch` boolean column in scored data
+- `_eps_ratio` float column
+- Highlighted in the DataValidation Excel sheet
+- Console summary printed during pipeline run (count + example tickers)
+
+### 7.3 Factor Correlation Matrix
+
+**Purpose:** Quantify and make transparent the degree of overlap (double-counting) between factor categories.
+
+**Implementation:**
+- Spearman rank correlation computed between all pairs of `*_score` columns (8×8 matrix)
+- Known structural correlations: EV/EBITDA ~ EV/Sales (both use EV), Volatility ~ Beta (~0.6-0.8), 12-1M ~ 6-1M momentum (~6 months overlap)
+
+**Interpretation:**
+| Correlation | Assessment |
+|-------------|-----------|
+| > 0.80 | **High overlap** (red) — these factors may be measuring the same thing |
+| 0.60–0.80 | **Moderate overlap** (orange) — some shared signal |
+| < 0.60 | **Acceptable** — factors capture distinct information |
+
+**Output:** Excel "FactorCorrelation" sheet with color-coded correlation values. The effective number of independent factors is typically 5-6 rather than the nominal 8.
+
+### 7.4 Data Provenance
+
+**Purpose:** Per-stock transparency about data source and completeness.
+
+**Implementation:**
+- `_data_source`: origin of the data ("yfinance", "cache", "sample")
+- `_metric_count`: number of the 18 core metrics that have valid (non-NaN) values
+- `_metric_total`: total possible core metrics (always 18)
+
+**Use:** Low `_metric_count` stocks (e.g., < 12/18) are scored on fewer signals, making their composite less reliable even if they pass the 60% coverage filter.
+
+### 7.5 DataValidation Sheet
+
+**Purpose:** Enable manual verification of the screener's top picks against external sources (Bloomberg, SEC filings, company investor relations).
+
+**Implementation:**
+- Top 10 portfolio stocks displayed with raw financial values: market cap, total revenue, net income, trailing EPS, forward EPS, current price, and key computed metrics
+- Three types of issues are highlighted:
+  1. **EPS basis mismatch** — `_eps_basis_mismatch = True` (GAAP vs. normalized discrepancy)
+  2. **Stale data** — price target data that may be outdated
+  3. **EV discrepancy** — stocks flagged by EV cross-validation (`_ev_flag`)
+
+**Output:** Excel "DataValidation" sheet with conditional formatting highlighting flagged values.
+
+---
+
+## 8. Disclaimers & Limitations
+
+### 8.1 Data Source Limitations
 - **yfinance is an unofficial Yahoo Finance API.** It has no SLA, no guaranteed uptime, and data may be delayed or incorrect. Yahoo Finance is not a Bloomberg or FactSet-grade data source.
 - **Financial statements from yfinance may lag.** Some companies may show data from 12+ months ago if they have not yet filed their annual report.
 - **Analyst data is sparse.** Only ~40% of S&P 500 tickers have earnings history available through yfinance. The EPS revision and estimate change metrics are not available.
 - **Wikipedia S&P 500 list may be stale.** The list reflects the most recent index rebalance and may not match the official S&P Dow Jones list exactly.
 
-### 7.2 Methodological Limitations
+### 8.2 Methodological Limitations
 - **Factor weights are heuristic, not optimized.** They reflect reasonable priors, not backtested optimal values. This is intentional — optimized weights would be overfit to historical data.
 - **Sector-relative ranking with small sectors is noisy.** Sectors with < 25 stocks (e.g., Materials, Real Estate) produce less reliable percentile rankings. Sectors with < 3 valid values for a metric receive the neutral 50th percentile.
 - **Momentum and value factors can conflict.** In regime transitions, the composite may produce confusing rankings. Factor weights are static and do not adapt to market regimes.
 - **No transaction cost modeling in ranking.** The screener does not account for liquidity, market impact, or trading costs.
-- **Factor correlation / double-counting.** Within-category metrics are correlated: EV/EBITDA ~ EV/Sales (both use EV), Volatility ~ Beta (~0.6-0.8 empirically), 12-1M ~ 6-1M momentum (~6 months overlap). Effective independent factors are ~8-10 rather than 17. A correlation matrix is computed at runtime via `compute_factor_correlation()` for transparency.
-- **EV time mismatch.** Enterprise Value uses current market cap (real-time) combined with balance sheet debt/cash from the most recent annual filing — up to 12 months stale. Standard for live screening but not point-in-time safe.
-- **PEG ratio input opacity.** The `earningsGrowth` field from yfinance `.info` is a black-box — it may be trailing or forward-looking, and its definition varies. The PEG ratio should be treated as approximate.
-- **Value trap filter uses OR logic.** Any single floor breach (quality < 30th, momentum < 30th, or revisions < 30th percentile) triggers the flag. A stock with excellent quality but poor momentum will be flagged. This is documented in config.yaml.
+- **Factor correlation / double-counting.** Within-category metrics are correlated: EV/EBITDA ~ EV/Sales (both use EV), Volatility ~ Beta (~0.6-0.8 empirically), 12-1M ~ 6-1M momentum (~6 months overlap). Effective independent factors are ~8-10 rather than 17. A Spearman correlation matrix is computed at runtime and written to the "FactorCorrelation" Excel sheet (see §7.3) for transparency.
+- **EV time mismatch.** Enterprise Value uses current market cap (real-time) combined with balance sheet debt/cash from MRQ (most recent quarterly filing) — up to 3 months stale (reduced from up to 12 months with annual data). Standard for live screening but not point-in-time safe. **Mitigated by cross-validation:** API-provided EV is checked against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials, whose "debt" includes deposits) are auto-corrected and flagged (`_ev_flag`).
+- **PEG ratio input dependency.** PEG is computed from `forward_eps_growth`, which itself derives from `forwardEps` and `trailingEps`. GAAP/non-GAAP mismatches in these fields can produce misleading PEG values despite the [-75%, +150%] FEG clamp. **Mitigated by EPS Basis Mismatch Detection** (see §7.2): stocks with `forwardEps/trailingEps` ratio > 2.0× or < 0.3× are flagged for manual review.
+- **Value trap filter uses 2-of-3 majority logic.** A stock is flagged only if at least 2 of 3 conditions are met (quality < 30th, momentum < 30th, or revisions < 30th percentile). This is more balanced than OR logic, which flagged ~60% of the universe.
 
-### 7.3 What This Screener Is NOT
+### 8.3 What This Screener Is NOT
 - It is NOT a recommendation to buy or sell any security
 - It is NOT a substitute for professional financial advice
 - It is NOT point-in-time safe for historical backtesting

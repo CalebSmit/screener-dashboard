@@ -36,7 +36,7 @@ from factor_engine import (
 # and should be updated periodically. Used for sector concentration caps
 # in portfolio construction — NOT for scoring/ranking.
 SPX_SECTOR_WEIGHTS = {
-    "Information Technology": 30.0,
+    "Information Technology": 29.0,
     "Financials": 14.0,
     "Health Care": 12.0,
     "Consumer Discretionary": 10.0,
@@ -47,7 +47,7 @@ SPX_SECTOR_WEIGHTS = {
     "Utilities": 3.0,
     "Real Estate": 2.0,
     "Materials": 2.0,
-}
+}  # Sum = 100%
 
 # Category score column names as produced by factor_engine
 CATEGORY_SCORE_COLS = {
@@ -57,6 +57,8 @@ CATEGORY_SCORE_COLS = {
     "Momentum": "momentum_score",
     "Risk": "risk_score",
     "Revisions": "revisions_score",
+    "Size": "size_score",
+    "Investment": "investment_score",
 }
 
 
@@ -86,6 +88,17 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 
     work = df.copy()
 
+    # --- Step 0: Exclude value-trap-flagged stocks (unless flag_only) ---
+    vtf = cfg.get("value_trap_filters", {})
+    flag_only = vtf.get("flag_only", True)
+    if not flag_only and "Value_Trap_Flag" in work.columns:
+        work = work[~work["Value_Trap_Flag"]].copy()
+
+    # --- Step 0b: Exclude growth-trap-flagged stocks (unless flag_only) ---
+    gtf = cfg.get("growth_trap_filters", {})
+    if not gtf.get("flag_only", True) and "Growth_Trap_Flag" in work.columns:
+        work = work[~work["Growth_Trap_Flag"]].copy()
+
     # --- Step 1: Universe filter ---
     # Exclude stocks with Composite < 50th percentile
     median_composite = work["Composite"].median()
@@ -95,6 +108,13 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     present = [c for c in METRIC_COLS if c in work.columns]
     work["_metric_coverage"] = work[present].notna().sum(axis=1) / len(present)
     work = work[work["_metric_coverage"] >= 0.60].copy()
+
+    # --- Step 1b: Liquidity filter ---
+    min_adv = float(pcfg.get("min_avg_dollar_volume", 10e6))
+    if "avg_daily_dollar_volume" in work.columns and min_adv > 0:
+        illiquid = (work["avg_daily_dollar_volume"].lt(min_adv)
+                    | work["avg_daily_dollar_volume"].isna())
+        work = work[~illiquid].copy()
 
     # --- Step 2: Rank & select top N ---
     work = work.sort_values("Composite", ascending=False).reset_index(drop=True)
@@ -159,7 +179,10 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # Equal weight
     port["Equal_Weight_Pct"] = round(100.0 / n, 2) if n > 0 else 0
 
-    # Risk-parity weight: 1/vol_i normalized
+    # "Risk parity" weight: inverse-volatility (1/vol_i) normalized.
+    # NOTE: This is NOT true risk parity (Bridgewater/Dalio style), which
+    # requires a full covariance matrix. This is inverse-volatility weighting,
+    # a simpler heuristic that tilts toward lower-volatility holdings.
     vol_col = "volatility"
     if vol_col in port.columns and port[vol_col].notna().any():
         med_vol = port[vol_col].median()
@@ -355,9 +378,20 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
         ("valuation_score", "Val_Pct"), ("quality_score", "Qual_Pct"),
         ("growth_score", "Grow_Pct"), ("momentum_score", "Mom_Pct"),
         ("risk_score", "Risk_Pct"), ("revisions_score", "Rev_Pct"),
+        ("size_score", "Size_Pct"), ("investment_score", "Invest_Pct"),
         ("Composite", "Composite"), ("Rank", "Rank"),
+        ("valuation_contrib", "Val_Contrib"), ("quality_contrib", "Qual_Contrib"),
+        ("growth_contrib", "Grow_Contrib"), ("momentum_contrib", "Mom_Contrib"),
+        ("risk_contrib", "Risk_Contrib"), ("revisions_contrib", "Rev_Contrib"),
+        ("size_contrib", "Size_Contrib"), ("investment_contrib", "Invest_Contrib"),
         ("Value_Trap_Flag", "Value_Trap_Flag"),
+        ("Growth_Trap_Flag", "Growth_Trap_Flag"),
+        ("Financial_Sector_Caveat", "Fin_Caveat"),
+        ("_is_bank_like", "Is_Bank"),
     ]
+
+    # Contribution columns use a distinct fill to visually separate them
+    contrib_fill = PatternFill(start_color="E8F0FE", end_color="E8F0FE", fill_type="solid")
 
     # Header
     for c, (_, header) in enumerate(col_map, 1):
@@ -371,12 +405,17 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
             if isinstance(v, float) and np.isnan(v):
                 v = None
             elif src in ("valuation_score", "quality_score", "growth_score",
-                         "momentum_score", "risk_score", "revisions_score"):
+                         "momentum_score", "risk_score", "revisions_score",
+                         "size_score", "investment_score"):
                 v = round(v, 1) if pd.notna(v) else None
+            elif src.endswith("_contrib"):
+                v = round(v, 2) if pd.notna(v) else None
             cell = ws.cell(row=r, column=c, value=v)
             cell.font = DATA_FONT
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center" if c > 3 else "left")
+            if src.endswith("_contrib"):
+                cell.fill = contrib_fill
 
     _auto_width(ws)
     return ws
@@ -625,12 +664,197 @@ def write_model_portfolio_sheet(wb: Workbook, port: pd.DataFrame, stats: dict):
     return ws
 
 
+# ---- Sheet 4: WeightSensitivity ----
+def write_weight_sensitivity_sheet(wb: Workbook, sens_df: pd.DataFrame):
+    """Write weight sensitivity analysis results."""
+    if sens_df is None or sens_df.empty:
+        return
+    ws = wb.create_sheet("WeightSensitivity")
+
+    headers = ["Category", "Direction", "Orig Weight", "Perturbed Weight",
+               "Top-20 Unchanged", "Top-20 Changed", "Jaccard Similarity",
+               "Changed Tickers"]
+    for c, h in enumerate(headers, 1):
+        ws.cell(row=1, column=c, value=h)
+    _style_header_row(ws, 1, len(headers))
+
+    # Summary interpretation row
+    ws.cell(row=2, column=1, value="INTERPRETATION:")
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    ws.cell(row=2, column=1).font = Font(italic=True, size=9, color="666666")
+    ws.cell(row=2, column=1).value = (
+        "Jaccard ≥ 0.85 = robust (top-20 is stable). "
+        "Jaccard < 0.70 = sensitive (weight choice materially affects picks). "
+        "Perturbation = ±5% of category weight, others scaled proportionally.")
+
+    src_cols = ["category", "direction", "original_weight", "perturbed_weight",
+                "top_n_unchanged", "top_n_changed", "jaccard_similarity",
+                "changed_tickers"]
+    for r, (_, row) in enumerate(sens_df.iterrows(), 3):
+        for c, col in enumerate(src_cols, 1):
+            v = row.get(col)
+            cell = ws.cell(row=r, column=c, value=v)
+            cell.font = DATA_FONT
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center" if c < 8 else "left")
+            # Color-code Jaccard
+            if col == "jaccard_similarity" and pd.notna(v):
+                if v >= 0.85:
+                    cell.fill = PatternFill("solid", fgColor="C6EFCE")  # green
+                elif v < 0.70:
+                    cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red
+                else:
+                    cell.fill = PatternFill("solid", fgColor="FFEB9C")  # yellow
+
+    _auto_width(ws)
+
+
+# ---- Sheet 5: FactorCorrelation ----
+def write_factor_correlation_sheet(wb: Workbook, corr_df: pd.DataFrame):
+    """Write cross-metric Spearman correlation matrix."""
+    if corr_df is None or corr_df.empty:
+        return
+    ws = wb.create_sheet("FactorCorrelation")
+
+    # Clean up column names for display (remove _pct suffix)
+    display_names = [c.replace("_pct", "") for c in corr_df.columns]
+
+    # Header row
+    ws.cell(row=1, column=1, value="")
+    for c, name in enumerate(display_names, 2):
+        ws.cell(row=1, column=c, value=name)
+    _style_header_row(ws, 1, len(display_names) + 1)
+
+    # Row labels + data
+    for r, (idx, row_data) in enumerate(corr_df.iterrows(), 2):
+        label = str(idx).replace("_pct", "")
+        ws.cell(row=r, column=1, value=label)
+        ws.cell(row=r, column=1).font = Font(bold=True, size=9)
+        ws.cell(row=r, column=1).border = THIN_BORDER
+        for c, val in enumerate(row_data, 2):
+            cell = ws.cell(row=r, column=c)
+            if pd.notna(val):
+                cell.value = round(float(val), 3)
+                # Color-code: high correlation (>0.6) = orange, very high (>0.8) = red
+                abs_val = abs(float(val))
+                if abs_val > 0.99:  # diagonal
+                    cell.fill = PatternFill("solid", fgColor="D9D9D9")
+                elif abs_val > 0.8:
+                    cell.fill = PatternFill("solid", fgColor="FFC7CE")
+                elif abs_val > 0.6:
+                    cell.fill = PatternFill("solid", fgColor="FFEB9C")
+            cell.font = DATA_FONT
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center")
+
+    _auto_width(ws, min_width=6, max_width=12)
+
+    # Add interpretation note
+    note_row = len(corr_df) + 3
+    ws.cell(row=note_row, column=1, value="INTERPRETATION:")
+    ws.cell(row=note_row, column=1).font = Font(italic=True, size=9, color="666666")
+    ws.merge_cells(start_row=note_row, start_column=1,
+                   end_row=note_row, end_column=min(8, len(display_names) + 1))
+    ws.cell(row=note_row, column=1).value = (
+        "Spearman rank correlation between sector-relative percentile scores. "
+        "Red (>0.8) = high collinearity — these metrics measure nearly the same thing. "
+        "Orange (>0.6) = moderate overlap — intentional overlap is acceptable if documented.")
+
+
+# ---- Sheet 6: DataValidation (top-N with raw values + provenance) ----
+def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10):
+    """Write a validation sheet showing raw data for top-ranked stocks.
+
+    Purpose: allow the user to spot-check key values against Bloomberg/CapIQ
+    before acting on the screener output.
+    """
+    ws = wb.create_sheet("DataValidation")
+
+    # Title
+    ws.cell(row=1, column=1, value=f"TOP-{top_n} STOCKS — RAW DATA FOR MANUAL VERIFICATION")
+    ws.cell(row=1, column=1).font = Font(bold=True, size=11)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=12)
+
+    ws.cell(row=2, column=1, value=(
+        "Verify these values against Bloomberg, FactSet, or SEC filings before "
+        "acting on screener output. Flag any value that differs materially."))
+    ws.cell(row=2, column=1).font = Font(italic=True, size=9, color="666666")
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=12)
+
+    # Select top-N
+    top = df.nsmallest(top_n, "Rank") if "Rank" in df.columns else df.head(top_n)
+
+    # Columns to show for validation (raw values the user should verify)
+    val_cols = [
+        ("Ticker", "Ticker"),
+        ("Rank", "Rank"),
+        ("Composite", "Composite"),
+        ("_data_source", "Data Source"),
+        ("_metric_count", "Metrics Available"),
+        ("_metric_total", "Metrics Total"),
+        ("_eps_basis_mismatch", "EPS Mismatch?"),
+        ("_eps_ratio", "Fwd/Trail EPS Ratio"),
+        ("ev_ebitda", "EV/EBITDA (raw)"),
+        ("fcf_yield", "FCF Yield (raw)"),
+        ("earnings_yield", "Earnings Yield (raw)"),
+        ("roic", "ROIC (raw)"),
+        ("debt_equity", "D/E (raw)"),
+        ("forward_eps_growth", "Fwd EPS Growth (raw)"),
+        ("revenue_growth", "Rev Growth (raw)"),
+        ("return_12_1", "12-1M Return (raw)"),
+        ("volatility", "Volatility (raw)"),
+        ("beta", "Beta (raw)"),
+        ("analyst_surprise", "Analyst Surprise (raw)"),
+        ("_current_price", "Price"),
+        ("_target_mean", "Analyst Target"),
+        ("_num_analysts", "# Analysts"),
+        ("_stale_data", "Stale Data?"),
+        ("_ev_flag", "EV Discrepancy"),
+    ]
+
+    # Headers
+    for c, (_, header) in enumerate(val_cols, 1):
+        ws.cell(row=3, column=c, value=header)
+    _style_header_row(ws, 3, len(val_cols))
+
+    # Data
+    for r, (_, row) in enumerate(top.iterrows(), 4):
+        for c, (src, _) in enumerate(val_cols, 1):
+            v = row.get(src)
+            if isinstance(v, float) and np.isnan(v):
+                v = None
+            cell = ws.cell(row=r, column=c, value=v)
+            cell.font = DATA_FONT
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center" if c > 1 else "left")
+            # Highlight EPS mismatch
+            if src == "_eps_basis_mismatch" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFEB9C")  # yellow warning
+            # Highlight stale data
+            if src == "_stale_data" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red warning
+            # Highlight EV discrepancy
+            if src == "_ev_flag" and v is not None and v is not False:
+                cell.fill = PatternFill("solid", fgColor="FFEB9C")
+            # Format percentages
+            if src in ("fcf_yield", "earnings_yield", "roic", "forward_eps_growth",
+                       "revenue_growth", "return_12_1", "analyst_surprise"):
+                if v is not None:
+                    cell.number_format = '0.00%'
+            if src == "volatility" and v is not None:
+                cell.number_format = '0.00%'
+
+    _auto_width(ws)
+
+
 # =========================================================================
-# Full Excel writer — 3 sheets
+# Full Excel writer — 6 sheets
 # =========================================================================
 def write_full_excel(df: pd.DataFrame, port: pd.DataFrame,
-                     stats: dict, cfg: dict) -> str:
-    """Write factor_output.xlsx with 3 sheets.
+                     stats: dict, cfg: dict,
+                     sens_df: pd.DataFrame = None,
+                     corr_df: pd.DataFrame = None) -> str:
+    """Write factor_output.xlsx with up to 6 sheets.
 
     Raises PermissionError if file is locked (handled by run_screener.py).
     """
@@ -645,6 +869,17 @@ def write_full_excel(df: pd.DataFrame, port: pd.DataFrame,
 
     # Sheet 3: ModelPortfolio
     write_model_portfolio_sheet(wb, port, stats)
+
+    # Sheet 4: WeightSensitivity (if available)
+    if sens_df is not None and not sens_df.empty:
+        write_weight_sensitivity_sheet(wb, sens_df)
+
+    # Sheet 5: FactorCorrelation (if available)
+    if corr_df is not None and not corr_df.empty:
+        write_factor_correlation_sheet(wb, corr_df)
+
+    # Sheet 6: DataValidation (always — top-10 raw values for spot-checking)
+    write_data_validation_sheet(wb, df, top_n=10)
 
     try:
         wb.save(str(out_path))
@@ -736,7 +971,7 @@ def main():
         df["Value_Trap_Flag"] = False
 
     # Check revisions coverage for config adjustment
-    rev_m = ["analyst_surprise", "eps_revision_ratio", "eps_estimate_change"]
+    rev_m = ["analyst_surprise", "price_target_upside"]
     rev_avail = sum(df[c].notna().sum() for c in rev_m if c in df.columns)
     rev_total = len(df) * len(rev_m)
     rev_pct = rev_avail / rev_total * 100 if rev_total else 0

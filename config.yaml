@@ -5,81 +5,169 @@
 universe:
   index: 'SP500'  # Options: 'SP500', 'R1000', 'R2000'
   min_market_cap: 2e9  # $2B minimum
-  min_avg_volume: 10e6  # $10M average daily volume
+  min_avg_volume: 10e6  # $10M average daily volume — NOT ENFORCED (no volume filter in pipeline)
   exclude_sectors: []  # e.g., ['Utilities'] to exclude a sector
   exclude_tickers: []  # e.g., ['BRK.B'] for manual exclusions
 
 # Factor Category Weights (must sum to 100)
+# Proportionally reduced from 6-factor (25/25/15/15/10/10) to accommodate Size + Investment
 factor_weights:
-  valuation: 25
-  quality: 25
-  growth: 15
-  momentum: 15
+  valuation: 22
+  quality: 22
+  growth: 13
+  momentum: 13
   risk: 10
   revisions: 10  # Set to 0 if analyst data unavailable
+  size: 5        # Fama-French SMB proxy; -log(market cap)
+  investment: 5  # Fama-French CMA proxy; YoY total asset growth
 
 # Within-Category Metric Weights (each category sums to 100)
+# Rationale: Weights reflect data reliability, research support, and
+# resistance to manipulation. Cash-flow metrics > accounting metrics.
 metric_weights:
   valuation:
-    ev_ebitda: 25
-    fcf_yield: 40
-    earnings_yield: 20
-    ev_sales: 15
+    ev_ebitda: 25      # Capital-structure-neutral; LTM EBIT + LTM D&A (quarterly cashflow)
+    fcf_yield: 40      # Highest: cash flow is hardest to manipulate
+    earnings_yield: 20 # Simple P/E inverse; well-understood but accrual-based
+    ev_sales: 15       # Lowest: ignores margins, but useful for loss-making firms
+    pb_ratio: 0        # Bank-only; active weight in bank_metric_weights
 
   quality:
-    roic: 30
-    gross_profit_assets: 25
-    debt_equity: 20
-    piotroski_f_score: 15
-    accruals: 10
+    roic: 30           # Highest: LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
+    gross_profit_assets: 25  # Novy-Marx quality factor; above operating expenses
+    debt_equity: 20    # Leverage risk; uses MRQ BS debt for temporal consistency
+    piotroski_f_score: 15  # Composite health; 9 binary signals
+    accruals: 10       # Earnings quality; Sloan 1996
+    roe: 0             # Bank-only; active weight in bank_metric_weights
+    roa: 0             # Bank-only
+    equity_ratio: 0    # Bank-only
 
   growth:
-    forward_eps_growth: 35
-    peg_ratio: 20
-    revenue_growth: 30
-    sustainable_growth: 15
+    forward_eps_growth: 35  # Highest: forward-looking consensus estimates
+    peg_ratio: 20      # Growth-adjusted valuation
+    revenue_growth: 30 # Top-line growth; harder to manipulate than earnings
+    sustainable_growth: 15  # LTM ROE(avg equity) × retention; SGR clamped [0%,100%]
 
   momentum:
-    return_12_1: 50
-    return_6m: 50
+    return_12_1: 50    # Classic Jegadeesh-Titman momentum signal
+    return_6m: 50      # Medium-term momentum; equal weight for diversification
 
   risk:
-    volatility: 60
-    beta: 40
+    volatility: 60     # Direct risk measure; higher weight than beta
+    beta: 40           # Systematic risk relative to market
 
   revisions:
-    eps_revision_ratio: 40
-    eps_estimate_change: 35
-    analyst_surprise: 25
+    analyst_surprise: 40       # Backward-looking: did company beat estimates? (was 65)
+    price_target_upside: 20   # Forward-looking: analyst consensus upside (was 35)
+    earnings_acceleration: 20  # NEW: most recent surprise % > prior quarter surprise %
+    consecutive_beat_streak: 20  # NEW: count of consecutive positive surprises (0-4)
+    # NOTE: EPS forecast revision (change in consensus FWD EPS over 3-6 months) would be
+    # ideal as a fifth metric here, but yfinance does not provide historical consensus data.
+    # Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.
+
+  size:
+    size_log_mcap: 100         # Single metric: -log(market cap). Small-cap premium (Fama-French SMB)
+
+  investment:
+    asset_growth: 100          # Single metric: YoY total asset growth. Conservative = better (Fama-French CMA)
+
+# Bank-Specific Metric Weights
+# Used INSTEAD OF generic weights for bank-like financial stocks
+# (banks, insurers, credit companies). Each category sums to 100.
+# Growth, momentum, risk, revisions use the generic weights above.
+bank_metric_weights:
+  valuation:
+    ev_ebitda: 0           # EV meaningless for banks
+    fcf_yield: 0           # Banks lack traditional CapEx
+    earnings_yield: 40     # P/E inverse; works for banks
+    ev_sales: 0            # EV meaningless for banks
+    pb_ratio: 60           # THE key bank valuation metric
+
+  quality:
+    roic: 0                # IC = deposits + equity; meaningless
+    gross_profit_assets: 0 # Banks don't have gross profit
+    debt_equity: 0         # Banks are supposed to be leveraged
+    piotroski_f_score: 15  # Partially applicable
+    accruals: 10           # Directionally valid
+    roe: 35                # THE key bank profitability metric
+    roa: 25                # Key bank efficiency metric
+    equity_ratio: 15       # Solvency (higher = more capital = safer)
+
+# Piotroski F-Score Conditional Weighting
+# When enabled, reduces Piotroski weight for stocks with LOW valuation scores
+# (i.e. expensive stocks — where F-Score has less predictive power) and
+# redistributes the freed weight to specified quality metrics.
+# Only affects non-bank stocks (bank quality weights are independent).
+piotroski_conditional:
+  enabled: true
+  valuation_threshold: 50        # Stocks with valuation_score < 50 get reduced F-Score weight
+  reduction_factor: 0.5          # Multiply Piotroski weight by this (0.5 = halve it)
+  redistribute_to:               # Freed weight goes equally to these metrics
+    - roic
+    - gross_profit_assets
+  growth_trap_enabled: true                          # NEW: also reduce Piotroski for growth-trap-like stocks
+  growth_trap_growth_threshold: 70                   # NEW: stocks above 70th pctile growth
+  growth_trap_quality_threshold: 35                  # NEW: AND below 35th pctile quality
+  growth_trap_redistribute_to:                       # NEW: freed weight goes to these instead
+    - accruals
+    - gross_profit_assets
+
+# Percentile Transform (optional non-linear rescaling)
+# When enabled, applies a logistic S-curve to percentile ranks, compressing
+# the middle and stretching the extremes. Default: disabled (no change).
+percentile_transform:
+  enabled: false          # Set true to activate the transform
+  method: 'logistic'      # Options: 'identity' (no-op), 'logistic' (S-curve)
+  logistic_steepness: 0.08  # Higher = sharper S-curve; 0.08 is moderate
 
 # Sector Neutrality
 sector_neutral:
   enabled: true
-  gics_level: 'Sector'  # Options: 'Sector' (11 groups) or 'IndustryGroup' (24 groups)
-  sector_cap_multiplier: 2.0  # Max 2x benchmark weight per sector
+  gics_level: 'Sector'  # Options: 'Sector' (11 groups) or 'IndustryGroup' (24 groups) — NOT ENFORCED
+  sector_cap_multiplier: 2.0  # Max 2x benchmark weight per sector — NOT ENFORCED
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
 # Value Trap Filters
-# Logic: OR — a stock is flagged if ANY single floor is breached.
-# This means a stock with excellent quality but poor momentum WILL be flagged.
-# Rationale: a single severe weakness can indicate a value trap even if other
-# dimensions look attractive. For AND logic (all floors breached), set
-# quality/momentum/revisions to 0 for the dimensions you want to ignore.
+# Logic: MAJORITY (2-of-3) — a stock is flagged if at least 2 of the 3
+# dimensions (quality, momentum, revisions) breach their floor percentile.
+# Rationale: OR logic (any 1 breach) flagged ~60% of the universe, which
+# was too aggressive. Majority logic catches stocks with genuinely broad
+# weakness while tolerating a single weak dimension.
 value_trap_filters:
   enabled: true
   quality_floor_percentile: 30  # Exclude bottom 30% quality
   momentum_floor_percentile: 30  # Exclude bottom 30% momentum
   revisions_floor_percentile: 30  # Exclude bottom 30% revisions
-  flag_only: true  # If true, flag but don't exclude (allow manual override)
+  flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
+
+# Growth Trap Filters
+# Logic: MAJORITY (2-of-3) — a stock is flagged if it has high growth but
+# at least 2 of the 3 dimensions (growth ceiling, quality floor, revisions floor)
+# breach their threshold. Catches "growth at any price" stocks.
+growth_trap_filters:
+  enabled: true
+  growth_ceiling_percentile: 70  # Flag stocks ABOVE 70th percentile growth
+  quality_floor_percentile: 35   # AND below 35th percentile quality
+  revisions_floor_percentile: 35 # AND below 35th percentile revisions
+  flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
 
 # Portfolio Construction
 portfolio:
   num_stocks: 25
-  weighting: 'equal'  # Options: 'equal', 'risk_parity'
+  weighting: 'equal'  # Options: 'equal', 'risk_parity' (inverse-volatility, NOT true risk parity)
   max_position_pct: 5.0
-  min_position_pct: 2.0
+  min_position_pct: 2.0  # NOT ENFORCED (equal/risk_parity weighting ignores this)
   max_sector_concentration: 8  # Max 8 stocks per sector
-  rebalance_frequency: 'quarterly'  # Options: 'monthly', 'quarterly'
+  rebalance_frequency: 'quarterly'  # Options: 'monthly', 'quarterly' — NOT ENFORCED (manual rebalance)
+  min_avg_dollar_volume: 10e6  # $10M minimum 63-day avg daily dollar volume (0 to disable)
+
+# Fetch Settings (rate-limit resilience)
+fetch:
+  batch_size: 30            # Tickers per batch (reduce to 10-15 if frequently rate-limited)
+  max_workers: 3            # Concurrent fetch threads per batch (reduce to 1 for conservative)
+  inter_batch_delay: 3.0    # Seconds between batches
+  retry_failed: true        # Re-fetch failed tickers in a second pass with conservative settings
+  retry_cooldown: 30        # Seconds to wait before retry pass
 
 # Data Caching
 caching:
@@ -92,8 +180,19 @@ caching:
 data_quality:
   winsorize_percentiles: [1, 99]  # Winsorize at 1st and 99th percentiles
   min_data_coverage_pct: 60  # Exclude stocks with < 60% of metrics available
-  max_missing_metrics: 6  # Out of ~15 total metrics
+  max_missing_metrics: 6  # Out of ~15 total metrics — NOT ENFORCED (coverage filter uses min_data_coverage_pct)
   metric_alert_threshold_pct: 50  # Warn if any metric is >50% missing
+  auto_reduce_nan_threshold_pct: 70  # Auto-zero weight for metrics with >70% NaN
+  stmt_val_strict: false  # Set true to track all _stmt_val() label misses in the DQ log
+  coverage_discount:
+    enabled: true
+    threshold: 0.80       # Below this metric coverage ratio, discount starts
+    penalty_rate: 0.15    # Composite reduced by (threshold - coverage) * penalty_rate
+
+# Metric Clamps — pre-winsorization bounds to prevent extreme values
+metric_clamps:
+  forward_eps_growth: [-0.75, 1.50]  # Tightened: 300% too loose — allows distorted PEG ratios
+  price_target_upside: [-0.50, 1.0]  # Unchanged — documents existing bounds
 
 # Output
 output:
