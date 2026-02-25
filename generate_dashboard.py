@@ -3703,56 +3703,101 @@ def _css() -> str:
             box-shadow: 0 4px 16px var(--accent-glow);
         }
         .methodology-content {
-            max-width: 860px;
+            max-width: 880px;
         }
         .methodology-body {
             font-family: var(--font-body);
             font-size: 14px;
-            line-height: 1.7;
+            line-height: 1.75;
             color: var(--text-primary);
             max-height: 70vh;
             overflow-y: auto;
+            padding-right: 8px;
         }
+
+        /* --- HEADINGS --- */
         .methodology-body h1 {
             font-family: var(--font-heading);
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 700;
-            margin: 28px 0 12px;
+            margin: 36px 0 16px;
             color: var(--accent);
+            padding-left: 16px;
+            border-left: 4px solid var(--accent);
         }
         .methodology-body h1:first-child { margin-top: 0; }
         .methodology-body h2 {
             font-family: var(--font-heading);
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
-            margin: 24px 0 10px;
+            margin: 32px 0 14px;
             color: var(--text-primary);
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--border);
+            padding: 8px 14px;
+            background: rgba(88,166,255,.06);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
         }
         .methodology-body h3 {
             font-family: var(--font-heading);
             font-size: 15px;
             font-weight: 600;
-            margin: 20px 0 8px;
+            margin: 24px 0 10px;
             color: var(--text-primary);
+            padding-left: 12px;
+            border-left: 2px solid rgba(88,166,255,.4);
         }
+
+        /* --- TEXT --- */
         .methodology-body p {
-            margin: 0 0 12px;
+            margin: 0 0 14px;
             color: var(--text-secondary);
         }
-        .methodology-body strong { color: var(--text-primary); }
-        .methodology-body em { color: var(--text-secondary); font-style: italic; }
+        .methodology-body strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .methodology-body em {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .methodology-body p > strong:first-child > em {
+            display: inline-block;
+            color: var(--accent);
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        /* --- LISTS --- */
         .methodology-body ul, .methodology-body ol {
-            margin: 0 0 12px 20px;
+            margin: 0 0 16px 24px;
             color: var(--text-secondary);
         }
-        .methodology-body li { margin-bottom: 4px; }
+        .methodology-body li {
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+        .methodology-body ol > li {
+            margin-bottom: 8px;
+        }
+        .methodology-body ol > li::marker {
+            font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 15px;
+        }
+
+        /* --- TABLES --- */
         .methodology-body table {
             width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0 16px;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 14px 0 20px;
             font-size: 13px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.15);
         }
         .methodology-body thead th {
             background: var(--bg-elevated);
@@ -3762,32 +3807,43 @@ def _css() -> str:
             text-transform: uppercase;
             letter-spacing: .5px;
             color: var(--text-secondary);
-            padding: 8px 12px;
-            border: 1px solid var(--border);
+            padding: 10px 14px;
             text-align: left;
+            border-bottom: 2px solid var(--border-bright);
         }
         .methodology-body tbody td {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
+            padding: 9px 14px;
             color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .methodology-body tbody tr:last-child td { border-bottom: none; }
+        .methodology-body tbody tr:nth-child(even) td {
+            background: rgba(88,166,255,.02);
         }
         .methodology-body tbody tr:hover td {
             background: var(--bg-card-hover);
         }
+        .methodology-body tbody td:first-child {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* --- CODE --- */
         .methodology-body code {
             font-family: var(--font-mono);
             font-size: 12px;
-            background: var(--bg-elevated);
-            padding: 2px 6px;
+            background: rgba(88,166,255,.08);
+            padding: 2px 7px;
             border-radius: 4px;
             color: var(--accent);
         }
         .methodology-body pre {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin: 12px 0 16px;
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 14px 0 18px;
             overflow-x: auto;
         }
         .methodology-body pre code {
@@ -3795,25 +3851,41 @@ def _css() -> str:
             padding: 0;
             font-size: 12px;
             color: var(--text-primary);
+            line-height: 1.6;
         }
+
+        /* --- DIVIDERS --- */
         .methodology-body hr {
             border: none;
-            border-top: 1px solid var(--border);
-            margin: 24px 0;
+            height: 1px;
+            background: linear-gradient(to right, var(--border), var(--border-bright), var(--border));
+            margin: 32px 0;
         }
+
+        /* --- LINKS --- */
         .methodology-body a {
             color: var(--accent);
             text-decoration: none;
+            border-bottom: 1px dotted rgba(88,166,255,.3);
+            transition: border-color .15s;
         }
-        .methodology-body a:hover { text-decoration: underline; }
+        .methodology-body a:hover {
+            border-bottom-color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* --- BLOCKQUOTES --- */
         .methodology-body blockquote {
             border-left: 3px solid var(--accent);
-            margin: 12px 0;
-            padding: 8px 16px;
-            background: var(--bg-card);
-            border-radius: 0 6px 6px 0;
+            margin: 16px 0;
+            padding: 12px 18px;
+            background: rgba(88,166,255,.04);
+            border-radius: 0 8px 8px 0;
             color: var(--text-secondary);
+            font-style: italic;
         }
+        .methodology-body blockquote p { margin-bottom: 6px; }
+        .methodology-body blockquote p:last-child { margin-bottom: 0; }
 
         /* ---- ANALYST PRICE TARGETS ---- */
         .pt-section {
