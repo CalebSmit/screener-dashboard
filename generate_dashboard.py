@@ -112,22 +112,47 @@ def load_run_data(run_dir: Path) -> dict:
         raise FileNotFoundError(f"Missing {scored_path}")
     df = pd.read_parquet(scored_path)
 
-    # Merge price target fields from raw fetch if not in final scored
-    if "_current_price" not in df.columns:
-        raw_path = _find_raw_fetch(run_dir)
-        if raw_path is not None:
-            raw = pd.read_parquet(raw_path)
-            merge_cols = ["Ticker"]
-            for src, dst in [("currentPrice", "_current_price"),
-                             ("targetMeanPrice", "_target_mean"),
-                             ("targetHighPrice", "_target_high"),
-                             ("targetLowPrice", "_target_low"),
-                             ("numberOfAnalystOpinions", "_num_analysts")]:
-                if src in raw.columns:
-                    raw = raw.rename(columns={src: dst})
-                    merge_cols.append(dst)
-            if len(merge_cols) > 1:
-                df = df.merge(raw[merge_cols], on="Ticker", how="left")
+    # Merge price target + fundamental fields from raw fetch if not in final scored
+    raw_path = _find_raw_fetch(run_dir)
+    if raw_path is not None:
+        raw = pd.read_parquet(raw_path)
+        merge_cols = ["Ticker"]
+        # Price target fields
+        for src, dst in [("currentPrice", "_current_price"),
+                         ("targetMeanPrice", "_target_mean"),
+                         ("targetHighPrice", "_target_high"),
+                         ("targetLowPrice", "_target_low"),
+                         ("numberOfAnalystOpinions", "_num_analysts")]:
+            if src in raw.columns and dst not in df.columns:
+                raw = raw.rename(columns={src: dst})
+                merge_cols.append(dst)
+        # Fundamental financial data for Company Snapshot
+        for src, dst in [("marketCap", "_mcap"),
+                         ("enterpriseValue", "_ev_raw"),
+                         ("totalRevenue", "_total_revenue"),
+                         ("totalRevenue_prior", "_total_revenue_prior"),
+                         ("grossProfit", "_gross_profit"),
+                         ("netIncome", "_net_income"),
+                         ("netIncome_prior", "_net_income_prior"),
+                         ("ebitda", "_ebitda_raw"),
+                         ("operatingCashFlow", "_ocf"),
+                         ("capex", "_capex"),
+                         ("totalDebt", "_total_debt"),
+                         ("totalCash", "_total_cash"),
+                         ("cash_bs", "_cash_bs"),
+                         ("totalAssets", "_total_assets"),
+                         ("totalEquity", "_total_equity"),
+                         ("dividendRate", "_dividend_rate"),
+                         ("payoutRatio", "_payout_ratio"),
+                         ("sharesOutstanding", "_shares_out"),
+                         ("trailingEps", "_trailing_eps"),
+                         ("forwardEps", "_forward_eps"),
+                         ("shortRatio", "_short_ratio")]:
+            if src in raw.columns and dst not in df.columns:
+                raw = raw.rename(columns={src: dst})
+                merge_cols.append(dst)
+        if len(merge_cols) > 1:
+            df = df.merge(raw[merge_cols], on="Ticker", how="left")
 
     # Metadata
     meta_path = run_dir / "meta.json"
@@ -170,6 +195,14 @@ def load_run_data(run_dir: Path) -> dict:
             pass
     portfolio_data = _load_portfolio_from_excel(df, port_df)
 
+    # Load config snapshot for trap filter thresholds
+    cfg_path = run_dir / "config.yaml"
+    run_cfg = {}
+    if cfg_path.exists():
+        import yaml
+        with open(cfg_path) as f:
+            run_cfg = yaml.safe_load(f) or {}
+
     return {
         "df": df,
         "meta": meta,
@@ -177,6 +210,7 @@ def load_run_data(run_dir: Path) -> dict:
         "weights": weights,
         "sens_df": sens_df,
         "corr_df": corr_df,
+        "cfg": run_cfg,
     }
 
 
@@ -246,12 +280,14 @@ def prepare_dashboard_data(run_data: dict) -> str:
     # --- Raw metric columns, percentile columns, contribution columns ---
     raw_metrics = [
         "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales", "pb_ratio",
-        "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score", "accruals",
+        "roic", "gross_profit_assets", "debt_equity", "net_debt_to_ebitda",
+        "piotroski_f_score", "accruals", "operating_leverage", "beneish_m_score",
         "roe", "roa", "equity_ratio",
-        "forward_eps_growth", "peg_ratio", "revenue_growth", "sustainable_growth",
-        "return_12_1", "return_6m",
-        "volatility", "beta",
+        "forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth",
+        "return_12_1", "return_6m", "jensens_alpha",
+        "volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y",
         "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
+        "short_interest_ratio",
         "size_log_mcap", "asset_growth",
     ]
     pct_cols = [m + "_pct" for m in raw_metrics]
@@ -264,10 +300,60 @@ def prepare_dashboard_data(run_data: dict) -> str:
                   "valuation_score", "quality_score", "growth_score",
                   "momentum_score", "risk_score", "revisions_score",
                   "size_score", "investment_score",
-                  "Value_Trap_Flag", "Growth_Trap_Flag"]
+                  "Value_Trap_Flag", "Growth_Trap_Flag",
+                  "Value_Trap_Severity", "Growth_Trap_Severity"]
     table_data = []
     for _, row in df.iterrows():
         table_data.append({c: _safe(row.get(c)) for c in table_cols})
+
+    # --- Pre-compute sector peer groups for comparison ---
+    _peer_cols = ["Ticker", "Company", "Sector", "Composite", "Rank",
+                  "valuation_score", "quality_score",
+                  "revenue_growth", "earnings_yield", "roic", "roe"]
+    _peer_cols_present = [c for c in _peer_cols if c in df.columns]
+    _sector_groups = {}
+    for sector, grp in df.groupby("Sector"):
+        # Sort by market cap (use _mcap if available, else _mc)
+        mcap_col = "_mcap" if "_mcap" in grp.columns else "_mc"
+        if mcap_col in grp.columns:
+            grp = grp.sort_values(mcap_col, ascending=False, na_position="last")
+        _sector_groups[sector] = grp[_peer_cols_present + [mcap_col]].copy() if mcap_col in grp.columns else grp[_peer_cols_present].copy()
+
+    def _get_peers(ticker, sector, n=5):
+        """Get n closest peers by market cap in the same sector."""
+        grp = _sector_groups.get(sector)
+        if grp is None or len(grp) < 2:
+            return []
+        mcap_col = "_mcap" if "_mcap" in grp.columns else "_mc"
+        # Exclude self, take top n by market cap proximity
+        others = grp[grp["Ticker"] != ticker]
+        if mcap_col in grp.columns:
+            self_mcap = grp.loc[grp["Ticker"] == ticker, mcap_col].values
+            if len(self_mcap) > 0 and pd.notna(self_mcap[0]) and self_mcap[0] > 0:
+                others = others.copy()
+                others["_mcap_dist"] = (others[mcap_col] / self_mcap[0] - 1).abs()
+                others = others.sort_values("_mcap_dist").head(n)
+            else:
+                others = others.head(n)
+        else:
+            others = others.head(n)
+        peers = []
+        for _, r in others.iterrows():
+            peer = {
+                "ticker": r.get("Ticker", ""),
+                "company": r.get("Company", ""),
+                "composite": _safe(r.get("Composite")),
+                "rank": _safe(r.get("Rank")),
+                "val_score": _safe(r.get("valuation_score")),
+                "qual_score": _safe(r.get("quality_score")),
+                "rev_growth": _safe(r.get("revenue_growth")),
+                "pe_ratio": round(1.0 / r["earnings_yield"], 1) if pd.notna(r.get("earnings_yield")) and r["earnings_yield"] > 0 else None,
+                "roic": _safe(r.get("roic")),
+                "roe": _safe(r.get("roe")),
+                "mcap": _safe(r.get("_mcap") if "_mcap" in r.index else r.get("_mc")),
+            }
+            peers.append(peer)
+        return peers
 
     # --- Per-stock detail data (for drill-down) keyed by ticker ---
     stock_detail = {}
@@ -318,6 +404,77 @@ def prepare_dashboard_data(run_data: dict) -> str:
         detail["data_source"] = row.get("_data_source", None)
         detail["metric_count"] = _safe(row.get("_metric_count"))
         detail["metric_total"] = _safe(row.get("_metric_total"))
+
+        # --- Company Snapshot (financials) ---
+        _mcap = _safe(row.get("_mcap"))
+        _rev = _safe(row.get("_total_revenue"))
+        _rev_p = _safe(row.get("_total_revenue_prior"))
+        _ni = _safe(row.get("_net_income"))
+        _ni_p = _safe(row.get("_net_income_prior"))
+        _gp = _safe(row.get("_gross_profit"))
+        _ocf = _safe(row.get("_ocf"))
+        _capex_v = _safe(row.get("_capex"))
+        _debt = _safe(row.get("_total_debt"))
+        _cash = _safe(row.get("_total_cash"))
+        if _cash is None:
+            _cash = _safe(row.get("_cash_bs"))
+        _price = _safe(row.get("_current_price"))
+        _div_rate = _safe(row.get("_dividend_rate"))
+
+        detail["financials"] = {
+            "market_cap": _mcap,
+            "enterprise_value": _safe(row.get("_ev_raw")),
+            "revenue": _rev,
+            "revenue_growth_yoy": round((_rev - _rev_p) / abs(_rev_p), 4) if (_rev is not None and _rev_p is not None and abs(_rev_p) > 0) else None,
+            "net_income": _ni,
+            "ni_growth_yoy": round((_ni - _ni_p) / abs(_ni_p), 4) if (_ni is not None and _ni_p is not None and abs(_ni_p) > 0) else None,
+            "ebitda": _safe(row.get("_ebitda_raw")),
+            "gross_margin": round(_gp / _rev, 4) if (_gp is not None and _rev is not None and _rev > 0) else None,
+            "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
+            "fcf": round(_ocf - abs(_capex_v), 2) if (_ocf is not None and _capex_v is not None) else None,
+            "total_debt": _debt,
+            "total_cash": _cash,
+            "net_debt": round(_debt - _cash, 2) if (_debt is not None and _cash is not None) else None,
+            "dividend_yield": round(_div_rate / _price, 4) if (_div_rate is not None and _price is not None and _price > 0) else None,
+            "payout_ratio": _safe(row.get("_payout_ratio")),
+            "shares_outstanding": _safe(row.get("_shares_out")),
+            "trailing_eps": _safe(row.get("_trailing_eps")),
+            "forward_eps": _safe(row.get("_forward_eps")),
+            "avg_daily_dollar_vol": _safe(row.get("avg_daily_dollar_volume")),
+            "short_ratio": _safe(row.get("_short_ratio")),
+        }
+
+        # --- Flags & Warnings ---
+        detail["flags"] = {
+            "vt_severity": _safe(row.get("Value_Trap_Severity")),
+            "gt_severity": _safe(row.get("Growth_Trap_Severity")),
+            "is_bank": bool(row.get("_is_bank_like")) if pd.notna(row.get("_is_bank_like")) else False,
+            "fin_caveat": bool(row.get("Financial_Sector_Caveat")) if pd.notna(row.get("Financial_Sector_Caveat")) else False,
+            "beneish_flag": bool(row.get("_beneish_flag")) if pd.notna(row.get("_beneish_flag")) else False,
+            "channel_stuffing": bool(row.get("_channel_stuffing_flag")) if pd.notna(row.get("_channel_stuffing_flag")) else False,
+            "recv_rev_divergence": _safe(row.get("_recv_rev_divergence")),
+            "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
+            "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
+            "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
+            "stale_data": bool(row.get("_stale_data")) if pd.notna(row.get("_stale_data")) else False,
+            "stmt_age_days": _safe(row.get("_stmt_age_days")),
+        }
+
+        # --- Sector Peers ---
+        detail["peers"] = _get_peers(ticker, row.get("Sector", ""))
+        # Self metrics for comparison highlight
+        detail["self_metrics"] = {
+            "rev_growth": _safe(row.get("revenue_growth")),
+            "pe_ratio": round(1.0 / row["earnings_yield"], 1) if pd.notna(row.get("earnings_yield")) and row["earnings_yield"] > 0 else None,
+            "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
+            "roic": _safe(row.get("roic")),
+            "roe": _safe(row.get("roe")),
+            "debt_equity": _safe(row.get("debt_equity")),
+            "div_yield": round(_div_rate / _price, 4) if (_div_rate is not None and _price is not None and _price > 0) else None,
+            "fcf_yield": _safe(row.get("fcf_yield")),
+            "mcap": _mcap,
+        }
+
         stock_detail[ticker] = detail
 
     # --- Sector stats ---
@@ -398,24 +555,33 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "pb_ratio": {"label": "P/B Ratio", "fmt": "ratio", "category": "valuation"},
         "roic": {"label": "ROIC", "fmt": "pct", "category": "quality"},
         "gross_profit_assets": {"label": "Gross Profit/Assets", "fmt": "pct", "category": "quality"},
-        "debt_equity": {"label": "Debt/Equity", "fmt": "ratio", "category": "quality"},
+        "debt_equity": {"label": "Debt/Equity", "fmt": "ratio", "category": "reference"},  # Reference only; not scored
+        "net_debt_to_ebitda": {"label": "Net Debt/EBITDA", "fmt": "ratio", "category": "quality"},
         "piotroski_f_score": {"label": "Piotroski F-Score", "fmt": "int", "category": "quality"},
         "accruals": {"label": "Accruals", "fmt": "pct", "category": "quality"},
+        "operating_leverage": {"label": "Operating Leverage", "fmt": "ratio", "category": "quality"},
+        "beneish_m_score": {"label": "Beneish M-Score", "fmt": "ratio", "category": "quality"},
         "roe": {"label": "ROE", "fmt": "pct", "category": "quality"},
         "roa": {"label": "ROA", "fmt": "pct", "category": "quality"},
         "equity_ratio": {"label": "Equity Ratio", "fmt": "pct", "category": "quality"},
         "forward_eps_growth": {"label": "Fwd EPS Growth", "fmt": "pct", "category": "growth"},
         "peg_ratio": {"label": "PEG Ratio", "fmt": "ratio", "category": "growth"},
         "revenue_growth": {"label": "Revenue Growth", "fmt": "pct", "category": "growth"},
+        "revenue_cagr_3yr": {"label": "Revenue CAGR (3Y)", "fmt": "pct", "category": "growth"},
         "sustainable_growth": {"label": "Sustainable Growth", "fmt": "pct", "category": "growth"},
         "return_12_1": {"label": "12-1M Return", "fmt": "pct", "category": "momentum"},
         "return_6m": {"label": "6M Return", "fmt": "pct", "category": "momentum"},
+        "jensens_alpha": {"label": "Jensen's Alpha", "fmt": "pct", "category": "momentum"},
         "volatility": {"label": "Volatility", "fmt": "pct", "category": "risk"},
         "beta": {"label": "Beta", "fmt": "ratio", "category": "risk"},
+        "sharpe_ratio": {"label": "Sharpe Ratio", "fmt": "ratio", "category": "risk"},
+        "sortino_ratio": {"label": "Sortino Ratio", "fmt": "ratio", "category": "risk"},
+        "max_drawdown_1y": {"label": "Max Drawdown (1Y)", "fmt": "pct", "category": "risk"},
         "analyst_surprise": {"label": "Analyst Surprise", "fmt": "pct", "category": "revisions"},
         "price_target_upside": {"label": "Price Target Upside", "fmt": "pct", "category": "revisions"},
         "earnings_acceleration": {"label": "Earnings Accel.", "fmt": "ratio", "category": "revisions"},
         "consecutive_beat_streak": {"label": "Beat Score", "fmt": "int", "category": "revisions"},
+        "short_interest_ratio": {"label": "Short Interest Ratio", "fmt": "ratio", "category": "revisions"},
         "size_log_mcap": {"label": "Size (-log MCap)", "fmt": "ratio", "category": "size"},
         "asset_growth": {"label": "Asset Growth", "fmt": "pct", "category": "investment"},
     }
@@ -476,6 +642,17 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "data_freshness": data_freshness,
     }
 
+    # Extract trap filter thresholds from config for the AI prompt
+    _cfg = run_data.get("cfg", {})
+    _vtf = _cfg.get("value_trap_filters", {})
+    _gtf = _cfg.get("growth_trap_filters", {})
+    config_traps = {
+        "vt_quality": _vtf.get("quality_floor_percentile", 30),
+        "vt_momentum": _vtf.get("momentum_floor_percentile", 30),
+        "vt_revisions": _vtf.get("revisions_floor_percentile", 30),
+        "gt_growth": _gtf.get("growth_ceiling_percentile", 70),
+    }
+
     dashboard_json = {
         "kpis": kpis,
         "portfolio": portfolio,
@@ -493,6 +670,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "factor_correlation": factor_corr_data,
         "weight_sensitivity": weight_sens_data,
         "data_quality": data_quality_summary,
+        "config_traps": config_traps,
     }
 
     return json.dumps(dashboard_json, default=str)
@@ -710,22 +888,59 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
                     <!-- Score summary row -->
                     <div class="modal-score-row" id="modal-score-row"></div>
 
-                    <!-- Data Provenance -->
-                    <div id="modal-provenance"></div>
-
                     <!-- Analyst Price Targets -->
-                    <div id="modal-price-targets"></div>
+                    <div class="collapsible" id="section-price-targets">
+                        <div class="collapsible-header" onclick="toggleSection('section-price-targets')">
+                            <span>Analyst Price Targets</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-price-targets"></div>
+                    </div>
+
+                    <!-- Company Snapshot -->
+                    <div class="collapsible collapsed" id="section-snapshot">
+                        <div class="collapsible-header" onclick="toggleSection('section-snapshot')">
+                            <span>Company Snapshot</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-snapshot"></div>
+                    </div>
+
+                    <!-- Sector Peers -->
+                    <div class="collapsible collapsed" id="section-peers">
+                        <div class="collapsible-header" onclick="toggleSection('section-peers')">
+                            <span>Sector Peers</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-peers"></div>
+                    </div>
+
+                    <!-- Data Provenance -->
+                    <div class="collapsible collapsed" id="section-provenance">
+                        <div class="collapsible-header" onclick="toggleSection('section-provenance')">
+                            <span>Data Provenance</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-provenance"></div>
+                    </div>
 
                     <!-- Contribution breakdown -->
-                    <div class="modal-chart-section">
-                        <h3>Score Contribution Breakdown</h3>
-                        <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the composite score.</p>
-                        <div id="contrib-visual"></div>
-                        <div class="contrib-total-row" id="contrib-total"></div>
+                    <div class="collapsible" id="section-contribution">
+                        <div class="collapsible-header" onclick="toggleSection('section-contribution')">
+                            <span>Score Contribution Breakdown</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body">
+                            <div class="modal-chart-section">
+                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the composite score.</p>
+                                <div id="contrib-visual"></div>
+                                <div class="contrib-total-row" id="contrib-total"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Category detail sections -->
-                    <div id="modal-categories"></div>
+                    <div class="collapsible" id="section-categories">
+                        <div class="collapsible-header" onclick="toggleSection('section-categories')">
+                            <span>Category Details</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-categories"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1149,6 +1364,97 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
         sortDir: 'asc',
     }};
 
+    // --- Peer comparison state ---
+    let peerState = {{
+        currentTicker: null,
+        defaultPeers: [],
+        customPeers: [],
+    }};
+
+    function buildPeerRow(peerTicker) {{
+        const d = D.stock_detail[peerTicker];
+        if (!d) return null;
+        const ey = d.raw ? d.raw.earnings_yield : null;
+        return {{
+            ticker: peerTicker,
+            company: d.company || '',
+            rev_growth: d.raw ? d.raw.revenue_growth : null,
+            pe_ratio: (ey !== null && ey !== undefined && ey > 0) ? Math.round(10.0 / ey) / 10 : null,
+            net_margin: d.financials ? d.financials.net_margin : null,
+            roic: d.raw ? d.raw.roic : null,
+            roe: d.raw ? d.raw.roe : null,
+            debt_equity: d.raw ? d.raw.debt_equity : null,
+            div_yield: d.financials ? d.financials.dividend_yield : null,
+            fcf_yield: d.raw ? d.raw.fcf_yield : null,
+            mcap: d.financials ? d.financials.market_cap : null,
+        }};
+    }}
+
+    function arraysEqual(a, b) {{
+        return a.length === b.length && a.every((v, i) => v === b[i]);
+    }}
+
+    function addPeer(peerTicker) {{
+        if (peerTicker === peerState.currentTicker) return;
+        if (peerState.customPeers.includes(peerTicker)) return;
+        if (peerState.customPeers.length >= 10) return;
+        peerState.customPeers.push(peerTicker);
+        const s = D.stock_detail[peerState.currentTicker];
+        renderPeerComparison(peerState.currentTicker, s);
+    }}
+
+    function removePeer(peerTicker) {{
+        peerState.customPeers = peerState.customPeers.filter(t => t !== peerTicker);
+        const s = D.stock_detail[peerState.currentTicker];
+        renderPeerComparison(peerState.currentTicker, s);
+    }}
+
+    function resetPeers() {{
+        peerState.customPeers = [...peerState.defaultPeers];
+        const s = D.stock_detail[peerState.currentTicker];
+        renderPeerComparison(peerState.currentTicker, s);
+    }}
+
+    function setupPeerSearch() {{
+        const input = document.getElementById('peer-search-input');
+        const dropdown = document.getElementById('peer-search-results');
+        if (!input || !dropdown) return;
+
+        input.addEventListener('input', function() {{
+            const q = this.value.toLowerCase().trim();
+            if (q.length < 1) {{ dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }}
+
+            const excluded = new Set([peerState.currentTicker, ...peerState.customPeers]);
+            const matches = D.table_data
+                .filter(r => !excluded.has(r.Ticker) &&
+                            (r.Ticker.toLowerCase().includes(q) ||
+                             (r.Company || '').toLowerCase().includes(q)))
+                .slice(0, 8);
+
+            if (matches.length === 0) {{
+                dropdown.innerHTML = '<div class="peer-search-empty">No matches</div>';
+                dropdown.style.display = 'block';
+                return;
+            }}
+
+            dropdown.innerHTML = matches.map(r =>
+                `<div class="peer-search-item" onmousedown="addPeer('${{r.Ticker}}')">
+                    <span class="peer-search-ticker">${{r.Ticker}}</span>
+                    <span class="peer-search-company">${{r.Company || ''}}</span>
+                    <span class="peer-search-score">${{r.Composite !== null ? r.Composite.toFixed(0) : '--'}}</span>
+                </div>`
+            ).join('');
+            dropdown.style.display = 'block';
+        }});
+
+        input.addEventListener('blur', function() {{
+            setTimeout(() => {{ dropdown.style.display = 'none'; }}, 200);
+        }});
+        input.addEventListener('focus', function() {{
+            if (this.value.trim().length > 0) this.dispatchEvent(new Event('input'));
+        }});
+    }}
+
     function setupFilters() {{
         // Populate sector dropdown
         const sel = document.getElementById('filter-sector');
@@ -1295,6 +1601,10 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
         // Analyst price targets
         renderPriceTargets(s);
 
+        // Company snapshot (financials) + peer comparison
+        renderCompanySnapshot(s);
+        renderPeerComparison(ticker, s);
+
         // Data provenance
         renderProvenance(s);
 
@@ -1311,6 +1621,11 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
     function closeModal() {{
         document.getElementById('stock-modal').style.display = 'none';
         document.body.style.overflow = '';
+    }}
+
+    function toggleSection(id) {{
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('collapsed');
     }}
 
     // ESC to close any open modal
@@ -1380,7 +1695,6 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
 
         container.innerHTML = `
             <div class="pt-section">
-                <h3>Analyst Price Targets</h3>
                 <div class="pt-cards">
                     <div class="pt-card">
                         <div class="pt-card-label">Current Price</div>
@@ -1402,6 +1716,288 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
                 </div>
                 ${{rangeBarHtml}}
             </div>`;
+    }}
+
+    // Shared formatters for snapshot + peers
+    const fmtBig = (v) => {{
+        if (v === null || v === undefined) return '\u2014';
+        const abs = Math.abs(v);
+        const sign = v < 0 ? '-' : '';
+        if (abs >= 1e12) return sign + '$' + (abs / 1e12).toFixed(2) + 'T';
+        if (abs >= 1e9)  return sign + '$' + (abs / 1e9).toFixed(1) + 'B';
+        if (abs >= 1e6)  return sign + '$' + (abs / 1e6).toFixed(0) + 'M';
+        return sign + '$' + abs.toLocaleString();
+    }};
+    const fmtPctChg = (v) => {{
+        if (v === null || v === undefined) return '';
+        const pct = (v * 100).toFixed(1);
+        const sign = v >= 0 ? '+' : '';
+        const cls = v >= 0 ? 'snap-up' : 'snap-down';
+        return `<span class="${{cls}}">${{sign}}${{pct}}%</span>`;
+    }};
+    const fmtPct2 = (v) => {{
+        if (v === null || v === undefined) return '\u2014';
+        return (v * 100).toFixed(1) + '%';
+    }};
+
+    function renderCompanySnapshot(s) {{
+        const container = document.getElementById('modal-snapshot');
+        if (!container) return;
+        const f = s.financials;
+        if (!f) {{ container.innerHTML = ''; return; }}
+
+        const fmtShares = (v) => {{
+            if (v === null || v === undefined) return '\u2014';
+            if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+            if (v >= 1e6) return (v / 1e6).toFixed(0) + 'M';
+            return v.toLocaleString();
+        }};
+
+        const groups = [
+            {{ label: 'Size & Valuation', color: '#58a6ff', items: [
+                {{ label: 'Market Cap',      value: fmtBig(f.market_cap) }},
+                {{ label: 'Enterprise Value', value: fmtBig(f.enterprise_value) }},
+                {{ label: 'EPS (TTM / Fwd)', value:
+                    (f.trailing_eps !== null ? '$' + f.trailing_eps.toFixed(2) : '\u2014') + ' / ' +
+                    (f.forward_eps !== null ? '$' + f.forward_eps.toFixed(2) : '\u2014') }},
+            ]}},
+            {{ label: 'Profitability', color: '#3fb950', items: [
+                {{ label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
+                   sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' }},
+                {{ label: 'Net Income',      value: fmtBig(f.net_income),
+                   sub: f.ni_growth_yoy !== null ? fmtPctChg(f.ni_growth_yoy) + ' YoY' : '' }},
+                {{ label: 'EBITDA',          value: fmtBig(f.ebitda) }},
+                {{ label: 'Gross Margin',    value: fmtPct2(f.gross_margin) }},
+                {{ label: 'Net Margin',      value: fmtPct2(f.net_margin) }},
+            ]}},
+            {{ label: 'Cash Flow & Leverage', color: '#f0883e', items: [
+                {{ label: 'Free Cash Flow',  value: fmtBig(f.fcf) }},
+                {{ label: 'Total Debt',      value: fmtBig(f.total_debt) }},
+                {{ label: 'Cash & Equiv.',   value: fmtBig(f.total_cash) }},
+                {{ label: 'Net Debt',        value: fmtBig(f.net_debt) }},
+            ]}},
+            {{ label: 'Shareholder', color: '#bc8cff', items: [
+                {{ label: 'Dividend Yield',  value: f.dividend_yield !== null ? fmtPct2(f.dividend_yield) : 'None' }},
+                {{ label: 'Payout Ratio',    value: f.payout_ratio !== null ? fmtPct2(f.payout_ratio) : '\u2014' }},
+                {{ label: 'Shares Out',      value: fmtShares(f.shares_outstanding) }},
+            ]}},
+        ];
+
+        // Trading group (conditional items)
+        const tradingItems = [];
+        if (f.avg_daily_dollar_vol !== null) tradingItems.push({{ label: 'Avg Daily $ Vol', value: fmtBig(f.avg_daily_dollar_vol) }});
+        if (f.short_ratio !== null) tradingItems.push({{ label: 'Short Interest', value: f.short_ratio.toFixed(1) + ' days to cover' }});
+        if (tradingItems.length > 0) groups.push({{ label: 'Trading', color: '#d29922', items: tradingItems }});
+
+        let html = '<div class="snapshot-section">';
+        html += '<div class="snapshot-header">';
+        html += '<span class="snapshot-hint">LTM = Last Twelve Months</span></div>';
+
+        groups.forEach(g => {{
+            html += `<div class="snapshot-group">
+                <div class="snapshot-group-label" style="border-color:${{g.color}}">
+                    <span style="color:${{g.color}}">${{g.label}}</span>
+                </div>
+                <div class="snapshot-grid">`;
+            g.items.forEach(item => {{
+                html += `<div class="snapshot-item">
+                    <div class="snapshot-label">${{item.label}}</div>
+                    <div class="snapshot-value">${{item.value}}</div>
+                    ${{item.sub ? `<div class="snapshot-sub">${{item.sub}}</div>` : ''}}
+                </div>`;
+            }});
+            html += '</div></div>';
+        }});
+
+        html += '</div>';
+        container.innerHTML = html;
+    }}
+
+    function renderPeerComparison(ticker, s) {{
+        const container = document.getElementById('modal-peers');
+        if (!container) return;
+        const self = s.self_metrics;
+        if (!self) {{ container.innerHTML = ''; return; }}
+
+        // Initialize peer state on first render for this ticker
+        if (peerState.currentTicker !== ticker) {{
+            peerState.currentTicker = ticker;
+            peerState.defaultPeers = (s.peers || []).map(p => p.ticker);
+            peerState.customPeers = [...peerState.defaultPeers];
+        }}
+
+        const fmtRG = (v) => {{
+            if (v === null || v === undefined) return '\u2014';
+            const p = (v * 100).toFixed(1);
+            return (v >= 0 ? '+' : '') + p + '%';
+        }};
+        const fmtPE = (v) => v !== null && v !== undefined ? v.toFixed(1) + 'x' : '\u2014';
+        const fmtPct1 = (v) => v !== null && v !== undefined ? (v * 100).toFixed(1) + '%' : '\u2014';
+        const fmtDE = (v) => v !== null && v !== undefined ? v.toFixed(2) + 'x' : '\u2014';
+
+        // Higher is better (green >= self, red < 80% of self)
+        const higherBetter = (v, selfV) => {{
+            if (v === null || v === undefined || selfV === null || selfV === undefined) return '';
+            return v >= selfV ? 'color:#3fb950' : v < selfV * 0.8 ? 'color:#f85149' : '';
+        }};
+        // Lower is better (green <= self, red > 120% of self)
+        const lowerBetter = (v, selfV) => {{
+            if (v === null || v === undefined || selfV === null || selfV === undefined) return '';
+            return v <= selfV ? 'color:#3fb950' : v > selfV * 1.2 ? 'color:#f85149' : '';
+        }};
+
+        // Build rows dynamically from peerState
+        const selfRow = {{ ticker: ticker, company: s.company, isSelf: true, ...self }};
+        const peerRows = peerState.customPeers
+            .map(t => buildPeerRow(t))
+            .filter(r => r !== null);
+        const allRows = [selfRow, ...peerRows];
+        const isCustomized = !arraysEqual(peerState.customPeers, peerState.defaultPeers);
+
+        let html = `<div class="peer-section">
+            <div class="peer-header">
+                <span class="peer-sector">${{s.sector}}</span>
+            </div>
+            <div class="peer-add-bar">
+                <div class="peer-search-wrap">
+                    <input type="text" id="peer-search-input"
+                           class="peer-search-input"
+                           placeholder="Add peer by ticker or name..."
+                           autocomplete="off" />
+                    <div id="peer-search-results" class="peer-search-results"></div>
+                </div>
+                ${{isCustomized ? '<button class="peer-reset-btn" onclick="resetPeers()">Reset defaults</button>' : ''}}
+            </div>
+            <div class="peer-table-wrap">
+            <table class="peer-table">
+            <thead><tr>
+                <th class="peer-th-ticker">Ticker</th>
+                <th>Mkt Cap</th>
+                <th>P/E</th>
+                <th>Rev Growth</th>
+                <th>Net Margin</th>
+                <th>${{s.flags && s.flags.is_bank ? 'ROE' : 'ROIC'}}</th>
+                <th>D/E</th>
+                <th>Div Yield</th>
+                <th>FCF Yield</th>
+                <th class="peer-th-action"></th>
+            </tr></thead><tbody>`;
+
+        allRows.forEach(r => {{
+            const cls = r.isSelf ? 'peer-row-self' : 'peer-row';
+            const useROE = s.flags && s.flags.is_bank;
+            const profitMetric = useROE ? r.roe : r.roic;
+            html += `<tr class="${{cls}}">
+                <td class="peer-td-ticker">
+                    <span class="peer-ticker">${{r.ticker}}</span>
+                    ${{r.isSelf ? '<span class="peer-you">YOU</span>' : ''}}
+                </td>
+                <td class="peer-td-num">${{fmtBig(r.mcap)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : lowerBetter(r.pe_ratio, self.pe_ratio)}}">${{fmtPE(r.pe_ratio)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : higherBetter(r.rev_growth, self.rev_growth)}}">${{fmtRG(r.rev_growth)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : higherBetter(r.net_margin, self.net_margin)}}">${{fmtPct1(r.net_margin)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : higherBetter(profitMetric, useROE ? self.roe : self.roic)}}">${{fmtPct1(profitMetric)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : lowerBetter(r.debt_equity, self.debt_equity)}}">${{fmtDE(r.debt_equity)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : higherBetter(r.div_yield, self.div_yield)}}">${{fmtPct1(r.div_yield)}}</td>
+                <td class="peer-td-num" style="${{r.isSelf ? '' : higherBetter(r.fcf_yield, self.fcf_yield)}}">${{fmtPct1(r.fcf_yield)}}</td>
+                <td class="peer-td-action">${{r.isSelf ? '' : `<button class="peer-remove-btn" onclick="removePeer('${{r.ticker}}')" title="Remove">&times;</button>`}}</td>
+            </tr>`;
+        }});
+
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+
+        // Attach autocomplete after rendering
+        setupPeerSearch();
+    }}
+
+    function renderFlagsWarnings(s) {{
+        const container = document.getElementById('modal-flags');
+        if (!container) return;
+        const fl = s.flags;
+        if (!fl) {{ container.innerHTML = ''; return; }}
+
+        const badges = [];
+
+        if (s.vt && fl.vt_severity !== null && fl.vt_severity > 0) {{
+            const sev = fl.vt_severity;
+            const cls = sev >= 70 ? 'flag-severe' : sev >= 40 ? 'flag-warn' : 'flag-mild';
+            badges.push(`<span class="flag-badge ${{cls}}">
+                <span class="flag-icon">\u26a0\ufe0f</span> Value Trap
+                <span class="flag-sev">${{sev.toFixed(0)}}/100</span>
+            </span>`);
+        }}
+
+        if (s.gt && fl.gt_severity !== null && fl.gt_severity > 0) {{
+            const sev = fl.gt_severity;
+            const cls = sev >= 70 ? 'flag-severe' : sev >= 40 ? 'flag-warn' : 'flag-mild';
+            badges.push(`<span class="flag-badge ${{cls}}">
+                <span class="flag-icon">\u26a0\ufe0f</span> Growth Trap
+                <span class="flag-sev">${{sev.toFixed(0)}}/100</span>
+            </span>`);
+        }}
+
+        if (fl.beneish_flag) {{
+            badges.push('<span class="flag-badge flag-severe">' +
+                '<span class="flag-icon">\u26d4</span> Earnings Manipulation Risk (Beneish)</span>');
+        }}
+
+        if (fl.channel_stuffing) {{
+            const div = fl.recv_rev_divergence;
+            badges.push(`<span class="flag-badge flag-warn">
+                <span class="flag-icon">\u26a0\ufe0f</span> Channel Stuffing Risk
+                ${{div !== null ? '<span class="flag-detail">(' + (div * 100).toFixed(0) + '% divergence)</span>' : ''}}
+            </span>`);
+        }}
+
+        if (fl.ev_flag) {{
+            badges.push('<span class="flag-badge flag-warn">' +
+                '<span class="flag-icon">\u26a0\ufe0f</span> EV Data Discrepancy</span>');
+        }}
+
+        if (fl.stale_data) {{
+            const age = fl.stmt_age_days;
+            badges.push(`<span class="flag-badge flag-warn">
+                <span class="flag-icon">\u26a0\ufe0f</span> Stale Financials
+                ${{age !== null ? '<span class="flag-detail">(' + Math.round(age) + ' days old)</span>' : ''}}
+            </span>`);
+        }}
+
+        if (s.eps_mismatch) {{
+            badges.push('<span class="flag-badge flag-warn">' +
+                '<span class="flag-icon">\u26a0\ufe0f</span> EPS Basis Mismatch (GAAP vs Non-GAAP)</span>');
+        }}
+
+        if (fl.beta_overlap_pct !== null && fl.beta_overlap_pct < 80) {{
+            badges.push(`<span class="flag-badge flag-mild">
+                <span class="flag-icon">\u2139\ufe0f</span> Beta Overlap ${{fl.beta_overlap_pct.toFixed(0)}}%
+                <span class="flag-detail">(< 80% required)</span>
+            </span>`);
+        }}
+
+        if (fl.ltm_annualized) {{
+            badges.push('<span class="flag-badge flag-mild">' +
+                '<span class="flag-icon">\u2139\ufe0f</span> LTM Partially Annualized (3 of 4 quarters)</span>');
+        }}
+
+        if (fl.is_bank) {{
+            badges.push('<span class="flag-badge flag-info">' +
+                '<span class="flag-icon">\U0001f3e6</span> Bank-Like \u2014 uses P/B, ROE, ROA metrics</span>');
+        }}
+
+        if (fl.fin_caveat && !fl.is_bank) {{
+            badges.push('<span class="flag-badge flag-info">' +
+                '<span class="flag-icon">\u2139\ufe0f</span> Financial Sector \u2014 review with caution</span>');
+        }}
+
+        if (badges.length === 0) {{
+            container.innerHTML = '';
+            return;
+        }}
+
+        container.innerHTML = `<div class="flags-section">
+            <div class="flags-badges">${{badges.join('')}}</div>
+        </div>`;
     }}
 
     function renderContribVisual(s, cats) {{
@@ -1745,6 +2341,35 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
             if (s.num_analysts) ctx += ' (' + s.num_analysts + ' analysts)';
             ctx += '\\n';
         }}
+        // Financials (Company Snapshot data)
+        if (s.financials) {{
+            const f = s.financials;
+            ctx += 'Financials:\\n';
+            if (f.market_cap != null) ctx += '  Market Cap: $' + fmtBig(f.market_cap) + '\\n';
+            if (f.enterprise_value != null) ctx += '  Enterprise Value: $' + fmtBig(f.enterprise_value) + '\\n';
+            if (f.revenue != null) ctx += '  Revenue (LTM): $' + fmtBig(f.revenue) + (f.revenue_growth_yoy != null ? ' (' + (f.revenue_growth_yoy >= 0 ? '+' : '') + (f.revenue_growth_yoy * 100).toFixed(1) + '% YoY)' : '') + '\\n';
+            if (f.net_income != null) ctx += '  Net Income (LTM): $' + fmtBig(f.net_income) + (f.ni_growth_yoy != null ? ' (' + (f.ni_growth_yoy >= 0 ? '+' : '') + (f.ni_growth_yoy * 100).toFixed(1) + '% YoY)' : '') + '\\n';
+            if (f.ebitda != null) ctx += '  EBITDA: $' + fmtBig(f.ebitda) + '\\n';
+            if (f.gross_margin != null) ctx += '  Gross Margin: ' + (f.gross_margin * 100).toFixed(1) + '%\\n';
+            if (f.net_margin != null) ctx += '  Net Margin: ' + (f.net_margin * 100).toFixed(1) + '%\\n';
+            if (f.fcf != null) ctx += '  Free Cash Flow: $' + fmtBig(f.fcf) + '\\n';
+            if (f.total_debt != null) ctx += '  Total Debt: $' + fmtBig(f.total_debt) + '\\n';
+            if (f.total_cash != null) ctx += '  Cash: $' + fmtBig(f.total_cash) + '\\n';
+            if (f.net_debt != null) ctx += '  Net Debt: $' + fmtBig(f.net_debt) + '\\n';
+            if (f.dividend_yield != null) ctx += '  Dividend Yield: ' + (f.dividend_yield * 100).toFixed(2) + '%\\n';
+            if (f.trailing_eps != null) ctx += '  EPS (TTM): $' + f.trailing_eps.toFixed(2) + '\\n';
+            if (f.forward_eps != null) ctx += '  EPS (Fwd): $' + f.forward_eps.toFixed(2) + '\\n';
+        }}
+        // Sector peers
+        if (s.peers && s.peers.length > 0) {{
+            ctx += 'Sector Peers (by market cap proximity):\\n';
+            s.peers.forEach(function(p) {{
+                ctx += '  ' + p.ticker + ' (' + (p.company || '') + ')';
+                if (p.composite != null) ctx += ' Composite:' + p.composite.toFixed(1);
+                if (p.rank != null) ctx += ' Rank:#' + p.rank;
+                ctx += '\\n';
+            }});
+        }}
         return ctx;
     }}
 
@@ -1812,30 +2437,48 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
 
     function buildSystemPrompt() {{
         const fw = D.weights.factor_weights || {{}};
+        const mw = D.weights.metric_weights || {{}};
         const cats = Object.entries(fw).map(function(e) {{ return e[0] + ': ' + e[1] + '%'; }}).join(', ');
+
+        // Build per-category metric weight strings dynamically from config
+        function fmtMetrics(catKey) {{
+            var obj = mw[catKey] || {{}};
+            return Object.entries(obj)
+                .filter(function(e) {{ return e[1] > 0; }})
+                .map(function(e) {{ return e[0].replace(/_/g,' ') + ' (' + e[1] + '%)'; }})
+                .join(', ');
+        }}
+
+        // Read trap filter thresholds from config data (injected at generation time)
+        var vtf = D.config_traps || {{}};
+        var vtQual = vtf.vt_quality || 30;
+        var vtMom  = vtf.vt_momentum || 30;
+        var vtRev  = vtf.vt_revisions || 30;
+        var gtGrow = vtf.gt_growth || 70;
+
         return 'You are an AI assistant embedded in a Multi-Factor Stock Screener dashboard. You have access to screener data for ' + D.kpis.universe_size + ' S&P 500 stocks.\\n\\n' +
             '## Scoring Methodology\\n' +
             'The screener ranks stocks using 8 factor categories with these weights: ' + cats + '.\\n' +
             'All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). Falls back to annual filings if quarterly data unavailable. Enterprise Value is cross-validated: if API-provided EV differs from computed (MC+Debt-Cash) by >10% (>25% for Financials, whose debt includes deposits), the computed value is used.\\n' +
             'Each stock is scored 0-100 on each category (sector-relative percentile ranking), then combined using the weights above into a Composite score (0-100). Higher = better.\\n\\n' +
-            '### Category Definitions:\\n' +
-            '- **Valuation** (' + (fw.valuation||'?') + '%): EV/EBITDA (25%, computed from EBIT+D&A), FCF Yield (40%), Earnings Yield (20%), EV/Sales (15%). Banks use P/B (60%) + Earnings Yield (40%).\\n' +
-            '- **Quality** (' + (fw.quality||'?') + '%): ROIC (30%, excess cash capped at 50% of total cash, IC floored at 10% of total assets, 0% tax for loss-making companies), Gross Profit/Assets (25%), Debt/Equity (20%, uses balance sheet debt), Piotroski F-Score (15%), Accruals (10%). Banks use ROE, ROA, Equity Ratio.\\n' +
-            '- **Growth** (' + (fw.growth||'?') + '%): Forward EPS Growth (35%, clamped [-75%,+150%]), Revenue Growth (30%), PEG Ratio (20%), Sustainable Growth (15%, avg equity, SGR clamped [0%,100%]).\\n' +
-            '- **Momentum** (' + (fw.momentum||'?') + '%): 12-1 Month Return (50%), 6-1 Month Return (50%). Skip-month convention.\\n' +
-            '- **Risk** (' + (fw.risk||'?') + '%): Volatility (60%), Beta (40%). Lower risk = higher score.\\n' +
-            '- **Revisions** (' + (fw.revisions||'?') + '%): Analyst Surprise (40%), Price Target Upside (20%), Earnings Acceleration (20%), Beat Score (20%).\\n' +
+            '### Category Definitions (metric weights from config):\\n' +
+            '- **Valuation** (' + (fw.valuation||'?') + '%): ' + fmtMetrics('valuation') + '. Banks use P/B + Earnings Yield (see bank weights).\\n' +
+            '- **Quality** (' + (fw.quality||'?') + '%): ' + fmtMetrics('quality') + '. Banks use ROE, ROA, Equity Ratio, Piotroski, Accruals.\\n' +
+            '- **Growth** (' + (fw.growth||'?') + '%): ' + fmtMetrics('growth') + '. PEG Ratio removed (double-counts valuation).\\n' +
+            '- **Momentum** (' + (fw.momentum||'?') + '%): ' + fmtMetrics('momentum') + '. Skip-month convention for return signals.\\n' +
+            '- **Risk** (' + (fw.risk||'?') + '%): ' + fmtMetrics('risk') + '. Lower risk = higher score (Sharpe: higher = better).\\n' +
+            '- **Revisions** (' + (fw.revisions||'?') + '%): ' + fmtMetrics('revisions') + '.\\n' +
             '- **Size** (' + (fw.size||'?') + '%): -log(Market Cap). Tilts toward smaller S&P 500 names.\\n' +
             '- **Investment** (' + (fw.investment||'?') + '%): YoY Asset Growth. Conservative investment = higher score.\\n\\n' +
             '### Trap Filters:\\n' +
-            '- **Value Trap**: Flagged if 2-of-3: Quality < 30th pctile, Momentum < 30th pctile, Revisions < 30th pctile.\\n' +
-            '- **Growth Trap**: Flagged if Growth > 70th pctile AND fails 2-of-3 weakness checks.\\n\\n' +
+            '- **Value Trap**: Flagged if 2-of-3: Quality < ' + vtQual + 'th pctile, Momentum < ' + vtMom + 'th pctile, Revisions < ' + vtRev + 'th pctile.\\n' +
+            '- **Growth Trap**: Flagged if Growth > ' + gtGrow + 'th pctile AND fails 2-of-3 weakness checks.\\n\\n' +
             '### Portfolio: Top ' + D.portfolio.holdings.length + ' stocks by composite, sector-capped.\\n\\n' +
             '### Defensibility Features:\\n' +
-            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed ±5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard ≥ 0.85 = robust; < 0.70 = sensitive. Results are in the Weight Sensitivity Excel sheet.\\n' +
-            '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged (`_eps_basis_mismatch`). This catches GAAP vs. normalized EPS discrepancies that distort growth and PEG metrics.\\n' +
-            '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 indicate meaningful overlap (orange); > 0.8 indicate strong double-counting risk (red). Available in the Factor Correlation Excel sheet.\\n' +
-            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics out of 18), and `_metric_total`. Low metric counts reduce reliability.\\n' +
+            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\\n' +
+            '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\\n' +
+            '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\\n' +
+            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics out of ~33), and `_metric_total`.\\n' +
             '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\\n\\n' +
             '## Instructions:\\n' +
             '- Answer questions using ONLY the data provided in context. Never fabricate numbers.\\n' +
@@ -2107,7 +2750,7 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
         kpiHtml += dqKpi('Data Freshness', freshStr, 'when the data was last fetched from Yahoo Finance', null);
         kpiHtml += dqKpi('Metric Coverage',
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '\u2014',
-            'of the 18 core metrics have valid data, on average per stock', dq.avg_metric_coverage >= 0.80 ? '#3fb950' : '#d29922');
+            'of the 21 core metrics have valid data, on average per stock', dq.avg_metric_coverage >= 0.80 ? '#3fb950' : '#d29922');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '\u2014',
             'stocks have a GAAP vs. non-GAAP EPS discrepancy that may distort growth metrics',
             dq.eps_mismatch_count === 0 ? '#3fb950' : '#d29922');
@@ -2222,14 +2865,21 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
             container.innerHTML = '';
             return;
         }}
-        let html = '<div class="provenance-section"><h3>Data Provenance</h3><div class="provenance-badges">';
+        const fl = s.flags || {{}};
+        let html = '<div class="provenance-section"><div class="provenance-badges">';
         if (s.metric_count !== null && s.metric_count !== undefined && s.metric_total !== null && s.metric_total !== undefined && s.metric_total > 0) {{
             const pct = (s.metric_count / s.metric_total * 100).toFixed(0);
             const cls = pct >= 80 ? 'provenance-ok' : pct >= 60 ? 'provenance-warn' : 'provenance-alert';
             html += '<span class="provenance-badge ' + cls + '">Metrics: ' + s.metric_count + '/' + s.metric_total + ' (' + pct + '%)</span>';
         }}
         if (s.data_source) {{
-            html += '<span class="provenance-badge provenance-ok">Source: ' + s.data_source + '</span>';
+            const dsLabel = s.data_source === 'quarterly' ? 'LTM (Quarterly)' : s.data_source === 'annual' ? 'Annual Only' : s.data_source;
+            html += '<span class="provenance-badge provenance-ok">Source: ' + dsLabel + '</span>';
+        }}
+        if (fl.stmt_age_days !== null && fl.stmt_age_days !== undefined) {{
+            const age = Math.round(fl.stmt_age_days);
+            const cls = age <= 100 ? 'provenance-ok' : age <= 200 ? 'provenance-warn' : 'provenance-alert';
+            html += '<span class="provenance-badge ' + cls + '">Filing Age: ' + age + ' days</span>';
         }}
         if (s.eps_mismatch) {{
             html += '<span class="provenance-badge provenance-alert">EPS Mismatch (ratio: ' + (s.eps_ratio !== null ? s.eps_ratio : '?') + ')</span>';
@@ -2934,6 +3584,49 @@ def _css() -> str:
             background: var(--red-dim);
         }
         .modal-body { padding: 22px 26px 28px; }
+
+        /* ---- COLLAPSIBLE SECTIONS ---- */
+        .collapsible {
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            cursor: pointer;
+            background: var(--bg-card);
+            user-select: none;
+            transition: background .15s;
+        }
+        .collapsible-header:hover {
+            background: var(--bg-card-hover);
+        }
+        .collapsible-header span:first-child {
+            font-family: var(--font-heading);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .collapsible-chevron {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform .2s ease;
+        }
+        .collapsible.collapsed .collapsible-chevron {
+            transform: rotate(-90deg);
+        }
+        .collapsible-body {
+            padding: 0 18px 16px;
+            background: var(--bg-card);
+        }
+        .collapsible.collapsed .collapsible-body {
+            display: none;
+        }
+
         .modal-score-row {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -3858,6 +4551,339 @@ def _css() -> str:
         .provenance-ok    { background: rgba(63,185,80,.12); color: #3fb950; }
         .provenance-warn  { background: rgba(210,153,34,.12); color: #d29922; }
         .provenance-alert { background: rgba(248,81,73,.12); color: #f85149; }
+
+        /* ---- COMPANY SNAPSHOT (grouped) ---- */
+        .snapshot-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+        .snapshot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 16px;
+        }
+        .snapshot-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        .snapshot-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .snapshot-group {
+            margin-bottom: 14px;
+        }
+        .snapshot-group:last-child { margin-bottom: 0; }
+        .snapshot-group-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding: 0 0 6px 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid;
+        }
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 8px;
+        }
+        .snapshot-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            transition: border-color .15s;
+        }
+        .snapshot-item:hover { border-color: var(--border-bright); }
+        .snapshot-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+        .snapshot-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .snapshot-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .snap-up { color: #3fb950; }
+        .snap-down { color: #f85149; }
+
+        /* ---- SECTOR PEER COMPARISON ---- */
+        .peer-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+        .peer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 14px;
+        }
+        .peer-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        .peer-sector {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .peer-table-wrap { overflow-x: auto; }
+        .peer-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .peer-table thead th {
+            text-align: right;
+            padding: 6px 10px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-bright);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .peer-th-ticker { text-align: left !important; }
+        .peer-table tbody td {
+            padding: 8px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .peer-td-num { text-align: right; white-space: nowrap; }
+        .peer-td-ticker { text-align: left; white-space: nowrap; }
+        .peer-ticker {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .peer-you {
+            font-size: 9px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(88,166,255,.12);
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-left: 6px;
+            letter-spacing: .5px;
+        }
+        .peer-row-self {
+            background: rgba(88,166,255,.06);
+            border-left: 3px solid var(--accent);
+        }
+        .peer-row-self td { font-weight: 600; color: var(--text-primary); }
+        .peer-row td { color: var(--text-secondary); }
+        .peer-row:hover { background: var(--bg-card-hover); }
+
+        /* ---- PEER CUSTOM SELECTION ---- */
+        .peer-add-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .peer-search-wrap {
+            position: relative;
+            flex: 1;
+            max-width: 320px;
+        }
+        .peer-search-input {
+            width: 100%;
+            padding: 7px 12px;
+            border: 1px solid var(--border-bright);
+            border-radius: 6px;
+            font-family: var(--font-body);
+            font-size: 12px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            transition: border-color .15s;
+            box-sizing: border-box;
+        }
+        .peer-search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .peer-search-input::placeholder { color: var(--text-muted); }
+        .peer-search-results {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--bg-card);
+            border: 1px solid var(--border-bright);
+            border-radius: 6px;
+            margin-top: 4px;
+            max-height: 260px;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,.4);
+        }
+        .peer-search-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+            transition: background .1s;
+        }
+        .peer-search-item:last-child { border-bottom: none; }
+        .peer-search-item:hover { background: var(--bg-card-hover); }
+        .peer-search-ticker {
+            font-family: var(--font-heading);
+            font-weight: 600;
+            color: var(--accent);
+            min-width: 48px;
+        }
+        .peer-search-company {
+            flex: 1;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .peer-search-score {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            min-width: 24px;
+            text-align: right;
+        }
+        .peer-search-empty {
+            padding: 12px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: center;
+        }
+        .peer-reset-btn {
+            background: none;
+            border: 1px solid var(--border-bright);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-family: var(--font-body);
+            font-size: 11px;
+            padding: 6px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color .15s, border-color .15s;
+        }
+        .peer-reset-btn:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .peer-th-action { width: 32px; }
+        .peer-td-action {
+            text-align: center;
+            width: 32px;
+            padding: 4px !important;
+        }
+        .peer-remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+            transition: color .15s, background .15s;
+        }
+        .peer-remove-btn:hover {
+            color: #f85149;
+            background: rgba(248,81,73,.1);
+        }
+
+        /* ---- FLAGS & WARNINGS ---- */
+        .flags-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+        .flags-section h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+            color: var(--text-primary);
+        }
+        .flags-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+        .flag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+        .flag-icon { font-size: 13px; }
+        .flag-sev {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            margin-left: 2px;
+        }
+        .flag-detail {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        .flag-severe {
+            background: rgba(248,81,73,.15);
+            color: #f85149;
+            border: 1px solid rgba(248,81,73,.3);
+        }
+        .flag-warn {
+            background: rgba(210,153,34,.12);
+            color: #d29922;
+            border: 1px solid rgba(210,153,34,.25);
+        }
+        .flag-mild {
+            background: rgba(88,166,255,.1);
+            color: #58a6ff;
+            border: 1px solid rgba(88,166,255,.2);
+        }
+        .flag-info {
+            background: rgba(125,133,144,.1);
+            color: #7d8590;
+            border: 1px solid rgba(125,133,144,.2);
+        }
 
         @media print {
             body { background: #fff; color: #000; }
