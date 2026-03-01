@@ -5,7 +5,7 @@
 universe:
   index: 'SP500'  # Options: 'SP500', 'R1000', 'R2000'
   min_market_cap: 2e9  # $2B minimum
-  min_avg_volume: 10e6  # $10M average daily volume — NOT ENFORCED (no volume filter in pipeline)
+  # NOTE: Volume filtering is done in portfolio construction via portfolio.min_avg_dollar_volume.
   exclude_sectors: []  # e.g., ['Utilities'] to exclude a sector
   exclude_tickers: []  # e.g., ['BRK.B'] for manual exclusions
 
@@ -27,42 +27,50 @@ factor_weights:
 metric_weights:
   valuation:
     ev_ebitda: 25      # Capital-structure-neutral; LTM EBIT + LTM D&A (quarterly cashflow)
-    fcf_yield: 40      # Highest: cash flow is hardest to manipulate
+    fcf_yield: 45      # Highest: cash flow is hardest to manipulate
     earnings_yield: 20 # Simple P/E inverse; well-understood but accrual-based
-    ev_sales: 15       # Lowest: ignores margins, but useful for loss-making firms
+    ev_sales: 10       # Lowest: ignores margins, but useful for loss-making firms; correlated with EV/EBITDA
     pb_ratio: 0        # Bank-only; active weight in bank_metric_weights
 
   quality:
-    roic: 30           # Highest: LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
-    gross_profit_assets: 25  # Novy-Marx quality factor; above operating expenses
-    debt_equity: 20    # Leverage risk; uses MRQ BS debt for temporal consistency
-    piotroski_f_score: 15  # Composite health; 9 binary signals
-    accruals: 10       # Earnings quality; Sloan 1996
+    roic: 27           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
+    gross_profit_assets: 20  # Novy-Marx quality factor; above operating expenses
+    net_debt_to_ebitda: 18   # Net Debt/EBITDA; lower = better; replaces D/E (negative equity distorts D/E)
+    piotroski_f_score: 15    # Composite health; 9 binary signals
+    accruals: 5              # Earnings quality; Sloan 1996
+    operating_leverage: 8    # Degree of Operating Leverage; lower = more durable; banks skip
+    beneish_m_score: 7       # Beneish (1999) earnings manipulation detection; non-bank only
     roe: 0             # Bank-only; active weight in bank_metric_weights
     roa: 0             # Bank-only
     equity_ratio: 0    # Bank-only
 
   growth:
-    forward_eps_growth: 35  # Highest: forward-looking consensus estimates
-    peg_ratio: 20      # Growth-adjusted valuation
-    revenue_growth: 30 # Top-line growth; harder to manipulate than earnings
+    forward_eps_growth: 45  # Highest: forward-looking consensus estimates; absorbs PEG's removed weight
+    peg_ratio: 0       # Removed: P/E ÷ growth double-counts valuation (Earnings Yield = 1/PE); breaks on negative growth
+    revenue_growth: 25 # Top-line growth; harder to manipulate than earnings
+    revenue_cagr_3yr: 15  # 3-year revenue CAGR; smooths lumpy 1yr growth from annual filings
     sustainable_growth: 15  # LTM ROE(avg equity) × retention; SGR clamped [0%,100%]
 
   momentum:
-    return_12_1: 50    # Classic Jegadeesh-Titman momentum signal
-    return_6m: 50      # Medium-term momentum; equal weight for diversification
+    return_12_1: 40    # Classic Jegadeesh-Titman momentum signal
+    return_6m: 35      # Medium-term momentum
+    jensens_alpha: 25  # Risk-adjusted excess return above CAPM prediction
 
   risk:
-    volatility: 60     # Direct risk measure; higher weight than beta
-    beta: 40           # Systematic risk relative to market
+    volatility: 30     # Direct risk measure
+    beta: 20           # Systematic risk relative to market
+    sharpe_ratio: 15   # Risk-adjusted return efficiency; higher = better
+    sortino_ratio: 15  # Downside risk-adjusted return; higher = better
+    max_drawdown_1y: 20  # Max peak-to-trough decline; less negative = better
 
   revisions:
-    analyst_surprise: 40       # Backward-looking: did company beat estimates? (was 65)
-    price_target_upside: 20   # Forward-looking: analyst consensus upside (was 35)
-    earnings_acceleration: 20  # NEW: most recent surprise % > prior quarter surprise %
-    consecutive_beat_streak: 20  # NEW: count of consecutive positive surprises (0-4)
+    analyst_surprise: 38       # Backward-looking: did company beat estimates?
+    price_target_upside: 12   # Forward-looking: analyst consensus upside; reduced (sell-side optimism bias)
+    earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise %
+    consecutive_beat_streak: 20  # Count of consecutive positive surprises (0-4)
+    short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
     # NOTE: EPS forecast revision (change in consensus FWD EPS over 3-6 months) would be
-    # ideal as a fifth metric here, but yfinance does not provide historical consensus data.
+    # ideal here, but yfinance does not provide historical consensus data.
     # Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.
 
   size:
@@ -86,9 +94,10 @@ bank_metric_weights:
   quality:
     roic: 0                # IC = deposits + equity; meaningless
     gross_profit_assets: 0 # Banks don't have gross profit
-    debt_equity: 0         # Banks are supposed to be leveraged
+    debt_equity: 0         # Removed from scoring (kept for config schema compatibility)
     piotroski_f_score: 15  # Partially applicable
     accruals: 10           # Directionally valid
+    beneish_m_score: 0     # Banks excluded: no COGS, no PPE, Beneish assumptions break
     roe: 35                # THE key bank profitability metric
     roa: 25                # Key bank efficiency metric
     equity_ratio: 15       # Solvency (higher = more capital = safer)
@@ -123,8 +132,7 @@ percentile_transform:
 # Sector Neutrality
 sector_neutral:
   enabled: true
-  gics_level: 'Sector'  # Options: 'Sector' (11 groups) or 'IndustryGroup' (24 groups) — NOT ENFORCED
-  sector_cap_multiplier: 2.0  # Max 2x benchmark weight per sector — NOT ENFORCED
+  gics_level: 'Sector'  # Currently only 'Sector' is supported
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
 # Value Trap Filters
@@ -154,11 +162,11 @@ growth_trap_filters:
 # Portfolio Construction
 portfolio:
   num_stocks: 25
-  weighting: 'equal'  # Options: 'equal', 'risk_parity' (inverse-volatility, NOT true risk parity)
+  weighting: 'score'  # Options: 'equal', 'inverse_vol', 'score' (composite-proportional)
   max_position_pct: 5.0
-  min_position_pct: 2.0  # NOT ENFORCED (equal/risk_parity weighting ignores this)
+  # min_position_pct: not enforced — removed to avoid false confidence
   max_sector_concentration: 8  # Max 8 stocks per sector
-  rebalance_frequency: 'quarterly'  # Options: 'monthly', 'quarterly' — NOT ENFORCED (manual rebalance)
+  # Rebalance cadence: quarterly (manual). No automated rebalancing is implemented.
   min_avg_dollar_volume: 10e6  # $10M minimum 63-day avg daily dollar volume (0 to disable)
 
 # Fetch Settings (rate-limit resilience)
@@ -180,7 +188,7 @@ caching:
 data_quality:
   winsorize_percentiles: [1, 99]  # Winsorize at 1st and 99th percentiles
   min_data_coverage_pct: 60  # Exclude stocks with < 60% of metrics available
-  max_missing_metrics: 6  # Out of ~15 total metrics — NOT ENFORCED (coverage filter uses min_data_coverage_pct)
+  # max_missing_metrics: superseded by min_data_coverage_pct — removed
   metric_alert_threshold_pct: 50  # Warn if any metric is >50% missing
   auto_reduce_nan_threshold_pct: 70  # Auto-zero weight for metrics with >70% NaN
   stmt_val_strict: false  # Set true to track all _stmt_val() label misses in the DQ log
@@ -193,6 +201,20 @@ data_quality:
 metric_clamps:
   forward_eps_growth: [-0.75, 1.50]  # Tightened: 300% too loose — allows distorted PEG ratios
   price_target_upside: [-0.50, 1.0]  # Unchanged — documents existing bounds
+  # peg_max_cap: removed (PEG weight=0, no longer scored)
+
+# Beneish M-Score (earnings manipulation detection)
+# Uses 8-variable model from Beneish (1999) on annual financial statements.
+# Non-bank stocks only. Set false to skip and redistribute quality weight.
+enable_beneish: true
+
+# Feature toggles for individual metrics
+enable_short_interest_ratio: true   # Days to cover (shortRatio); lower = less bearish sentiment
+enable_revenue_cagr_3yr: true       # 3-year revenue CAGR; smoothed growth signal
+enable_net_debt_ebitda: true        # Net Debt/EBITDA; replaces Debt/Equity in quality scoring
+enable_operating_leverage: true     # Degree of Operating Leverage (DOL); lower = more durable
+enable_jensens_alpha: true          # Jensen's Alpha; risk-adjusted excess return above CAPM
+enable_sharpe_ratio: true           # Sharpe Ratio; risk-adjusted return per unit of total risk
 
 # Output
 output:

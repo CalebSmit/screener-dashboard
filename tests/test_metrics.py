@@ -181,26 +181,36 @@ class TestFCFYield:
 
 
 class TestEarningsYield:
-    def test_normal(self):
-        row = _compute_one(_make_rec(trailingEps=5.0, currentPrice=100.0))
-        assert abs(row["earnings_yield"] - 0.05) < 0.001
+    def test_normal_ltm(self):
+        """Primary path: LTM NI / MC."""
+        row = _compute_one(_make_rec(netIncome=10e9, marketCap=100e9))
+        assert abs(row["earnings_yield"] - 0.10) < 0.001
 
-    def test_negative_eps(self):
-        """Negative EPS → negative earnings yield (not NaN).
+    def test_negative_ni(self):
+        """Negative NI → negative earnings yield (not NaN).
 
         Value investors need to see that a company is unprofitable.
         Masking negative yields as NaN (→ 50th percentile) would
         silently boost loss-making companies' valuation scores.
         """
-        row = _compute_one(_make_rec(trailingEps=-3.0, currentPrice=100.0))
-        assert abs(row["earnings_yield"] - (-0.03)) < 0.001
+        row = _compute_one(_make_rec(netIncome=-5e9, marketCap=100e9))
+        assert abs(row["earnings_yield"] - (-0.05)) < 0.001
 
-    def test_zero_price(self):
-        row = _compute_one(_make_rec(currentPrice=0))
-        assert np.isnan(row["earnings_yield"])
+    def test_fallback_to_trailing_eps(self):
+        """When NI or MC is missing, fall back to trailingEps / price."""
+        row = _compute_one(_make_rec(netIncome=np.nan, trailingEps=5.0, currentPrice=100.0))
+        assert abs(row["earnings_yield"] - 0.05) < 0.001
 
-    def test_missing_eps(self):
-        row = _compute_one(_make_rec(trailingEps=np.nan))
+    def test_zero_mc(self):
+        """MC=0 → falls back to trailingEps path."""
+        row = _compute_one(_make_rec(marketCap=0, trailingEps=5.0, currentPrice=100.0))
+        # MC=0 triggers NaN from primary path, fallback uses EPS/price
+        assert abs(row["earnings_yield"] - 0.05) < 0.001
+
+    def test_all_missing(self):
+        """Both paths fail → NaN."""
+        row = _compute_one(_make_rec(netIncome=np.nan, marketCap=np.nan,
+                                      trailingEps=np.nan, currentPrice=0))
         assert np.isnan(row["earnings_yield"])
 
 
@@ -617,11 +627,19 @@ class TestPEGRatio:
         # forward_eps_growth = (4.5-5.0)/5.0 = -0.10 → PEG NaN
         assert np.isnan(row["peg_ratio"])
 
-    def test_zero_growth(self):
-        """Near-zero forward EPS growth (< 1%) → PEG is NaN."""
+    def test_very_low_growth(self):
+        """Near-zero forward EPS growth (0.8%) → PEG is high but valid (capped at 50)."""
         row = _compute_one(_make_rec(
             trailingEps=5.0, forwardEps=5.04))
-        # forward_eps_growth = (5.04-5.0)/5.0 = 0.008 < 0.01 → PEG NaN
+        # forward_eps_growth = (5.04-5.0)/5.0 = 0.008 = 0.8%
+        # P/E = 100/5 = 20; PEG = 20 / (0.008 * 100) = 25.0 (under cap)
+        assert abs(row["peg_ratio"] - 25.0) < 0.5
+
+    def test_zero_growth_exact(self):
+        """Exactly zero growth → PEG is NaN."""
+        row = _compute_one(_make_rec(
+            trailingEps=5.0, forwardEps=5.0))
+        # forward_eps_growth = (5.0-5.0)/5.0 = 0.0 → PEG NaN
         assert np.isnan(row["peg_ratio"])
 
 

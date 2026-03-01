@@ -21,6 +21,28 @@ from openpyxl.utils import get_column_letter
 
 warnings.filterwarnings("ignore")
 
+
+def _round_weights_to_target(series: pd.Series, target: float = 100.0,
+                              decimals: int = 2) -> pd.Series:
+    """Round weights so they sum to exactly *target* (largest-remainder method).
+
+    Floors all values, then distributes leftover 0.01-units to the entries
+    whose fractional remainders were largest — minimising per-element error
+    while preserving the exact sum.
+    """
+    if series.sum() == 0:
+        return series
+    factor = 10 ** decimals
+    scaled = series / series.sum() * (target * factor)
+    floored = np.floor(scaled).astype(int)
+    remainders = scaled - floored
+    deficit = int(round(target * factor)) - floored.sum()
+    if deficit > 0:
+        indices = remainders.nlargest(min(deficit, len(remainders))).index
+        floored.loc[indices] += 1
+    return floored / factor
+
+
 from factor_engine import (
     load_config,
     get_sp500_tickers,
@@ -122,13 +144,11 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # --- Step 3: Sector constraints ---
     selected = []
     sector_counts = {}
-    backfill_pool = []
 
     for _, row in work.iterrows():
         sec = row["Sector"]
         cnt = sector_counts.get(sec, 0)
         if cnt >= max_sector:
-            backfill_pool.append(row)
             continue
         if len(selected) >= num_stocks:
             break
@@ -151,26 +171,32 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             sector_counts[sec] = cnt + 1
 
     # --- Step 5: Min 20 positions guardrail ---
+    # Pull from the post-filter universe (work), NOT the original unfiltered
+    # df. This preserves coverage, liquidity, and trap filters — if fewer
+    # than 20 stocks pass all quality gates, the portfolio is smaller rather
+    # than diluted with low-quality backfill.
     if len(selected) < 20:
-        # Relax composite threshold — add next-best from full universe
-        for _, row in df.sort_values("Composite", ascending=False).iterrows():
+        _selected_tickers = {r["Ticker"] for r in selected}
+        for _, row in work.iterrows():
             if len(selected) >= 20:
                 break
-            ticker = row["Ticker"]
-            if any(r["Ticker"] == ticker for r in selected):
+            if row["Ticker"] in _selected_tickers:
                 continue
             sec = row["Sector"]
             cnt = sector_counts.get(sec, 0)
             if cnt >= max_sector:
                 continue
             selected.append(row)
+            _selected_tickers.add(row["Ticker"])
             sector_counts[sec] = cnt + 1
 
     port = pd.DataFrame(selected).reset_index(drop=True)
 
     if port.empty:
         port["Equal_Weight_Pct"] = []
-        port["RiskParity_Weight_Pct"] = []
+        port["Implied_EW_Weight"] = []
+        port["InvVol_Weight_Pct"] = []
+        port["Score_Weight_Pct"] = []
         port["Port_Rank"] = []
         return port
 
@@ -178,11 +204,12 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     n = len(port)
     # Equal weight
     port["Equal_Weight_Pct"] = round(100.0 / n, 2) if n > 0 else 0
+    # Implied equal weight (for reference — what each stock would get before capping)
+    port["Implied_EW_Weight"] = round(100.0 / n, 4) if n > 0 else 0
 
-    # "Risk parity" weight: inverse-volatility (1/vol_i) normalized.
-    # NOTE: This is NOT true risk parity (Bridgewater/Dalio style), which
-    # requires a full covariance matrix. This is inverse-volatility weighting,
-    # a simpler heuristic that tilts toward lower-volatility holdings.
+    # Inverse-volatility weight: (1/vol_i) normalized.
+    # Tilts toward lower-volatility holdings. NOT true risk parity
+    # (which requires a covariance matrix); this is a simpler heuristic.
     vol_col = "volatility"
     if vol_col in port.columns and port[vol_col].notna().any():
         med_vol = port[vol_col].median()
@@ -197,18 +224,28 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         inv_vol = 1.0 / vols
         total_iv = inv_vol.sum()
         if total_iv > 0 and np.isfinite(total_iv):
-            port["RiskParity_Weight_Pct"] = round(inv_vol / total_iv * 100, 2)
+            port["InvVol_Weight_Pct"] = round(inv_vol / total_iv * 100, 2)
         else:
-            port["RiskParity_Weight_Pct"] = port["Equal_Weight_Pct"]
+            port["InvVol_Weight_Pct"] = port["Equal_Weight_Pct"]
     else:
-        port["RiskParity_Weight_Pct"] = port["Equal_Weight_Pct"]
+        port["InvVol_Weight_Pct"] = port["Equal_Weight_Pct"]
+
+    # Score-weighted: composite-score-proportional weights.
+    # Higher-scoring stocks get proportionally more weight.
+    if "Composite" in port.columns and port["Composite"].notna().any():
+        composites = port["Composite"].fillna(port["Composite"].median()).clip(lower=1.0)
+        port["Score_Weight_Pct"] = round(composites / composites.sum() * 100, 2)
+    else:
+        port["Score_Weight_Pct"] = port["Equal_Weight_Pct"]
 
     # --- Step 5: Max single position cap and redistribute ---
     cap = max_pos_pct  # Use config value (default 5.0%)
-    for wt_col in ["Equal_Weight_Pct", "RiskParity_Weight_Pct"]:
+    for wt_col in ["Equal_Weight_Pct", "InvVol_Weight_Pct", "Score_Weight_Pct"]:
         # Convert to float to avoid type issues
         port[wt_col] = pd.to_numeric(port[wt_col], errors='coerce').fillna(0.0)
-        # Iterative cap-and-redistribute until no position exceeds cap
+        # Iterative cap-and-redistribute until no position exceeds cap.
+        # Excess is redistributed proportionally to each uncapped stock's
+        # current weight (preserves relative ranking signal).
         for _iteration in range(10):  # Max 10 iterations to converge
             excess = 0.0
             uncapped_idx = []
@@ -221,13 +258,20 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
                     uncapped_idx.append(i)
             if excess <= 0.001 or len(uncapped_idx) == 0:
                 break
-            add_per = excess / len(uncapped_idx)
+            # Proportional redistribution: each uncapped stock gets excess
+            # in proportion to its current weight (not equally).
+            uncapped_total = sum(port.loc[i, wt_col] for i in uncapped_idx)
             for i in uncapped_idx:
-                port.loc[i, wt_col] = port.loc[i, wt_col] + add_per  # type: ignore
-        # Normalize to 100%
+                share = port.loc[i, wt_col] / uncapped_total if uncapped_total > 0 else 1.0 / len(uncapped_idx)
+                port.loc[i, wt_col] = port.loc[i, wt_col] + excess * share  # type: ignore
+        # Normalize to exactly 100% (largest-remainder rounding)
         total = port[wt_col].sum()
         if total > 0:
-            port[wt_col] = round(port[wt_col] / total * 100, 2)
+            port[wt_col] = _round_weights_to_target(port[wt_col])
+        # Weight sum assertion
+        wt_sum = port[wt_col].sum()
+        if abs(wt_sum - 100.0) > 0.01:
+            warnings.warn(f"[PORTFOLIO] {wt_col} weights sum to {wt_sum:.2f}%, expected 100%")
 
     # Rank within portfolio
     port = port.sort_values("Composite", ascending=False).reset_index(drop=True)
@@ -250,8 +294,10 @@ def compute_portfolio_stats(port: pd.DataFrame, cfg: dict) -> dict:
         }
     # Use configured weighting scheme
     scheme = cfg.get("portfolio", {}).get("weighting", "equal")
-    if scheme == "risk_parity" and "RiskParity_Weight_Pct" in port.columns:
-        wt_col = "RiskParity_Weight_Pct"
+    if scheme in ("risk_parity", "inverse_vol") and "InvVol_Weight_Pct" in port.columns:
+        wt_col = "InvVol_Weight_Pct"
+    elif scheme == "score" and "Score_Weight_Pct" in port.columns:
+        wt_col = "Score_Weight_Pct"
     else:
         wt_col = "Equal_Weight_Pct"
     weights_array = pd.to_numeric(port[wt_col], errors='coerce').to_numpy(dtype=np.float64)
@@ -306,6 +352,7 @@ def compute_portfolio_stats(port: pd.DataFrame, cfg: dict) -> dict:
         "sector_alloc": sector_alloc,
         "factor_exposure": factor_exposure,
         "date_generated": datetime.now().strftime("%Y-%m-%d"),
+        "_weighting_scheme": scheme,
     }
 
 
@@ -385,7 +432,10 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
         ("risk_contrib", "Risk_Contrib"), ("revisions_contrib", "Rev_Contrib"),
         ("size_contrib", "Size_Contrib"), ("investment_contrib", "Invest_Contrib"),
         ("Value_Trap_Flag", "Value_Trap_Flag"),
+        ("Value_Trap_Severity", "VT_Severity"),
         ("Growth_Trap_Flag", "Growth_Trap_Flag"),
+        ("Growth_Trap_Severity", "GT_Severity"),
+        ("_beneish_flag", "Beneish_Flag"),
         ("Financial_Sector_Caveat", "Fin_Caveat"),
         ("_is_bank_like", "Is_Bank"),
     ]
@@ -398,15 +448,24 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
         ws.cell(row=1, column=c, value=header)
     _style_header_row(ws, 1, len(col_map))
 
+    # Pre-compute quartile boundaries for score columns (percentile-based coloring)
+    score_cols = {"valuation_score", "quality_score", "growth_score",
+                  "momentum_score", "risk_score", "revisions_score",
+                  "size_score", "investment_score", "Composite"}
+    quartiles = {}
+    for sc in score_cols:
+        if sc in df.columns:
+            vals = df[sc].dropna()
+            if len(vals) >= 4:
+                quartiles[sc] = (vals.quantile(0.25), vals.quantile(0.50), vals.quantile(0.75))
+
     # Data
     for r, (_, row) in enumerate(df.iterrows(), 2):
         for c, (src, _) in enumerate(col_map, 1):
             v = row.get(src)
             if isinstance(v, float) and np.isnan(v):
                 v = None
-            elif src in ("valuation_score", "quality_score", "growth_score",
-                         "momentum_score", "risk_score", "revisions_score",
-                         "size_score", "investment_score"):
+            elif src in score_cols:
                 v = round(v, 1) if pd.notna(v) else None
             elif src.endswith("_contrib"):
                 v = round(v, 2) if pd.notna(v) else None
@@ -416,6 +475,17 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
             cell.alignment = Alignment(horizontal="center" if c > 3 else "left")
             if src.endswith("_contrib"):
                 cell.fill = contrib_fill
+            # Quartile-based coloring for score columns
+            elif src in quartiles and v is not None:
+                q25, q50, q75 = quartiles[src]
+                if v >= q75:
+                    cell.fill = GREEN_FILL
+                elif v >= q50:
+                    cell.fill = LIGHT_GREEN_FILL
+                elif v >= q25:
+                    cell.fill = YELLOW_FILL
+                else:
+                    cell.fill = RED_FILL
 
     _auto_width(ws)
     return ws
@@ -442,6 +512,11 @@ def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
     _style_header_row(ws, row, len(top25_headers))
     row += 1
 
+    # Quartile boundaries for Composite
+    _comp_vals = df["Composite"].dropna()
+    _comp_q = ((_comp_vals.quantile(0.25), _comp_vals.quantile(0.50), _comp_vals.quantile(0.75))
+               if len(_comp_vals) >= 4 else (40, 55, 70))
+
     top25 = df.nsmallest(25, "Rank")
     for _, stock in top25.iterrows():
         ws.cell(row=row, column=1, value=int(stock["Rank"]))
@@ -455,13 +530,16 @@ def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
         ws.cell(row=row, column=8, value=round(stock.get("momentum_score", 0), 1))
         ws.cell(row=row, column=9, value=bool(stock.get("Value_Trap_Flag", False)))
 
-        # Conditional formatting on Composite
+        # Conditional formatting on Composite (quartile-based)
         for c in range(1, len(top25_headers) + 1):
             _style_data_cell(ws, row, c)
         if comp is not None:
-            if comp >= 80:
+            q25, q50, q75 = _comp_q
+            if comp >= q75:
                 ws.cell(row=row, column=5).fill = GREEN_FILL
-            elif comp >= 60:
+            elif comp >= q50:
+                ws.cell(row=row, column=5).fill = LIGHT_GREEN_FILL
+            elif comp >= q25:
                 ws.cell(row=row, column=5).fill = YELLOW_FILL
             else:
                 ws.cell(row=row, column=5).fill = RED_FILL
@@ -546,8 +624,21 @@ def write_model_portfolio_sheet(wb: Workbook, port: pd.DataFrame, stats: dict):
     row = 4
     ws.cell(row=row, column=1, value="PORTFOLIO HOLDINGS").font = SUBTITLE_FONT
     row += 1
+    # Determine active weighting method label
+    _scheme = stats.get("_weighting_scheme", "equal")
+    _scheme_label = {"equal": "Equal-Weighted", "risk_parity": "Inverse-Volatility",
+                     "inverse_vol": "Inverse-Volatility",
+                     "score": "Score-Weighted"}.get(_scheme, "Equal-Weighted")
+
+    # Weighting method label
+    ws.cell(row=row, column=1,
+            value=f"Weighting Method: {_scheme_label}").font = Font(
+        name="Calibri", size=10, bold=True, color="333333")
+    row += 1
+
     hold_headers = ["Rank", "Ticker", "Company", "Sector", "Composite",
-                    "Equal_Weight_%", "RiskParity_Weight_%"]
+                    "Implied_EW_%", "Equal_Weight_%", "InvVol_Weight_%",
+                    "Score_Weight_%", "Weight_Method"]
     for c, h in enumerate(hold_headers, 1):
         ws.cell(row=row, column=c, value=h)
     _style_header_row(ws, row, len(hold_headers))
@@ -559,8 +650,11 @@ def write_model_portfolio_sheet(wb: Workbook, port: pd.DataFrame, stats: dict):
         ws.cell(row=row, column=3, value=stock.get("Company", ""))
         ws.cell(row=row, column=4, value=stock.get("Sector", ""))
         ws.cell(row=row, column=5, value=round(stock["Composite"], 1))
-        ws.cell(row=row, column=6, value=round(stock["Equal_Weight_Pct"], 2))
-        ws.cell(row=row, column=7, value=round(stock["RiskParity_Weight_Pct"], 2))
+        ws.cell(row=row, column=6, value=round(stock.get("Implied_EW_Weight", 0), 2))
+        ws.cell(row=row, column=7, value=round(stock["Equal_Weight_Pct"], 2))
+        ws.cell(row=row, column=8, value=round(stock["InvVol_Weight_Pct"], 2))
+        ws.cell(row=row, column=9, value=round(stock.get("Score_Weight_Pct", 0), 2))
+        ws.cell(row=row, column=10, value=_scheme_label)
 
         for c in range(1, len(hold_headers) + 1):
             _style_data_cell(ws, row, c)
@@ -805,11 +899,16 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
         ("volatility", "Volatility (raw)"),
         ("beta", "Beta (raw)"),
         ("analyst_surprise", "Analyst Surprise (raw)"),
+        ("short_interest_ratio", "Short Interest (raw)"),
         ("_current_price", "Price"),
         ("_target_mean", "Analyst Target"),
         ("_num_analysts", "# Analysts"),
+        ("_beneish_flag", "Beneish Flag"),
         ("_stale_data", "Stale Data?"),
         ("_ev_flag", "EV Discrepancy"),
+        ("_ltm_annualized", "LTM Partial?"),
+        ("_channel_stuffing_flag", "Channel Stuffing?"),
+        ("_beta_overlap_pct", "Beta Overlap %"),
     ]
 
     # Headers
@@ -833,9 +932,18 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
             # Highlight stale data
             if src == "_stale_data" and v is True:
                 cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red warning
+            # Highlight Beneish manipulation flag
+            if src == "_beneish_flag" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red warning
             # Highlight EV discrepancy
             if src == "_ev_flag" and v is not None and v is not False:
                 cell.fill = PatternFill("solid", fgColor="FFEB9C")
+            # Highlight LTM partial annualization
+            if src == "_ltm_annualized" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFEB9C")  # yellow warning
+            # Highlight channel stuffing risk
+            if src == "_channel_stuffing_flag" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red warning
             # Format percentages
             if src in ("fcf_yield", "earnings_yield", "roic", "forward_eps_growth",
                        "revenue_growth", "return_12_1", "analyst_surprise"):
@@ -843,6 +951,56 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
                     cell.number_format = '0.00%'
             if src == "volatility" and v is not None:
                 cell.number_format = '0.00%'
+
+    # ---- Sector-Median Context Table ----
+    # For each top-N stock, show its sector's 25th, median, and 75th percentile
+    # for key raw metrics. This helps users judge if a value is sector-typical.
+    _ctx_start_row = 4 + top_n + 2
+    ws.cell(row=_ctx_start_row, column=1,
+            value="SECTOR CONTEXT — Median (25th–75th) for Key Metrics")
+    ws.cell(row=_ctx_start_row, column=1).font = Font(bold=True, size=11)
+    ws.merge_cells(start_row=_ctx_start_row, start_column=1,
+                   end_row=_ctx_start_row, end_column=10)
+
+    _ctx_metrics = [
+        ("ev_ebitda", "EV/EBITDA"), ("fcf_yield", "FCF Yield"),
+        ("earnings_yield", "Earns Yield"), ("roic", "ROIC"),
+        ("forward_eps_growth", "Fwd EPS Gr"), ("revenue_growth", "Rev Growth"),
+        ("volatility", "Volatility"), ("beta", "Beta"),
+    ]
+    _pct_metrics = {"fcf_yield", "earnings_yield", "roic",
+                    "forward_eps_growth", "revenue_growth", "volatility"}
+
+    _ctx_headers = ["Sector", "# Stocks"] + [h for _, h in _ctx_metrics]
+    _ctx_hdr_row = _ctx_start_row + 1
+    for c, h in enumerate(_ctx_headers, 1):
+        ws.cell(row=_ctx_hdr_row, column=c, value=h)
+    _style_header_row(ws, _ctx_hdr_row, len(_ctx_headers))
+
+    # Get sectors of top-N stocks
+    _top_sectors = sorted(top["Sector"].unique())
+    _ctx_data_row = _ctx_hdr_row + 1
+    for sector in _top_sectors:
+        sector_df = df[df["Sector"] == sector]
+        ws.cell(row=_ctx_data_row, column=1, value=sector).font = DATA_FONT
+        ws.cell(row=_ctx_data_row, column=1).border = THIN_BORDER
+        ws.cell(row=_ctx_data_row, column=2, value=len(sector_df)).font = DATA_FONT
+        ws.cell(row=_ctx_data_row, column=2).border = THIN_BORDER
+        for ci, (metric, _) in enumerate(_ctx_metrics, 3):
+            vals = sector_df[metric].dropna() if metric in sector_df.columns else pd.Series(dtype=float)
+            if len(vals) >= 3:
+                q25, med, q75 = vals.quantile(0.25), vals.median(), vals.quantile(0.75)
+                if metric in _pct_metrics:
+                    cell_val = f"{med:.1%} ({q25:.1%}–{q75:.1%})"
+                else:
+                    cell_val = f"{med:.1f} ({q25:.1f}–{q75:.1f})"
+            else:
+                cell_val = "N/A"
+            cell = ws.cell(row=_ctx_data_row, column=ci, value=cell_val)
+            cell.font = DATA_FONT
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center")
+        _ctx_data_row += 1
 
     _auto_width(ws)
 
@@ -916,7 +1074,7 @@ def print_summary(df, port, stats, capped_sectors, cfg, excel_path, t0):
     for _, r in top5.iterrows():
         print(f"  {int(r['Port_Rank']):2d}. {r['Ticker']:6s} {str(r.get('Sector','')):26s} "
               f"{r['Composite']:.1f}  EqWt={r['Equal_Weight_Pct']:.1f}%  "
-              f"RPWt={r['RiskParity_Weight_Pct']:.1f}%")
+              f"RPWt={r['InvVol_Weight_Pct']:.1f}%")
 
     print("--------------------------------------------")
     print("SECTOR ALLOCATION:")

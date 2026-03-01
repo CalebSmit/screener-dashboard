@@ -90,20 +90,26 @@ class TestRevisionsAutoDisable:
 
 class TestPortfolioEdgeCases:
     def test_fewer_than_20_stocks(self, cfg):
-        """Portfolio with fewer stocks than min-20 guardrail."""
+        """Portfolio with fewer stocks than min-20 guardrail.
+
+        The guardrail only backfills from the filtered universe, so
+        the portfolio size is bounded by post-filter count, not the
+        raw universe size.
+        """
         from portfolio_constructor import construct_portfolio
-        # Only 15 stocks
+        # Only 15 stocks — all with reasonable composites
         df = pd.DataFrame({
             "Ticker": [f"T{i}" for i in range(15)],
             "Company": [f"Co{i}" for i in range(15)],
             "Sector": ["Tech"] * 5 + ["Health"] * 5 + ["Energy"] * 5,
-            "Composite": list(range(85, 100)) ,
+            "Composite": list(range(85, 100)),
             "Rank": list(range(1, 16)),
             "Value_Trap_Flag": [False] * 15,
             "volatility": [0.25] * 15,
         })
         port = construct_portfolio(df, cfg)
-        assert len(port) == 15  # Can't exceed universe
+        # Portfolio should be non-empty and not exceed universe size
+        assert 0 < len(port) <= 15
 
     def test_all_one_sector(self, cfg):
         """All stocks in one sector — sector cap should limit portfolio."""
@@ -136,27 +142,29 @@ class TestPortfolioEdgeCases:
             "volatility": [np.nan if i < 5 else 0.25 for i in range(25)],
         })
         port = construct_portfolio(df, cfg)
-        assert port["RiskParity_Weight_Pct"].notna().all()
-        assert abs(port["RiskParity_Weight_Pct"].sum() - 100) < 0.5
+        assert port["InvVol_Weight_Pct"].notna().all()
+        assert abs(port["InvVol_Weight_Pct"].sum() - 100) < 0.5
 
-    def test_risk_parity_with_near_zero_vol(self, cfg):
+    def test_inv_vol_with_near_zero_vol(self, cfg):
         """Near-zero volatility should be floored, not cause infinite weights."""
         from portfolio_constructor import construct_portfolio
         cfg = copy.deepcopy(cfg)
-        cfg["portfolio"]["weighting"] = "risk_parity"
+        cfg["portfolio"]["weighting"] = "inverse_vol"
+        # Use 40 stocks to ensure enough survive the median filter for
+        # position caps to be meaningful (need n >= 100/cap = 20).
         df = pd.DataFrame({
-            "Ticker": [f"T{i}" for i in range(25)],
-            "Company": [f"Co{i}" for i in range(25)],
-            "Sector": [["Tech", "Health", "Energy", "Finance", "Utility"][i % 5] for i in range(25)],
-            "Composite": list(range(76, 101)),
-            "Rank": list(range(1, 26)),
-            "Value_Trap_Flag": [False] * 25,
-            "volatility": [0.001 if i == 0 else 0.25 for i in range(25)],
+            "Ticker": [f"T{i}" for i in range(40)],
+            "Company": [f"Co{i}" for i in range(40)],
+            "Sector": [["Tech", "Health", "Energy", "Finance", "Utility"][i % 5] for i in range(40)],
+            "Composite": list(range(61, 101)),
+            "Rank": list(range(1, 41)),
+            "Value_Trap_Flag": [False] * 40,
+            "volatility": [0.001 if i == 0 else 0.25 for i in range(40)],
         })
         port = construct_portfolio(df, cfg)
-        # No single position should exceed max_position_pct
+        # With enough stocks, position cap should be respected
         max_pos = cfg["portfolio"]["max_position_pct"]
-        assert port["RiskParity_Weight_Pct"].max() <= max_pos + 0.1
+        assert port["InvVol_Weight_Pct"].max() <= max_pos + 0.1
 
 
 # =====================================================================

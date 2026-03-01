@@ -94,7 +94,7 @@ class FactorScores(BaseModel):
     Company: Optional[str] = None
     Sector: str = "Unknown"
 
-    # Raw metrics (23 — 17 generic + 4 bank-specific + 2 new factors)
+    # Raw metrics (27 — 19 generic + 4 bank-specific + 2 size/investment + 2 reference-only)
     ev_ebitda: Optional[float] = None
     fcf_yield: Optional[float] = None
     earnings_yield: Optional[float] = None
@@ -102,9 +102,11 @@ class FactorScores(BaseModel):
     pb_ratio: Optional[float] = None          # Bank valuation
     roic: Optional[float] = None
     gross_profit_assets: Optional[float] = None
-    debt_equity: Optional[float] = None
+    debt_equity: Optional[float] = None         # Reference only; not scored
+    net_debt_to_ebitda: Optional[float] = None  # Replaces D/E in quality scoring
     piotroski_f_score: Optional[float] = None
     accruals: Optional[float] = None
+    operating_leverage: Optional[float] = None  # Degree of Operating Leverage
     roe: Optional[float] = None               # Bank quality
     roa: Optional[float] = None               # Bank quality
     equity_ratio: Optional[float] = None      # Bank quality
@@ -114,8 +116,12 @@ class FactorScores(BaseModel):
     sustainable_growth: Optional[float] = None
     return_12_1: Optional[float] = None
     return_6m: Optional[float] = None
+    jensens_alpha: Optional[float] = None     # Risk-adjusted excess return (CAPM)
     volatility: Optional[float] = None
     beta: Optional[float] = None
+    sharpe_ratio: Optional[float] = None      # Risk-adjusted return per unit risk
+    sortino_ratio: Optional[float] = None     # Downside risk-adjusted return
+    max_drawdown_1y: Optional[float] = None  # Max peak-to-trough decline (1Y)
     analyst_surprise: Optional[float] = None
     price_target_upside: Optional[float] = None
     earnings_acceleration: Optional[float] = None   # Fundamental momentum: acceleration
@@ -137,7 +143,9 @@ class FactorScores(BaseModel):
     Composite: Optional[float] = Field(None, ge=0, le=100)
     Rank: Optional[int] = Field(None, ge=1)
     Value_Trap_Flag: Optional[bool] = None
+    Value_Trap_Severity: Optional[float] = Field(None, ge=0, le=100)
     Growth_Trap_Flag: Optional[bool] = None
+    Growth_Trap_Severity: Optional[float] = Field(None, ge=0, le=100)
 
     model_config = ConfigDict(extra="allow")
 
@@ -162,18 +170,20 @@ class _MetricWeightBase(BaseModel):
 
 class ValuationWeights(_MetricWeightBase):
     ev_ebitda: float = 25
-    fcf_yield: float = 40
+    fcf_yield: float = 45
     earnings_yield: float = 20
-    ev_sales: float = 15
+    ev_sales: float = 10
     pb_ratio: float = 0       # Bank-only; active weight in bank_metric_weights
 
 
 class QualityWeights(_MetricWeightBase):
-    roic: float = 30
-    gross_profit_assets: float = 25
-    debt_equity: float = 20
+    roic: float = 27
+    gross_profit_assets: float = 20
+    net_debt_to_ebitda: float = 18   # Replaces Debt/Equity (negative equity distorts D/E)
     piotroski_f_score: float = 15
-    accruals: float = 10
+    accruals: float = 5
+    operating_leverage: float = 8    # Degree of Operating Leverage; banks skip
+    beneish_m_score: float = 7       # Beneish (1999) earnings manipulation; non-bank only
     roe: float = 0             # Bank-only
     roa: float = 0             # Bank-only
     equity_ratio: float = 0    # Bank-only
@@ -193,33 +203,40 @@ class BankQualityWeights(_MetricWeightBase):
     debt_equity: float = 0
     piotroski_f_score: float = 15
     accruals: float = 10
+    beneish_m_score: float = 0  # Banks excluded from Beneish
     roe: float = 35
     roa: float = 25
     equity_ratio: float = 15
 
 
 class GrowthWeights(_MetricWeightBase):
-    forward_eps_growth: float = 35
-    peg_ratio: float = 20
-    revenue_growth: float = 30
+    forward_eps_growth: float = 45
+    peg_ratio: float = 0       # Removed from scoring: double-counts valuation
+    revenue_growth: float = 25
+    revenue_cagr_3yr: float = 15  # 3-year revenue CAGR
     sustainable_growth: float = 15
 
 
 class MomentumWeights(_MetricWeightBase):
-    return_12_1: float = 50
-    return_6m: float = 50
+    return_12_1: float = 40
+    return_6m: float = 35
+    jensens_alpha: float = 25
 
 
 class RiskWeights(_MetricWeightBase):
-    volatility: float = 60
-    beta: float = 40
+    volatility: float = 30
+    beta: float = 20
+    sharpe_ratio: float = 15
+    sortino_ratio: float = 15
+    max_drawdown_1y: float = 20
 
 
 class RevisionsWeights(_MetricWeightBase):
-    analyst_surprise: float = 40       # Backward-looking: did company beat estimates?
-    price_target_upside: float = 20    # Forward-looking: analyst consensus upside
+    analyst_surprise: float = 38       # Backward-looking: did company beat estimates?
+    price_target_upside: float = 12    # Forward-looking: analyst consensus upside
     earnings_acceleration: float = 20  # Most recent quarter surprise > prior quarter
     consecutive_beat_streak: float = 20  # Count of consecutive positive surprises (0-4)
+    short_interest_ratio: float = 10   # Days to cover; lower = less bearish sentiment
 
 
 class SizeWeights(_MetricWeightBase):
@@ -258,7 +275,6 @@ class RunConfig(BaseModel):
     class UniverseConfig(BaseModel):
         index: str = "SP500"
         min_market_cap: float = 2e9
-        min_avg_volume: float = 10e6  # NOT ENFORCED in current pipeline
         exclude_sectors: list[str] = []
         exclude_tickers: list[str] = []
 
@@ -295,15 +311,12 @@ class RunConfig(BaseModel):
         num_stocks: int = Field(25, ge=5, le=100)
         weighting: str = "equal"
         max_position_pct: float = Field(5.0, gt=0, le=100)
-        min_position_pct: float = Field(2.0, ge=0, le=100)  # NOT ENFORCED in current pipeline
         max_sector_concentration: int = Field(8, ge=1)
-        rebalance_frequency: str = "quarterly"  # NOT ENFORCED in current pipeline
         min_avg_dollar_volume: float = 10e6  # 63-day avg daily dollar volume floor
 
     class DataQualityConfig(BaseModel):
         winsorize_percentiles: list[int] = [1, 99]
         min_data_coverage_pct: float = Field(60, ge=0, le=100)
-        max_missing_metrics: int = 6  # NOT ENFORCED in current pipeline
         metric_alert_threshold_pct: float = 50
         auto_reduce_nan_threshold_pct: float = 70
         stmt_val_strict: bool = False

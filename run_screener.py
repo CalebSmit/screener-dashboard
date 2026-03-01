@@ -331,7 +331,7 @@ All data is pulled from **Yahoo Finance** via the `yfinance` Python library. For
 - **Summary statistics** — market cap, enterprise value, P/E ratios, EPS estimates, analyst price targets, number of covering analysts
 - **Earnings history** — last 4 quarters of actual vs. estimated EPS (for earnings surprise calculations)
 
-The S&P 500 member list is pulled from Wikipedia's regularly updated table. A local backup (`sp500_tickers.json`) is used if the network is unavailable.
+The S&P 500 member list is pulled primarily from a **GitHub-hosted CSV** (`datasets/s-and-p-500-companies`), with Wikipedia as a secondary fallback and a local backup (`sp500_tickers.json`) as a last resort. The local JSON is auto-updated whenever a network source succeeds.
 
 Data is fetched in batches of {batch_size} tickers with {max_workers} concurrent threads per batch and a {inter_batch_delay}-second inter-batch delay to manage Yahoo Finance rate limits. Failed tickers are automatically retried in a second pass with conservative settings (single-threaded, 30-second cooldown).
 
@@ -415,7 +415,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(risk_w, _RISK_DESCRIPTIONS)}
 
-**Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Beta measures systematic risk (how much your stock drops when the market drops). Both metrics favor steadier, less speculative companies.
+**Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility and Beta measure total and systematic risk respectively. Sharpe and Sortino Ratios reward stocks that deliver more return per unit of risk (Sortino penalizes only downside volatility, which matters more to investors). Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. Together these five metrics favor steadier, more risk-efficient companies.
 
 ---
 
@@ -542,6 +542,9 @@ The screener includes several layers of data quality protection:
 - **Metric-level alerts:** A warning is printed if any metric has more than {alert_thresh}% missing data across the universe.
 - **LTM / MRQ data freshness:** All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (< 8 quarters).
 - **EV cross-validation:** The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (`_ev_flag`). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).
+- **LTM partial annualization tracking:** When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with `_ltm_annualized = True` and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.
+- **Channel-stuffing detection:** Compares receivables growth vs. revenue growth. When receivables growth exceeds revenue growth by more than 15 percentage points, the stock is flagged with `_channel_stuffing_flag = True`. This can indicate aggressive revenue recognition or deteriorating collection quality.
+- **Beta overlap validation:** Beta computation requires at least 80% date overlap between the stock's daily returns and the S&P 500 market returns. Stocks with insufficient overlap get `beta = NaN` rather than a potentially misleading value. The overlap percentage is recorded in `_beta_overlap_pct`.
 - **Data quality log:** Every data issue (missing fields, stale data, rate-limit failures) is logged to `validation/data_quality_log.csv` with ticker, severity, description, and action taken.
 - **Structured pipeline logging:** A Python `logging`-based structured logger (`screener.pipeline`) records coverage statistics, filter actions, and scoring stage completions for machine-parseable diagnostics.
 
@@ -559,6 +562,8 @@ This is more balanced than the alternative "any 1 breach" approach, which flagge
 
 Missing data (NaN) in any of the three dimensions does **not** trigger a value trap flag — missing data is not the same as poor quality. These stocks receive a separate `Insufficient_Data_Flag`.
 
+Each flagged stock also receives a **Value Trap Severity** score (0-100), computed as the average of how far below each threshold the stock falls across the dimensions that triggered the flag. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.
+
 By default, value-trap-flagged stocks are {vt_action} from the model portfolio (configurable to flag-only mode).
 
 ---
@@ -572,6 +577,8 @@ The mirror image of a value trap: a stock can score well on growth but be growin
 - Revisions Score **below** the {gt_rev_floor}th percentile (deteriorating sentiment)
 
 This catches "growth at any price" stocks — companies that are growing fast but burning cash, carrying deteriorating fundamentals, or losing analyst confidence.
+
+Each flagged stock also receives a **Growth Trap Severity** score (0-100), computed as the average of how far above/below each threshold the stock falls across the dimensions that triggered the flag. Higher severity means deeper in trap territory.
 
 By default, growth-trap-flagged stocks are {gt_action} from the model portfolio (configurable to flag-only mode).
 
@@ -597,16 +604,16 @@ If a sector would exceed its cap, the excess stocks are dropped and replaced by 
 The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 6 sheets:
 
 ### Sheet 1: Factor Scores
-Every stock in the universe with all raw metrics, {n_factors} category scores, the composite score, rank, value trap flag, growth trap flag, financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (`_data_source`), metric coverage count, and an EPS basis mismatch flag.
+Every stock in the universe with all raw metrics, {n_factors} category scores, the composite score, rank, value trap flag (with severity 0-100), growth trap flag (with severity 0-100), financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (`_data_source`), metric coverage count, and an EPS basis mismatch flag. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.
 
 ### Sheet 2: Screener Dashboard
-The top 50 stocks, formatted for quick review. Includes rank, composite score, all {n_factors} category scores, and the value trap and growth trap flags. Color-coded cells highlight strengths and weaknesses.
+The top 50 stocks, formatted for quick review. Includes rank, composite score (quartile-colored), all {n_factors} category scores, and the value trap and growth trap flags with severity scores. Color-coded cells highlight strengths and weaknesses.
 
 ### Sheet 3: Model Portfolio
 The final portfolio with ticker, sector, composite score, position weights, and portfolio-level statistics (weighted average beta, dividend yield, sector allocation breakdown).
 
 ### Sheet 4: DataValidation
-The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, and EV cross-validation discrepancies.
+The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.
 
 ### Sheet 5: Weight Sensitivity (when available)
 Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 portfolio when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the portfolio is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
@@ -668,10 +675,10 @@ Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward conse
 A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.
 
 ### Data Provenance
-Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many of the 18 core metrics have valid data), and `_metric_total` (total possible metrics). This makes per-stock data completeness visible at a glance.
+Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many core metrics have valid data), and `_metric_total` (total possible metrics for that stock type). This makes per-stock data completeness visible at a glance.
 
 ### DataValidation Sheet
-The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights three types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), and EV cross-validation discrepancies.
+The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by >15pp), and beta overlap warnings (<80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.
 
 ---
 
@@ -697,6 +704,11 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Liquidity filter** (${min_adv_m:.0f}M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
 | **4-metric revisions category** (Surprise + Target + Acceleration + Beat Score) | Broadens the analyst sentiment signal beyond a single backward-looking and forward-looking metric. Earnings Acceleration (continuous delta) and Beat Score (recency-weighted) capture the trajectory and consistency of beats with much higher granularity than binary signals. |
 | **Volatility-regime momentum scaling** | Momentum crashes in high-vol markets. Reducing momentum weight in turbulent conditions and boosting it in calm markets improves risk-adjusted returns (requires 20+ historical runs to activate). |
+| **5-metric risk category** (Vol + Beta + Sharpe + Sortino + MaxDD) | Volatility and Beta capture total and systematic risk; Sharpe and Sortino capture risk-adjusted efficiency; Max Drawdown captures tail risk. Five metrics give a more complete risk picture than two. |
+| **Quartile-based Excel coloring** | Absolute thresholds (e.g., >80 = green) assume a stable score distribution. Quartile-based coloring adapts to the actual distribution, ensuring roughly 25% of cells in each color band regardless of market conditions. |
+| **Trap severity scores** (0-100 continuous) | Binary flags lose information. Severity scores quantify how deep in trap territory a stock is — severity 80 is much worse than severity 20, but both would be flagged as True. |
+| **Beta overlap validation** (≥80% required) | Stocks with limited trading history (IPOs, relisted) can produce misleading beta values from sparse overlap with the market index. The 80% threshold ensures the regression uses substantially the same time period as the market. |
+| **Channel-stuffing detection** (receivables vs revenue divergence) | When receivables growth exceeds revenue growth by >15pp, it may indicate aggressive revenue recognition. The flag is informational (not used in scoring) but appears in the DataValidation sheet. |
 
 ---
 
@@ -771,15 +783,23 @@ _METRIC_LABELS = {
     "revenue_growth": "Revenue Growth", "sustainable_growth": "Sustainable Growth",
     "return_12_1": "12-1 Month Return", "return_6m": "6-1 Month Return",
     "volatility": "Volatility", "beta": "Beta",
+    "sharpe_ratio": "Sharpe Ratio", "sortino_ratio": "Sortino Ratio",
+    "max_drawdown_1y": "Max Drawdown (1Y)",
     "analyst_surprise": "Analyst Surprise", "price_target_upside": "Price Target Upside",
     "earnings_acceleration": "Earnings Acceleration", "consecutive_beat_streak": "Beat Score",
+    "short_interest_ratio": "Short Interest Ratio",
     "size_log_mcap": "Log Market Cap", "asset_growth": "Asset Growth",
+    "net_debt_to_ebitda": "Net Debt / EBITDA",
+    "operating_leverage": "Operating Leverage",
+    "beneish_m_score": "Beneish M-Score",
+    "revenue_cagr_3yr": "Revenue CAGR (3Y)",
+    "jensens_alpha": "Jensen's Alpha",
 }
 
 _VAL_DESCRIPTIONS = {
     "ev_ebitda": "Enterprise value divided by earnings before interest, taxes, depreciation, and amortization. A capital-structure-neutral price tag. Lower = cheaper.",
     "fcf_yield": "Free cash flow (operating cash flow minus capital expenditures) divided by enterprise value. How much cash the business generates per dollar of total value. Higher = cheaper.",
-    "earnings_yield": "Trailing EPS divided by share price (the inverse of the P/E ratio). Higher = cheaper.",
+    "earnings_yield": "LTM Net Income divided by Market Cap (inverse of P/E). Uses LTM for consistency with other flow metrics. Higher = cheaper.",
     "ev_sales": "Enterprise value divided by revenue. Useful for comparing companies with different margin profiles. Lower = cheaper.",
     "pb_ratio": "Share price divided by book value per share. THE key bank valuation metric — banks' assets are mostly financial instruments carried near fair value. Lower = cheaper.",
 }
@@ -788,8 +808,11 @@ _QUAL_DESCRIPTIONS = {
     "roic": "Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital.",
     "gross_profit_assets": "Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor).",
     "debt_equity": "Total debt divided by shareholder equity. Lower = less financial leverage and risk.",
+    "net_debt_to_ebitda": "(Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).",
     "piotroski_f_score": "A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals.",
     "accruals": "(Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996).",
+    "operating_leverage": "Degree of Operating Leverage (%Δ EBIT / %Δ Revenue). Lower = more durable earnings (less sensitivity to revenue swings). Banks skip this metric.",
+    "beneish_m_score": "8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only.",
     "roe": "Return on equity — the key bank profitability metric. Higher = better.",
     "roa": "Return on assets — key bank efficiency metric. Higher = better.",
     "equity_ratio": "Total equity divided by total assets. Solvency measure — higher = more capital = safer.",
@@ -798,6 +821,7 @@ _QUAL_DESCRIPTIONS = {
 _GROWTH_DESCRIPTIONS = {
     "forward_eps_growth": "(Forward EPS - Trailing EPS) / Trailing EPS. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth.",
     "revenue_growth": "Year-over-year revenue increase from financial statements. Higher = growing top line.",
+    "revenue_cagr_3yr": "3-year compound annual revenue growth rate from annual filings. Smooths lumpy single-year revenue growth.",
     "peg_ratio": "P/E ratio divided by forward EPS growth. A PEG of 1.0 means fairly valued relative to growth. Lower = better.",
     "sustainable_growth": "ROE × retention rate (1 - dividend payout ratio). Higher = more internally funded growth capacity.",
 }
@@ -805,11 +829,15 @@ _GROWTH_DESCRIPTIONS = {
 _MOM_DESCRIPTIONS = {
     "return_12_1": "Total price return from 12 months ago to 1 month ago. Skips the most recent month to avoid short-term reversal noise.",
     "return_6m": "Total price return from 6 months ago to 1 month ago. Also skips the most recent month.",
+    "jensens_alpha": "Risk-adjusted excess return above CAPM prediction. Measures outperformance unexplained by market beta. Uses full 12-month return (no skip-month).",
 }
 
 _RISK_DESCRIPTIONS = {
-    "volatility": "Annualized standard deviation of daily log returns over the past year. Lower = smoother ride.",
-    "beta": "Covariance of stock returns with S&P 500 returns divided by variance of market returns. Lower = less market-driven risk.",
+    "volatility": "Annualized standard deviation of daily returns over the past year. Lower = smoother ride.",
+    "beta": "Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk.",
+    "sharpe_ratio": "(12-month return - risk-free rate) / volatility. Risk-adjusted return per unit of total risk. Higher = more efficient risk-taking.",
+    "sortino_ratio": "(12-month return - risk-free rate) / downside deviation. Like Sharpe but only penalizes downside volatility. Higher = better downside-adjusted return.",
+    "max_drawdown_1y": "Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss.",
 }
 
 _REV_DESCRIPTIONS = {
@@ -817,6 +845,7 @@ _REV_DESCRIPTIONS = {
     "price_target_upside": "(Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism.",
     "earnings_acceleration": "Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous, winsorized at 1st/99th percentiles.",
     "consecutive_beat_streak": "Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4.",
+    "short_interest_ratio": "Days to cover (short interest shares / average daily volume). Lower = less bearish sentiment from short sellers. Contrarian signal.",
 }
 
 _SIZE_DESCRIPTIONS = {
@@ -848,7 +877,7 @@ def run_factor_engine(cfg, args, ctx=None):
 
     from factor_engine import (
         get_sp500_tickers, fetch_single_ticker, fetch_all_tickers,
-        fetch_market_returns, compute_metrics,
+        fetch_market_returns, fetch_risk_free_rate, compute_metrics,
         _generate_sample_data, _find_latest_cache,
         apply_universe_filters,
         winsorize_metrics, compute_sector_percentiles,
@@ -861,6 +890,23 @@ def run_factor_engine(cfg, args, ctx=None):
         set_stmt_val_strict, get_stmt_val_misses, clear_stmt_val_misses,
         compute_factor_contributions,
     )
+
+    # ---- Weight validation ----
+    print("\n=== METRIC WEIGHT VALIDATION ===")
+    mw = cfg.get("metric_weights", {})
+    bank_mw = cfg.get("bank_metric_weights", {})
+    for cat_name in ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]:
+        cat_ws = mw.get(cat_name, {})
+        generic_sum = sum(cat_ws.values())
+        # Build non-zero weight string: "25+45+20+10"
+        nonzero = [str(int(v)) for v in cat_ws.values() if v > 0]
+        wt_str = "+".join(nonzero) if nonzero else "0"
+        status = "OK" if generic_sum == 100 else f"FAIL ({generic_sum})"
+        bank_cat_ws = bank_mw.get(cat_name, cat_ws)
+        bank_sum = sum(bank_cat_ws.values())
+        bank_status = f"  bank={bank_sum}" if cat_name in bank_mw else ""
+        print(f"  [WEIGHT CHECK] {cat_name:12s}  {wt_str} = {generic_sum}% {status}{bank_status}")
+    print()
 
     stats = {
         "cache_status": "COLD",
@@ -963,6 +1009,9 @@ def run_factor_engine(cfg, args, ctx=None):
         market_returns = fetch_market_returns()
         print(f"  {len(market_returns)} daily observations")
 
+        risk_free_rate = fetch_risk_free_rate()
+        print(f"  [RUN] Risk-free rate (^IRX): {risk_free_rate*100:.2f}%")
+
         fetch_cfg = cfg.get("fetch", {})
         print(f"\nFetching data for {universe_size} tickers...")
         raw = fetch_all_tickers(
@@ -1031,7 +1080,7 @@ def run_factor_engine(cfg, args, ctx=None):
                       f"max={max(ft_arr)}ms  p95={int(sorted(ft_arr)[int(len(ft_arr)*0.95)])}ms")
 
         print("Computing metrics...")
-        df = compute_metrics(raw, market_returns, cfg)
+        df = compute_metrics(raw, market_returns, cfg, risk_free_rate=risk_free_rate)
 
         # ---- Log _stmt_val() misses (strict mode) ----
         if stmt_strict:
@@ -1328,6 +1377,12 @@ def run_factor_engine(cfg, args, ctx=None):
             print(f"  EPS basis mismatch (GAAP/normalized): {n_mismatch} tickers flagged")
             for _, row in df[df["_eps_basis_mismatch"] == True].head(5).iterrows():
                 print(f"    {row['Ticker']}: fwd/trail EPS ratio = {row.get('_eps_ratio', '?')}")
+
+    # ---- LTM partial-annualization summary ----
+    if "_ltm_annualized" in df.columns:
+        n_ltm = df["_ltm_annualized"].sum()
+        if n_ltm > 0:
+            print(f"  LTM partial annualization (3-of-4 quarters): {n_ltm} tickers flagged")
 
     # ---- Write Parquet cache (config-aware) ----
     print("Writing cache Parquet...")
@@ -1780,6 +1835,8 @@ def main():
         # Copy to project root as the canonical dashboard location
         main_dash = ROOT / "dashboard.html"
         shutil.copy2(dash_path, main_dash)
+        # Also copy to index.html so GitHub Pages serves it at the root URL
+        shutil.copy2(dash_path, ROOT / "index.html")
         print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")

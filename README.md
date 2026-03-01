@@ -52,6 +52,19 @@ All tuneable parameters live in **`config.yaml`**:
 | `validation/factor_ic_timeseries.csv` | Spearman IC by factor over time (Phase 2) |
 | `validation/value_trap_comparison.csv` | Value trap filter impact analysis (Phase 2) |
 
+## Publishing the Dashboard
+
+The live dashboard is hosted at: https://calebsmit.github.io/screener-dashboard/
+
+After running the screener, `dashboard.html` and `index.html` are updated
+automatically. To push the latest version to GitHub Pages:
+
+```powershell
+git add -A; git commit -m "Update dashboard"; git push
+```
+
+GitHub Pages will rebuild and the site will be live within ~1 minute.
+
 ## CLI Flags
 
 ```

@@ -273,13 +273,13 @@ class TestConstructPortfolio:
         from portfolio_constructor import construct_portfolio
         port = construct_portfolio(scored_df, cfg)
         assert abs(port["Equal_Weight_Pct"].sum() - 100) < 0.5
-        assert abs(port["RiskParity_Weight_Pct"].sum() - 100) < 0.5
+        assert abs(port["InvVol_Weight_Pct"].sum() - 100) < 0.5
 
     def test_no_nan_weights(self, scored_df, cfg):
         from portfolio_constructor import construct_portfolio
         port = construct_portfolio(scored_df, cfg)
         assert port["Equal_Weight_Pct"].notna().all()
-        assert port["RiskParity_Weight_Pct"].notna().all()
+        assert port["InvVol_Weight_Pct"].notna().all()
 
     def test_empty_universe(self, scored_df, cfg):
         from portfolio_constructor import construct_portfolio
@@ -292,16 +292,16 @@ class TestConstructPortfolio:
         df_zv = scored_df.copy()
         df_zv["volatility"] = 0.0
         port = construct_portfolio(df_zv, cfg)
-        assert port["RiskParity_Weight_Pct"].notna().all()
-        assert np.isfinite(port["RiskParity_Weight_Pct"]).all()
-        assert abs(port["RiskParity_Weight_Pct"].sum() - 100) < 0.5
+        assert port["InvVol_Weight_Pct"].notna().all()
+        assert np.isfinite(port["InvVol_Weight_Pct"]).all()
+        assert abs(port["InvVol_Weight_Pct"].sum() - 100) < 0.5
 
     def test_nan_volatility(self, scored_df, cfg):
         from portfolio_constructor import construct_portfolio
         df_nv = scored_df.copy()
         df_nv["volatility"] = np.nan
         port = construct_portfolio(df_nv, cfg)
-        assert port["RiskParity_Weight_Pct"].notna().all()
+        assert port["InvVol_Weight_Pct"].notna().all()
 
 
 class TestPortfolioStats:
@@ -316,7 +316,7 @@ class TestPortfolioStats:
     def test_empty_portfolio_stats(self, cfg):
         from portfolio_constructor import compute_portfolio_stats
         empty = pd.DataFrame(columns=["Ticker", "Sector", "Composite",
-                                       "Equal_Weight_Pct", "RiskParity_Weight_Pct"])
+                                       "Equal_Weight_Pct", "InvVol_Weight_Pct"])
         stats = compute_portfolio_stats(empty, cfg)
         assert stats["n_stocks"] == 0
 

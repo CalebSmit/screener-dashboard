@@ -2,15 +2,16 @@
 """
 Multi-Factor Stock Screener - Phase 1: Factor Engine
 =====================================================
-Computes composite factor scores for the S&P 500 universe using six
+Computes composite factor scores for the S&P 500 universe using eight
 factor categories (Valuation, Quality, Growth, Momentum, Risk, Analyst
-Revisions) and writes results to Excel + Parquet cache.
+Revisions, Size, Investment) across ~33 metrics and writes results to
+Excel + Parquet cache.
 
 Reference: Multi-Factor-Screener-Blueprint.md (Version 2.0)
 
 Network behaviour
 -----------------
-* Primary path: scrape S&P 500 from Wikipedia, fetch data via yfinance.
+* Primary path: load S&P 500 from GitHub CSV (fallback: Wikipedia), fetch data via yfinance.
 * Fallback path: if network is unavailable (sandbox / CI), load tickers
   from sp500_tickers.json and generate sector-realistic sample data so
   the full scoring pipeline can be validated end-to-end.
@@ -18,6 +19,7 @@ Network behaviour
 
 import copy
 import json
+import logging
 import os
 import time
 import warnings
@@ -54,31 +56,56 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
 def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
     """Return DataFrame with Ticker, Company, Sector columns.
 
-    Primary: scrape Wikipedia.
-    Fallback: load from sp500_tickers.json shipped with the project.
-    """
-    df = None
+    Source priority:
+      1. GitHub CSV (datasets/s-and-p-500-companies) — fast, reliable
+      2. Wikipedia HTML scrape — secondary fallback
+      3. Local sp500_tickers.json — offline last resort
 
-    # --- Primary: Wikipedia scrape ---
+    When a network source succeeds, sp500_tickers.json is auto-updated
+    so the local fallback stays current.
+    """
+    import requests
+    from io import StringIO
+
+    df = None
+    fallback = ROOT / "sp500_tickers.json"
+
+    # --- Primary: GitHub-hosted CSV ---
+    _GITHUB_URL = (
+        "https://raw.githubusercontent.com/datasets/"
+        "s-and-p-500-companies/main/data/constituents.csv"
+    )
     try:
-        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        tables = pd.read_html(url)
-        df = tables[0][["Symbol", "Security", "GICS Sector"]].copy()
+        resp = requests.get(_GITHUB_URL, timeout=10)
+        resp.raise_for_status()
+        gh = pd.read_csv(StringIO(resp.text))
+        df = gh[["Symbol", "Security", "GICS Sector"]].copy()
         df.columns = ["Ticker", "Company", "Sector"]
         df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
-        print("  Loaded S&P 500 list from Wikipedia")
+        print(f"  Loaded S&P 500 list from GitHub ({len(df)} tickers)")
     except Exception as e:
-        print(f"  Wikipedia scrape failed ({type(e).__name__}), using local fallback")
+        print(f"  GitHub CSV failed ({type(e).__name__}), trying Wikipedia...")
 
-    # --- Cross-validate Wikipedia against local fallback (M6) ---
-    fallback = ROOT / "sp500_tickers.json"
+    # --- Secondary: Wikipedia scrape ---
+    if df is None:
+        try:
+            url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+            tables = pd.read_html(url)
+            df = tables[0][["Symbol", "Security", "GICS Sector"]].copy()
+            df.columns = ["Ticker", "Company", "Sector"]
+            df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
+            print(f"  Loaded S&P 500 list from Wikipedia ({len(df)} tickers)")
+        except Exception as e:
+            print(f"  Wikipedia scrape failed ({type(e).__name__})")
+
+    # --- Cross-validate network source against local fallback ---
     if df is not None and not df.empty and fallback.exists():
         with open(fallback) as f:
             local_data = json.load(f)
         local_tickers = {r["Ticker"] for r in local_data}
-        wiki_tickers = set(df["Ticker"])
-        added = wiki_tickers - local_tickers
-        removed = local_tickers - wiki_tickers
+        net_tickers = set(df["Ticker"])
+        added = net_tickers - local_tickers
+        removed = local_tickers - net_tickers
         if added or removed:
             drift_pct = (len(added) + len(removed)) / max(len(local_tickers), 1) * 100
             print(f"  Universe drift: +{len(added)} added, -{len(removed)} removed "
@@ -89,17 +116,21 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
                 print(f"    Removed: {sorted(removed)[:10]}{'...' if len(removed) > 10 else ''}")
             if drift_pct > 10:
                 warnings.warn(
-                    f"Universe drift {drift_pct:.1f}% exceeds 10% threshold. "
-                    f"Consider updating sp500_tickers.json."
+                    f"Universe drift {drift_pct:.1f}% exceeds 10% threshold."
                 )
+        # Auto-update local fallback so it stays current
+        fresh = df[["Ticker", "Company", "Sector"]].to_dict(orient="records")
+        with open(fallback, "w") as f:
+            json.dump(fresh, f, indent=2)
+        print(f"  Updated sp500_tickers.json ({len(fresh)} tickers)")
 
-    # --- Fallback: embedded JSON ---
+    # --- Last resort: local JSON ---
     if df is None or df.empty:
         if fallback.exists():
             with open(fallback) as f:
                 local_data = json.load(f)
             df = pd.DataFrame(local_data)
-            print(f"  Loaded {len(df)} tickers from sp500_tickers.json")
+            print(f"  Loaded {len(df)} tickers from sp500_tickers.json (offline)")
         else:
             raise FileNotFoundError(
                 "No network access and sp500_tickers.json not found. "
@@ -292,7 +323,8 @@ def _stmt_val(stmt, label, col=0, default=np.nan):
         return default
 
 
-def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan):
+def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
+                   partial_labels=None):
     """Compute LTM (sum of N quarters) from a quarterly statement DataFrame.
 
     Parameters
@@ -308,6 +340,9 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan):
         Starting column offset. 0 = most recent LTM, 4 = prior-year LTM.
     default : float
         Value returned if data is unavailable.
+    partial_labels : list or None
+        If provided, the label is appended when partial annualization
+        (3-of-4 quarters) is used, so callers can flag the ticker.
 
     Returns
     -------
@@ -345,6 +380,8 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan):
         available = len(row) - offset
         if available >= 3 and n_quarters == 4 and offset == 0:
             partial = sum(float(row.iloc[offset + i]) for i in range(available))
+            if partial_labels is not None:
+                partial_labels.append(label)
             return partial * (4 / available)
 
         if _STMT_VAL_STRICT:
@@ -372,6 +409,126 @@ _RATE_LIMIT_PATTERNS = ["429", "too many requests", "rate limit"]
 def _is_rate_limited(err_str: str) -> bool:
     """Check if an error string indicates Yahoo Finance rate limiting."""
     return any(p in err_str.lower() for p in _RATE_LIMIT_PATTERNS)
+
+
+def _compute_beneish_mscore(d: dict):
+    """Compute Beneish M-Score from annual financial statement data.
+
+    Returns (m_score, flag) where flag is True if M-Score > -2.22
+    (indicating potential earnings manipulation).
+
+    Uses the 8-variable model from Beneish (1999):
+    M = -4.84 + 0.920*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI
+        + 0.115*DEPI - 0.172*SGAI + 4.679*TATA - 0.327*LVGI
+
+    Missing individual index inputs default to 1.0 (neutral), except
+    revenue and total assets which are required for both years.
+
+    Returns (NaN, False) if fewer than 5 of 8 indices can be computed
+    from actual data (analogous to Piotroski's n_testable >= 6 gate).
+    """
+    # Extract required fields (all prefixed _beneish_ from fetch layer)
+    rec_t  = d.get("_beneish_net_receivables", np.nan)
+    rec_p  = d.get("_beneish_net_receivables_p", np.nan)
+    rev_t  = d.get("_beneish_revenue", np.nan)
+    rev_p  = d.get("_beneish_revenue_p", np.nan)
+    cogs_t = d.get("_beneish_cogs", np.nan)
+    cogs_p = d.get("_beneish_cogs_p", np.nan)
+    ca_t   = d.get("_beneish_current_assets", np.nan)
+    ca_p   = d.get("_beneish_current_assets_p", np.nan)
+    ppe_t  = d.get("_beneish_ppe", np.nan)
+    ppe_p  = d.get("_beneish_ppe_p", np.nan)
+    ta_t   = d.get("_beneish_total_assets", np.nan)
+    ta_p   = d.get("_beneish_total_assets_p", np.nan)
+    dep_t  = d.get("_beneish_depreciation", np.nan)
+    dep_p  = d.get("_beneish_depreciation_p", np.nan)
+    sga_t  = d.get("_beneish_sga", np.nan)
+    sga_p  = d.get("_beneish_sga_p", np.nan)
+    ltd_t  = d.get("_beneish_lt_debt", np.nan)
+    ltd_p  = d.get("_beneish_lt_debt_p", np.nan)
+    cl_t   = d.get("_beneish_current_liab", np.nan)
+    cl_p   = d.get("_beneish_current_liab_p", np.nan)
+    ni_t   = d.get("_beneish_net_income", np.nan)
+    ocf_t  = d.get("_beneish_ocf", np.nan)
+
+    # Minimum required: revenue and total assets for both years
+    if any(pd.isna(x) or x == 0 for x in [rev_t, rev_p, ta_t, ta_p]):
+        return np.nan, False
+
+    n_computed = 0  # Track how many indices are computed from real data
+
+    # 1. DSRI (Days Sales in Receivables Index)
+    if pd.notna(rec_t) and pd.notna(rec_p) and rec_p > 0:
+        dsri = (rec_t / rev_t) / (rec_p / rev_p)
+        n_computed += 1
+    else:
+        dsri = 1.0  # neutral
+
+    # 2. GMI (Gross Margin Index)
+    gm_t = (rev_t - cogs_t) / rev_t if (pd.notna(cogs_t) and rev_t > 0) else np.nan
+    gm_p = (rev_p - cogs_p) / rev_p if (pd.notna(cogs_p) and rev_p > 0) else np.nan
+    if pd.notna(gm_t) and pd.notna(gm_p) and gm_t > 0:
+        gmi = gm_p / gm_t
+        n_computed += 1
+    else:
+        gmi = 1.0
+
+    # 3. AQI (Asset Quality Index)
+    if all(pd.notna(x) for x in [ca_t, ppe_t, ta_t, ca_p, ppe_p, ta_p]):
+        aq_t = 1 - (ca_t + ppe_t) / ta_t
+        aq_p = 1 - (ca_p + ppe_p) / ta_p
+        aqi = (aq_t / aq_p) if aq_p != 0 else 1.0
+        n_computed += 1
+    else:
+        aqi = 1.0
+
+    # 4. SGI (Sales Growth Index) — always computable (rev guaranteed above)
+    sgi = rev_t / rev_p
+    n_computed += 1
+
+    # 5. DEPI (Depreciation Index)
+    if (all(pd.notna(x) for x in [dep_t, dep_p, ppe_t, ppe_p])
+            and (ppe_t + dep_t) > 0 and (ppe_p + dep_p) > 0):
+        depi = (dep_p / (ppe_p + dep_p)) / (dep_t / (ppe_t + dep_t))
+        n_computed += 1
+    else:
+        depi = 1.0
+
+    # 6. SGAI (SGA Expense Index) — set to 1.0 (neutral) if SGA missing
+    if (all(pd.notna(x) for x in [sga_t, sga_p])
+            and rev_t > 0 and rev_p > 0 and sga_p > 0):
+        sgai = (sga_t / rev_t) / (sga_p / rev_p)
+        n_computed += 1
+    else:
+        sgai = 1.0
+
+    # 7. LVGI (Leverage Index)
+    if (all(pd.notna(x) for x in [ltd_t, cl_t, ta_t, ltd_p, cl_p, ta_p])
+            and ta_t > 0 and ta_p > 0
+            and (ltd_p + cl_p) > 0):
+        lvgi = ((ltd_t + cl_t) / ta_t) / ((ltd_p + cl_p) / ta_p)
+        n_computed += 1
+    else:
+        lvgi = 1.0
+
+    # 8. TATA (Total Accruals to Total Assets)
+    if pd.notna(ni_t) and pd.notna(ocf_t) and ta_t > 0:
+        tata = (ni_t - ocf_t) / ta_t
+        n_computed += 1
+    else:
+        tata = 0.0  # neutral
+
+    # Minimum-data gate: require >= 5 of 8 indices computed from real data.
+    # With < 5 indices, the M-Score is dominated by neutral defaults (1.0)
+    # and loses discriminating power — analogous to Piotroski's n_testable >= 6.
+    if n_computed < 5:
+        return np.nan, False
+
+    m_score = (-4.84 + 0.920 * dsri + 0.528 * gmi + 0.404 * aqi
+               + 0.892 * sgi + 0.115 * depi - 0.172 * sgai
+               + 4.679 * tata - 0.327 * lvgi)
+
+    return m_score, (m_score > -2.22)
 
 
 def fetch_single_ticker(ticker_str: str, max_retries: int = 3,
@@ -454,6 +611,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["targetHighPrice"]         = _safe(info, "targetHighPrice")
         rec["targetLowPrice"]          = _safe(info, "targetLowPrice")
         rec["numberOfAnalystOpinions"] = _safe(info, "numberOfAnalystOpinions")
+        # Short interest (days to cover). Updated bi-monthly by exchanges with 1-2 week lag.
+        rec["shortRatio"]             = _safe(info, "shortRatio")
 
         # ---- quarterly financial statements (for LTM / MRQ) ----
         # LTM = sum of last 4 quarters (flow metrics: IS + CF)
@@ -497,21 +656,22 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # Prior-period flow metrics try LTM (Q4..Q7) first, but yfinance
         # typically provides only 4-5 quarters. When prior-year LTM is
         # unavailable, fall back to annual statement col=1 (prior year).
-        rec["totalRevenue"]           = _stmt_val_ltm(q_fins, "Total Revenue")
+        _ltm_partial = []  # tracks labels where 3-of-4 quarter annualization was used
+        rec["totalRevenue"]           = _stmt_val_ltm(q_fins, "Total Revenue", partial_labels=_ltm_partial)
         rec["totalRevenue_prior"]     = _stmt_val_ltm(q_fins, "Total Revenue", offset=4)
-        rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit")
+        rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial)
         rec["grossProfit_prior"]      = _stmt_val_ltm(q_fins, "Gross Profit", offset=4)
-        rec["ebit"]                   = _stmt_val_ltm(q_fins, "EBIT")
+        rec["ebit"]                   = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
         if np.isnan(rec["ebit"]):
-            rec["ebit"]               = _stmt_val_ltm(q_fins, "Operating Income")
-        rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA")
-        rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income")
+            rec["ebit"]               = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
+        rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial)
+        rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial)
         rec["netIncome_prior"]        = _stmt_val_ltm(q_fins, "Net Income", offset=4)
-        rec["incomeTaxExpense"]       = _stmt_val_ltm(q_fins, "Tax Provision")
+        rec["incomeTaxExpense"]       = _stmt_val_ltm(q_fins, "Tax Provision", partial_labels=_ltm_partial)
         if np.isnan(rec["incomeTaxExpense"]):
-            rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax")
-        rec["pretaxIncome"]           = _stmt_val_ltm(q_fins, "Pretax Income")
-        rec["costOfRevenue"]          = _stmt_val_ltm(q_fins, "Cost Of Revenue")
+            rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax", partial_labels=_ltm_partial)
+        rec["pretaxIncome"]           = _stmt_val_ltm(q_fins, "Pretax Income", partial_labels=_ltm_partial)
+        rec["costOfRevenue"]          = _stmt_val_ltm(q_fins, "Cost Of Revenue", partial_labels=_ltm_partial)
 
         # Fallback: if quarterly IS produced all NaN, try annual for everything
         if all(np.isnan(rec.get(k, np.nan)) for k in ["totalRevenue", "netIncome", "ebit"]):
@@ -542,6 +702,15 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 rec["grossProfit_prior"]  = _stmt_val(fins, "Gross Profit", 1)
             if np.isnan(rec["netIncome_prior"]):
                 rec["netIncome_prior"]    = _stmt_val(fins, "Net Income", 1)
+
+        # Revenue 3 years ago from annual financials (col=3) for 3-year CAGR.
+        # Annual financials typically provides 4 columns (indices 0-3).
+        rec["totalRevenue_3yr_ago"] = _stmt_val(fins, "Total Revenue", 3)
+
+        # EBIT prior year from annual financials (col=1) for operating leverage (DOL).
+        rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
+        if np.isnan(rec["ebit_prior"]):
+            rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
 
         # ---- Balance sheet: MRQ (most recent quarter) ----
         # Use quarterly BS for current values; col=4 for year-ago MRQ.
@@ -574,21 +743,21 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["sharesBS_prior"]     = _stmt_val(_bs_src, "Share Issued", _bs_prior_col)
 
         # ---- Cash flow: LTM (sum of last 4 quarters) ----
-        rec["operatingCashFlow"]      = _stmt_val_ltm(q_cf, "Operating Cash Flow")
+        rec["operatingCashFlow"]      = _stmt_val_ltm(q_cf, "Operating Cash Flow", partial_labels=_ltm_partial)
         if np.isnan(rec["operatingCashFlow"]):
-            rec["operatingCashFlow"]  = _stmt_val_ltm(q_cf, "Total Cash From Operating")
-        rec["capex"]                  = _stmt_val_ltm(q_cf, "Capital Expenditure")
+            rec["operatingCashFlow"]  = _stmt_val_ltm(q_cf, "Total Cash From Operating", partial_labels=_ltm_partial)
+        rec["capex"]                  = _stmt_val_ltm(q_cf, "Capital Expenditure", partial_labels=_ltm_partial)
         if np.isnan(rec["capex"]):
-            rec["capex"]              = _stmt_val_ltm(q_cf, "Capital Expenditures")
-        rec["dividendsPaid"]          = _stmt_val_ltm(q_cf, "Common Stock Dividend")
+            rec["capex"]              = _stmt_val_ltm(q_cf, "Capital Expenditures", partial_labels=_ltm_partial)
+        rec["dividendsPaid"]          = _stmt_val_ltm(q_cf, "Common Stock Dividend", partial_labels=_ltm_partial)
         if np.isnan(rec["dividendsPaid"]):
-            rec["dividendsPaid"]      = _stmt_val_ltm(q_cf, "Dividends Paid")
+            rec["dividendsPaid"]      = _stmt_val_ltm(q_cf, "Dividends Paid", partial_labels=_ltm_partial)
         # D&A from cashflow (for computing GAAP EBITDA = EBIT + D&A)
-        rec["da_cf"]                  = _stmt_val_ltm(q_cf, "Depreciation And Amortization")
+        rec["da_cf"]                  = _stmt_val_ltm(q_cf, "Depreciation And Amortization", partial_labels=_ltm_partial)
         if np.isnan(rec["da_cf"]):
-            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation")
+            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation", partial_labels=_ltm_partial)
         if np.isnan(rec["da_cf"]):
-            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion")
+            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion", partial_labels=_ltm_partial)
 
         # Fallback: if quarterly CF produced all NaN, try annual
         if all(np.isnan(rec.get(k, np.nan)) for k in ["operatingCashFlow", "capex"]):
@@ -606,6 +775,63 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 rec["da_cf"]              = _stmt_val(cf, "Reconciled Depreciation")
             if np.isnan(rec["da_cf"]):
                 rec["da_cf"]              = _stmt_val(cf, "Depreciation Amortization Depletion")
+
+        # ---- LTM partial-annualization flag ----
+        # If any current-period LTM metric used 3-of-4 quarter annualization,
+        # flag the ticker so downstream consumers know data may be less precise.
+        if _ltm_partial:
+            rec["_ltm_annualized"] = True
+            rec["_ltm_annualized_labels"] = list(set(_ltm_partial))
+        else:
+            rec["_ltm_annualized"] = False
+
+        # ---- Beneish M-Score data: ANNUAL statements (col 0 = current, col 1 = prior year) ----
+        # Uses annual (not LTM/MRQ) because Beneish was designed for annual data
+        # and year-over-year comparison requires the same reporting basis.
+        rec["_beneish_net_receivables"]   = _stmt_val(bs, "Net Receivable")
+        if np.isnan(rec["_beneish_net_receivables"]):
+            rec["_beneish_net_receivables"] = _stmt_val(bs, "Receivables")
+        if np.isnan(rec["_beneish_net_receivables"]):
+            rec["_beneish_net_receivables"] = _stmt_val(bs, "Accounts Receivable")
+        rec["_beneish_net_receivables_p"] = _stmt_val(bs, "Net Receivable", 1)
+        if np.isnan(rec["_beneish_net_receivables_p"]):
+            rec["_beneish_net_receivables_p"] = _stmt_val(bs, "Receivables", 1)
+        if np.isnan(rec["_beneish_net_receivables_p"]):
+            rec["_beneish_net_receivables_p"] = _stmt_val(bs, "Accounts Receivable", 1)
+        rec["_beneish_revenue"]           = _stmt_val(fins, "Total Revenue")
+        rec["_beneish_revenue_p"]         = _stmt_val(fins, "Total Revenue", 1)
+        rec["_beneish_cogs"]              = _stmt_val(fins, "Cost Of Revenue")
+        rec["_beneish_cogs_p"]            = _stmt_val(fins, "Cost Of Revenue", 1)
+        rec["_beneish_current_assets"]    = _stmt_val(bs, "Current Assets")
+        rec["_beneish_current_assets_p"]  = _stmt_val(bs, "Current Assets", 1)
+        rec["_beneish_ppe"]               = _stmt_val(bs, "Net PPE")
+        if np.isnan(rec["_beneish_ppe"]):
+            rec["_beneish_ppe"]           = _stmt_val(bs, "Property Plant Equipment")
+        rec["_beneish_ppe_p"]             = _stmt_val(bs, "Net PPE", 1)
+        if np.isnan(rec["_beneish_ppe_p"]):
+            rec["_beneish_ppe_p"]         = _stmt_val(bs, "Property Plant Equipment", 1)
+        rec["_beneish_total_assets"]      = _stmt_val(bs, "Total Assets")
+        rec["_beneish_total_assets_p"]    = _stmt_val(bs, "Total Assets", 1)
+        rec["_beneish_depreciation"]      = _stmt_val(cf, "Depreciation And Amortization")
+        if np.isnan(rec["_beneish_depreciation"]):
+            rec["_beneish_depreciation"]  = _stmt_val(cf, "Depreciation")
+        rec["_beneish_depreciation_p"]    = _stmt_val(cf, "Depreciation And Amortization", 1)
+        if np.isnan(rec["_beneish_depreciation_p"]):
+            rec["_beneish_depreciation_p"] = _stmt_val(cf, "Depreciation", 1)
+        rec["_beneish_sga"]               = _stmt_val(fins, "Selling General And Administration")
+        if np.isnan(rec["_beneish_sga"]):
+            rec["_beneish_sga"]           = _stmt_val(fins, "Selling General And Admin")
+        rec["_beneish_sga_p"]             = _stmt_val(fins, "Selling General And Administration", 1)
+        if np.isnan(rec["_beneish_sga_p"]):
+            rec["_beneish_sga_p"]         = _stmt_val(fins, "Selling General And Admin", 1)
+        rec["_beneish_lt_debt"]           = _stmt_val(bs, "Long Term Debt")
+        rec["_beneish_lt_debt_p"]         = _stmt_val(bs, "Long Term Debt", 1)
+        rec["_beneish_current_liab"]      = _stmt_val(bs, "Current Liabilities")
+        rec["_beneish_current_liab_p"]    = _stmt_val(bs, "Current Liabilities", 1)
+        rec["_beneish_net_income"]        = _stmt_val(fins, "Net Income")
+        rec["_beneish_ocf"]               = _stmt_val(cf, "Operating Cash Flow")
+        if np.isnan(rec["_beneish_ocf"]):
+            rec["_beneish_ocf"]           = _stmt_val(cf, "Total Cash From Operating")
 
         # ---- data freshness: record most recent filing date ----
         try:
@@ -786,6 +1012,32 @@ def fetch_market_returns(max_retries: int = 3) -> pd.Series:
     return pd.Series(dtype=float)
 
 
+def fetch_risk_free_rate(max_retries: int = 3) -> float:
+    """Fetch the 13-week T-bill yield (^IRX) as an annualized risk-free rate.
+
+    Returns the most recent closing yield as a decimal (e.g. 0.045 for 4.5%).
+    Falls back to 4.5% if the fetch fails, with a logged warning.
+    Used for Jensen's Alpha and Sharpe Ratio calculations.
+    """
+    for attempt in range(max_retries):
+        try:
+            import yfinance as yf
+            hist = yf.Ticker("^IRX").history(period="5d", auto_adjust=True)
+            if hist is not None and not hist.empty:
+                closes = hist["Close"].dropna()
+                if not closes.empty:
+                    # ^IRX is quoted in percentage points (e.g. 4.5 means 4.5%)
+                    last_close = float(closes.iloc[-1])
+                    rf = last_close / 100.0
+                    return rf
+        except Exception as e:
+            warnings.warn(f"Risk-free rate fetch attempt {attempt+1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+    warnings.warn("All risk-free rate (^IRX) fetch attempts failed; using default 4.5%")
+    return 0.045
+
+
 # =========================================================================
 # D-alt. Offline sample-data generator
 # =========================================================================
@@ -882,13 +1134,20 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42) -> pd.DataF
             "sustainable_growth": round(sust_growth, 4),
             "return_12_1": round(mom_12_1, 4),
             "return_6m": round(mom_6m, 4),
+            "return_12m": round(mom_12_1 + tn(0.01, 0.02), 4),  # Full 12m ≈ 12-1 + recent month effect
+            "jensens_alpha": round(tn(0.03, 0.10), 4),
             "volatility": round(vol, 4),
             "beta": round(beta, 2),
+            "sharpe_ratio": round((mom_12_1 - 0.045) / vol, 2) if vol > 0 else np.nan,
             "analyst_surprise": round(analyst_surprise, 4) if pd.notna(analyst_surprise) else np.nan,
             "price_target_upside": round(price_target_upside, 4) if pd.notna(price_target_upside) else np.nan,
             "earnings_acceleration": round(earnings_accel, 4) if pd.notna(earnings_accel) else np.nan,
             "consecutive_beat_streak": float(beat_streak) if pd.notna(beat_streak) else np.nan,
             "size_log_mcap": round(-np.log(mc), 4) if mc > 0 else np.nan,
+            "net_debt_to_ebitda": round(tn(2.0, 1.5, low=0.0, high=8.0), 2),
+            "operating_leverage": round(tn(1.5, 1.0, low=0.2, high=5.0), 2),
+            "revenue_cagr_3yr": round(tn(0.08, 0.06, low=-0.10, high=0.40), 4),
+            "short_interest_ratio": round(tn(3.0, 2.5, low=0.1, high=15.0), 2) if rng.random() < 0.70 else np.nan,
             "asset_growth": round(rng.normal(0.08, 0.15), 4),
             "avg_daily_dollar_volume": round(rng.lognormal(np.log(50e6), 1.0), 0),
         }
@@ -906,6 +1165,8 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42) -> pd.DataF
             rec["roic"] = np.nan
             rec["gross_profit_assets"] = np.nan
             rec["debt_equity"] = np.nan
+            rec["net_debt_to_ebitda"] = np.nan  # Banks: skip
+            rec["operating_leverage"] = np.nan   # Banks: skip
         else:
             rec["_is_bank_like"] = False
             rec["pb_ratio"] = np.nan
@@ -918,15 +1179,24 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42) -> pd.DataF
 
 
 # =========================================================================
-# E. Compute all 17 individual metrics (from live yfinance data)
+# E. Compute all 30 individual metrics (from live yfinance data)
 # =========================================================================
 def compute_metrics(raw_data: list, market_returns: pd.Series,
-                    cfg: dict | None = None) -> pd.DataFrame:
-    """Compute all factor metrics from raw yfinance ticker data."""
+                    cfg: dict | None = None,
+                    risk_free_rate: float = 0.045) -> pd.DataFrame:
+    """Compute all factor metrics (~33 metrics) from raw yfinance ticker data."""
     clamps = (cfg or {}).get("metric_clamps", {})
     feg_lo, feg_hi = clamps.get("forward_eps_growth", [-0.75, 1.50])
     ptu_lo, ptu_hi = clamps.get("price_target_upside", [-0.50, 1.0])
+    peg_max_cap = clamps.get("peg_max_cap", 50)
     records = []
+
+    # Market 12-month total return (computed once, reused for all tickers).
+    # Convert cumulative log returns to simple return.
+    if len(market_returns) >= 200:
+        market_12m_return = float(np.exp(market_returns.sum()) - 1)
+    else:
+        market_12m_return = float('nan')
 
     for d in raw_data:
         rec = {
@@ -988,6 +1258,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         rev_p = d.get("totalRevenue_prior", np.nan)
         ticker = rec["Ticker"]
 
+        # Pre-compute bank classification (needed early for Beneish exclusion)
+        _sector = rec["Sector"]
+        _industry = d.get("industry", "")
+        _is_bank = _is_bank_like(ticker, _sector, _industry)
+
         # -- Valuation metrics (1-4) --
         try:
             # 1. EV/EBITDA — compute GAAP EBITDA as EBIT + D&A when both
@@ -1013,10 +1288,17 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 fcf = (ocf - abs(capex)) if capex < 0 else (ocf - capex)
             rec["fcf_yield"] = (fcf / ev) if (pd.notna(fcf) and pd.notna(ev) and ev > 0) else np.nan
 
-            # 3. Earnings Yield
-            eps = d.get("trailingEps", np.nan)
-            price = d.get("currentPrice", d.get("price_latest", np.nan))
-            rec["earnings_yield"] = (eps / price) if (pd.notna(eps) and pd.notna(price) and price > 0) else np.nan
+            # 3. Earnings Yield  (LTM Net Income / Market Cap)
+            # Uses LTM net income from quarterly statements (same source as all
+            # other fundamental metrics) instead of the opaque trailingEps from
+            # the yfinance .info dict, for pipeline consistency.
+            # Falls back to trailingEps / price when LTM NI or MC unavailable.
+            if pd.notna(ni) and pd.notna(mc) and mc > 0:
+                rec["earnings_yield"] = ni / mc
+            else:
+                _eps_fb = d.get("trailingEps", np.nan)
+                _price_fb = d.get("currentPrice", d.get("price_latest", np.nan))
+                rec["earnings_yield"] = (_eps_fb / _price_fb) if (pd.notna(_eps_fb) and pd.notna(_price_fb) and _price_fb > 0) else np.nan
 
             # 4. EV/Sales
             rec["ev_sales"] = (ev / rev_c) if (pd.notna(ev) and pd.notna(rev_c) and rev_c > 0 and ev > 0) else np.nan
@@ -1066,15 +1348,59 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             gp = d.get("grossProfit", np.nan)
             rec["gross_profit_assets"] = (gp / ta) if (pd.notna(gp) and pd.notna(ta) and ta > 0) else np.nan
 
-            # 7. Debt/Equity — use balance-sheet totalDebt for temporal
-            # consistency with the equity figure (both from same annual filing).
-            # Negative or zero equity → NaN (not a sentinel value). These
-            # companies (e.g. buyback-driven negative equity) cannot be
-            # meaningfully ranked on leverage via D/E.
+            # 7. Debt/Equity — computed for reference/DataValidation output only — not scored.
+            # Replaced by net_debt_to_ebitda in quality scoring (negative equity
+            # distorts D/E for buyback-heavy companies e.g. MCD, MO, LOW, Boeing).
             if pd.notna(_debt_bs) and pd.notna(eq_v) and eq_v > 0:
                 rec["debt_equity"] = _debt_bs / eq_v
             else:
                 rec["debt_equity"] = np.nan
+
+            # 7b. Net Debt / EBITDA — replaces Debt/Equity in quality scoring.
+            # Net Debt = Total Debt - Cash; negative net debt (net cash) → 0.0
+            # (net cash companies are the best-case scenario, treated as floor).
+            # Guard: negative EBITDA makes the ratio uninterpretable → NaN.
+            # Banks: skip (return NaN, weight redistributes to other metrics).
+            if not _is_bank:
+                _ebit_nd = d.get("ebit", np.nan)
+                _da_nd = d.get("da_cf", np.nan)
+                if pd.notna(_ebit_nd) and pd.notna(_da_nd) and _da_nd >= 0:
+                    _ebitda_nd = _ebit_nd + _da_nd
+                else:
+                    _ebitda_nd = d.get("ebitda", np.nan)
+                if pd.notna(_debt_bs) and pd.notna(_ebitda_nd) and _ebitda_nd > 0:
+                    _net_debt = _debt_bs - (_cash_bs if pd.notna(_cash_bs) else 0.0)
+                    if _net_debt <= 0:
+                        rec["net_debt_to_ebitda"] = 0.0  # Net cash position
+                    else:
+                        rec["net_debt_to_ebitda"] = _net_debt / _ebitda_nd
+                elif pd.notna(_ebitda_nd) and _ebitda_nd <= 0:
+                    rec["net_debt_to_ebitda"] = np.nan  # Negative EBITDA: ratio undefined
+                else:
+                    rec["net_debt_to_ebitda"] = np.nan
+            else:
+                rec["net_debt_to_ebitda"] = np.nan  # Banks: skip
+
+            # 7c. Operating Leverage (Degree of Operating Leverage = DOL)
+            # DOL = (%Δ EBIT) / (%Δ Revenue) using annual data (current vs prior year).
+            # Lower DOL = less earnings sensitivity to revenue changes = more durable.
+            # Guards: flat revenue (<1% change) → NaN, zero denominators → NaN.
+            # Banks: skip (return NaN, weight redistributes).
+            if not _is_bank:
+                _ebit_curr = d.get("ebit", np.nan)
+                _ebit_prev = d.get("ebit_prior", np.nan)
+                if (pd.notna(_ebit_curr) and pd.notna(_ebit_prev) and _ebit_prev != 0
+                        and pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0):
+                    _rev_pct_change = (rev_c - rev_p) / abs(rev_p)
+                    if abs(_rev_pct_change) < 0.01:  # Flat revenue: DOL undefined
+                        rec["operating_leverage"] = np.nan
+                    else:
+                        _ebit_pct_change = (_ebit_curr - _ebit_prev) / abs(_ebit_prev)
+                        rec["operating_leverage"] = _ebit_pct_change / _rev_pct_change
+                else:
+                    rec["operating_leverage"] = np.nan
+            else:
+                rec["operating_leverage"] = np.nan  # Banks: skip
 
             # 8. Piotroski F-Score
             ni_p = d.get("netIncome_prior", np.nan)
@@ -1121,8 +1447,42 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
             # 9. Accruals
             rec["accruals"] = ((ni - ocfv) / ta) if (pd.notna(ni) and pd.notna(ocfv) and pd.notna(ta) and ta > 0) else np.nan
+
+            # 10. Beneish M-Score (earnings manipulation detection)
+            # Non-bank only; uses ANNUAL statements (t vs t-1), not LTM.
+            # Banks excluded: no COGS, no PPE, Beneish assumptions break.
+            if (cfg or {}).get("enable_beneish", True) and not _is_bank:
+                _mscore, _mflag = _compute_beneish_mscore(d)
+                rec["beneish_m_score"] = _mscore
+                rec["_beneish_flag"] = _mflag
+            else:
+                rec["beneish_m_score"] = np.nan
+                rec["_beneish_flag"] = False
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: quality metrics failed: {type(e).__name__}: {e}")
+
+        # -- Receivables-to-revenue growth divergence (channel-stuffing flag) --
+        # If receivables are growing significantly faster than revenue, it may
+        # indicate aggressive revenue recognition or channel stuffing.
+        try:
+            _recv_t = d.get("_beneish_net_receivables", np.nan)
+            _recv_p = d.get("_beneish_net_receivables_p", np.nan)
+            _rev_t = d.get("totalRevenue", np.nan)
+            _rev_p = d.get("totalRevenue_prior", np.nan)
+            if (pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
+                    and pd.notna(_rev_t) and pd.notna(_rev_p) and _rev_p > 0):
+                _recv_growth = (_recv_t / _recv_p) - 1
+                _rev_growth = (_rev_t / _rev_p) - 1
+                _divergence = _recv_growth - _rev_growth
+                rec["_recv_rev_divergence"] = _divergence
+                # Flag if receivables growth exceeds revenue growth by >15pp
+                rec["_channel_stuffing_flag"] = _divergence > 0.15
+            else:
+                rec["_recv_rev_divergence"] = np.nan
+                rec["_channel_stuffing_flag"] = False
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            rec["_recv_rev_divergence"] = np.nan
+            rec["_channel_stuffing_flag"] = False
 
         # -- Growth metrics (10-12) --
         try:
@@ -1144,13 +1504,27 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Uses the already-computed forward EPS growth instead of the
             # undocumented yfinance 'earningsGrowth' field, which is a
             # black-box input with no verifiable definition.
+            # NaN when growth <= 0 or P/E <= 0: negative/zero growth makes
+            # PEG meaningless (not a growth stock). NaN lets the per-row
+            # weight redistribution handle it rather than injecting a false signal.
             _price = d.get("currentPrice", d.get("price_latest", np.nan))
             _pe = (_price / trail) if (pd.notna(_price) and pd.notna(trail) and trail > 0.01) else np.nan
             _fwd_growth = rec.get("forward_eps_growth", np.nan)
-            rec["peg_ratio"] = (_pe / (_fwd_growth * 100)) if (pd.notna(_pe) and pd.notna(_fwd_growth) and _fwd_growth > 0.01) else np.nan
+            if pd.notna(_pe) and pd.notna(_fwd_growth) and _fwd_growth > 0:
+                rec["peg_ratio"] = min(_pe / (_fwd_growth * 100), peg_max_cap)
+            else:
+                rec["peg_ratio"] = np.nan
 
-            # 11. Revenue Growth
+            # 11. Revenue Growth (1-year)
             rec["revenue_growth"] = ((rev_c - rev_p) / rev_p) if (pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0) else np.nan
+
+            # 11b. 3-Year Revenue CAGR — smoothed growth signal from annual filings.
+            # Uses LTM revenue (current) vs annual col=3 (3 years prior).
+            _rev_3yr = d.get("totalRevenue_3yr_ago", np.nan)
+            if pd.notna(rev_c) and pd.notna(_rev_3yr) and _rev_3yr > 0:
+                rec["revenue_cagr_3yr"] = (rev_c / _rev_3yr) ** (1.0 / 3.0) - 1.0
+            else:
+                rec["revenue_cagr_3yr"] = np.nan
 
             # 12. Sustainable Growth = ROE * Retention Ratio
             # ROE uses average equity (current + prior / 2) to smooth
@@ -1196,7 +1570,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             warnings.warn(f"{ticker}: growth metrics failed: {type(e).__name__}: {e}")
 
         # -- GAAP/Normalized EPS mismatch flag --
-        # trailingEps is GAAP; forwardEps is normalized consensus.
+        # EPS basis mismatch flag — relevant to forward_eps_growth metric.
+        # Note: PEG ratio has been removed from scoring as of this update,
+        # so this flag's primary impact is now on forward_eps_growth and
+        # the Growth category score only.
         # Flag when the ratio is extreme (>2x or <0.3x), which suggests
         # large non-recurring items distorting the growth metric.
         try:
@@ -1216,7 +1593,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
         # -- Momentum metrics (13-14) --
         try:
-            # 13. 12-1 Month Return
+            # 13. 12-1 Month Return (skip-month per Jegadeesh-Titman)
             p12 = d.get("price_12m_ago", np.nan)
             p1m = d.get("price_1m_ago", np.nan)
             rec["return_12_1"] = ((p1m - p12) / p12) if (pd.notna(p12) and pd.notna(p1m) and p12 > 0) else np.nan
@@ -1224,6 +1601,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 14. 6-1 Month Return (exclude most recent month to match 12-1M convention)
             p6m = d.get("price_6m_ago", np.nan)
             rec["return_6m"] = ((p1m - p6m) / p6m) if (pd.notna(p6m) and pd.notna(p1m) and p6m > 0) else np.nan
+
+            # 14b. Full 12-month return (no skip-month) — used for Sharpe
+            # Ratio and Jensen's Alpha, which measure realized return, not
+            # the momentum signal.  The skip-month convention is appropriate
+            # for momentum ranking but distorts risk-adjusted return metrics.
+            _p_now = d.get("price_latest", d.get("currentPrice", np.nan))
+            rec["return_12m"] = ((_p_now - p12) / p12) if (pd.notna(p12) and pd.notna(_p_now) and p12 > 0) else np.nan
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: momentum metrics failed: {type(e).__name__}: {e}")
 
@@ -1232,13 +1616,15 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 15. Volatility
             rec["volatility"] = d.get("volatility_1y", np.nan)
 
-            # 16. Beta (date-aligned)
+            # 16. Beta (date-aligned with overlap validation)
             dr = d.get("_daily_returns")
             if dr and isinstance(dr, dict) and len(market_returns) >= 200:
                 mr_dates = {dt.strftime("%Y-%m-%d"): v
                             for dt, v in zip(market_returns.index, market_returns.values)}
                 common = sorted(set(dr.keys()) & set(mr_dates.keys()))
-                if len(common) >= 200:
+                _overlap_ratio = len(common) / len(mr_dates) if mr_dates else 0
+                rec["_beta_overlap_pct"] = round(_overlap_ratio * 100, 1)
+                if len(common) >= 200 and _overlap_ratio >= 0.80:
                     sr = np.array([dr[dt] for dt in common])
                     mr = np.array([mr_dates[dt] for dt in common])
                     cov = np.cov(sr, mr)[0, 1]
@@ -1263,8 +1649,82 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     rec["beta"] = np.nan
             else:
                 rec["beta"] = np.nan
+
+            # 16b. Sharpe Ratio (annualized, trailing 12 months)
+            # Sharpe = (R_i - R_f) / sigma_i
+            # Uses return_12m (full 12-month, no skip) — the skip-month
+            # convention is for momentum ranking, not risk-adjusted returns.
+            _vol_sr = rec.get("volatility", float("nan"))
+            _ret_12m_sr = rec.get("return_12m", float("nan"))
+            if (pd.notna(_vol_sr) and _vol_sr > 0 and pd.notna(_ret_12m_sr)):
+                rec["sharpe_ratio"] = (_ret_12m_sr - risk_free_rate) / _vol_sr
+            else:
+                rec["sharpe_ratio"] = np.nan
+
+            # 16c. Sortino Ratio (annualized, trailing 12 months)
+            # Sortino = (R_i - R_f) / downside_deviation
+            # Downside deviation = std dev of daily returns below the daily
+            # risk-free rate, annualized by sqrt(252).
+            if dr and isinstance(dr, dict) and pd.notna(_ret_12m_sr):
+                _daily_rf = (1 + risk_free_rate) ** (1/252) - 1
+                _daily_vals = np.array(list(dr.values()))
+                _downside = _daily_vals[_daily_vals < _daily_rf] - _daily_rf
+                if len(_downside) >= 20:
+                    _dd = np.std(_downside, ddof=1) * np.sqrt(252)
+                    rec["sortino_ratio"] = ((_ret_12m_sr - risk_free_rate) / _dd
+                                            if _dd > 0 else np.nan)
+                else:
+                    rec["sortino_ratio"] = np.nan
+            elif dr and isinstance(dr, list) and pd.notna(_ret_12m_sr):
+                _daily_rf = (1 + risk_free_rate) ** (1/252) - 1
+                _daily_vals = np.array(dr)
+                _downside = _daily_vals[_daily_vals < _daily_rf] - _daily_rf
+                if len(_downside) >= 20:
+                    _dd = np.std(_downside, ddof=1) * np.sqrt(252)
+                    rec["sortino_ratio"] = ((_ret_12m_sr - risk_free_rate) / _dd
+                                            if _dd > 0 else np.nan)
+                else:
+                    rec["sortino_ratio"] = np.nan
+            else:
+                rec["sortino_ratio"] = np.nan
+
+            # 16d. Max Drawdown (trailing 12 months)
+            # Peak-to-trough decline from cumulative return series.
+            # Expressed as a negative fraction (e.g., -0.25 = 25% drawdown).
+            if dr and isinstance(dr, dict) and len(dr) >= 50:
+                _dd_vals = np.array(list(dr.values()))
+                _cum = np.cumprod(1 + _dd_vals)
+                _peak = np.maximum.accumulate(_cum)
+                _drawdowns = (_cum - _peak) / _peak
+                rec["max_drawdown_1y"] = float(np.min(_drawdowns))
+            elif dr and isinstance(dr, list) and len(dr) >= 50:
+                _dd_vals = np.array(dr)
+                _cum = np.cumprod(1 + _dd_vals)
+                _peak = np.maximum.accumulate(_cum)
+                _drawdowns = (_cum - _peak) / _peak
+                rec["max_drawdown_1y"] = float(np.min(_drawdowns))
+            else:
+                rec["max_drawdown_1y"] = np.nan
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: risk metrics failed: {type(e).__name__}: {e}")
+
+        # -- Jensen's Alpha (requires beta + return_12m from sections above) --
+        # Read values safely from rec dict (not local variables that may be
+        # out of scope if momentum or risk try blocks raised caught exceptions).
+        # Uses return_12m (full 12-month, no skip) for the CAPM realized return.
+        try:
+            _beta_ja = rec.get("beta", float("nan"))
+            _ret_12m_ja = rec.get("return_12m", float("nan"))
+            if (pd.notna(_beta_ja) and pd.notna(_ret_12m_ja)
+                    and pd.notna(market_12m_return)):
+                expected_return = risk_free_rate + _beta_ja * (market_12m_return - risk_free_rate)
+                rec["jensens_alpha"] = _ret_12m_ja - expected_return
+            else:
+                rec["jensens_alpha"] = np.nan
+                logging.debug(f"{ticker}: jensens_alpha skipped — beta or return NaN")
+        except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
+            warnings.warn(f"{ticker}: Jensen's alpha failed: {type(e).__name__}: {e}")
+            rec["jensens_alpha"] = np.nan
 
         # -- Revisions --
         # NOTE: An EPS forecast revision metric (change in consensus forward EPS
@@ -1288,6 +1748,14 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     (_target - _cur_price) / _cur_price, ptu_lo, ptu_hi))
             else:
                 rec["price_target_upside"] = np.nan
+
+            # Short Interest Ratio (days to cover = shares short / avg daily volume).
+            # Lower = less bearish sentiment = better. Yahoo updates bi-monthly
+            # with a 1-2 week lag; this delay is inherent and acceptable.
+            _short_ratio = d.get("shortRatio", np.nan)
+            rec["short_interest_ratio"] = (
+                _short_ratio if (pd.notna(_short_ratio) and _short_ratio >= 0) else np.nan
+            )
         except (KeyError, TypeError, ValueError) as e:
             warnings.warn(f"{ticker}: revisions metrics failed: {type(e).__name__}: {e}")
 
@@ -1300,12 +1768,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
         # -- Bank-specific metrics (conditional on sector) --
         try:
-            sector = rec.get("Sector", "Unknown")
-            industry = d.get("industry", "")
-            is_bank = _is_bank_like(ticker, sector, industry)
-            rec["_is_bank_like"] = is_bank
+            # _is_bank pre-computed near top of loop (needed by Beneish check)
+            rec["_is_bank_like"] = _is_bank
 
-            if is_bank:
+            if _is_bank:
                 # Bank Valuation: Price-to-Book
                 ptb = d.get("priceToBook", np.nan)
                 if pd.notna(ptb) and ptb > 0:
@@ -1385,6 +1851,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
         # -- Data provenance summary --
         rec["_data_source"] = d.get("_data_source", "unknown")
+        rec["_ltm_annualized"] = d.get("_ltm_annualized", False)
         _metric_keys = [
             "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
             "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score",
@@ -1407,13 +1874,17 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 METRIC_COLS = [
     "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
     "pb_ratio",                                                      # bank valuation
-    "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score", "accruals",
+    "roic", "gross_profit_assets", "debt_equity", "net_debt_to_ebitda",
+    "piotroski_f_score", "accruals", "operating_leverage",
+    "beneish_m_score",                                               # earnings manipulation (non-bank)
     "roe", "roa", "equity_ratio",                                    # bank quality
-    "forward_eps_growth", "peg_ratio", "revenue_growth", "sustainable_growth",
-    "return_12_1", "return_6m",
-    "volatility", "beta",
+    "forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth",
+    "return_12_1", "return_6m", "jensens_alpha",                      # momentum + risk-adjusted alpha
+    "volatility", "beta", "sharpe_ratio", "sortino_ratio",              # risk + risk-adjusted return
+    "max_drawdown_1y",                                                   # tail risk: max peak-to-trough
     "analyst_surprise", "price_target_upside",
     "earnings_acceleration", "consecutive_beat_streak",              # fundamental momentum
+    "short_interest_ratio",                                          # short interest sentiment
     "size_log_mcap",                                                 # size factor
     "asset_growth",                                                  # investment (CMA proxy)
 ]
@@ -1422,7 +1893,8 @@ METRIC_COLS = [
 # Used by the coverage filter to avoid penalizing stocks for
 # structurally absent metrics.
 _BANK_ONLY_METRICS = {"pb_ratio", "roe", "roa", "equity_ratio"}
-_NONBANK_ONLY_METRICS = {"ev_ebitda", "ev_sales", "roic", "gross_profit_assets", "debt_equity"}
+_NONBANK_ONLY_METRICS = {"ev_ebitda", "ev_sales", "roic", "gross_profit_assets",
+                         "net_debt_to_ebitda", "operating_leverage", "beneish_m_score"}
 
 
 def winsorize_metrics(df: pd.DataFrame, lo: float = 0.01, hi: float = 0.01):
@@ -1443,13 +1915,23 @@ METRIC_DIR = {
     "ev_ebitda": False, "fcf_yield": True, "earnings_yield": True, "ev_sales": False,
     "pb_ratio": False,                                    # lower P/B = cheaper = better
     "roic": True, "gross_profit_assets": True, "debt_equity": False,
+    "net_debt_to_ebitda": False,                         # lower net debt/EBITDA = less leveraged = better
     "piotroski_f_score": True, "accruals": False,
+    "operating_leverage": False,                         # lower DOL = less earnings sensitivity = better
+    "beneish_m_score": False,                             # lower M-Score = less manipulation risk = better
     "roe": True, "roa": True, "equity_ratio": True,      # bank quality: higher = better
-    "forward_eps_growth": True, "peg_ratio": False, "revenue_growth": True, "sustainable_growth": True,
+    "forward_eps_growth": True, "peg_ratio": False, "revenue_growth": True,
+    "revenue_cagr_3yr": True,                                        # higher revenue CAGR = better
+    "sustainable_growth": True,
     "return_12_1": True, "return_6m": True,
+    "jensens_alpha": True,                                   # higher alpha = more excess return above CAPM = better
     "volatility": False, "beta": False,
+    "sharpe_ratio": True,                                    # higher Sharpe = better risk-adjusted return
+    "sortino_ratio": True,                                   # higher Sortino = better downside-adjusted return
+    "max_drawdown_1y": True,                                 # less negative = smaller drawdown = better
     "analyst_surprise": True, "price_target_upside": True,
     "earnings_acceleration": True, "consecutive_beat_streak": True,  # fundamental momentum
+    "short_interest_ratio": False,                                   # lower days-to-cover = less short pressure = better
     "size_log_mcap": True,                                # -log(mcap): higher = smaller = size premium
     "asset_growth": False,                                # lower asset growth = conservative investment = better
 }
@@ -1542,12 +2024,13 @@ def apply_percentile_transform(df: pd.DataFrame, cfg: dict):
 # =========================================================================
 CAT_METRICS = {
     "valuation": ["ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales", "pb_ratio"],
-    "quality":   ["roic", "gross_profit_assets", "debt_equity", "piotroski_f_score", "accruals",
-                  "roe", "roa", "equity_ratio"],
-    "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "sustainable_growth"],
-    "momentum":  ["return_12_1", "return_6m"],
-    "risk":      ["volatility", "beta"],
-    "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak"],
+    "quality":   ["roic", "gross_profit_assets", "net_debt_to_ebitda",
+                  "piotroski_f_score", "accruals", "operating_leverage",
+                  "beneish_m_score", "roe", "roa", "equity_ratio"],
+    "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
+    "momentum":  ["return_12_1", "return_6m", "jensens_alpha"],
+    "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],
+    "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak", "short_interest_ratio"],
     "size":       ["size_log_mcap"],
     "investment": ["asset_growth"],
 }
@@ -1593,9 +2076,14 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict):
                 # Compute freed weight from piotroski reduction
                 pio_generic_w = generic_ws.get("piotroski_f_score", 0) / 100.0
                 freed_w = pio_generic_w * (1 - pio_reduction)
-                n_recipients = sum(1 for m in pio_redistribute_to
-                                   if generic_ws.get(m, 0) > 0)
-                freed_per_recipient = freed_w / n_recipients if n_recipients > 0 else 0
+                # Proportional redistribution: split freed weight in proportion to
+                # base weights of recipient metrics (not equal split).
+                pio_redist_weights = {m: generic_ws.get(m, 0) for m in pio_redistribute_to
+                                      if generic_ws.get(m, 0) > 0}
+                pio_redist_total = sum(pio_redist_weights.values())
+                pio_redist_shares = ({m: w / pio_redist_total
+                                      for m, w in pio_redist_weights.items()}
+                                     if pio_redist_total > 0 else {})
 
             # Growth-trap Piotroski: high-growth + low-quality non-bank stocks
             # get Piotroski weight halved, freed weight → accruals + gross_profit_assets
@@ -1613,9 +2101,13 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict):
                     pio_gt_adjust = True
                     gt_pio_w = generic_ws.get("piotroski_f_score", 0) / 100.0
                     gt_freed_w = gt_pio_w * (1 - pio_reduction)
-                    gt_n_recipients = sum(1 for m in pio_gt_redistribute_to
-                                          if generic_ws.get(m, 0) > 0)
-                    gt_freed_per_recipient = gt_freed_w / gt_n_recipients if gt_n_recipients > 0 else 0
+                    # Proportional redistribution for growth-trap variant
+                    gt_redist_weights = {m: generic_ws.get(m, 0) for m in pio_gt_redistribute_to
+                                         if generic_ws.get(m, 0) > 0}
+                    gt_redist_total = sum(gt_redist_weights.values())
+                    gt_redist_shares = ({m: w / gt_redist_total
+                                         for m, w in gt_redist_weights.items()}
+                                        if gt_redist_total > 0 else {})
 
         # Per-row weighted average: only count metrics that have data.
         # NaN percentiles are excluded (not imputed to 50th), and each
@@ -1633,19 +2125,19 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict):
             w[is_bank] = w_bank
 
             # Piotroski conditional: reduce piotroski weight for low-val non-bank stocks,
-            # redistribute freed weight to specified recipient metrics
+            # redistribute freed weight proportionally to specified recipient metrics
             if pio_adjust:
                 if m == "piotroski_f_score":
                     w[is_low_val] = w_generic * pio_reduction
-                elif m in pio_redistribute_to and generic_ws.get(m, 0) > 0:
-                    w[is_low_val] = w_generic + freed_per_recipient
+                elif m in pio_redist_shares:
+                    w[is_low_val] = w_generic + freed_w * pio_redist_shares[m]
 
-            # Growth-trap Piotroski conditional: same reduction, different redistribution targets
+            # Growth-trap Piotroski conditional: same reduction, proportional redistribution
             if pio_gt_adjust:
                 if m == "piotroski_f_score":
                     w[is_growth_trap_like] = w_generic * pio_reduction
-                elif m in pio_gt_redistribute_to and generic_ws.get(m, 0) > 0:
-                    w[is_growth_trap_like] = w_generic + gt_freed_per_recipient
+                elif m in gt_redist_shares:
+                    w[is_growth_trap_like] = w_generic + gt_freed_w * gt_redist_shares[m]
 
             if pc not in df.columns:
                 continue
@@ -2007,6 +2499,25 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict):
     # dimension (e.g. a quality stock with one bad momentum quarter).
     df["Value_Trap_Flag"] = (l1.astype(int) + l2.astype(int) + l3.astype(int)) >= 2
 
+    # Continuous severity score (0-100): how deeply a stock is in trap territory.
+    # For each dimension, severity = max(0, (threshold - score) / threshold) * 100.
+    # Average across the three dimensions. 0 = no trap risk, 100 = extreme.
+    _vt_severity = pd.Series(0.0, index=df.index)
+    _n_dims = 0
+    if qual_col and qual_thr > 0:
+        _q_sev = ((qual_thr - df[qual_col]).clip(lower=0) / qual_thr * 100).fillna(0)
+        _vt_severity += _q_sev
+        _n_dims += 1
+    if mom_col and mom_thr > 0:
+        _m_sev = ((mom_thr - df[mom_col]).clip(lower=0) / mom_thr * 100).fillna(0)
+        _vt_severity += _m_sev
+        _n_dims += 1
+    if rev_col and rev_thr > 0:
+        _r_sev = ((rev_thr - df[rev_col]).clip(lower=0) / rev_thr * 100).fillna(0)
+        _vt_severity += _r_sev
+        _n_dims += 1
+    df["Value_Trap_Severity"] = (_vt_severity / max(_n_dims, 1)).round(1)
+
     # Insufficient_Data_Flag: stocks with NaN in any of the three value-trap
     # dimensions. These are NOT flagged as value traps (NaN != poor quality),
     # but the missing data means the value-trap filter cannot fully evaluate them.
@@ -2061,6 +2572,24 @@ def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict):
 
     # Majority logic (2-of-3): flag only if at least 2 dimensions breach
     df["Growth_Trap_Flag"] = (g1.astype(int) + g2.astype(int) + g3.astype(int)) >= 2
+
+    # Continuous severity score (0-100): how deeply in growth-trap territory.
+    # Growth dimension: how far above the ceiling. Quality/revisions: how far below floors.
+    _gt_severity = pd.Series(0.0, index=df.index)
+    _n_dims = 0
+    if grow_col and grow_thr < 100:
+        _g_sev = ((df[grow_col] - grow_thr).clip(lower=0) / (100 - grow_thr) * 100).fillna(0)
+        _gt_severity += _g_sev
+        _n_dims += 1
+    if qual_col and qual_thr > 0:
+        _q_sev = ((qual_thr - df[qual_col]).clip(lower=0) / qual_thr * 100).fillna(0)
+        _gt_severity += _q_sev
+        _n_dims += 1
+    if rev_col and rev_thr > 0:
+        _r_sev = ((rev_thr - df[rev_col]).clip(lower=0) / rev_thr * 100).fillna(0)
+        _gt_severity += _r_sev
+        _n_dims += 1
+    df["Growth_Trap_Severity"] = (_gt_severity / max(_n_dims, 1)).round(1)
 
     return df
 
@@ -2162,7 +2691,9 @@ def write_excel(df: pd.DataFrame, cfg: dict) -> str:
         ("risk_contrib", "Risk_Contrib"), ("revisions_contrib", "Rev_Contrib"),
         ("size_contrib", "Size_Contrib"), ("investment_contrib", "Invest_Contrib"),
         ("Value_Trap_Flag", "Value_Trap_Flag"),
+        ("Value_Trap_Severity", "VT_Severity"),
         ("Growth_Trap_Flag", "Growth_Trap_Flag"),
+        ("Growth_Trap_Severity", "GT_Severity"),
         ("Financial_Sector_Caveat", "Fin_Caveat"),
         ("_is_bank_like", "Is_Bank"),
         ("pb_ratio", "P/B"), ("roe", "ROE"), ("roa", "ROA"),
