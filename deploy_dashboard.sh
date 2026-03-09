@@ -24,13 +24,13 @@ if [ ! -d "$DASHBOARD_REPO/.git" ]; then
 fi
 
 # ---- Deploy ----
-echo "Copying dashboard.html -> index.html ..."
-cp "$SOURCE" "$TARGET"
-
 cd "$DASHBOARD_REPO"
 
 # Sync with remote first (Screener-1 pushes to the same remote in an earlier step)
 git pull --rebase origin main
+
+echo "Copying dashboard.html -> index.html ..."
+cp "$SOURCE" "$TARGET"
 
 # Check if there are actually changes
 if git diff --quiet index.html 2>/dev/null; then
