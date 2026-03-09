@@ -200,6 +200,11 @@
     "Sector": "Information Technology"
   },
   {
+    "Ticker": "APP",
+    "Company": "AppLovin",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "APTV",
     "Company": "Aptiv",
     "Sector": "Consumer Discretionary"
@@ -213,6 +218,11 @@
     "Ticker": "ADM",
     "Company": "Archer Daniels Midland",
     "Sector": "Consumer Staples"
+  },
+  {
+    "Ticker": "ARES",
+    "Company": "Ares Management",
+    "Sector": "Financials"
   },
   {
     "Ticker": "ANET",
@@ -400,11 +410,6 @@
     "Sector": "Information Technology"
   },
   {
-    "Ticker": "CZR",
-    "Company": "Caesars Entertainment",
-    "Sector": "Consumer Discretionary"
-  },
-  {
     "Ticker": "CPT",
     "Company": "Camden Property Trust",
     "Sector": "Real Estate"
@@ -425,11 +430,6 @@
     "Sector": "Health Care"
   },
   {
-    "Ticker": "KMX",
-    "Company": "CarMax",
-    "Sector": "Consumer Discretionary"
-  },
-  {
     "Ticker": "CCL",
     "Company": "Carnival",
     "Sector": "Consumer Discretionary"
@@ -438,6 +438,11 @@
     "Ticker": "CARR",
     "Company": "Carrier Global",
     "Sector": "Industrials"
+  },
+  {
+    "Ticker": "CVNA",
+    "Company": "Carvana",
+    "Sector": "Consumer Discretionary"
   },
   {
     "Ticker": "CAT",
@@ -515,6 +520,11 @@
     "Sector": "Consumer Staples"
   },
   {
+    "Ticker": "CIEN",
+    "Company": "Ciena",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "CI",
     "Company": "Cigna",
     "Sector": "Health Care"
@@ -585,6 +595,11 @@
     "Sector": "Communication Services"
   },
   {
+    "Ticker": "FIX",
+    "Company": "Comfort Systems USA",
+    "Sector": "Industrials"
+  },
+  {
     "Ticker": "CAG",
     "Company": "Conagra Brands",
     "Sector": "Consumer Staples"
@@ -650,6 +665,11 @@
     "Sector": "Energy"
   },
   {
+    "Ticker": "CRH",
+    "Company": "CRH plc",
+    "Sector": "Materials"
+  },
+  {
     "Ticker": "CRWD",
     "Company": "CrowdStrike",
     "Sector": "Information Technology"
@@ -693,11 +713,6 @@
     "Ticker": "DVA",
     "Company": "DaVita",
     "Sector": "Health Care"
-  },
-  {
-    "Ticker": "DAY",
-    "Company": "Dayforce",
-    "Sector": "Industrials"
   },
   {
     "Ticker": "DECK",
@@ -795,11 +810,6 @@
     "Sector": "Materials"
   },
   {
-    "Ticker": "EMN",
-    "Company": "Eastman Chemical Company",
-    "Sector": "Materials"
-  },
-  {
     "Ticker": "ETN",
     "Company": "Eaton Corporation",
     "Sector": "Industrials"
@@ -835,14 +845,14 @@
     "Sector": "Health Care"
   },
   {
-    "Ticker": "EMR",
-    "Company": "Emerson Electric",
+    "Ticker": "EME",
+    "Company": "Emcor",
     "Sector": "Industrials"
   },
   {
-    "Ticker": "ENPH",
-    "Company": "Enphase Energy",
-    "Sector": "Information Technology"
+    "Ticker": "EMR",
+    "Company": "Emerson Electric",
+    "Sector": "Industrials"
   },
   {
     "Ticker": "ETR",
@@ -990,7 +1000,7 @@
     "Sector": "Utilities"
   },
   {
-    "Ticker": "FI",
+    "Ticker": "FISV",
     "Company": "Fiserv",
     "Sector": "Financials"
   },
@@ -1250,6 +1260,11 @@
     "Sector": "Information Technology"
   },
   {
+    "Ticker": "IBKR",
+    "Company": "Interactive Brokers",
+    "Sector": "Financials"
+  },
+  {
     "Ticker": "ICE",
     "Company": "Intercontinental Exchange",
     "Sector": "Financials"
@@ -1263,11 +1278,6 @@
     "Ticker": "IP",
     "Company": "International Paper",
     "Sector": "Materials"
-  },
-  {
-    "Ticker": "IPG",
-    "Company": "Interpublic Group of Companies (The)",
-    "Sector": "Communication Services"
   },
   {
     "Ticker": "INTU",
@@ -1333,11 +1343,6 @@
     "Ticker": "JPM",
     "Company": "JPMorgan Chase",
     "Sector": "Financials"
-  },
-  {
-    "Ticker": "K",
-    "Company": "Kellanova",
-    "Sector": "Consumer Staples"
   },
   {
     "Ticker": "KVUE",
@@ -1450,11 +1455,6 @@
     "Sector": "Communication Services"
   },
   {
-    "Ticker": "LKQ",
-    "Company": "LKQ Corporation",
-    "Sector": "Consumer Discretionary"
-  },
-  {
     "Ticker": "LMT",
     "Company": "Lockheed Martin",
     "Sector": "Industrials"
@@ -1490,17 +1490,12 @@
     "Sector": "Energy"
   },
   {
-    "Ticker": "MKTX",
-    "Company": "MarketAxess",
-    "Sector": "Financials"
-  },
-  {
     "Ticker": "MAR",
     "Company": "Marriott International",
     "Sector": "Consumer Discretionary"
   },
   {
-    "Ticker": "MMC",
+    "Ticker": "MRSH",
     "Company": "Marsh McLennan",
     "Sector": "Financials"
   },
@@ -1593,11 +1588,6 @@
     "Ticker": "MRNA",
     "Company": "Moderna",
     "Sector": "Health Care"
-  },
-  {
-    "Ticker": "MHK",
-    "Company": "Mohawk Industries",
-    "Sector": "Consumer Discretionary"
   },
   {
     "Ticker": "MOH",
@@ -1945,6 +1935,11 @@
     "Sector": "Health Care"
   },
   {
+    "Ticker": "Q",
+    "Company": "Qnity Electronics",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "RL",
     "Company": "Ralph Lauren Corporation",
     "Sector": "Consumer Discretionary"
@@ -1995,6 +1990,11 @@
     "Sector": "Health Care"
   },
   {
+    "Ticker": "HOOD",
+    "Company": "Robinhood Markets",
+    "Sector": "Financials"
+  },
+  {
     "Ticker": "ROK",
     "Company": "Rockwell Automation",
     "Sector": "Industrials"
@@ -2027,6 +2027,11 @@
   {
     "Ticker": "CRM",
     "Company": "Salesforce",
+    "Sector": "Information Technology"
+  },
+  {
+    "Ticker": "SNDK",
+    "Company": "Sandisk",
     "Sector": "Information Technology"
   },
   {
@@ -2398,11 +2403,6 @@
     "Ticker": "WAB",
     "Company": "Wabtec",
     "Sector": "Industrials"
-  },
-  {
-    "Ticker": "WBA",
-    "Company": "Walgreens Boots Alliance",
-    "Sector": "Consumer Staples"
   },
   {
     "Ticker": "WMT",
