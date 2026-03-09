@@ -1842,5 +1842,14 @@ def main():
         print(f"  WARNING: Dashboard generation failed: {e}")
 
 
+    # ---- 13. Improvement tracking snapshot ----
+    try:
+        from improvement_engine import record_run_snapshot
+        record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg)
+        print("  Improvement snapshot recorded")
+    except Exception as e:
+        print(f"  WARNING: Improvement tracking failed: {e}")
+
+
 if __name__ == "__main__":
     main()

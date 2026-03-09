@@ -85,6 +85,14 @@ class RawTickerData(BaseModel):
     bookValue: Optional[float] = None
     industry: Optional[str] = ""
 
+    # Candidate metric fields (Phase 11: Metric Evolution)
+    fiftyTwoWeekHigh: Optional[float] = None
+    heldPercentInsiders: Optional[float] = None
+    heldPercentInstitutions: Optional[float] = None
+    shortPercentOfFloat: Optional[float] = None
+    recommendationMean: Optional[float] = None
+    interestExpense: Optional[float] = None
+
     model_config = ConfigDict(extra="allow")  # Allow extra fields (_daily_returns, _error, etc.)
 
 
@@ -128,6 +136,16 @@ class FactorScores(BaseModel):
     consecutive_beat_streak: Optional[float] = None  # Fundamental momentum: beat streak
     size_log_mcap: Optional[float] = None     # Size factor: -log(marketCap)
     asset_growth: Optional[float] = None      # Investment factor: YoY total asset growth
+
+    # Phase 11 candidate metrics (weight=0 until improvement engine activates)
+    proximity_52w_high: Optional[float] = None
+    operating_margin: Optional[float] = None
+    current_ratio: Optional[float] = None
+    dividend_yield: Optional[float] = None
+    insider_ownership: Optional[float] = None
+    short_pct_float: Optional[float] = None
+    analyst_rating: Optional[float] = None
+    interest_coverage: Optional[float] = None
 
     # Category scores (0-100)
     valuation_score: Optional[float] = Field(None, ge=0, le=100)
@@ -174,6 +192,7 @@ class ValuationWeights(_MetricWeightBase):
     earnings_yield: float = 20
     ev_sales: float = 10
     pb_ratio: float = 0       # Bank-only; active weight in bank_metric_weights
+    dividend_yield: float = 0  # Candidate: activated by improvement engine
 
 
 class QualityWeights(_MetricWeightBase):
@@ -187,6 +206,10 @@ class QualityWeights(_MetricWeightBase):
     roe: float = 0             # Bank-only
     roa: float = 0             # Bank-only
     equity_ratio: float = 0    # Bank-only
+    operating_margin: float = 0   # Candidate: activated by improvement engine
+    current_ratio: float = 0      # Candidate: activated by improvement engine
+    insider_ownership: float = 0  # Candidate: activated by improvement engine
+    interest_coverage: float = 0  # Candidate: activated by improvement engine
 
 
 class BankValuationWeights(_MetricWeightBase):
@@ -195,6 +218,7 @@ class BankValuationWeights(_MetricWeightBase):
     earnings_yield: float = 40
     ev_sales: float = 0
     pb_ratio: float = 60
+    dividend_yield: float = 0  # Candidate: activated by improvement engine
 
 
 class BankQualityWeights(_MetricWeightBase):
@@ -207,6 +231,10 @@ class BankQualityWeights(_MetricWeightBase):
     roe: float = 35
     roa: float = 25
     equity_ratio: float = 15
+    operating_margin: float = 0   # Candidate: banks skip
+    current_ratio: float = 0      # Candidate: banks skip
+    insider_ownership: float = 0  # Candidate: activated by improvement engine
+    interest_coverage: float = 0  # Candidate: banks skip
 
 
 class GrowthWeights(_MetricWeightBase):
@@ -221,6 +249,7 @@ class MomentumWeights(_MetricWeightBase):
     return_12_1: float = 40
     return_6m: float = 35
     jensens_alpha: float = 25
+    proximity_52w_high: float = 0  # Candidate: activated by improvement engine
 
 
 class RiskWeights(_MetricWeightBase):
@@ -237,6 +266,8 @@ class RevisionsWeights(_MetricWeightBase):
     earnings_acceleration: float = 20  # Most recent quarter surprise > prior quarter
     consecutive_beat_streak: float = 20  # Count of consecutive positive surprises (0-4)
     short_interest_ratio: float = 10   # Days to cover; lower = less bearish sentiment
+    short_pct_float: float = 0    # Candidate: activated by improvement engine
+    analyst_rating: float = 0     # Candidate: activated by improvement engine
 
 
 class SizeWeights(_MetricWeightBase):
@@ -268,6 +299,25 @@ class BankMetricWeights(BaseModel):
 # =========================================================================
 # RunConfig — top-level config schema
 # =========================================================================
+
+class ImprovementConfig(BaseModel):
+    """Configuration for the self-improvement engine."""
+    enabled: bool = True
+    min_observations_for_proposal: int = Field(8, ge=4, le=52)
+    min_observations_for_metric_level: int = Field(24, ge=8, le=104)
+    ewm_halflife_months: int = Field(6, ge=2, le=24)
+    shrinkage: float = Field(0.5, ge=0.0, le=1.0)
+    max_change_per_cycle: float = Field(3.0, ge=0.5, le=10.0)
+    max_metric_change_per_cycle: float = Field(5.0, ge=1.0, le=15.0)
+    regime_scale_factor: float = Field(0.10, ge=0.0, le=0.30)
+    auto_apply_threshold: float = Field(2.0, ge=0.5, le=5.0)
+    # Metric Evolution (Phase 11)
+    min_observations_for_activation: int = Field(12, ge=4, le=52)
+    min_observations_for_deactivation: int = Field(12, ge=4, le=52)
+    candidate_initial_weight: float = Field(5.0, ge=1.0, le=15.0)
+    max_candidate_activations_per_cycle: int = Field(1, ge=1, le=3)
+    candidate_ic_threshold: float = Field(0.02, ge=0.0, le=0.10)
+
 
 class RunConfig(BaseModel):
     """Schema for validated config.yaml contents."""
@@ -336,5 +386,6 @@ class RunConfig(BaseModel):
     portfolio: PortfolioConfig = PortfolioConfig()
     data_quality: DataQualityConfig = DataQualityConfig()
     caching: CachingConfig = CachingConfig()
+    improvement: ImprovementConfig = ImprovementConfig()
     output: dict = {}
     backtesting: dict = {}

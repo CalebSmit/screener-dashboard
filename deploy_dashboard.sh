@@ -29,6 +29,9 @@ cp "$SOURCE" "$TARGET"
 
 cd "$DASHBOARD_REPO"
 
+# Sync with remote first (Screener-1 pushes to the same remote in an earlier step)
+git pull --rebase origin main
+
 # Check if there are actually changes
 if git diff --quiet index.html 2>/dev/null; then
     echo "No changes detected. Dashboard is already up to date."

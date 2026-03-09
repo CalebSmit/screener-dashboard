@@ -613,6 +613,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["numberOfAnalystOpinions"] = _safe(info, "numberOfAnalystOpinions")
         # Short interest (days to cover). Updated bi-monthly by exchanges with 1-2 week lag.
         rec["shortRatio"]             = _safe(info, "shortRatio")
+        # Candidate metric .info fields (Phase 11: Metric Evolution)
+        # Always fetched even when weight=0, so improvement engine can evaluate IC.
+        # Zero incremental API cost — same .info dict already fetched above.
+        rec["fiftyTwoWeekHigh"]        = _safe(info, "fiftyTwoWeekHigh")
+        rec["heldPercentInsiders"]     = _safe(info, "heldPercentInsiders")
+        rec["heldPercentInstitutions"] = _safe(info, "heldPercentInstitutions")
+        rec["shortPercentOfFloat"]     = _safe(info, "shortPercentOfFloat")
+        rec["recommendationMean"]      = _safe(info, "recommendationMean")
 
         # ---- quarterly financial statements (for LTM / MRQ) ----
         # LTM = sum of last 4 quarters (flow metrics: IS + CF)
@@ -672,6 +680,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax", partial_labels=_ltm_partial)
         rec["pretaxIncome"]           = _stmt_val_ltm(q_fins, "Pretax Income", partial_labels=_ltm_partial)
         rec["costOfRevenue"]          = _stmt_val_ltm(q_fins, "Cost Of Revenue", partial_labels=_ltm_partial)
+        # Interest Expense: needed for interest_coverage candidate metric
+        rec["interestExpense"]        = _stmt_val_ltm(q_fins, "Interest Expense", partial_labels=_ltm_partial)
+        if np.isnan(rec["interestExpense"]):
+            rec["interestExpense"]    = _stmt_val_ltm(q_fins, "Interest Expense Non Operating", partial_labels=_ltm_partial)
 
         # Fallback: if quarterly IS produced all NaN, try annual for everything
         if all(np.isnan(rec.get(k, np.nan)) for k in ["totalRevenue", "netIncome", "ebit"]):
@@ -691,6 +703,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 rec["incomeTaxExpense"]   = _stmt_val(fins, "Income Tax")
             rec["pretaxIncome"]           = _stmt_val(fins, "Pretax Income")
             rec["costOfRevenue"]          = _stmt_val(fins, "Cost Of Revenue")
+            rec["interestExpense"]        = _stmt_val(fins, "Interest Expense")
+            if np.isnan(rec["interestExpense"]):
+                rec["interestExpense"]    = _stmt_val(fins, "Interest Expense Non Operating")
         else:
             rec["_data_source"] = "quarterly"
             # Prior-year fallback: yfinance typically provides only 4-5
@@ -1759,6 +1774,92 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         except (KeyError, TypeError, ValueError) as e:
             warnings.warn(f"{ticker}: revisions metrics failed: {type(e).__name__}: {e}")
 
+        # -- Candidate metrics (Phase 11: Metric Evolution) --
+        # Always computed even when weight=0; improvement engine evaluates IC.
+        try:
+            # C1. Proximity to 52-Week High (Momentum)
+            # George & Hwang (2004): nearness to 52W high is one of the
+            # strongest momentum signals. Ratio in [0, 1]; higher = nearer peak.
+            _52w_high = d.get("fiftyTwoWeekHigh", np.nan)
+            _cur_price_c = d.get("currentPrice", d.get("price_latest", np.nan))
+            rec["proximity_52w_high"] = (
+                (_cur_price_c / _52w_high)
+                if (pd.notna(_cur_price_c) and pd.notna(_52w_high) and _52w_high > 0)
+                else np.nan
+            )
+
+            # C2. Operating Margin (Quality)
+            # EBIT / Total Revenue. Uses LTM figures already fetched.
+            _ebit_om = d.get("ebit", np.nan)
+            _rev_om = d.get("totalRevenue", np.nan)
+            if not _is_bank:
+                rec["operating_margin"] = (
+                    (_ebit_om / _rev_om)
+                    if (pd.notna(_ebit_om) and pd.notna(_rev_om) and _rev_om > 0)
+                    else np.nan
+                )
+            else:
+                rec["operating_margin"] = np.nan  # Banks: skip
+
+            # C3. Current Ratio (Quality)
+            # Current Assets / Current Liabilities. MRQ figures already fetched.
+            _ca_cr = d.get("currentAssets", np.nan)
+            _cl_cr = d.get("currentLiabilities", np.nan)
+            if not _is_bank:
+                rec["current_ratio"] = (
+                    (_ca_cr / _cl_cr)
+                    if (pd.notna(_ca_cr) and pd.notna(_cl_cr) and _cl_cr > 0)
+                    else np.nan
+                )
+            else:
+                rec["current_ratio"] = np.nan  # Banks: meaningless
+
+            # C4. Dividend Yield (Valuation)
+            # dividendRate / currentPrice. Both already fetched.
+            _div_rate_c = d.get("dividendRate", np.nan)
+            rec["dividend_yield"] = (
+                (_div_rate_c / _cur_price_c)
+                if (pd.notna(_div_rate_c) and pd.notna(_cur_price_c) and _cur_price_c > 0)
+                else np.nan
+            )
+
+            # C5. Insider Ownership (Quality)
+            # heldPercentInsiders from .info. Higher = more skin in the game.
+            _insider = d.get("heldPercentInsiders", np.nan)
+            rec["insider_ownership"] = (
+                _insider if (pd.notna(_insider) and 0 <= _insider <= 1) else np.nan
+            )
+
+            # C6. Short % of Float (Revisions)
+            # shortPercentOfFloat from .info. Lower = less bearish = better.
+            _short_pct = d.get("shortPercentOfFloat", np.nan)
+            rec["short_pct_float"] = (
+                _short_pct if (pd.notna(_short_pct) and _short_pct >= 0) else np.nan
+            )
+
+            # C7. Analyst Rating (Revisions)
+            # recommendationMean from .info. 1=Strong Buy, 5=Sell.
+            # Inverted in METRIC_DIR (lower = better).
+            _rec_mean = d.get("recommendationMean", np.nan)
+            rec["analyst_rating"] = (
+                _rec_mean if (pd.notna(_rec_mean) and 1 <= _rec_mean <= 5) else np.nan
+            )
+
+            # C8. Interest Coverage (Quality)
+            # EBIT / Interest Expense. Higher = more cushion.
+            # Banks: skip (interest is their core business).
+            _int_exp = d.get("interestExpense", np.nan)
+            if not _is_bank:
+                rec["interest_coverage"] = (
+                    (_ebit_om / abs(_int_exp))
+                    if (pd.notna(_ebit_om) and pd.notna(_int_exp) and abs(_int_exp) > 0)
+                    else np.nan
+                )
+            else:
+                rec["interest_coverage"] = np.nan
+        except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
+            warnings.warn(f"{ticker}: candidate metrics failed: {type(e).__name__}: {e}")
+
         # -- Passthrough: analyst price targets for dashboard display --
         rec["_current_price"]     = d.get("currentPrice", d.get("price_latest", np.nan))
         rec["_target_mean"]       = d.get("targetMeanPrice", np.nan)
@@ -1887,6 +1988,15 @@ METRIC_COLS = [
     "short_interest_ratio",                                          # short interest sentiment
     "size_log_mcap",                                                 # size factor
     "asset_growth",                                                  # investment (CMA proxy)
+    # Phase 11 candidate metrics (weight=0 until improvement engine activates)
+    "proximity_52w_high",                                            # momentum candidate
+    "operating_margin",                                              # quality candidate
+    "current_ratio",                                                 # quality candidate
+    "dividend_yield",                                                # valuation candidate
+    "insider_ownership",                                             # quality candidate
+    "short_pct_float",                                               # revisions candidate
+    "analyst_rating",                                                # revisions candidate
+    "interest_coverage",                                             # quality candidate
 ]
 
 # Metrics that only apply to bank-like or non-bank stocks.
@@ -1894,7 +2004,8 @@ METRIC_COLS = [
 # structurally absent metrics.
 _BANK_ONLY_METRICS = {"pb_ratio", "roe", "roa", "equity_ratio"}
 _NONBANK_ONLY_METRICS = {"ev_ebitda", "ev_sales", "roic", "gross_profit_assets",
-                         "net_debt_to_ebitda", "operating_leverage", "beneish_m_score"}
+                         "net_debt_to_ebitda", "operating_leverage", "beneish_m_score",
+                         "operating_margin", "current_ratio", "interest_coverage"}
 
 
 def winsorize_metrics(df: pd.DataFrame, lo: float = 0.01, hi: float = 0.01):
@@ -1934,6 +2045,15 @@ METRIC_DIR = {
     "short_interest_ratio": False,                                   # lower days-to-cover = less short pressure = better
     "size_log_mcap": True,                                # -log(mcap): higher = smaller = size premium
     "asset_growth": False,                                # lower asset growth = conservative investment = better
+    # Phase 11 candidate metrics
+    "proximity_52w_high": True,     # closer to 52W high = stronger momentum = better
+    "operating_margin": True,        # higher margin = better quality
+    "current_ratio": True,           # higher = better liquidity
+    "dividend_yield": True,          # higher yield = better (for dividend strategy)
+    "insider_ownership": True,       # more insider ownership = better alignment
+    "short_pct_float": False,        # lower short interest = less bearish = better
+    "analyst_rating": False,         # lower = more bullish (1=Strong Buy, 5=Sell)
+    "interest_coverage": True,       # higher = more interest payment cushion = better
 }
 
 
@@ -2023,14 +2143,17 @@ def apply_percentile_transform(df: pd.DataFrame, cfg: dict):
 # H. Within-category scores (SS3.1)
 # =========================================================================
 CAT_METRICS = {
-    "valuation": ["ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales", "pb_ratio"],
+    "valuation": ["ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales", "pb_ratio",
+                   "dividend_yield"],
     "quality":   ["roic", "gross_profit_assets", "net_debt_to_ebitda",
                   "piotroski_f_score", "accruals", "operating_leverage",
-                  "beneish_m_score", "roe", "roa", "equity_ratio"],
+                  "beneish_m_score", "roe", "roa", "equity_ratio",
+                  "operating_margin", "current_ratio", "insider_ownership", "interest_coverage"],
     "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
-    "momentum":  ["return_12_1", "return_6m", "jensens_alpha"],
+    "momentum":  ["return_12_1", "return_6m", "jensens_alpha", "proximity_52w_high"],
     "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],
-    "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak", "short_interest_ratio"],
+    "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
+                  "short_interest_ratio", "short_pct_float", "analyst_rating"],
     "size":       ["size_log_mcap"],
     "investment": ["asset_growth"],
 }

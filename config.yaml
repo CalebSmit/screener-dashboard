@@ -31,6 +31,7 @@ metric_weights:
     earnings_yield: 20 # Simple P/E inverse; well-understood but accrual-based
     ev_sales: 10       # Lowest: ignores margins, but useful for loss-making firms; correlated with EV/EBITDA
     pb_ratio: 0        # Bank-only; active weight in bank_metric_weights
+    dividend_yield: 0  # Candidate: improvement engine evaluates IC
 
   quality:
     roic: 27           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
@@ -43,6 +44,10 @@ metric_weights:
     roe: 0             # Bank-only; active weight in bank_metric_weights
     roa: 0             # Bank-only
     equity_ratio: 0    # Bank-only
+    operating_margin: 0        # Candidate: LTM EBIT / Revenue (non-bank only)
+    current_ratio: 0           # Candidate: MRQ Current Assets / Current Liabilities
+    insider_ownership: 0       # Candidate: heldPercentInsiders from .info
+    interest_coverage: 0       # Candidate: EBIT / Interest Expense (non-bank only)
 
   growth:
     forward_eps_growth: 45  # Highest: forward-looking consensus estimates; absorbs PEG's removed weight
@@ -55,6 +60,7 @@ metric_weights:
     return_12_1: 40    # Classic Jegadeesh-Titman momentum signal
     return_6m: 35      # Medium-term momentum
     jensens_alpha: 25  # Risk-adjusted excess return above CAPM prediction
+    proximity_52w_high: 0  # Candidate: George & Hwang (2004); price / 52W high
 
   risk:
     volatility: 30     # Direct risk measure
@@ -69,6 +75,8 @@ metric_weights:
     earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise %
     consecutive_beat_streak: 20  # Count of consecutive positive surprises (0-4)
     short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
+    short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
+    analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
     # NOTE: EPS forecast revision (change in consensus FWD EPS over 3-6 months) would be
     # ideal here, but yfinance does not provide historical consensus data.
     # Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.
@@ -90,6 +98,7 @@ bank_metric_weights:
     earnings_yield: 40     # P/E inverse; works for banks
     ev_sales: 0            # EV meaningless for banks
     pb_ratio: 60           # THE key bank valuation metric
+    dividend_yield: 0      # Candidate: improvement engine evaluates IC
 
   quality:
     roic: 0                # IC = deposits + equity; meaningless
@@ -101,6 +110,10 @@ bank_metric_weights:
     roe: 35                # THE key bank profitability metric
     roa: 25                # Key bank efficiency metric
     equity_ratio: 15       # Solvency (higher = more capital = safer)
+    operating_margin: 0    # Candidate: banks skip
+    current_ratio: 0       # Candidate: banks skip
+    insider_ownership: 0   # Candidate: improvement engine evaluates IC
+    interest_coverage: 0   # Candidate: banks skip
 
 # Piotroski F-Score Conditional Weighting
 # When enabled, reduces Piotroski weight for stocks with LOW valuation scores
@@ -215,6 +228,24 @@ enable_net_debt_ebitda: true        # Net Debt/EBITDA; replaces Debt/Equity in q
 enable_operating_leverage: true     # Degree of Operating Leverage (DOL); lower = more durable
 enable_jensens_alpha: true          # Jensen's Alpha; risk-adjusted excess return above CAPM
 enable_sharpe_ratio: true           # Sharpe Ratio; risk-adjusted return per unit of total risk
+
+# Self-Improvement Engine
+improvement:
+  enabled: true
+  min_observations_for_proposal: 8     # Minimum live IC observations for category-level proposals
+  min_observations_for_metric_level: 24  # Minimum for metric-level weight proposals
+  ewm_halflife_months: 6               # EWM half-life for IC trend weighting
+  shrinkage: 0.5                        # Shrinkage toward current weights (0=pure IC, 1=no change)
+  max_change_per_cycle: 3.0            # Max ±% change per category per improvement cycle
+  max_metric_change_per_cycle: 5.0     # Max ±% change per metric per improvement cycle
+  regime_scale_factor: 0.10            # Dispersion regime adjustment magnitude
+  auto_apply_threshold: 2.0            # Auto-apply if all changes ≤ this % (medium+ confidence)
+  # Metric Evolution (Phase 11)
+  min_observations_for_activation: 12   # Consecutive positive IC observations to propose activation
+  min_observations_for_deactivation: 12 # Consecutive non-positive IC observations to propose removal
+  candidate_initial_weight: 5           # Starting weight (%) when a candidate is first activated
+  max_candidate_activations_per_cycle: 1  # Max metrics to activate per improvement cycle
+  candidate_ic_threshold: 0.02          # Minimum EWM IC to consider a candidate for activation
 
 # Output
 output:
