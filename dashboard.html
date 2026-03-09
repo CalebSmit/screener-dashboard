@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Factor Screener Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230d1117'/%3E%3Cpath d='M14 44L24 34l8 6 18-20' stroke='%2358a6ff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -280,7 +281,7 @@
             font-size: 11px;
             font-weight: 500;
             background: color-mix(in srgb, var(--sector-color, #7d8590) 10%, transparent);
-            border: 1px solid color-mix(in srgb, var(--sector-color, #7d8590) 25%, transparent);
+            border: 1px solid var(--border-bright);
             color: var(--sector-color, var(--text-secondary));
             padding: 3px 12px 3px 8px;
             border-radius: 6px;
@@ -380,6 +381,7 @@
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
+            -webkit-user-select: none;
             user-select: none;
             padding: 6px 4px 6px 0;
             border-radius: 8px;
@@ -523,6 +525,7 @@
             text-transform: uppercase;
             letter-spacing: .8px;
             white-space: nowrap;
+            -webkit-user-select: none;
             user-select: none;
             transition: color .15s;
             position: sticky;
@@ -617,8 +620,8 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,.7);
-            backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
             z-index: 1000;
             display: flex;
             align-items: flex-start;
@@ -699,6 +702,7 @@
             padding: 12px 18px;
             cursor: pointer;
             background: var(--bg-card);
+            -webkit-user-select: none;
             user-select: none;
             transition: background .15s;
         }
@@ -1275,6 +1279,7 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
+            -webkit-user-select: none;
             user-select: none;
         }
         .cat-detail-header h3 {
@@ -1529,10 +1534,24 @@
 
         .chat-api-dialog {
             position: absolute; inset: 0;
-            background: rgba(10,14,23,.92); backdrop-filter: blur(4px);
+            background: rgba(10,14,23,.92);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
             display: flex; align-items: center; justify-content: center;
             z-index: 10; border-radius: 14px;
         }
+        .section-title-reset { margin: 0; }
+        .chart-row-gap { margin-bottom: var(--gap); }
+        .chart-flex-1 { flex: 1; }
+        .chart-flex-half { flex: 0.5; }
+        .chart-title-tight { margin-bottom: 0; }
+        .inline-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .is-hidden { display: none !important; }
+        .chat-api-label-model { margin-top: 12px; }
         .chat-api-dialog-content { padding: 24px; text-align: center; }
         .chat-api-dialog-content h3 {
             font-family: var(--font-heading); font-size: 16px;
@@ -2089,7 +2108,7 @@
         <!-- Top 5 Stocks -->
         <section class="section collapsible-section" id="sec-top5">
             <div class="section-header" onclick="toggleSection('sec-top5')">
-                <h2 class="section-title" style="margin:0">Top 5 Stocks</h2>
+                <h2 class="section-title section-title-reset">Top 5 Stocks</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -2100,13 +2119,13 @@
         <!-- Model Portfolio -->
         <section class="section collapsible-section collapsed" id="sec-portfolio">
             <div class="section-header" onclick="toggleSection('sec-portfolio')">
-                <h2 class="section-title" style="margin:0">Model Portfolio</h2>
+                <h2 class="section-title section-title-reset">Model Portfolio</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
                 <div class="kpi-row" id="portfolio-kpis"></div>
-                <div class="chart-row" style="margin-bottom:var(--gap)">
-                    <div class="chart-container" style="flex:1">
+                <div class="chart-row chart-row-gap">
+                    <div class="chart-container chart-flex-1">
                         <h3 class="chart-title">Portfolio Sector Allocation vs S&P 500</h3>
                         <canvas id="sector-alloc-chart"></canvas>
                     </div>
@@ -2118,16 +2137,16 @@
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
-                <h2 class="section-title" style="margin:0">Factor Analytics</h2>
+                <h2 class="section-title section-title-reset">Factor Analytics</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
                 <div class="chart-row">
-                    <div class="chart-container" style="flex:1">
+                    <div class="chart-container chart-flex-1">
                         <div class="chart-title-row">
-                            <h3 class="chart-title" style="margin-bottom:0">Factor Scores by Sector</h3>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <select id="sector-dist-factor" onchange="updateSectorDist()">
+                            <h3 class="chart-title chart-title-tight">Factor Scores by Sector</h3>
+                            <div class="inline-controls">
+                                <select id="sector-dist-factor" title="Select factor for sector distribution" aria-label="Select factor for sector distribution" onchange="updateSectorDist()">
                                     <option value="Composite">Composite</option>
                                     <option value="valuation_score">Valuation</option>
                                     <option value="quality_score">Quality</option>
@@ -2146,9 +2165,9 @@
                         </div>
                         <canvas id="sector-dist-chart"></canvas>
                     </div>
-                    <div class="chart-container" style="flex:0.5">
+                    <div class="chart-container chart-flex-half">
                         <div class="chart-title-row">
-                            <h3 class="chart-title" style="margin-bottom:0">Trap Rate by Sector</h3>
+                            <h3 class="chart-title chart-title-tight">Trap Rate by Sector</h3>
                             <div class="toggle-btns">
                                 <button class="toggle-btn active" id="btn-trap-vt" onclick="setTrapType('vt')">Value</button>
                                 <button class="toggle-btn" id="btn-trap-gt" onclick="setTrapType('gt')">Growth</button>
@@ -2164,7 +2183,7 @@
         <section class="section collapsible-section defensibility-section collapsed" id="sec-defensibility">
             <div class="section-header" onclick="toggleSection('sec-defensibility')">
                 <div class="defensibility-header-left">
-                    <h2 class="section-title" style="margin:0">Defensibility &amp; Diagnostics</h2>
+                    <h2 class="section-title section-title-reset">Defensibility &amp; Diagnostics</h2>
                     <div class="defensibility-summary" id="defensibility-summary"></div>
                 </div>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2173,12 +2192,12 @@
                 <p class="section-desc">These diagnostics help you evaluate how robust and trustworthy the screener's output is. They answer: <em>"Would the same stocks be picked if I tweaked the weights slightly?"</em> and <em>"Are any of the 8 factors just measuring the same thing?"</em></p>
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
-                    <div class="chart-container" style="flex:1">
+                    <div class="chart-container chart-flex-1">
                         <h3 class="chart-title">How Stable Is the Portfolio?</h3>
                         <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> Green (&ge;0.85) means almost no change. Red (&lt;0.70) means the ranking is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
-                    <div class="chart-container" style="flex:1">
+                    <div class="chart-container chart-flex-1">
                         <h3 class="chart-title">Are the Factors Independent?</h3>
                         <p class="chart-desc">Spearman correlations between the 8 factor scores. <strong>Low values (green) = independent signals.</strong> High values (red) mean two factors are measuring similar things, reducing the effective number of independent dimensions.</p>
                         <div id="correlation-heatmap"></div>
@@ -2190,7 +2209,7 @@
         <!-- Full Universe Table -->
         <section class="section collapsible-section" id="sec-universe">
             <div class="section-header" onclick="toggleSection('sec-universe')">
-                <h2 class="section-title" style="margin:0">Full Universe Rankings</h2>
+                <h2 class="section-title section-title-reset">Full Universe Rankings</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -2246,7 +2265,7 @@
         </section>
 
         <!-- Stock Detail Modal -->
-        <div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeModal()">
+        <div class="modal-overlay" id="stock-modal" data-style="display:none" onclick="if(event.target===this)closeModal()">
             <div class="modal-content">
                 <div class="modal-header">
                     <div>
@@ -2318,7 +2337,7 @@
         </div>
 
         <!-- Methodology Modal -->
-        <div class="modal-overlay methodology-modal" id="methodology-modal" style="display:none" onclick="if(event.target===this)closeMethodology()">
+        <div class="modal-overlay methodology-modal" id="methodology-modal" data-style="display:none" onclick="if(event.target===this)closeMethodology()">
             <div class="modal-content methodology-content">
                 <div class="modal-header">
                     <div>
@@ -3062,14 +3081,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             </div>
         </div>
 
-        <div class="chat-api-dialog" id="chat-api-dialog" style="display:none">
+        <div class="chat-api-dialog" id="chat-api-dialog" data-style="display:none">
             <div class="chat-api-dialog-content">
                 <h3>Chat Settings</h3>
                 <label class="chat-api-label">OpenAI API Key</label>
                 <p>Your key is stored only in your browser and sent only to OpenAI.</p>
                 <input type="password" class="chat-api-input" id="chat-api-input"
                     placeholder="sk-..." autocomplete="off">
-                <label class="chat-api-label" style="margin-top:12px">Model</label>
+                <label class="chat-api-label chat-api-label-model">Model</label>
                 <select class="chat-api-select" id="chat-model-select">
                     <option value="gpt-4o-mini">GPT-4o Mini &mdash; fast &amp; cheap (~$0.001/q)</option>
                     <option value="gpt-4o">GPT-4o &mdash; smarter (~$0.01/q)</option>
@@ -3176,7 +3195,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const color = catColors[c];
                 return `<div class="top5-factor">
                     <div class="top5-factor-label">${catLabels[c]}</div>
-                    <div class="top5-factor-bar"><div class="top5-factor-fill" style="width:${val}%;background:${color}"></div></div>
+                    <div class="top5-factor-bar"><div class="top5-factor-fill" data-style="width:${val}%;background:${color}"></div></div>
                     <div class="top5-factor-val">${fmt(val,'score')}</div>
                 </div>`;
             }).join('');
@@ -3189,8 +3208,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     <span class="top5-ticker">${h.ticker}</span>
                 </div>
                 <div class="top5-company">${h.company}</div>
-                <div class="top5-sector" style="--sector-color:${sc}">
-                    <span class="top5-sector-dot" style="background:${sc}"></span>${h.sector}
+                <div class="top5-sector" data-style="--sector-color:${sc}">
+                    <span class="top5-sector-dot" data-style="background:${sc}"></span>${h.sector}
                 </div>
                 <div class="top5-composite-row">
                     <span class="top5-composite-label">Composite</span>
@@ -3630,7 +3649,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const weight = D.weights.factor_weights ? D.weights.factor_weights[c] : '—';
             scoreHtml += `<div class="modal-score-card">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
-                <div class="modal-score-val" style="color:${CAT_COLORS[c]}">${fmt(score,'score')}</div>
+                <div class="modal-score-val" data-style="color:${CAT_COLORS[c]}">${fmt(score,'score')}</div>
                 <div class="modal-score-sub">${fmt(contrib,'score')} pts (${weight}% wt)</div>
             </div>`;
         });
@@ -3714,19 +3733,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             rangeBarHtml = `
                 <div class="pt-range-bar">
                     <div class="pt-range-track">
-                        <div class="pt-range-fill" style="left:${pctLow}%;width:${(pctHigh - pctLow).toFixed(1)}%"></div>
-                        <div class="pt-marker pt-marker-price" style="left:${pctPrice}%" title="Current: ${fmtDollar(price)}">
+                        <div class="pt-range-fill" data-style="left:${pctLow}%;width:${(pctHigh - pctLow).toFixed(1)}%"></div>
+                        <div class="pt-marker pt-marker-price" data-style="left:${pctPrice}%" title="Current: ${fmtDollar(price)}">
                             <div class="pt-marker-line"></div>
                             <div class="pt-marker-label">Current</div>
                         </div>
-                        ${pctMean ? `<div class="pt-marker pt-marker-mean" style="left:${pctMean}%" title="Avg Target: ${fmtDollar(ptMean)}">
+                        ${pctMean ? `<div class="pt-marker pt-marker-mean" data-style="left:${pctMean}%" title="Avg Target: ${fmtDollar(ptMean)}">
                             <div class="pt-marker-line"></div>
                             <div class="pt-marker-label">Avg</div>
                         </div>` : ''}
                     </div>
                     <div class="pt-range-labels">
-                        <span style="left:${pctLow}%">Low ${fmtDollar(ptLow)}</span>
-                        <span style="left:${pctHigh}%">High ${fmtDollar(ptHigh)}</span>
+                        <span data-style="left:${pctLow}%">Low ${fmtDollar(ptLow)}</span>
+                        <span data-style="left:${pctHigh}%">High ${fmtDollar(ptHigh)}</span>
                     </div>
                 </div>`;
         }
@@ -3833,8 +3852,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         groups.forEach(g => {
             html += `<div class="snapshot-group">
-                <div class="snapshot-group-label" style="border-color:${g.color}">
-                    <span style="color:${g.color}">${g.label}</span>
+                <div class="snapshot-group-label" data-style="border-color:${g.color}">
+                    <span data-style="color:${g.color}">${g.label}</span>
                 </div>
                 <div class="snapshot-grid">`;
             g.items.forEach(item => {
@@ -3931,13 +3950,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     ${r.isSelf ? '<span class="peer-you">YOU</span>' : ''}
                 </td>
                 <td class="peer-td-num">${fmtBig(r.mcap)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : lowerBetter(r.pe_ratio, self.pe_ratio)}">${fmtPE(r.pe_ratio)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : higherBetter(r.rev_growth, self.rev_growth)}">${fmtRG(r.rev_growth)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : higherBetter(r.net_margin, self.net_margin)}">${fmtPct1(r.net_margin)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : higherBetter(profitMetric, useROE ? self.roe : self.roic)}">${fmtPct1(profitMetric)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : lowerBetter(r.debt_equity, self.debt_equity)}">${fmtDE(r.debt_equity)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : higherBetter(r.div_yield, self.div_yield)}">${fmtPct1(r.div_yield)}</td>
-                <td class="peer-td-num" style="${r.isSelf ? '' : higherBetter(r.fcf_yield, self.fcf_yield)}">${fmtPct1(r.fcf_yield)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : lowerBetter(r.pe_ratio, self.pe_ratio)}">${fmtPE(r.pe_ratio)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : higherBetter(r.rev_growth, self.rev_growth)}">${fmtRG(r.rev_growth)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : higherBetter(r.net_margin, self.net_margin)}">${fmtPct1(r.net_margin)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : higherBetter(profitMetric, useROE ? self.roe : self.roic)}">${fmtPct1(profitMetric)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : lowerBetter(r.debt_equity, self.debt_equity)}">${fmtDE(r.debt_equity)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : higherBetter(r.div_yield, self.div_yield)}">${fmtPct1(r.div_yield)}</td>
+                <td class="peer-td-num" data-style="${r.isSelf ? '' : higherBetter(r.fcf_yield, self.fcf_yield)}">${fmtPct1(r.fcf_yield)}</td>
                 <td class="peer-td-action">${r.isSelf ? '' : `<button class="peer-remove-btn" onclick="removePeer('${r.ticker}')" title="Remove">&times;</button>`}</td>
             </tr>`;
         });
@@ -4062,17 +4081,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
             html += `<div class="contrib-row">
                 <div class="contrib-label">
-                    <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]}"></span>
+                    <span class="contrib-cat-dot" data-style="background:${CAT_COLORS[c]}"></span>
                     <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
                     <span class="contrib-cat-weight">${weight}% weight</span>
                 </div>
                 <div class="contrib-bar-area">
                     <div class="contrib-bar-track">
-                        <div class="contrib-bar-fill" style="width:${fillPct.toFixed(1)}%;background:${CAT_COLORS[c]}">
+                        <div class="contrib-bar-fill" data-style="width:${fillPct.toFixed(1)}%;background:${CAT_COLORS[c]}">
                             ${fillPct > 15 ? `<span class="contrib-bar-inner-label">${contrib.toFixed(1)}</span>` : ''}
                         </div>
                         ${fillPct <= 15 ? `<span class="contrib-bar-outer-label">${contrib.toFixed(1)}</span>` : ''}
-                        <div class="contrib-bar-max-marker" style="left:100%" title="Max possible: ${maxContrib} pts"></div>
+                        <div class="contrib-bar-max-marker" data-style="left:100%" title="Max possible: ${maxContrib} pts"></div>
                     </div>
                     <div class="contrib-bar-annotation">
                         <span class="contrib-score-val">Score: ${fmt(score,'score')}/100</span>
@@ -4091,7 +4110,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.getElementById('contrib-total').innerHTML = `
             <div class="contrib-total-bar-area">
                 <div class="contrib-total-track">
-                    <div class="contrib-total-fill" style="width:${totalPct}%"></div>
+                    <div class="contrib-total-fill" data-style="width:${totalPct}%"></div>
                 </div>
             </div>
             <div class="contrib-total-label">
@@ -4118,7 +4137,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             let html = `<div class="cat-detail-section">
                 <div class="cat-detail-header" onclick="this.parentElement.querySelector('.cat-detail-body').classList.toggle('collapsed')">
                     <div>
-                        <h3 style="display:inline;color:${CAT_COLORS[cat]}">${CAT_LABELS[cat]}</h3>
+                        <h3 data-style="display:inline;color:${CAT_COLORS[cat]}">${CAT_LABELS[cat]}</h3>
                         <span class="cat-weight-badge">${factorWt}% weight → ${fmt(contrib,'score')} pts</span>
                     </div>
                     <div>
@@ -4126,11 +4145,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     </div>
                 </div>
                 <div class="cat-detail-body">
-                    <div style="display:flex;padding:4px 0;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border-bright);margin-bottom:4px;font-family:var(--font-heading);letter-spacing:.5px;text-transform:uppercase;">
-                        <span style="flex:0 0 160px">Metric</span>
-                        <span style="flex:0 0 100px;text-align:right">Raw Value</span>
-                        <span style="flex:1;margin-left:16px">Percentile Rank</span>
-                        <span style="flex:0 0 50px;text-align:right">Weight</span>
+                    <div data-style="display:flex;padding:4px 0;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border-bright);margin-bottom:4px;font-family:var(--font-heading);letter-spacing:.5px;text-transform:uppercase;">
+                        <span data-style="flex:0 0 160px">Metric</span>
+                        <span data-style="flex:0 0 100px;text-align:right">Raw Value</span>
+                        <span data-style="flex:1;margin-left:16px">Percentile Rank</span>
+                        <span data-style="flex:0 0 50px;text-align:right">Weight</span>
                     </div>`;
 
             activeMetrics.forEach(metric => {
@@ -4147,7 +4166,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     <span class="metric-raw">${raw !== null && raw !== undefined ? rawStr : '<span class=metric-na>N/A</span>'}</span>
                     <div class="metric-pct-bar-container">
                         <div class="metric-pct-bar">
-                            ${pctVal !== null ? `<div class="metric-pct-fill" style="width:${Math.max(1, pctVal)}%;background:${barColor}"></div>` : ''}
+                            ${pctVal !== null ? `<div class="metric-pct-fill" data-style="width:${Math.max(1, pctVal)}%;background:${barColor}"></div>` : ''}
                         </div>
                         <span class="metric-pct-label">${pctVal !== null ? pctVal.toFixed(0) + '%' : '<span class=metric-na>—</span>'}</span>
                     </div>
@@ -4156,7 +4175,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             });
 
             if (inactiveMetrics.length > 0) {
-                html += `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
+                html += `<div data-style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
                     Inactive (0% weight): ${inactiveMetrics.map(m => (D.metric_meta[m]||{}).label || m).join(', ')}
                 </div>`;
             }
@@ -4767,17 +4786,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (avgJ !== null) {
                 const jColor = avgJ >= 0.85 ? '#3fb950' : avgJ >= 0.70 ? '#d29922' : '#f85149';
                 const jLabel = avgJ >= 0.85 ? 'Robust' : avgJ >= 0.70 ? 'Moderate' : 'Sensitive';
-                summaryHtml += '<span class="def-badge" style="color:' + jColor + '">Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
+                summaryHtml += '<span class="def-badge" data-style="color:' + jColor + '">Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
             }
         }
         if (dq.eps_mismatch_count !== undefined) {
             const mColor = dq.eps_mismatch_count === 0 ? '#3fb950' : '#d29922';
-            summaryHtml += '<span class="def-badge" style="color:' + mColor + '">EPS Flags: ' + dq.eps_mismatch_count + '</span>';
+            summaryHtml += '<span class="def-badge" data-style="color:' + mColor + '">EPS Flags: ' + dq.eps_mismatch_count + '</span>';
         }
         if (dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined) {
             const cov = (dq.avg_metric_coverage * 100).toFixed(0);
             const cColor = dq.avg_metric_coverage >= 0.80 ? '#3fb950' : dq.avg_metric_coverage >= 0.60 ? '#d29922' : '#f85149';
-            summaryHtml += '<span class="def-badge" style="color:' + cColor + '">Data: ' + cov + '% complete</span>';
+            summaryHtml += '<span class="def-badge" data-style="color:' + cColor + '">Data: ' + cov + '% complete</span>';
         }
         document.getElementById('defensibility-summary').innerHTML = summaryHtml;
 
@@ -4797,7 +4816,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // --- Sensitivity table with visual bars ---
         if (sens.length > 0) {
             let tHtml = '<table class="sens-table"><thead><tr>';
-            tHtml += '<th>Factor</th><th>Weight</th><th style="width:45%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
+            tHtml += '<th>Factor</th><th>Weight</th><th data-style="width:45%">Stability (Jaccard Similarity)</th><th>Verdict</th>';
             tHtml += '</tr></thead><tbody>';
             sens.forEach(function(s) {
                 const aj = s.avg_jaccard;
@@ -4808,18 +4827,18 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const pj = s.plus_jaccard !== null ? (s.plus_jaccard * 100).toFixed(0) + '%' : '—';
                 const mj = s.minus_jaccard !== null ? (s.minus_jaccard * 100).toFixed(0) + '%' : '—';
                 tHtml += '<tr>';
-                tHtml += '<td style="font-weight:600">' + s.category + '</td>';
+                tHtml += '<td data-style="font-weight:600">' + s.category + '</td>';
                 tHtml += '<td>' + (s.original_weight !== null ? s.original_weight + '%' : '—') + '</td>';
-                tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
+                tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" data-style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5%: ' + pj + '</span><span>-5%: ' + mj + '</span></span></td>';
-                tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
+                tHtml += '<td class="' + jClass + '" data-style="font-weight:600">' + verdict + '</td>';
                 tHtml += '</tr>';
             });
             tHtml += '</tbody></table>';
             document.getElementById('sensitivity-table').innerHTML = tHtml;
         } else {
             document.getElementById('sensitivity-table').innerHTML =
-                '<p style="color:var(--text-muted);font-size:12px;padding:8px">No sensitivity data available for this run. Run the screener to generate.</p>';
+                '<p data-style="color:var(--text-muted);font-size:12px;padding:8px">No sensitivity data available for this run. Run the screener to generate.</p>';
         }
 
         // --- Correlation heatmap ---
@@ -4830,26 +4849,26 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 var map = {'Valuation':'Val','Quality':'Qual','Growth':'Grow','Momentum':'Mom','Risk':'Risk','Revisions':'Rev','Size':'Size','Investment':'Inv'};
                 return map[l] || l.slice(0,4);
             });
-            let hHtml = '<div class="corr-grid" style="grid-template-columns: 50px repeat(' + n + ', 1fr)">';
+            let hHtml = '<div class="corr-grid" data-style="grid-template-columns: 50px repeat(' + n + ', 1fr)">';
             // Header row
             hHtml += '<div class="corr-label"></div>';
             shortLabels.forEach(function(l) { hHtml += '<div class="corr-label">' + l + '</div>'; });
             // Data rows
             corr.matrix.forEach(function(row, i) {
-                hHtml += '<div class="corr-label" style="text-align:right;padding-right:6px">' + shortLabels[i] + '</div>';
+                hHtml += '<div class="corr-label" data-style="text-align:right;padding-right:6px">' + shortLabels[i] + '</div>';
                 row.forEach(function(v, j) {
                     const bg = corrColor(v, i === j);
                     const txt = i === j ? '—' : (v !== null ? v.toFixed(2) : '');
                     const title = corr.labels[i] + ' vs ' + corr.labels[j] + ': ' + (v !== null ? v.toFixed(3) : 'N/A');
-                    hHtml += '<div class="corr-cell" style="background:' + bg + '" title="' + title + '">' + txt + '</div>';
+                    hHtml += '<div class="corr-cell" data-style="background:' + bg + '" title="' + title + '">' + txt + '</div>';
                 });
             });
             hHtml += '</div>';
             // Legend
             hHtml += '<div class="corr-legend">';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(63,185,80,.15)"></span>Low (&lt;0.4) = Independent</span>';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(210,153,34,.15)"></span>Moderate (0.4–0.7)</span>';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(248,81,73,.25)"></span>High (&gt;0.7) = Overlapping</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" data-style="background:rgba(63,185,80,.15)"></span>Low (&lt;0.4) = Independent</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" data-style="background:rgba(210,153,34,.15)"></span>Moderate (0.4–0.7)</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" data-style="background:rgba(248,81,73,.25)"></span>High (&gt;0.7) = Overlapping</span>';
             hHtml += '</div>';
 
             // Auto-generated interpretation summary
@@ -4884,14 +4903,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             document.getElementById('correlation-heatmap').innerHTML = hHtml;
         } else {
             document.getElementById('correlation-heatmap').innerHTML =
-                '<p style="color:var(--text-muted);font-size:12px;padding:8px">No correlation data available for this run.</p>';
+                '<p data-style="color:var(--text-muted);font-size:12px;padding:8px">No correlation data available for this run.</p>';
         }
     }
 
     function dqKpi(label, value, sub, color) {
         return '<div class="dq-kpi-card">' +
             '<div class="kpi-label">' + label + '</div>' +
-            '<div class="kpi-value"' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</div>' +
+            '<div class="kpi-value"' + (color ? ' data-style="color:' + color + '"' : '') + '>' + value + '</div>' +
             '<div class="kpi-sub">' + sub + '</div>' +
         '</div>';
     }
@@ -4925,6 +4944,29 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         html += '</div></div>';
         container.innerHTML = html;
     }
+
+    function applyDataStyles(root) {
+        const scope = root && root.querySelectorAll ? root : document;
+        if (scope.nodeType === 1 && scope.hasAttribute && scope.hasAttribute('data-style')) {
+            const ownStyle = scope.getAttribute('data-style');
+            if (ownStyle) scope.style.cssText += ';' + ownStyle;
+            scope.removeAttribute('data-style');
+        }
+        scope.querySelectorAll('[data-style]').forEach(function(el) {
+            const styleText = el.getAttribute('data-style');
+            if (styleText) el.style.cssText += ';' + styleText;
+            el.removeAttribute('data-style');
+        });
+    }
+
+    applyDataStyles(document);
+    new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) applyDataStyles(node);
+            });
+        });
+    }).observe(document.body, { childList: true, subtree: true });
 
     // INIT
     // =====================================================================
