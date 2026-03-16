@@ -680,8 +680,16 @@ def prepare_dashboard_data(run_data: dict) -> str:
 # HTML generation
 # ---------------------------------------------------------------------------
 
-def generate_html(data_json: str, methodology_html: str = "") -> str:
-    """Build the complete dashboard HTML string."""
+def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "") -> str:
+    """Build the complete dashboard HTML string.
+
+    Data is loaded from the companion `dashboard_data.js` file (written by
+    `generate_dashboard`) rather than being inlined in the HTML.  This keeps
+    the HTML under ~200 KB while the data file carries the bulk.
+
+    The `data_json` parameter is accepted for backward compatibility but is
+    no longer embedded in the HTML.
+    """
     # Escape braces in methodology_html so f-string doesn't choke
     methodology_escaped = methodology_html.replace("{", "{{").replace("}", "}}")
     return f"""<!DOCTYPE html>
@@ -694,6 +702,7 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <script src="./dashboard_data.js"></script>
     <style>
 {_css()}
     </style>
@@ -962,7 +971,7 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Auto-generated <span id="gen-time"></span>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">{data_timestamp}</span>
         </footer>
     </div>
 
@@ -1049,9 +1058,9 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
 
     <script>
     // =====================================================================
-    // EMBEDDED DATA
+    // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
     // =====================================================================
-    const D = {data_json};
+    const D = window.SCREENER_DATA || {{}};
 
     // =====================================================================
     // COLOUR PALETTE
@@ -1093,7 +1102,11 @@ def generate_html(data_json: str, methodology_html: str = "") -> str:
         const fmtDate = ts ? ts.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }}) : '';
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
         document.getElementById('run-info').textContent = ts ? `Last updated ${{fmtDate}} at ${{fmtTime}}` : '';
-        document.getElementById('gen-time').textContent = new Date().toLocaleString();
+        // Only set gen-time via JS if it wasn't already embedded as a static value
+        const genEl = document.getElementById('gen-time');
+        if (genEl && !genEl.textContent.trim()) {{
+            genEl.textContent = new Date().toLocaleString();
+        }}
     }}
 
     function kpiCard(label, value, sub) {{
@@ -5006,10 +5019,29 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     run_data = load_run_data(run_dir)
     data_json = prepare_dashboard_data(run_data)
     methodology_html = _load_methodology_html()
-    html = generate_html(data_json, methodology_html)
+
+    # Build a static "Data as of" label from the run start_time
+    raw_ts = run_data.get("meta", {}).get("start_time", "")
+    if raw_ts:
+        try:
+            dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+            data_timestamp = dt.strftime("%Y-%m-%d %H:%M UTC")
+        except ValueError:
+            data_timestamp = raw_ts
+    else:
+        data_timestamp = ""
+
+    html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp)
 
     output_path.write_text(html, encoding="utf-8")
     print(f"Dashboard generated: {output_path} ({output_path.stat().st_size / 1024:.0f} KB)")
+
+    # Write companion data file — keeps the HTML lightweight and the bulk of
+    # the data (~3 MB) in a separate file that can be cached independently.
+    data_js_path = output_path.parent / "dashboard_data.js"
+    data_js_path.write_text(f"window.SCREENER_DATA = {data_json};", encoding="utf-8")
+    print(f"Data file:           {data_js_path} ({data_js_path.stat().st_size / 1024:.0f} KB)")
+
     return output_path
 
 

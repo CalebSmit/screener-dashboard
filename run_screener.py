@@ -100,6 +100,12 @@ def parse_args():
                         "(e.g. AAPL,MSFT,GOOGL)")
     p.add_argument("--no-portfolio", action="store_true",
                    help="Skip portfolio construction; only write FactorScores")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Validate config, test network, and check output paths without running the full pipeline (~10s)")
+    p.add_argument("--show-weights", action="store_true",
+                   help="Display effective factor weights after config application and exit")
+    p.add_argument("--preset", type=str, default="",
+                   help="Apply a configuration preset (balanced, value, growth, momentum) to override factor_weights")
     return p.parse_args()
 
 
@@ -926,11 +932,23 @@ def run_factor_engine(cfg, args, ctx=None):
     # --tickers override
     if args.tickers:
         custom = [t.strip().upper() for t in args.tickers.split(",") if t.strip()]
-        universe_df = universe_df[universe_df["Ticker"].isin(custom)].copy()
-        if universe_df.empty:
-            # Create minimal entries for custom tickers not in the universe
-            records = [{"Ticker": t, "Company": t, "Sector": "Unknown"} for t in custom]
-            universe_df = pd.DataFrame(records)
+        valid_tickers = set(universe_df["Ticker"].values)
+        
+        # Validate tickers and warn about invalid ones
+        invalid_tickers = [t for t in custom if t not in valid_tickers]
+        valid_custom = [t for t in custom if t in valid_tickers]
+        
+        if invalid_tickers:
+            print(f"\n  WARNING: {len(invalid_tickers)} ticker(s) not in S&P 500 universe, skipping:")
+            for t in invalid_tickers:
+                print(f"    - {t}")
+            print()
+        
+        if not valid_custom:
+            print(f"\n  ERROR: No valid tickers specified. All provided tickers are invalid.")
+            sys.exit(1)
+        
+        universe_df = universe_df[universe_df["Ticker"].isin(valid_custom)].copy()
         print(f"  Custom ticker subset: {list(universe_df['Ticker'])}")
 
     tickers = universe_df["Ticker"].tolist()
@@ -994,8 +1012,16 @@ def run_factor_engine(cfg, args, ctx=None):
 
     skipped_tickers = []
 
+    # Fetch RF rate regardless of sample/live path; fall back to default if unavailable
+    try:
+        risk_free_rate = fetch_risk_free_rate()
+        print(f"  [RUN] Risk-free rate (^IRX): {risk_free_rate*100:.2f}%")
+    except Exception:
+        risk_free_rate = 0.045
+        print("  [RUN] Risk-free rate unavailable — using default 4.50%")
+
     if USE_SAMPLE:
-        df = _generate_sample_data(universe_df)
+        df = _generate_sample_data(universe_df, risk_free_rate=risk_free_rate)
         stats["tickers_cache"] = len(df)
 
         # Log fetch failures for sample mode
@@ -1008,9 +1034,6 @@ def run_factor_engine(cfg, args, ctx=None):
         print(f"\nFetching market returns...")
         market_returns = fetch_market_returns()
         print(f"  {len(market_returns)} daily observations")
-
-        risk_free_rate = fetch_risk_free_rate()
-        print(f"  [RUN] Risk-free rate (^IRX): {risk_free_rate*100:.2f}%")
 
         fetch_cfg = cfg.get("fetch", {})
         print(f"\nFetching data for {universe_size} tickers...")
@@ -1748,6 +1771,107 @@ def main():
     ctx.save_config(cfg)
     ctx.log.info("Config loaded", extra={"phase": "init"})
 
+    # ---- 1.1. Apply preset if specified ----
+    if args.preset:
+        from presets import apply_preset, PRESETS
+        if args.preset not in PRESETS:
+            print(f"\n  ERROR: Unknown preset '{args.preset}'.")
+            print(f"  Available presets: {', '.join(PRESETS.keys())}")
+            sys.exit(1)
+        cfg = apply_preset(cfg, args.preset)
+        print(f"  Preset '{args.preset.upper()}' applied (factor_weights overridden)")
+
+    # ---- 1.5. Dry-run validation (early exit if --dry-run) ----
+    if args.dry_run:
+        print("\n" + "="*50)
+        print("  DRY-RUN MODE: Validating setup...")
+        print("="*50)
+        
+        try:
+            # Check 1: Config is valid (already done above)
+            print("  [OK] Config parsed and validated")
+
+            # Check 2: Load universe (tests network)
+            print("  Loading universe...", end=" ", flush=True)
+            from factor_engine import get_sp500_tickers
+            universe = get_sp500_tickers(cfg)
+            print(f"[OK] ({len(universe)} tickers)")
+
+            # Check 3: Fetch a few tickers (tests yfinance)
+            print("  Testing yfinance fetch (3 random tickers)...", end=" ", flush=True)
+            from factor_engine import fetch_single_ticker
+            import random
+            test_tickers = random.sample(list(universe["Ticker"].values)[:20], min(3, len(universe)))
+            test_results = []
+            for t in test_tickers:
+                result = fetch_single_ticker(t, max_retries=1)
+                if not result.get("_error"):
+                    test_results.append(True)
+            if test_results:
+                print(f"[OK] ({len(test_results)}/3 successful)")
+            else:
+                raise Exception("All test fetches failed")
+
+            # Check 4: Output path is writable
+            print("  Checking output paths...", end=" ", flush=True)
+            excel_dir = ROOT / "output"
+            excel_dir.mkdir(exist_ok=True)
+            test_file = excel_dir / "_dry_run_test.txt"
+            test_file.write_text("test")
+            test_file.unlink()
+            print("[OK]")
+
+            print("\n" + "="*50)
+            print("  DRY-RUN PASSED: All systems operational")
+            print("="*50)
+            print("\n  Run without --dry-run to execute the full screener.\n")
+            sys.exit(0)
+
+        except Exception as e:
+            print(f"\n  [FAIL] DRY-RUN FAILED: {e}\n")
+            sys.exit(1)
+
+    # ---- 1.6. Show weights (early exit if --show-weights) ----
+    if args.show_weights:
+        print("\n" + "="*70)
+        print("  EFFECTIVE FACTOR WEIGHTS")
+        print("="*70)
+        
+        factor_weights = cfg.get("factor_weights", {})
+        total_weight = sum(factor_weights.values())
+        
+        print(f"\nCategory Weights (Total: {total_weight}):\n")
+        print(f"  {'Factor':<20} {'Weight':>10} {'%':>8}")
+        print("  " + "-"*38)
+        
+        for factor, weight in sorted(factor_weights.items(), key=lambda x: x[1], reverse=True):
+            pct = (weight / total_weight * 100) if total_weight > 0 else 0
+            print(f"  {factor:<20} {weight:>10.2f} {pct:>7.1f}%")
+        
+        print("  " + "-"*38)
+        print(f"  {'TOTAL':<20} {total_weight:>10.2f} {100.0:>7.1f}%")
+        
+        # Show metric-level weights
+        metric_weights = cfg.get("metric_weights", {})
+        if metric_weights:
+            print(f"\n\nMetric-Level Weights (within each category):\n")
+            for category, metrics in sorted(metric_weights.items()):
+                if not isinstance(metrics, dict):
+                    continue
+                cat_total = sum(v for v in metrics.values() if isinstance(v, (int, float)))
+                if cat_total == 0:
+                    continue
+                print(f"  {category.upper()}:")
+                for metric, weight in sorted(metrics.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True):
+                    if isinstance(weight, (int, float)) and weight > 0:
+                        pct = (weight / cat_total * 100) if cat_total > 0 else 0
+                        print(f"    {metric:<35} {weight:>6.1f}%")
+                print()
+        
+        print("="*70)
+        print("\n")
+        sys.exit(0)
+
     # ---- 2. Clear factor scores cache if --refresh ----
     if args.refresh:
         print("Clearing factor scores cache...")
@@ -1837,6 +1961,10 @@ def main():
         shutil.copy2(dash_path, main_dash)
         # Also copy to index.html so GitHub Pages serves it at the root URL
         shutil.copy2(dash_path, ROOT / "index.html")
+        # Copy companion data file (generated alongside the dashboard HTML)
+        src_data_js = ctx.run_dir / "dashboard_data.js"
+        if src_data_js.exists():
+            shutil.copy2(src_data_js, ROOT / "dashboard_data.js")
         print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")

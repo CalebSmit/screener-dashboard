@@ -7,5 +7,6 @@ pyyaml==6.0.3
 pyarrow==23.0.0
 pydantic==2.12.3
 pytest>=8.0.0
+tqdm>=4.66.0               # Progress bars for long-running operations
 pandas-datareader>=0.10.0  # factor_exposure.py only
 statsmodels>=0.14.0        # factor_exposure.py only

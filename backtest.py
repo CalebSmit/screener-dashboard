@@ -60,6 +60,37 @@ RF_ANNUAL = 0.045          # Risk-free rate for Sharpe
 TCOST_BPS = 10             # 10 bps one-way transaction cost
 
 
+def _find_fundamental_cache_for_date(target_date: datetime) -> "tuple[Path | None, str]":
+    """Find the most recent factor_scores cache at or before target_date.
+
+    Returns:
+        (cache_path, status) where status is 'found', 'not_found', or 'none_available'
+    """
+    import re
+    # Look for files matching factor_scores_YYYYMMDD.parquet or
+    # factor_scores_{hash}_YYYYMMDD.parquet
+    date_pattern = re.compile(r"factor_scores_(?:.+_)?(\d{8})\.parquet$")
+
+    candidates = []
+    for f in CACHE_DIR.glob("factor_scores_*.parquet"):
+        m = date_pattern.match(f.name)
+        if m:
+            try:
+                file_date = datetime.strptime(m.group(1), "%Y%m%d")
+                if file_date <= target_date:
+                    candidates.append((file_date, f))
+            except ValueError:
+                continue
+
+    if not candidates:
+        return None, "none_available"
+
+    # Return the most recent cache before or on target_date
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    best_date, best_path = candidates[0]
+    return best_path, "found"
+
+
 # =========================================================================
 # A. Historical price data
 # =========================================================================
@@ -224,6 +255,7 @@ def simulate_monthly_scores(base_scores: pd.DataFrame,
 
     all_scores = {}
     tickers = base_scores["Ticker"].tolist()
+    _rolling_cache_warned = False  # Warn once if no historical cache available
 
     for i, month_end in enumerate(months):
         yyyymm = month_end.strftime("%Y%m")
@@ -234,8 +266,32 @@ def simulate_monthly_scores(base_scores: pd.DataFrame,
             all_scores[yyyymm] = pd.read_parquet(str(cache_path))
             continue
 
-        # Start with static fundamentals from Phase 1 snapshot
-        df = base_scores[["Ticker", "Company", "Sector"] + static_cols].copy()
+        # === Rolling fundamentals: try to find a historical cache ===
+        # Look for a factor_scores cache at or before this rebalance date
+        # This avoids look-ahead bias by using only data available at that time
+        rolling_path, cache_status = _find_fundamental_cache_for_date(month_end.to_pydatetime())
+
+        if cache_status == "found" and rolling_path is not None:
+            # Use the historical fundamentals
+            try:
+                hist_df = pd.read_parquet(str(rolling_path))
+                # Match tickers present in both the historical cache and tickers list
+                df = hist_df[hist_df["Ticker"].isin(tickers)].copy()
+                if df.empty:
+                    # No overlap; fall back to static basis
+                    df = base_scores[["Ticker", "Company", "Sector"] + static_cols].copy()
+            except Exception:
+                df = base_scores[["Ticker", "Company", "Sector"] + static_cols].copy()
+        else:
+            # Fall back to static fundamentals from Phase 1 snapshot
+            if not _rolling_cache_warned:
+                warnings.warn(
+                    f"[BACKTEST] No historical factor_scores cache found for any date "
+                    f"before {yyyymm}. Using static fundamentals from Phase 1 snapshot. "
+                    "IC measurements for Quality/Growth/Valuation may be inflated (look-ahead bias)."
+                )
+                _rolling_cache_warned = True
+            df = base_scores[["Ticker", "Company", "Sector"] + static_cols].copy()
 
         # Recompute dynamic metrics
         for idx, row in df.iterrows():
@@ -600,7 +656,12 @@ def print_summary(bt_result, decile_perf_df, ic_summary, vtf_df,
     print(f"Months tested:            {n_months}")
     print(f"Universe size (avg):      {avg_universe} tickers/month")
     print(f"Survivorship bias:        YES (using current constituents)")
-    print(f"Fundamental scores:       STATIC (Phase 1 snapshot)")
+    # Determine if rolling fundamentals were available
+    rolling_caches = list(CACHE_DIR.glob("factor_scores_*.parquet"))
+    if rolling_caches:
+        print(f"Fundamental scores:       ROLLING (from {len(rolling_caches)} historical caches)")
+    else:
+        print(f"Fundamental scores:       STATIC (Phase 1 snapshot — no rolling caches found)")
     print(f"Momentum/Risk scores:     DYNAMIC (recomputed monthly)")
     print("--------------------------------------------")
     print("DECILE PERFORMANCE (Annualized):")

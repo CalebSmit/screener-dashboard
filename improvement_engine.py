@@ -129,7 +129,69 @@ def record_run_snapshot(
     snap["run_date"] = run_date
     snap["run_id"] = run_id
 
+    # === Turnover calculation ===
+    # Compare current portfolio to the most recent prior snapshot to compute
+    # one-way turnover = sum(|w_new - w_old|) / 2
+    # Only possible if we have a prior snapshot with portfolio membership
+    turnover_pct = None
+    try:
+        prior_snapshots = sorted(SNAPSHOTS_DIR.glob("*.parquet"))
+        # Exclude the current snapshot (not yet saved)
+        current_snap_name = f"{run_date}_{run_id}.parquet"
+        prior_snapshots = [s for s in prior_snapshots if s.name != current_snap_name]
+        
+        if prior_snapshots and portfolio_df is not None and "Ticker" in portfolio_df.columns:
+            # Load the most recent prior snapshot
+            prior_path = prior_snapshots[-1]
+            prior_snap = pd.read_parquet(prior_path)
+            
+            if "in_portfolio" in prior_snap.columns and "Ticker" in prior_snap.columns:
+                prior_port_tickers = set(prior_snap.loc[prior_snap["in_portfolio"] == True, "Ticker"].tolist())
+                curr_port_tickers = set(portfolio_df["Ticker"].tolist())
+                
+                # Determine which weight column to use
+                wt_col = "Equal_Weight_Pct"
+                for col in ("Score_Weight_Pct", "InvVol_Weight_Pct", "Equal_Weight_Pct"):
+                    if col in portfolio_df.columns:
+                        scheme = cfg.get("portfolio", {}).get("weighting", "equal")
+                        if scheme == "score" and col == "Score_Weight_Pct":
+                            wt_col = col
+                            break
+                        elif scheme in ("inverse_vol", "risk_parity") and col == "InvVol_Weight_Pct":
+                            wt_col = col
+                            break
+                        elif col == "Equal_Weight_Pct":
+                            wt_col = col
+                            break
+                
+                # Build weight dicts
+                if wt_col in portfolio_df.columns:
+                    new_weights = dict(zip(portfolio_df["Ticker"], portfolio_df[wt_col] / 100.0))
+                else:
+                    n_new = len(curr_port_tickers)
+                    new_weights = {t: 1.0 / n_new for t in curr_port_tickers} if n_new > 0 else {}
+                
+                n_prior = len(prior_port_tickers)
+                old_weights = {t: 1.0 / n_prior for t in prior_port_tickers} if n_prior > 0 else {}
+                
+                # All tickers in either portfolio
+                all_tickers = set(new_weights.keys()) | set(old_weights.keys())
+                one_way_turnover = sum(
+                    abs(new_weights.get(t, 0) - old_weights.get(t, 0))
+                    for t in all_tickers
+                ) / 2.0
+                turnover_pct = round(one_way_turnover * 100, 2)
+                
+                logger.info(f"Portfolio turnover: {turnover_pct:.1f}% (one-way)")
+    except Exception as e:
+        logger.warning(f"Turnover calculation failed: {e}")
+
     path = SNAPSHOTS_DIR / f"{run_date}_{run_id}.parquet"
+    
+    # Store turnover in snapshot metadata for performance history
+    if turnover_pct is not None:
+        snap["portfolio_turnover_pct"] = turnover_pct
+    
     snap.to_parquet(path, index=False)
     logger.info(f"Improvement snapshot saved: {path.name} ({len(snap)} tickers)")
 
@@ -1835,11 +1897,18 @@ def preview_ranking_impact(
 
     jaccard_20 = len(current_top20 & proposed_top20) / len(current_top20 | proposed_top20) if (current_top20 | proposed_top20) else 1.0
 
+    # Compute max absolute rank delta between current and proposed rankings
+    if "Rank" in df.columns and len(df) > 0:
+        df["_proposed_rank"] = df["proposed_composite"].rank(ascending=False).astype(int)
+        max_rank_delta = int((df["_proposed_rank"] - df["Rank"]).abs().max())
+    else:
+        max_rank_delta = 0
+
     return {
         "top20_jaccard": round(jaccard_20, 3),
         "top25_enters": sorted(proposed_top25 - current_top25),
         "top25_exits": sorted(current_top25 - proposed_top25),
-        "max_rank_change": 0,  # TODO: compute actual max rank delta
+        "max_rank_change": max_rank_delta,
     }
 
 

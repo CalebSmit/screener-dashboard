@@ -175,10 +175,13 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # df. This preserves coverage, liquidity, and trap filters — if fewer
     # than 20 stocks pass all quality gates, the portfolio is smaller rather
     # than diluted with low-quality backfill.
-    if len(selected) < 20:
+    # Guardrail only fills up to min(20, num_stocks) so explicit small
+    # num_stocks requests (e.g. --top-n 10) are not silently overridden.
+    min_positions = min(20, num_stocks)
+    if len(selected) < min_positions:
         _selected_tickers = {r["Ticker"] for r in selected}
         for _, row in work.iterrows():
-            if len(selected) >= 20:
+            if len(selected) >= min_positions:
                 break
             if row["Ticker"] in _selected_tickers:
                 continue
@@ -488,6 +491,24 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
                     cell.fill = RED_FILL
 
     _auto_width(ws)
+
+    # ---- Conditional Formatting Legend ----
+    legend_row = len(df) + 3  # blank row below data
+    ws.cell(row=legend_row, column=1, value="Score Color Legend (applies to factor score columns)").font = Font(
+        name="Calibri", size=9, bold=True, color="444444")
+    legend_entries = [
+        (GREEN_FILL,       "Top Quartile (≥75th pct) — strongest relative score"),
+        (LIGHT_GREEN_FILL, "3rd Quartile (50th–75th pct) — above median"),
+        (YELLOW_FILL,      "2nd Quartile (25th–50th pct) — below median"),
+        (RED_FILL,         "Bottom Quartile (<25th pct) — weakest relative score"),
+    ]
+    for i, (fill, label) in enumerate(legend_entries):
+        r = legend_row + 1 + i
+        sample_cell = ws.cell(row=r, column=1, value="")
+        sample_cell.fill = fill
+        sample_cell.border = THIN_BORDER
+        ws.cell(row=r, column=2, value=label).font = Font(name="Calibri", size=9, color="444444")
+
     return ws
 
 

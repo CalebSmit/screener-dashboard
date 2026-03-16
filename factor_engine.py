@@ -968,7 +968,14 @@ def fetch_all_tickers(tickers: list, batch_size: int = 30,
     current_delay = inter_batch_delay
     rate_limit_backoffs = 0
 
-    for bi in range(n_batches):
+    # Attempt to use tqdm for progress bar; fall back to print if unavailable
+    try:
+        from tqdm import tqdm as tqdm_lib
+        batch_range = tqdm_lib(range(n_batches), desc="Fetching tickers", unit="batch")
+    except ImportError:
+        batch_range = range(n_batches)
+
+    for bi in batch_range:
         batch = tickers[bi * batch_size : (bi + 1) * batch_size]
         print(f"  Batch {bi+1}/{n_batches}  ({batch[0]}..{batch[-1]})  "
               f"[workers={current_workers}, delay={current_delay:.0f}s]")
@@ -1075,7 +1082,7 @@ _SECTOR_PROFILES = {
 _DEFAULT_PROF = {"ev_ebitda": (14, 5), "fcf_yield": (0.05, 0.02), "roic": (0.12, 0.06), "gpa": (0.28, 0.10), "de": (1.0, 0.6), "vol": (0.25, 0.07), "beta": (1.0, 0.20), "rev_g": (0.06, 0.06), "mom": (0.08, 0.16)}
 
 
-def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
+def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_rate: float = 0.045) -> pd.DataFrame:
     """Generate realistic sector-aware sample data for the full universe."""
     rng = np.random.default_rng(seed)
     records = []
@@ -1153,7 +1160,7 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42) -> pd.DataF
             "jensens_alpha": round(tn(0.03, 0.10), 4),
             "volatility": round(vol, 4),
             "beta": round(beta, 2),
-            "sharpe_ratio": round((mom_12_1 - 0.045) / vol, 2) if vol > 0 else np.nan,
+            "sharpe_ratio": round((mom_12_1 - risk_free_rate) / vol, 2) if vol > 0 else np.nan,
             "analyst_surprise": round(analyst_surprise, 4) if pd.notna(analyst_surprise) else np.nan,
             "price_target_upside": round(price_target_upside, 4) if pd.notna(price_target_upside) else np.nan,
             "earnings_acceleration": round(earnings_accel, 4) if pd.notna(earnings_accel) else np.nan,
@@ -2008,7 +2015,7 @@ _NONBANK_ONLY_METRICS = {"ev_ebitda", "ev_sales", "roic", "gross_profit_assets",
                          "operating_margin", "current_ratio", "interest_coverage"}
 
 
-def winsorize_metrics(df: pd.DataFrame, lo: float = 0.01, hi: float = 0.01):
+def winsorize_metrics(df: pd.DataFrame, lo: float = 0.01, hi: float = 0.01) -> pd.DataFrame:
     for col in METRIC_COLS:
         if col not in df.columns:
             continue
@@ -2057,7 +2064,7 @@ METRIC_DIR = {
 }
 
 
-def compute_sector_percentiles(df: pd.DataFrame):
+def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
     pct = {c: f"{c}_pct" for c in METRIC_COLS}
     for c in pct.values():
         df[c] = np.nan
@@ -2103,7 +2110,7 @@ def compute_sector_percentiles(df: pd.DataFrame):
 # =========================================================================
 # G½. Optional non-linear percentile transform
 # =========================================================================
-def apply_percentile_transform(df: pd.DataFrame, cfg: dict):
+def apply_percentile_transform(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Apply optional non-linear transform to percentile-ranked columns.
 
     If enabled, applies a logistic S-curve that compresses the middle ranks
@@ -2159,7 +2166,7 @@ CAT_METRICS = {
 }
 
 
-def compute_category_scores(df: pd.DataFrame, cfg: dict):
+def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     mw = cfg["metric_weights"]
     bank_mw = cfg.get("bank_metric_weights", None)
     is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
@@ -2281,7 +2288,7 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict):
 # =========================================================================
 # H½. Volatility-scaled momentum weight (adaptive regime)
 # =========================================================================
-def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str):
+def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     """Adjust momentum factor weight based on realized momentum-score volatility.
 
     Compares current run's momentum_score dispersion to historical runs.
@@ -2364,7 +2371,7 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str):
 # =========================================================================
 # I. Composite score (SS3.2)
 # =========================================================================
-def compute_composite(df: pd.DataFrame, cfg: dict):
+def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     if df.empty:
         df["Composite"] = pd.Series(dtype=float)
         return df
@@ -2431,6 +2438,60 @@ def compute_composite(df: pd.DataFrame, cfg: dict):
         # stocks"), which is meaningful across runs and time periods.
         df["Composite"] = df["Composite"].rank(pct=True) * 100
 
+    # === Composite Confidence Score ===
+    # Confidence is based on:
+    # 1. Metric coverage (what % of applicable metrics are available)
+    # 2. Category score variance (consistency across categories)
+    # Confidence = coverage_ratio * (1 - normalized_variance)
+    # Range: 0-100, where 100 is perfect coverage and perfect consistency
+    is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False).astype(bool)
+    all_metrics = [c for c in METRIC_COLS if c in df.columns]
+    
+    confidence_scores = []
+    cat_scores = [col_map[cat] for cat in col_map.keys() if col_map[cat] in df.columns]
+    
+    for idx in df.index:
+        row_bank = is_bank.loc[idx] if idx in is_bank.index else False
+        
+        # Metric coverage ratio
+        if row_bank:
+            applicable = [m for m in all_metrics if m not in _NONBANK_ONLY_METRICS]
+        else:
+            applicable = [m for m in all_metrics if m not in _BANK_ONLY_METRICS]
+        
+        if len(applicable) > 0:
+            n_present = sum(1 for m in applicable if pd.notna(df.at[idx, m]))
+            coverage_ratio = n_present / len(applicable)
+        else:
+            coverage_ratio = 0.5  # Default midpoint
+        
+        # Category score variance (normalized)
+        # Get all available category scores for this stock
+        cat_vals = []
+        for col in cat_scores:
+            if col in df.columns and pd.notna(df.at[idx, col]):
+                cat_vals.append(df.at[idx, col])
+        
+        if len(cat_vals) >= 2:
+            # Normalize variance: std_dev / mean (coefficient of variation)
+            # Invert so high consistency = high confidence penalty
+            mean_val = np.mean(cat_vals)
+            if mean_val > 0:
+                cv = np.std(cat_vals) / mean_val
+                # Sigmoid-like transformation: cv ranges 0-1+, we want consistency penalty 0-1
+                variance_penalty = min(cv / (1 + cv), 1.0)  # 0 = perfect consistency, 1 = extreme variance
+            else:
+                variance_penalty = 0.5
+        else:
+            # If only 1 or 0 categories, no variance (use neutral)
+            variance_penalty = 0.3 if len(cat_vals) == 1 else 0.5
+        
+        # Combine: coverage_ratio * (1 - variance_penalty)
+        confidence = coverage_ratio * (1 - variance_penalty) * 100
+        confidence_scores.append(max(0, min(100, confidence)))  # Clamp to 0-100
+    
+    df["Composite_Confidence"] = pd.Series(confidence_scores, index=df.index).round(1)
+
     df["Composite"] = df["Composite"].round(2)
     return df
 
@@ -2438,7 +2499,7 @@ def compute_composite(df: pd.DataFrame, cfg: dict):
 # =========================================================================
 # I-b. Factor contribution waterfall
 # =========================================================================
-def compute_factor_contributions(df: pd.DataFrame, cfg: dict):
+def compute_factor_contributions(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Compute each factor category's contribution to the composite score.
 
     For each stock, the contribution of category C is:
@@ -2579,7 +2640,7 @@ def run_weight_sensitivity(df: pd.DataFrame, cfg: dict,
 # =========================================================================
 # J. Value trap flags (SS2.3)
 # =========================================================================
-def apply_value_trap_flags(df: pd.DataFrame, cfg: dict):
+def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     vtf = cfg.get("value_trap_filters", {})
     if not vtf.get("enabled", True):
         df["Value_Trap_Flag"] = False
@@ -2653,7 +2714,7 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict):
     return df
 
 
-def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict):
+def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Flag high-growth stocks with weak fundamentals (growth traps).
 
     Mirror of value-trap logic but for the opposite scenario: stocks with
@@ -2790,7 +2851,7 @@ def add_financial_sector_caveat(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def rank_stocks(df: pd.DataFrame):
+def rank_stocks(df: pd.DataFrame) -> pd.DataFrame:
     df["Rank"] = df["Composite"].rank(ascending=False, method="min").astype(int)
     return df.sort_values("Rank").reset_index(drop=True)
 
