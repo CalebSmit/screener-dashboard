@@ -1358,8 +1358,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     ic = eq_v + _debt_bs - _excess_cash
                     # Floor IC at 10% of Total Assets — prevents denominator
                     # collapse for asset-light or cash-heavy companies.
-                    if pd.notna(ta) and ta > 0:
+                    _ic_floored = False
+                    if pd.notna(ta) and ta > 0 and ic < 0.10 * ta:
+                        ic = 0.10 * ta
+                        _ic_floored = True
+                    elif pd.notna(ta) and ta > 0:
                         ic = max(ic, 0.10 * ta)
+                    rec["_roic_ic_floored"] = _ic_floored
                     rec["roic"] = (nopat / ic) if ic > 0 else np.nan
                 else:
                     rec["roic"] = np.nan
@@ -1930,7 +1935,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
         # -- Data freshness check --
         try:
-            stale_days = 200  # Flag if most recent filing is > 200 days old
+            stale_days = (cfg or {}).get("data_quality", {}).get(
+                "stale_data_threshold_days", 120)  # Default 120 days (~4 months)
             stmt_date_str = d.get("_stmt_date_financials")
             if stmt_date_str:
                 stmt_date = pd.Timestamp(stmt_date_str)

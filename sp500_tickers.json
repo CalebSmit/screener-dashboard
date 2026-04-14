@@ -445,6 +445,11 @@
     "Sector": "Consumer Discretionary"
   },
   {
+    "Ticker": "CASY",
+    "Company": "Casey's",
+    "Sector": "Consumer Staples"
+  },
+  {
     "Ticker": "CAT",
     "Company": "Caterpillar Inc.",
     "Sector": "Industrials"
@@ -577,6 +582,11 @@
   {
     "Ticker": "CTSH",
     "Company": "Cognizant",
+    "Sector": "Information Technology"
+  },
+  {
+    "Ticker": "COHR",
+    "Company": "Coherent Corp.",
     "Sector": "Information Technology"
   },
   {
@@ -818,6 +828,11 @@
     "Ticker": "EBAY",
     "Company": "eBay Inc.",
     "Sector": "Consumer Discretionary"
+  },
+  {
+    "Ticker": "SATS",
+    "Company": "EchoStar",
+    "Sector": "Communication Services"
   },
   {
     "Ticker": "ECL",
@@ -1165,11 +1180,6 @@
     "Sector": "Consumer Discretionary"
   },
   {
-    "Ticker": "HOLX",
-    "Company": "Hologic",
-    "Sector": "Health Care"
-  },
-  {
     "Ticker": "HD",
     "Company": "Home Depot (The)",
     "Sector": "Consumer Discretionary"
@@ -1415,11 +1425,6 @@
     "Sector": "Information Technology"
   },
   {
-    "Ticker": "LW",
-    "Company": "Lamb Weston",
-    "Sector": "Consumer Staples"
-  },
-  {
     "Ticker": "LVS",
     "Company": "Las Vegas Sands",
     "Sector": "Consumer Discretionary"
@@ -1475,6 +1480,11 @@
     "Sector": "Consumer Discretionary"
   },
   {
+    "Ticker": "LITE",
+    "Company": "Lumentum",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "LYB",
     "Company": "LyondellBasell",
     "Sector": "Materials"
@@ -1513,11 +1523,6 @@
     "Ticker": "MA",
     "Company": "Mastercard",
     "Sector": "Financials"
-  },
-  {
-    "Ticker": "MTCH",
-    "Company": "Match Group",
-    "Sector": "Communication Services"
   },
   {
     "Ticker": "MKC",
@@ -1587,11 +1592,6 @@
   {
     "Ticker": "MRNA",
     "Company": "Moderna",
-    "Sector": "Health Care"
-  },
-  {
-    "Ticker": "MOH",
-    "Company": "Molina Healthcare",
     "Sector": "Health Care"
   },
   {
@@ -1807,11 +1807,6 @@
   {
     "Ticker": "PAYX",
     "Company": "Paychex",
-    "Sector": "Industrials"
-  },
-  {
-    "Ticker": "PAYC",
-    "Company": "Paycom",
     "Sector": "Industrials"
   },
   {
@@ -2363,6 +2358,11 @@
     "Ticker": "VRTX",
     "Company": "Vertex Pharmaceuticals",
     "Sector": "Health Care"
+  },
+  {
+    "Ticker": "VRT",
+    "Company": "Vertiv",
+    "Sector": "Industrials"
   },
   {
     "Ticker": "VTRS",

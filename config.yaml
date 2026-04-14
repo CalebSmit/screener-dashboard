@@ -175,7 +175,7 @@ growth_trap_filters:
 # Portfolio Construction
 portfolio:
   num_stocks: 25
-  weighting: 'score'  # Options: 'equal', 'inverse_vol', 'score' (composite-proportional)
+  weighting: 'score'  # Options: 'equal', 'inverse_vol', 'score', 'markowitz' (experimental — requires scipy)
   max_position_pct: 5.0
   # min_position_pct: not enforced — removed to avoid false confidence
   max_sector_concentration: 8  # Max 8 stocks per sector
@@ -205,6 +205,8 @@ data_quality:
   metric_alert_threshold_pct: 50  # Warn if any metric is >50% missing
   auto_reduce_nan_threshold_pct: 70  # Auto-zero weight for metrics with >70% NaN
   stmt_val_strict: false  # Set true to track all _stmt_val() label misses in the DQ log
+  stale_data_threshold_days: 120  # Flag financial statements older than this (days); ~4 months
+  high_corr_alert_threshold: 0.70  # Warn when metric pair |Spearman r| exceeds this
   coverage_discount:
     enabled: true
     threshold: 0.80       # Below this metric coverage ratio, discount starts

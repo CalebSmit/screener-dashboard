@@ -359,10 +359,18 @@ class RunConfig(BaseModel):
 
     class PortfolioConfig(BaseModel):
         num_stocks: int = Field(25, ge=5, le=100)
-        weighting: str = "equal"
+        weighting: str = "equal"  # Options: 'equal', 'inverse_vol', 'score', 'markowitz'
         max_position_pct: float = Field(5.0, gt=0, le=100)
         max_sector_concentration: int = Field(8, ge=1)
         min_avg_dollar_volume: float = 10e6  # 63-day avg daily dollar volume floor
+
+        @field_validator("weighting")
+        @classmethod
+        def validate_weighting(cls, v: str) -> str:
+            valid = {"equal", "inverse_vol", "score", "markowitz"}
+            if v not in valid:
+                raise ValueError(f"weighting must be one of {valid}, got '{v}'")
+            return v
 
     class DataQualityConfig(BaseModel):
         winsorize_percentiles: list[int] = [1, 99]

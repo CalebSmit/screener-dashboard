@@ -1374,11 +1374,72 @@ def run_factor_engine(cfg, args, ctx=None):
             drift_alerts += 1
     stats["drift_alerts"] = drift_alerts
 
+    # ---- Stale financial data summary ----
+    if "_stale_data" in df.columns or "_stmt_age_days" in df.columns:
+        n_stale = df.get("_stale_data", pd.Series(dtype=bool)).fillna(False).sum()
+        stale_threshold = cfg.get("data_quality", {}).get("stale_data_threshold_days", 120)
+        if n_stale > 0:
+            print(f"  WARNING: {int(n_stale)} tickers have financial data "
+                  f"> {stale_threshold} days old")
+            if "_stmt_age_days" in df.columns:
+                oldest = df["_stmt_age_days"].max()
+                print(f"    Oldest filing: {int(oldest)} days ago")
+        stats["n_stale_tickers"] = int(n_stale)
+
+    # ---- ROIC IC-floor diagnostic ----
+    if "_roic_ic_floored" in df.columns:
+        n_floored = int(df["_roic_ic_floored"].fillna(False).sum())
+        if n_floored > len(df) * 0.10:
+            print(f"  NOTE: {n_floored} tickers had ROIC invested capital floored "
+                  f"at 10% of total assets (check for cash-rich distortion)")
+        stats["n_roic_ic_floored"] = n_floored
+
+    # ---- Analyst Revisions coverage table ----
+    _rev_metrics = [
+        ("analyst_surprise", "Analyst Surprise"),
+        ("price_target_upside", "Price Target Upside"),
+        ("earnings_acceleration", "Earnings Acceleration"),
+        ("consecutive_beat_streak", "Consecutive Beat Streak"),
+        ("short_interest_ratio", "Short Interest Ratio"),
+    ]
+    rev_coverage = {}
+    for col, label in _rev_metrics:
+        if col in df.columns:
+            pct = df[col].notna().mean() * 100
+            rev_coverage[col] = pct
+    if rev_coverage:
+        print("  ANALYST REVISIONS COVERAGE:")
+        for col, label in _rev_metrics:
+            if col in rev_coverage:
+                pct = rev_coverage[col]
+                flag = " ⚠" if pct < 30 else ""
+                print(f"    {label:<30s}: {pct:5.1f}%{flag}")
+    stats["_rev_coverage"] = rev_coverage
+
     # ---- Factor correlation matrix (for transparency) ----
     corr = compute_factor_correlation(df)
     if ctx is not None and not corr.empty:
         ctx.save_artifact("06_factor_correlation", corr.reset_index())
     stats["_corr_df"] = corr
+
+    # ---- High-correlation metric pair warnings ----
+    if not corr.empty:
+        high_corr_threshold = cfg.get("data_quality", {}).get("high_corr_alert_threshold", 0.70)
+        cols = list(corr.columns)
+        high_pairs = []
+        for i in range(len(cols)):
+            for j in range(i + 1, len(cols)):
+                val = corr.iloc[i, j]
+                if pd.notna(val) and abs(val) > high_corr_threshold:
+                    m1 = cols[i].replace("_pct", "")
+                    m2 = cols[j].replace("_pct", "")
+                    high_pairs.append((m1, m2, round(float(val), 2)))
+        if high_pairs:
+            print(f"  HIGH-CORRELATION METRIC PAIRS (|r| > {high_corr_threshold}):")
+            for m1, m2, r in sorted(high_pairs, key=lambda x: -abs(x[2])):
+                print(f"    {m1} ↔ {m2:35s} r={r:+.2f}")
+            print("    (See FactorCorrelation sheet for full matrix)")
+        stats["high_corr_pairs"] = high_pairs
 
     # ---- Weight sensitivity analysis ----
     print("Running weight sensitivity analysis...")
@@ -1605,6 +1666,35 @@ def _auto_reduce_high_nan_metrics(df: pd.DataFrame, cfg: dict, pipeline_log=None
 # ---------------------------------------------------------------------------
 # Portfolio construction integration
 # ---------------------------------------------------------------------------
+def _fetch_price_returns(tickers: list, days: int = 252) -> pd.DataFrame:
+    """Fetch daily simple returns for a list of tickers (used by Markowitz mode).
+
+    Returns a DataFrame of daily returns (dates × tickers). Columns that fail
+    to download are silently dropped. Returns an empty DataFrame on failure.
+    """
+    try:
+        import yfinance as yf
+        raw = yf.download(
+            tickers,
+            period=f"{days + 10}d",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+        )
+        if raw.empty:
+            return pd.DataFrame()
+        # Handle multi/single ticker output differences
+        if isinstance(raw.columns, pd.MultiIndex):
+            prices = raw["Close"]
+        else:
+            prices = raw[["Close"]] if "Close" in raw.columns else raw
+        returns = prices.pct_change().dropna(how="all")
+        return returns
+    except Exception as e:
+        warnings.warn(f"Markowitz price fetch failed: {e}")
+        return pd.DataFrame()
+
+
 def run_portfolio_construction(df, cfg):
     """Run portfolio construction. Returns (portfolio_df, stats_dict)."""
     from portfolio_constructor import (
@@ -1613,6 +1703,16 @@ def run_portfolio_construction(df, cfg):
 
     stats = {"construction_time": 0.0}
     port_t0 = time.time()
+
+    # If Markowitz mode is requested, fetch price returns and inject into config
+    pcfg = cfg.get("portfolio", {})
+    if pcfg.get("weighting") == "markowitz":
+        print("  [Markowitz] Fetching price history for covariance estimation...")
+        tickers = df["Ticker"].tolist() if "Ticker" in df.columns else []
+        price_returns = _fetch_price_returns(tickers, days=252)
+        if price_returns.empty:
+            warnings.warn("Markowitz: price fetch returned empty data; will fall back to greedy.")
+        cfg = {**cfg, "portfolio": {**pcfg, "_price_returns_df": price_returns}}
 
     print("\nConstructing model portfolio...")
     port = construct_portfolio(df, cfg)
@@ -1731,6 +1831,9 @@ def print_full_summary(args, fe_stats, port_stats, dq_counts,
     print(f"    Medium severity:      {dq_counts.get('Medium', 0)}")
     print(f"    Low severity:         {dq_counts.get('Low', 0)}")
     print(f"    Drift alerts:         {fe_stats.get('drift_alerts', 0)}")
+    n_stale = fe_stats.get("n_stale_tickers", 0)
+    stale_thresh = cfg.get("data_quality", {}).get("stale_data_threshold_days", 120)
+    print(f"    Stale filings (>{stale_thresh}d): {n_stale}")
     print(f"  Log file:               validation/data_quality_log.csv")
     print("--------------------------------------------")
 
@@ -1959,8 +2062,18 @@ def main():
         # Copy to project root as the canonical dashboard location
         main_dash = ROOT / "dashboard.html"
         shutil.copy2(dash_path, main_dash)
-        # Also copy to index.html so GitHub Pages serves it at the root URL
-        shutil.copy2(dash_path, ROOT / "index.html")
+        # Write lightweight redirect for GitHub Pages root URL
+        (ROOT / "index.html").write_text(
+            '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+            '    <meta charset="UTF-8">\n'
+            '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+            '    <meta http-equiv="refresh" content="0; url=dashboard.html">\n'
+            '    <title>Redirecting...</title>\n'
+            '</head>\n<body>\n'
+            '    <p>Redirecting to <a href="dashboard.html">dashboard</a>...</p>\n'
+            '</body>\n</html>\n',
+            encoding="utf-8",
+        )
         # Copy companion data file (generated alongside the dashboard HTML)
         src_data_js = ctx.run_dir / "dashboard_data.js"
         if src_data_js.exists():

@@ -99,14 +99,244 @@ def load_latest_scores():
 
 
 # =========================================================================
+# B1. Markowitz mean-variance optimizer (opt-in, experimental)
+# =========================================================================
+def _apply_filters(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Shared pre-filter: trap flags, median composite, coverage, liquidity.
+
+    Returns a filtered copy ready for either greedy selection or Markowitz.
+    """
+    work = df.copy()
+    pcfg = cfg.get("portfolio", {})
+
+    vtf = cfg.get("value_trap_filters", {})
+    if not vtf.get("flag_only", True) and "Value_Trap_Flag" in work.columns:
+        work = work[~work["Value_Trap_Flag"]].copy()
+
+    gtf = cfg.get("growth_trap_filters", {})
+    if not gtf.get("flag_only", True) and "Growth_Trap_Flag" in work.columns:
+        work = work[~work["Growth_Trap_Flag"]].copy()
+
+    median_composite = work["Composite"].median()
+    work = work[work["Composite"] >= median_composite].copy()
+
+    present = [c for c in METRIC_COLS if c in work.columns]
+    work["_metric_coverage"] = work[present].notna().sum(axis=1) / len(present)
+    work = work[work["_metric_coverage"] >= 0.60].copy()
+
+    min_adv = float(pcfg.get("min_avg_dollar_volume", 10e6))
+    if "avg_daily_dollar_volume" in work.columns and min_adv > 0:
+        illiquid = (work["avg_daily_dollar_volume"].lt(min_adv)
+                    | work["avg_daily_dollar_volume"].isna())
+        work = work[~illiquid].copy()
+
+    return work.sort_values("Composite", ascending=False).reset_index(drop=True)
+
+
+def construct_portfolio_markowitz(
+    df: pd.DataFrame,
+    cfg: dict,
+    price_returns: pd.DataFrame,
+) -> pd.DataFrame:
+    """Experimental Markowitz mean-variance optimized portfolio.
+
+    Minimises portfolio variance subject to:
+      * Weights sum to 100%
+      * Each weight in [0.5%, max_position_pct]
+      * Sector concentration cap (from config)
+
+    Falls back to greedy construction if scipy is unavailable, if
+    price_returns has insufficient history (< 60 days), or if the
+    optimisation fails to converge.
+
+    Parameters
+    ----------
+    df : scored universe DataFrame (output of factor_engine pipeline)
+    cfg : config dict
+    price_returns : DataFrame of daily simple returns, shape (days, tickers).
+                   Column names must match tickers in df["Ticker"].
+    """
+    try:
+        from scipy.optimize import minimize, LinearConstraint, Bounds
+    except ImportError:
+        warnings.warn(
+            "scipy not available — Markowitz optimisation requires scipy. "
+            "Falling back to greedy score-weighted construction."
+        )
+        return _greedy_select(df, cfg)
+
+    pcfg = cfg.get("portfolio", {})
+    num_stocks = pcfg.get("num_stocks", 25)
+    max_sector = pcfg.get("max_sector_concentration", 8)
+    max_pos_pct = pcfg.get("max_position_pct", 5.0) / 100.0
+
+    # Pre-filter candidates (same quality gates as greedy)
+    candidates = _apply_filters(df, cfg)
+    # Take top 2×N candidates to give the optimizer flexibility
+    candidate_pool = candidates.head(min(num_stocks * 2, len(candidates)))
+
+    if len(candidate_pool) < 4:
+        warnings.warn("Markowitz: fewer than 4 candidates after filtering; falling back to greedy.")
+        return _greedy_select(df, cfg)
+
+    # Align price_returns to candidate tickers
+    tickers = candidate_pool["Ticker"].tolist()
+    avail = [t for t in tickers if t in price_returns.columns]
+    if len(avail) < 4:
+        warnings.warn(
+            f"Markowitz: only {len(avail)} candidates have price history; "
+            "falling back to greedy."
+        )
+        return _greedy_select(df, cfg)
+    if len(price_returns) < 60:
+        warnings.warn(
+            f"Markowitz: price history too short ({len(price_returns)} days, need ≥60); "
+            "falling back to greedy."
+        )
+        return _greedy_select(df, cfg)
+
+    R = price_returns[avail].dropna()
+    if len(R) < 60:
+        warnings.warn("Markowitz: insufficient clean return rows; falling back to greedy.")
+        return _greedy_select(df, cfg)
+
+    cov = R.cov().values  # n×n covariance matrix
+    n = len(avail)
+
+    # Sector constraints: build sector membership matrix
+    avail_df = candidate_pool[candidate_pool["Ticker"].isin(avail)].copy()
+    avail_df = avail_df.set_index("Ticker").loc[avail].reset_index()
+    sectors = avail_df["Sector"].tolist()
+    unique_sectors = list(dict.fromkeys(sectors))
+
+    sector_constraint_matrix = []
+    sector_constraint_ub = []
+    for sec in unique_sectors:
+        row = [1.0 if sectors[i] == sec else 0.0 for i in range(n)]
+        sector_constraint_matrix.append(row)
+        # Sector cap in weight terms: max_sector stocks × max_pos_pct each
+        sector_constraint_ub.append(max_sector * max_pos_pct)
+
+    # Objective: minimise w^T Σ w
+    def portfolio_variance(w):
+        return float(w @ cov @ w)
+
+    def portfolio_variance_grad(w):
+        return 2 * cov @ w
+
+    # Constraints: weights sum to 1
+    constraints = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}]
+    # Sector caps as inequality constraints (each sector weight ≤ cap)
+    for row, ub in zip(sector_constraint_matrix, sector_constraint_ub):
+        row_arr = np.array(row)
+        constraints.append({
+            "type": "ineq",
+            "fun": lambda w, r=row_arr, u=ub: u - float(r @ w),
+        })
+
+    # Bounds: each weight in [0.5%, max_position_pct]
+    min_pos = 0.005
+    bounds = Bounds(lb=min_pos, ub=max_pos_pct)
+
+    # Initial guess: equal weight
+    w0 = np.ones(n) / n
+
+    try:
+        result = minimize(
+            portfolio_variance,
+            w0,
+            jac=portfolio_variance_grad,
+            method="SLSQP",
+            bounds=bounds,
+            constraints=constraints,
+            options={"maxiter": 1000, "ftol": 1e-9},
+        )
+    except Exception as e:
+        warnings.warn(f"Markowitz: optimisation error ({e}); falling back to greedy.")
+        return _greedy_select(df, cfg)
+
+    if not result.success:
+        warnings.warn(
+            f"Markowitz: optimisation did not converge ({result.message}); "
+            "falling back to greedy."
+        )
+        return _greedy_select(df, cfg)
+
+    weights = result.x
+    # Zero out negligible positions (< 0.5%) and renormalise
+    weights[weights < 0.005] = 0.0
+    if weights.sum() <= 0:
+        warnings.warn("Markowitz: all weights zeroed; falling back to greedy.")
+        return _greedy_select(df, cfg)
+    weights = weights / weights.sum()
+
+    # Select stocks with non-zero weight, up to num_stocks
+    selected_idx = np.argsort(-weights)
+    selected_tickers = [avail[i] for i in selected_idx if weights[selected_idx[i]] > 0]
+    selected_tickers = selected_tickers[:num_stocks]
+    selected_weights = {t: weights[avail.index(t)] for t in selected_tickers}
+
+    port = avail_df[avail_df["Ticker"].isin(selected_tickers)].copy()
+    port = port.set_index("Ticker").loc[selected_tickers].reset_index()
+
+    # Normalise selected weights to sum to 100%
+    total_w = sum(selected_weights[t] for t in selected_tickers)
+    port["Markowitz_Weight_Pct"] = [
+        round(selected_weights[t] / total_w * 100, 2) for t in selected_tickers
+    ]
+    # Fill other weight columns for compatibility
+    n_sel = len(port)
+    port["Equal_Weight_Pct"] = round(100.0 / n_sel, 2) if n_sel > 0 else 0
+    port["Implied_EW_Weight"] = port["Equal_Weight_Pct"]
+    port["InvVol_Weight_Pct"] = port["Markowitz_Weight_Pct"]
+    port["Score_Weight_Pct"] = port["Markowitz_Weight_Pct"]
+    port["Port_Rank"] = range(1, n_sel + 1)
+
+    print(f"  [Markowitz] Optimised portfolio: {n_sel} stocks, "
+          f"annualised vol ≈ {np.sqrt(252 * float(weights[:n_sel] @ cov[:n_sel, :n_sel] @ weights[:n_sel])) * 100:.1f}%")
+
+    return port
+
+
+def _greedy_select(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Internal alias — runs the greedy sector-constrained selection logic.
+
+    Called as fallback from construct_portfolio_markowitz.
+    Delegates to the main construct_portfolio() but with weighting
+    temporarily forced off 'markowitz' to avoid infinite recursion.
+    """
+    cfg_copy = {**cfg, "portfolio": {**cfg.get("portfolio", {}), "weighting": "score"}}
+    return construct_portfolio(df, cfg_copy)
+
+
+# =========================================================================
 # B. Construct model portfolio (§6.1)
 # =========================================================================
 def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    """Build model portfolio following Blueprint §6.1 steps 1-5."""
+    """Build model portfolio following Blueprint §6.1 steps 1-5.
+
+    When ``portfolio.weighting`` is ``'markowitz'`` (experimental), delegates to
+    :func:`construct_portfolio_markowitz` using pre-fetched price returns injected
+    into ``cfg['portfolio']['_price_returns_df']``.  Falls back to greedy selection
+    automatically if scipy is unavailable, returns are insufficient, or optimisation
+    fails to converge.
+    """
     pcfg = cfg.get("portfolio", {})
     num_stocks = pcfg.get("num_stocks", 25)
     max_sector = pcfg.get("max_sector_concentration", 8)
     max_pos_pct = pcfg.get("max_position_pct", 5.0)
+
+    # ---- Markowitz routing ----
+    if pcfg.get("weighting") == "markowitz":
+        price_returns = pcfg.get("_price_returns_df")
+        if price_returns is not None and not price_returns.empty:
+            return construct_portfolio_markowitz(df, cfg, price_returns)
+        warnings.warn(
+            "Markowitz weighting requested but no price returns provided "
+            "(_price_returns_df missing from portfolio config); falling back to score-weighted."
+        )
+        cfg = {**cfg, "portfolio": {**pcfg, "weighting": "score"}}
+        pcfg = cfg["portfolio"]
 
     work = df.copy()
 
@@ -930,6 +1160,7 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
         ("_ltm_annualized", "LTM Partial?"),
         ("_channel_stuffing_flag", "Channel Stuffing?"),
         ("_beta_overlap_pct", "Beta Overlap %"),
+        ("_roic_ic_floored", "ROIC IC-Floor?"),
     ]
 
     # Headers
@@ -965,6 +1196,9 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
             # Highlight channel stuffing risk
             if src == "_channel_stuffing_flag" and v is True:
                 cell.fill = PatternFill("solid", fgColor="FFC7CE")  # red warning
+            # Highlight ROIC IC floor applied (may indicate cash-rich distortion)
+            if src == "_roic_ic_floored" and v is True:
+                cell.fill = PatternFill("solid", fgColor="FFEB9C")  # yellow warning
             # Format percentages
             if src in ("fcf_yield", "earnings_yield", "roic", "forward_eps_growth",
                        "revenue_growth", "return_12_1", "analyst_surprise"):
@@ -1022,6 +1256,77 @@ def write_data_validation_sheet(wb: Workbook, df: pd.DataFrame, top_n: int = 10)
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center")
         _ctx_data_row += 1
+
+    # ---- Data Coverage Summary ----
+    _cov_start = _ctx_data_row + 2
+    ws.cell(row=_cov_start, column=1, value="DATA COVERAGE SUMMARY")
+    ws.cell(row=_cov_start, column=1).font = Font(bold=True, size=11)
+    ws.merge_cells(start_row=_cov_start, start_column=1,
+                   end_row=_cov_start, end_column=5)
+
+    # Analyst Revisions sub-section
+    _cov_row = _cov_start + 1
+    ws.cell(row=_cov_row, column=1, value="Analyst Revisions Metrics")
+    ws.cell(row=_cov_row, column=1).font = Font(bold=True, italic=True, size=9)
+    _style_header_row(ws, _cov_row, 3)
+    ws.cell(row=_cov_row, column=2, value="Coverage %")
+    ws.cell(row=_cov_row, column=3, value="Status")
+
+    _rev_metrics_cov = [
+        ("analyst_surprise", "Analyst Surprise"),
+        ("price_target_upside", "Price Target Upside"),
+        ("earnings_acceleration", "Earnings Acceleration"),
+        ("consecutive_beat_streak", "Consecutive Beat Streak"),
+        ("short_interest_ratio", "Short Interest Ratio"),
+    ]
+    _cov_row += 1
+    for col, label in _rev_metrics_cov:
+        if col in df.columns:
+            pct = df[col].notna().mean() * 100
+            ws.cell(row=_cov_row, column=1, value=label).font = DATA_FONT
+            ws.cell(row=_cov_row, column=1).border = THIN_BORDER
+            pct_cell = ws.cell(row=_cov_row, column=2, value=round(pct, 1))
+            pct_cell.font = DATA_FONT
+            pct_cell.border = THIN_BORDER
+            pct_cell.number_format = '0.0"%"'
+            status = "OK" if pct >= 50 else ("LOW" if pct >= 30 else "CRITICAL")
+            status_cell = ws.cell(row=_cov_row, column=3, value=status)
+            status_cell.font = DATA_FONT
+            status_cell.border = THIN_BORDER
+            if status == "CRITICAL":
+                status_cell.fill = PatternFill("solid", fgColor="FFC7CE")
+            elif status == "LOW":
+                status_cell.fill = PatternFill("solid", fgColor="FFEB9C")
+            _cov_row += 1
+
+    # Most-missing metrics overall
+    _cov_row += 1
+    ws.cell(row=_cov_row, column=1, value="Top 5 Most-Missing Metrics (Universe-wide)")
+    ws.cell(row=_cov_row, column=1).font = Font(bold=True, italic=True, size=9)
+    _style_header_row(ws, _cov_row, 3)
+    ws.cell(row=_cov_row, column=2, value="Coverage %")
+    ws.cell(row=_cov_row, column=3, value="Missing %")
+    _cov_row += 1
+    _all_metric_coverage = {
+        col: df[col].notna().mean() * 100
+        for col in df.columns
+        if not col.startswith("_") and df[col].dtype in (float, np.float64)
+    }
+    _worst_five = sorted(_all_metric_coverage.items(), key=lambda x: x[1])[:5]
+    for metric_col, cov_pct in _worst_five:
+        ws.cell(row=_cov_row, column=1, value=metric_col).font = DATA_FONT
+        ws.cell(row=_cov_row, column=1).border = THIN_BORDER
+        cov_cell = ws.cell(row=_cov_row, column=2, value=round(cov_pct, 1))
+        cov_cell.font = DATA_FONT
+        cov_cell.border = THIN_BORDER
+        miss_cell = ws.cell(row=_cov_row, column=3, value=round(100 - cov_pct, 1))
+        miss_cell.font = DATA_FONT
+        miss_cell.border = THIN_BORDER
+        if cov_pct < 30:
+            miss_cell.fill = PatternFill("solid", fgColor="FFC7CE")
+        elif cov_pct < 50:
+            miss_cell.fill = PatternFill("solid", fgColor="FFEB9C")
+        _cov_row += 1
 
     _auto_width(ws)
 
