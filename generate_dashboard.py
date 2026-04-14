@@ -12,6 +12,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -680,7 +681,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
 # HTML generation
 # ---------------------------------------------------------------------------
 
-def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "") -> str:
+def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "") -> str:
     """Build the complete dashboard HTML string.
 
     Data is loaded from the companion `dashboard_data.js` file (written by
@@ -692,6 +693,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     """
     # Escape braces in methodology_html so f-string doesn't choke
     methodology_escaped = methodology_html.replace("{", "{{").replace("}", "}}")
+    version = data_version or "latest"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -702,7 +704,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js"></script>
+    <script src="./dashboard_data.js?v={version}"></script>
     <style>
 {_css()}
     </style>
@@ -1062,6 +1064,25 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
     // =====================================================================
     const D = window.SCREENER_DATA || {{}};
+    const HAS_CHART = typeof window.Chart !== 'undefined';
+
+    function setDefault(obj, key, value) {{
+        if (obj[key] === undefined || obj[key] === null) obj[key] = value;
+    }}
+
+    // Defensive defaults: keep the page usable even if a stale payload is cached.
+    setDefault(D, 'kpis', {{ universe_size: 0, value_traps: 0, growth_traps: 0, run_timestamp: null }});
+    setDefault(D, 'portfolio', {{ holdings: [], avg_composite: null, avg_beta: null, num_stocks: 0, sector_counts: {{}} }});
+    setDefault(D, 'table_data', []);
+    setDefault(D, 'stock_detail', {{}});
+    setDefault(D, 'spx_weights', {{}});
+    setDefault(D, 'vt_by_sector', {{}});
+    setDefault(D, 'gt_by_sector', {{}});
+    setDefault(D, 'sector_distributions', {{ composite_score: {{}} }});
+    setDefault(D, 'weight_sensitivity', []);
+    setDefault(D, 'factor_correlation', {{ labels: [], matrix: [] }});
+    setDefault(D, 'data_quality', {{}});
+    setDefault(D, 'config_traps', {{}});
 
     // =====================================================================
     // COLOUR PALETTE
@@ -1072,9 +1093,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     const POS = '#3fb950', NEG = '#f85149';
 
     // ---- Chart.js global dark-theme defaults ----
-    Chart.defaults.color = '#7d8590';
-    Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-    Chart.defaults.font.family = "'DM Sans', sans-serif";
+    if (HAS_CHART) {{
+        Chart.defaults.color = '#7d8590';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        Chart.defaults.font.family = "'DM Sans', sans-serif";
+    }}
 
     // =====================================================================
     // UTILITIES
@@ -1245,6 +1268,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // SECTOR ALLOCATION CHART (portfolio vs SPX)
     // =====================================================================
     function renderSectorAlloc() {{
+        if (!HAS_CHART) {{
+            const target = document.getElementById('sector-alloc-chart');
+            if (target && target.parentElement) {{
+                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Portfolio table data is still available below.</div>';
+            }}
+            return;
+        }}
         const sc = D.portfolio.sector_counts;
         const total = D.portfolio.num_stocks;
         const allSectors = [...new Set([...Object.keys(sc), ...Object.keys(D.spx_weights)])].sort();
@@ -1282,6 +1312,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     let currentTrapType = 'vt';
 
     function renderTrapChart() {{
+        if (!HAS_CHART) {{
+            const target = document.getElementById('vt-chart');
+            if (target && target.parentElement) {{
+                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Trap rates are unavailable in chart form.</div>';
+            }}
+            return;
+        }}
         const dataSource = currentTrapType === 'gt' ? D.gt_by_sector : D.vt_by_sector;
         const labelText = currentTrapType === 'gt' ? 'Growth Trap Rate %' : 'Value Trap Rate %';
         const barColor = currentTrapType === 'gt' ? '#f0883e' : null;
@@ -1339,6 +1376,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }};
 
     function updateSectorDist() {{
+        if (!HAS_CHART) {{
+            const target = document.getElementById('sector-dist-chart');
+            if (target && target.parentElement) {{
+                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Sector distribution chart is unavailable.</div>';
+            }}
+            return;
+        }}
         const factor = document.getElementById('sector-dist-factor').value;
         const stat = currentSectorStat;
         const statLabel = stat === 'median' ? 'Median' : 'Average';
@@ -2964,18 +3008,28 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
     // INIT
     // =====================================================================
-    renderKPIs();
-    renderTop5();
-    renderPortfolio();
-    renderSectorAlloc();
-    renderTrapChart();
-    updateSectorDist();
-    setupFilters();
-    applyFilters();
-    renderDefensibility();
-    initChatWelcome();
-    loadChatSize();
-    initChatResize();
+    const hasCoreData = Array.isArray(D.table_data) && D.table_data.length > 0;
+    if (!hasCoreData) {{
+        const root = document.querySelector('.dashboard-container');
+        if (root) {{
+            root.insertAdjacentHTML('afterbegin',
+                '<div style="margin:12px 0;padding:12px;border:1px solid rgba(248,81,73,.35);border-radius:8px;background:rgba(248,81,73,.1);color:#ffb3ae">No screener data payload was loaded. Try a hard refresh (Ctrl+F5). If this persists, redeploy dashboard.html and dashboard_data.js together.</div>'
+            );
+        }}
+    }} else {{
+        renderKPIs();
+        renderTop5();
+        renderPortfolio();
+        renderSectorAlloc();
+        renderTrapChart();
+        updateSectorDist();
+        setupFilters();
+        applyFilters();
+        renderDefensibility();
+        initChatWelcome();
+        loadChatSize();
+        initChatResize();
+    }}
 
     // ---- Refresh button ----
     async function triggerRefresh() {{
@@ -5193,7 +5247,9 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     else:
         data_timestamp = ""
 
-    html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp)
+    data_version = hashlib.md5(data_json.encode("utf-8")).hexdigest()[:12]
+    html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp,
+                         data_version=data_version)
 
     output_path.write_text(html, encoding="utf-8")
     print(f"Dashboard generated: {output_path} ({output_path.stat().st_size / 1024:.0f} KB)")
