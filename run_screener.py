@@ -1767,7 +1767,7 @@ def write_excel_safe(df, port, port_stats, cfg, no_portfolio,
 # ---------------------------------------------------------------------------
 # Diagnostics printer
 # ---------------------------------------------------------------------------
-def print_full_summary(args, fe_stats, port_stats, dq_counts,
+def print_full_summary(args, cfg, fe_stats, port_stats, dq_counts,
                        excel_path, n_sheets, n_cache_files, total_time):
     # CLI flags string
     flags = []
@@ -2029,7 +2029,7 @@ def main():
     total_time = round(time.time() - t0, 1)
 
     # ---- 9. Print full diagnostics ----
-    print_full_summary(args, fe_stats, port_stats, dq_counts,
+    print_full_summary(args, cfg, fe_stats, port_stats, dq_counts,
                        excel_path, n_sheets, n_cache_files, total_time)
 
     # ---- 10. Save run metadata ----

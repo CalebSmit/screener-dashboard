@@ -2774,10 +2774,6 @@
 <li><strong>Auto-reduce (metric-level):</strong> If any individual metric has more than 70% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.</li>
 <li><strong>Metric-level alerts:</strong> A warning is printed if any metric has more than 50% missing data across the universe.</li>
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
-<li><strong>Financial statement staleness flag (120-day threshold):</strong> When a stock's most recent financial filing is more than 120 days old (~4 months, spanning the gap between two quarterly reporting windows), the stock is flagged with <code>_stale_data = True</code> and a warning is printed at run time. The count of stale tickers is reported in the run summary. Configurable via <code>data_quality.stale_data_threshold_days</code> in <code>config.yaml</code>.</li>
-<li><strong>ROIC invested-capital floor diagnostic:</strong> The ROIC formula floors invested capital at 10% of total assets to prevent denominator collapse for asset-light companies. Whenever this floor is applied, the stock receives <code>_roic_ic_floored = True</code>. This flag is visible in the DataValidation sheet (highlighted yellow) so analysts can verify that ROIC for cash-rich companies is not being distorted. If more than 10% of the universe hits the floor in a given run, a notice is printed to the console.</li>
-<li><strong>Analyst Revisions coverage table:</strong> After scoring, the pipeline prints a per-metric coverage summary for all five Revisions sub-metrics. The DataValidation Excel sheet also includes a "Data Coverage Summary" block with OK / LOW / CRITICAL status for each metric and the five most-missing metrics universe-wide.</li>
-<li><strong>High-correlation metric pair warnings:</strong> After computing the Spearman rank correlation matrix, any non-diagonal metric pair with |r| &gt; 0.70 is reported to the console at run time. Configurable via <code>data_quality.high_corr_alert_threshold</code>.</li>
 <li><strong>EV cross-validation:</strong> The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (<code>_ev_flag</code>). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).</li>
 <li><strong>LTM partial annualization tracking:</strong> When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with <code>_ltm_annualized = True</code> and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.</li>
 <li><strong>Channel-stuffing detection:</strong> Compares receivables growth vs. revenue growth. When receivables growth exceeds revenue growth by more than 15 percentage points, the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality.</li>
@@ -2813,11 +2809,7 @@
 <p>After scoring and ranking, the screener builds a <strong>model portfolio</strong> from the top-ranked stocks:</p>
 <ul>
 <li><strong>Number of holdings:</strong> Top 25 stocks (configurable)</li>
-<li><strong>Weighting:</strong> Four modes available via <code>portfolio.weighting</code> in <code>config.yaml</code>:</li>
-<li><code>equal</code> — every holding at 1/N</li>
-<li><code>inverse_vol</code> — tilts toward lower-volatility stocks (heuristic risk-parity)</li>
-<li><code>score</code> (default) — position size proportional to composite score</li>
-<li><code>markowitz</code> (experimental) — mean-variance optimisation minimising portfolio variance using a 252-day return covariance matrix, subject to sector concentration caps and per-position bounds. Requires <code>scipy</code>. Falls back automatically to score-weighted if scipy is unavailable, price history is insufficient (&lt;60 days), or the optimiser fails to converge.</li>
+<li><strong>Weighting:</strong> Risk-parity (inverse-volatility weighting — lower-volatility stocks get more weight)</li>
 <li><strong>Sector cap:</strong> Maximum 8 stocks from any single sector, to avoid overconcentration</li>
 <li><strong>Position limits:</strong> No single stock above 5.0%</li>
 <li><strong>Liquidity filter:</strong> Stocks with less than $10M average daily dollar volume (63-day average) are excluded from the portfolio. Stocks with missing volume data are also excluded (conservative default).</li>
@@ -2834,11 +2826,11 @@
 <h3>Sheet 3: Model Portfolio</h3>
 <p>The final portfolio with ticker, sector, composite score, position weights, and portfolio-level statistics (weighted average beta, dividend yield, sector allocation breakdown).</p>
 <h3>Sheet 4: DataValidation</h3>
-<p>The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights eight types of potential issues: EPS basis mismatches (GAAP vs. normalized), stale data (&gt;120 days old), EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), beta overlap warnings, and <strong>ROIC IC-floor flags</strong> (yellow highlight when the 10%-of-total-assets floor was applied to invested capital). Also includes a sector-median context table (25th/median/75th percentile for 8 key metrics) and a <strong>Data Coverage Summary</strong> block showing Analyst Revisions metric coverage with OK / LOW / CRITICAL status and the five most-missing metrics universe-wide.</p>
+<p>The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.</p>
 <h3>Sheet 5: Weight Sensitivity (when available)</h3>
 <p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 portfolio when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the portfolio is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
 <h3>Sheet 6: Factor Correlation (when available)</h3>
-<p>Spearman rank correlation matrix of all scored metrics (percentile-ranked) across the universe. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate factor overlap. In addition, any metric pair with |r| &gt; 0.70 is automatically reported to the console at run time — no need to open Excel to see which metrics are overlapping. The console warning threshold is configurable via <code>data_quality.high_corr_alert_threshold</code>.</p>
+<p>Spearman rank correlation matrix of all 8 category scores across the universe. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate factor overlap. Useful for understanding effective independent factor count.</p>
 <p>Additional outputs:
 - <strong>Parquet cache</strong> (<code>cache/factor_scores_&lt;hash&gt;_&lt;date&gt;.parquet</code>) — full scored dataset for programmatic access, tagged with a config hash for reproducibility.
 - <strong>Data quality log</strong> (<code>validation/data_quality_log.csv</code>) — every data issue encountered during the run.
@@ -3043,7 +3035,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-03-16 14:13 UTC</span>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-04-14 15:49 UTC</span>
         </footer>
     </div>
 
