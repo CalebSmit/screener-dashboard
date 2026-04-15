@@ -3049,9 +3049,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (!ping.ok) throw new Error('bad status');
         }} catch (e) {{
             alert(
-                'Refresh server is not running.\n\n' +
-                'Start it in a terminal with:\n' +
-                '  python refresh_server.py\n\n' +
+                'Refresh server is not running.\\n\\n' +
+                'Start it in a terminal with:\\n' +
+                '  python refresh_server.py\\n\\n' +
                 'Then try again. Keep the terminal open while it runs.'
             );
             return;
