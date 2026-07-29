@@ -1437,7 +1437,7 @@ def run_factor_engine(cfg, args, ctx=None):
         if high_pairs:
             print(f"  HIGH-CORRELATION METRIC PAIRS (|r| > {high_corr_threshold}):")
             for m1, m2, r in sorted(high_pairs, key=lambda x: -abs(x[2])):
-                print(f"    {m1} ↔ {m2:35s} r={r:+.2f}")
+                print(f"    {m1} <-> {m2:35s} r={r:+.2f}")
             print("    (See FactorCorrelation sheet for full matrix)")
         stats["high_corr_pairs"] = high_pairs
 

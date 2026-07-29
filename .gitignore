@@ -17,6 +17,9 @@ htmlcov/
 cache/
 runs/
 
+# Local SSL CA bundle (machine-specific, e.g. Avast/AV TLS interception root)
+.certs/
+
 # IDE
 .vscode/
 .idea/
