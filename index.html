@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=f95328815c3e"></script>
+    <script src="./dashboard_data.js?v=90babe64478e"></script>
     <style>
 
         /* ====================================================================
@@ -612,6 +612,15 @@
             border-top: 1px solid var(--border);
             margin-top: 8px;
         }
+        .footer-disclaimer {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 11px;
+            opacity: 0.85;
+            max-width: 900px;
+            line-height: 1.5;
+        }
+        .footer-disclaimer a { color: var(--accent, #4a9eff); }
 
         /* ---- MODAL ---- */
         .modal-overlay {
@@ -2334,7 +2343,7 @@
                         </div>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the composite score.</p>
+                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe.</p>
                                 <div id="contrib-visual"></div>
                                 <div class="contrib-total-row" id="contrib-total"></div>
                             </div>
@@ -2368,7 +2377,7 @@
 <hr />
 <h2>What Is This?</h2>
 <p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.</p>
-<p>Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not.</p>
+<p>Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 44 entries: 34 carry scoring weight today (30 generic + 4 bank-specific) plus 10 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
 <p>The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.</p>
 <hr />
 <h2>Where Does the Data Come From?</h2>
@@ -2818,7 +2827,7 @@
 <p>If a sector would exceed its cap, the excess stocks are dropped and replaced by the next-highest-ranked stocks from other sectors. Weights are redistributed proportionally.</p>
 <hr />
 <h2>What Gets Output</h2>
-<p>The screener produces an <strong>Excel workbook</strong> (<code>factor_output.xlsx</code>) with up to 6 sheets:</p>
+<p>The screener produces an <strong>Excel workbook</strong> (<code>factor_output.xlsx</code>) with up to 7 sheets (a ReadMe/Disclaimers sheet leads the workbook):</p>
 <h3>Sheet 1: Factor Scores</h3>
 <p>Every stock in the universe with all raw metrics, 8 category scores, the composite score, rank, value trap flag (with severity 0-100), growth trap flag (with severity 0-100), financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (<code>_data_source</code>), metric coverage count, and an EPS basis mismatch flag. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.</p>
 <h3>Sheet 2: Screener Dashboard</h3>
@@ -2981,7 +2990,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>Data source:</strong> All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade. Approximately 10-25% of tickers may fail to fetch on a given run due to Yahoo Finance rate limiting (HTTP 429).</p>
 </li>
 <li>
-<p><strong>GAAP vs. normalized EPS:</strong> Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the forward EPS growth metric may show misleading declines. The $1.00 denominator floor and [-75%, +150%] clamp mitigate extreme cases but don't fully solve this inherent data limitation.</p>
+<p><strong>GAAP vs. normalized EPS:</strong> Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (&gt;2x or &lt;0.3x — the signature of this contamination), <code>forward_eps_growth</code> is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.</p>
 </li>
 <li>
 <p><strong>Point-in-time:</strong> The screener uses the latest available financial data. It does not reconstruct what was known at a past date, which means backtests carry look-ahead bias for fundamental metrics.</p>
@@ -2994,6 +3003,15 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 </li>
 <li>
 <p><strong>Rebalance frequency:</strong> The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.</p>
+</li>
+<li>
+<p><strong>No covariance / correlation portfolio risk model:</strong> The default weighting uses single-name volatility only (<code>inverse_vol</code> / <code>score</code>); it does NOT account for cross-holding correlations. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.</p>
+</li>
+<li>
+<p><strong>Composite is cardinal; percentile is separate:</strong> The <code>Composite</code> column is the cardinal weighted-average of the 0-100 category scores (the ranking key, preserving magnitude/conviction). The <code>Composite_Pct</code> column is the universe percentile ("better than X% of stocks"). Do not read the cardinal Composite as a percentile.</p>
+</li>
+<li>
+<p><strong>Self-improving engine is governed &amp; human-approval-only by default:</strong> The engine can propose factor-weight changes from live IC, but auto-apply is OFF by default (<code>improvement.allow_auto_apply: false</code>) and, even when enabled, requires statistical significance (IC information ratio), the correct optimization horizon, an anti-drift cap, and FDR control on candidate-metric activation. All changes are logged with full provenance.</p>
 </li>
 <li>
 <p><strong>Not investment advice:</strong> This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.</p>
@@ -3013,7 +3031,7 @@ py run_screener.py
 # Skip portfolio construction (scoring only)
 py run_screener.py --no-portfolio
 
-# Output: factor_output.xlsx (up to 6 sheets)
+# Output: factor_output.xlsx (up to 7 sheets, incl. a ReadMe/Disclaimers sheet)
 
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
@@ -3035,7 +3053,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-07-28 20:08 UTC</span>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-07-29 00:02 UTC</span><br>
+            <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
         </footer>
     </div>
 
@@ -4594,7 +4613,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '## Scoring Methodology\n' +
             'The screener ranks stocks using 8 factor categories with these weights: ' + cats + '.\n' +
             'All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). Falls back to annual filings if quarterly data unavailable. Enterprise Value is cross-validated: if API-provided EV differs from computed (MC+Debt-Cash) by >10% (>25% for Financials, whose debt includes deposits), the computed value is used.\n' +
-            'Each stock is scored 0-100 on each category (sector-relative percentile ranking), then combined using the weights above into a Composite score (0-100). Higher = better.\n\n' +
+            'Each stock is scored 0-100 on each category (sector-relative percentile ranking), then combined using the weights above into a CARDINAL Composite score (0-100 weighted average; the ranking key, preserving magnitude/conviction). A separate Composite Percentile shows rank vs the universe. Higher = better.\n\n' +
             '### Category Definitions (metric weights from config):\n' +
             '- **Valuation** (' + (fw.valuation||'?') + '%): ' + fmtMetrics('valuation') + '. Banks use P/B + Earnings Yield (see bank weights).\n' +
             '- **Quality** (' + (fw.quality||'?') + '%): ' + fmtMetrics('quality') + '. Banks use ROE, ROA, Equity Ratio, Piotroski, Accruals.\n' +
@@ -4612,7 +4631,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\n' +
             '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\n' +
             '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\n' +
-            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics out of ~33), and `_metric_total`.\n' +
+            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The registry has 44 metrics (32 scored generic + 4 bank-specific + 8 candidate at weight 0).\n' +
             '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\n\n' +
             '## Web Search\n' +
             'You have access to real-time web search. Use it proactively when the user asks about:\n' +
