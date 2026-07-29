@@ -264,7 +264,7 @@ class RevisionsWeights(_MetricWeightBase):
     analyst_surprise: float = 38       # Backward-looking: did company beat estimates?
     price_target_upside: float = 12    # Forward-looking: analyst consensus upside
     earnings_acceleration: float = 20  # Most recent quarter surprise > prior quarter
-    consecutive_beat_streak: float = 20  # Count of consecutive positive surprises (0-4)
+    consecutive_beat_streak: float = 20  # Recency-weighted beat score (0-10); higher = better
     short_interest_ratio: float = 10   # Days to cover; lower = less bearish sentiment
     short_pct_float: float = 0    # Candidate: activated by improvement engine
     analyst_rating: float = 0     # Candidate: activated by improvement engine
@@ -309,8 +309,24 @@ class ImprovementConfig(BaseModel):
     shrinkage: float = Field(0.5, ge=0.0, le=1.0)
     max_change_per_cycle: float = Field(3.0, ge=0.5, le=10.0)
     max_metric_change_per_cycle: float = Field(5.0, ge=1.0, le=15.0)
-    regime_scale_factor: float = Field(0.10, ge=0.0, le=0.30)
+    regime_scale_factor: float = Field(0.0, ge=0.0, le=0.30)
     auto_apply_threshold: float = Field(2.0, ge=0.5, le=5.0)
+    # Governance guardrails (Phase 13 — hedge-fund review remediation)
+    # allow_auto_apply is a SEPARATE, governance-owned switch. Even when the
+    # engine is enabled, weights are NEVER auto-written unless this is True.
+    # Default False => human-approval-only mode (regulatory MRM norm).
+    allow_auto_apply: bool = False
+    # Auto-apply (and proposals) additionally require statistical significance,
+    # not just an observation count. IC information ratio must clear this.
+    min_ic_ir_for_auto_apply: float = Field(0.5, ge=0.0, le=3.0)
+    # Optimization horizon must match the rebalance cadence. If the target
+    # horizon has no IC data, the engine REFUSES to propose (no silent 1w fallback).
+    optimization_horizon: str = Field("1m", pattern="^(1w|1m|3m|6m|12m)$")
+    # Cumulative drift cap: total signed change per category across the trailing
+    # window may not exceed this (prevents monotonic ratcheting to a bound).
+    max_cumulative_change: float = Field(6.0, ge=1.0, le=20.0)
+    # Multiple-comparisons control for candidate-metric activation.
+    candidate_multiple_comparisons_correction: bool = True
     # Metric Evolution (Phase 11)
     min_observations_for_activation: int = Field(12, ge=4, le=52)
     min_observations_for_deactivation: int = Field(12, ge=4, le=52)

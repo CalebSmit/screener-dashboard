@@ -138,7 +138,15 @@ def construct_portfolio_markowitz(
     cfg: dict,
     price_returns: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Experimental Markowitz mean-variance optimized portfolio.
+    """Experimental MINIMUM-VARIANCE optimized portfolio.
+
+    NOTE (Phase 13, F23): this is a minimum-variance optimizer, NOT full
+    mean-variance Markowitz — it has no expected-return term, so it tilts toward
+    the lowest-volatility names and does not use the composite alpha. The
+    covariance is Ledoit-Wolf-shrunk toward a scaled identity for stability
+    (raw sample covariance on ~250×50 is ill-conditioned). Kept non-default and
+    experimental; on any convergence failure it falls back to greedy 'score' and
+    warns loudly.
 
     Minimises portfolio variance subject to:
       * Weights sum to 100%
@@ -200,7 +208,10 @@ def construct_portfolio_markowitz(
         warnings.warn("Markowitz: insufficient clean return rows; falling back to greedy.")
         return _greedy_select(df, cfg)
 
-    cov = R.cov().values  # n×n covariance matrix
+    # Phase 13 (F23): Ledoit-Wolf shrinkage — raw sample covariance on a
+    # ~250×50 panel is noisy/near-singular and yields unstable corner weights.
+    import portfolio_risk as _pr
+    cov = _pr._ledoit_wolf_shrink(R.cov().values)  # n×n shrunk covariance
     n = len(avail)
 
     # Sector constraints: build sector membership matrix
@@ -505,6 +516,23 @@ def construct_portfolio(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         wt_sum = port[wt_col].sum()
         if abs(wt_sum - 100.0) > 0.01:
             warnings.warn(f"[PORTFOLIO] {wt_col} weights sum to {wt_sum:.2f}%, expected 100%")
+        # Phase 13 (F24): the max-position cap is INFEASIBLE when the portfolio
+        # has too few names (100/n > cap forces every weight above the cap after
+        # renormalization). Detect and surface this instead of silently breaching.
+        n_pos = len(port)
+        if n_pos > 0 and (100.0 / n_pos) > cap + 1e-6:
+            warnings.warn(
+                f"[PORTFOLIO] max_position_pct={cap:.1f}% is INFEASIBLE for "
+                f"{n_pos} positions (equal weight would be {100.0/n_pos:.2f}%). "
+                f"Cap cannot be enforced; consider raising num_stocks or the cap."
+            )
+        else:
+            max_wt = float(port[wt_col].max())
+            if max_wt > cap + 0.05:  # allow rounding tolerance
+                warnings.warn(
+                    f"[PORTFOLIO] {wt_col} max position {max_wt:.2f}% exceeds "
+                    f"cap {cap:.1f}% after redistribution"
+                )
 
     # Rank within portfolio
     port = port.sort_values("Composite", ascending=False).reset_index(drop=True)
@@ -1420,6 +1448,29 @@ def print_summary(df, port, stats, capped_sectors, cfg, excel_path, t0):
     print("--------------------------------------------")
     print(f"Portfolio Beta:           {stats['avg_beta']:.2f}")
     print(f"Est. Dividend Yield:      {stats['est_div_yield']:.2f}%")
+
+    # Phase 13 (F11): turnover vs prior holdings
+    turn = stats.get("turnover")
+    if turn and turn.get("name_turnover") is not None:
+        print("--------------------------------------------")
+        print("TURNOVER vs PRIOR RUN:")
+        print(f"  Name turnover:          {turn['name_turnover']*100:.1f}%  "
+              f"(entered {len(turn.get('entered', []))}, exited {len(turn.get('exited', []))})")
+        if turn.get("est_roundtrip_cost_pct") is not None:
+            print(f"  Est. round-trip cost:   {turn['est_roundtrip_cost_pct']:.2f}%")
+
+    # Phase 13 (F10): ex-ante covariance-aware portfolio risk
+    rr = stats.get("risk_report")
+    if rr and rr.get("available"):
+        print("--------------------------------------------")
+        print("EX-ANTE PORTFOLIO RISK (Ledoit-Wolf cov):")
+        print(f"  Portfolio vol (annual): {rr['portfolio_vol_annual']*100:.1f}%")
+        print(f"  Wt-avg single-name vol: {rr['weighted_avg_single_vol']*100:.1f}%")
+        print(f"  Diversification ratio:  {rr['diversification_ratio']}")
+        if rr.get("top_correlations"):
+            tc = rr["top_correlations"][0]
+            print(f"  Highest pair corr:      {tc['a']}~{tc['b']} = {tc['corr']}")
+
     print("--------------------------------------------")
     print(f"Excel written:            {cfg['output']['excel_file']}")
     print(f"  Sheets: FactorScores, ScreenerDashboard, ModelPortfolio")

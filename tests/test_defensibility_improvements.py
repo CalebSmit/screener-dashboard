@@ -22,38 +22,45 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # Track 1: Data staleness threshold is config-driven
 # ---------------------------------------------------------------------------
 class TestStalenessThreshold:
-    def _make_raw(self, age_days: int) -> dict:
-        """Return minimal raw record with a financial filing *age_days* old."""
+    def _make_raw(self, ticker: str, age_days: int) -> dict:
+        """Return a FLAT raw record (schema compute_metrics reads) with a
+        financial filing *age_days* old."""
         filing_date = pd.Timestamp.now() - pd.Timedelta(days=age_days)
         return {
+            "Ticker": ticker,
+            "sector": "Technology",
             "_stmt_date_financials": str(filing_date.date()),
             "marketCap": 1e10,
             "enterpriseValue": 2e10,
         }
 
     def test_default_threshold_is_120(self):
-        """Without config override, stale flag triggers at 120 days."""
+        """Stale flag fires for a 130-day-old filing under the 120d default."""
         from factor_engine import compute_metrics
-        import pandas as pd
 
-        # Build a minimal raw_data list with one item > 120 days old
-        raw = [{"ticker": "TEST", "data": self._make_raw(130), "sector": "Technology"}]
-        # We only care that compute_metrics reads the threshold; calling with
-        # minimal data returns a DataFrame (possibly empty) without error.
-        cfg = {}
-        try:
-            df = compute_metrics(raw, pd.Series(dtype=float), cfg=cfg)
-        except Exception:
-            df = pd.DataFrame()
-        # The threshold default should come from config 120, not 200
-        from factor_engine import load_config
-        loaded = load_config()
-        threshold = loaded.get("data_quality", {}).get("stale_data_threshold_days", 120)
-        assert threshold == 120, f"Expected 120, got {threshold}"
+        # Phase 13 (F27): flat raw dict + assert the flag actually fires on
+        # computed output (prior version nested under "data"/"ticker" so the
+        # staleness path never ran and the test asserted nothing).
+        raw = [self._make_raw("TEST", 130)]
+        df = compute_metrics(raw, pd.Series(dtype=float), cfg={})
+        assert len(df) == 1
+        assert "_stmt_age_days" in df.columns
+        assert df["_stmt_age_days"].iloc[0] >= 130
+        assert "_stale_data" in df.columns, "expected _stale_data flag column"
+        assert bool(df["_stale_data"].iloc[0]) is True
 
     def test_config_override_threshold(self, tmp_path):
-        """Config stale_data_threshold_days is respected."""
-        import yaml
+        """A 100-day filing is stale at threshold 90 but fresh at 120."""
+        from factor_engine import compute_metrics
+        raw = [self._make_raw("OVR", 100)]
+        # threshold 90 -> stale
+        df90 = compute_metrics(raw, pd.Series(dtype=float),
+                               cfg={"data_quality": {"stale_data_threshold_days": 90}})
+        assert bool(df90.get("_stale_data", pd.Series([False])).iloc[0]) is True
+        # threshold 120 -> not flagged (column may be absent or False)
+        df120 = compute_metrics(raw, pd.Series(dtype=float),
+                                cfg={"data_quality": {"stale_data_threshold_days": 120}})
+        assert bool(df120.get("_stale_data", pd.Series([False])).iloc[0]) is False
         cfg = {"data_quality": {"stale_data_threshold_days": 90}}
         threshold = cfg.get("data_quality", {}).get("stale_data_threshold_days", 120)
         assert threshold == 90
@@ -81,23 +88,26 @@ class TestRoicIcFloor:
         """_roic_ic_floored=True when computed IC < 10% of total assets."""
         from factor_engine import compute_metrics
 
-        # Design: equity=$1B, debt=$0, cash=$0.95B → excess_cash≈0.93B
-        # ic = 1B - 0.93B = 0.07B; TA = 5B; 10%*TA = 0.5B → floor triggered
-        raw_data = [{"ticker": "CASH_RICH", "sector": "Technology", "data": {
-            **self._make_df_with_roic(
-                eq=1e9, debt=0, cash=0.95e9, ta=5e9, ebit=0.3e9
-            ),
-            "marketCap": 10e9,
-            "enterpriseValue": 10e9,
-        }}]
-        try:
-            df = compute_metrics(raw_data, pd.Series(dtype=float), cfg={})
-            if "_roic_ic_floored" in df.columns:
-                # Floor should have been applied
-                floored_vals = df["_roic_ic_floored"].tolist()
-                assert True in floored_vals or False in floored_vals
-        except Exception:
-            pass  # Integration detail; main check is the flag field exists
+        # Phase 13 (F27): use the FLAT raw-dict schema that compute_metrics
+        # actually reads (the prior fixture nested data under "data" and used
+        # lowercase "ticker", so the ROIC path never ran and the test swallowed
+        # the resulting error — it asserted nothing).
+        # Design: equity=$1B, debt=$0, cash=$0.95B, rev=$1B → operating_cash=$0.02B,
+        # excess_cash=min($0.93B, 0.5*$0.95B=$0.475B)=$0.475B; ic=1B-0.475B=$0.525B.
+        # 10%*TA = 0.1*$5B = $0.5B; $0.525B > $0.5B so NOT floored here — so make
+        # TA larger to force the floor: TA=$6B → 10%*TA=$0.6B > $0.525B → floored.
+        raw_data = [{
+            "Ticker": "CASH_RICH", "sector": "Technology",
+            "marketCap": 10e9, "enterpriseValue": 10e9,
+            "ebit": 0.3e9, "pretaxIncome": 0.3e9, "incomeTaxExpense": 0.063e9,
+            "totalEquity": 1e9, "totalDebt_bs": 0.0, "cash_bs": 0.95e9,
+            "totalAssets": 6e9, "totalRevenue": 1e9,
+        }]
+        df = compute_metrics(raw_data, pd.Series(dtype=float), cfg={})
+        assert "_roic_ic_floored" in df.columns, "expected _roic_ic_floored flag column"
+        row = df[df["Ticker"] == "CASH_RICH"]
+        assert len(row) == 1
+        assert bool(row["_roic_ic_floored"].iloc[0]) is True
 
     def test_floor_not_applied_normal_ic(self):
         """_roic_ic_floored=False for a company with substantial invested capital."""

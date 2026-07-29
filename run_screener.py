@@ -25,7 +25,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-warnings.filterwarnings("ignore")
+# Phase 13 (F15): targeted suppression only — keep the screener's own
+# schema-drift / staleness UserWarnings visible.
+warnings.simplefilter("default")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", message=".*urllib3.*")
 
 from run_context import RunContext
 
@@ -1258,9 +1264,15 @@ def run_factor_engine(cfg, args, ctx=None):
     _auto_reduce_high_nan_metrics(df, cfg, pipeline_log=pipeline_log)
 
     # ---- Scoring pipeline ----
+    # Phase 13 (F34): honor config winsorize_percentiles (was hardcoded 1/99,
+    # making the config key dead). Percentiles are given as [lo_pct, hi_pct]
+    # (e.g. [1, 99]); winsorize_metrics expects fractional tail sizes.
+    _win = cfg.get("data_quality", {}).get("winsorize_percentiles", [1, 99])
+    _win_lo = _win[0] / 100.0
+    _win_hi = (100 - _win[1]) / 100.0
     score_t0 = time.time()
-    print("Winsorizing at 1st / 99th percentiles...")
-    df = winsorize_metrics(df, 0.01, 0.01)
+    print(f"Winsorizing at {_win[0]}th / {_win[1]}th percentiles...")
+    df = winsorize_metrics(df, _win_lo, _win_hi)
 
     # Log winsorized outliers
     for col in METRIC_COLS:
@@ -1726,7 +1738,66 @@ def run_portfolio_construction(df, cfg):
     sec_cts = port["Sector"].value_counts()
     stats["capped_sectors"] = [s for s, c in sec_cts.items() if c >= max_sec]
 
+    # --- Phase 13 (F11): turnover vs prior holdings (reporting only) --------
+    try:
+        stats["turnover"] = _compute_live_turnover(port, cfg)
+    except Exception as e:
+        warnings.warn(f"Turnover report failed: {type(e).__name__}: {e}")
+        stats["turnover"] = None
+
+    # --- Phase 13 (F10): ex-ante covariance-aware portfolio risk (reporting) -
+    try:
+        import portfolio_risk as pr
+        wt_col = _portfolio_weight_col(port, cfg)
+        port_tickers = port["Ticker"].tolist()
+        weights = dict(zip(port_tickers, pd.to_numeric(port[wt_col], errors="coerce") / 100.0))
+        # Reuse Markowitz returns if already fetched, else fetch for the top-N.
+        pr_returns = cfg.get("portfolio", {}).get("_price_returns_df")
+        if pr_returns is None or pr_returns.empty:
+            pr_returns = _fetch_price_returns(port_tickers, days=252)
+        stats["risk_report"] = pr.compute_covariance_risk(port_tickers, weights, pr_returns)
+    except Exception as e:
+        warnings.warn(f"Covariance risk report failed: {type(e).__name__}: {e}")
+        stats["risk_report"] = {"available": False, "reason": str(e)}
+
     return port, stats
+
+
+def _portfolio_weight_col(port, cfg) -> str:
+    """Return the active weight column name for the configured scheme."""
+    scheme = cfg.get("portfolio", {}).get("weighting", "equal")
+    if scheme in ("risk_parity", "inverse_vol") and "InvVol_Weight_Pct" in port.columns:
+        return "InvVol_Weight_Pct"
+    if scheme == "score" and "Score_Weight_Pct" in port.columns:
+        return "Score_Weight_Pct"
+    return "Equal_Weight_Pct" if "Equal_Weight_Pct" in port.columns else port.columns[-1]
+
+
+def _compute_live_turnover(port, cfg) -> dict | None:
+    """Compute turnover vs the most recent PRIOR portfolio snapshot (F11)."""
+    import portfolio_risk as pr
+    from improvement_engine import SNAPSHOTS_DIR
+    snaps = sorted(SNAPSHOTS_DIR.glob("*.parquet")) if SNAPSHOTS_DIR.exists() else []
+    if not snaps:
+        return {"name_turnover": None, "note": "no prior snapshot to compare"}
+    # Most recent prior snapshot that has portfolio membership
+    prior_tickers = []
+    for snap_path in reversed(snaps):
+        try:
+            snap = pd.read_parquet(snap_path)
+        except (OSError, ValueError):
+            continue
+        if "in_portfolio" in snap.columns:
+            prior_tickers = snap.loc[snap["in_portfolio"] == True, "Ticker"].tolist()
+            if prior_tickers:
+                break
+    if not prior_tickers:
+        return {"name_turnover": None, "note": "no prior portfolio membership found"}
+    cur_tickers = port["Ticker"].tolist()
+    res = pr.compute_turnover(cur_tickers, None, prior_tickers, None)
+    cost_bps = cfg.get("backtesting", {}).get("transaction_cost_bps", 10)
+    res["est_roundtrip_cost_pct"] = pr.estimate_turnover_cost(res["name_turnover"], cost_bps)
+    return res
 
 
 # ---------------------------------------------------------------------------
@@ -2084,12 +2155,18 @@ def main():
 
 
     # ---- 13. Improvement tracking snapshot ----
-    try:
-        from improvement_engine import record_run_snapshot
-        record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg)
-        print("  Improvement snapshot recorded")
-    except Exception as e:
-        print(f"  WARNING: Improvement tracking failed: {e}")
+    # Phase 13 governance: honor the improvement.enabled kill switch. When the
+    # engine is disabled, we record NOTHING (no snapshot, no dispersion) so an
+    # operator who sets `enabled: false` genuinely turns the engine off.
+    if cfg.get("improvement", {}).get("enabled", True):
+        try:
+            from improvement_engine import record_run_snapshot
+            record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg)
+            print("  Improvement snapshot recorded")
+        except Exception as e:
+            print(f"  WARNING: Improvement tracking failed: {e}")
+    else:
+        print("  Improvement engine disabled (improvement.enabled=false) — snapshot skipped")
 
 
 if __name__ == "__main__":

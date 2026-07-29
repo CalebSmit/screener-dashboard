@@ -1,3 +1,7 @@
+> **⚠️ SUPERSEDED (as of 2026-07-28):** This report describes the pre-2026-02 17-metric / 6-category build. The current model has 8 categories and 44 metrics in METRIC_COLS. See SCREENER_OVERVIEW.md (canonical) and HEDGE_FUND_REVIEW_FINDINGS.md (latest review). Retained for historical reference only.
+>
+> **Correction:** This report describes the final Composite as min-max scaling. That is incorrect for the current code — the Composite is a percentile-rank transform (`rank(pct=True) * 100`), not min-max scaling.
+
 # FORENSIC AUDIT REPORT — Multi-Factor Stock Screener
 **Date:** 2026-02-17
 **Auditor:** Claude (automated code forensics)

@@ -244,7 +244,7 @@ To achieve point-in-time safety, the system would need:
 ## 5. Scoring Methodology
 
 ### 5.1 Pipeline Steps (in order)
-1. **Compute raw metrics** (32 generic + 4 bank-specific = 36 total metrics from yfinance data; 30 generic carry non-zero weight)
+1. **Compute raw metrics** — the `METRIC_COLS` registry has **44 entries**: 32 scored generic + 4 bank-specific + 8 candidate metrics at weight 0 (pre-implemented but inactive until the self-improvement engine activates them). Non-bank stocks use the 32 generic metrics; bank-like stocks swap in the 4 bank-specific ones (P/B, ROE, ROA, Equity Ratio).
 2. **Winsorize** at 1st/99th percentiles per metric (universe-wide)
 3. **Sector-relative percentile rank** per metric (within each GICS Sector)
 4. **Weighted category scores** = Σ(metric_pct × metric_weight) per category

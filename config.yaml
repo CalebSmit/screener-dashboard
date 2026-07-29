@@ -73,7 +73,7 @@ metric_weights:
     analyst_surprise: 38       # Backward-looking: did company beat estimates?
     price_target_upside: 12   # Forward-looking: analyst consensus upside; reduced (sell-side optimism bias)
     earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise %
-    consecutive_beat_streak: 20  # Count of consecutive positive surprises (0-4)
+    consecutive_beat_streak: 20  # Recency-weighted beat score (0-10); higher = more/recent beats
     short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
     short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
     analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
@@ -145,7 +145,7 @@ percentile_transform:
 # Sector Neutrality
 sector_neutral:
   enabled: true
-  gics_level: 'Sector'  # Currently only 'Sector' is supported
+  gics_level: 'Sector'  # NOT ENFORCED (Phase 13/F38): sector grouping is hardwired to the 'Sector' column; this key is descriptive only (Industry-level neutrality not implemented).
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
 # Value Trap Filters
@@ -240,8 +240,14 @@ improvement:
   shrinkage: 0.5                        # Shrinkage toward current weights (0=pure IC, 1=no change)
   max_change_per_cycle: 3.0            # Max ±% change per category per improvement cycle
   max_metric_change_per_cycle: 5.0     # Max ±% change per metric per improvement cycle
-  regime_scale_factor: 0.10            # Dispersion regime adjustment magnitude
-  auto_apply_threshold: 2.0            # Auto-apply if all changes ≤ this % (medium+ confidence)
+  regime_scale_factor: 0.0             # Dispersion regime adjustment magnitude (0 = OFF until validated; Phase 13)
+  auto_apply_threshold: 2.0            # Auto-apply if all changes ≤ this % (AND significance gates below)
+  # --- Governance guardrails (Phase 13 — hedge-fund review remediation) ---
+  allow_auto_apply: false              # HARD kill switch: weights NEVER auto-written unless true (human-approval-only by default)
+  min_ic_ir_for_auto_apply: 0.5        # Require IC information ratio >= this (statistical significance, not just obs count)
+  optimization_horizon: '1m'           # Optimize on this horizon; REFUSE to propose if it has no data (no silent 1w fallback)
+  max_cumulative_change: 6.0           # Max total signed % change per category across trailing window (anti-drift)
+  candidate_multiple_comparisons_correction: true  # Benjamini-Hochberg FDR control across candidate metrics
   # Metric Evolution (Phase 11)
   min_observations_for_activation: 12   # Consecutive positive IC observations to propose activation
   min_observations_for_deactivation: 12 # Consecutive non-positive IC observations to propose removal
@@ -260,6 +266,6 @@ output:
 backtesting:
   start_date: '2015-01-01'
   end_date: '2025-12-31'
-  rebalance_frequency: 'monthly'
+  rebalance_frequency: 'monthly'  # NOT ENFORCED (Phase 13/F38): backtest rebalances monthly by construction; this key is descriptive only. Live portfolio rebalancing is manual/quarterly (see portfolio section).
   transaction_cost_bps: 10  # 10 bps per one-way trade
   initial_capital: 1000000  # $1M

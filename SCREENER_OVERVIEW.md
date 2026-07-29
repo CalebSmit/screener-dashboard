@@ -6,9 +6,15 @@
 
 ## What Is This?
 
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
+This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across a battery of financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
 
-Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not.
+The full metric registry (`METRIC_COLS` in `factor_engine.py`) has **44 entries**, broken down as:
+
+- **32 scored generic metrics** — carry non-zero weight and apply to most (non-bank) stocks.
+- **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — used in place of certain generic metrics for financial companies (banks, insurers, credit companies).
+- **8 candidate metrics at weight 0** — pre-implemented but inactive, which the self-improvement engine may activate over time based on live information-coefficient evidence (see Phase 11).
+
+Not every stock sees every metric. Bank-like stocks swap the generic valuation/quality metrics for the 4 bank-specific ones, so any individual stock is scored on roughly 30-32 active metrics — the set just differs depending on whether the company is a bank or not. The 8 candidate metrics contribute nothing to the score until activated.
 
 The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.
 
@@ -456,6 +462,10 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 7. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
 
+8. **No covariance/correlation portfolio risk model** — the default weighting uses single-name volatility only; portfolio risk may be understated for correlated holdings.
+
+9. **Environment / TLS interception:** On machines with TLS interception (e.g. Avast), set `CURL_CA_BUNDLE` to `.certs/combined_ca.pem` before any run — yfinance 0.2.66 uses curl_cffi which honors `CURL_CA_BUNDLE`; the other SSL env vars do not affect the data path under Python 3.13.
+
 ---
 
 ## Quick Start
@@ -487,7 +497,7 @@ The screener answers one question: **"Which S&P 500 stocks look best when measur
 
 It does this by:
 1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing up to 34 financial metrics across 8 categories (30 generic + 4 bank-specific, depending on company type)
+2. Computing financial metrics across 8 categories from a 44-entry registry (32 scored generic + 4 bank-specific + 8 candidate metrics at weight 0), applying the generic or bank set depending on company type
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)

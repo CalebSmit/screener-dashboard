@@ -33,7 +33,16 @@ import yaml
 from scipy.stats import mstats
 from openpyxl import Workbook
 
-warnings.filterwarnings("ignore")
+# Phase 13 (F15): do NOT blanket-suppress warnings. A bare
+# filterwarnings("ignore") silenced the screener's OWN schema-drift and
+# staleness alerts (_stmt_val label misses, _stale_data), so a yfinance schema
+# change would silently NaN metrics with no signal to the operator. Instead we
+# suppress only the noisy third-party categories and let our UserWarnings pass.
+warnings.simplefilter("default")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", message=".*urllib3.*")
 
 # =========================================================================
 # A. Load configuration
@@ -1172,6 +1181,20 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
             "short_interest_ratio": round(tn(3.0, 2.5, low=0.1, high=15.0), 2) if rng.random() < 0.70 else np.nan,
             "asset_growth": round(rng.normal(0.08, 0.15), 4),
             "avg_daily_dollar_volume": round(rng.lognormal(np.log(50e6), 1.0), 0),
+            # Phase 13 (F26): fill remaining METRIC_COLS so the offline sample
+            # path scores the SAME factor set as the live path (was 39 cols).
+            "sortino_ratio": round((mom_12_1 - risk_free_rate) / max(vol * 0.7, 0.05), 2),
+            "max_drawdown_1y": round(-abs(tn(0.20, 0.12, low=0.02, high=0.80)), 4),
+            "beneish_m_score": round(tn(-2.4, 0.6, low=-4.0, high=1.0), 2),
+            # Candidate metrics (weight 0 by default; improvement engine may activate)
+            "proximity_52w_high": round(tn(0.85, 0.12, low=0.3, high=1.0), 4),
+            "operating_margin": round(tn(0.15, 0.10, low=-0.2, high=0.5), 4),
+            "current_ratio": round(tn(1.8, 0.7, low=0.3, high=5.0), 2),
+            "dividend_yield": round(max(0.0, tn(0.018, 0.015)), 4),
+            "insider_ownership": round(max(0.0, tn(0.03, 0.05, high=0.4)), 4),
+            "short_pct_float": round(max(0.0, tn(0.03, 0.03, high=0.30)), 4),
+            "analyst_rating": round(tn(2.3, 0.6, low=1.0, high=5.0), 2),
+            "interest_coverage": round(tn(8.0, 6.0, low=-2.0, high=40.0), 2),
         }
 
         # Bank-specific metrics for Financials sector
@@ -1189,6 +1212,10 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
             rec["debt_equity"] = np.nan
             rec["net_debt_to_ebitda"] = np.nan  # Banks: skip
             rec["operating_leverage"] = np.nan   # Banks: skip
+            rec["beneish_m_score"] = np.nan      # Banks excluded from Beneish
+            rec["operating_margin"] = np.nan     # Candidate; non-bank only
+            rec["interest_coverage"] = np.nan    # Candidate; non-bank only
+            rec["current_ratio"] = np.nan        # Candidate; non-bank only
         else:
             rec["_is_bank_like"] = False
             rec["pb_ratio"] = np.nan
@@ -2324,8 +2351,9 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
                         hist_vols.append(float(row["momentum_vol"]))
                     except (ValueError, KeyError):
                         pass
-        except Exception:
-            pass
+        except (OSError, csv.Error) as e:
+            warnings.warn(f"[MOM-VOL] Could not read vol history {hist_path}: "
+                          f"{type(e).__name__}: {e}")
 
     # Append current run
     write_header = not os.path.exists(hist_path) or os.path.getsize(hist_path) == 0
@@ -2335,8 +2363,9 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
             if write_header:
                 writer.writerow(["date", "momentum_vol"])
             writer.writerow([date.today().isoformat(), f"{current_vol:.4f}"])
-    except Exception:
-        pass
+    except OSError as e:
+        warnings.warn(f"[MOM-VOL] Could not append vol history {hist_path}: "
+                      f"{type(e).__name__}: {e}")
 
     # Need >= 20 historical observations to establish regime thresholds
     if len(hist_vols) < 20:
@@ -3056,11 +3085,27 @@ def main():
         skipped_tickers = df.loc[skip_mask, "Ticker"].tolist()
         df = df[~skip_mask].copy()
 
-        # Coverage filter
+        # Coverage filter — Phase 13 (F41): count only metrics applicable to
+        # each stock type. Bank-only metrics are structurally NaN for non-banks
+        # (and vice versa); including them in the denominator penalized banks in
+        # this legacy path, diverging from the corrected run_screener.py filter.
         present = [c for c in METRIC_COLS if c in df.columns]
-        df["_mc"] = df[present].notna().sum(axis=1)
-        min_m = int(len(present) * cfg["data_quality"]["min_data_coverage_pct"] / 100)
-        low = df["_mc"] < min_m
+        is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
+        applicable_count = pd.Series(0, index=df.index)
+        metric_count = pd.Series(0, index=df.index)
+        for c in present:
+            if c in _BANK_ONLY_METRICS:
+                applies = is_bank
+            elif c in _NONBANK_ONLY_METRICS:
+                applies = ~is_bank
+            else:
+                applies = pd.Series(True, index=df.index)
+            applicable_count += applies.astype(int)
+            metric_count += (df[c].notna() & applies).astype(int)
+        coverage_pct = cfg["data_quality"]["min_data_coverage_pct"] / 100
+        df["_mc"] = metric_count
+        min_needed = (applicable_count * coverage_pct).apply(lambda x: max(1, int(x)))
+        low = df["_mc"] < min_needed
         skipped_tickers += df.loc[low, "Ticker"].tolist()
         df = df[~low].copy()
 

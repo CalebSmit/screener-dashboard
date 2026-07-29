@@ -20,6 +20,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -236,8 +237,8 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         try:
             existing = pd.read_csv(PERFORMANCE_HISTORY_PATH)
             existing_dates = set(existing["run_date"].unique())
-        except Exception:
-            pass
+        except (OSError, pd.errors.ParserError, KeyError) as e:
+            warnings.warn(f"Could not read performance history: {type(e).__name__}: {e}")
 
     new_rows = []
     for snap_path in snapshot_files:
@@ -260,7 +261,8 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         # Load snapshot
         try:
             snap = pd.read_parquet(snap_path)
-        except Exception:
+        except (OSError, ValueError) as e:
+            warnings.warn(f"Could not read snapshot {snap_path.name}: {type(e).__name__}: {e}")
             continue
 
         tickers = snap["Ticker"].dropna().unique().tolist()
@@ -568,22 +570,40 @@ def compute_live_ic(horizon: str = "1m") -> pd.DataFrame | None:
 def analyze_ic_trends(
     lookback_months: int = 12,
     ewm_halflife: int = 6,
+    horizon: str = "1m",
+    allow_horizon_fallback: bool = False,
 ) -> dict:
     """Analyze IC trends across categories.
 
     Returns dict per category with: mean_ic, ewm_ic, trend, ic_ir, pct_positive.
     Returns empty dict with _warning if insufficient data.
+
+    Phase 13 governance: ``horizon`` selects the IC series to analyze and MUST
+    match the rebalance cadence. By default we do NOT silently fall back to a
+    shorter horizon (a 1-week signal must never optimize a monthly strategy).
+    Set ``allow_horizon_fallback=True`` only for exploratory/reporting use.
     """
     if not LIVE_IC_HISTORY_PATH.exists():
         return {"_warning": "No live IC history available. Run more screener cycles."}
 
     ic_df = pd.read_csv(LIVE_IC_HISTORY_PATH)
-    # Use 1m horizon by default; fall back to 1w if no 1m data
-    ic_1m = ic_df[ic_df["horizon"] == "1m"].sort_values("run_date")
-    horizon_used = "1m"
+    ic_1m = ic_df[ic_df["horizon"] == horizon].sort_values("run_date")
+    horizon_used = horizon
     if len(ic_1m) == 0:
-        ic_1m = ic_df[ic_df["horizon"] == "1w"].sort_values("run_date")
-        horizon_used = "1w"
+        if allow_horizon_fallback:
+            ic_1m = ic_df[ic_df["horizon"] == "1w"].sort_values("run_date")
+            horizon_used = "1w"
+        else:
+            return {
+                "_warning": (
+                    f"No IC observations at target horizon '{horizon}'. "
+                    f"Refusing to fall back to a shorter horizon for weight "
+                    f"optimization (Phase 13 governance). Keep running the "
+                    f"screener until {horizon} forward returns mature."
+                ),
+                "_n_observations": 0,
+                "_horizon_used": None,
+            }
 
     n_obs = len(ic_1m)
     if n_obs < 6:
@@ -593,7 +613,7 @@ def analyze_ic_trends(
             "_n_observations": n_obs,
         }
 
-    result = {"_n_observations": n_obs}
+    result = {"_n_observations": n_obs, "_horizon_used": horizon_used}
 
     for cat in CATEGORY_NAMES:
         ic_col = f"{cat}_ic"
@@ -851,6 +871,30 @@ def _load_current_config() -> dict:
         return yaml.safe_load(f)
 
 
+def _get_governance_config() -> dict:
+    """Load the improvement-engine governance guardrails (Phase 13).
+
+    Reads the ``improvement:`` config block and returns the governance-relevant
+    knobs with safe, conservative defaults. Defaults are chosen so that a config
+    silent on these keys behaves in the *safest* way (auto-apply OFF).
+    """
+    try:
+        cfg = _load_current_config()
+    except (FileNotFoundError, OSError):
+        cfg = {}
+    imp = (cfg or {}).get("improvement", {}) or {}
+    return {
+        "enabled": bool(imp.get("enabled", True)),
+        "allow_auto_apply": bool(imp.get("allow_auto_apply", False)),
+        "min_ic_ir_for_auto_apply": float(imp.get("min_ic_ir_for_auto_apply", 0.5)),
+        "optimization_horizon": str(imp.get("optimization_horizon", "1m")),
+        "max_cumulative_change": float(imp.get("max_cumulative_change", 6.0)),
+        "candidate_mcc": bool(imp.get("candidate_multiple_comparisons_correction", True)),
+        "auto_apply_threshold": float(imp.get("auto_apply_threshold", AUTO_APPLY_THRESHOLD)),
+        "min_observations_for_proposal": int(imp.get("min_observations_for_proposal", 8)),
+    }
+
+
 def _get_current_factor_weights() -> dict[str, float]:
     """Extract current category weights from config."""
     cfg = _load_current_config()
@@ -950,7 +994,12 @@ def propose_weight_changes(
     Returns dict with: current_weights, proposed_weights, changes,
     rationale, confidence, n_observations, can_auto_apply.
     """
-    trends = analyze_ic_trends(ewm_halflife=ewm_halflife)
+    gov = _get_governance_config()
+    trends = analyze_ic_trends(
+        ewm_halflife=ewm_halflife,
+        horizon=gov["optimization_horizon"],
+        allow_horizon_fallback=False,
+    )
 
     n_obs = trends.get("_n_observations", 0)
     if "_warning" in trends and n_obs < min_observations:
@@ -959,6 +1008,7 @@ def propose_weight_changes(
             "message": trends["_warning"],
             "n_observations": n_obs,
             "min_required": min_observations,
+            "horizon_used": trends.get("_horizon_used"),
         }
 
     current = _get_current_factor_weights()
@@ -1002,7 +1052,7 @@ def propose_weight_changes(
         else:
             rationale[cat] = "Insufficient data for this category"
 
-    # Confidence level
+    # Confidence level (observation-count bucket — necessary but NOT sufficient)
     if n_obs >= 50:
         confidence = "high"
     elif n_obs >= 24:
@@ -1010,12 +1060,52 @@ def propose_weight_changes(
     else:
         confidence = "low"
 
-    # Auto-apply eligibility
+    # --- Phase 13 governance: statistical-significance gate ---------------
+    # Auto-apply requires the COMPOSITE IC information ratio to clear a floor,
+    # not merely an observation count. This blocks re-weighting on noise.
+    min_ir = gov["min_ic_ir_for_auto_apply"]
+    composite_ir = None
+    comp_info = trends.get("composite", {})
+    if isinstance(comp_info, dict):
+        composite_ir = comp_info.get("ic_ir")
+    # Fall back to the mean of per-category IRs if no composite row exists.
+    if composite_ir is None:
+        cat_irs = [
+            trends[c].get("ic_ir", 0.0)
+            for c in CATEGORY_NAMES
+            if isinstance(trends.get(c), dict)
+        ]
+        composite_ir = float(np.mean(cat_irs)) if cat_irs else 0.0
+    significance_ok = abs(composite_ir) >= min_ir
+
+    # Auto-apply eligibility — ALL of:
+    #   1. governance switch allow_auto_apply is True (default False = human-only)
+    #   2. observation-count confidence is medium+
+    #   3. IC information ratio clears the significance floor
+    #   4. no single change exceeds the auto-apply magnitude threshold
     max_abs_change = max(abs(v) for v in changes.values())
+    auto_apply_threshold = gov["auto_apply_threshold"]
     can_auto_apply = (
-        confidence in ("medium", "high")
-        and max_abs_change <= AUTO_APPLY_THRESHOLD
+        gov["allow_auto_apply"]
+        and confidence in ("medium", "high")
+        and significance_ok
+        and max_abs_change <= auto_apply_threshold
     )
+
+    # Human-readable reason auto-apply is blocked (transparency for the report)
+    auto_apply_block_reason = None
+    if not gov["allow_auto_apply"]:
+        auto_apply_block_reason = "allow_auto_apply is False (human-approval-only mode)"
+    elif confidence not in ("medium", "high"):
+        auto_apply_block_reason = f"confidence '{confidence}' (need >=24 observations)"
+    elif not significance_ok:
+        auto_apply_block_reason = (
+            f"IC IR {composite_ir:.2f} < {min_ir:.2f} significance floor"
+        )
+    elif max_abs_change > auto_apply_threshold:
+        auto_apply_block_reason = (
+            f"max change {max_abs_change:.1f}% > {auto_apply_threshold:.1f}% threshold"
+        )
 
     return {
         "status": "proposal_ready",
@@ -1025,7 +1115,11 @@ def propose_weight_changes(
         "rationale": rationale,
         "confidence": confidence,
         "n_observations": n_obs,
+        "horizon_used": trends.get("_horizon_used"),
+        "composite_ic_ir": round(composite_ir, 3),
+        "significance_ok": significance_ok,
         "can_auto_apply": can_auto_apply,
+        "auto_apply_block_reason": auto_apply_block_reason,
         "max_abs_change": round(max_abs_change, 1),
         "ewm_ics": {cat: round(v, 4) for cat, v in ewm_ics.items()},
     }
@@ -1227,6 +1321,40 @@ CANDIDATE_METRICS = {
 }
 
 
+def _benjamini_hochberg_pass(pvals: dict[str, float], alpha: float = 0.10) -> set[str]:
+    """Benjamini-Hochberg FDR control (Phase 13, F7).
+
+    Given a mapping of candidate -> one-sided p-value, returns the set of
+    candidates that pass at false-discovery-rate ``alpha``. Testing 8 candidate
+    metrics simultaneously against a low IC bar is a multiple-comparisons trap;
+    BH bounds the expected proportion of false activations.
+    """
+    if not pvals:
+        return set()
+    items = sorted(pvals.items(), key=lambda kv: kv[1])
+    m = len(items)
+    passed: set[str] = set()
+    max_k = 0
+    for k, (_name, p) in enumerate(items, start=1):
+        if p <= (k / m) * alpha:
+            max_k = k
+    for k, (name, _p) in enumerate(items, start=1):
+        if k <= max_k:
+            passed.add(name)
+    return passed
+
+
+def _ir_to_one_sided_pvalue(ic_ir: float, n_obs: int) -> float:
+    """Approximate one-sided p-value that mean IC > 0 from the IC information
+    ratio and observation count. IR ~ t-statistic / sqrt(n); t = IR * sqrt(n)."""
+    import math
+    if n_obs is None or n_obs < 2:
+        return 1.0
+    t = float(ic_ir) * math.sqrt(n_obs)
+    # Normal approximation to the one-sided upper-tail probability.
+    return 0.5 * math.erfc(t / math.sqrt(2.0))
+
+
 def propose_metric_evolution(
     min_observations: int = 12,
     ewm_halflife: int = 6,
@@ -1323,6 +1451,23 @@ def propose_metric_evolution(
                             f"non-positive observations. Proposing weight reduction."
                         ),
                     })
+
+    # --- Phase 13 (F7): multiple-comparisons control across candidates -----
+    # 8 candidates are screened simultaneously; without FDR control the chance
+    # that at least one clears the bar by luck is far above the nominal rate.
+    mcc_on = imp_cfg.get("candidate_multiple_comparisons_correction", True)
+    if mcc_on and activate_proposals:
+        pvals = {}
+        for p in activate_proposals:
+            info = trends.get(p["metric"], {})
+            pvals[p["metric"]] = _ir_to_one_sided_pvalue(
+                info.get("ic_ir", 0.0), info.get("n_observations", 0)
+            )
+        survivors = _benjamini_hochberg_pass(pvals, alpha=0.10)
+        for p in activate_proposals:
+            p["bh_pvalue"] = round(pvals.get(p["metric"], 1.0), 4)
+            p["passed_fdr"] = p["metric"] in survivors
+        activate_proposals = [p for p in activate_proposals if p["metric"] in survivors]
 
     # Limit activations per cycle
     activate_proposals.sort(key=lambda p: p["ewm_ic"], reverse=True)
@@ -1676,10 +1821,16 @@ def generate_improvement_report() -> str:
         rationale = proposal["rationale"]
 
         lines.append(f"**Confidence:** {proposal['confidence']} ({proposal['n_observations']} observations)")
+        lines.append(f"**Optimization horizon:** {proposal.get('horizon_used', 'n/a')}")
+        lines.append(f"**Composite IC IR:** {proposal.get('composite_ic_ir', 'n/a')} "
+                     f"(significance {'OK' if proposal.get('significance_ok') else 'FAIL'})")
         if proposal["can_auto_apply"]:
             lines.append(f"**Auto-apply eligible:** Yes (max change: {proposal['max_abs_change']}%)\n")
         else:
-            lines.append(f"**Auto-apply eligible:** No (max change: {proposal['max_abs_change']}%)\n")
+            reason = proposal.get("auto_apply_block_reason", "")
+            lines.append(f"**Auto-apply eligible:** No — {reason} (max change: {proposal['max_abs_change']}%)\n")
+            lines.append("_Governance: weight changes are human-approval-only by default "
+                         "(`improvement.allow_auto_apply: false`)._\n")
 
         lines.append("| Category | Current | Proposed | Change | Rationale |")
         lines.append("|----------|---------|----------|--------|-----------|")
@@ -1912,15 +2063,69 @@ def preview_ranking_impact(
     }
 
 
+def _cumulative_change_ok(changes: dict[str, float], window: int = 6) -> tuple[bool, str]:
+    """Check the anti-drift cumulative-change cap (Phase 13).
+
+    Sums the signed change already applied to each category over the trailing
+    ``window`` change-log rows and verifies that adding the proposed change
+    keeps the running total within ``max_cumulative_change``. Prevents monotonic
+    ratcheting of a category toward its bound across many small cycles.
+    """
+    gov = _get_governance_config()
+    cap = gov["max_cumulative_change"]
+    if not CHANGE_LOG_PATH.exists():
+        return True, ""
+    try:
+        log = pd.read_csv(CHANGE_LOG_PATH)
+    except Exception:
+        return True, ""
+    log = log[log.get("change_type", "factor_weight") == "factor_weight"]
+    for cat, delta in changes.items():
+        if abs(delta) <= 0.01:
+            continue
+        prior = log[log["category"] == cat].tail(window)
+        prior_sum = 0.0
+        for _, r in prior.iterrows():
+            try:
+                prior_sum += float(r["new_value"]) - float(r["old_value"])
+            except (ValueError, TypeError, KeyError):
+                continue
+        if abs(prior_sum + delta) > cap + 1e-6:
+            return False, (
+                f"cumulative change for '{cat}' would be "
+                f"{prior_sum + delta:+.1f}% over the last {window} cycles, "
+                f"exceeding the {cap:.1f}% anti-drift cap"
+            )
+    return True, ""
+
+
 def apply_changes(
     changes: dict[str, float],
     reason: str = "",
     dry_run: bool = False,
+    auto_applied: bool = False,
+    confidence: str = "",
+    n_observations: int | str = "",
+    ic_ir: float | str = "",
+    horizon_used: str = "",
 ) -> dict:
     """Apply proposed weight changes to config.yaml.
 
-    Creates backup, validates via schema, updates change_log.csv.
+    Creates backup, validates via schema, updates change_log.csv with full
+    provenance (Phase 13). Honors the improvement.enabled kill switch and the
+    cumulative-drift cap. When ``auto_applied`` is requested, requires the
+    governance ``allow_auto_apply`` switch to be True.
     """
+    gov = _get_governance_config()
+    # --- Phase 13 governance gates -------------------------------------
+    if not gov["enabled"]:
+        return {"applied": False, "error": "improvement engine disabled (improvement.enabled=false)"}
+    if auto_applied and not gov["allow_auto_apply"]:
+        return {"applied": False, "error": "auto-apply blocked: allow_auto_apply=false (human-approval-only mode)"}
+    drift_ok, drift_msg = _cumulative_change_ok(changes)
+    if not drift_ok:
+        return {"applied": False, "error": f"anti-drift cap: {drift_msg}"}
+
     cfg = _load_current_config()
 
     # Create backup
@@ -1974,9 +2179,13 @@ def apply_changes(
                 "old_value": old_values.get(cat, "?"),
                 "new_value": fw.get(cat, "?"),
                 "reason": reason,
-                "n_observations": "",
-                "confidence": "",
-                "applied_by": "run-improve",
+                "n_observations": n_observations,
+                "confidence": confidence,
+                "ic_ir": ic_ir,
+                "horizon_used": horizon_used,
+                "auto_applied": bool(auto_applied),
+                "backup_path": str(backup_path.name),
+                "applied_by": "auto" if auto_applied else "human-approved",
             })
 
     if log_rows:

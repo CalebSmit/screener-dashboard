@@ -1,3 +1,5 @@
+> **⚠️ SUPERSEDED (as of 2026-07-28):** This report describes the pre-2026-02 17-metric / 6-category build. The current model has 8 categories and 44 metrics in METRIC_COLS. See SCREENER_OVERVIEW.md (canonical) and HEDGE_FUND_REVIEW_FINDINGS.md (latest review). Retained for historical reference only.
+
 # INSTITUTIONAL-GRADE AUDIT REPORT
 # Multi-Factor Stock Screener — Full System Review
 **Date:** 2026-02-18
