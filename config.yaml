@@ -142,6 +142,21 @@ percentile_transform:
   method: 'logistic'      # Options: 'identity' (no-op), 'logistic' (S-curve)
   logistic_steepness: 0.08  # Higher = sharper S-curve; 0.08 is moderate
 
+# Factor Neutralization (Phase 13, F4) — OPTIONAL, OFF BY DEFAULT
+# ~44 nominal metrics collapse to ~8-10 effective dimensions; the 8 category
+# scores are correlated (e.g. Valuation's cheapness metrics, Vol~Beta in Risk).
+# When enabled, the 8 category-score columns are orthogonalized (Gram-Schmidt /
+# symmetric whitening) before compositing so redundant factors don't get implicit
+# extra weight. DEFAULT false => no change to the current ranking; enable only
+# after evaluating the before/after top-25 diff.
+factor_neutralization:
+  enabled: false          # true => orthogonalize category scores before compositing
+  method: 'gram_schmidt'  # 'gram_schmidt' (sequential residualization) | 'report_only'
+  # Order matters for gram_schmidt: earlier categories keep their full signal,
+  # later ones are residualized against the earlier. Value/Quality first (slow,
+  # robust premia), then the rest.
+  order: [valuation, quality, growth, momentum, revisions, risk, size, investment]
+
 # Sector Neutrality
 sector_neutral:
   enabled: true

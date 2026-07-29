@@ -196,16 +196,17 @@ class TestEarningsYield:
         row = _compute_one(_make_rec(netIncome=-5e9, marketCap=100e9))
         assert abs(row["earnings_yield"] - (-0.05)) < 0.001
 
-    def test_fallback_to_trailing_eps(self):
-        """When NI or MC is missing, fall back to trailingEps / price."""
+    def test_no_fallback_to_trailing_eps(self):
+        """Phase 13 (F19): when NI or MC is missing, earnings_yield is NaN —
+        NOT a GAAP trailingEps/price fallback (which is a different, incomparable
+        definition inside one cross-sectional percentile rank)."""
         row = _compute_one(_make_rec(netIncome=np.nan, trailingEps=5.0, currentPrice=100.0))
-        assert abs(row["earnings_yield"] - 0.05) < 0.001
+        assert np.isnan(row["earnings_yield"])
 
     def test_zero_mc(self):
-        """MC=0 → falls back to trailingEps path."""
+        """Phase 13 (F19): MC=0 → NaN (no trailingEps fallback)."""
         row = _compute_one(_make_rec(marketCap=0, trailingEps=5.0, currentPrice=100.0))
-        # MC=0 triggers NaN from primary path, fallback uses EPS/price
-        assert abs(row["earnings_yield"] - 0.05) < 0.001
+        assert np.isnan(row["earnings_yield"])
 
     def test_all_missing(self):
         """Both paths fail → NaN."""
@@ -587,19 +588,25 @@ class TestForwardEPSGrowth:
         # (5.5 - 5.0) / |5.0| = 0.10
         assert abs(row["forward_eps_growth"] - 0.10) < 0.001
 
-    def test_negative_trailing(self):
-        """Negative trailing EPS: growth uses absolute value in denominator,
-        floored at $1.00, and clamped to [-75%, +150%]."""
+    def test_negative_trailing_nans(self):
+        """Phase 13 (F5): forward vs trailing on incompatible bases. With
+        forwardEps=2, trailingEps=-3 the ratio is -0.67 (< 0.3), the signature of
+        GAAP-vs-normalized contamination (a sign flip), so the metric is NaN'd
+        rather than manufacturing a fake +150% growth."""
         row = _compute_one(_make_rec(forwardEps=2.0, trailingEps=-3.0))
-        # (2.0 - (-3.0)) / max(|-3.0|, 1.0) = 5.0/3.0 ≈ 1.667
-        # Clamped to 1.50 (new upper bound)
-        assert abs(row["forward_eps_growth"] - 1.50) < 0.001
+        assert np.isnan(row["forward_eps_growth"])
 
-    def test_clamp_at_150_pct(self):
-        """Growth above 150% is clamped to 1.50."""
+    def test_extreme_ratio_nans(self):
+        """Phase 13 (F5): fwd=20 / trail=5 → ratio 4x > 2x → NaN (was clamped
+        to +150% before, which scored contaminated growth)."""
         row = _compute_one(_make_rec(forwardEps=20.0, trailingEps=5.0))
-        # Raw = (20-5)/5 = 3.0, clamped to 1.50
-        assert abs(row["forward_eps_growth"] - 1.50) < 0.001
+        assert np.isnan(row["forward_eps_growth"])
+
+    def test_moderate_growth_still_clamps(self):
+        """A moderate, same-basis case still computes and clamps at +150%."""
+        # ratio = 2.4/2.0 = 1.2 (within [0.3, 2.0]); raw = 0.4/2.0 = 0.20
+        row = _compute_one(_make_rec(forwardEps=2.4, trailingEps=2.0))
+        assert abs(row["forward_eps_growth"] - 0.20) < 0.01
 
     def test_near_zero_trailing(self):
         row = _compute_one(_make_rec(trailingEps=0.005))
@@ -673,15 +680,25 @@ class TestSustainableGrowth:
         expected = roe * 0.8
         assert abs(row["sustainable_growth"] - expected) < 0.01
 
-    def test_uses_payout_ratio_from_info(self):
-        """payoutRatio from .info takes priority over dividendsPaid computation."""
+    def test_prefers_cash_dividends_over_payout_ratio(self):
+        """Phase 13 (F21): cash dividendsPaid/NI (GAAP, consistent with the GAAP
+        ROE numerator) now takes PRIORITY over the .info payoutRatio (which yahoo
+        derives from possibly-normalized EPS). Prior order preferred payoutRatio."""
         row = _compute_one(_make_rec(
             netIncome=10e9, totalEquity=40e9, totalEquity_prior=40e9,
             payoutRatio=0.30,
-            dividendsPaid=-5e9))  # would give 50% payout, but payoutRatio wins
-        # avg_eq = (40+40)/2 = 40B; ROE = 10/40 = 0.25
-        # retention = 1 - 0.30 = 0.70; SGR = 0.25 * 0.70 = 0.175
-        expected = 0.25 * 0.70
+            dividendsPaid=-5e9))  # cash payout = 5/10 = 50% → retention 0.50
+        # avg_eq = 40B; ROE = 10/40 = 0.25; retention = 1 - 0.50 = 0.50
+        expected = 0.25 * 0.50
+        assert abs(row["sustainable_growth"] - expected) < 0.01
+
+    def test_falls_back_to_payout_ratio_when_no_cash(self):
+        """When no cash dividends / dividendRate available, .info payoutRatio is
+        the last-resort retention source."""
+        row = _compute_one(_make_rec(
+            netIncome=10e9, totalEquity=40e9, totalEquity_prior=40e9,
+            payoutRatio=0.30, dividendsPaid=np.nan, dividendRate=np.nan))
+        expected = 0.25 * 0.70  # retention = 1 - 0.30
         assert abs(row["sustainable_growth"] - expected) < 0.01
 
     def test_sgr_clamped_to_0_1(self):

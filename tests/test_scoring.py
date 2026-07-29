@@ -269,9 +269,12 @@ class TestComposite:
         df = compute_composite(df, cfg)
         assert df["Composite"].min() >= 0
         assert df["Composite"].max() <= 100
-        # After percentile rank, scores should span (0, 100] with
-        # max = 100 (the rank(pct=True) of the top stock is 1.0)
-        assert df["Composite"].max() == 100.0
+        # Phase 13 (F1): Composite is now the CARDINAL weighted-average of
+        # 0-100 category scores (the ranking key), so its max is NOT forced to
+        # 100. The percentile is exposed separately as Composite_Pct, whose top
+        # value is ~100 (rank(pct=True) of the best stock).
+        assert "Composite_Pct" in df.columns
+        assert df["Composite_Pct"].max() == 100.0
 
     def test_all_equal(self, cfg):
         """All same category scores → all get same composite (tied percentile rank)."""

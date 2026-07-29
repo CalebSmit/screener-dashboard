@@ -730,9 +730,17 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # Revenue 3 years ago from annual financials (col=3) for 3-year CAGR.
         # Annual financials typically provides 4 columns (indices 0-3).
         rec["totalRevenue_3yr_ago"] = _stmt_val(fins, "Total Revenue", 3)
+        # Phase 13 (F20): matching ANNUAL current revenue (col=0) so the 3-year
+        # CAGR uses same-basis endpoints (annual vs annual) instead of mixing
+        # LTM current with annual-3yr-ago.
+        rec["totalRevenue_annual"] = _stmt_val(fins, "Total Revenue", 0)
 
         # EBIT prior year from annual financials (col=1) for operating leverage (DOL).
         rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
+        # Phase 13 (F22): matching ANNUAL current EBIT (col=0) so DOL uses
+        # same-basis endpoints (annual vs annual) instead of LTM vs annual.
+        rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
+        rec["totalRevenue_annual_prior"] = _stmt_val(fins, "Total Revenue", 1)
         if np.isnan(rec["ebit_prior"]):
             rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
 
@@ -1320,8 +1328,12 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Fall back to reported EBITDA if D&A is unavailable.
             _ebit_for_ebitda = d.get("ebit", np.nan)
             _da = d.get("da_cf", np.nan)
-            if pd.notna(_ebit_for_ebitda) and pd.notna(_da) and _da >= 0:
-                ebitda = _ebit_for_ebitda + _da
+            # Phase 13 (F36): D&A is a positive add-back regardless of the sign
+            # yfinance's cashflow row happens to carry. The old `_da >= 0` gate
+            # sent exactly the negative-sign rows to the distrusted reported
+            # EBITDA, creating two EBITDA definitions in one percentile rank.
+            if pd.notna(_ebit_for_ebitda) and pd.notna(_da):
+                ebitda = _ebit_for_ebitda + abs(_da)
             else:
                 ebitda = d.get("ebitda", np.nan)  # fallback to reported
             rec["ev_ebitda"] = (ev / ebitda) if (pd.notna(ev) and pd.notna(ebitda) and ebitda > 0 and ev > 0) else np.nan
@@ -1338,16 +1350,16 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["fcf_yield"] = (fcf / ev) if (pd.notna(fcf) and pd.notna(ev) and ev > 0) else np.nan
 
             # 3. Earnings Yield  (LTM Net Income / Market Cap)
-            # Uses LTM net income from quarterly statements (same source as all
-            # other fundamental metrics) instead of the opaque trailingEps from
-            # the yfinance .info dict, for pipeline consistency.
-            # Falls back to trailingEps / price when LTM NI or MC unavailable.
+            # Phase 13 (F19): SINGLE definition across the universe. Previously
+            # this fell back to trailingEps/price (a different, GAAP-EPS-based
+            # definition) when LTM NI or MC was missing, so the fallback cohort
+            # was ranked on an incomparable basis inside one percentile rank.
+            # Now: if LTM NI or MC is unavailable, return NaN and let per-row
+            # weight redistribution handle the gap.
             if pd.notna(ni) and pd.notna(mc) and mc > 0:
                 rec["earnings_yield"] = ni / mc
             else:
-                _eps_fb = d.get("trailingEps", np.nan)
-                _price_fb = d.get("currentPrice", d.get("price_latest", np.nan))
-                rec["earnings_yield"] = (_eps_fb / _price_fb) if (pd.notna(_eps_fb) and pd.notna(_price_fb) and _price_fb > 0) else np.nan
+                rec["earnings_yield"] = np.nan
 
             # 4. EV/Sales
             rec["ev_sales"] = (ev / rev_c) if (pd.notna(ev) and pd.notna(rev_c) and rev_c > 0 and ev > 0) else np.nan
@@ -1438,14 +1450,23 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 7c. Operating Leverage (Degree of Operating Leverage = DOL)
             # DOL = (%Δ EBIT) / (%Δ Revenue) using annual data (current vs prior year).
             # Lower DOL = less earnings sensitivity to revenue changes = more durable.
-            # Guards: flat revenue (<1% change) → NaN, zero denominators → NaN.
-            # Banks: skip (return NaN, weight redistributes).
+            # Phase 13 (F22): (1) use ANNUAL EBIT & revenue for BOTH endpoints
+            # (previously current EBIT was LTM, prior was annual — a basis
+            # mismatch inside one ratio); (2) NaN when EBIT changes sign
+            # year-over-year — DOL is undefined across a profit/loss transition,
+            # and abs(prev) in the denominator otherwise produces a sign-scrambled
+            # magnitude dominated by how close prior EBIT was to zero.
             if not _is_bank:
-                _ebit_curr = d.get("ebit", np.nan)
+                _ebit_curr = d.get("ebit_annual", d.get("ebit", np.nan))
                 _ebit_prev = d.get("ebit_prior", np.nan)
+                _rev_curr = d.get("totalRevenue_annual", rev_c)
+                _rev_prev = d.get("totalRevenue_annual_prior", rev_p)
+                _sign_flip = (pd.notna(_ebit_curr) and pd.notna(_ebit_prev)
+                              and (_ebit_curr > 0) != (_ebit_prev > 0))
                 if (pd.notna(_ebit_curr) and pd.notna(_ebit_prev) and _ebit_prev != 0
-                        and pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0):
-                    _rev_pct_change = (rev_c - rev_p) / abs(rev_p)
+                        and pd.notna(_rev_curr) and pd.notna(_rev_prev) and _rev_prev > 0
+                        and not _sign_flip):
+                    _rev_pct_change = (_rev_curr - _rev_prev) / abs(_rev_prev)
                     if abs(_rev_pct_change) < 0.01:  # Flat revenue: DOL undefined
                         rec["operating_leverage"] = np.nan
                     else:
@@ -1549,8 +1570,19 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             fwd = d.get("forwardEps", np.nan)
             trail = d.get("trailingEps", np.nan)
             if pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
-                _raw_growth = (fwd - trail) / max(abs(trail), 1.0)
-                rec["forward_eps_growth"] = float(np.clip(_raw_growth, feg_lo, feg_hi))
+                # Phase 13 (F5): trailingEps is GAAP, forwardEps is normalized
+                # consensus. When the two bases diverge extremely (ratio >2x or
+                # <0.3x — the signature of large restructuring/impairment items
+                # in trailing GAAP EPS), the growth ratio is contaminated and
+                # manufactures fake growth. Route those rows to NaN so per-row
+                # weight redistribution drops the contaminated signal rather than
+                # scoring it. forward_eps_growth is 45% of the Growth category.
+                _ratio = fwd / trail if abs(trail) > 1e-9 else np.nan
+                if pd.notna(_ratio) and (_ratio > 2.0 or _ratio < 0.3):
+                    rec["forward_eps_growth"] = np.nan
+                else:
+                    _raw_growth = (fwd - trail) / max(abs(trail), 1.0)
+                    rec["forward_eps_growth"] = float(np.clip(_raw_growth, feg_lo, feg_hi))
             else:
                 rec["forward_eps_growth"] = np.nan
 
@@ -1573,18 +1605,29 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["revenue_growth"] = ((rev_c - rev_p) / rev_p) if (pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0) else np.nan
 
             # 11b. 3-Year Revenue CAGR — smoothed growth signal from annual filings.
-            # Uses LTM revenue (current) vs annual col=3 (3 years prior).
+            # Phase 13 (F20): use ANNUAL current (col=0) vs annual 3yr-ago (col=3)
+            # so both endpoints share the same basis. Previously the numerator was
+            # LTM (ending at the latest quarter) while the denominator was a full
+            # fiscal year, so the flat 1/3 exponent systematically over/understated
+            # CAGR. Fall back to LTM current only if annual current is unavailable.
             _rev_3yr = d.get("totalRevenue_3yr_ago", np.nan)
-            if pd.notna(rev_c) and pd.notna(_rev_3yr) and _rev_3yr > 0:
-                rec["revenue_cagr_3yr"] = (rev_c / _rev_3yr) ** (1.0 / 3.0) - 1.0
+            _rev_cur_annual = d.get("totalRevenue_annual", np.nan)
+            _rev_num = _rev_cur_annual if pd.notna(_rev_cur_annual) else rev_c
+            if pd.notna(_rev_num) and pd.notna(_rev_3yr) and _rev_3yr > 0 and _rev_num > 0:
+                rec["revenue_cagr_3yr"] = (_rev_num / _rev_3yr) ** (1.0 / 3.0) - 1.0
             else:
                 rec["revenue_cagr_3yr"] = np.nan
 
             # 12. Sustainable Growth = ROE * Retention Ratio
             # ROE uses average equity (current + prior / 2) to smooth
             # single-year distortions from buybacks or one-time items.
-            # Payout ratio prefers .info payoutRatio (reliable), then
-            # falls back to dividendsPaid from cashflow.
+            # Phase 13 (F21): the retention ratio now PREFERS cash dividends-paid
+            # / net income (both GAAP, consistent with the GAAP netIncome in the
+            # ROE numerator), and only falls back to the .info payoutRatio (which
+            # yahoo derives from possibly-normalized EPS) as a last resort. The
+            # old order preferred payoutRatio, making retention internally
+            # inconsistent with ROE and contradicting the config's own
+            # "cash-flow > accounting" rationale.
             # SGR clamped to [0%, 100%].
             if pd.notna(ni) and pd.notna(eq_v) and eq_v > 0 and ni > 0:
                 eq_prior = d.get("totalEquity_prior", np.nan)
@@ -1594,30 +1637,27 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     avg_eq = eq_v  # fall back to single-year
                 roe = ni / avg_eq
 
-                # Payout ratio: prefer .info payoutRatio, then cashflow
-                _payout = d.get("payoutRatio", np.nan)
-                if pd.notna(_payout) and 0 <= _payout <= 2.0:
-                    ret = max(0, 1 - min(_payout, 1.0))
+                # Retention: 1) cash dividendsPaid/NI, 2) dividendRate*shares/NI,
+                # 3) .info payoutRatio (last resort).
+                ret = None
+                _divs_raw = d.get("dividendsPaid", np.nan)
+                if pd.notna(_divs_raw):
+                    ret = max(0, 1 - abs(_divs_raw) / ni)
                 else:
-                    _divs_raw = d.get("dividendsPaid", np.nan)
-                    if pd.isna(_divs_raw):
-                        _div_rate = d.get("dividendRate", np.nan)
-                        _shares = d.get("sharesOutstanding", np.nan)
-                        if pd.notna(_div_rate) and pd.notna(_shares):
-                            divs = abs(_div_rate * _shares)
-                        else:
-                            divs = np.nan
-                    else:
-                        divs = abs(_divs_raw)
-                    if pd.isna(divs):
-                        rec["sustainable_growth"] = np.nan
-                        roe = np.nan  # signal to skip final assignment
-                    else:
-                        ret = max(0, 1 - divs / ni) if ni > 0 else 0
+                    _div_rate = d.get("dividendRate", np.nan)
+                    _shares = d.get("sharesOutstanding", np.nan)
+                    if pd.notna(_div_rate) and pd.notna(_shares):
+                        ret = max(0, 1 - abs(_div_rate * _shares) / ni)
+                if ret is None:
+                    _payout = d.get("payoutRatio", np.nan)
+                    if pd.notna(_payout) and 0 <= _payout <= 2.0:
+                        ret = max(0, 1 - min(_payout, 1.0))
 
-                if pd.notna(roe):
+                if ret is not None:
                     sgr = roe * ret
                     rec["sustainable_growth"] = float(np.clip(sgr, 0.0, 1.0))
+                else:
+                    rec["sustainable_growth"] = np.nan
             else:
                 rec["sustainable_growth"] = np.nan
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
@@ -1719,20 +1759,19 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Sortino = (R_i - R_f) / downside_deviation
             # Downside deviation = std dev of daily returns below the daily
             # risk-free rate, annualized by sqrt(252).
-            if dr and isinstance(dr, dict) and pd.notna(_ret_12m_sr):
+            # Phase 13 (F35): require >=200 total daily observations (same gate
+            # as volatility) before annualizing by sqrt(252). Previously a stock
+            # with a thin history (recent IPO/spinoff, gappy yfinance series)
+            # could get a Sortino from as few as 20 downside days, annualized as
+            # if it were a full year, then ranked against full-history peers.
+            _daily_all = None
+            if dr and isinstance(dr, dict):
+                _daily_all = np.array(list(dr.values()))
+            elif dr and isinstance(dr, list):
+                _daily_all = np.array(dr)
+            if _daily_all is not None and len(_daily_all) >= 200 and pd.notna(_ret_12m_sr):
                 _daily_rf = (1 + risk_free_rate) ** (1/252) - 1
-                _daily_vals = np.array(list(dr.values()))
-                _downside = _daily_vals[_daily_vals < _daily_rf] - _daily_rf
-                if len(_downside) >= 20:
-                    _dd = np.std(_downside, ddof=1) * np.sqrt(252)
-                    rec["sortino_ratio"] = ((_ret_12m_sr - risk_free_rate) / _dd
-                                            if _dd > 0 else np.nan)
-                else:
-                    rec["sortino_ratio"] = np.nan
-            elif dr and isinstance(dr, list) and pd.notna(_ret_12m_sr):
-                _daily_rf = (1 + risk_free_rate) ** (1/252) - 1
-                _daily_vals = np.array(dr)
-                _downside = _daily_vals[_daily_vals < _daily_rf] - _daily_rf
+                _downside = _daily_all[_daily_all < _daily_rf] - _daily_rf
                 if len(_downside) >= 20:
                     _dd = np.std(_downside, ddof=1) * np.sqrt(252)
                     rec["sortino_ratio"] = ((_ret_12m_sr - risk_free_rate) / _dd
@@ -1745,15 +1784,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 16d. Max Drawdown (trailing 12 months)
             # Peak-to-trough decline from cumulative return series.
             # Expressed as a negative fraction (e.g., -0.25 = 25% drawdown).
-            if dr and isinstance(dr, dict) and len(dr) >= 50:
-                _dd_vals = np.array(list(dr.values()))
-                _cum = np.cumprod(1 + _dd_vals)
-                _peak = np.maximum.accumulate(_cum)
-                _drawdowns = (_cum - _peak) / _peak
-                rec["max_drawdown_1y"] = float(np.min(_drawdowns))
-            elif dr and isinstance(dr, list) and len(dr) >= 50:
-                _dd_vals = np.array(dr)
-                _cum = np.cumprod(1 + _dd_vals)
+            # Phase 13 (F35): require >=200 obs (was >=50) to match the vol/
+            # Sortino gate and avoid ranking thin-history MDDs against full-year.
+            if _daily_all is not None and len(_daily_all) >= 200:
+                _cum = np.cumprod(1 + _daily_all)
                 _peak = np.maximum.accumulate(_cum)
                 _drawdowns = (_cum - _peak) / _peak
                 rec["max_drawdown_1y"] = float(np.min(_drawdowns))
@@ -2403,6 +2437,81 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     return cfg
 
 
+def compute_effective_dimensionality(df: pd.DataFrame, cfg: dict) -> float:
+    """Effective number of independent factors among the 8 category scores.
+
+    Phase 13 (F4): computed from the eigenvalues of the category-score
+    correlation matrix as (Σλ)² / Σλ² (participation ratio). ~8 means the
+    categories are independent; a value near 3-4 confirms heavy redundancy.
+    Reporting helper — does not alter ranking.
+    """
+    cat_cols = [f"{c}_score" for c in
+                ["valuation", "quality", "growth", "momentum",
+                 "risk", "revisions", "size", "investment"]]
+    present = [c for c in cat_cols if c in df.columns]
+    sub = df[present].dropna()
+    if sub.shape[0] < 3 or sub.shape[1] < 2:
+        return float(len(present))
+    corr = sub.corr().to_numpy()
+    corr = np.nan_to_num(corr, nan=0.0)
+    eig = np.linalg.eigvalsh(corr)
+    eig = eig[eig > 0]
+    if eig.size == 0:
+        return float(len(present))
+    return float((eig.sum() ** 2) / (eig ** 2).sum())
+
+
+def neutralize_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Optionally orthogonalize the 8 category-score columns (Phase 13, F4).
+
+    OFF by default (config factor_neutralization.enabled). When enabled with
+    method 'gram_schmidt', each category (in configured order) is residualized
+    against the earlier categories via OLS, then re-standardized back to the
+    original 0-100 percentile scale so downstream weighting/labels are unchanged
+    in RANGE (only the redundant, collinear component is removed). Earlier
+    categories in the order keep their full signal. 'report_only' does nothing to
+    the scores (diagnostics only). Returns df unchanged when disabled.
+    """
+    nz = cfg.get("factor_neutralization", {}) or {}
+    if not nz.get("enabled", False):
+        return df
+    method = nz.get("method", "gram_schmidt")
+    if method == "report_only":
+        return df
+    order = nz.get("order", ["valuation", "quality", "growth", "momentum",
+                             "revisions", "risk", "size", "investment"])
+    cols = [f"{c}_score" for c in order if f"{c}_score" in df.columns]
+    if len(cols) < 2:
+        return df
+
+    def _rescale_like(orig: pd.Series, resid: pd.Series) -> pd.Series:
+        # Map residuals back to the original column's rank scale so the
+        # composite stays on a 0-100 basis (percentile of the residual).
+        return resid.rank(pct=True) * 100
+
+    built = []  # already-neutralized columns (as design matrix)
+    for col in cols:
+        y = df[col]
+        mask = y.notna()
+        if not built or mask.sum() < 5:
+            df[col] = y  # first factor unchanged (or too few rows)
+            built.append(col)
+            continue
+        X = df.loc[mask, built].fillna(df[built].mean())
+        Xy = np.column_stack([np.ones(mask.sum()), X.to_numpy()])
+        yv = y[mask].to_numpy()
+        try:
+            beta, *_ = np.linalg.lstsq(Xy, yv, rcond=None)
+            resid = yv - Xy @ beta
+            resid_s = pd.Series(np.nan, index=df.index)
+            resid_s[mask] = resid
+            df[col] = _rescale_like(y, resid_s)
+        except np.linalg.LinAlgError:
+            df[col] = y
+        built.append(col)
+    return df
+
+
 # =========================================================================
 # I. Composite score (SS3.2)
 # =========================================================================
@@ -2410,6 +2519,8 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     if df.empty:
         df["Composite"] = pd.Series(dtype=float)
         return df
+    # Phase 13 (F4): optional factor neutralization (OFF by default → no-op).
+    df = neutralize_category_scores(df, cfg)
     fw = cfg["factor_weights"]
     col_map = {
         "valuation": "valuation_score", "quality": "quality_score",
@@ -2459,19 +2570,32 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
                 discount = (threshold - coverage) * penalty_rate
                 df.at[idx, "Composite"] = df.at[idx, "Composite"] * (1 - discount)
 
+    # === Phase 13 (F1): preserve composite CARDINALITY =====================
+    # Previously the cardinal weighted-average composite was OVERWRITTEN by its
+    # own percentile rank (rank(pct=True)*100), which destroyed all magnitude —
+    # #1-by-20pts and #1-by-0.1pts both mapped to 100.0, and the top-N was spaced
+    # exactly 100/N apart. Conviction/edge information never reached portfolio
+    # construction. We now KEEP the cardinal weighted-average as the ranking key
+    # ("Composite") and expose the percentile as a SECONDARY display column
+    # ("Composite_Pct", "better than X% of the universe"). Ranking, portfolio
+    # score-weighting, and contribution waterfalls all now reconcile against a
+    # true cardinal score.
     sector_relative = cfg.get("sector_neutral", {}).get("sector_relative_composite", False)
     if sector_relative and "Sector" in df.columns:
+        # Sector-relative percentile as the DISPLAY column; cardinal composite
+        # remains the ranking key.
+        pct = pd.Series(np.nan, index=df.index)
         for _, grp in df.groupby("Sector"):
             if len(grp) >= 3:
-                df.loc[grp.index, "Composite"] = grp["Composite"].rank(pct=True) * 100
+                pct.loc[grp.index] = grp["Composite"].rank(pct=True) * 100
             else:
-                df.loc[grp.index, "Composite"] = 50.0
+                pct.loc[grp.index] = 50.0
+        df["Composite_Pct"] = pct.round(2)
     else:
-        # Cross-sectional percentile rank: rank 1 does NOT automatically
-        # get 100.0. A stock's score reflects its position relative to
-        # the full universe (e.g., 98.5 means "better than 98.5% of
-        # stocks"), which is meaningful across runs and time periods.
-        df["Composite"] = df["Composite"].rank(pct=True) * 100
+        # Cross-sectional percentile rank as the DISPLAY column: 98.5 means
+        # "better than 98.5% of the universe". Meaningful across runs, but it is
+        # NOT the ranking key (that is the cardinal weighted-average below).
+        df["Composite_Pct"] = (df["Composite"].rank(pct=True) * 100).round(2)
 
     # === Composite Confidence Score ===
     # Confidence is based on:

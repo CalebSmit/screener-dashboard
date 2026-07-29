@@ -687,7 +687,8 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
         ("growth_score", "Grow_Pct"), ("momentum_score", "Mom_Pct"),
         ("risk_score", "Risk_Pct"), ("revisions_score", "Rev_Pct"),
         ("size_score", "Size_Pct"), ("investment_score", "Invest_Pct"),
-        ("Composite", "Composite"), ("Rank", "Rank"),
+        ("Composite", "Composite"), ("Composite_Pct", "Composite_Pct"),
+        ("Composite_Confidence", "Confidence"), ("Rank", "Rank"),
         ("valuation_contrib", "Val_Contrib"), ("quality_contrib", "Qual_Contrib"),
         ("growth_contrib", "Grow_Contrib"), ("momentum_contrib", "Mom_Contrib"),
         ("risk_contrib", "Risk_Contrib"), ("revisions_contrib", "Rev_Contrib"),
@@ -938,8 +939,10 @@ def write_model_portfolio_sheet(wb: Workbook, port: pd.DataFrame, stats: dict):
         for c in range(1, len(hold_headers) + 1):
             _style_data_cell(ws, row, c)
 
-        # Composite coloring
-        comp = stock["Composite"]
+        # Composite coloring — Phase 13 (F1/D7-7): color by PERCENTILE, not the
+        # cardinal composite level (cardinal composites cluster tighter, so the
+        # old absolute >=80/>=60 cutoffs were misleading on the new scale).
+        comp = stock.get("Composite_Pct", stock["Composite"])
         if comp >= 80:
             ws.cell(row=row, column=5).fill = GREEN_FILL
         elif comp >= 60:

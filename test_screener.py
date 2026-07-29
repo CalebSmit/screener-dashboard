@@ -649,10 +649,12 @@ class TestSectorRelativeComposite:
         df = compute_category_scores(df, _cfg)
         df = compute_composite(df, _cfg)
 
+        # Phase 13 (F1): the percentile view lives in Composite_Pct now;
+        # sector-relative percentiles span ~(0,100] within each sector.
         for sec, grp in df.groupby("Sector"):
             if len(grp) >= 3:
-                assert grp["Composite"].min() < 5, f"Sector {sec} min too high"
-                assert grp["Composite"].max() > 95, f"Sector {sec} max too low"
+                assert grp["Composite_Pct"].min() < 5, f"Sector {sec} min too high"
+                assert grp["Composite_Pct"].max() > 95, f"Sector {sec} max too low"
 
     def test_default_is_global(self, sample_df, cfg):
         import copy
@@ -672,8 +674,9 @@ class TestSectorRelativeComposite:
         df = compute_category_scores(df, _cfg)
         df = compute_composite(df, _cfg)
 
-        assert df["Composite"].min() < 2
-        assert df["Composite"].max() > 98
+        # Phase 13 (F1): global percentile view is Composite_Pct.
+        assert df["Composite_Pct"].min() < 2
+        assert df["Composite_Pct"].max() > 98
 
 
 # ===========================================================================
