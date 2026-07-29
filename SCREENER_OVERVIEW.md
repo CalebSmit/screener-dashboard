@@ -6,15 +6,9 @@
 
 ## What Is This?
 
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across a battery of financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
+This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
 
-The full metric registry (`METRIC_COLS` in `factor_engine.py`) has **44 entries**, broken down as:
-
-- **32 scored generic metrics** — carry non-zero weight and apply to most (non-bank) stocks.
-- **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — used in place of certain generic metrics for financial companies (banks, insurers, credit companies).
-- **8 candidate metrics at weight 0** — pre-implemented but inactive, which the self-improvement engine may activate over time based on live information-coefficient evidence (see Phase 11).
-
-Not every stock sees every metric. Bank-like stocks swap the generic valuation/quality metrics for the 4 bank-specific ones, so any individual stock is scored on roughly 30-32 active metrics — the set just differs depending on whether the company is a bank or not. The 8 candidate metrics contribute nothing to the score until activated.
+Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has 44 entries: 34 carry scoring weight today (30 generic + 4 bank-specific) plus 10 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
 
 The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.
 
@@ -335,7 +329,7 @@ If a sector would exceed its cap, the excess stocks are dropped and replaced by 
 
 ## What Gets Output
 
-The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 6 sheets:
+The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 7 sheets (a ReadMe/Disclaimers sheet leads the workbook):
 
 ### Sheet 1: Factor Scores
 Every stock in the universe with all raw metrics, 8 category scores, the composite score, rank, value trap flag (with severity 0-100), growth trap flag (with severity 0-100), financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (`_data_source`), metric coverage count, and an EPS basis mismatch flag. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.
@@ -450,7 +444,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade. Approximately 10-25% of tickers may fail to fetch on a given run due to Yahoo Finance rate limiting (HTTP 429).
 
-2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the forward EPS growth metric may show misleading declines. The $1.00 denominator floor and [-75%, +150%] clamp mitigate extreme cases but don't fully solve this inherent data limitation.
+2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
 3. **Point-in-time:** The screener uses the latest available financial data. It does not reconstruct what was known at a past date, which means backtests carry look-ahead bias for fundamental metrics.
 
@@ -460,11 +454,13 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 6. **Rebalance frequency:** The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.
 
-7. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
+7. **No covariance / correlation portfolio risk model:** The default weighting uses single-name volatility only (`inverse_vol` / `score`); it does NOT account for cross-holding correlations. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.
 
-8. **No covariance/correlation portfolio risk model** — the default weighting uses single-name volatility only; portfolio risk may be understated for correlated holdings.
+8. **Composite is cardinal; percentile is separate:** The `Composite` column is the cardinal weighted-average of the 0-100 category scores (the ranking key, preserving magnitude/conviction). The `Composite_Pct` column is the universe percentile ("better than X% of stocks"). Do not read the cardinal Composite as a percentile.
 
-9. **Environment / TLS interception:** On machines with TLS interception (e.g. Avast), set `CURL_CA_BUNDLE` to `.certs/combined_ca.pem` before any run — yfinance 0.2.66 uses curl_cffi which honors `CURL_CA_BUNDLE`; the other SSL env vars do not affect the data path under Python 3.13.
+9. **Self-improving engine is governed & human-approval-only by default:** The engine can propose factor-weight changes from live IC, but auto-apply is OFF by default (`improvement.allow_auto_apply: false`) and, even when enabled, requires statistical significance (IC information ratio), the correct optimization horizon, an anti-drift cap, and FDR control on candidate-metric activation. All changes are logged with full provenance.
+
+10. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
 
 ---
 
@@ -483,7 +479,7 @@ py run_screener.py
 # Skip portfolio construction (scoring only)
 py run_screener.py --no-portfolio
 
-# Output: factor_output.xlsx (up to 6 sheets)
+# Output: factor_output.xlsx (up to 7 sheets, incl. a ReadMe/Disclaimers sheet)
 
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
@@ -497,7 +493,7 @@ The screener answers one question: **"Which S&P 500 stocks look best when measur
 
 It does this by:
 1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing financial metrics across 8 categories from a 44-entry registry (32 scored generic + 4 bank-specific + 8 candidate metrics at weight 0), applying the generic or bank set depending on company type
+2. Computing up to 34 financial metrics across 8 categories (30 generic + 4 bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)
