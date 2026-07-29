@@ -940,7 +940,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         </div>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the composite score.</p>
+                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe.</p>
                                 <div id="contrib-visual"></div>
                                 <div class="contrib-total-row" id="contrib-total"></div>
                             </div>
@@ -975,7 +975,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">{data_timestamp}</span>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">{data_timestamp}</span><br>
+            <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
         </footer>
     </div>
 
@@ -2534,7 +2535,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '## Scoring Methodology\\n' +
             'The screener ranks stocks using 8 factor categories with these weights: ' + cats + '.\\n' +
             'All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). Falls back to annual filings if quarterly data unavailable. Enterprise Value is cross-validated: if API-provided EV differs from computed (MC+Debt-Cash) by >10% (>25% for Financials, whose debt includes deposits), the computed value is used.\\n' +
-            'Each stock is scored 0-100 on each category (sector-relative percentile ranking), then combined using the weights above into a Composite score (0-100). Higher = better.\\n\\n' +
+            'Each stock is scored 0-100 on each category (sector-relative percentile ranking), then combined using the weights above into a CARDINAL Composite score (0-100 weighted average; the ranking key, preserving magnitude/conviction). A separate Composite Percentile shows rank vs the universe. Higher = better.\\n\\n' +
             '### Category Definitions (metric weights from config):\\n' +
             '- **Valuation** (' + (fw.valuation||'?') + '%): ' + fmtMetrics('valuation') + '. Banks use P/B + Earnings Yield (see bank weights).\\n' +
             '- **Quality** (' + (fw.quality||'?') + '%): ' + fmtMetrics('quality') + '. Banks use ROE, ROA, Equity Ratio, Piotroski, Accruals.\\n' +
@@ -2552,7 +2553,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\\n' +
             '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\\n' +
             '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\\n' +
-            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics out of ~33), and `_metric_total`.\\n' +
+            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The registry has 44 metrics (32 scored generic + 4 bank-specific + 8 candidate at weight 0).\\n' +
             '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\\n\\n' +
             '## Web Search\\n' +
             'You have access to real-time web search. Use it proactively when the user asks about:\\n' +
@@ -3708,6 +3709,15 @@ def _css() -> str:
             border-top: 1px solid var(--border);
             margin-top: 8px;
         }
+        .footer-disclaimer {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 11px;
+            opacity: 0.85;
+            max-width: 900px;
+            line-height: 1.5;
+        }
+        .footer-disclaimer a { color: var(--accent, #4a9eff); }
 
         /* ---- MODAL ---- */
         .modal-overlay {

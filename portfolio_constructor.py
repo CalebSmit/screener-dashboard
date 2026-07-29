@@ -673,10 +673,50 @@ def _auto_width(ws, min_width=8, max_width=25):
 
 
 # ---- Sheet 1: FactorScores (unchanged from Phase 1) ----
+def write_disclaimer_sheet(wb: Workbook):
+    """Phase 13 (F13): a ReadMe / Disclaimers sheet so the workbook — the most
+    forwarded artifact — carries the methodology limitations standalone."""
+    ws = wb.active
+    ws.title = "ReadMe"
+    lines = [
+        ("Multi-Factor Stock Screener — ReadMe & Disclaimers", True),
+        ("", False),
+        ("NOT INVESTMENT ADVICE. This is a screening/research tool, not a "
+         "recommendation to buy or sell any security.", False),
+        ("", False),
+        ("Data source: Yahoo Finance via yfinance (a free, unofficial API) — "
+         "NOT institutional-grade. Values can be delayed, restated, or wrong; "
+         "verify against a primary source before acting.", False),
+        ("", False),
+        ("Methodology & limitations:", True),
+        ("1. 8 factor categories, 44 metrics in the registry (32 scored generic "
+         "+ 4 bank-specific + 8 candidate metrics at weight 0).", False),
+        ("2. Composite is the CARDINAL weighted-average of 0-100 category "
+         "percentile scores; Composite_Pct is the universe percentile.", False),
+        ("3. No covariance/correlation portfolio risk model — the default "
+         "weighting uses single-name volatility only; portfolio risk may be "
+         "understated for correlated holdings.", False),
+        ("4. The backtest (if run) carries survivorship + look-ahead bias and is "
+         "ILLUSTRATIVE ONLY — its performance/IC figures are not valid.", False),
+        ("5. GAAP vs normalized EPS, analyst-estimate sparsity, and quarterly "
+         "rebalancing are further limitations (see SCREENER_OVERVIEW.md).", False),
+        ("6. Rebalancing is manual/quarterly; turnover cost is estimated, not "
+         "guaranteed.", False),
+        ("", False),
+        ("Canonical methodology reference: SCREENER_OVERVIEW.md", False),
+        ("Latest independent review: HEDGE_FUND_REVIEW_FINDINGS.md", False),
+    ]
+    for i, (text, bold) in enumerate(lines, start=1):
+        c = ws.cell(row=i, column=1, value=text)
+        c.font = Font(bold=bold, size=13 if (bold and i == 1) else 11)
+        c.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    ws.column_dimensions["A"].width = 110
+
+
 def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
     """Write FactorScores sheet — same as Phase 1."""
-    if wb.active is None:
-        ws = wb.create_sheet("FactorScores", 0)
+    if wb.active is None or wb.active.title == "ReadMe":
+        ws = wb.create_sheet("FactorScores")
     else:
         ws = wb.active
         ws.title = "FactorScores"
@@ -1375,6 +1415,9 @@ def write_full_excel(df: pd.DataFrame, port: pd.DataFrame,
     """
     out_path = ROOT / cfg["output"]["excel_file"]
     wb = Workbook()
+
+    # Sheet 0: ReadMe / Disclaimers (Phase 13, F13)
+    write_disclaimer_sheet(wb)
 
     # Sheet 1: FactorScores
     write_factor_scores_sheet(wb, df)

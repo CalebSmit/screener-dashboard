@@ -1816,7 +1816,7 @@ def write_excel_safe(df, port, port_stats, cfg, no_portfolio,
             return str(out_path), 1
         else:
             from portfolio_constructor import write_full_excel
-            n_sheets = 3
+            n_sheets = 4  # ReadMe + FactorScores + ScreenerDashboard + ModelPortfolio
             write_full_excel(df, port, port_stats, cfg,
                              sens_df=sens_df, corr_df=corr_df)
             # Count actual sheets
