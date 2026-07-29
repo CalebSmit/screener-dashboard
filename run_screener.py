@@ -31,6 +31,7 @@ warnings.simplefilter("default")
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=ResourceWarning)  # yfinance sqlite cache noise
 warnings.filterwarnings("ignore", message=".*urllib3.*")
 
 from run_context import RunContext
@@ -234,6 +235,15 @@ def generate_screener_overview(cfg: dict) -> None:
     n_generic = len(generic_metrics)
     n_bank_only = len(bank_only)
     n_total = n_generic + n_bank_only
+    # Phase 13 (F12/F31): also report the full registry size (scored + the
+    # candidate metrics carried at weight 0 that the improvement engine may
+    # activate) so the count reconciles with METRIC_COLS and the other docs.
+    try:
+        from factor_engine import METRIC_COLS as _MC
+        n_registry = len(_MC)
+    except Exception:
+        n_registry = n_total
+    n_candidate = max(0, n_registry - n_total)
 
     # Build the generic valuation formula
     val_formula_parts = []
@@ -328,7 +338,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 
 This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to {n_total} financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
 
-Not every stock sees all {n_total} metrics. The screener uses {n_generic} generic metrics for most stocks and a separate set of {n_bank_only} bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about {n_generic} metrics — the set just differs depending on whether the company is a bank or not.
+Not every stock sees all {n_total} metrics. The screener uses {n_generic} generic metrics for most stocks and a separate set of {n_bank_only} bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about {n_generic} metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has {n_registry} entries: {n_total} carry scoring weight today ({n_generic} generic + {n_bank_only} bank-specific) plus {n_candidate} candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
 
 The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — {', '.join(factor_labels[f] for f in active_factors).lower()} — the screener surfaces companies that are strong across the board, not just on one axis.
 
@@ -613,7 +623,7 @@ If a sector would exceed its cap, the excess stocks are dropped and replaced by 
 
 ## What Gets Output
 
-The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 6 sheets:
+The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 7 sheets (a ReadMe/Disclaimers sheet leads the workbook):
 
 ### Sheet 1: Factor Scores
 Every stock in the universe with all raw metrics, {n_factors} category scores, the composite score, rank, value trap flag (with severity 0-100), growth trap flag (with severity 0-100), financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (`_data_source`), metric coverage count, and an EPS basis mismatch flag. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.
@@ -728,7 +738,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade. Approximately 10-25% of tickers may fail to fetch on a given run due to Yahoo Finance rate limiting (HTTP 429).
 
-2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the forward EPS growth metric may show misleading declines. The $1.00 denominator floor and [-75%, +150%] clamp mitigate extreme cases but don't fully solve this inherent data limitation.
+2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
 3. **Point-in-time:** The screener uses the latest available financial data. It does not reconstruct what was known at a past date, which means backtests carry look-ahead bias for fundamental metrics.
 
@@ -738,7 +748,13 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 6. **Rebalance frequency:** The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.
 
-7. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
+7. **No covariance / correlation portfolio risk model:** The default weighting uses single-name volatility only (`inverse_vol` / `score`); it does NOT account for cross-holding correlations. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.
+
+8. **Composite is cardinal; percentile is separate:** The `Composite` column is the cardinal weighted-average of the 0-100 category scores (the ranking key, preserving magnitude/conviction). The `Composite_Pct` column is the universe percentile ("better than X% of stocks"). Do not read the cardinal Composite as a percentile.
+
+9. **Self-improving engine is governed & human-approval-only by default:** The engine can propose factor-weight changes from live IC, but auto-apply is OFF by default (`improvement.allow_auto_apply: false`) and, even when enabled, requires statistical significance (IC information ratio), the correct optimization horizon, an anti-drift cap, and FDR control on candidate-metric activation. All changes are logged with full provenance.
+
+10. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
 
 ---
 
@@ -757,7 +773,7 @@ py run_screener.py
 # Skip portfolio construction (scoring only)
 py run_screener.py --no-portfolio
 
-# Output: factor_output.xlsx (up to 6 sheets)
+# Output: factor_output.xlsx (up to 7 sheets, incl. a ReadMe/Disclaimers sheet)
 
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
@@ -1889,6 +1905,19 @@ def print_full_summary(args, cfg, fe_stats, port_stats, dq_counts,
         print(f"  Portfolio Beta:          {port_stats.get('avg_beta', 0):.2f}")
         print(f"  Est. Yield:             {port_stats.get('est_div_yield', 0):.2f}%")
         print(f"  Construction time:       {port_stats.get('construction_time', 0)}s")
+        # Phase 13 (F11): turnover vs prior holdings
+        _turn = port_stats.get("turnover")
+        if _turn and _turn.get("name_turnover") is not None:
+            print(f"  Turnover vs prior:      {_turn['name_turnover']*100:.0f}% "
+                  f"(in {len(_turn.get('entered', []))}, out {len(_turn.get('exited', []))})")
+            if _turn.get("est_roundtrip_cost_pct") is not None:
+                print(f"  Est. rebalance cost:    {_turn['est_roundtrip_cost_pct']:.2f}%")
+        # Phase 13 (F10): ex-ante covariance-aware portfolio risk
+        _rr = port_stats.get("risk_report")
+        if _rr and _rr.get("available"):
+            print(f"  Ex-ante port vol (ann): {_rr['portfolio_vol_annual']*100:.1f}%  "
+                  f"(wt-avg single {_rr['weighted_avg_single_vol']*100:.1f}%, "
+                  f"div ratio {_rr['diversification_ratio']})")
         print("--------------------------------------------")
     else:
         print("PORTFOLIO:                (skipped — --no-portfolio)")
