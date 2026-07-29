@@ -2553,7 +2553,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\\n' +
             '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\\n' +
             '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\\n' +
-            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The registry has 44 metrics (32 scored generic + 4 bank-specific + 8 candidate at weight 0).\\n' +
+            '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The metric registry (METRIC_COLS) has 44 entries: those carrying scoring weight today (generic + bank-specific) plus the candidate metrics held at weight 0 that the self-improving engine may activate.\\n' +
             '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\\n\\n' +
             '## Web Search\\n' +
             'You have access to real-time web search. Use it proactively when the user asks about:\\n' +
