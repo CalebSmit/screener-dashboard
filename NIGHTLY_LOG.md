@@ -137,6 +137,67 @@ inventory doc - the UI section goes, but `portfolio_constructor.py` feeds
 ### Next
 **Priority 0 (the forward-return horizon bug) comes first.** After that, the
 backtest is the weak link and the first research target.
+
+---
+
+## 2026-08-06 - First live runs: both failed, one dangerously. Fixed.
+
+**Tests:** unchanged, 492 passed
+**Data loop:** ran 02:00, discarded | **Code loop:** ran 06:00, aborted
+
+The machine had no internet overnight. Both scheduled runs fired on time, which
+proved the scheduling works - and exposed two genuine defects.
+
+### What happened
+
+**02:00 data loop - published-quality fabricated data, narrowly avoided.**
+With no DNS, all 503 tickers failed to fetch. The screener did **not** fail. It
+silently substituted synthetic values - `validation/data_quality_log.csv` reads
+*"Network unavailable - using synthetic data / Generated sector-realistic
+sample values"* for every ticker - and produced a completely normal-looking
+2.6 MB dashboard payload with `stocks_scored: 503, avg_composite: 50.5`.
+
+`data-run.ps1` committed it. The only reason fabricated stock scores did not
+reach the live public site is that the push also failed on the same dead
+network. **The size-based sanity check was useless here** - a fully synthetic
+run produces a perfectly normal-sized payload.
+
+It also wrote a synthetic snapshot into `improvement/snapshots/`, which would
+have poisoned the IC evidence base the improvement engine learns from.
+
+**06:00 code loop - aborted on a false negative.** `gh auth status` returned
+"not authenticated" inside the scheduled task even though `gh` is properly
+authenticated interactively. gh keeps its token in the Windows keyring, which
+a scheduled task cannot reliably read.
+
+### Fixed
+
+- **Reverted** the synthetic commit (`4a39060`), removing the fake dashboard
+  data and the poisoned snapshot. Reverted rather than reset so the incident
+  stays in the audit trail.
+- **`data-run.ps1` now has a real data-quality gate.** Any synthetic
+  substitution at all -> discard the run, clean the snapshot, exit 2. Fetch
+  failure rate above 40% -> same. Missing data-quality log -> same. Publishing
+  fabricated numbers is the worst thing this system could do; it is now gated
+  on evidence rather than file size.
+- **`data-run.ps1` waits for the network** (up to 5 minutes, 10 attempts)
+  before running, since the machine may wake from sleep with no network yet.
+- **`nightly-screener.ps1` no longer depends on `gh`.** It merges with plain
+  git and pushes via the `manager` credential helper, so gh was never needed.
+  Replaced the check with `git ls-remote`, which tests what actually matters.
+
+### Noticed, not fixed
+- **The screener silently fabricating data on fetch failure is a defect in
+  `run_screener.py` / `factor_engine.py`, not just in my runner.** The gate now
+  catches it downstream, but the pipeline should refuse, or at minimum exit
+  non-zero, rather than emitting synthetic values that look real. A caller who
+  did not check the data-quality log would never know. **Worth fixing at
+  source** - consider a `--no-synthetic` mode, or making synthetic fallback
+  opt-in rather than default.
+
+### Next
+Unchanged: priority 0, the forward-return horizon bug. But if the data loop
+fails again tonight, fix that first.
 `backtest.py` documents its own survivorship and look-ahead biases. Now that
 the system validates its own methodology changes, a biased backtest doesn't
 just mislead a reader - it steers the self-improvement loop toward whatever the

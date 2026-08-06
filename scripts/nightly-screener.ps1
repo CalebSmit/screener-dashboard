@@ -165,7 +165,7 @@ try {
     if ($IsRetro) { Write-Log "RETROSPECTIVE SESSION - self-evaluation, not normal work" }
     Write-Log "Focus: $Focus"
 
-    foreach ($tool in @('git', 'gh', 'claude', 'python')) {
+    foreach ($tool in @('git', 'claude', 'python')) {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
             Stop-Run "Required tool '$tool' is not on PATH. Aborting."
         }
@@ -173,9 +173,21 @@ try {
 
     Restore-Artifacts 'pre-existing'
 
-    if ((Invoke-Native 'gh' @('auth', 'status')).ExitCode -ne 0) {
-        Stop-Run "GitHub CLI is not authenticated. Run 'gh auth login' once, interactively."
+    # --- Preflight: can we actually reach the remote? -----------------------
+    # Deliberately NOT 'gh auth status'. gh keeps its token in the Windows
+    # keyring, which a scheduled task cannot reliably read - so gh reports
+    # "not authenticated" at 06:00 even though it works fine interactively.
+    # That aborted the first real run for no good reason.
+    #
+    # This loop merges with plain git and pushes via the 'manager' credential
+    # helper, so gh is not needed at all. What matters is whether the remote
+    # is reachable, which is what this checks.
+    $ls = Invoke-Native 'git' @('ls-remote', '--heads', 'origin', 'main')
+    if ($ls.ExitCode -ne 0) {
+        Write-NativeOutput $ls 'ERROR'
+        Stop-Run "Cannot reach the git remote (offline, or credentials unavailable). Skipping today's run."
     }
+    Write-Log "Remote reachable."
 
     $status = Invoke-Native 'git' @('status', '--porcelain')
     if ($status.Text.Trim()) {

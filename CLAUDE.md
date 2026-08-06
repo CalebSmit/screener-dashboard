@@ -252,6 +252,15 @@ Write a regression test that fails on the current behaviour. Record the fix in
 1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
    (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now
    drives both methodology and the historical spine below.
+
+   **Related open defect (found 2026-08-06):** when a fetch fails, the pipeline
+   silently substitutes *synthetic* values - "Generated sector-realistic sample
+   values" - and produces output indistinguishable from a real run. With no
+   network it fabricated all 503 tickers and still emitted a normal-looking
+   2.6 MB payload. `data-run.ps1` now gates on this, but the fabrication
+   happens upstream in `run_screener.py` / `factor_engine.py` and should be
+   fixed at source: refuse, or exit non-zero, rather than emitting fiction that
+   looks like analysis. This is a credibility bug, not a robustness nicety.
 2. **Give the dashboard a time dimension.** Rank/score deltas between runs,
    per-category trends, biggest movers. Unlocks the sell-side workflow and
    time-series valuation. Buildable from `improvement/snapshots/` as the data

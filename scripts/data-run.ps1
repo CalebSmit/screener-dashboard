@@ -82,6 +82,28 @@ try {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { Stop-Run "'$tool' not on PATH." }
     }
 
+    # --- Wait for the network -----------------------------------------------
+    # The machine may have just woken from sleep for this task, in which case
+    # the network stack often is not up yet. Without this, the screener runs
+    # with no connectivity and silently substitutes synthetic data.
+    $netOk = $false
+    for ($attempt = 1; $attempt -le 10; $attempt++) {
+        try {
+            $r = Invoke-WebRequest -Uri 'https://query1.finance.yahoo.com' -UseBasicParsing `
+                    -TimeoutSec 15 -ErrorAction Stop
+            if ($r.StatusCode -ge 200) { $netOk = $true; break }
+        } catch {
+            # Any HTTP response at all means DNS and routing work.
+            if ($_.Exception.Response) { $netOk = $true; break }
+        }
+        Write-Log "Network not ready (attempt $attempt/10). Waiting 30s..." 'WARN'
+        Start-Sleep -Seconds 30
+    }
+    if (-not $netOk) {
+        Stop-Run "No network connectivity after 5 minutes. Skipping today's run rather than publishing synthetic data." 2
+    }
+    Write-Log "Network is up."
+
     $co = Invoke-Native 'git' @('checkout', 'main')
     if ($co.ExitCode -ne 0) { Stop-Run "Could not check out main." }
     Invoke-Native 'git' @('pull', '--ff-only') | Out-Null
@@ -100,6 +122,49 @@ try {
         Write-Log "Screener exited $($run.ExitCode). Discarding partial output." 'ERROR'
         Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
         Stop-Run "Data run failed - the code loop will see this in logs/ and should treat it as top priority." 2
+    }
+
+    # --- Data quality gate ---------------------------------------------------
+    # The screener falls back to "sector-realistic sample values" when a fetch
+    # fails. That is fine for one or two tickers; it is fabricated data if it
+    # happens to most of them. Publishing that to a public dashboard would be
+    # the single worst thing this system could do, so check before believing
+    # the output. File size is NOT a sufficient check - a fully synthetic run
+    # produces a perfectly normal-looking 2.6 MB payload.
+    $dqLog = Join-Path $RepoPath 'validation\data_quality_log.csv'
+    if (Test-Path $dqLog) {
+        $rows = @(Import-Csv $dqLog)
+        $todayRows = @($rows | Where-Object { $_.Timestamp -like "$Date*" })
+        $synthetic = @($todayRows | Where-Object {
+            $_.Description -match 'synthetic' -or $_.Action_Taken -match 'sample values'
+        })
+        $fetchFail = @($todayRows | Where-Object { $_.Issue_Type -eq 'fetch_failure' })
+
+        Write-Log "Data quality: $($fetchFail.Count) fetch failure(s), $($synthetic.Count) synthetic substitution(s) today."
+
+        if ($synthetic.Count -gt 0) {
+            Write-Log "Screener substituted SYNTHETIC data for $($synthetic.Count) ticker(s)." 'ERROR'
+            Write-Log "Refusing to publish fabricated values. Discarding this run." 'ERROR'
+            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+            Stop-Run "Run discarded: synthetic data detected. Check connectivity." 2
+        }
+
+        # Yahoo rate-limits routinely; a modest failure rate is normal and the
+        # affected tickers are excluded rather than faked. A large one is not.
+        $maxFailPct = 40
+        $universe = 500
+        $failPct = [math]::Round(100.0 * $fetchFail.Count / $universe, 1)
+        if ($fetchFail.Count -gt ($universe * $maxFailPct / 100)) {
+            Write-Log "Fetch failure rate ~$failPct% exceeds $maxFailPct%. Data too thin to publish." 'ERROR'
+            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+            Stop-Run "Run discarded: fetch failure rate ~$failPct%." 2
+        }
+    } else {
+        Write-Log "No data quality log found - cannot verify the run was real. Not publishing." 'ERROR'
+        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Stop-Run "Run discarded: no data quality log." 2
     }
 
     # --- Regenerate the dashboard -------------------------------------------
