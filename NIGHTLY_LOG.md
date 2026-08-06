@@ -186,6 +186,15 @@ a scheduled task cannot reliably read.
   git and pushes via the `manager` credential helper, so gh was never needed.
   Replaced the check with `git ls-remote`, which tests what actually matters.
 
+- **Removed `runs/2b7db89f3f94/`** (gitignored, so not covered by the revert).
+  It held the synthetic run's full artifacts including `meta.json` and
+  `05_final_scored.parquet` - precisely what
+  `improvement_engine.backfill_from_existing_runs()` scans for. Left in place,
+  any future backfill would have rebuilt a snapshot from fabricated data and
+  fed it into the IC evidence base. Verified 0 backfill-eligible run dirs
+  remain. **Note for future incidents: reverting the git commit is not enough;
+  `runs/` must be cleaned separately.**
+
 ### Noticed, not fixed
 - **The screener silently fabricating data on fetch failure is a defect in
   `run_screener.py` / `factor_engine.py`, not just in my runner.** The gate now
