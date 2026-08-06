@@ -30,5 +30,8 @@ runs/
 .DS_Store
 Thumbs.db
 
+# Nightly improvement routine (run transcripts, not source)
+logs/
+
 # Misc
 n_ull
