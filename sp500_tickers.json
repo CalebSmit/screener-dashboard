@@ -340,7 +340,7 @@
     "Sector": "Financials"
   },
   {
-    "Ticker": "BK",
+    "Ticker": "BNY",
     "Company": "BNY Mellon",
     "Sector": "Financials"
   },
@@ -415,11 +415,6 @@
     "Sector": "Real Estate"
   },
   {
-    "Ticker": "CPB",
-    "Company": "Campbell's Company (The)",
-    "Sector": "Consumer Staples"
-  },
-  {
     "Ticker": "COF",
     "Company": "Capital One",
     "Sector": "Financials"
@@ -431,7 +426,7 @@
   },
   {
     "Ticker": "CCL",
-    "Company": "Carnival",
+    "Company": "Carnival Corporation",
     "Sector": "Consumer Discretionary"
   },
   {
@@ -610,11 +605,6 @@
     "Sector": "Industrials"
   },
   {
-    "Ticker": "CAG",
-    "Company": "Conagra Brands",
-    "Sector": "Consumer Staples"
-  },
-  {
     "Ticker": "COP",
     "Company": "ConocoPhillips",
     "Sector": "Energy"
@@ -668,11 +658,6 @@
     "Ticker": "COST",
     "Company": "Costco",
     "Sector": "Consumer Staples"
-  },
-  {
-    "Ticker": "CTRA",
-    "Company": "Coterra",
-    "Sector": "Energy"
   },
   {
     "Ticker": "CRH",
@@ -830,7 +815,7 @@
     "Sector": "Consumer Discretionary"
   },
   {
-    "Ticker": "SATS",
+    "Ticker": "ECHO",
     "Company": "EchoStar",
     "Sector": "Communication Services"
   },
@@ -848,11 +833,6 @@
     "Ticker": "EW",
     "Company": "Edwards Lifesciences",
     "Sector": "Health Care"
-  },
-  {
-    "Ticker": "EA",
-    "Company": "Electronic Arts",
-    "Sector": "Communication Services"
   },
   {
     "Ticker": "ELV",
@@ -878,11 +858,6 @@
     "Ticker": "EOG",
     "Company": "EOG Resources",
     "Sector": "Energy"
-  },
-  {
-    "Ticker": "EPAM",
-    "Company": "EPAM Systems",
-    "Sector": "Information Technology"
   },
   {
     "Ticker": "EQT",
@@ -995,6 +970,16 @@
     "Sector": "Industrials"
   },
   {
+    "Ticker": "FDXF",
+    "Company": "FedEx Freight",
+    "Sector": "Industrials"
+  },
+  {
+    "Ticker": "FERG",
+    "Company": "Ferguson Enterprises",
+    "Sector": "Industrials"
+  },
+  {
     "Ticker": "FIS",
     "Company": "Fidelity National Information Services",
     "Sector": "Financials"
@@ -1018,6 +1003,11 @@
     "Ticker": "FISV",
     "Company": "Fiserv",
     "Sector": "Financials"
+  },
+  {
+    "Ticker": "FLEX",
+    "Company": "Flex Ltd.",
+    "Sector": "Information Technology"
   },
   {
     "Ticker": "F",
@@ -1185,8 +1175,13 @@
     "Sector": "Consumer Discretionary"
   },
   {
+    "Ticker": "HONA",
+    "Company": "Honeywell Aerospace",
+    "Sector": "Industrials"
+  },
+  {
     "Ticker": "HON",
-    "Company": "Honeywell",
+    "Company": "Honeywell Technologies",
     "Sector": "Industrials"
   },
   {
@@ -1513,6 +1508,11 @@
     "Ticker": "MLM",
     "Company": "Martin Marietta Materials",
     "Sector": "Materials"
+  },
+  {
+    "Ticker": "MRVL",
+    "Company": "Marvell Technology",
+    "Sector": "Information Technology"
   },
   {
     "Ticker": "MAS",
@@ -1853,11 +1853,6 @@
     "Ticker": "PNC",
     "Company": "PNC Financial Services",
     "Sector": "Financials"
-  },
-  {
-    "Ticker": "POOL",
-    "Company": "Pool Corporation",
-    "Sector": "Consumer Discretionary"
   },
   {
     "Ticker": "PPG",
@@ -2328,6 +2323,11 @@
     "Ticker": "VLO",
     "Company": "Valero Energy",
     "Sector": "Energy"
+  },
+  {
+    "Ticker": "VEEV",
+    "Company": "Veeva Systems",
+    "Sector": "Health Care"
   },
   {
     "Ticker": "VTR",
