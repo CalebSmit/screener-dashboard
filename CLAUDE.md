@@ -215,6 +215,36 @@ investment club rather than a liability.
 
 ## Current priorities (rewrite this section as things land)
 
+**-1. THE UNATTENDED SESSION CANNOT RUN PYTHON. Nothing else can ship until
+this is fixed, because ship gates 1 and 2 cannot be executed.**
+
+Verified 2026-08-10 from inside a scheduled run: `python --version` succeeds,
+but `python -c`, `python -m pytest`, and `python run_screener.py --dry-run` are
+all denied, as are `WebSearch` and `WebFetch`. Every one of those is listed in
+`.claude/settings.json` -> `permissions.allow`, so **the project's permission
+settings are not being applied to the unattended run**. That is exactly the
+symptom `scripts/fix-trust.ps1` documents: folder trust is keyed by path in
+`%USERPROFILE%\.claude.json`, the desktop app writes it with backslashes and
+the CLI reads it with forward slashes, and an untrusted workspace "ignores its
+permission settings".
+
+**Fix - run once, interactively (a session cannot do it; it writes outside the
+working directory and PowerShell is itself denied):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fix-trust.ps1
+```
+
+Until then every code-loop session can read, reason, and write files, but can
+neither test nor validate, so no session may merge to `main`.
+
+Related: the scheduled-task definitions are **not in version control** -
+`grep -rn "Register-ScheduledTask" .` finds nothing. The 2:00 AM and 6:00 AM
+triggers exist only as hand-made Task Scheduler entries on one machine. The
+data loop did not fire on Monday 2026-08-10 (no `logs/datarun-2026-08-10*`)
+while the 6:00 AM code loop did; a missing `WakeToRun`/`StartWhenAvailable` is
+the likely cause. Committing a registration script would fix both problems.
+
 **0. THE FIRST SESSION MUST FIX THIS, ahead of any rotation focus.**
 `compute_forward_returns()` in `improvement_engine.py` (~line 250) skips any
 snapshot whose date already appears in `performance_history.csv`:
@@ -229,9 +259,12 @@ return is computable. `fwd_return_1m` is written `NaN`, the date joins
 `existing_dates`, and **the date is never revisited** - so the 1-month return is
 never filled in, however much time passes.
 
-Consequences, all verified 2026-08-05:
-- 13 distinct snapshot dates exist (2026-02-20 through 2026-07-29)
-- `performance_history.csv` has **only** a `fwd_return_1w` column
+Consequences, re-verified 2026-08-10:
+- 14 distinct snapshot dates exist (2026-02-20 through 2026-08-07)
+- `performance_history.csv` now *does* have `fwd_return_1m` / `fwd_return_3m`
+  columns (the 2026-08-05 note that it has only `fwd_return_1w` is stale), but
+  only **2 of 14 dates** carry a 1m value and **1 of 14** a 3m value - those
+  dates happened to sit unprocessed past the horizon by accident, not by design
 - `live_ic_history.csv` has 3 rows, **all horizon `1w`**
 - `config.yaml` sets `optimization_horizon: '1m'` and documents that it will
   *refuse to propose* if that horizon has no data
@@ -240,14 +273,47 @@ Consequences, all verified 2026-08-05:
 never will, until this is fixed.** The entire self-improvement premise depends
 on it.
 
-The fix: make the dedup key account for which horizons are still unfilled, so a
-date is reprocessed when it becomes old enough for the next horizon. Then
-backfill - **11 of the 13 existing snapshot dates are already >30 days old, so
-their 1-month returns are computable from historical prices immediately.** Done
-right, this clears the 8-observation gate in days rather than months.
+> **STOP - do not ship the obvious fix on its own.**
+> Research 2026-08-10 (`research/2026-08-10-ic-evidence-independence.md`) found
+> that the backfill this unblocks is **not 11 independent observations**. All 11
+> backfillable dates fall inside a 53-day window, so at most **2 non-overlapping
+> 30-day return windows** fit among them; six sit in a single 9-day stretch.
+> `_ir_to_one_sided_pvalue()` computes `t = IR * sqrt(n_obs)` from the raw row
+> count, so the backfill inflates t by **2.35x** and moves a borderline IC-IR of
+> 0.5 from p=0.24 to p=0.049 - straight through the `min_ic_ir_for_auto_apply`
+> gate. With `allow_auto_apply: true` the engine would then start rewriting
+> weights. **That is worse than the current inert state**, because the output
+> would look authoritative.
+
+The fix is therefore a package, not a one-liner:
+
+1. Make the dedup key `(run_date, horizon)`-aware so a date is reprocessed when
+   it becomes old enough for the next horizon.
+2. Deduplicate `(run_date, ticker)` on append. Several snapshot files share a
+   date and are all appended in one pass, so `performance_history.csv` is ~75%
+   duplicate rows and `live_ic_history.csv` records **6,539 "tickers"** for
+   2026-02-21 in an S&P 500 screener.
+3. Count *effective* (non-overlapping) observations for the significance test
+   rather than raw rows. On today's data that turns n=11 into n=2 and correctly
+   refuses to propose.
+4. Exclude weekend run dates - 5 of the 14 are Saturdays/Sundays, which have no
+   market close.
+5. Make the data loop actually call `compute_live_ic()`. It currently calls only
+   `compute_dispersion()` and `compute_forward_returns()`, so the IC series
+   never advances on its own.
+
+**If step 3 cannot land in the same session as step 1, set
+`allow_auto_apply: false` before shipping step 1** and record it in
+`METHODOLOGY_CHANGELOG.md`.
 
 Write a regression test that fails on the current behaviour. Record the fix in
 `METHODOLOGY_CHANGELOG.md` - it changes what evidence the engine acts on.
+
+Realistic expectation: this does **not** clear the 8-observation gate in days.
+Genuinely independent monthly observations accrue at about one per month, so
+honestly ~8 months from the start of the scheduled loop (2026-07-28) unless the
+optimization horizon is reconsidered. Say so plainly rather than engineering
+around it.
 
 1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
    (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now

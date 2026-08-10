@@ -216,3 +216,161 @@ determines how urgent the rest is.
 
 Until then, live IC from the data loop is more trustworthy than any backtest
 number, because it is genuinely out-of-sample.
+
+---
+
+## 2026-08-10 - RESEARCH. The priority-0 fix would have armed the engine on two overlapping observations.
+
+**Tests:** before -/- , after -/- - **could not be run, see below**
+**Data loop:** stalled - no run today (Mon 2026-08-10); last successful run 2026-08-07
+**Code loop:** ran, but **could not execute Python at all**
+
+### The blocker, first, because it changes what this session could be
+
+This is the first autonomous session to get past the runner and actually start
+work (2026-08-06 aborted on a `gh` false negative, 2026-08-07 on no network).
+It immediately hit the next link in the chain: **the unattended session cannot
+run Python.**
+
+```
+python --version                            -> works (3.12.10)
+python -c "print('hello')"                  -> denied
+python -m pytest tests/ test_screener.py -q -> denied
+python run_screener.py --dry-run            -> denied
+WebSearch / WebFetch                        -> denied
+```
+
+All of those are in `.claude/settings.json` -> `permissions.allow`. They are
+denied anyway, which means the project's permission settings are **not being
+applied** to the scheduled run. `scripts/fix-trust.ps1` predicts this symptom
+exactly in its own header: folder trust is keyed by path in
+`%USERPROFILE%\.claude.json`, the desktop app writes it with backslashes, the
+CLI reads it with forward slashes, and an untrusted workspace "ignores its
+permission settings".
+
+**Ship gates 1 and 2 were therefore impossible to run, so nothing merged to
+`main` today.** `main` is untouched.
+
+`git add` / `git commit` / `git push` are denied by the same cause, so **this
+session could not commit its own work.** The files below are sitting
+uncommitted in the working tree:
+
+```
+ M CLAUDE.md
+ M NIGHTLY_LOG.md
+?? ACTION_REQUIRED.md
+?? research/2026-08-10-ic-evidence-independence.md
+```
+
+**This will jam the loop.** `scripts/nightly-screener.ps1` checks
+`git status --porcelain` before starting (line ~192) and refuses to run on a
+dirty tree, so **tomorrow's 6:00 AM session will not start** until someone
+commits or stashes these. Gate 4 also fails today for the same reason, so the
+runner will push an empty `nightly/2026-08-10` branch and exit 2.
+
+Recovery - two commands, run once, interactively:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fix-trust.ps1
+
+git add CLAUDE.md NIGHTLY_LOG.md ACTION_REQUIRED.md research/2026-08-10-ic-evidence-independence.md
+git commit -m "research: IC observation independence blocks the naive priority-0 fix"
+```
+
+A session cannot do the first itself - it writes outside the working directory
+and PowerShell execution is denied too. Recorded as priority **-1** in
+`CLAUDE.md` and in `ACTION_REQUIRED.md` at the repo root.
+
+### Did
+
+Spent the session on priority 0, as instructed. Could not fix it - no Python -
+so I did the thing that was still possible and turned out to matter more:
+established what the fix would actually produce. **It would have made things
+worse.** Full note: `research/2026-08-10-ic-evidence-independence.md`.
+
+### Evidence / research
+
+All from repo data with read-only shell commands; every command is in the note.
+
+- **Priority 0 confirmed** at `improvement_engine.py:253`, still unfixed. The
+  `CLAUDE.md` description is now slightly stale: `performance_history.csv`
+  *does* have `fwd_return_1m`/`3m` columns, and **2 of 14 dates** have a 1m
+  value (`2026-03-15`, `2026-04-14`). Those two got filled only because they
+  sat unprocessed past the horizon by accident.
+- **The backfill is not 11 independent observations.** The 11 backfillable
+  dates span 2026-02-20 to 2026-04-14 - **53 days**. At most
+  `floor(53/30)+1 = 2` non-overlapping 30-day return windows fit among them.
+  Six of the eleven sit inside a single 9-day stretch and overlap by 21-29 of
+  30 days.
+- **The gate would have passed on that.** `_ir_to_one_sided_pvalue()` computes
+  `t = IR * sqrt(n_obs)` from the raw row count. At the configured
+  `min_ic_ir_for_auto_apply: 0.5`:
+
+  | n used | t | one-sided p | passes? |
+  |---|---|---|---|
+  | 11 (post-backfill, as counted today) | 1.66 | **0.049** | **yes** |
+  | 2 (non-overlapping) | 0.71 | 0.240 | no |
+
+  A **2.35x** t-statistic inflation. With `allow_auto_apply: true` the engine
+  would have begun rewriting factor weights, each change arriving with a
+  p-value and a changelog entry saying the gates were satisfied.
+- **75% of `performance_history.csv` is duplicate rows.** Several snapshot
+  files share a run date and `compute_forward_returns()` appends all of them in
+  one pass. `2026-02-21` has 13 copies of every ticker, and that reaches the
+  published record: `live_ic_history.csv` reports **6,539 "tickers"** for an
+  S&P 500 screener. 8.1 MB of file for ~4,500 distinct ticker-date pairs.
+- **5 of the 14 snapshot dates are weekends** (`2026-02-21`, `02-22`, `02-28`,
+  `03-01`, `03-15` - confirmed with `date -d`). No market close on those days.
+  The whole pre-2026-07-28 set is development artifacts, not observations; the
+  scheduled loop did not exist until 2026-08-05. **The entire current 1-month
+  evidence base is two dates, one of which is a Sunday dev run.**
+- **The data loop never recomputes live IC.** `record_run_snapshot()` calls
+  `compute_dispersion()` and `compute_forward_returns()` but not
+  `compute_live_ic()`. Proof: after the successful 2026-08-07 run,
+  `performance_history.csv` and `dispersion_history.csv` are stamped Aug 7,
+  `live_ic_history.csv` is still stamped Aug 5. The loop's own log line
+  "3 live IC observation(s)" is just reading a stale file.
+
+### Methodology changed
+
+None - no code shipped, and the ship gates could not be run to justify any.
+
+`CLAUDE.md` priority 0 was rewritten to a 5-step package with an explicit
+**STOP - do not ship the obvious fix on its own**, plus the instruction to set
+`allow_auto_apply: false` if the effective-observation-count step cannot land
+in the same session. Priority **-1** added for the environment blocker.
+
+### Tried and rejected
+
+- **Blind-editing `scripts/nightly-screener.ps1`** to invoke `fix-trust.ps1`
+  before launching Claude. Rejected: PowerShell could not be executed to test
+  it, and a syntax error in the runner kills the loop entirely. Documenting a
+  one-line manual fix beats an unverifiable change to the only thing that
+  starts sessions.
+- **Writing the priority-0 fix unvalidated on the branch.** Rejected on the
+  evidence rule - and the research then showed the obvious fix was the wrong
+  fix anyway, which is the better argument for having waited.
+- **Citing literature from memory as if verified.** WebSearch/WebFetch were
+  denied, so the six references in the note are explicitly flagged unverified
+  and the finding deliberately rests only on repo data and arithmetic that
+  anyone can re-run.
+
+### Honest correction to a standing assumption
+
+`CLAUDE.md` said the fix would clear the 8-observation gate "in days rather
+than months". That is not true at the 1-month horizon. Independent monthly
+observations accrue at about one per month, so it is realistically **~8 months**
+from the start of the scheduled loop (2026-07-28). Whether the optimization
+horizon should be 1m at all is now an open question for the design session -
+1w gives ~5x the independent observations, though Phase 13 governance rightly
+forbids optimizing a monthly strategy on a weekly signal.
+
+### Next
+
+1. **Run `scripts\fix-trust.ps1` interactively.** Nothing else can ship first;
+   every future session is blocked in exactly the same way.
+2. Then the priority-0 package as rewritten in `CLAUDE.md` - all 5 steps, or
+   step 1 plus `allow_auto_apply: false`.
+3. Commit a `Register-ScheduledTask` script. The 2 AM / 6 AM triggers exist only
+   as hand-made entries on one machine and are not in version control; the data
+   loop silently missed today, likely a missing `WakeToRun`.
