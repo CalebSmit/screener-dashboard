@@ -29,24 +29,46 @@ untrusted workspace ignores its permission settings.
 - `scripts/nightly-screener.ps1` refuses to start on a dirty tree, so **the
   6:00 AM session will not run again until this is cleared.**
 
-## Fix — run both, interactively, from the repo root
+## Fix — CORRECTED 2026-08-10 evening
+
+**`scripts/fix-trust.ps1` does not work, and should not be relied on.** It was
+run successfully on 2026-08-06 and the flag was verified `true`; by 2026-08-10
+it was `false` again. Patching `hasTrustDialogAccepted` from outside does not
+stick, because Claude Code rewrites `.claude.json` from its own internal state
+and resets a project it has never actually been trusted in.
+
+Trust must be granted through the CLI's **own** dialog, in an interactive
+session started **from inside this folder**. Note the earlier interactive login
+was run from `C:\WINDOWS\system32`, so the CLI never saw this project at all —
+which is why it was never prompted for.
+
+**Close any other Claude Code session using this folder first** (including a
+desktop-app conversation open on this project), or the CLI will report the
+workspace is already in use. Then:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\fix-trust.ps1
+cd "C:\Users\smitc\OneDrive\Documents\Screener"
+& "$env:APPDATA\npm\claude.cmd"
 ```
 
-`fix-trust.ps1` is idempotent, backs up `.claude.json` first, self-verifies, and
-restores the backup on failure.
+Answer **yes** to the trust prompt, then `/exit`.
 
-Then commit the work this session produced:
+Verify it stuck — this must print `trusted=True` for the **forward-slash** key:
 
 ```powershell
-git add CLAUDE.md NIGHTLY_LOG.md research\2026-08-10-ic-evidence-independence.md ACTION_REQUIRED.md
-git commit -m "research: IC observation independence blocks the naive priority-0 fix"
-git push -u origin nightly/2026-08-10
+python -c "import json,os;d=json.load(open(os.path.expanduser('~/.claude.json'),encoding='utf-8'));[print(k,v.get('hasTrustDialogAccepted')) for k,v in d['projects'].items() if 'Screener' in k]"
 ```
 
-Then delete this file and commit that deletion.
+**The commit step below is no longer needed** — the 18:51 data run on
+2026-08-10 swept this session's uncommitted work into `main` via `git add -A`
+(commit `0c9aa58`). That was itself a bug: the data loop was acting as a back
+door around the code loop's ship gates. Fixed in `84e81e9`, which restricts the
+data loop to staging only the artifacts it owns.
+
+So `CLAUDE.md`, `NIGHTLY_LOG.md`, and the research note are already on `main`.
+Nothing to commit; the branch `nightly/2026-08-10` can be deleted.
+
+Once trust is verified working, delete this file and commit that deletion.
 
 ## Was the session wasted?
 
