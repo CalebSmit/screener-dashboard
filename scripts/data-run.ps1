@@ -199,7 +199,48 @@ try {
         exit 0
     }
 
-    Invoke-Native 'git' @('add', '-A') | Out-Null
+    # Stage ONLY the artifacts this loop owns.
+    #
+    # This used to be `git add -A`, which on 2026-08-10 swept up a code
+    # session's uncommitted work - CLAUDE.md, NIGHTLY_LOG.md, a research note,
+    # ACTION_REQUIRED.md - and published it straight to main inside a "data:"
+    # commit. That work had failed its clean-tree ship gate minutes earlier and
+    # was deliberately left on a branch. The data loop must never be a back
+    # door around the code loop's gates.
+    $DataArtifacts = @(
+        'dashboard.html',
+        'index.html',
+        'dashboard_data.js',
+        'factor_output.xlsx',
+        'factor_vol_history.csv',
+        'sp500_tickers.json',
+        'SCREENER_OVERVIEW.md',
+        'README.md',
+        'improvement',
+        'validation'
+    )
+    foreach ($a in $DataArtifacts) {
+        if (Test-Path (Join-Path $RepoPath $a)) {
+            Invoke-Native 'git' @('add', '--', $a) | Out-Null
+        }
+    }
+
+    $staged = Invoke-Native 'git' @('diff', '--cached', '--name-only')
+    if (-not $staged.Text.Trim()) {
+        Write-Log "Run produced no changes to data artifacts. Nothing to publish."
+        Write-Log "=== Data loop complete ==="
+        exit 0
+    }
+    Write-Log "Staging $(@($staged.Output | Where-Object { $_.Trim() }).Count) data artifact(s)."
+
+    # Anything still unstaged belongs to someone else - report it, leave it.
+    $unstaged = Invoke-Native 'git' @('status', '--porcelain')
+    $foreign = @($unstaged.Output | Where-Object { $_ -and $_ -notmatch '^[AMD] ' -and $_.Trim() })
+    if ($foreign.Count -gt 0) {
+        Write-Log "Leaving $($foreign.Count) non-data file(s) untouched (not this loop's to publish):" 'WARN'
+        foreach ($f in $foreign) { Write-Log "    $($f.Trim())" 'WARN' }
+    }
+
     $commit = Invoke-Native 'git' @('commit', '-m', "data: screener run $Date")
     if ($commit.ExitCode -ne 0) { Stop-Run "Commit failed." 2 }
     Write-Log "Committed run output."

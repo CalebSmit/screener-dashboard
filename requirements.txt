@@ -7,6 +7,10 @@ pyyaml==6.0.3
 pyarrow==23.0.0
 pydantic==2.12.3
 pytest>=8.0.0
+markdown>=3.5               # generate_dashboard.py: renders SCREENER_OVERVIEW.md
+                            # into the dashboard's Methodology modal. WITHOUT IT
+                            # the code silently falls back to raw <pre> markdown
+                            # and the whole methodology section renders unstyled.
 tqdm>=4.66.0               # Progress bars for long-running operations
 pandas-datareader>=0.10.0  # factor_exposure.py only
 statsmodels>=0.14.0        # factor_exposure.py only

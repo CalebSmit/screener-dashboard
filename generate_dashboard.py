@@ -16,6 +16,7 @@ import hashlib
 import json
 import math
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -5223,7 +5224,22 @@ def _load_methodology_html() -> str:
         md_text = overview_path.read_text(encoding="utf-8")
         return markdown.markdown(md_text, extensions=["tables", "fenced_code"])
     except ImportError:
-        # Fallback: wrap raw markdown in <pre> if markdown library unavailable
+        # Fallback: wrap raw markdown in <pre> if the markdown library is absent.
+        #
+        # This fallback shipped silently to the live site for three days in
+        # August 2026: `markdown` was missing from requirements.txt, so on a
+        # fresh machine the entire Methodology section rendered as unstyled raw
+        # markdown - visible '#' and '**' characters - with nothing in any log
+        # to say why. Degrading quietly is worse than failing here, because the
+        # methodology page is the tool's main claim to being defensible.
+        warnings.warn(
+            "The 'markdown' package is not installed, so the dashboard's "
+            "Methodology section will render as raw unformatted text. "
+            "Install it (pip install markdown) and regenerate.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        print("  [WARN] markdown package missing - Methodology will render unformatted")
         md_text = overview_path.read_text(encoding="utf-8")
         import html as html_mod
         return f"<pre>{html_mod.escape(md_text)}</pre>"
