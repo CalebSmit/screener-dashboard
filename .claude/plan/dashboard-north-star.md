@@ -166,6 +166,61 @@ overview** at the top of the page - what changed since the last run, biggest
 rank movers, anything newly flagged. That is the single most decision-relevant
 thing the dashboard could gain.
 
+## Candidate improvements (not yet prioritised - pick by value, not order)
+
+Recorded 2026-08-10. Each has been checked against what the payload and fetch
+already provide, so the cost estimates are real rather than guessed.
+
+### Cheap - the data is already there
+
+**1. Business description in the drill-down.** (owner suggestion)
+`factor_engine.py` already calls yfinance `info` and pulls `industry` from it
+(line ~617). `longBusinessSummary` is in that *same* response, so capturing it
+costs **zero extra API calls**. "What does this company actually do?" is the
+first question a student asks and the dashboard cannot currently answer it.
+*Caveat:* full summaries average ~1.2 KB, so 502 of them add ~600 KB to a
+3 MB payload. Truncate to the first two sentences (~300 chars) or lazy-load
+per stock.
+
+**2. Surface `industry`.** Already fetched, used only for bank-like detection,
+never shown. Sector is too coarse - "Information Technology" spans a chip
+fabricator and a payroll processor. ~20 bytes per stock.
+
+**3. A metric glossary.** `metric_meta` carries `label`, `fmt` and `category`
+for 36 metrics but **no explanation**. Add a one-line plain-English definition
+and a note on why it is in the model - roughly 5 KB of static text for the
+whole registry, shown on hover or tap. This is the single cheapest thing that
+would make the tool teachable, and it directly serves the investment-club
+audience.
+
+### High decision value
+
+**4. "Why is this NOT in the portfolio?"** A stock can rank in the top 20 and
+still be excluded - by a sector cap, a position cap, or a trap flag - and the
+dashboard shows no reason. Fully deterministic from data already present, and
+it answers a question a user will definitely ask.
+
+**5. "What would have to change?"** For a holding, how far would a category
+score need to fall before it dropped out of the top 25? Computable exactly from
+the weights and the current distribution. Turns a static ranking into something
+that supports a *sell* decision, which is the workflow the tool most lacks.
+
+**6. Per-stock confidence, made legible.** `metric_count/metric_total`,
+`num_analysts`, `data_source` (quarterly vs annual) and `eps_mismatch` are all
+in the payload and effectively invisible. "This score rests on 11 of 18 metrics
+and 2 analysts" changes how much weight a reader should put on it. Ties to the
+16 stocks currently missing a size score - a gap that today is silent.
+
+### Investment-club specific
+
+**7. A printable one-page tear sheet.** At a club meeting somebody presents a
+stock. A clean print/PDF view per name - scores, contributions, peers, targets,
+the business description - would get real use and is mostly CSS `@media print`.
+
+**8. Mobile layout.** A 502-row table is unusable on a phone, and "a student
+checking before a club meeting" is the stated use case. Card view under a
+breakpoint, with the full table on desktop.
+
 ## Research questions for Monday sessions
 
 Roughly in priority order. One per week is plenty.
