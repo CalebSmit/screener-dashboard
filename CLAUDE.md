@@ -90,17 +90,42 @@ improving.
    it. Hand-tuning is a last resort and needs a written argument for why the
    engine's evidence was insufficient.
 
-5. **Never commit secrets, credentials, or the `.certs/` bundle.**
+5. **The backtest does not decide anything until 2027-02-11.** Owner direction,
+   2026-08-11. Until that date `backtest.py` output is **supporting colour
+   only**. You may run it, report it, and use it to notice something worth
+   researching. You may **not**:
+   - cite a backtest number as the justification for a methodology change
+   - revert or keep a change because of what the backtest said
+   - quote it in `METHODOLOGY_CHANGELOG.md` under **Evidence**
+     (put it under a separate *Backtest observation* line, clearly marked
+     as not decision-grade)
+   - feed it into the improvement engine as a validation gate
 
-6. **Preserve the defensibility features** - weight sensitivity, factor
+   The reason is not squeamishness: the current backtest has documented
+   survivorship and look-ahead bias, so a number from it is not weak evidence,
+   it is evidence pointing in an unknown direction. **Until then, methodology
+   decisions rest on research** - published literature and documented
+   professional practice - per "Your mandate" above.
+
+   This does not restrict `improvement_engine.py`, which learns from *live*
+   forward returns rather than the backtest. That is genuinely out-of-sample
+   and stays the mechanism for weight changes. It cannot fire until its
+   evidence gates are met regardless.
+
+   If backtest v2 lands early and honestly fixes both biases, that is worth
+   raising in the log - but the date stands until the owner moves it.
+
+6. **Never commit secrets, credentials, or the `.certs/` bundle.**
+
+7. **Preserve the defensibility features** - weight sensitivity, factor
    correlation, run provenance/snapshots, trap detection. You may redesign or
    replace them with something better; you may not quietly drop them. They are
    why the tool is credible.
 
-7. **Update `NIGHTLY_LOG.md` every session.** It is the only memory that carries
+8. **Update `NIGHTLY_LOG.md` every session.** It is the only memory that carries
    between sessions. Write it for a reader with no other context.
 
-8. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
+9. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
    generator. `index.html` is what Pages serves.
 

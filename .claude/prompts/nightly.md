@@ -78,8 +78,12 @@ pass to be made. When evidence does accumulate, go back and check, and record
 the result against the original changelog entry. If it turns out wrong, revert
 it and say so.
 
-Never quote a number from the current `backtest.py` as if it settled anything -
-see `.claude/plan/backtest-v2.md` for why.
+**The backtest decides nothing until 2027-02-11** (`CLAUDE.md` rule 5). Run it
+and report it if it is interesting, but never use a number from it to justify,
+keep or revert a methodology change, and never file it under **Evidence** in
+`METHODOLOGY_CHANGELOG.md`. It carries survivorship and look-ahead bias, so its
+direction is unknown - that is worse than having no number at all, because it
+looks authoritative. Until that date, methodology rests on research.
 
 **Methodology changes** are allowed and expected. Every one gets an entry in
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected

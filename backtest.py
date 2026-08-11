@@ -765,8 +765,34 @@ Results are for MODEL VALIDATION ONLY (factor monotonicity, IC stability,
 value trap filter effectiveness). They do NOT represent achievable live
 trading performance.
 
+--------------------------------------------------------------------------------
+GOVERNANCE (owner direction, 2026-08-11)
+
+  These results DO NOT DECIDE ANYTHING until 2027-02-11.
+
+  Until that date this output is supporting colour only. It may be run,
+  reported, and used to notice something worth researching. It must NOT be
+  cited as the justification for a methodology change, used to keep or revert
+  one, recorded under "Evidence" in METHODOLOGY_CHANGELOG.md, or wired into
+  the improvement engine as a validation gate.
+
+  A number carrying the two biases above is not weak evidence - it is evidence
+  pointing in an unknown direction. Methodology decisions rest on published
+  research and documented professional practice until backtest v2 replaces
+  this. See CLAUDE.md rule 5 and .claude/plan/backtest-v2.md.
+--------------------------------------------------------------------------------
+
 To acknowledge these biases and proceed, re-run with:
     python backtest.py --confirm-biases
+================================================================================
+"""
+
+_NOT_DECISION_GRADE = """
+================================================================================
+  REMINDER: the numbers above are NOT decision-grade until 2027-02-11.
+  Survivorship + look-ahead bias, direction unknown. Supporting colour only -
+  do not justify, keep or revert a methodology change on the basis of them.
+  See CLAUDE.md rule 5.
 ================================================================================
 """
 
@@ -887,6 +913,10 @@ def main():
 
     print_summary(bt, decile_perf_df, ic_summary, vtf_df,
                   n_months, avg_universe, start_dt, end_dt, t0)
+
+    # Printed last so it is the final thing on screen and in any captured log.
+    # The disclosure at the top is easy to scroll past once results appear.
+    print(_NOT_DECISION_GRADE)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,26 @@
 # Backtest v2 - an honest validation harness
 
-**Priority:** 2 in `CLAUDE.md`, and arguably 1 in importance
+**Priority:** 2 in `CLAUDE.md`
 **Status:** Not started
+**Deadline that matters:** 2027-02-11
+
+**Owner direction 2026-08-11: the current backtest decides nothing until
+2027-02-11.** Until then its output is supporting colour only - see `CLAUDE.md`
+rule 5. That changes what this project is *for*. It is no longer an urgent
+unblocker; it is the thing that must exist and be trustworthy by the time the
+bench period ends, so that six months of research-justified methodology changes
+can finally be checked against something honest.
+
+Two consequences for how to approach it:
+
+- **There is no rush to ship a half-fixed backtest.** A v2 that fixes
+  survivorship but not look-ahead is still not decision-grade, and shipping it
+  early invites exactly the false confidence the bench period exists to
+  prevent. Take the time and do both.
+- **Build the list of things to re-check.** Every `METHODOLOGY_CHANGELOG.md`
+  entry written between 2026-08-11 and 2027-02-11 is justified by research
+  alone. When v2 lands, those are the first things to test. Keeping that list
+  current is part of this project.
 
 ## Why this matters more than any feature
 

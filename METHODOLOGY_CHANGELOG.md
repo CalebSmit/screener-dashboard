@@ -103,3 +103,53 @@ data loop are the more trustworthy evidence.
 
 See `.claude/plan/backtest-v2.md`. This is priority 2 in `CLAUDE.md` for a
 reason.
+
+---
+
+## 2026-08-11 - Research becomes the basis for methodology; backtest benched until 2027-02-11
+
+**Area:** governance / evidence standard
+**Applied by:** owner direction, recorded by setup session
+
+**Changed.** Two related decisions:
+
+1. **Published research and documented professional practice now carry equal
+   weight to measured results** as justification for a methodology change.
+   A well-sourced change no longer waits for a number.
+
+2. **`backtest.py` output does not decide anything until 2027-02-11.** It may
+   be run and reported as supporting colour. It may not justify a change, keep
+   or revert one, appear under **Evidence** in this file, or act as a
+   validation gate in the improvement engine.
+
+**Evidence.** The backtest documents two biases in its own docstring:
+survivorship (today's constituents applied across all history) and look-ahead
+(fundamentals held constant from one snapshot). A result carrying both is not
+weak evidence - its direction is unknown, and it systematically flatters
+strategies tilted toward companies that still exist today, which is precisely
+where this screener's valuation weighting sits.
+
+Separately, `research/2026-08-10-ic-evidence-independence.md` established that
+live IC evidence accrues far more slowly than the raw row count suggests -
+at most 2 non-overlapping 30-day windows among 11 backfillable dates. Requiring
+measured proof before any methodology change would therefore freeze the project
+for roughly six months.
+
+**Expected effect.** Methodology work proceeds on research grounds during a
+period when no trustworthy measurement exists. Risk accepted knowingly: changes
+made on literature and practitioner grounds are not yet confirmed by this
+system's own data.
+
+**How this is mitigated.** The written-argument requirement is unchanged - each
+change still needs sources a sceptical reader can follow. Changes remain
+individually reverted via their changelog entry, and `improvement_engine.py`
+continues to learn from *live* forward returns, which are genuinely
+out-of-sample and unaffected by the backtest's biases.
+
+**Backtest observation:** none - deliberately.
+
+**Validated by:** not yet. That is the point: revisit each entry made in this
+period once backtest v2 exists or enough independent IC observations accrue.
+
+**Rollback:** restore the prior standard by reverting CLAUDE.md rule 5 and the
+"Your mandate" section. The date is the owner's to move.
