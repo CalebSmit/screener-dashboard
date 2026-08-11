@@ -237,7 +237,7 @@ try {
     $unstaged = Invoke-Native 'git' @('status', '--porcelain')
     $foreign = @($unstaged.Output | Where-Object { $_ -and $_ -notmatch '^[AMD] ' -and $_.Trim() })
     if ($foreign.Count -gt 0) {
-        Write-Log "Leaving $($foreign.Count) non-data file(s) untouched (not this loop's to publish):" 'WARN'
+        Write-Log "Leaving $($foreign.Count) non-data file(s) untouched - not for this loop to publish:" 'WARN'
         foreach ($f in $foreign) { Write-Log "    $($f.Trim())" 'WARN' }
     }
 

@@ -189,9 +189,60 @@ try {
     }
     Write-Log "Remote reachable."
 
+    # --- Preflight: is this folder trusted by the CLI? ----------------------
+    # Claude Code keys folder trust by path in %USERPROFILE%\.claude.json. The
+    # desktop app writes backslashes; the CLI reads forward slashes. If the
+    # CLI's key is not trusted, the session starts but every permission in
+    # .claude/settings.json is ignored - python, pytest and git are all denied
+    # at runtime. On 2026-08-10 that burned a full session: it researched for
+    # 12 minutes, could not commit, and failed the clean-tree gate.
+    #
+    # Checked here so a jammed run costs seconds instead of a whole session.
+    # NOTE: patching this flag from a script does NOT persist - Claude Code
+    # rewrites the file from its own state. Trust must be granted through the
+    # CLI's own dialog, in an interactive session started inside this folder.
+    $cfgPath = Join-Path $env:USERPROFILE '.claude.json'
+    if (Test-Path $cfgPath) {
+        try {
+            $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
+            $fwdKey = $RepoPath.Replace('\', '/')
+            $entry = $cfg.projects.PSObject.Properties | Where-Object { $_.Name -eq $fwdKey }
+            if ($entry -and -not $entry.Value.hasTrustDialogAccepted) {
+                Write-Log "This folder is NOT trusted by the Claude Code CLI." 'ERROR'
+                Write-Log "The session would run but be denied python, pytest and git." 'ERROR'
+                Write-Log "Fix (interactively, with no other Claude session open):" 'ERROR'
+                Write-Log "    cd `"$RepoPath`"" 'ERROR'
+                Write-Log "    & `"`$env:APPDATA\npm\claude.cmd`"" 'ERROR'
+                Write-Log "  then answer YES to the trust prompt and /exit." 'ERROR'
+                Stop-Run "Skipping today's run rather than burning a session on a jammed workspace."
+            }
+        } catch {
+            Write-Log "Could not read .claude.json to verify trust: $($_.Exception.Message)" 'WARN'
+        }
+    }
+    Write-Log "Workspace trust OK."
+
+    # --- Preflight: recover a dirty tree ------------------------------------
+    # A session that cannot commit leaves the tree dirty. Refusing to run on a
+    # dirty tree is right, but refusing *forever* turns one bad night into a
+    # permanently jammed loop - which is exactly what happened after
+    # 2026-08-10. Stash the leftovers instead: nothing is lost, and tomorrow
+    # starts clean.
     $status = Invoke-Native 'git' @('status', '--porcelain')
     if ($status.Text.Trim()) {
-        Write-Log "Working tree is not clean. Refusing to run." 'ERROR'
+        Write-Log "Working tree is dirty - probably leftovers from a failed session:" 'WARN'
+        Write-NativeOutput $status 'WARN'
+        $stash = Invoke-Native 'git' @('stash', 'push', '-u', '-m', "auto-rescue $Stamp")
+        Write-NativeOutput $stash 'WARN'
+        if ($stash.ExitCode -ne 0) {
+            Stop-Run "Could not stash the leftovers. Resolve by hand: git status"
+        }
+        Write-Log "Stashed as 'auto-rescue $Stamp'. Recover with: git stash list / git stash pop" 'WARN'
+    }
+
+    $status = Invoke-Native 'git' @('status', '--porcelain')
+    if ($status.Text.Trim()) {
+        Write-Log "Working tree still not clean after stashing. Refusing to run." 'ERROR'
         Write-NativeOutput $status 'ERROR'
         Stop-Run "Resolve by hand; the next scheduled run will proceed."
     }
