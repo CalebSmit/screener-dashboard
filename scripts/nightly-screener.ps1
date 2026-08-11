@@ -45,10 +45,10 @@ $Stamp    = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $LogFile  = Join-Path $LogDir "nightly-$Stamp.log"
 
 $FocusByDay = @{
-    'Monday'    = 'RESEARCH. Pick one open question from the priorities list in CLAUDE.md. Read real literature and peer tools. Produce a dated note in research/ with citations, effect sizes, and a recommendation. Do not write production code today.'
-    'Tuesday'   = 'RESEARCH TO DESIGN. Turn the strongest evidence from Monday into a concrete, falsifiable design. State the hypothesis and how a backtest would refute it. Append it to the research note. Still no production code.'
-    'Wednesday' = 'BUILD. Implement the highest-value item the week''s research justified. Write tests alongside the code.'
-    'Thursday'  = 'VALIDATE. Measure whether this week''s change actually beat baseline - backtest, IC, or regression. Be willing to conclude it did not, and revert it if so. Record the number either way.'
+    'Monday'    = 'COMPONENT RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly from the literature. Real citations, effect sizes, and the conditions the effect held under. A dated note in research/. No production code today.'
+    'Tuesday'   = 'PRACTITIONER RESEARCH. How do people who do this for a living actually handle the thing you researched yesterday? Quant shops, institutional screens, peer tools, published methodology. Where does practice diverge from academia, and why? Append to the same note. Still no production code.'
+    'Wednesday' = 'SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
+    'Thursday'  = 'BUILD. Implement what the week''s research justified. Write tests alongside the code.'
     'Friday'    = 'HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?'
     'Saturday'  = 'CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.'
     'Sunday'    = 'CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.'

@@ -274,6 +274,8 @@ collapse, nothing was watching it.
 Add the same check to `scripts/data-run.ps1` so a degraded run can never be
 published again.
 
+### 2026-08-11 review - see the entry below
+
 ### Residual issue found during verification - NOT fixed
 
 **16 of 502 stocks have no `size_score`** because Yahoo returned no
@@ -459,3 +461,82 @@ forbids optimizing a monthly strategy on a weekly signal.
 3. Commit a `Register-ScheduledTask` script. The 2 AM / 6 AM triggers exist only
    as hand-made entries on one machine and are not in version control; the data
    loop silently missed today, likely a missing `WakeToRun`.
+
+---
+
+## 2026-08-11 - Both loops fired. One worked as designed, one crashed on my bug.
+
+**Tests:** 506 -> 526 passed (20 new static checks on the runner scripts)
+**Data loop:** crashed 02:00 | **Code loop:** blocked on trust, failed fast
+
+### 06:00 code loop - the new preflight worked
+
+Detected the untrusted workspace in **one second**, logged the exact fix, wrote
+and published the morning brief, and exited. Previously this cost a full
+12-minute session that then could not commit. Graceful failure, working as
+intended - but still zero successful autonomous sessions to date.
+
+### 02:00 data loop - crashed on a bug I introduced
+
+`The term 'Write-NativeOutput' is not recognized` at `data-run.ps1:203`. I used
+that helper in the health-check block but only ever defined it in
+`nightly-screener.ps1`. The data loop therefore published nothing.
+
+It shipped because the only pre-flight check available was counting braces and
+parentheses, which cannot see an undefined function - PowerShell tooling was
+unavailable in that session, so the script was never actually parsed.
+
+**Fixed:** defined `Write-NativeOutput` in `data-run.ps1`.
+
+**Fixed properly:** `tests/test_scripts_static.py` - 20 checks across all five
+`.ps1` files covering undefined functions, unbalanced blocks, missing UTF-8 BOM
+and non-ASCII characters. Verified it catches the real bug: run against the
+crashed version it reports `Write-NativeOutput`. These scripts are unattended
+infrastructure; a typo means a silently skipped run, so they now get the same
+regression coverage as the Python.
+
+### The health gate earned its place immediately
+
+A manual re-run at 07:52 warm-started from the previous run's cache: 6 second
+runtime, no fetch. Coverage and dispersion both looked *fine* - because the
+cache came from Monday's good full refresh - but the gate refused it on missing
+fetch evidence. That was the right call, for a reason worth recording:
+
+**The screener records an improvement-engine snapshot even when it fetched
+nothing.** Today produced two snapshots (`b84e370f3cf0` at 02:00,
+`6c5ecaa1361c` at 07:52), both 190,149 bytes, both byte-identical in composite
+to Monday's run - three "observations" for one real data point. Removed both.
+
+That is the same evidence-inflation failure the 2026-08-10 research note
+identified with overlapping return windows, arriving by a different route. The
+improvement engine gates on an observation *count*, so duplicates directly
+inflate its confidence. **Added as a priority below.**
+
+Why it warm-started: `price_data_refresh_days: 1`, and the cache was 12 hours
+old. The scheduled 02:00 runs sit ~24h apart so they should fetch normally -
+this was an artifact of running manually the same day.
+
+### Methodology emphasis changed (owner direction)
+
+Research and documented professional practice now carry **equal weight to
+measured results** as justification for a methodology change. Rationale: the
+backtest is known-biased and independent IC observations accrue roughly
+monthly, so requiring measured proof up front would freeze methodology work for
+half a year. Measurement now confirms changes over time rather than gating them.
+
+Rotation rebalanced to three research/design days per build day:
+Mon component research -> Tue practitioner research -> Wed **synthesis** ->
+Thu build -> Fri harden. Wednesday is the new centre of gravity: how the piece
+fits the whole screener, what it overlaps or makes redundant, whether the
+system is still coherent afterwards - rather than accumulating individually
+defensible tweaks.
+
+The evidence *requirement* is unchanged - a written argument a sceptical reader
+can follow to its sources. Only what counts as a source has widened.
+
+### Next
+1. **Do not record a snapshot when the run did not fetch.** Duplicate snapshots
+   inflate the improvement engine's observation count, which is the thing its
+   significance gate depends on. Either skip the snapshot on a warm-start, or
+   deduplicate on `(run_date, content hash)` before the engine reads them.
+2. Trust step still outstanding - no autonomous session has yet completed.

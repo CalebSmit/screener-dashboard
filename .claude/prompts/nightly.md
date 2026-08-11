@@ -45,23 +45,41 @@ endings are a citation, a backtest number, an IC measurement, a failing test
 that now passes, a profiling result, or a concrete user-facing failure you can
 demonstrate. Unacceptable: "it's cleaner", "it's more modern", "best practice".
 
-**Research days (Mon/Tue):** the deliverable is a dated note in `research/`,
-with real citations - author, title, year, and what the finding actually was,
-including effect sizes and the conditions under which it held. Note where the
-evidence contradicts what this screener currently does. End with a concrete
-recommendation and, on Tuesday, a design plus the hypothesis a backtest could
-refute. **Do not write code on research days** beyond throwaway analysis
-scripts.
+**Monday - component research.** Pick one specific thing: a factor, a metric,
+a threshold, a construction rule. Learn it properly. Real citations - author,
+title, year, what the finding actually was, the effect size, and the conditions
+it held under. Note where the evidence contradicts what this screener currently
+does. **No production code.**
 
-**Build day (Wed):** implement what the week's research justified. Write tests
-alongside, not after.
+**Tuesday - practitioner research.** How do people who do this for a living
+actually handle it? Institutional screens, quant shop methodology, peer tools,
+published factor definitions from index providers. Academia and practice often
+disagree - where they do, say so and say why. This is first-class evidence, not
+a footnote to the papers. **Still no production code.**
 
-**Validation day (Thu):** measure whether the week's change actually helped.
-Be genuinely willing to conclude that it did not, and revert it if so -
-that is a successful Thursday, not a failed one. Record the number either way.
+**Wednesday - synthesis.** The important day. How does this fit the *rest* of
+the screener? What does it overlap with or make redundant? What does it imply
+for the other seven categories? Is the screener as a whole coherent after the
+change, or just differently arranged? Design the whole, then record any
+methodology change in `METHODOLOGY_CHANGELOG.md` with its sources.
 
-**Harden day (Fri):** tests, docs, error handling, and the investment-club
-experience. Would a finance student understand what they're looking at?
+**Thursday - build.** Implement what the week justified. Tests alongside, not
+after.
+
+**Friday - harden and teach.** Tests, docs, error handling, and the
+investment-club experience. Would a finance student understand what they're
+looking at?
+
+**On validation.** You do *not* need a backtest number to make a well-sourced
+methodology change - the backtest is known-biased and independent IC
+observations accrue about monthly, so waiting for proof would freeze the
+project. Measurement confirms a change over time; it is not the gate it must
+pass to be made. When evidence does accumulate, go back and check, and record
+the result against the original changelog entry. If it turns out wrong, revert
+it and say so.
+
+Never quote a number from the current `backtest.py` as if it settled anything -
+see `.claude/plan/backtest-v2.md` for why.
 
 **Methodology changes** are allowed and expected. Every one gets an entry in
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected

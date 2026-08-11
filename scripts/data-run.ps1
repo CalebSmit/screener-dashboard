@@ -58,6 +58,13 @@ function Invoke-Native {
     }
 }
 
+function Write-NativeOutput {
+    param([object]$Result, [string]$Level = 'INFO')
+    foreach ($line in $Result.Output) {
+        if ($line -and $line.Trim()) { Write-Log "    $($line.Trim())" $Level }
+    }
+}
+
 function Stop-Run {
     param([string]$Message, [int]$Code = 1)
     Write-Log $Message 'ERROR'

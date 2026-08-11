@@ -27,13 +27,41 @@ That authority comes with exactly one obligation:
 > **Every change must be justified by evidence, and the evidence must be
 > written down where someone else can check it.**
 
-"I think this is better" is not evidence. Evidence is: a citation to published
-research, a backtest result, an information-coefficient measurement, a
-regression test, a profiling number, a documented user-facing failure.
+"I think this is better" is not evidence. Evidence is:
 
-If you cannot produce evidence for a change, do not make the change. Spend the
-session finding the evidence instead. **A night that produces one
-well-evidenced finding and no code is a good night.**
+- **published research** - a paper, with effect sizes and the conditions under
+  which the effect held
+- **documented professional practice** - how quant shops, institutional
+  managers and serious practitioners actually build screens, and why
+- **measured results** - a backtest, an information coefficient, a regression
+  test, a profiling number
+- **a documented failure** - a real user-facing problem you can demonstrate
+
+**Owner direction, 2026-08-11: the first two carry as much weight as the
+third.** Do not stall a well-reasoned, well-sourced methodology change because
+it cannot be backtested yet. The backtest is known-broken (see
+`.claude/plan/backtest-v2.md`) and genuinely independent IC observations accrue
+at roughly one a month, so demanding measured proof up front would freeze the
+project for half a year. Measurement is how a change is *confirmed over time*,
+not the gate it must pass to be made.
+
+What this does **not** license: changing something because it seems better.
+The bar is a written argument a sceptical reader could follow to its sources.
+If you cannot produce that, spend the session finding it instead. **A night
+that produces one well-sourced finding and no code is a good night.**
+
+### Build a coherent screener, not a pile of good ideas
+
+The point is not to accumulate individually-defensible tweaks. It is to
+understand how the pieces **fit together**: how factors interact and overlap,
+where two metrics measure the same thing, which combinations professionals
+actually use and which they avoid, and what the whole system is implicitly
+betting on.
+
+A change that improves one factor while quietly duplicating another, or that
+raises a score while making the tool harder to explain, is a bad change even
+with a citation attached. Ask what the screener is *for* and whether the change
+makes it better at that - then write down the reasoning.
 
 ## Non-negotiable rules
 
@@ -97,11 +125,21 @@ Research-weighted by design: understand before building, and prove it after.
 
 | Day | Focus | Output |
 |---|---|---|
-| **Mon** | **Research.** Pick one open question from the priorities list. Read actual literature and peer tools. | A dated note in `research/` with citations and a recommendation |
-| **Tue** | **Research to design.** Turn the strongest evidence into a concrete, falsifiable design. State the hypothesis and how a backtest would refute it. | A design section appended to the research note |
-| **Wed** | **Build.** Implement the highest-value designed item. | Working, tested code |
-| **Thu** | **Validate.** Backtest / IC / regression the change. Does it actually beat baseline? **If it doesn't, revert it and say so.** | A validation result, merged or reverted |
+| **Mon** | **Component research.** Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly from the literature. | A dated note in `research/` with real citations and effect sizes |
+| **Tue** | **Practitioner research.** How do people who do this for a living actually handle it? Quant shops, institutional screens, peer tools, published methodology. Where does practice diverge from academia, and why? | Appended to the same note |
+| **Wed** | **Synthesis.** How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. | A design section, plus any `METHODOLOGY_CHANGELOG.md` entry |
+| **Thu** | **Build.** Implement what the week's research justified. Write tests alongside. | Working, tested code |
 | **Fri** | **Harden and teach.** Tests, docs, methodology page, error handling, the investment-club experience. | A tool someone else can pick up and understand |
+
+**Three research/design days to one build day.** That ratio is deliberate: the
+screener is mature enough that understanding is scarcer than implementation.
+
+**Validation is continuous, not a weekly gate.** When the data loop has
+accumulated enough evidence to test something, test it and record the result -
+in `METHODOLOGY_CHANGELOG.md` against the entry that made the change. If a
+change turns out to be wrong, revert it and say so. But do not wait for proof
+before making a well-sourced change, and do not manufacture a backtest number
+from a backtest you know is biased.
 
 **Every other Friday is a RETROSPECTIVE instead** (even ISO week numbers). The
 runner swaps in `.claude/prompts/retrospective.md` automatically. That session
@@ -343,6 +381,16 @@ Fix at least one of these, and wire it into `scripts/data-run.ps1` too:
 
 The third is the strongest: the instrumentation already recorded the collapse
 on 08-07: nothing was watching it. See `NIGHTLY_LOG.md` 2026-08-10 (evening).
+
+**0.6. Do not record an improvement-engine snapshot when the run did not
+fetch.** Found 2026-08-11: a warm-started run still writes a snapshot, so a day
+with two cached runs produced three "observations" of one real data point, all
+byte-identical in composite. The engine gates on an observation *count*, so
+duplicates directly inflate its confidence - the same evidence-inflation
+failure `research/2026-08-10-ic-evidence-independence.md` identified via
+overlapping return windows, arriving by another route. Either skip the snapshot
+on a warm-start, or deduplicate on `(run_date, content hash)` before the engine
+reads them.
 
 1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
    (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now
