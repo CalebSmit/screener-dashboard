@@ -273,6 +273,25 @@ collapse, nothing was watching it.
 
 Add the same check to `scripts/data-run.ps1` so a degraded run can never be
 published again.
+
+### Residual issue found during verification - NOT fixed
+
+**16 of 502 stocks have no `size_score`** because Yahoo returned no
+`market_cap` for them: HST, BBY, WDC, NUE, TGT, XOM, CRM, HPQ, MRK, HRL, ADI,
+LOW, AZO, PPL, COO, GIS. Two are in the model portfolio, including **HST, the
+#1 holding**. July had zero such gaps, so this is run-to-run yfinance variance.
+
+**None of the 16 appear in `validation/data_quality_log.csv` at all.** A missing
+`ev_ebitda` is logged as "weight redistributed to available metrics"; a missing
+market cap that removes an entire 5%-weight factor category is logged nowhere.
+Third silent-degradation instance found today.
+
+Bounded impact - size is 5% of the composite, and HST also ranked #1 in July
+*with* a size score, so the ranking is corroborated independently. But it should
+be fixed:
+1. Log a missing category input as a data-quality issue, at Medium or higher.
+2. Derive market cap as `price x sharesOutstanding` when Yahoo omits
+   `marketCap` - both fields are usually present in the same `info` payload.
 `backtest.py` documents its own survivorship and look-ahead biases. Now that
 the system validates its own methodology changes, a biased backtest doesn't
 just mislead a reader - it steers the self-improvement loop toward whatever the
