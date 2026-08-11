@@ -1,4 +1,4 @@
-# Morning Brief - Monday 10 August 2026, 19:50
+# Morning Brief - Tuesday 11 August 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,9 +7,9 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** |
-| Code session (6 AM) | **stopped deliberately** |
-| Dashboard data from | 2026-08-10T19:06:21.881280 |
+| Data run (2 AM) | **failed** |
+| Code session (6 AM) | **failed** |
+| Dashboard data from | 2026-08-11T02:00:03.400246 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 499/502 |
@@ -18,17 +18,22 @@ history is in `NIGHTLY_LOG.md`.
 
 ## Things that needed attention
 
-- GATE 4 clean tree: FAIL - uncommitted changes remain
-- M CLAUDE.md
-- M NIGHTLY_LOG.md
-- ?? ACTION_REQUIRED.md
-- ?? research/2026-08-10-ic-evidence-independence.md
-- SHIP GATES FAILED: clean-tree. Not merging.
-- Work pushed to nightly/2026-08-10 for inspection. main is untouched.
-- Run finished with failing gates - see above.
+- Unhandled error: The term 'Write-NativeOutput' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+- at <ScriptBlock>, C:\Users\smitc\OneDrive\Documents\Screener\scripts\data-run.ps1: line 203
+- Brief step failed (non-fatal): The term 'Write-NativeOutput' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+- This folder is NOT trusted by the Claude Code CLI.
+- The session would run but be denied python, pytest and git.
+- Fix (interactively, with no other Claude session open):
+- cd "C:\Users\smitc\OneDrive\Documents\Screener"
+- & "$env:APPDATA\npm\claude.cmd"
+- then answer YES to the trust prompt and /exit.
+- Skipping today's run rather than burning a session on a jammed workspace.
 
 ## What changed in the repo
 
+- `29b80c2 plan: record 8 candidate dashboard improvements with real cost estimates`
+- `467c2ae plan: replace the API-key chatbot with generated per-stock summaries`
+- `22a4968 feat: health gate against degraded runs + morning brief after every run`
 - `6c8837e docs: log the missing-market-cap gap found during verification (16 stocks, unlogged)`
 - `710621b data: full refresh - restore prices, analyst targets and correct rankings`
 - `83be6c3 fix: fail fast on untrusted workspace, self-heal a dirty tree`
