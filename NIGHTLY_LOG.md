@@ -207,6 +207,72 @@ a scheduled task cannot reliably read.
 ### Next
 Unchanged: priority 0, the forward-return horizon bug. But if the data loop
 fails again tonight, fix that first.
+
+---
+
+## 2026-08-10 (evening) - The rankings were wrong. Root cause: runs stopped fetching.
+
+**Owner noticed the Top 5 had changed completely and analyst price targets had
+stopped displaying, and asked whether the methodology had changed.** It had not.
+The data had silently degraded.
+
+### The evidence
+
+| | 2026-07-29 | 08-07 / 08-10 (broken) | 08-10 after fix |
+|---|---|---|---|
+| Top 5 | HST EXPE APA CF NEM | WRB KEYS OXY FICO EXE | HST EXPE EIX APA CF |
+| stocks with price | 501/501 | **0/503** | 502/502 |
+| stocks with pt_mean | 497/501 | **0/503** | 499/502 |
+| dispersion (val/qual/gro/mom/risk) | 23.9/18.3/19.9/27.1/20.2 | 16.7/13.0/16.4/17.3/15.1 | 24.0/18.3/20.0/26.1/19.7 |
+| runtime | - | 10-14s | 780s |
+
+Factor weights were byte-identical to July throughout; no scoring code changed;
+the improvement engine has never fired (3 IC observations, needs 8). The
+methodology was never the variable.
+
+### Root cause
+
+The runs were warm-starting from cache and **skipping the fetch stage
+entirely**. Run `70282daf8917` has no `00_raw_fetch.parquet` and no
+`01_raw_metrics.parquet` at all. `_current_price` and `_target_mean` are
+populated only from the live yfinance fetch (`generate_dashboard.py` ~line 123),
+so on a cached run they are simply absent - hence 0 prices and 0 analyst
+targets. Momentum and risk depend on price history, so every category
+compressed ~25-36%, which reshuffled the whole ranking.
+
+**The screener reported "0 issues logged, 0 fetch failures" on both degraded
+runs.** It does not treat "I never fetched anything" as a problem. Same
+silent-degradation family as the synthetic-data fallback and the missing
+`markdown` package.
+
+Aug 7 and Aug 10 produced *byte-identical* scores (composite_sd 6.67,
+momentum_sd 17.29, dispersion equal to 4dp) - three days apart. That
+impossibility is what exposed it.
+
+### Fixed
+
+- Quarantined and cleared `cache/` (it still held the 2026-08-06 synthetic
+  parquet, which was never cleaned after that incident).
+- Ran `run_screener.py --refresh`: 780s, 0 fetch failures, 0 synthetic
+  substitutions, all 9 pipeline stages present.
+- Regenerated dashboard; 502 rows, 58 methodology headings, index.html 257,682 B.
+- **Purged 2 degraded snapshots** (`2026-08-07_6db2226ce6cd`,
+  `2026-08-10_70282daf8917`) and their dispersion rows. They would have fed
+  misleading ICs into an engine now permitted to auto-apply weight changes.
+- 492 tests pass.
+
+### Next - highest priority, above the forward-return bug
+
+**Make a cached warm-start that skips fetching either impossible or loud.**
+Options: refuse to publish a run with no `00_raw_fetch.parquet`; treat
+"0 tickers fetched" as a High severity data-quality issue; or add a dispersion
+regression check against `improvement/dispersion_history.csv` and abort when
+it collapses >20% versus the trailing median. The last one would have caught
+this automatically on 08-07 - the instrumentation already recorded the
+collapse, nothing was watching it.
+
+Add the same check to `scripts/data-run.ps1` so a degraded run can never be
+published again.
 `backtest.py` documents its own survivorship and look-ahead biases. Now that
 the system validates its own methodology changes, a biased backtest doesn't
 just mislead a reader - it steers the self-improvement loop toward whatever the

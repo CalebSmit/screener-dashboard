@@ -315,6 +315,23 @@ honestly ~8 months from the start of the scheduled loop (2026-07-28) unless the
 optimization horizon is reconsidered. Say so plainly rather than engineering
 around it.
 
+**0.5. A CACHED RUN THAT SKIPS FETCHING MUST BE IMPOSSIBLE OR LOUD.**
+On 2026-08-07 and 2026-08-10 the screener warm-started from cache and skipped
+the fetch stage entirely - no `00_raw_fetch.parquet`, no `01_raw_metrics.parquet`.
+Result: **0 of 503 stocks had a price or an analyst target**, every category's
+dispersion collapsed 25-36%, and the published Top 5 was wrong for three days.
+The run reported "0 issues logged, 0 fetch failures" both times, because it does
+not consider "I fetched nothing" to be an issue.
+
+Fix at least one of these, and wire it into `scripts/data-run.ps1` too:
+- refuse to publish a run with no `00_raw_fetch.parquet`
+- log "0 tickers fetched" as a High severity data-quality issue
+- **dispersion regression check** - abort when category dispersion drops >20%
+  against the trailing median in `improvement/dispersion_history.csv`
+
+The third is the strongest: the instrumentation already recorded the collapse
+on 08-07: nothing was watching it. See `NIGHTLY_LOG.md` 2026-08-10 (evening).
+
 1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
    (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now
    drives both methodology and the historical spine below.
