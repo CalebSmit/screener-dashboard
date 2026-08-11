@@ -315,7 +315,16 @@ honestly ~8 months from the start of the scheduled loop (2026-07-28) unless the
 optimization horizon is reconsidered. Say so plainly rather than engineering
 around it.
 
-**0.5. A CACHED RUN THAT SKIPS FETCHING MUST BE IMPOSSIBLE OR LOUD.**
+**0.5. DONE 2026-08-10 - `scripts/check_run_health.py` now guards this.**
+The data loop runs it before publishing and discards the run on failure. It
+checks: fetch evidence (`00_raw_fetch.parquet`), price coverage >=90%, analyst
+target coverage >=50%, and category dispersion against the trailing median
+(>20% drop = collapse). Verified against the real 08-10 degraded run, which it
+rejects with 7 independent failures. 14 regression tests in
+`tests/test_run_health.py`. **Do not weaken these thresholds without a
+changelog entry** - they exist because each failure below actually shipped.
+
+Original problem, kept for context:
 On 2026-08-07 and 2026-08-10 the screener warm-started from cache and skipped
 the fetch stage entirely - no `00_raw_fetch.parquet`, no `01_raw_metrics.parquet`.
 Result: **0 of 503 stocks had a price or an analyst target**, every category's

@@ -65,6 +65,32 @@ function Stop-Run {
     exit $Code
 }
 
+# Writes MORNING_BRIEF.md and publishes it. Called from `finally`, so a summary
+# appears whether the run published, was discarded by the health check, or
+# crashed - a discarded run is the one you most want to be told about.
+function Publish-Brief {
+    param([string]$Label)
+    try {
+        Write-Log "Writing morning brief..."
+        $b = Invoke-Native 'python' @('scripts/write_brief.py')
+        Write-NativeOutput $b
+        if ($b.ExitCode -ne 0) { return }
+
+        Invoke-Native 'git' @('add', '--', 'MORNING_BRIEF.md') | Out-Null
+        $staged = Invoke-Native 'git' @('diff', '--cached', '--name-only', '--', 'MORNING_BRIEF.md')
+        if (-not $staged.Text.Trim()) { Write-Log "Brief unchanged; nothing to publish."; return }
+
+        $c = Invoke-Native 'git' @('commit', '-m', "brief: $Label")
+        if ($c.ExitCode -ne 0) { Write-Log "Could not commit brief." 'WARN'; return }
+
+        $p = Invoke-Native 'git' @('push', 'origin', 'HEAD:main')
+        if ($p.ExitCode -eq 0) { Write-Log "Morning brief published." }
+        else { Write-Log "Brief committed locally; push failed." 'WARN' }
+    } catch {
+        Write-Log "Brief step failed (non-fatal): $($_.Exception.Message)" 'WARN'
+    }
+}
+
 $env:Path = "$([Environment]::GetEnvironmentVariable('Path','Machine'));$([Environment]::GetEnvironmentVariable('Path','User'))"
 
 if (Test-Path $LockFile) {
@@ -167,6 +193,27 @@ try {
         Stop-Run "Run discarded: no data quality log." 2
     }
 
+    # --- Run health check ----------------------------------------------------
+    # Catches the failures the screener itself reports as success: a cached
+    # warm-start that never fetched, missing prices/analyst targets, and a
+    # collapse in category dispersion. See scripts/check_run_health.py - every
+    # case it guards against actually happened between 08-06 and 08-10.
+    Write-Log "Checking run health..."
+    $health = Invoke-Native 'python' @('scripts/check_run_health.py')
+    Write-NativeOutput $health
+
+    if ($health.ExitCode -eq 1) {
+        Write-Log "Run is DEGRADED. Refusing to publish." 'ERROR'
+        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+        Stop-Run "Run discarded by health check - the live dashboard is unchanged." 2
+    }
+    elseif ($health.ExitCode -ne 0) {
+        Write-Log "Health check could not evaluate this run (exit $($health.ExitCode))." 'ERROR'
+        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Stop-Run "Run discarded - could not verify it was healthy." 2
+    }
+
     # --- Regenerate the dashboard -------------------------------------------
     Write-Log "Regenerating dashboard..."
     $gd = Invoke-Native 'python' @('generate_dashboard.py')
@@ -241,9 +288,24 @@ try {
         foreach ($f in $foreign) { Write-Log "    $($f.Trim())" 'WARN' }
     }
 
-    $commit = Invoke-Native 'git' @('commit', '-m', "data: screener run $Date")
+    # A descriptive commit subject means the GitHub notification email is
+    # actually informative, rather than just "data: screener run".
+    $headline = "data: screener run $Date"
+    try {
+        $djs = Join-Path $RepoPath 'dashboard_data.js'
+        if (Test-Path $djs) {
+            $raw = Get-Content $djs -TotalCount 1
+            if ($raw -match '"stocks_scored":\s*(\d+)') { $scored = $Matches[1] }
+            $tickers = [regex]::Matches($raw, '"ticker":\s*"([A-Z.\-]+)"') |
+                       Select-Object -First 5 | ForEach-Object { $_.Groups[1].Value }
+            if ($scored) { $headline = "data: screener run $Date - $scored scored" }
+            if ($tickers) { $headline += ", top: $($tickers -join ' ')" }
+        }
+    } catch { }
+
+    $commit = Invoke-Native 'git' @('commit', '-m', $headline)
     if ($commit.ExitCode -ne 0) { Stop-Run "Commit failed." 2 }
-    Write-Log "Committed run output."
+    Write-Log "Committed run output: $headline"
 
     if ($SkipPush) { Write-Log "-SkipPush set; stopping before push."; exit 0 }
 
@@ -267,5 +329,6 @@ catch {
     exit 1
 }
 finally {
+    Publish-Brief "data run $Date"
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }

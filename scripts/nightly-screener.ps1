@@ -96,6 +96,34 @@ function Stop-Run {
     exit $Code
 }
 
+# Writes MORNING_BRIEF.md and publishes it. Called from `finally`, so the owner
+# gets a summary whether the run succeeded, was stopped by a gate, or crashed -
+# a failed run is the one you most want to be told about.
+function Publish-Brief {
+    param([string]$Label)
+    try {
+        Write-Log "Writing morning brief..."
+        $b = Invoke-Native 'python' @('scripts/write_brief.py')
+        Write-NativeOutput $b
+        if ($b.ExitCode -ne 0) { return }
+
+        # Stage only the brief - the tree may legitimately be dirty after a
+        # failed run, and none of that is ours to publish.
+        Invoke-Native 'git' @('add', '--', 'MORNING_BRIEF.md') | Out-Null
+        $staged = Invoke-Native 'git' @('diff', '--cached', '--name-only', '--', 'MORNING_BRIEF.md')
+        if (-not $staged.Text.Trim()) { Write-Log "Brief unchanged; nothing to publish."; return }
+
+        $c = Invoke-Native 'git' @('commit', '-m', "brief: $Label")
+        if ($c.ExitCode -ne 0) { Write-Log "Could not commit brief." 'WARN'; return }
+
+        $p = Invoke-Native 'git' @('push', 'origin', 'HEAD:main')
+        if ($p.ExitCode -eq 0) { Write-Log "Morning brief published." }
+        else { Write-Log "Brief committed locally; push failed." 'WARN' }
+    } catch {
+        Write-Log "Brief step failed (non-fatal): $($_.Exception.Message)" 'WARN'
+    }
+}
+
 function Restore-Artifacts {
     param([string]$Context)
     $restored = @()
@@ -417,5 +445,6 @@ catch {
     exit 1
 }
 finally {
+    Publish-Brief "code session $Date"
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }
