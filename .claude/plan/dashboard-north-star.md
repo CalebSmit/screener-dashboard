@@ -103,6 +103,69 @@ remove them. Second, evaluate the "Screener AI" chat honestly against the
 criteria above - if it cannot ground its answers in the payload and cite them,
 it is a liability on a tool whose selling point is auditability.
 
+## Replace the chatbot with generated summaries (owner directive 2026-08-10)
+
+**Remove the "Screener AI" chat. Put per-stock summaries in its place.**
+
+### Why the chat has to go
+
+It requires each visitor to paste their own Anthropic API key into
+`localStorage`, then calls `api.anthropic.com` from the browser. For the
+investment-club audience that means: every student needs a paid API account
+(most won't), it teaches people to paste credentials into web pages, it costs
+them money per question, and two students asking the same question get
+different answers. That last one is the killer - the tool's claim is
+auditability, and an un-reproducible explainer works against it.
+
+### What replaces it
+
+**Build the deterministic version first. It may be all you need.**
+
+The payload already carries everything required: `contrib` (per-category
+contribution to the composite), `pct` (metric percentiles), `peers`,
+`financials`, `flags`, `pt_mean/high/low`, `num_analysts`,
+`metric_count/metric_total`. A template over those fields produces something
+like:
+
+> **HST - ranks 1 of 502.** Driven by Valuation (94th pct, contributing 22.4 of
+> its 78.0) and Momentum (98th pct, 8.9). Weakest: Growth (49th pct, 6.4).
+> No trap flags. $22.67 against a mean analyst target of $25.07 (+10.5%, 20
+> analysts). Cheaper than its Real Estate peers on EV/EBITDA (10.2x vs 14.1x
+> median). Score rests on 18 of 18 metrics.
+
+Every number traceable, identical for every viewer, free, instant, and it
+cannot hallucinate. That is decision support.
+
+**Optional second layer:** a short plain-English gloss written by the nightly
+session at build time and baked into the payload - useful for the teaching
+audience ("what does a 94th percentile FCF yield actually mean?"). If added, it
+must be constrained to restating facts already in the deterministic block, and
+generated **at build time, not in the browser**, so it ships reviewed and
+identical for everyone.
+
+### The line that must not be crossed
+
+A summary explains **why a stock ranks where it does**. It never says whether
+to buy it.
+
+- Good: "ranks 1st, driven by valuation and momentum; growth is its weak point"
+- Bad: "attractive entry point", "undervalued", "a strong buy"
+
+The second kind is a recommendation, is unfalsifiable, and would make this a
+liability for a student investment club rather than a teaching tool. See
+"The boundary that keeps this defensible" above.
+
+### Scope
+
+Summaries for the **top ~25 and any portfolio holding** first, not all 502 -
+that is where attention actually goes, and it keeps the payload from growing.
+Extend later if it proves useful.
+
+Also worth adding, and related to the time-dimension gap: a **run-level
+overview** at the top of the page - what changed since the last run, biggest
+rank movers, anything newly flagged. That is the single most decision-relevant
+thing the dashboard could gain.
+
 ## Research questions for Monday sessions
 
 Roughly in priority order. One per week is plenty.

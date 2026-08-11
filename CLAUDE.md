@@ -135,7 +135,10 @@ outcome.
 ### Front-end
 - `generate_dashboard.py` - **source of truth**; writes `dashboard.html` + `dashboard_data.js`
 - `dashboard_data.js` - `window.SCREENER_DATA`. `table_data` holds all ~500 stocks
-  with all 8 category scores; `stock_detail` covers portfolio holdings only
+  with all 8 category scores; `stock_detail` covers **all ~500 stocks** (raw
+  values, percentiles, per-category `contrib` attribution, peers, price
+  targets, financials, provenance) and is ~90% of the payload weight. Check
+  `.claude/plan/dashboard-inventory.md` before building anything "new".
 
 ### Docs (public-facing - keep truthful)
 - `SCREENER_OVERVIEW.md` - canonical methodology reference
@@ -361,10 +364,18 @@ on 08-07: nothing was watching it. See `NIGHTLY_LOG.md` 2026-08-10 (evening).
    fundamentals constant (look-ahead). It cannot honestly validate a
    methodology change, and now that the system validates *itself*, that bias
    steers the learning loop. `.claude/plan/backtest-v2.md`.
-4. **Sell-side workflow** - client-side watchlist/holdings, deterioration
+4. **Replace the AI chat with generated per-stock summaries** (owner directive
+   2026-08-10). The chat needs each visitor to paste their own Anthropic API
+   key, which is unusable for an investment club and un-reproducible. Build the
+   deterministic template version first - the payload already has `contrib`,
+   `pct`, `peers` and price targets, so summaries can be exact, free, identical
+   for every viewer, and impossible to hallucinate. Explains *why it ranks
+   there*, never *whether to buy*. Plus a run-level overview of what changed.
+   See `.claude/plan/dashboard-north-star.md`.
+5. **Sell-side workflow** - client-side watchlist/holdings, deterioration
    flags, review queue. Question 3 is currently unanswerable.
-5. **Investor profile selector** - `.claude/plan/investor-profiles.md`.
+6. **Investor profile selector** - `.claude/plan/investor-profiles.md`.
    Reconcile with `presets.py` first. Note `contrib` is Balanced-only.
-6. **Investment-club readiness** - can a student open this on a phone and
+7. **Investment-club readiness** - can a student open this on a phone and
    understand what they're looking at?
-7. **Test isolation** - remove the need for the `conftest.py` guard.
+8. **Test isolation** - remove the need for the `conftest.py` guard.
