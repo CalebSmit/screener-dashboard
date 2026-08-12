@@ -1636,7 +1636,7 @@
   },
   {
     "Ticker": "MSCI",
-    "Company": "MSCI Inc.",
+    "Company": "MSCI",
     "Sector": "Financials"
   },
   {
@@ -1736,7 +1736,7 @@
   },
   {
     "Ticker": "ORLY",
-    "Company": "O\u2019Reilly Automotive",
+    "Company": "O'Reilly Automotive",
     "Sector": "Consumer Discretionary"
   },
   {
@@ -1971,7 +1971,7 @@
   },
   {
     "Ticker": "RMD",
-    "Company": "ResMed",
+    "Company": "ResMed|",
     "Sector": "Health Care"
   },
   {
