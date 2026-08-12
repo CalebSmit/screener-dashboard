@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 11 August 2026, 06:00
+# Morning Brief - Wednesday 12 August 2026, 08:18
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,10 +9,10 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **failed** |
 | Code session (6 AM) | **failed** |
-| Dashboard data from | 2026-08-11T02:00:03.400246 |
+| Dashboard data from | 2026-08-12T08:04:59.455861 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
-| With an analyst target | 499/502 |
+| With an analyst target | 498/502 |
 | Top 5 | HST, EXPE, EIX, APA, CF |
 | Evidence for weight changes | 3 of 8 needed |
 
@@ -31,63 +31,60 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `dc618ef data: screener run 2026-08-12 - 502 scored, top: HST EXPE EIX APA CF`
+- `dd5098c fix: catch-up for runs missed while logged out`
+- `895a8a0 governance: backtest decides nothing until 2027-02-11; research is the basis`
+- `6bfda04 fix: data-loop crash + static checks for the runner scripts; research-led methodology`
+- `c587835 brief: code session 2026-08-11`
 - `29b80c2 plan: record 8 candidate dashboard improvements with real cost estimates`
-- `467c2ae plan: replace the API-key chatbot with generated per-stock summaries`
-- `22a4968 feat: health gate against degraded runs + morning brief after every run`
-- `6c8837e docs: log the missing-market-cap gap found during verification (16 stocks, unlogged)`
-- `710621b data: full refresh - restore prices, analyst targets and correct rankings`
-- `83be6c3 fix: fail fast on untrusted workspace, self-heal a dirty tree`
-- `828bceb docs: correct the trust fix - fix-trust.ps1 does not persist, CLI must grant trust itself`
-- `84e81e9 fix: restore dashboard methodology rendering; stop data loop bypassing gates`
-- `0c9aa58 data: screener run 2026-08-10`
 
 ## The session's own account
 
-> 2026-08-10 - RESEARCH. The priority-0 fix would have armed the engine on two overlapping observations.
+> 2026-08-12 - Nothing ran. The PC rebooted overnight and nobody was logged in.
 > 
-> **Tests:** before -/- , after -/- - **could not be run, see below**
-> **Data loop:** stalled - no run today (Mon 2026-08-10); last successful run 2026-08-07
-> **Code loop:** ran, but **could not execute Python at all**
+> **Tests:** 526 -> 530 passed
+> **Data loop:** did not fire | **Code loop:** did not fire
 > 
-> ### The blocker, first, because it changes what this session could be
+> ### What happened
 > 
-> This is the first autonomous session to get past the runner and actually start
-> work (2026-08-06 aborted on a `gh` false negative, 2026-08-07 on no network).
-> It immediately hit the next link in the chain: **the unattended session cannot
-> run Python.**
+> No logs for 2026-08-12 at all. Both tasks show Enabled/Ready, last run 08-11,
+> next run **08-13** - today's 02:00 and 06:00 slots passed without firing.
 > 
-> ```
-> python --version                            -> works (3.12.10)
-> python -c "print('hello')"                  -> denied
-> python -m pytest tests/ test_screener.py -q -> denied
-> python run_screener.py --dry-run            -> denied
-> WebSearch / WebFetch                        -> denied
-> ```
+> `System Boot Time: 8/12/2026, 12:47:15 AM` - the machine restarted overnight,
+> almost certainly a Windows update. It was powered on through both windows, so
+> this was not a sleep or network problem.
 > 
-> All of those are in `.claude/settings.json` -> `permissions.allow`. They are
-> denied anyway, which means the project's permission settings are **not being
-> applied** to the scheduled run. `scripts/fix-trust.ps1` predicts this symptom
-> exactly in its own header: folder trust is keyed by path in
-> `%USERPROFILE%\.claude.json`, the desktop app writes it with backslashes, the
-> CLI reads it with forward slashes, and an untrusted workspace "ignores its
-> permission settings".
+> **Cause:** both tasks use `LogonType: InteractiveToken` - they run *only while
+> a user is logged on*. After the update reboot the machine sat at the login
+> screen with no user session, so neither task could start. Nothing errored;
+> there was simply nothing to write a log.
 > 
-> **Ship gates 1 and 2 were therefore impossible to run, so nothing merged to
-> `main` today.** `main` is untouched.
+> This was a known limitation from setup (running logged-out needs a stored
+> password, which was deliberately avoided) but nothing guarded against it.
 > 
-> `git add` / `git commit` / `git push` are denied by the same cause, so **this
-> session could not commit its own work.** The files below are sitting
-> uncommitted in the working tree:
+> ### Fixed
 > 
-> ```
->  M CLAUDE.md
->  M NIGHTLY_LOG.md
-> ?? ACTION_REQUIRED.md
-> ?? research/2026-08-10-ic-evidence-independence.md
-> ```
+> **Run-once-per-day markers.** Both scripts now write
+> `logs/.datarun-last-success` / `logs/.nightly-last-success` on a successful
+> run and exit immediately if today's already succeeded. A *failed* run leaves no
+> marker, so it is correctly retried. Both take `-Force` to override.
 > 
-> **This will jam the loop.** `scripts/nightly-screener.ps1` checks
-> `git status --porcelain` before starting (line ~192) and refuses to run on a
+> **`scripts/add-catchup-trigger.ps1`** adds an at-logon trigger (3 min delay) to
+> each task, so a missed run is picked up when the owner next logs in. The
+> markers make that safe - logging in repeatedly cannot re-run the loop.
+> 
+> *Requires the owner to run it:* modifying scheduled-task triggers is a
+> persistence change and was correctly refused when attempted automatically.
+> 
+> **Static checks now cover 6 scripts, 24 assertions.**
+> 
+> ### Noticed, not fixed
+> 
+> The cleanest root-cause fix is the Windows setting *"Use my sign-in info to
+> automatically finish setting up after an update or restart"* (Settings ->
+> Accounts -> Sign-in options). That restores the user session after an update
+> reboot, which is what these tasks need. It is a Windows account setting, not a
+> repo change - owner action.
 > ...
 
 ---
