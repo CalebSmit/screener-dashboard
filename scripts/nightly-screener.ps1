@@ -28,7 +28,8 @@
 param(
     [string]$Focus,
     [switch]$DryRun,
-    [switch]$NoMerge
+    [switch]$NoMerge,
+    [switch]$Force
 )
 
 # git/gh/claude write progress to stderr routinely. Under 'Stop', PowerShell
@@ -152,6 +153,22 @@ if (Test-Path $LockFile) {
     Remove-Item $LockFile -Force
 }
 Set-Content -Path $LockFile -Value $PID -Encoding utf8
+
+# --- Run-once-per-day guard --------------------------------------------------
+# These tasks use InteractiveToken, so they only fire while a user is logged on.
+# On 2026-08-12 the machine rebooted at 00:47 (Windows Update) and sat at the
+# login screen; both the 02:00 and 06:00 runs were simply lost. A catch-up
+# logon trigger fixes that, but then needs this guard so logging in three times
+# does not run a session three times.
+$SuccessMarker = Join-Path $LogDir '.nightly-last-success'
+if ((Test-Path $SuccessMarker) -and -not $Force -and -not $DryRun) {
+    $last = (Get-Content $SuccessMarker -TotalCount 1).Trim()
+    if ($last -eq $Date) {
+        Write-Log "Code loop already completed today ($Date). Nothing to do."
+        if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
+        exit 0
+    }
+}
 
 try {
     Set-Location $RepoPath
@@ -399,6 +416,7 @@ try {
         Write-Log "No commits produced. Nothing to ship." 'WARN'
         Invoke-Native 'git' @('checkout', 'main') | Out-Null
         Invoke-Native 'git' @('branch', '-D', $Branch) | Out-Null
+        Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
         Write-Log "=== Run complete (no changes) ==="
         exit 0
     }
@@ -436,6 +454,7 @@ try {
     Write-Log "Tagged $tag - roll back with: git reset --hard $tag"
 
     Invoke-Native 'git' @('branch', '-d', $Branch) | Out-Null
+    Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
     Write-Log "=== Run complete: shipped to main ==="
     exit 0
 }

@@ -27,7 +27,8 @@
 [CmdletBinding()]
 param(
     [switch]$SkipPush,
-    [string]$Tickers
+    [string]$Tickers,
+    [switch]$Force
 )
 
 $ErrorActionPreference = 'Continue'
@@ -106,6 +107,22 @@ if (Test-Path $LockFile) {
     Write-Log "Stale lock. Reclaiming." 'WARN'; Remove-Item $LockFile -Force
 }
 Set-Content -Path $LockFile -Value $PID -Encoding utf8
+
+# --- Run-once-per-day guard --------------------------------------------------
+# These tasks use InteractiveToken, so they only fire while a user is logged on.
+# On 2026-08-12 the machine rebooted at 00:47 (Windows Update) and sat at the
+# login screen; both the 02:00 and 06:00 runs were simply lost. A catch-up
+# logon trigger fixes that, but then needs this guard so logging in three times
+# does not run the loop three times.
+$SuccessMarker = Join-Path $LogDir '.datarun-last-success'
+if ((Test-Path $SuccessMarker) -and -not $Force) {
+    $last = (Get-Content $SuccessMarker -TotalCount 1).Trim()
+    if ($last -eq $Date) {
+        Write-Log "Data loop already completed successfully today ($Date). Nothing to do."
+        if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
+        exit 0
+    }
+}
 
 try {
     Set-Location $RepoPath
@@ -326,6 +343,10 @@ try {
         $obs = (Get-Content $icPath | Measure-Object -Line).Lines - 1
         Write-Log "Improvement engine now has $obs live IC observation(s); 8 are needed before it may propose a weight change."
     }
+
+    # Only a run that actually published counts as today's run. A discarded or
+    # failed run leaves no marker, so a catch-up trigger will retry it.
+    Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
 
     Write-Log "=== Data loop complete ==="
     exit 0
