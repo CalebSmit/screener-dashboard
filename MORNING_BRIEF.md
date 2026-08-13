@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 12 August 2026, 08:18
+# Morning Brief - Thursday 13 August 2026, 02:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **failed** |
+| Data run (2 AM) | **stopped deliberately** |
 | Code session (6 AM) | **failed** |
 | Dashboard data from | 2026-08-12T08:04:59.455861 |
 | Stocks scored | 502 |
@@ -18,9 +18,8 @@ history is in `NIGHTLY_LOG.md`.
 
 ## Things that needed attention
 
-- Unhandled error: The term 'Write-NativeOutput' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
-- at <ScriptBlock>, C:\Users\smitc\OneDrive\Documents\Screener\scripts\data-run.ps1: line 203
-- Brief step failed (non-fatal): The term 'Write-NativeOutput' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+- Run is DEGRADED. Refusing to publish.
+- Run discarded by health check - the live dashboard is unchanged.
 - This folder is NOT trusted by the Claude Code CLI.
 - The session would run but be denied python, pytest and git.
 - Fix (interactively, with no other Claude session open):
@@ -31,12 +30,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `ad5a610 brief: data run 2026-08-12`
 - `dc618ef data: screener run 2026-08-12 - 502 scored, top: HST EXPE EIX APA CF`
 - `dd5098c fix: catch-up for runs missed while logged out`
 - `895a8a0 governance: backtest decides nothing until 2027-02-11; research is the basis`
-- `6bfda04 fix: data-loop crash + static checks for the runner scripts; research-led methodology`
-- `c587835 brief: code session 2026-08-11`
-- `29b80c2 plan: record 8 candidate dashboard improvements with real cost estimates`
 
 ## The session's own account
 
