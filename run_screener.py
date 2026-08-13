@@ -907,6 +907,7 @@ def run_factor_engine(cfg, args, ctx=None):
         get_sp500_tickers, fetch_single_ticker, fetch_all_tickers,
         fetch_market_returns, fetch_risk_free_rate, compute_metrics,
         _generate_sample_data, _find_latest_cache,
+        cache_age_days, cache_is_usable, factor_scores_cache_max_age_days,
         apply_universe_filters,
         winsorize_metrics, compute_sector_percentiles,
         apply_percentile_transform,
@@ -979,7 +980,11 @@ def run_factor_engine(cfg, args, ctx=None):
     ticker_meta = universe_df.set_index("Ticker")[["Company", "Sector"]].to_dict("index")
 
     # ---- Check cache freshness (config-aware) ----
-    fresh_days = cfg.get("caching", {}).get("fundamental_data_refresh_days", 7)
+    # Bound by the PRICE tier, not the fundamental tier: factor_scores is the
+    # fully scored dataset and carries momentum, volatility and analyst
+    # price-target metrics that go stale with every market close. See
+    # factor_scores_cache_max_age_days() and tests/test_cache_freshness.py.
+    fresh_days = factor_scores_cache_max_age_days(cfg.get("caching", {}))
     cfg_hash = ctx.config_hash(cfg) if ctx else None
     cached_path, cached_dt = _find_latest_cache("factor_scores", config_hash=cfg_hash)
     use_cache = False
@@ -993,12 +998,16 @@ def run_factor_engine(cfg, args, ctx=None):
                 pass
         stats["cache_status"] = "COLD"
     elif cached_path is not None:
-        age_days = (datetime.now() - cached_dt).days
-        if age_days <= fresh_days and not args.tickers:
+        age_days = cache_age_days(cached_dt)
+        if cache_is_usable(cached_dt, fresh_days) and not args.tickers:
             use_cache = True
             stats["cache_status"] = "HOT"
             stats["tickers_cache"] = universe_size
         else:
+            print(
+                f"  Cache {cached_path.name} is {age_days} day(s) old "
+                f"(max {fresh_days}) - refetching"
+            )
             stats["cache_status"] = "WARM"
 
     if use_cache:

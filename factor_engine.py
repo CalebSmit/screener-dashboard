@@ -206,6 +206,57 @@ def _find_latest_cache(tier_name: str, config_hash: str | None = None):
     return None, None
 
 
+def cache_age_days(cached_dt, now: datetime | None = None) -> int:
+    """Whole calendar days between a cache's date and ``now``.
+
+    Cache dates come from the filename (``factor_scores_<hash>_20260812``)
+    and are therefore midnight-anchored. A cache written today is age 0; one
+    written yesterday is age 1 regardless of the clock time, which is the
+    right unit here - what matters is whether a new market close exists,
+    not how many hours have elapsed.
+    """
+    now = now or datetime.now()
+    return (now - cached_dt).days
+
+
+def cache_is_usable(cached_dt, max_age_days: int, now: datetime | None = None) -> bool:
+    """Is a cache dated ``cached_dt`` still reusable?
+
+    The rule: ``<tier>_refresh_days: N`` means the cache is reusable for N
+    calendar days *starting with the day it was written*. So N=1 means
+    "reuse only a cache written today", N=7 means "reuse a cache up to six
+    days old". The bound is exclusive.
+
+    This is the semantics :func:`cache_is_fresh` has always implemented via
+    ``timedelta``; it is spelled out here because ``run_screener.py`` used to
+    hand-roll a looser ``<=`` comparison and reused a stale cache for a week
+    (see ``tests/test_cache_freshness.py``).
+    """
+    if cached_dt is None:
+        return False
+    return cache_age_days(cached_dt, now=now) < max_age_days
+
+
+def factor_scores_cache_max_age_days(caching_cfg: dict) -> int:
+    """Max age for which the ``factor_scores`` cache may be reused.
+
+    ``factor_scores`` is the *fully scored* dataset. It carries price-derived
+    metrics - 12-1 momentum, 6-month return, volatility, beta, Sharpe,
+    max drawdown, 52-week proximity and analyst price-target upside -
+    alongside the slow-moving fundamentals. **A cache is only as fresh as its
+    fastest-moving contents**, so the bound is the price tier, not the
+    fundamental tier.
+
+    Bounding it by ``fundamental_data_refresh_days`` (7) is what let a single
+    fetch suppress the following week of daily runs, because the warm-start
+    path returns before a new cache file is written and so never advances the
+    cache date.
+    """
+    price_days = int(caching_cfg.get("price_data_refresh_days", 1))
+    fundamental_days = int(caching_cfg.get("fundamental_data_refresh_days", 7))
+    return min(price_days, fundamental_days)
+
+
 def cache_is_fresh(tier_name: str, max_age_days: int, config_hash: str | None = None) -> bool:
     path, dt = _find_latest_cache(tier_name, config_hash=config_hash)
     if path is None:
