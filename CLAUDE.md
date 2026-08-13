@@ -281,30 +281,17 @@ investment club rather than a liability.
 
 ## Current priorities (rewrite this section as things land)
 
-**-1. THE UNATTENDED SESSION CANNOT RUN PYTHON. Nothing else can ship until
-this is fixed, because ship gates 1 and 2 cannot be executed.**
+**-1. RESOLVED 2026-08-13. The workspace is trusted and the session can run
+Python.** The 06:00 runner logged "Workspace trust OK", and `python -c`,
+`python -m pytest tests/ test_screener.py -q` (552 passed) and
+`python run_screener.py --dry-run` (exit 0) all executed inside the unattended
+session. **2026-08-13 is the first autonomous session to execute the ship gates
+and merge to `main`.** If this regresses, the symptom is that `python
+--version` works but everything else is denied; the fix is documented in
+`scripts/fix-trust.ps1` and the runner now fails fast with instructions.
 
-Verified 2026-08-10 from inside a scheduled run: `python --version` succeeds,
-but `python -c`, `python -m pytest`, and `python run_screener.py --dry-run` are
-all denied, as are `WebSearch` and `WebFetch`. Every one of those is listed in
-`.claude/settings.json` -> `permissions.allow`, so **the project's permission
-settings are not being applied to the unattended run**. That is exactly the
-symptom `scripts/fix-trust.ps1` documents: folder trust is keyed by path in
-`%USERPROFILE%\.claude.json`, the desktop app writes it with backslashes and
-the CLI reads it with forward slashes, and an untrusted workspace "ignores its
-permission settings".
-
-**Fix - run once, interactively (a session cannot do it; it writes outside the
-working directory and PowerShell is itself denied):**
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\fix-trust.ps1
-```
-
-Until then every code-loop session can read, reason, and write files, but can
-neither test nor validate, so no session may merge to `main`.
-
-Related: the scheduled-task definitions are **not in version control** -
+Still open, and now the biggest remaining infrastructure gap:
+the scheduled-task definitions are **not in version control** -
 `grep -rn "Register-ScheduledTask" .` finds nothing. The 2:00 AM and 6:00 AM
 triggers exist only as hand-made Task Scheduler entries on one machine. The
 data loop did not fire on Monday 2026-08-10 (no `logs/datarun-2026-08-10*`)
@@ -416,6 +403,21 @@ failure `research/2026-08-10-ic-evidence-independence.md` identified via
 overlapping return windows, arriving by another route. Either skip the snapshot
 on a warm-start, or deduplicate on `(run_date, content hash)` before the engine
 reads them.
+
+**0.7. FIXED 2026-08-13 - the data loop only fetched once every eight days.**
+`run_factor_engine` bounded the whole `factor_scores` cache by
+`fundamental_data_refresh_days` (7) rather than `price_data_refresh_days` (1),
+and the warm-start path returns before `write_scores_parquet`, so a warm start
+never advanced the cache date. One real fetch therefore suppressed the next
+seven days of runs. **18 of the 44 metrics move with the daily close**, across
+Valuation, Momentum, Risk, Revisions and Size - so this was published stale
+scores, not just a slow loop. Fixed via
+`factor_engine.factor_scores_cache_max_age_days()` / `cache_is_usable()`;
+21 regression tests in `tests/test_cache_freshness.py`;
+`METHODOLOGY_CHANGELOG.md` 2026-08-13.
+
+**Confirm this on 2026-08-14:** the 02:00 run must show a live fetch and
+`00_raw_fetch.parquet` present. If it warm-starts again, the fix is wrong.
 
 1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
    (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now

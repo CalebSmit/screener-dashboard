@@ -592,3 +592,132 @@ repo change - owner action.
 ### Next
 Unchanged: the trust step still blocks every code session. Zero autonomous
 sessions have completed since setup on 08-05.
+
+---
+
+## 2026-08-13 - BUILD. The data loop was only fetching once every eight days.
+
+**Tests:** before 530/530, after 552/552 (22 new)
+**Data loop:** was silently degraded - **fixed**. Today's 02:00 run warm-started
+from an 08-12 cache, produced no fetch artifacts, and was correctly discarded by
+the health gate. Root cause found and fixed; confirm on the 08-14 02:00 run.
+
+### The trust blocker is gone
+
+The 06:00 runner logged **"Workspace trust OK"**, and `python -c`,
+`python -m pytest` and `python run_screener.py --dry-run` all executed. This is
+the **first autonomous session that could run the ship gates**, and the first to
+merge to `main`. Priority -1 in `CLAUDE.md` is marked resolved. Every session
+from 08-05 to 08-12 was blocked on this.
+
+### Did
+
+Found and fixed why the data loop keeps publishing nothing. This was not a
+scheduling problem - it is that **the screener almost never fetched**.
+
+`run_factor_engine` bounded reuse of the `factor_scores` cache by
+`caching.fundamental_data_refresh_days` (**7**), not
+`price_data_refresh_days` (**1**). Two things compound:
+
+1. `factor_scores` is the *fully scored* dataset, not fundamentals.
+   **18 of the 44 metrics in `METRIC_COLS` move with the daily close**, across
+   five of the eight categories - every valuation ratio (price is in all of
+   them), all three momentum metrics, six risk metrics, `price_target_upside`
+   and `size_log_mcap`. So a "fundamental" freshness bound was the wrong unit
+   entirely, and published Valuation/Momentum/Risk scores could be computed
+   from a close up to eight days old while presented as current.
+2. The warm-start path returns at `run_screener.py:1011`, **before**
+   `write_scores_parquet` at `:1502`. A warm-started run lays down no new cache
+   file, so the cache date never advances. One real fetch therefore suppressed
+   the next seven days of runs: **one real fetch per eight daily runs.**
+
+Also fixed an off-by-one that would have defeated the fix on its own. Cache
+dates are parsed from the filename and are midnight-anchored, so a cache from
+yesterday is `age_days == 1` no matter the clock time. Under the old
+`age_days <= fresh_days`, even `fresh_days = 1` would still have reused
+yesterday's cache at 02:00 - the daily loop would have kept warm-starting.
+The rule is now strict and stated in plain English:
+**`<tier>_refresh_days: N` means the cache is reusable for N calendar days
+starting with the day it was written.** `1` therefore means "refetch unless the
+cache is from today". A same-day manual re-run still warm-starts, which is
+correct - there is no new close to fetch.
+
+Implemented as three pure, testable helpers in `factor_engine.py` beside the
+existing caching section: `cache_age_days()`, `cache_is_usable()`,
+`factor_scores_cache_max_age_days()`. Worth noting: `cache_is_fresh()` in the
+same file **already had the correct timedelta semantics**; `run_screener.py`
+had hand-rolled a looser `.days`/`<=` copy of it. The bug was a divergent
+reimplementation, not a missing idea.
+
+### Evidence / research
+
+- **Direct arithmetic on the real artifacts, not fixtures.** Live cache
+  `cache/factor_scores_19c853468405_20260812.parquet`, live config hash
+  `19c853468405`. At 2026-08-13 02:00 `age_days = 1`. Old rule `1 <= 7` ->
+  reuse. New rule `1 < 1` -> fetch. The exact run that was discarded today
+  would now fetch.
+- **Measured, in tests:** `test_old_bound_would_have_fetched_only_once` shows
+  1 fetch across 8 consecutive daily runs; `test_eight_consecutive_daily_runs
+  _all_fetch` shows 8 of 8 after the fix.
+- **Three shipped incidents:** 2026-08-07 and 2026-08-10 published a dashboard
+  with 0 of 503 prices and analyst targets and dispersion down 25-36%;
+  2026-08-13 was caught and discarded. The health gate added on 08-10 was
+  working correctly the whole time - it was reporting a cause nobody had found.
+- 22 new tests, written **red first** (ImportError on the missing helpers).
+- No backtest number used or run. Rule 5 respected.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-08-13** - "The screener scored stale
+  prices: factor_scores cache bounded by the wrong tier". Filed as methodology
+  rather than a perf tweak because it changes *what data the published scores
+  are computed from*. Includes the 18-metric table, the rollback
+  (`caching.price_data_refresh_days: 7` restores the old window without a code
+  change), and the honest caveat below.
+
+### Honest caveat on what this does and does not buy
+
+It speeds up evidence accrual ~8x in **calendar** terms. It does **not** speed
+up *independent* observations, which still accrue at about one a month
+(`research/2026-08-10-ic-evidence-independence.md`). More rows is not more
+evidence. Priority 0 - the forward-return horizon package - is still unfixed
+and still gates the improvement engine; step 3 of that package (count
+*effective*, non-overlapping observations) matters more now, not less, because
+the row count will grow 8x faster while the independent-observation count does
+not.
+
+### Tried and rejected
+
+- **Just changing `fundamental_data_refresh_days` to 1 in `config.yaml`.**
+  Rejected: it would have mislabelled the fundamentals tier to work around a
+  bug on the price path, and the `<=` off-by-one meant it would not have
+  worked anyway - yesterday's cache is `age_days = 1`, and `1 <= 1` is true.
+- **Running the full screener to prove the fix end-to-end.** Not done: that is
+  the data loop's job and it publishes through the health gate. The 08-14 02:00
+  run is the real confirmation, and it is written down as such in both
+  `CLAUDE.md` and the changelog so a failure is not quietly forgotten.
+
+### Noticed, not fixed
+
+- `cache/` contains `factor_scores_20260812.parquet` and
+  `factor_scores_20260813.parquet` with **no config hash** - test side effects
+  leaking into the real cache directory (priority 8, test isolation). Harmless
+  today only because production always passes a hash and `_find_latest_cache`
+  filters on it. If `ctx` were ever `None` in production, the pipeline would
+  load a test artifact as real data.
+- Why the 08-12 08:16 run fetched at all is not fully explained - by this
+  mechanism it should have warm-started off the 08-10 cache. Most likely the
+  08-10 cache was cleared. It does not affect the diagnosis, which is proven
+  arithmetically, but it is an unexplained detail rather than a confirmed one.
+
+### Next
+
+**Priority 0 - the forward-return horizon package** (all five steps in
+`CLAUDE.md`), now that a session can finally run tests. Re-verified today and
+unchanged: 13 distinct run dates, `fwd_return_1m` present on only **2 of 13**,
+`fwd_return_3m` on **1 of 13**, and `live_ic_history.csv` still has just 3 rows,
+all horizon `1w`, one of which claims **6,539 tickers** for a single date in a
+500-stock universe. The improvement engine still cannot propose anything.
+Ship step 3 (effective observation counting) in the same session as step 1, or
+set `allow_auto_apply: false` first - the 8x faster row growth from today's fix
+makes the inflation risk worse, not better.
