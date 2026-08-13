@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 13 August 2026, 02:00
+# Morning Brief - Thursday 13 August 2026, 06:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **stopped deliberately** |
-| Code session (6 AM) | **failed** |
+| Code session (6 AM) | **completed** |
 | Dashboard data from | 2026-08-12T08:04:59.455861 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -20,16 +20,12 @@ history is in `NIGHTLY_LOG.md`.
 
 - Run is DEGRADED. Refusing to publish.
 - Run discarded by health check - the live dashboard is unchanged.
-- This folder is NOT trusted by the Claude Code CLI.
-- The session would run but be denied python, pytest and git.
-- Fix (interactively, with no other Claude session open):
-- cd "C:\Users\smitc\OneDrive\Documents\Screener"
-- & "$env:APPDATA\npm\claude.cmd"
-- then answer YES to the trust prompt and /exit.
-- Skipping today's run rather than burning a session on a jammed workspace.
 
 ## What changed in the repo
 
+- `d23e990 docs: record the stale-price cache fix; trust blocker resolved`
+- `3a3090e fix: the data loop only fetched once every eight days`
+- `e9b6271 brief: data run 2026-08-13`
 - `ad5a610 brief: data run 2026-08-12`
 - `dc618ef data: screener run 2026-08-12 - 502 scored, top: HST EXPE EIX APA CF`
 - `dd5098c fix: catch-up for runs missed while logged out`
@@ -37,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-08-12 - Nothing ran. The PC rebooted overnight and nobody was logged in.
+> 2026-08-13 - BUILD. The data loop was only fetching once every eight days.
 > 
-> **Tests:** 526 -> 530 passed
-> **Data loop:** did not fire | **Code loop:** did not fire
+> **Tests:** before 530/530, after 552/552 (22 new)
+> **Data loop:** was silently degraded - **fixed**. Today's 02:00 run warm-started
+> from an 08-12 cache, produced no fetch artifacts, and was correctly discarded by
+> the health gate. Root cause found and fixed; confirm on the 08-14 02:00 run.
 > 
-> ### What happened
+> ### The trust blocker is gone
 > 
-> No logs for 2026-08-12 at all. Both tasks show Enabled/Ready, last run 08-11,
-> next run **08-13** - today's 02:00 and 06:00 slots passed without firing.
+> The 06:00 runner logged **"Workspace trust OK"**, and `python -c`,
+> `python -m pytest` and `python run_screener.py --dry-run` all executed. This is
+> the **first autonomous session that could run the ship gates**, and the first to
+> merge to `main`. Priority -1 in `CLAUDE.md` is marked resolved. Every session
+> from 08-05 to 08-12 was blocked on this.
 > 
-> `System Boot Time: 8/12/2026, 12:47:15 AM` - the machine restarted overnight,
-> almost certainly a Windows update. It was powered on through both windows, so
-> this was not a sleep or network problem.
+> ### Did
 > 
-> **Cause:** both tasks use `LogonType: InteractiveToken` - they run *only while
-> a user is logged on*. After the update reboot the machine sat at the login
-> screen with no user session, so neither task could start. Nothing errored;
-> there was simply nothing to write a log.
+> Found and fixed why the data loop keeps publishing nothing. This was not a
+> scheduling problem - it is that **the screener almost never fetched**.
 > 
-> This was a known limitation from setup (running logged-out needs a stored
-> password, which was deliberately avoided) but nothing guarded against it.
+> `run_factor_engine` bounded reuse of the `factor_scores` cache by
+> `caching.fundamental_data_refresh_days` (**7**), not
+> `price_data_refresh_days` (**1**). Two things compound:
 > 
-> ### Fixed
+> 1. `factor_scores` is the *fully scored* dataset, not fundamentals.
+>    **18 of the 44 metrics in `METRIC_COLS` move with the daily close**, across
+>    five of the eight categories - every valuation ratio (price is in all of
+>    them), all three momentum metrics, six risk metrics, `price_target_upside`
+>    and `size_log_mcap`. So a "fundamental" freshness bound was the wrong unit
+>    entirely, and published Valuation/Momentum/Risk scores could be computed
+>    from a close up to eight days old while presented as current.
+> 2. The warm-start path returns at `run_screener.py:1011`, **before**
+>    `write_scores_parquet` at `:1502`. A warm-started run lays down no new cache
+>    file, so the cache date never advances. One real fetch therefore suppressed
+>    the next seven days of runs: **one real fetch per eight daily runs.**
 > 
-> **Run-once-per-day markers.** Both scripts now write
-> `logs/.datarun-last-success` / `logs/.nightly-last-success` on a successful
-> run and exit immediately if today's already succeeded. A *failed* run leaves no
-> marker, so it is correctly retried. Both take `-Force` to override.
-> 
-> **`scripts/add-catchup-trigger.ps1`** adds an at-logon trigger (3 min delay) to
-> each task, so a missed run is picked up when the owner next logs in. The
-> markers make that safe - logging in repeatedly cannot re-run the loop.
-> 
-> *Requires the owner to run it:* modifying scheduled-task triggers is a
-> persistence change and was correctly refused when attempted automatically.
-> 
-> **Static checks now cover 6 scripts, 24 assertions.**
-> 
-> ### Noticed, not fixed
-> 
-> The cleanest root-cause fix is the Windows setting *"Use my sign-in info to
-> automatically finish setting up after an update or restart"* (Settings ->
-> Accounts -> Sign-in options). That restores the user session after an update
-> reboot, which is what these tasks need. It is a Windows account setting, not a
-> repo change - owner action.
+> Also fixed an off-by-one that would have defeated the fix on its own. Cache
+> dates are parsed from the filename and are midnight-anchored, so a cache from
+> yesterday is `age_days == 1` no matter the clock time. Under the old
+> `age_days <= fresh_days`, even `fresh_days = 1` would still have reused
+> yesterday's cache at 02:00 - the daily loop would have kept warm-starting.
+> The rule is now strict and stated in plain English:
+> **`<tier>_refresh_days: N` means the cache is reusable for N calendar days
+> starting with the day it was written.** `1` therefore means "refetch unless the
+> cache is from today". A same-day manual re-run still warm-starts, which is
 > ...
 
 ---
