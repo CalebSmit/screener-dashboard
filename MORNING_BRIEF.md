@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 13 August 2026, 06:13
+# Morning Brief - Friday 14 August 2026, 02:11
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,29 +7,22 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **stopped deliberately** |
+| Data run (2 AM) | **completed** |
 | Code session (6 AM) | **completed** |
-| Dashboard data from | 2026-08-12T08:04:59.455861 |
+| Dashboard data from | 2026-08-14T02:00:04.105056 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
 | Top 5 | HST, EXPE, EIX, APA, CF |
 | Evidence for weight changes | 3 of 8 needed |
 
-## Things that needed attention
-
-- Run is DEGRADED. Refusing to publish.
-- Run discarded by health check - the live dashboard is unchanged.
-
 ## What changed in the repo
 
+- `3fba581 data: screener run 2026-08-14 - 502 scored, top: HST EXPE EIX APA CF`
+- `779272a brief: code session 2026-08-13`
 - `d23e990 docs: record the stale-price cache fix; trust blocker resolved`
 - `3a3090e fix: the data loop only fetched once every eight days`
 - `e9b6271 brief: data run 2026-08-13`
-- `ad5a610 brief: data run 2026-08-12`
-- `dc618ef data: screener run 2026-08-12 - 502 scored, top: HST EXPE EIX APA CF`
-- `dd5098c fix: catch-up for runs missed while logged out`
-- `895a8a0 governance: backtest decides nothing until 2027-02-11; research is the basis`
 
 ## The session's own account
 
