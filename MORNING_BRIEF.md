@@ -1,4 +1,4 @@
-# Morning Brief - Friday 14 August 2026, 02:11
+# Morning Brief - Friday 14 August 2026, 06:00
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** |
-| Code session (6 AM) | **completed** |
+| Code session (6 AM) | **completed, nothing to change** |
 | Dashboard data from | 2026-08-14T02:00:04.105056 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -16,8 +16,13 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | HST, EXPE, EIX, APA, CF |
 | Evidence for weight changes | 3 of 8 needed |
 
+## Things that needed attention
+
+- No commits produced. Nothing to ship.
+
 ## What changed in the repo
 
+- `c87b8d3 brief: data run 2026-08-14`
 - `3fba581 data: screener run 2026-08-14 - 502 scored, top: HST EXPE EIX APA CF`
 - `779272a brief: code session 2026-08-13`
 - `d23e990 docs: record the stale-price cache fix; trust blocker resolved`
