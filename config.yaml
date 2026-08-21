@@ -258,9 +258,15 @@ improvement:
   regime_scale_factor: 0.0             # Dispersion regime adjustment magnitude (0 = OFF until validated; Phase 13)
   auto_apply_threshold: 2.0            # Auto-apply if all changes ≤ this % (AND significance gates below)
   # --- Governance guardrails (Phase 13 — hedge-fund review remediation) ---
-  allow_auto_apply: true               # Autonomous mode (2026-08-05): engine MAY write weight changes, but only after the
-                                       # significance gates below are satisfied. Those gates are now the sole safety
-                                       # mechanism - see METHODOLOGY_CHANGELOG.md 2026-08-05. Set false to halt learning.
+  allow_auto_apply: false              # Owner direction 2026-08-20: methodology is research-led for now. The engine
+                                       # still records snapshots, computes forward returns and reports proposals -
+                                       # it just may not WRITE a weight change. Re-enable only when BOTH hold:
+                                       #   (a) observation independence is corrected - see
+                                       #       research/2026-08-10-ic-evidence-independence.md item 3; today the
+                                       #       significance test counts raw rows, overstating n by ~2.35x
+                                       #   (b) the performance history holds substantially more genuinely
+                                       #       independent observations than the 8 raw rows this gate asks for
+                                       # See METHODOLOGY_CHANGELOG.md 2026-08-20.
   min_ic_ir_for_auto_apply: 0.5        # Require IC information ratio >= this (statistical significance, not just obs count)
   optimization_horizon: '1m'           # Optimize on this horizon; REFUSE to propose if it has no data (no silent 1w fallback)
   max_cumulative_change: 6.0           # Max total signed % change per category across trailing window (anti-drift)

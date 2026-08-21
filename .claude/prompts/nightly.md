@@ -40,10 +40,17 @@ Note pass/fail counts and any pre-existing failures.
 Pick **one thing that matters**, not three that don't. Depth over breadth.
 
 The bar for any change is evidence. Before you write code, be able to finish
-this sentence: *"I know this is an improvement because ___."* Acceptable
-endings are a citation, a backtest number, an IC measurement, a failing test
-that now passes, a profiling result, or a concrete user-facing failure you can
-demonstrate. Unacceptable: "it's cleaner", "it's more modern", "best practice".
+this sentence: *"I know this is an improvement because ___."*
+
+Acceptable endings **today**: a citation from the literature, documented
+professional practice, a failing test that now passes, a profiling result, or a
+concrete user-facing failure you can demonstrate.
+
+**Not yet acceptable:** a backtest number (benched until 2027-02-11) or an IC
+measurement from this system's own history (3 observations, all `1w`, all
+February). Both look like evidence and are not.
+
+Never acceptable: "it's cleaner", "it's more modern", "best practice".
 
 **Monday - component research.** Pick one specific thing: a factor, a metric,
 a threshold, a construction rule. Learn it properly. Real citations - author,
@@ -87,9 +94,19 @@ looks authoritative. Until that date, methodology rests on research.
 
 **Methodology changes** are allowed and expected. Every one gets an entry in
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected
-effect. For factor weights specifically, prefer improving
-`improvement_engine.py` and its evidence base over hand-tuning - see rule 4 in
-`CLAUDE.md`.
+effect.
+
+**Justify them from research, not from this system's own numbers.** The IC
+series has 3 observations, all `1w`, all from February, and the significance
+test counts raw rows in a way that overstates independence ~2.35x. The backtest
+is benched until 2027-02-11. So neither is evidence yet - see rules 4 and 5 in
+`CLAUDE.md`. What counts today is published literature, documented
+professional practice, and a clear account of how the change fits the screener
+as a whole.
+
+That includes weights. Changing a factor weight because the research says a
+factor is worth more or less - and explaining why - is legitimate work. Doing
+it because a 3-point return series drifted is not.
 
 ## 4. Ship gates
 
@@ -121,13 +138,13 @@ Append to `NIGHTLY_LOG.md`:
 - <what, and the evidence that it's an improvement>
 
 ### Evidence / research
-- <citations, backtest numbers, IC deltas, or "none - see why below">
+- <citations: author, year, finding, effect size, conditions. Or "none - see why below">
 
 ### Methodology changed
 - <changelog entries made, or "none">
 
 ### Tried and rejected
-- <what didn't survive validation, and the number that killed it>
+- <an idea the research did not support, and the source that ruled it out>
 
 ### Next
 - <the single most valuable thing for the next session>

@@ -82,13 +82,30 @@ improving.
    validated it. A weight or threshold that changes without a changelog entry is
    an unexplainable tool, which defeats the purpose.
 
-4. **Prefer the improvement engine over your own judgment on weights.**
-   `improvement_engine.py` changes factor weights from measured live
-   information coefficients, with shrinkage, per-cycle caps, and significance
-   gates. That is a far better basis for a weight change than an LLM's opinion.
-   Improve *the engine* and feed it *more data*; do not hand-tune weights around
-   it. Hand-tuning is a last resort and needs a written argument for why the
-   engine's evidence was insufficient.
+4. **Methodology is research-led. Performance history does not drive it yet.**
+   Owner direction, 2026-08-20. Until the evidence base is much larger:
+
+   - `allow_auto_apply` is **false**. The engine still records snapshots,
+     computes forward returns, and *reports* proposals - it may not write a
+     weight change. Do not flip it back without meeting both conditions in the
+     `config.yaml` comment.
+   - **Do not justify a methodology change with the IC series or
+     `performance_history.csv` either.** There are 3 observations, all at the
+     `1w` horizon, all from February. The significance test counts raw rows,
+     which `research/2026-08-10-ic-evidence-independence.md` shows overstates
+     independence by ~2.35x. Numbers off that base are not yet evidence.
+   - **What does justify a change:** published research and documented
+     professional practice, per "Your mandate" above, plus a clear account of
+     how the change fits the screener as a whole.
+
+   This is not a reason to avoid weights. It is a reason to change them from
+   *research* - what the literature and practitioners say a factor is worth and
+   why - rather than from a thin return series. Say so in the changelog entry.
+
+   Meanwhile, keep improving the engine and its evidence base: fix observation
+   independence, make forward returns accrue correctly, widen coverage. When
+   the history is deep enough it becomes the better basis for weights, and the
+   engine is how it gets applied - just not yet.
 
 5. **The backtest does not decide anything until 2027-02-11.** Owner direction,
    2026-08-11. Until that date `backtest.py` output is **supporting colour
@@ -107,10 +124,11 @@ improving.
    decisions rest on research** - published literature and documented
    professional practice - per "Your mandate" above.
 
-   This does not restrict `improvement_engine.py`, which learns from *live*
-   forward returns rather than the backtest. That is genuinely out-of-sample
-   and stays the mechanism for weight changes. It cannot fire until its
-   evidence gates are met regardless.
+   `improvement_engine.py` is a separate matter and is *also* benched for now -
+   see rule 4. It learns from live forward returns, which are genuinely
+   out-of-sample and unaffected by the backtest's biases, so it remains the
+   right mechanism for weight changes *eventually*. It is switched off today
+   because the history is too thin, not because the approach is wrong.
 
    If backtest v2 lands early and honestly fixes both biases, that is worth
    raising in the log - but the date stands until the owner moves it.

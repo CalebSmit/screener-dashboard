@@ -247,3 +247,59 @@ again, this entry is wrong and should be revisited.
 **Applied by:** morning session (manual)
 **Rollback:** revert this commit; or set `caching.price_data_refresh_days: 7`
 in `config.yaml` to restore the old effective window without touching code.
+
+---
+
+## 2026-08-20 - Weight changes come from research, not from the return series
+
+**Area:** governance / evidence standard
+**Applied by:** owner direction, recorded by setup session
+
+**Changed:** `improvement.allow_auto_apply` **true -> false**. The engine still
+records snapshots, computes forward returns and reports proposals; it may no
+longer *write* a weight change. `CLAUDE.md` rule 4 was rewritten to match, and
+the nightly prompt no longer lists an IC measurement as acceptable evidence.
+
+This reverses the 2026-08-05 entry, deliberately.
+
+**Evidence.** Three things, none of which is a backtest number:
+
+1. **The evidence base is three observations.** `live_ic_history.csv` holds 3
+   rows, all at the `1w` horizon, all from February 2026. The configured
+   `optimization_horizon` is `1m`, which has none.
+2. **The significance test overstates independence.**
+   `research/2026-08-10-ic-evidence-independence.md` shows
+   `_ir_to_one_sided_pvalue()` computes `t = IR * sqrt(n)` from raw row count.
+   The 11 backfillable dates contain at most 2 non-overlapping 30-day windows,
+   inflating t by ~2.35x and moving a borderline IR of 0.5 from p=0.24 to
+   p=0.049 - through the gate on arithmetic alone.
+3. **That correction has not shipped.** Verified 2026-08-20: no
+   effective-observation counting exists in `improvement_engine.py`. So the
+   moment the priority-0 backfill lands, the engine would have been armed to
+   rewrite weights on inflated confidence.
+
+The research note's own recommendation was explicit: ship the dedup fix *only*
+alongside an independence correction, "or with `allow_auto_apply` temporarily
+set back to `false`." The correction has not shipped, so this is that.
+
+**Expected effect.** No change to current weights - the engine had never fired.
+What changes is what happens *next*: methodology moves on research grounds, and
+the backfill can now land safely without arming an under-powered gate.
+
+**What this does not mean.** Weights are not frozen. Changing a factor weight
+because the literature or documented practice says a factor is worth more or
+less - with the argument written down - is legitimate and expected. What is
+ruled out is changing one because a three-point return series drifted.
+
+**Re-enable when both hold:**
+1. `improvement_engine.py` counts effective (non-overlapping) observations in
+   its significance test, per item 3 of the research note.
+2. The history holds substantially more genuinely independent observations than
+   the 8 raw rows the current gate asks for.
+
+**Backtest observation:** none - benched until 2027-02-11 per rule 5.
+
+**Validated by:** `python -m pytest tests/ test_screener.py -q`.
+`tests/test_governance.py` covers auto-apply gating in both states.
+
+**Rollback:** set `allow_auto_apply: true` in `config.yaml` and revert rule 4.
