@@ -961,3 +961,68 @@ not start", which is what the evidence says it is.
 **Priority 0, step 5** - make the data loop call `compute_live_ic()`. It is
 small, it is independent, and until it lands the evidence base stays frozen at
 3 rows and every other measurement claim in this project is theoretical.
+
+---
+
+## 2026-08-21 (later) - Acting on the retrospective's owner-flagged items
+
+Owner-run session, not a scheduled one. The 2026-08-21 retrospective ended with
+five items it could not action itself. Three are now done.
+
+**Health numbers:** last code session **ran and shipped** (06:16, `good/2026-08-21-0616`);
+data loop **published** 02:12; `live_ic_history.csv` = **3 rows, newest
+2026-02-22**; priority 0 **unfixed**.
+
+### Did
+
+**1. Prompts moved out of `.claude/`.** `prompts/nightly.md` and
+`prompts/retrospective.md`. The retrospective could not edit its own templates -
+`.claude/` is treated as sensitive - so the two prompt changes it wanted were
+left undone and `nightly.md` kept describing a rotation that no longer existed.
+A self-improving routine that cannot edit its own instructions is only half a
+loop. Runner updated to `prompts\$TemplateName`.
+
+**2. `prompts/nightly.md` rotation synced to `CLAUDE.md`.** It still described
+Monday component-research / Tuesday practitioner-research. The runner injects
+the focus string so behaviour was already correct, but the prompt body
+contradicted it - a session would read one thing in its instructions and
+another in `CLAUDE.md`. Now: Mon research (both halves, one session), Tue
+product, Wed synthesis, Thu build, Fri harden.
+
+**3. `scripts/register-tasks.ps1`** - the scheduled tasks are in version control
+at last. Open since 08-10, called the highest-value infrastructure item. Creates
+both tasks from a single definition, idempotent, with the at-logon catch-up
+included, and documents *why* `LogonType` is `InteractiveToken` (the alternative
+needs a stored password, which this project will not do). Supersedes
+`add-catchup-trigger.ps1`.
+
+**4. The brief now shouts when a loop stops.** `write_brief.py` read the newest
+log and reported its outcome as if current - so a loop that stopped firing
+entirely kept the status page reporting the last successful run. That is how
+08-17..20 passed unnoticed and how the machine sat at a login screen for six
+days while the brief said everything was fine. Each loop now shows *when it
+last ran*, and a `THE ROUTINE IS NOT RUNNING` banner appears above everything
+else when either has been quiet for 2+ days. Verified against a synthetic
+5-day-old log and a missing log; does not fire for today's runs.
+
+### Corrected
+
+**The retrospective's "~$6/session" is wrong** and is now flagged as such in
+`CLAUDE.md`. The owner runs Claude Max: sessions draw on included subscription
+usage, not per-session billing. The finding underneath survives - a **weekly
+usage ceiling** exists and silently killed 08-14 - but the conclusion is not
+"spend less", it is "do not let one loop exhaust the week". Note the 02:00 data
+loop consumes none of this quota; only the 06:00 session does.
+
+### Still open from the retrospective
+
+- **A heartbeat that complains when no run has been logged in 48 hours.** #4
+  above only helps if *something* runs to write the brief. Genuine absence
+  detection needs a watcher outside both loops.
+- **A gate that verifies the live page renders.** Argued for, deliberately not
+  added: it needs a headless browser in an unattended run and can jam the loop.
+
+### Next
+Unchanged: **priority 0, step 5** - make the data loop call `compute_live_ic()`.
+Three rows, newest 2026-02-22, 180 days frozen. Every measurement claim in this
+project is theoretical until that number moves.

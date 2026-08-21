@@ -49,8 +49,8 @@ Write the answers into the log. Short and specific, no hedging.
 You may edit any of these:
 
 - `CLAUDE.md` - rules, priorities, the rotation itself
-- `.claude/prompts/nightly.md` - the daily instructions
-- `.claude/prompts/retrospective.md` - this file, including these questions
+- `prompts/nightly.md` - the daily instructions
+- `prompts/retrospective.md` - this file, including these questions
 - `scripts/nightly-screener.ps1` and `scripts/data-run.ps1` - the runners
 - The rotation table and the focus strings in the runner
 - Retrospective frequency, if fortnightly is wrong

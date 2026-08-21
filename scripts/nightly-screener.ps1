@@ -366,7 +366,7 @@ try {
 
     # --- Prompt -------------------------------------------------------------
     $TemplateName = if ($IsRetro) { 'retrospective.md' } else { 'nightly.md' }
-    $TemplatePath = Join-Path $RepoPath ".claude\prompts\$TemplateName"
+    $TemplatePath = Join-Path $RepoPath "prompts\$TemplateName"
     if (-not (Test-Path $TemplatePath)) { Stop-Run "Prompt template missing at $TemplatePath." }
     Write-Log "Using prompt template: $TemplateName"
     $Prompt = (Get-Content $TemplatePath -Raw).

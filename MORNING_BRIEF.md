@@ -1,4 +1,4 @@
-# Morning Brief - Friday 21 August 2026, 06:16
+# Morning Brief - Friday 21 August 2026, 07:58
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,8 +7,8 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** |
-| Code session (6 AM) | **completed** |
+| Data run (2 AM) | **completed** - last ran today |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-08-21T02:00:04.009887 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -18,6 +18,7 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `76eb6d8 brief: code session 2026-08-21`
 - `0398a3f process: retrospective 2026-08-21 - rebuild the rotation around what sessions actually do`
 - `6f9d41c fix: a session that never ran no longer reports as a success`
 - `78c7e2f brief: data run 2026-08-21`

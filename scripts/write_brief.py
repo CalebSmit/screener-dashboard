@@ -50,6 +50,26 @@ def tail(path: Path | None, n: int = 400) -> list[str]:
         return []
 
 
+def run_age(path: Path | None) -> tuple[str, int | None]:
+    """How long ago this loop last ran, and whether that is alarming.
+
+    The brief reads the *newest* log and reports its outcome. If a loop stops
+    firing entirely there is no new log, so the brief keeps cheerfully
+    reporting the last successful run - which is exactly how 2026-08-17..20
+    passed unnoticed, and how the machine sat at a login screen for six days
+    with the status page saying everything was fine. Absence has to be louder
+    than the last success.
+    """
+    if not path or not path.exists():
+        return "never", None
+    days = (datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)).days
+    if days == 0:
+        return "today", 0
+    if days == 1:
+        return "yesterday", 1
+    return f"{days} days ago", days
+
+
 def outcome(lines: list[str]) -> tuple[str, list[str]]:
     """Classify a run log and pull out the lines worth showing."""
     if not lines:
@@ -139,6 +159,8 @@ def main() -> int:
     data_state, data_notes = outcome(tail(data_log))
     code_state, code_notes = outcome(tail(code_log))
     facts = dashboard_facts()
+    data_age_pre, data_days_pre = run_age(data_log)
+    code_age_pre, code_days_pre = run_age(code_log)
 
     since = git("log", "--oneline", "--since=36 hours ago", "--no-merges")
     commits = [c for c in since.splitlines() if c.strip()]
@@ -152,12 +174,32 @@ def main() -> int:
     a("history is in `NIGHTLY_LOG.md`.")
     a("")
 
+    stalled = []
+    for label, age, days in (("Data run", data_age_pre, data_days_pre),
+                             ("Code session", code_age_pre, code_days_pre)):
+        if days is None or days >= 2:
+            stalled.append(f"**{label}** has not run since {age}")
+    if stalled:
+        a("## THE ROUTINE IS NOT RUNNING")
+        a("")
+        for s in stalled:
+            a(f"- {s}")
+        a("")
+        a("Nothing below is current. A loop that stops firing writes no log, so")
+        a("the rest of this page describes the last run that *did* happen, not")
+        a("today. Most likely cause: the PC rebooted and nobody logged back in -")
+        a("the tasks only run while a user is signed in. See NIGHTLY_LOG.md")
+        a("2026-08-20 and `scripts/register-tasks.ps1`.")
+        a("")
+
     a("## At a glance")
     a("")
     a("| | |")
     a("|---|---|")
-    a(f"| Data run (2 AM) | **{data_state}** |")
-    a(f"| Code session (6 AM) | **{code_state}** |")
+    data_age, data_days = run_age(data_log)
+    code_age, code_days = run_age(code_log)
+    a(f"| Data run (2 AM) | **{data_state}** - last ran {data_age} |")
+    a(f"| Code session (6 AM) | **{code_state}** - last ran {code_age} |")
     if facts:
         a(f"| Dashboard data from | {facts.get('timestamp', '?')} |")
         a(f"| Stocks scored | {facts.get('scored', '?')} |")

@@ -52,23 +52,36 @@ February). Both look like evidence and are not.
 
 Never acceptable: "it's cleaner", "it's more modern", "best practice".
 
-**Monday - component research.** Pick one specific thing: a factor, a metric,
-a threshold, a construction rule. Learn it properly. Real citations - author,
-title, year, what the finding actually was, the effect size, and the conditions
-it held under. Note where the evidence contradicts what this screener currently
-does. **No production code.**
+**Monday - research.** Take one specific thing: a factor, a metric, a
+threshold, a construction rule. Learn it properly in this one session, from
+*both* sides:
 
-**Tuesday - practitioner research.** How do people who do this for a living
-actually handle it? Institutional screens, quant shop methodology, peer tools,
-published factor definitions from index providers. Academia and practice often
-disagree - where they do, say so and say why. This is first-class evidence, not
-a footnote to the papers. **Still no production code.**
+- **The literature.** Real citations - author, title, year, what the finding
+  actually was, the effect size, and the conditions it held under.
+- **Documented practice.** How quant shops, institutional screens and index
+  providers actually handle it. This is first-class evidence, not a footnote.
 
-**Wednesday - synthesis.** The important day. How does this fit the *rest* of
-the screener? What does it overlap with or make redundant? What does it imply
-for the other seven categories? Is the screener as a whole coherent after the
-change, or just differently arranged? Design the whole, then record any
-methodology change in `METHODOLOGY_CHANGELOG.md` with its sources.
+Where academia and practice disagree, say so and say why. Note where the
+evidence contradicts what this screener currently does. The note must be
+**complete today** - it is not a first half that Tuesday finishes.
+**No production code.**
+
+**Tuesday - product.** Open the live dashboard as a user would and ask whether
+it answers *what should I look at / should I buy this / should I sell what I
+hold / how much*. **Read `.claude/plan/dashboard-inventory.md` first** - the
+most likely failure here is rebuilding something that already exists. Ship a
+dashboard change, or write down precisely what it cannot answer and why.
+
+This day exists because the dashboard had a standing owner directive and 23
+days of zero progress: every session that could run was spent on data-pipeline
+defects, correctly, and nothing in the rotation protected product work from
+firefighting. Firefighting will always win that fight unless a day is reserved.
+
+**Wednesday - synthesis.** How does Monday's research fit the *rest* of the
+screener? What does it overlap with or make redundant? What does it imply for
+the other seven categories? Is the screener coherent after the change, or just
+differently arranged? Record any methodology change in
+`METHODOLOGY_CHANGELOG.md` with its sources.
 
 **Thursday - build.** Implement what the week justified. Tests alongside, not
 after.

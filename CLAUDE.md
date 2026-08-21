@@ -211,7 +211,7 @@ before making a well-sourced change, and do not manufacture a backtest number
 from a backtest you know is biased.
 
 **Every other Friday is a RETROSPECTIVE instead** (even ISO week numbers). The
-runner swaps in `.claude/prompts/retrospective.md` automatically. That session
+runner swaps in `prompts/retrospective.md` automatically. That session
 does not work on the screener - it evaluates whether this routine is actually
 producing value and rewrites its own process: these rules, the daily prompt,
 the rotation, the runner scripts, even the retrospective prompt itself.
@@ -259,7 +259,7 @@ outcome.
   network call in `get_sp500_tickers`.
 
 ### Routine
-- `.claude/prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop)
+- `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop)
 - `scripts/data-run.ps1` (2:00 AM data loop)
 - `NIGHTLY_LOG.md`, `research/`, `ROLLBACK.md`, `logs/` (gitignored)
 
@@ -343,6 +343,19 @@ machine off or logged out for four consecutive weekdays (08-17 to 08-20).
 
 **Zero ship-gate failures in that whole period** - not because the gates are
 lenient, but because only one session ever produced code to gate.
+
+**On the 08-14 quota failure - correction, owner 2026-08-21.** The retrospective
+recorded this as "~$6/session". That is wrong and should not be repeated: the
+owner runs **Claude Max**, so sessions draw on included subscription usage, not
+per-session billing. There is no dollar cost per run to optimise.
+
+The finding underneath it stands: a **weekly usage ceiling** exists and it
+silently killed 08-14 with a 429. What follows from that is not "spend less
+money" but "do not let one loop exhaust the week". The 06:00 code loop is the
+only thing here consuming that quota - the 02:00 data loop is pure Python and
+git and uses none of it. So a data run is always affordable; a code session is
+the scarce resource, which is an argument for sessions that do one thing well
+rather than many shallow things.
 
 Two things remain open:
 
