@@ -1,4 +1,4 @@
-# Morning Brief - Friday 21 August 2026, 02:12
+# Morning Brief - Friday 21 August 2026, 06:16
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,20 +8,19 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** |
-| Code session (6 AM) | **completed, nothing to change** |
+| Code session (6 AM) | **completed** |
 | Dashboard data from | 2026-08-21T02:00:04.009887 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
 | Top 5 | HST, EXPE, APA, EIX, CF |
-| Evidence for weight changes | 3 of 8 needed |
-
-## Things that needed attention
-
-- No commits produced. Nothing to ship.
+| Evidence for weight changes | 3 of 8 needed, newest 2026-02-22 - STALE, nothing new in 180 days |
 
 ## What changed in the repo
 
+- `0398a3f process: retrospective 2026-08-21 - rebuild the rotation around what sessions actually do`
+- `6f9d41c fix: a session that never ran no longer reports as a success`
+- `78c7e2f brief: data run 2026-08-21`
 - `3d00bcc data: screener run 2026-08-21 - 501 scored, top: HST EXPE APA EIX CF`
 - `336b01a governance: weights change from research, not from the return series`
 - `5e97a98 brief: data run 2026-08-20`
@@ -29,51 +28,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-08-13 - BUILD. The data loop was only fetching once every eight days.
+> 2026-08-21 - RETROSPECTIVE. The routine's problem is not bad work, it is no work.
 > 
-> **Tests:** before 530/530, after 552/552 (22 new)
-> **Data loop:** was silently degraded - **fixed**. Today's 02:00 run warm-started
-> from an 08-12 cache, produced no fetch artifacts, and was correctly discarded by
-> the health gate. Root cause found and fixed; confirm on the 08-14 02:00 run.
+> **Tests:** before 552/552, after 556/556 (4 new)
+> **Last code session:** 2026-08-14 - **did not run**; reported as success (below)
+> **Data loop:** healthy. 02:12 today, live fetch, 501/501 prices, 497/501 targets,
+> all five dispersions within range, HEALTH: PASS
+> **Evidence base:** `live_ic_history.csv` = **3 rows, newest 2026-02-22** - 180
+> days without a new observation
+> **Priority 0:** unfixed
 > 
-> ### The trust blocker is gone
+> This is the first retrospective. It reviews everything since setup.
 > 
-> The 06:00 runner logged **"Workspace trust OK"**, and `python -c`,
-> `python -m pytest` and `python run_screener.py --dry-run` all executed. This is
-> the **first autonomous session that could run the ship gates**, and the first to
-> merge to `main`. Priority -1 in `CLAUDE.md` is marked resolved. Every session
-> from 08-05 to 08-12 was blocked on this.
+> ### Retrospective findings
 > 
-> ### Did
+> - **Sessions reviewed: 11 scheduled code-loop slots (2026-08-06 to 2026-08-20),
+>   plus the 2026-08-05 human setup session.**
+> - **Genuinely valuable: 2 | Fired and produced nothing: 4 | Never fired: 5 |
+>   Failed ship gates: 0**
 > 
-> Found and fixed why the data loop keeps publishing nothing. This was not a
-> scheduling problem - it is that **the screener almost never fetched**.
+> | Date | What happened |
+> |---|---|
+> | 08-06 | Fired, aborted on a `gh` false negative. Nothing. |
+> | 08-07 | Fired, aborted, no network. Nothing. |
+> | 08-10 | Blocked (untrusted workspace, no Python) - and still produced `research/2026-08-10-ic-evidence-independence.md`, the best artifact in the repo. **Valuable.** |
+> | 08-11 | Blocked on trust, exited in 1 second. Nothing. |
+> | 08-12 | Never fired - reboot, nobody logged on. |
+> | 08-13 | Found and fixed the 8-day fetch bug, 22 red-first tests, changelog, merged, tagged. **Valuable.** |
+> | 08-14 | Fired, died in 1 second on an API weekly limit. Reported as a success. Nothing. |
+> | 08-17..08-20 | Never fired. Machine off or logged out. The at-logon catch-up trigger did pick the *data* loop back up on 08-20 at 23:28. |
 > 
-> `run_factor_engine` bounded reuse of the `factor_scores` cache by
-> `caching.fundamental_data_refresh_days` (**7**), not
-> `price_data_refresh_days` (**1**). Two things compound:
+> **1. What fraction produced something genuinely valuable? Two of eleven (18%).**
+> The good ones are 08-10 and 08-13, and they are genuinely good: 08-10 stopped a
+> "fix" that would have armed the improvement engine on 2.35x-inflated
+> confidence, and 08-13 found that the screener had been publishing prices up to
+> eight days old. The wasted ones - 08-06, 08-07, 08-11, 08-14 - were not wasted
+> on bad work. They were wasted before any work started.
 > 
-> 1. `factor_scores` is the *fully scored* dataset, not fundamentals.
->    **18 of the 44 metrics in `METRIC_COLS` move with the daily close**, across
->    five of the eight categories - every valuation ratio (price is in all of
->    them), all three momentum metrics, six risk metrics, `price_target_upside`
->    and `size_log_mcap`. So a "fundamental" freshness bound was the wrong unit
->    entirely, and published Valuation/Momentum/Risk scores could be computed
->    from a close up to eight days old while presented as current.
-> 2. The warm-start path returns at `run_screener.py:1011`, **before**
->    `write_scores_parquet` at `:1502`. A warm-started run lays down no new cache
->    file, so the cache date never advances. One real fetch therefore suppressed
->    the next seven days of runs: **one real fetch per eight daily runs.**
+> **The headline finding is that this routine's failure mode is absence, not
+> churn.** There is no churn to speak of; there is barely any output at all. Nine
+> of eleven slots produced nothing, and in eight of those nine the session either
+> never started or was denied the tools to work.
 > 
-> Also fixed an off-by-one that would have defeated the fix on its own. Cache
-> dates are parsed from the filename and are midnight-anchored, so a cache from
-> yesterday is `age_days == 1` no matter the clock time. Under the old
-> `age_days <= fresh_days`, even `fresh_days = 1` would still have reused
-> yesterday's cache at 02:00 - the daily loop would have kept warm-starting.
-> The rule is now strict and stated in plain English:
-> **`<tier>_refresh_days: N` means the cache is reusable for N calendar days
-> starting with the day it was written.** `1` therefore means "refetch unless the
-> cache is from today". A same-day manual re-run still warm-starts, which is
+> **2. Which rotation day earns its place?** None of them, because **the rotation
+> has never once been executed.** In 16 days it produced: one research note
+> (08-10, written *against* its nominal Monday focus, correctly, because priority
 > ...
 
 ---
