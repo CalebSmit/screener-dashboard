@@ -95,9 +95,27 @@ def ic_observations() -> str:
         return "unknown"
     try:
         rows = [ln for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()]
-        return f"{max(0, len(rows) - 1)} of 8 needed"
     except OSError:
         return "unknown"
+
+    n = max(0, len(rows) - 1)
+    if n == 0:
+        return "0 of 8 needed - the series is empty"
+
+    # The count alone is not enough. It read "3 of 8 needed" on every brief from
+    # February to 2026-08-21 while the data loop ran successfully every weekday,
+    # because the loop never calls compute_live_ic(). A number that never moves
+    # looks like slow progress; the date is what shows it is no progress at all.
+    dates = sorted(r.split(",", 1)[0] for r in rows[1:] if "," in r)
+    newest = dates[-1] if dates else "unknown"
+    age = ""
+    try:
+        days = (datetime.now() - datetime.strptime(newest, "%Y-%m-%d")).days
+        if days > 14:
+            age = f" - STALE, nothing new in {days} days"
+    except ValueError:
+        pass
+    return f"{n} of 8 needed, newest {newest}{age}"
 
 
 def last_log_entry() -> str:
