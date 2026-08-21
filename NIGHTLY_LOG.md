@@ -721,3 +721,243 @@ all horizon `1w`, one of which claims **6,539 tickers** for a single date in a
 Ship step 3 (effective observation counting) in the same session as step 1, or
 set `allow_auto_apply: false` first - the 8x faster row growth from today's fix
 makes the inflation risk worse, not better.
+
+---
+
+## 2026-08-21 - RETROSPECTIVE. The routine's problem is not bad work, it is no work.
+
+**Tests:** before 552/552, after 556/556 (4 new)
+**Last code session:** 2026-08-14 - **did not run**; reported as success (below)
+**Data loop:** healthy. 02:12 today, live fetch, 501/501 prices, 497/501 targets,
+all five dispersions within range, HEALTH: PASS
+**Evidence base:** `live_ic_history.csv` = **3 rows, newest 2026-02-22** - 180
+days without a new observation
+**Priority 0:** unfixed
+
+This is the first retrospective. It reviews everything since setup.
+
+### Retrospective findings
+
+- **Sessions reviewed: 11 scheduled code-loop slots (2026-08-06 to 2026-08-20),
+  plus the 2026-08-05 human setup session.**
+- **Genuinely valuable: 2 | Fired and produced nothing: 4 | Never fired: 5 |
+  Failed ship gates: 0**
+
+| Date | What happened |
+|---|---|
+| 08-06 | Fired, aborted on a `gh` false negative. Nothing. |
+| 08-07 | Fired, aborted, no network. Nothing. |
+| 08-10 | Blocked (untrusted workspace, no Python) - and still produced `research/2026-08-10-ic-evidence-independence.md`, the best artifact in the repo. **Valuable.** |
+| 08-11 | Blocked on trust, exited in 1 second. Nothing. |
+| 08-12 | Never fired - reboot, nobody logged on. |
+| 08-13 | Found and fixed the 8-day fetch bug, 22 red-first tests, changelog, merged, tagged. **Valuable.** |
+| 08-14 | Fired, died in 1 second on an API weekly limit. Reported as a success. Nothing. |
+| 08-17..08-20 | Never fired. Machine off or logged out. The at-logon catch-up trigger did pick the *data* loop back up on 08-20 at 23:28. |
+
+**1. What fraction produced something genuinely valuable? Two of eleven (18%).**
+The good ones are 08-10 and 08-13, and they are genuinely good: 08-10 stopped a
+"fix" that would have armed the improvement engine on 2.35x-inflated
+confidence, and 08-13 found that the screener had been publishing prices up to
+eight days old. The wasted ones - 08-06, 08-07, 08-11, 08-14 - were not wasted
+on bad work. They were wasted before any work started.
+
+**The headline finding is that this routine's failure mode is absence, not
+churn.** There is no churn to speak of; there is barely any output at all. Nine
+of eleven slots produced nothing, and in eight of those nine the session either
+never started or was denied the tools to work.
+
+**2. Which rotation day earns its place?** None of them, because **the rotation
+has never once been executed.** In 16 days it produced: one research note
+(08-10, written *against* its nominal Monday focus, correctly, because priority
+0 mattered more), zero practitioner appendices, zero Wednesday synthesis
+sections, and zero builds that implemented a week's research. The 08-13 build
+was a bug fix, not the output of a research week.
+
+The rotation is also a fiction the prompt itself overrides: `nightly.md` section 1
+carried *three separate* "regardless of the nominal focus" clauses (priority 0,
+data loop health, evidence base) ahead of the day's focus. A focus that three
+standing instructions outrank is not a rotation.
+
+Tuesday was the weakest link specifically: it can only append to a note Monday
+wrote, and Monday has never written one. A two-day chain is the most fragile
+structure possible when half of all sessions never start.
+
+**3. Is the evidence standard holding? Yes - it is the strongest part of the
+routine, and it is not degrading.** The 2026-08-13 changelog entry does
+arithmetic on the real on-disk cache file rather than a fixture, writes its
+tests red first, states a falsification condition ("the 08-14 02:00 run must
+show a live fetch; if it warm-starts again this entry is wrong"), and adds an
+unprompted caveat that the fix buys calendar speed and *not* independent
+evidence. The 08-10 research note explicitly flags all six of its citations as
+unverified and rests its finding on reproducible repo arithmetic instead. The
+08-13 session log corrects its own first draft ("I said nine metrics; the actual
+count is double"). Rule 5 is respected - no backtest number appears under
+**Evidence** anywhere.
+
+The honest caveat: there are 6 changelog entries and 4 are governance or
+process, not methodology. The standard is holding partly because almost nothing
+has been claimed.
+
+**4. What keeps going wrong?**
+
+- **Sessions do not start.** Six distinct causes in 16 days, each fixed
+  reactively after it had already cost a day.
+- **Failure reports itself as success.** The clearest case is 08-14 and it is
+  fixed today - see below.
+- **The ship gates have never fired.** Zero failures, because only one session
+  ever produced code. They are untested in anger.
+- **The evidence base has not grown at all.** Three rows, all horizon `1w`, all
+  February, unchanged through every successful data run. `record_run_snapshot()`
+  never calls `compute_live_ic()` - step 5 of priority 0, known since 08-10,
+  still unfixed. Every data run dutifully logs "3 live IC observation(s)" and
+  nobody noticed the number is frozen.
+- **`CLAUDE.md` had started contradicting itself.** Rule 4 said
+  `allow_auto_apply` is false (correct, and what `config.yaml` says); the
+  "Improvement engine" section still said it "is now **true**". Fixed today.
+
+**5. Is the tool closer to being the place you'd look before buying or selling?
+No. It has not moved at all.** Not one line of `generate_dashboard.py` has
+changed since 2026-07-29. Zero of priorities 2 and 4-7 (time dimension,
+generated per-stock summaries, sell-side workflow, investor profiles, club
+readiness) have been started.
+
+The honest blocker: every session that could run spent itself on data-pipeline
+defects, and was *right* to - publishing fabricated or eight-day-stale prices is
+worse than a missing feature. But the rotation had no mechanism to protect
+product work from firefighting, and firefighting will always win that fight.
+
+**6. What is the routine systematically blind to?**
+
+- **The published site.** Nothing in the rotation or the gates ever loads the
+  live page. Gate 3 checks that `index.html` is over 50 KB. On 08-10 the
+  dashboard's methodology section was broken and it took the *owner noticing*
+  to surface it.
+- **Its own trend lines.** Every session reads the last three log entries.
+  Nobody ever asked "is the IC count going up?" - which is exactly how
+  3-rows-since-February survived six sessions and 16 days of daily data runs.
+- **The owner as a channel.** Two of the most consequential inputs in the whole
+  history came from the owner noticing something (the Top-5 change on 08-10, the
+  governance direction on 08-11 and 08-20), not from the routine.
+  `MORNING_BRIEF.md` is written after every run and nothing checks whether it
+  is telling the truth. On 08-14 it actively said the morning was fine.
+- **Cost and quota.** ~$6/session and a weekly ceiling that silently killed
+  08-14. No session has looked at this.
+
+### Process changes made
+
+**1. A session that never ran is no longer reported as a success.**
+`scripts/nightly-screener.ps1` captured `$claudeExit`, logged it at INFO, and
+never branched on it. On 08-14 the CLI exited 1 after one second on a 429 weekly
+limit; with no commits all four gates passed trivially, the runner logged
+"Run complete (no changes)", **wrote the once-per-day success marker**, and
+published a normal morning brief. The marker is what makes this expensive: it
+tells the at-logon catch-up trigger the day is done, so a transient API limit
+costs the whole day rather than being retried.
+
+New `Get-SessionOutcome` reads the CLI's own JSON transcript and fails the run
+on any of: non-zero exit, empty/missing/unparseable transcript, `is_error`
+(reporting `api_error_status` and the CLI's own message), or `num_turns <= 1`.
+A failed session now logs `SESSION DID NOT RUN` at ERROR, **never** writes the
+success marker on any path, exits 2, and labels the morning brief
+`SESSION DID NOT RUN`. `write_brief.py` classifies run logs by their text, so
+removing the "Run complete (no changes)" line is what makes the brief stop
+lying.
+
+Four regression tests in `tests/test_scripts_static.py`, verified red against
+`git show HEAD:scripts/nightly-screener.ps1` - all five assertions fail on the
+old file and pass on the new one.
+
+**2. The morning brief now reports evidence-base staleness, not just a count.**
+`ic_observations()` in `scripts/write_brief.py` said "3 of 8 needed" on every
+brief from February to today. It now reads
+`3 of 8 needed, newest 2026-02-22 - STALE, nothing new in 180 days`. A count
+that never moves looks like slow progress; the date is what shows it is no
+progress at all.
+
+**3. The rotation is rebuilt around what sessions actually do.**
+Monday and Tuesday were both research days, both banned from writing production
+code, with Tuesday dependent on Monday's output. Merged into a single
+self-contained Monday that must produce a complete note - literature *and*
+practice - in one session.
+
+**Tuesday is now PRODUCT**, and it is new. It exists because of finding 5: the
+dashboard has a standing owner directive and had 23 days of zero progress, and
+no day in the rotation pointed at it. Updated in `CLAUDE.md` and in
+`$FocusByDay` in the runner.
+
+**4. Mandatory health numbers in every log entry** (`CLAUDE.md` rule 8): whether
+the last code session ran, whether the data loop published, **the IC row count
+and its newest date as two literal numbers**, and priority-0 status. If those
+two numbers have not moved in three consecutive sessions, making them move is
+that session's work. This is the specific instruction that would have caught
+finding 6's worst case.
+
+**5. Priority 0 now says start with step 5.** "THE FIRST SESSION MUST FIX THIS"
+has been at the top of `CLAUDE.md` since 08-05 and six sessions have not fixed
+it, because it is a five-part package and every session that could run found
+something more urgent. Step 5 (make the data loop call `compute_live_ic()`) is
+small, independent of the other four, and is the one whose absence is doing the
+damage. Step 3 must still land before `allow_auto_apply` returns to `true`.
+
+**6. `CLAUDE.md` compressed.** The priorities section carried ~90 lines of
+RESOLVED/DONE/FIXED narrative duplicating this log and the changelog. Collapsed
+to pointers; the detail lives where it belongs. Priority -1 is now "sessions do
+not start", which is what the evidence says it is.
+
+### Tried and rejected
+
+- **A node-based gate 3 that actually parses `dashboard_data.js`.** `CLAUDE.md`
+  and the nightly prompt both describe gate 3 as "dashboard_data.js parses", but
+  it only regex-matches the first line - a truncated 3 MB payload passes. I
+  wrote the parse, then reverted it: neither PowerShell nor `node` could be
+  executed in this session, and an unverified change *here* can only fail
+  closed, refusing every future merge. Jamming the loop is worse than a weak
+  check. The 2026-08-10 session refused to blind-edit this same file for the
+  same reason and was right. A comment marking the gap sits at the site.
+- **Weakening any ship gate.** Not permitted, and nothing in the evidence
+  suggests the gates are the problem. They have never once failed.
+- **Changing the retrospective cadence.** Fortnightly looks wrong on its face -
+  16 days for 2 productive sessions - but the cause was an outage, not the
+  cadence, and shortening it spends scarce sessions on self-examination. Left
+  alone.
+
+### Flagged for the owner
+
+1. **The prompt templates could not be edited.** `.claude/prompts/nightly.md`
+   and `retrospective.md` are blocked as sensitive files, so the two prompt
+   changes I intended - collapsing the three competing "regardless of the
+   nominal focus" clauses in section 1 into one health check, and deleting the
+   ~40 lines that restate `CLAUDE.md` rules 4 and 5 nearly verbatim - could not
+   be made. I put the health-check requirement into `CLAUDE.md` rule 8 instead,
+   which the prompt itself says overrides it, so it takes effect either way.
+   But **a retrospective is instructed to edit files it is not permitted to
+   write.** Either grant write access to `.claude/prompts/`, or move the
+   templates to a top-level `prompts/` directory. Note `nightly.md` still
+   describes the old Monday/Tuesday split; the runner injects the correct focus
+   string so the rotation change is live, but the prompt's own day list now
+   disagrees with `CLAUDE.md`.
+
+2. **The scheduled tasks are still not in version control.** Open since 08-10.
+   `grep -rn "Register-ScheduledTask" .` finds nothing. This is the single
+   highest-value infrastructure item and no session has done it.
+
+3. **Nothing watches whether the loop is running.** Today's fix makes a *failed*
+   session loud. A session that never fires writes no log at all, so its absence
+   is still only detectable by counting files - which is how 08-17 to 08-20 went
+   unnoticed for four days. A heartbeat that complains when no run has been
+   logged in 48 hours would close this.
+
+4. **The weekly API quota killed 08-14.** Worth deciding deliberately how much
+   of the weekly budget the 06:00 loop should get, rather than discovering the
+   ceiling by hitting it. Sessions cost roughly $6.
+
+5. **A fifth gate I did not add, per the rules.** Nothing verifies that the live
+   public page *renders*. I would want a gate that loads it, but that needs a
+   headless browser in an unattended run and can jam the loop, so I am leaving
+   the argument here rather than acting on it.
+
+### Next
+
+**Priority 0, step 5** - make the data loop call `compute_live_ic()`. It is
+small, it is independent, and until it lands the evidence base stays frozen at
+3 rows and every other measurement claim in this project is theoretical.
