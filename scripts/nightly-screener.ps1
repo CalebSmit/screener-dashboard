@@ -162,7 +162,9 @@ Set-Content -Path $LockFile -Value $PID -Encoding utf8
 # does not run a session three times.
 $SuccessMarker = Join-Path $LogDir '.nightly-last-success'
 if ((Test-Path $SuccessMarker) -and -not $Force -and -not $DryRun) {
-    $last = (Get-Content $SuccessMarker -TotalCount 1).Trim()
+    # Strip a UTF-8 BOM: Set-Content -Encoding utf8 writes one in PS 5.1 and
+    # .Trim() does not remove it, so this comparison silently never matched.
+    $last = (Get-Content $SuccessMarker -TotalCount 1).TrimStart([char]0xFEFF).Trim()
     if ($last -eq $Date) {
         Write-Log "Code loop already completed today ($Date). Nothing to do."
         if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
@@ -416,7 +418,7 @@ try {
         Write-Log "No commits produced. Nothing to ship." 'WARN'
         Invoke-Native 'git' @('checkout', 'main') | Out-Null
         Invoke-Native 'git' @('branch', '-D', $Branch) | Out-Null
-        Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
+        [System.IO.File]::WriteAllText($SuccessMarker, $Date)
         Write-Log "=== Run complete (no changes) ==="
         exit 0
     }
@@ -454,7 +456,7 @@ try {
     Write-Log "Tagged $tag - roll back with: git reset --hard $tag"
 
     Invoke-Native 'git' @('branch', '-d', $Branch) | Out-Null
-    Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
+    [System.IO.File]::WriteAllText($SuccessMarker, $Date)
     Write-Log "=== Run complete: shipped to main ==="
     exit 0
 }

@@ -116,7 +116,9 @@ Set-Content -Path $LockFile -Value $PID -Encoding utf8
 # does not run the loop three times.
 $SuccessMarker = Join-Path $LogDir '.datarun-last-success'
 if ((Test-Path $SuccessMarker) -and -not $Force) {
-    $last = (Get-Content $SuccessMarker -TotalCount 1).Trim()
+    # Strip a UTF-8 BOM: Set-Content -Encoding utf8 writes one in PS 5.1 and
+    # .Trim() does not remove it, so this comparison silently never matched.
+    $last = (Get-Content $SuccessMarker -TotalCount 1).TrimStart([char]0xFEFF).Trim()
     if ($last -eq $Date) {
         Write-Log "Data loop already completed successfully today ($Date). Nothing to do."
         if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
@@ -346,7 +348,7 @@ try {
 
     # Only a run that actually published counts as today's run. A discarded or
     # failed run leaves no marker, so a catch-up trigger will retry it.
-    Set-Content -Path $SuccessMarker -Value $Date -Encoding utf8
+    [System.IO.File]::WriteAllText($SuccessMarker, $Date)
 
     Write-Log "=== Data loop complete ==="
     exit 0

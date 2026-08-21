@@ -265,11 +265,6 @@
     "Sector": "Consumer Discretionary"
   },
   {
-    "Ticker": "AVB",
-    "Company": "AvalonBay Communities",
-    "Sector": "Real Estate"
-  },
-  {
     "Ticker": "AVY",
     "Company": "Avery Dennison",
     "Sector": "Materials"
@@ -872,11 +867,6 @@
   {
     "Ticker": "EQIX",
     "Company": "Equinix",
-    "Sector": "Real Estate"
-  },
-  {
-    "Ticker": "EQR",
-    "Company": "Equity Residential",
     "Sector": "Real Estate"
   },
   {
@@ -1940,6 +1930,11 @@
     "Sector": "Financials"
   },
   {
+    "Ticker": "RDDT",
+    "Company": "Reddit",
+    "Sector": "Communication Services"
+  },
+  {
     "Ticker": "RTX",
     "Company": "RTX Corporation",
     "Sector": "Industrials"
@@ -2383,6 +2378,11 @@
     "Ticker": "VST",
     "Company": "Vistra Corp.",
     "Sector": "Utilities"
+  },
+  {
+    "Ticker": "VMRK",
+    "Company": "Vivmark Residential",
+    "Sector": "Real Estate"
   },
   {
     "Ticker": "VMC",
