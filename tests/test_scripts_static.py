@@ -99,3 +99,95 @@ def test_helpers_used_are_defined_before_finally(path: Path):
         assert re.search(r"(?im)^\s*function\s+Publish-Brief", src), (
             f"{path.name} calls Publish-Brief but does not define it"
         )
+
+
+# --------------------------------------------------------------------------
+# A session that never ran must not report as a session that found nothing.
+#
+# 2026-08-14: the CLI exited 1 after one second on an API weekly-limit 429.
+# nightly-screener.ps1 captured $claudeExit, logged it at INFO, and never
+# branched on it. With no commits, all four gates passed trivially, the runner
+# logged "Run complete (no changes)", wrote the once-per-day success marker and
+# published a normal morning brief. The owner's only status channel reported a
+# healthy morning; in fact the day was lost. Found by the 2026-08-21
+# retrospective, which also found that 7 of 11 scheduled code sessions to date
+# never started - making "did it run?" the single most load-bearing question
+# this runner asks.
+# --------------------------------------------------------------------------
+
+NIGHTLY = SCRIPTS_DIR / "nightly-screener.ps1"
+
+
+def _block(src: str, opener: str) -> str:
+    """Source text of the brace-block introduced by `opener`."""
+    start = src.index(opener)
+    depth, i = 0, src.index("{", start)
+    for j in range(i, len(src)):
+        if src[j] == "{":
+            depth += 1
+        elif src[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[i : j + 1]
+    raise AssertionError(f"unterminated block after {opener!r}")
+
+
+def test_session_outcome_is_judged_from_the_transcript():
+    """The runner must decide whether the session actually ran."""
+    src = _source(NIGHTLY)
+    assert re.search(r"(?im)^\s*function\s+Get-SessionOutcome", src), (
+        "nightly-screener.ps1 must define Get-SessionOutcome"
+    )
+    assert "Get-SessionOutcome -TranscriptPath" in src, (
+        "Get-SessionOutcome is defined but never called on the transcript"
+    )
+    for token in ("is_error", "api_error_status", "num_turns"):
+        assert token in src, (
+            f"the transcript check ignores '{token}', so an API-limit failure "
+            f"would still look like a healthy session"
+        )
+
+
+def test_no_success_marker_when_the_session_did_not_run():
+    """The once-per-day marker must not be written for a lost day.
+
+    Writing it means the at-logon catch-up trigger skips the retry, so one
+    API-limit failure silently costs the whole day.
+    """
+    src = _source(NIGHTLY)
+    block = _block(src, "if ($commitCount -eq 0)")
+    assert "$SessionFailed" in block, (
+        "the 'no commits' path does not check $SessionFailed - it cannot tell "
+        "'nothing to do' from 'never started'"
+    )
+    assert block.index("$SessionFailed") < block.index("$SuccessMarker"), (
+        "$SuccessMarker is written before $SessionFailed is checked"
+    )
+
+
+def test_failed_session_is_logged_at_error_and_exits_nonzero():
+    src = _source(NIGHTLY)
+    assert "SESSION DID NOT RUN" in src, (
+        "a failed session must be logged distinctly; write_brief.py classifies "
+        "run logs by their text, and 'Run complete (no changes)' reads as success"
+    )
+    block = _block(src, "if ($commitCount -eq 0)")
+    assert "Stop-Run" in block, "a lost day must exit non-zero, not 0"
+
+
+def test_success_marker_is_guarded_on_every_path():
+    """No path may stamp the day as done when the session did not run."""
+    src = _source(NIGHTLY)
+    no_commit = _block(src, "if ($commitCount -eq 0)")
+    writes = []
+    for m in re.finditer(r"WriteAllText\(\$SuccessMarker", src):
+        start = src.rfind("\n", 0, m.start()) + 1
+        writes.append(src[start : src.index("\n", m.start())])
+    assert writes, "the runner no longer writes a success marker at all"
+
+    for line in writes:
+        if line in no_commit:
+            continue  # covered by test_no_success_marker_when_the_session_did_not_run
+        assert "$SessionFailed" in line, (
+            f"success-marker write is not guarded by $SessionFailed: {line.strip()}"
+        )

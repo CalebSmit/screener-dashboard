@@ -46,8 +46,8 @@ $Stamp    = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $LogFile  = Join-Path $LogDir "nightly-$Stamp.log"
 
 $FocusByDay = @{
-    'Monday'    = 'COMPONENT RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly from the literature. Real citations, effect sizes, and the conditions the effect held under. A dated note in research/. No production code today.'
-    'Tuesday'   = 'PRACTITIONER RESEARCH. How do people who do this for a living actually handle the thing you researched yesterday? Quant shops, institutional screens, peer tools, published methodology. Where does practice diverge from academia, and why? Append to the same note. Still no production code.'
+    'Monday'    = 'RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.'
+    'Tuesday'   = 'PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read .claude/plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.'
     'Wednesday' = 'SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
     'Thursday'  = 'BUILD. Implement what the week''s research justified. Write tests alongside the code.'
     'Friday'    = 'HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?'
@@ -125,6 +125,51 @@ function Publish-Brief {
     }
 }
 
+# Reads the CLI's own JSON transcript and decides whether a session actually
+# ran. A session that never started is indistinguishable from one that found
+# nothing to do: no commits, clean tree, and all four gates pass trivially.
+# On 2026-08-14 the CLI exited 1 after one second on an API weekly-limit 429
+# (`"api_error_status": 429`, `num_turns: 1`). This script logged
+# "Run complete (no changes)", wrote the success marker, and published a normal
+# morning brief - so the owner's only status channel said the morning was fine
+# when in fact nothing had happened. Failure must never report as success.
+function Get-SessionOutcome {
+    param([string]$TranscriptPath, [int]$ExitCode)
+
+    $ok     = $true
+    $reason = ''
+
+    if ($ExitCode -ne 0) { $ok = $false; $reason = "Claude Code exited $ExitCode" }
+
+    $len = if (Test-Path $TranscriptPath) { (Get-Item $TranscriptPath).Length } else { -1 }
+    if ($len -lt 2) {
+        $ok = $false
+        if (-not $reason) { $reason = "transcript is empty or missing ($len bytes)" }
+    } else {
+        try {
+            $tr = Get-Content $TranscriptPath -Raw | ConvertFrom-Json
+            if ($tr.is_error) {
+                $ok = $false
+                $detail = if ($tr.api_error_status) { "API error $($tr.api_error_status)" } else { 'session reported an error' }
+                $msg = ([string]$tr.result) -replace '\s+', ' '
+                if ($msg.Length -gt 160) { $msg = $msg.Substring(0, 160) }
+                $reason = ("$detail - $msg").Trim()
+            }
+            # A healthy session is many turns. One turn means it died on the
+            # first request, whatever it claimed in its exit code.
+            if ($null -ne $tr.num_turns -and [int]$tr.num_turns -le 1) {
+                $ok = $false
+                if (-not $reason) { $reason = "session made only $($tr.num_turns) turn(s) - it never started work" }
+            }
+        } catch {
+            $ok = $false
+            if (-not $reason) { $reason = "transcript is not valid JSON: $($_.Exception.Message)" }
+        }
+    }
+
+    return [pscustomobject]@{ Ok = $ok; Reason = $reason }
+}
+
 function Restore-Artifacts {
     param([string]$Context)
     $restored = @()
@@ -153,6 +198,11 @@ if (Test-Path $LockFile) {
     Remove-Item $LockFile -Force
 }
 Set-Content -Path $LockFile -Value $PID -Encoding utf8
+
+# Set once the session has been invoked and its transcript judged. Declared
+# here so `finally` can read them however the run ends.
+$SessionFailed = $false
+$SessionError  = ''
 
 # --- Run-once-per-day guard --------------------------------------------------
 # These tasks use InteractiveToken, so they only fire while a user is logged on.
@@ -339,6 +389,15 @@ try {
     $claudeExit = $LASTEXITCODE
     Write-Log "Claude Code exited $claudeExit. Transcript: $JsonLog"
 
+    $session = Get-SessionOutcome -TranscriptPath $JsonLog -ExitCode $claudeExit
+    $SessionFailed = -not $session.Ok
+    $SessionError  = $session.Reason
+    if ($SessionFailed) {
+        Write-Log "SESSION DID NOT RUN: $SessionError" 'ERROR'
+        Write-Log "Treating this as a failure, not as 'nothing to do'. No success marker will be written," 'ERROR'
+        Write-Log "so the catch-up trigger will retry rather than skipping the day." 'ERROR'
+    }
+
     Restore-Artifacts 'left by session test runs'
 
     # =======================================================================
@@ -384,6 +443,13 @@ try {
             $g3 = $false
         }
     }
+    # NOTE (2026-08-21 retrospective): CLAUDE.md and the nightly prompt both
+    # describe this gate as "dashboard_data.js parses", but the check above only
+    # regex-matches the first line - a truncated 3 MB payload sails through it.
+    # A node-based parse was written and then deliberately NOT shipped: neither
+    # PowerShell nor node could be executed in that session, and an unverified
+    # change here can only fail *closed*, refusing every future merge. Jamming
+    # the loop is worse than the weaker check. See NIGHTLY_LOG.md 2026-08-21.
     if ($g3) { Write-Log "GATE 3 dashboard artifacts: PASS" } else { $gateFailures += 'dashboard' }
 
     # Gate 4: nothing stray left behind
@@ -415,9 +481,13 @@ try {
     }
 
     if ($commitCount -eq 0) {
-        Write-Log "No commits produced. Nothing to ship." 'WARN'
         Invoke-Native 'git' @('checkout', 'main') | Out-Null
         Invoke-Native 'git' @('branch', '-D', $Branch) | Out-Null
+        if ($SessionFailed) {
+            Write-Log "No commits, because the session never ran. This is a lost day, not a quiet one." 'ERROR'
+            Stop-Run "=== Run FAILED: $SessionError ===" 2
+        }
+        Write-Log "No commits produced. Nothing to ship." 'WARN'
         [System.IO.File]::WriteAllText($SuccessMarker, $Date)
         Write-Log "=== Run complete (no changes) ==="
         exit 0
@@ -456,7 +526,7 @@ try {
     Write-Log "Tagged $tag - roll back with: git reset --hard $tag"
 
     Invoke-Native 'git' @('branch', '-d', $Branch) | Out-Null
-    [System.IO.File]::WriteAllText($SuccessMarker, $Date)
+    if (-not $SessionFailed) { [System.IO.File]::WriteAllText($SuccessMarker, $Date) }
     Write-Log "=== Run complete: shipped to main ==="
     exit 0
 }
@@ -466,6 +536,7 @@ catch {
     exit 1
 }
 finally {
-    Publish-Brief "code session $Date"
+    $briefLabel = if ($SessionFailed) { "code session $Date - SESSION DID NOT RUN" } else { "code session $Date" }
+    Publish-Brief $briefLabel
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }
