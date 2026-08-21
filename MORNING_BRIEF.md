@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 20 August 2026, 23:29
+# Morning Brief - Friday 21 August 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,7 +9,7 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** |
 | Code session (6 AM) | **completed, nothing to change** |
-| Dashboard data from | 2026-08-20T23:12:35.263391 |
+| Dashboard data from | 2026-08-21T02:00:04.009887 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
@@ -22,6 +22,9 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `3d00bcc data: screener run 2026-08-21 - 501 scored, top: HST EXPE APA EIX CF`
+- `336b01a governance: weights change from research, not from the return series`
+- `5e97a98 brief: data run 2026-08-20`
 - `77805fe data: screener run 2026-08-20 - 501 scored, top: HST EXPE APA EIX CF`
 
 ## The session's own account
