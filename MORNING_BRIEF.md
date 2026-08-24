@@ -1,79 +1,82 @@
-# Morning Brief - Friday 21 August 2026, 07:58
+# Morning Brief - Monday 24 August 2026, 02:11
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-21T02:00:04.009887 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-08-24T02:00:03.959537 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
 | Top 5 | HST, EXPE, APA, EIX, CF |
-| Evidence for weight changes | 3 of 8 needed, newest 2026-02-22 - STALE, nothing new in 180 days |
+| Evidence for weight changes | 3 of 8 needed, newest 2026-02-22 - STALE, nothing new in 183 days |
 
 ## What changed in the repo
 
-- `76eb6d8 brief: code session 2026-08-21`
-- `0398a3f process: retrospective 2026-08-21 - rebuild the rotation around what sessions actually do`
-- `6f9d41c fix: a session that never ran no longer reports as a success`
-- `78c7e2f brief: data run 2026-08-21`
-- `3d00bcc data: screener run 2026-08-21 - 501 scored, top: HST EXPE APA EIX CF`
-- `336b01a governance: weights change from research, not from the return series`
-- `5e97a98 brief: data run 2026-08-20`
-- `77805fe data: screener run 2026-08-20 - 501 scored, top: HST EXPE APA EIX CF`
+- `37ab0c9 data: screener run 2026-08-24 - 501 scored, top: HST EXPE APA EIX CF`
 
 ## The session's own account
 
-> 2026-08-21 - RETROSPECTIVE. The routine's problem is not bad work, it is no work.
+> 2026-08-21 (later) - Acting on the retrospective's owner-flagged items
 > 
-> **Tests:** before 552/552, after 556/556 (4 new)
-> **Last code session:** 2026-08-14 - **did not run**; reported as success (below)
-> **Data loop:** healthy. 02:12 today, live fetch, 501/501 prices, 497/501 targets,
-> all five dispersions within range, HEALTH: PASS
-> **Evidence base:** `live_ic_history.csv` = **3 rows, newest 2026-02-22** - 180
-> days without a new observation
-> **Priority 0:** unfixed
+> Owner-run session, not a scheduled one. The 2026-08-21 retrospective ended with
+> five items it could not action itself. Three are now done.
 > 
-> This is the first retrospective. It reviews everything since setup.
+> **Health numbers:** last code session **ran and shipped** (06:16, `good/2026-08-21-0616`);
+> data loop **published** 02:12; `live_ic_history.csv` = **3 rows, newest
+> 2026-02-22**; priority 0 **unfixed**.
 > 
-> ### Retrospective findings
+> ### Did
 > 
-> - **Sessions reviewed: 11 scheduled code-loop slots (2026-08-06 to 2026-08-20),
->   plus the 2026-08-05 human setup session.**
-> - **Genuinely valuable: 2 | Fired and produced nothing: 4 | Never fired: 5 |
->   Failed ship gates: 0**
+> **1. Prompts moved out of `.claude/`.** `prompts/nightly.md` and
+> `prompts/retrospective.md`. The retrospective could not edit its own templates -
+> `.claude/` is treated as sensitive - so the two prompt changes it wanted were
+> left undone and `nightly.md` kept describing a rotation that no longer existed.
+> A self-improving routine that cannot edit its own instructions is only half a
+> loop. Runner updated to `prompts\$TemplateName`.
 > 
-> | Date | What happened |
-> |---|---|
-> | 08-06 | Fired, aborted on a `gh` false negative. Nothing. |
-> | 08-07 | Fired, aborted, no network. Nothing. |
-> | 08-10 | Blocked (untrusted workspace, no Python) - and still produced `research/2026-08-10-ic-evidence-independence.md`, the best artifact in the repo. **Valuable.** |
-> | 08-11 | Blocked on trust, exited in 1 second. Nothing. |
-> | 08-12 | Never fired - reboot, nobody logged on. |
-> | 08-13 | Found and fixed the 8-day fetch bug, 22 red-first tests, changelog, merged, tagged. **Valuable.** |
-> | 08-14 | Fired, died in 1 second on an API weekly limit. Reported as a success. Nothing. |
-> | 08-17..08-20 | Never fired. Machine off or logged out. The at-logon catch-up trigger did pick the *data* loop back up on 08-20 at 23:28. |
+> **2. `prompts/nightly.md` rotation synced to `CLAUDE.md`.** It still described
+> Monday component-research / Tuesday practitioner-research. The runner injects
+> the focus string so behaviour was already correct, but the prompt body
+> contradicted it - a session would read one thing in its instructions and
+> another in `CLAUDE.md`. Now: Mon research (both halves, one session), Tue
+> product, Wed synthesis, Thu build, Fri harden.
 > 
-> **1. What fraction produced something genuinely valuable? Two of eleven (18%).**
-> The good ones are 08-10 and 08-13, and they are genuinely good: 08-10 stopped a
-> "fix" that would have armed the improvement engine on 2.35x-inflated
-> confidence, and 08-13 found that the screener had been publishing prices up to
-> eight days old. The wasted ones - 08-06, 08-07, 08-11, 08-14 - were not wasted
-> on bad work. They were wasted before any work started.
+> **3. `scripts/register-tasks.ps1`** - the scheduled tasks are in version control
+> at last. Open since 08-10, called the highest-value infrastructure item. Creates
+> both tasks from a single definition, idempotent, with the at-logon catch-up
+> included, and documents *why* `LogonType` is `InteractiveToken` (the alternative
+> needs a stored password, which this project will not do). Supersedes
+> `add-catchup-trigger.ps1`.
 > 
-> **The headline finding is that this routine's failure mode is absence, not
-> churn.** There is no churn to speak of; there is barely any output at all. Nine
-> of eleven slots produced nothing, and in eight of those nine the session either
-> never started or was denied the tools to work.
+> **4. The brief now shouts when a loop stops.** `write_brief.py` read the newest
+> log and reported its outcome as if current - so a loop that stopped firing
+> entirely kept the status page reporting the last successful run. That is how
+> 08-17..20 passed unnoticed and how the machine sat at a login screen for six
+> days while the brief said everything was fine. Each loop now shows *when it
+> last ran*, and a `THE ROUTINE IS NOT RUNNING` banner appears above everything
+> else when either has been quiet for 2+ days. Verified against a synthetic
+> 5-day-old log and a missing log; does not fire for today's runs.
 > 
-> **2. Which rotation day earns its place?** None of them, because **the rotation
-> has never once been executed.** In 16 days it produced: one research note
-> (08-10, written *against* its nominal Monday focus, correctly, because priority
+> ### Corrected
+> 
+> **The retrospective's "~$6/session" is wrong** and is now flagged as such in
+> `CLAUDE.md`. The owner runs Claude Max: sessions draw on included subscription
 > ...
 
 ---
