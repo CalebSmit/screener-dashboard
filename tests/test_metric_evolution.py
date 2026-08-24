@@ -115,9 +115,16 @@ def _write_config(tmp_path):
 
 def _make_metric_ic_history(tmp_path, n_dates=15, strong_candidate="proximity_52w_high",
                              weak_existing=None):
-    """Create synthetic metric IC history for testing."""
+    """Create synthetic metric IC history for testing.
+
+    Dates are spaced 35 days apart (a whole number of weeks from a Monday, so
+    every date is a market day) because the horizon here is '1m'. Consecutive
+    calendar dates would share ~29/30 of their return window and count as a
+    single effective observation - see _effective_observations(). A fixture
+    that claims n observations has to construct n independent ones.
+    """
     np.random.seed(42)
-    dates = [f"2026-01-{i+1:02d}" for i in range(n_dates)]
+    dates = pd.date_range("2026-01-05", periods=n_dates, freq="35D").strftime("%Y-%m-%d").tolist()
     rows = []
     for d in dates:
         row = {"run_date": d, "horizon": "1m", "n_tickers": 400}

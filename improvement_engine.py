@@ -86,6 +86,93 @@ IC_COLUMNS = [
     "composite_ic", *[f"{c}_ic" for c in CATEGORY_NAMES],
 ]
 
+# Forward-return horizons and their calendar length in days. A snapshot is
+# eligible for a horizon once it is at least this old.
+HORIZON_DAYS = {"1w": 7, "1m": 30, "3m": 90}
+
+
+# =========================================================================
+# Evidence hygiene
+#
+# Three defects used to inflate the apparent evidence base. Each is corrected
+# by one of the helpers below, and every reader of performance_history.csv
+# goes through _normalize_performance_history() so a stale file on disk cannot
+# reintroduce them.
+#
+#   1. Duplicate (run_date, ticker) rows. Several snapshot files share a run
+#      date and were all appended in one pass, so the file reached ~60%
+#      duplicates and live_ic_history.csv recorded 6,539 "tickers" for a single
+#      day of an S&P 500 screener.
+#   2. Weekend run dates. A Saturday snapshot prices off Friday's close and its
+#      "one week later" price is the following Friday's close, so it is the
+#      Friday observation wearing a different label, counted twice.
+#   3. Overlapping return windows counted as independent observations. See
+#      _effective_observations().
+# =========================================================================
+
+def _is_market_day(run_date) -> bool:
+    """True if a run date falls Mon-Fri.
+
+    Weekend run dates have no market close of their own, so a forward return
+    measured from one is a relabelled copy of the adjacent Friday's.
+    """
+    try:
+        return bool(pd.Timestamp(run_date).dayofweek < 5)
+    except (ValueError, TypeError):
+        return False
+
+
+def _normalize_performance_history(df: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Collapse to one row per (run_date, ticker) and drop weekend run dates.
+
+    Later rows win per column, but only where they carry a value: pandas'
+    groupby ``last()`` skips NaN, so reprocessing a date to fill in its 1-month
+    return does not blank out the 1-week return recorded earlier.
+    """
+    if df is None or len(df) == 0:
+        return df
+    if "run_date" not in df.columns or "ticker" not in df.columns:
+        return df
+
+    out = df[df["run_date"].map(_is_market_day)]
+    if len(out) == 0:
+        return out.reset_index(drop=True)
+
+    col_order = list(out.columns)
+    out = out.groupby(["run_date", "ticker"], as_index=False, sort=False).last()
+    return out[col_order].reset_index(drop=True)
+
+
+def _effective_observations(run_dates, horizon: str = "1m") -> int:
+    """Count NON-OVERLAPPING forward-return windows among these run dates.
+
+    Two snapshots three days apart share 27 of the 30 days of a 1-month return
+    window, so their ICs are very nearly the same measurement. Counting both as
+    independent observations inflates any significance test built on the row
+    count - ``_ir_to_one_sided_pvalue()`` computes ``t = IR * sqrt(n)``, so the
+    error goes straight into the auto-apply gate.
+
+    Greedy interval scan: take the earliest date, discard every later date that
+    starts before its window closes, repeat. This is the standard maximum set
+    of non-overlapping intervals and is deliberately conservative.
+    """
+    span = HORIZON_DAYS.get(horizon, 30)
+    stamps = []
+    for d in run_dates if run_dates is not None else []:
+        try:
+            if pd.notna(d):
+                stamps.append(pd.Timestamp(d))
+        except (ValueError, TypeError):
+            continue
+
+    n_eff = 0
+    window_end = None
+    for ts in sorted(set(stamps)):
+        if window_end is None or ts >= window_end:
+            n_eff += 1
+            window_end = ts + timedelta(days=span)
+    return n_eff
+
 
 # =========================================================================
 # Phase A: Forward Return Tracking
@@ -211,6 +298,37 @@ def record_run_snapshot(
     except Exception as e:
         logger.warning(f"Forward return computation failed: {e}")
 
+    # Turn those returns into IC observations. Without this the data loop
+    # recorded snapshots and forward returns every weekday but never advanced
+    # live_ic_history.csv, which held the same 3 rows from February 2026 for
+    # 183 days - the evidence base the improvement engine gates on simply never
+    # grew. Cheap: a Spearman correlation per date per horizon, no network.
+    for h in HORIZON_DAYS:
+        try:
+            compute_live_ic(horizon=h)
+        except Exception as e:
+            logger.warning(f"Live IC computation failed for horizon {h}: {e}")
+
+    try:
+        if LIVE_IC_HISTORY_PATH.exists():
+            ic_hist = pd.read_csv(LIVE_IC_HISTORY_PATH)
+            counts = ", ".join(
+                f"{h}={int((ic_hist['horizon'].astype(str) == h).sum())}"
+                for h in HORIZON_DAYS
+            )
+            target = _get_governance_config()["optimization_horizon"]
+            n_eff = _effective_observations(
+                ic_hist.loc[ic_hist["horizon"].astype(str) == target, "run_date"],
+                target,
+            )
+            logger.info(
+                f"Live IC observations by horizon: {counts}. "
+                f"At the optimization horizon '{target}': {n_eff} effective "
+                f"(non-overlapping) observation(s)."
+            )
+    except Exception as e:
+        logger.warning(f"Could not summarise live IC history: {e}")
+
     return path
 
 
@@ -223,6 +341,14 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
       - 3m return: computed if current_date >= D + 90 days
 
     Returns newly computed rows (appended to performance_history.csv).
+
+    A date is revisited as it ages. The previous implementation skipped any date
+    already present in performance_history.csv, so a snapshot processed at 7 days
+    old - when only the 1-week return exists - had ``fwd_return_1m`` written NaN
+    and was never looked at again. The 1-month and 3-month returns could
+    therefore never be filled in, and since ``optimization_horizon`` is '1m' the
+    improvement engine had, and would have kept having, nothing to propose from.
+    Eligibility is now tracked per (run_date, horizon).
     """
     current_dt = pd.Timestamp(current_date)
 
@@ -231,31 +357,44 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
     if not snapshot_files:
         return None
 
-    # Load existing performance history to avoid recomputation
-    existing_dates = set()
+    # One snapshot per run date. Several runs a day each write their own file;
+    # processing all of them appends the same ticker-date rows repeatedly, which
+    # is where the bulk of the duplication in performance_history.csv came from.
+    # The last file for a date is the most recent scoring of it.
+    snapshot_by_date: dict[str, Path] = {}
+    for snap_path in snapshot_files:
+        snapshot_by_date[snap_path.stem.split("_")[0]] = snap_path
+
+    # Which horizons does each date already have a value for?
+    filled_horizons: dict[str, set[str]] = {}
     if PERFORMANCE_HISTORY_PATH.exists():
         try:
-            existing = pd.read_csv(PERFORMANCE_HISTORY_PATH)
-            existing_dates = set(existing["run_date"].unique())
+            existing = _normalize_performance_history(pd.read_csv(PERFORMANCE_HISTORY_PATH))
+            for date_str, grp in existing.groupby("run_date"):
+                filled_horizons[str(date_str)] = {
+                    h for h in HORIZON_DAYS
+                    if f"fwd_return_{h}" in grp.columns and grp[f"fwd_return_{h}"].notna().any()
+                }
         except (OSError, pd.errors.ParserError, KeyError) as e:
             warnings.warn(f"Could not read performance history: {type(e).__name__}: {e}")
 
     new_rows = []
-    for snap_path in snapshot_files:
-        # Extract date from filename: YYYY-MM-DD_runid.parquet
-        snap_date_str = snap_path.stem.split("_")[0]
+    for snap_date_str, snap_path in sorted(snapshot_by_date.items()):
         try:
             snap_dt = pd.Timestamp(snap_date_str)
         except Exception:
             continue
 
-        # Skip if already processed
-        if snap_date_str in existing_dates:
+        # A weekend run date has no market close of its own
+        if not _is_market_day(snap_date_str):
             continue
 
-        # Need at least 7 calendar days for 1w return
+        # Which horizons are old enough to measure, and is any of them new?
         days_elapsed = (current_dt - snap_dt).days
-        if days_elapsed < 7:
+        computable = {h for h, span in HORIZON_DAYS.items() if days_elapsed >= span}
+        if not computable:
+            continue
+        if computable <= filled_horizons.get(snap_date_str, set()):
             continue
 
         # Load snapshot
@@ -269,11 +408,21 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         if not tickers:
             continue
 
-        # Fetch prices for forward return windows
+        # Fetch only as far forward as the longest horizon we can measure.
+        # The price cache is keyed on (start, end), so passing `current_date`
+        # would make the key change every single day and turn each revisited
+        # date into a fresh full-universe download - the exact yfinance rate
+        # limiting that costs the data loop 10-25% of its tickers. Bounding the
+        # window by the horizon makes the key stable, and stops the fetch
+        # growing without limit as the snapshot ages.
+        window_end = min(
+            current_dt,
+            snap_dt + timedelta(days=max(HORIZON_DAYS[h] for h in computable)),
+        )
         prices = _fetch_prices_for_returns(
             tickers,
             snap_date_str,
-            current_date,
+            window_end.strftime("%Y-%m-%d"),
         )
         if prices is None or prices.empty:
             continue
@@ -322,13 +471,16 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
 
     new_df = pd.DataFrame(new_rows)
 
-    # Append to performance history
+    # Append to performance history. New rows go last so that normalization
+    # prefers them where they carry a value - that is how a revisited date gets
+    # its 1-month return filled in without losing the 1-week return.
     if PERFORMANCE_HISTORY_PATH.exists():
         existing = pd.read_csv(PERFORMANCE_HISTORY_PATH)
         combined = pd.concat([existing, new_df], ignore_index=True)
     else:
         combined = new_df
 
+    combined = _normalize_performance_history(combined)
     combined.to_csv(PERFORMANCE_HISTORY_PATH, index=False)
     return new_df
 
@@ -500,9 +652,9 @@ def compute_live_ic(horizon: str = "1m") -> pd.DataFrame | None:
     if not PERFORMANCE_HISTORY_PATH.exists():
         return None
 
-    perf = pd.read_csv(PERFORMANCE_HISTORY_PATH)
+    perf = _normalize_performance_history(pd.read_csv(PERFORMANCE_HISTORY_PATH))
     return_col = f"fwd_return_{horizon}"
-    if return_col not in perf.columns:
+    if perf is None or return_col not in perf.columns:
         return None
 
     # Filter to rows with non-NaN returns
@@ -548,21 +700,21 @@ def compute_live_ic(horizon: str = "1m") -> pd.DataFrame | None:
 
     ic_df = pd.DataFrame(results)
 
-    # Save/append to live IC history
+    # live_ic_history.csv is a derived view of performance_history.csv: this
+    # function recomputes every eligible date for `horizon`, so the whole
+    # horizon slice is replaced rather than appended to. Skipping rows that
+    # already existed would preserve them forever - including the three rows
+    # computed before the duplication and weekend defects were fixed, two of
+    # which are weekend dates and one of which reported 2,012 "tickers".
     if LIVE_IC_HISTORY_PATH.exists():
         existing = pd.read_csv(LIVE_IC_HISTORY_PATH)
-        # Remove duplicates by run_date + horizon
-        existing_keys = set(
-            existing.apply(lambda r: f"{r['run_date']}_{r['horizon']}", axis=1)
-        )
-        new_rows = ic_df[
-            ~ic_df.apply(lambda r: f"{r['run_date']}_{r['horizon']}", axis=1).isin(existing_keys)
-        ]
-        if not new_rows.empty:
-            combined = pd.concat([existing, new_rows], ignore_index=True)
-            combined.to_csv(LIVE_IC_HISTORY_PATH, index=False)
+        keep = existing[existing["horizon"].astype(str) != str(horizon)]
+        combined = pd.concat([keep, ic_df], ignore_index=True)
     else:
-        ic_df.to_csv(LIVE_IC_HISTORY_PATH, index=False)
+        combined = ic_df
+
+    combined = combined.sort_values(["horizon", "run_date"]).reset_index(drop=True)
+    combined.to_csv(LIVE_IC_HISTORY_PATH, index=False)
 
     return ic_df
 
@@ -605,15 +757,31 @@ def analyze_ic_trends(
                 "_horizon_used": None,
             }
 
-    n_obs = len(ic_1m)
+    # `_n_observations` is the EFFECTIVE (non-overlapping) count, not the row
+    # count. Every downstream gate reads this key, so the honest number is the
+    # default everywhere and anything not explicitly updated still fails safe -
+    # effective n is never larger than raw n. The raw count is reported
+    # alongside it for display and diagnosis only.
+    n_raw = len(ic_1m)
+    n_obs = _effective_observations(ic_1m["run_date"], horizon_used)
     if n_obs < 6:
         return {
-            "_warning": f"Only {n_obs} observations (need 6+ for trends). "
-                        f"Keep running the screener daily.",
+            "_warning": (
+                f"Only {n_obs} independent observations at horizon "
+                f"'{horizon_used}' (need 6+ for trends). {n_raw} IC rows exist, "
+                f"but overlapping {horizon_used} return windows are not "
+                f"independent measurements. Keep running the screener daily."
+            ),
             "_n_observations": n_obs,
+            "_n_raw_observations": n_raw,
+            "_horizon_used": horizon_used,
         }
 
-    result = {"_n_observations": n_obs, "_horizon_used": horizon_used}
+    result = {
+        "_n_observations": n_obs,
+        "_n_raw_observations": n_raw,
+        "_horizon_used": horizon_used,
+    }
 
     for cat in CATEGORY_NAMES:
         ic_col = f"{cat}_ic"
@@ -659,7 +827,12 @@ def analyze_ic_trends(
             "ic_trend": trend,
             "ic_ir": round(ic_ir, 3),
             "pct_positive": round(pct_positive, 3),
-            "n_observations": len(series),
+            # Effective, for the same reason as _n_observations above: this
+            # value reaches _ir_to_one_sided_pvalue() as t = IR * sqrt(n).
+            "n_observations": _effective_observations(
+                ic_1m.loc[series.index, "run_date"], horizon_used
+            ),
+            "n_raw_observations": len(series),
         }
 
     return result
@@ -722,9 +895,9 @@ def compute_metric_level_ic(
     if not PERFORMANCE_HISTORY_PATH.exists():
         return None
 
-    perf = pd.read_csv(PERFORMANCE_HISTORY_PATH)
+    perf = _normalize_performance_history(pd.read_csv(PERFORMANCE_HISTORY_PATH))
     return_col = f"fwd_return_{horizon}"
-    if return_col not in perf.columns:
+    if perf is None or return_col not in perf.columns:
         return None
 
     # Check which metric _pct columns are available
@@ -794,12 +967,21 @@ def analyze_metric_ic_trends(
         return {"_warning": "No metric IC history. Run screener with extended snapshots."}
 
     ic_df = pd.read_csv(METRIC_IC_HISTORY_PATH)
+    horizon_used = "1m"
     ic_1m = ic_df[ic_df["horizon"] == "1m"].sort_values("run_date")
     if len(ic_1m) == 0:
+        horizon_used = "1w"
         ic_1m = ic_df[ic_df["horizon"] == "1w"].sort_values("run_date")
 
-    if len(ic_1m) < 4:
-        return {"_warning": f"Only {len(ic_1m)} observations (need 4+)."}
+    n_eff_all = _effective_observations(ic_1m["run_date"], horizon_used)
+    if n_eff_all < 4:
+        return {
+            "_warning": (
+                f"Only {n_eff_all} independent observations at horizon "
+                f"'{horizon_used}' (need 4+); {len(ic_1m)} IC rows exist but "
+                f"overlapping return windows are not independent."
+            )
+        }
 
     # Optionally filter to metrics in a specific category
     from factor_engine import CAT_METRICS
@@ -808,15 +990,17 @@ def analyze_metric_ic_trends(
     else:
         metrics = [c.replace("_ic", "") for c in ic_1m.columns if c.endswith("_ic")]
 
-    result = {"_n_observations": len(ic_1m)}
+    result = {"_n_observations": n_eff_all, "_n_raw_observations": len(ic_1m)}
     for metric in metrics:
         ic_col = f"{metric}_ic"
         if ic_col not in ic_1m.columns:
             continue
 
         series = ic_1m[ic_col].dropna()
-        if len(series) < 4:
-            result[metric] = {"status": "insufficient", "n_observations": len(series)}
+        n_eff = _effective_observations(ic_1m.loc[series.index, "run_date"], horizon_used)
+        if n_eff < 4:
+            result[metric] = {"status": "insufficient", "n_observations": n_eff,
+                              "n_raw_observations": len(series)}
             continue
 
         mean_ic = series.mean()
@@ -852,7 +1036,10 @@ def analyze_metric_ic_trends(
             "mean_ic": round(mean_ic, 4),
             "ewm_ic": round(ewm_ic, 4),
             "pct_positive": round(pct_positive, 3),
-            "n_observations": len(series),
+            # Effective: this reaches _ir_to_one_sided_pvalue() via the
+            # Benjamini-Hochberg pass in propose_metric_evolution().
+            "n_observations": n_eff,
+            "n_raw_observations": len(series),
             "consecutive_positive": consecutive_positive,
             "consecutive_nonpositive": consecutive_nonpositive,
             "status": status,

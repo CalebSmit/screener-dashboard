@@ -54,10 +54,20 @@ def _write_config(path, **improvement_overrides):
 
 
 def _write_ic_history(path, horizon="1m", n=30, mean_ic=0.05, std_ic=0.02, seed=1):
+    """Write `n` genuinely independent IC observations.
+
+    Dates are spaced 35 days apart - a whole number of weeks from a Monday, so
+    each is a market day, and wider than the '1m' return window so no two
+    observations overlap. The previous `(i % 28) + 1` produced at most 28
+    distinct dates inside a single month, and repeated them outright for n>28,
+    so "n=60 observations" was really one overlapping cluster. That passed only
+    because the significance test counted raw rows.
+    """
     rng = np.random.default_rng(seed)
+    dates = pd.date_range("2026-01-05", periods=n, freq="35D").strftime("%Y-%m-%d")
     rows = []
     for i in range(n):
-        row = {"run_date": f"2026-01-{(i % 28) + 1:02d}", "horizon": horizon, "n_tickers": 480}
+        row = {"run_date": dates[i], "horizon": horizon, "n_tickers": 480}
         row["composite_ic"] = float(rng.normal(mean_ic, std_ic))
         for cat in ie.CATEGORY_NAMES:
             row[f"{cat}_ic"] = float(rng.normal(mean_ic, std_ic))

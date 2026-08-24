@@ -154,11 +154,20 @@ class TestRecordSnapshot:
 
 class TestLiveIC:
     def _create_perf_history(self, n_dates=10):
-        """Create synthetic performance history for IC testing."""
+        """Create synthetic performance history for IC testing.
+
+        Dates are 35 days apart - a whole number of weeks from a Monday, so
+        every one is a market day, and far enough apart that the 1-month
+        forward-return windows do not overlap. Consecutive calendar dates would
+        be both partly weekends (no market close) and almost entirely the same
+        measurement repeated, so `n_dates` of them are not `n_dates`
+        observations.
+        """
         np.random.seed(42)
+        dates = pd.date_range("2026-01-05", periods=n_dates, freq="35D").strftime("%Y-%m-%d")
         rows = []
         for i in range(n_dates):
-            date = f"2026-01-{i + 1:02d}"
+            date = dates[i]
             for j in range(100):
                 composite = np.random.uniform(20, 100)
                 # Forward returns weakly correlated with scores
