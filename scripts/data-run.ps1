@@ -340,10 +340,30 @@ try {
     Write-Log "Published to main - live dashboard refreshed."
 
     # --- Report evidence accumulation ---------------------------------------
+    # Report EFFECTIVE (non-overlapping) observations at the optimization
+    # horizon - the number the engine's gate actually reads. The raw row count
+    # is much larger and would misreport the gate as nearly cleared: after the
+    # 2026-08-24 repair the file holds 23 rows but 2 effective 1-month
+    # observations. Overlapping 30-day windows are one measurement repeated.
     $icPath = Join-Path $RepoPath 'improvement\live_ic_history.csv'
     if (Test-Path $icPath) {
-        $obs = (Get-Content $icPath | Measure-Object -Line).Lines - 1
-        Write-Log "Improvement engine now has $obs live IC observation(s); 8 are needed before it may propose a weight change."
+        $icReport = Invoke-Native 'python' @('-c', @'
+import sys
+sys.path.insert(0, ".")
+import pandas as pd, improvement_engine as ie
+ic = pd.read_csv(ie.LIVE_IC_HISTORY_PATH)
+h = ie._get_governance_config()["optimization_horizon"]
+at = ic.loc[ic["horizon"].astype(str) == h, "run_date"]
+print(f"{ie._effective_observations(at, h)} effective ({len(at)} rows) at "
+      f"the {h} horizon; {len(ic)} rows across all horizons")
+'@)
+        if ($icReport.ExitCode -eq 0 -and $icReport.Text.Trim()) {
+            Write-Log ("Improvement engine evidence: " + $icReport.Text.Trim() +
+                       ". 8 effective observations are needed before it may propose a weight change.")
+        } else {
+            $obs = (Get-Content $icPath | Measure-Object -Line).Lines - 1
+            Write-Log "Improvement engine: $obs raw IC row(s) (effective count unavailable)."
+        }
     }
 
     # Only a run that actually published counts as today's run. A discarded or

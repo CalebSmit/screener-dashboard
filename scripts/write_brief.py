@@ -19,7 +19,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -109,6 +109,33 @@ def dashboard_facts() -> dict:
     }
 
 
+OPTIMIZATION_HORIZON = "1m"
+HORIZON_DAYS = {"1w": 7, "1m": 30, "3m": 90}
+
+
+def _effective_observations(dates: list[str], horizon: str) -> int:
+    """Count non-overlapping return windows among these run dates.
+
+    Deliberately duplicated from improvement_engine._effective_observations()
+    rather than imported: this script is stdlib-only on purpose, because it is
+    what reports that everything else is broken. Keep the two in step.
+    """
+    span = HORIZON_DAYS.get(horizon, 30)
+    parsed = []
+    for d in dates:
+        try:
+            parsed.append(datetime.strptime(d, "%Y-%m-%d"))
+        except ValueError:
+            continue
+
+    n_eff, window_end = 0, None
+    for ts in sorted(set(parsed)):
+        if window_end is None or ts >= window_end:
+            n_eff += 1
+            window_end = ts + timedelta(days=span)
+    return n_eff
+
+
 def ic_observations() -> str:
     p = ROOT / "improvement" / "live_ic_history.csv"
     if not p.exists():
@@ -118,24 +145,48 @@ def ic_observations() -> str:
     except OSError:
         return "unknown"
 
-    n = max(0, len(rows) - 1)
-    if n == 0:
+    if len(rows) < 2:
         return "0 of 8 needed - the series is empty"
 
-    # The count alone is not enough. It read "3 of 8 needed" on every brief from
-    # February to 2026-08-21 while the data loop ran successfully every weekday,
-    # because the loop never calls compute_live_ic(). A number that never moves
-    # looks like slow progress; the date is what shows it is no progress at all.
-    dates = sorted(r.split(",", 1)[0] for r in rows[1:] if "," in r)
-    newest = dates[-1] if dates else "unknown"
+    # Report the count the engine's gate actually reads: EFFECTIVE
+    # (non-overlapping) observations at the optimization horizon. The raw row
+    # count is not the same thing and is much larger - after the 2026-08-24
+    # repair the file holds 23 rows but only 2 effective 1-month observations,
+    # so "23 of 8 needed" would read as a cleared gate that is nowhere near
+    # cleared. Overlapping 30-day windows are the same measurement repeated.
+    parsed = []
+    for r in rows[1:]:
+        parts = r.split(",")
+        if len(parts) >= 2:
+            parsed.append((parts[0].strip(), parts[1].strip()))
+    if not parsed:
+        return "unknown"
+
+    at_horizon = [d for d, h in parsed if h == OPTIMIZATION_HORIZON]
+    n_eff = _effective_observations(at_horizon, OPTIMIZATION_HORIZON)
+
+    # The date is what distinguishes slow progress from no progress. It read
+    # "3 of 8 needed" on every brief from February to 2026-08-21 while the data
+    # loop ran successfully every weekday, because nothing called
+    # compute_live_ic(). A number that never moves looks like slow progress.
+    newest = max(d for d, _ in parsed)
     age = ""
     try:
+        # A 1-week observation only matures 7 days after its run date, and
+        # weekends push that out, so the newest date always trails today by
+        # ~7-11 days even when everything is working. 21 days is clear of that
+        # and still catches a real stall inside three weeks.
         days = (datetime.now() - datetime.strptime(newest, "%Y-%m-%d")).days
-        if days > 14:
+        if days > 21:
             age = f" - STALE, nothing new in {days} days"
     except ValueError:
         pass
-    return f"{n} of 8 needed, newest {newest}{age}"
+
+    return (
+        f"{n_eff} of 8 needed at the {OPTIMIZATION_HORIZON} horizon "
+        f"({len(at_horizon)} rows, but overlapping windows are not independent; "
+        f"{len(parsed)} rows across all horizons), newest {newest}{age}"
+    )
 
 
 def last_log_entry() -> str:
