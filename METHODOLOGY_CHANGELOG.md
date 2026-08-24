@@ -303,3 +303,100 @@ ruled out is changing one because a three-point return series drifted.
 `tests/test_governance.py` covers auto-apply gating in both states.
 
 **Rollback:** set `allow_auto_apply: true` in `config.yaml` and revert rule 4.
+
+---
+
+## 2026-08-24 - The evidence base: five defects that made the observation count meaningless
+
+**Area:** improvement engine - forward-return accrual, IC computation,
+statistical significance. No factor weight, metric or threshold changed.
+
+**Changed.** `improvement_engine.py`, five linked defects (CLAUDE.md priority 0):
+
+1. **Horizon-aware reprocessing.** `compute_forward_returns()` skipped any date
+   already in `performance_history.csv`. A snapshot was processed once, at 7
+   days old, when only the 1-week return existed; `fwd_return_1m` was written
+   `NaN` and the date was never revisited. Eligibility is now tracked per
+   `(run_date, horizon)`, so a date is reprocessed as it ages into the next
+   horizon.
+2. **One snapshot per run date.** Every snapshot file was processed, so a day
+   with thirteen runs appended the same ticker-date rows thirteen times.
+3. **Effective observation counting.** `_effective_observations()` counts
+   non-overlapping return windows by greedy interval scan. Every gate now reads
+   this number instead of the raw row count.
+4. **Weekend run dates excluded.** A Saturday snapshot prices off Friday's
+   close and its "one week later" price is the following Friday's close - the
+   Friday observation counted twice.
+5. **The data loop now computes live IC.** `record_run_snapshot()` called only
+   `compute_dispersion()` and `compute_forward_returns()`, never
+   `compute_live_ic()`.
+
+Plus one defect found while fixing these: the price cache is keyed on
+`(start, end)` and `end` was the *current* date, so every revisited snapshot
+would have become a fresh full-universe yfinance download. The fetch window is
+now bounded by the horizon being measured.
+
+**Evidence - a documented failure, demonstrated.** All five are measured facts
+about the live files, not inferences:
+
+| Claim | Measurement |
+|---|---|
+| Duplicate rows | `performance_history.csv` held 20,057 rows for 8,020 unique `(run_date, ticker)` pairs - **60% duplicates** |
+| Absurd IC inputs | `live_ic_history.csv` recorded **6,539 "tickers"** for 2026-02-21 in an S&P 500 screener |
+| Weekend dates | 5 of 16 run dates were Saturdays or Sundays |
+| 1-month returns never accrued | **1 of 16** dates carried a `fwd_return_1m`, while `optimization_horizon` is `'1m'` |
+| IC series frozen | 3 rows, all `1w`, all February 2026 - unchanged for **183 days** while the data loop ran successfully every weekday |
+
+The independence correction implements item 3 of
+`research/2026-08-10-ic-evidence-independence.md`, which predicted the raw count
+overstates independence by ~2.35x. `tests/test_evidence_integrity.py` now
+demonstrates the consequence directly rather than arguing it: against the
+pre-fix code, `propose_weight_changes()` returns **`proposal_ready`** on eleven
+IC rows that are two independent observations. That was the failure mode
+CLAUDE.md's priority-0 "STOP" warned about, and it is now a failing test.
+
+**Effect on the evidence base** (`scripts/repair_evidence_base.py`, idempotent):
+
+| | Before | After |
+|---|---|---|
+| `performance_history.csv` | 20,057 rows, 16 dates | 5,528 rows, 11 dates |
+| `live_ic_history.csv` | 3 rows, newest 2026-02-22 | **23 rows, newest 2026-08-14** |
+| Observations at `1m` (the optimization horizon) | **0** | 6 raw, **2 effective** |
+| `n_tickers` per IC row | 1,006-6,539 | 499-511 |
+
+**Expected effect:** no ranking or score changes - nothing in the scoring path
+was touched. What changes is what the engine can see and what it will act on.
+The engine still correctly refuses to propose: 2 effective 1-month observations
+against a gate of 8.
+
+**On the honest rate of accrual.** This does not clear the gate soon, and the
+fix makes that *more* visible rather than less. Genuinely independent 1-month
+observations accrue at about one a month, so 8 of them is roughly six more
+months of daily running. The previous behaviour would have reached "8
+observations" much sooner and been wrong.
+
+**`allow_auto_apply` stays `false`.** Condition (a) in the `config.yaml`
+comment - effective-observation counting - is now met. Condition (b), a history
+with substantially more independent observations than the gate asks for, is
+not: there are 2. Rule 4 stands and this entry does not relax it.
+
+**Validated by:** `python -m pytest tests/ test_screener.py -q` -> **590
+passed, 0 failed** (baseline at session start: 560 passed, 0 failed).
+`tests/test_evidence_integrity.py` adds 30 tests; **24 of them fail against the
+pre-fix code**, verified by checking the old file out and re-running.
+
+Three pre-existing fixtures had to be corrected, and the correction is itself
+part of the finding: `tests/test_governance.py::_write_ic_history` generated
+dates as `(i % 28) + 1`, so "n=60 observations" was 28 distinct January dates
+*repeated twice* - a single overlapping cluster. `test_improvement_engine.py`
+and `test_metric_evolution.py` used consecutive calendar dates. All three now
+space dates 35 days apart so that a fixture claiming n observations constructs
+n independent ones. **No assertion was weakened**; the fixtures were made to
+build the evidence their assertions always claimed.
+
+**Backtest observation:** none - benched until 2027-02-11 per rule 5.
+
+**Applied by:** morning session (manual)
+**Rollback:** `good/2026-08-21-0616`. Note that reverting restores the inert
+engine *and* the inflated history; `scripts/repair_evidence_base.py` is
+idempotent and can be re-run afterwards.

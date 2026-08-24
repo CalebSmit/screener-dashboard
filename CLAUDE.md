@@ -149,7 +149,7 @@ improving.
    |---|---|---|
    | Did the last code session actually run? | newest `logs/nightly-*.log` | ends "shipped to main" or "no changes" - **not** "SESSION DID NOT RUN" |
    | Did the data loop publish? | newest `logs/datarun-*.log` | ends "Data loop complete", HEALTH: PASS |
-   | Evidence base | `improvement/live_ic_history.csv` | **row count and newest date, as two literal numbers** |
+   | Evidence base | `improvement/live_ic_history.csv` | **row count, newest date, and effective observations at `1m`, as three literal numbers** |
    | Priority 0 | below | fixed, or still top of the queue |
 
    The evidence-base line would have read "3 rows, newest 2026-02-22" on every
@@ -299,11 +299,18 @@ when both conditions in the `config.yaml` comment are met. Those statistical
 gates are the safety mechanism - if you weaken them, you must justify it in
 `METHODOLOGY_CHANGELOG.md` with a reason better than "it wasn't firing."
 
-**The evidence base is not growing.** `live_ic_history.csv` has held 3 rows,
-all horizon `1w`, all February 2026, through every successful data run since -
-180 days of no progress as of 2026-08-21. `record_run_snapshot()` never calls
-`compute_live_ic()` (step 5 of priority 0). Until that is fixed, nothing else
-here matters.
+**The evidence base grows again as of 2026-08-24.** `live_ic_history.csv` had
+held 3 rows, all horizon `1w`, all February 2026, through every successful data
+run for 183 days, because `record_run_snapshot()` never called
+`compute_live_ic()`. It now does, for all three horizons, and the history is 23
+rows across `1w`/`1m`/`3m`. See priority 0 above.
+
+**Read the count that matters.** The gates read *effective* (non-overlapping)
+observations, not rows. `analyze_ic_trends()` returns both: `_n_observations`
+is the effective count, `_n_raw_observations` the row count. At the `1m`
+optimization horizon there are currently **6 rows but 2 effective
+observations**. Quote the effective number in the log; quoting the row count is
+how this went wrong the first time.
 
 Good work here: more/faster evidence, better IC estimation, regime handling,
 smarter proposals. Every engine-applied change should also land in the
@@ -373,83 +380,45 @@ Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now
 fails fast with instructions.
 
-**0. THE FIRST SESSION MUST FIX THIS, ahead of any rotation focus.**
-`compute_forward_returns()` in `improvement_engine.py` (~line 250) skips any
-snapshot whose date already appears in `performance_history.csv`:
+**0. DONE 2026-08-24 - do not weaken these.** All five steps shipped together,
+plus a sixth defect found while fixing them. See `METHODOLOGY_CHANGELOG.md`
+2026-08-24 and `tests/test_evidence_integrity.py` (30 tests; 24 of them fail
+against the pre-fix code).
 
-```python
-if snap_date_str in existing_dates:
-    continue
-```
+| # | Was | Now |
+|---|---|---|
+| 1 | A date was processed once at 7 days old and never revisited, so `fwd_return_1m` stayed `NaN` forever - and `optimization_horizon` is `'1m'` | Eligibility tracked per `(run_date, horizon)`; a date is reprocessed as it ages |
+| 2 | Every snapshot file processed, so a day with 13 runs appended the same rows 13 times | One snapshot per run date; `_normalize_performance_history()` on every read and write |
+| 3 | `t = IR * sqrt(raw row count)` | `_effective_observations()` - non-overlapping windows only; every gate reads it |
+| 4 | Weekend run dates counted as separate observations from the adjacent Friday | Excluded at generation and at IC time |
+| 5 | Nothing ever called `compute_live_ic()` | `record_run_snapshot()` calls it for all three horizons |
+| 6 | Price cache keyed on the *current* date, so each revisited snapshot meant a fresh full-universe yfinance download | Fetch window bounded by the horizon being measured |
 
-Snapshots get processed as soon as they are 7 days old, when only the **1-week**
-return is computable. `fwd_return_1m` is written `NaN`, the date joins
-`existing_dates`, and **the date is never revisited** - so the 1-month return is
-never filled in, however much time passes.
+Measured effect: `performance_history.csv` 20,057 rows -> 5,528 (60% were
+duplicates); `live_ic_history.csv` **3 rows -> 23**, newest 2026-02-22 ->
+2026-08-14; observations at the `1m` optimization horizon **0 -> 6 raw, 2
+effective**; `n_tickers` per IC row 1,006-6,539 -> 499-511.
+`scripts/repair_evidence_base.py` performs the one-time repair and is
+idempotent.
 
-Consequences, re-verified 2026-08-10:
-- 14 distinct snapshot dates exist (2026-02-20 through 2026-08-07)
-- `performance_history.csv` now *does* have `fwd_return_1m` / `fwd_return_3m`
-  columns (the 2026-08-05 note that it has only `fwd_return_1w` is stale), but
-  only **2 of 14 dates** carry a 1m value and **1 of 14** a 3m value - those
-  dates happened to sit unprocessed past the horizon by accident, not by design
-- `live_ic_history.csv` has 3 rows, **all horizon `1w`**
-- `config.yaml` sets `optimization_horizon: '1m'` and documents that it will
-  *refuse to propose* if that horizon has no data
+**What has NOT changed, and must not be quietly assumed away:**
 
-**Net effect: the improvement engine could never have proposed anything, and
-never will, until this is fixed.** The entire self-improvement premise depends
-on it.
+- **`allow_auto_apply` stays `false`.** Condition (a) in the `config.yaml`
+  comment (effective-observation counting) is now met. Condition (b) - a
+  history with substantially more independent observations than the gate asks
+  for - is **not**: there are **2**. Rule 4 stands.
+- **The engine still cannot propose, and that is correct.** 2 effective
+  1-month observations against a gate of 8.
+- **Accrual is genuinely slow.** Independent 1-month observations arrive about
+  one a month, so the 8-observation gate is roughly **six more months** of
+  daily running. The old behaviour would have reached "8 observations" much
+  sooner and been wrong. Do not engineer around this; say it plainly.
 
-> **STOP - do not ship the obvious fix on its own.**
-> Research 2026-08-10 (`research/2026-08-10-ic-evidence-independence.md`) found
-> that the backfill this unblocks is **not 11 independent observations**. All 11
-> backfillable dates fall inside a 53-day window, so at most **2 non-overlapping
-> 30-day return windows** fit among them; six sit in a single 9-day stretch.
-> `_ir_to_one_sided_pvalue()` computes `t = IR * sqrt(n_obs)` from the raw row
-> count, so the backfill inflates t by **2.35x** and moves a borderline IC-IR of
-> 0.5 from p=0.24 to p=0.049 - straight through the `min_ic_ir_for_auto_apply`
-> gate. With `allow_auto_apply: true` the engine would then start rewriting
-> weights. **That is worse than the current inert state**, because the output
-> would look authoritative.
-
-The fix is therefore a package, not a one-liner:
-
-1. Make the dedup key `(run_date, horizon)`-aware so a date is reprocessed when
-   it becomes old enough for the next horizon.
-2. Deduplicate `(run_date, ticker)` on append. Several snapshot files share a
-   date and are all appended in one pass, so `performance_history.csv` is ~75%
-   duplicate rows and `live_ic_history.csv` records **6,539 "tickers"** for
-   2026-02-21 in an S&P 500 screener.
-3. Count *effective* (non-overlapping) observations for the significance test
-   rather than raw rows. On today's data that turns n=11 into n=2 and correctly
-   refuses to propose.
-4. Exclude weekend run dates - 5 of the 14 are Saturdays/Sundays, which have no
-   market close.
-5. Make the data loop actually call `compute_live_ic()`. It currently calls only
-   `compute_dispersion()` and `compute_forward_returns()`, so the IC series
-   never advances on its own.
-
-**If step 3 cannot land in the same session as step 1, set
-`allow_auto_apply: false` before shipping step 1** and record it in
-`METHODOLOGY_CHANGELOG.md`.
-
-Write a regression test that fails on the current behaviour. Record the fix in
-`METHODOLOGY_CHANGELOG.md` - it changes what evidence the engine acts on.
-
-**Start with step 5.** It is the smallest of the five, it is independent of the
-other four, and it is the one whose absence is currently doing the most damage:
-`live_ic_history.csv` has not gained a row in **180 days** (3 rows, all `1w`,
-newest 2026-02-22) despite the data loop running successfully every weekday
-since 08-13. Steps 1-4 improve evidence the engine will eventually act on;
-step 5 is why there is no evidence at all. Note that step 3 must still land
-before `allow_auto_apply` goes back to `true`.
-
-Realistic expectation: this does **not** clear the 8-observation gate in days.
-Genuinely independent monthly observations accrue at about one per month, so
-honestly ~8 months from the start of the scheduled loop (2026-07-28) unless the
-optimization horizon is reconsidered. Say so plainly rather than engineering
-around it.
+The `_effective_observations()` guard is now the load-bearing safety mechanism.
+Against the pre-fix code, `propose_weight_changes()` returns `proposal_ready`
+on eleven IC rows that are two independent observations - that is a failing
+test now, not a hypothetical. Weakening it needs its own changelog entry and a
+better argument than "it wasn't firing."
 
 **0.5 / 0.7. DONE - do not weaken these.** `scripts/check_run_health.py`
 (2026-08-10) discards a run before publishing on: missing fetch evidence, price

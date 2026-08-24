@@ -1026,3 +1026,127 @@ loop consumes none of this quota; only the 06:00 session does.
 Unchanged: **priority 0, step 5** - make the data loop call `compute_live_ic()`.
 Three rows, newest 2026-02-22, 180 days frozen. Every measurement claim in this
 project is theoretical until that number moves.
+
+---
+
+## 2026-08-24 - PRIORITY 0, all five steps. The number finally moved: 3 rows -> 23.
+
+**Health numbers:** last code session **ran and shipped** (2026-08-21 06:16,
+`good/2026-08-21-0616`); data loop **published** 02:11 today, HEALTH: PASS, 501
+scored, 100% price coverage; evidence base **3 rows, newest 2026-02-22, 0
+effective observations at the `1m` optimization horizon** -> now **23 rows,
+newest 2026-08-14, 2 effective at `1m`**; priority 0 **FIXED**.
+
+**Tests:** before 560/560, after **590/590**
+**Data loop:** healthy - `logs/datarun-2026-08-24_020001.log` ends "Data loop
+complete", HEALTH: PASS, 0 fetch failures, 0 synthetic substitutions.
+
+### Swapped the rotation focus, deliberately
+
+Today was scheduled as **research**. I did not do research. `CLAUDE.md` priority
+0 says the first session must fix the forward-return bug ahead of any rotation
+focus, the nightly prompt repeats that override, rule 8's three-session trigger
+had fired (the evidence numbers had not moved on 08-13, 08-21 or 08-21-later),
+and the previous session named step 5 as the single next thing. Three separate
+rules pointed at the same work. **No research note today**; Monday's slot is
+owed one, and the next session should take it.
+
+### Did
+
+**All five priority-0 steps, plus a sixth defect found while fixing them.**
+Full detail in `METHODOLOGY_CHANGELOG.md` 2026-08-24. In short:
+
+1. `compute_forward_returns()` tracks eligibility per `(run_date, horizon)`, so
+   a date is revisited as it ages instead of being frozen at its 7-day state.
+2. One snapshot per run date, not one per file.
+3. `_effective_observations()` - non-overlapping windows - now feeds every gate.
+4. Weekend run dates excluded.
+5. `record_run_snapshot()` calls `compute_live_ic()` for all three horizons.
+6. **New, found while fixing 1:** the price cache is keyed `(start, end)` and
+   `end` was the *current* date. My horizon fix would have turned every
+   revisited snapshot into a fresh full-universe yfinance download - about ten
+   of them in tomorrow's 02:00 run, against the rate limits that already cost
+   the loop 10-25% of its tickers. The fetch window is now bounded by the
+   horizon being measured, so the key is stable.
+
+**Ran the real backfill rather than leaving it to discover itself overnight.**
+2,495 new rows, 4 tickers failed out of ~500 (HOLX, CTRA, BK, EA - Yahoo
+"possibly delisted"). This is why the `1m` horizon has observations at all now.
+
+**Fixed both places that report the evidence count to the owner.** This was a
+bug I was about to introduce: the brief and `data-run.ps1` printed the raw row
+count, so after the repair they would have said **"23 of 8 needed"** - a
+cleared gate that is nowhere near cleared. Both now report effective
+observations at the optimization horizon. The brief reads: *"2 of 8 needed at
+the 1m horizon (6 rows, but overlapping windows are not independent; 23 rows
+across all horizons), newest 2026-08-14"*. Verified by running both.
+
+### Evidence / research
+
+Not literature - a **documented failure**, measured on the live files:
+
+| Claim | Measurement |
+|---|---|
+| Duplicate rows | 20,057 rows for 8,020 unique `(run_date, ticker)` - 60% duplicates (CLAUDE.md estimated ~75%) |
+| Absurd IC inputs | 6,539 "tickers" recorded for 2026-02-21 in an S&P 500 screener |
+| Weekend dates | 5 of 16 run dates were Sat/Sun |
+| 1m never accrued | 1 of 16 dates carried `fwd_return_1m`, while `optimization_horizon` is `'1m'` |
+| IC frozen | 3 rows, all `1w`, all Feb 2026 - 183 days while the loop ran every weekday |
+
+The independence correction implements item 3 of
+`research/2026-08-10-ic-evidence-independence.md`. **That note's central claim
+is now a test rather than an argument:** against the pre-fix code,
+`propose_weight_changes()` returns `proposal_ready` on eleven IC rows that are
+two independent observations. `tests/test_evidence_integrity.py` has 30 tests;
+**24 fail against the pre-fix file**, verified by checking it out and re-running.
+
+### Methodology changed
+
+`METHODOLOGY_CHANGELOG.md` 2026-08-24. No factor weight, metric or threshold
+moved - nothing in the scoring path was touched. What changed is what evidence
+the engine can see and act on.
+
+**`allow_auto_apply` stays `false`.** Condition (a) in the `config.yaml`
+comment - effective-observation counting - is now met. Condition (b) is not:
+there are **2** independent observations against a gate of 8. The engine still
+correctly refuses to propose.
+
+### Tried and rejected
+
+**Making the three failing pre-existing fixtures pass by relaxing their
+assertions.** Five tests broke after the fix. The temptation was to lower
+`assert result["_n_observations"] >= 6`. Looking at the fixtures instead
+revealed the actual finding: `tests/test_governance.py::_write_ic_history`
+built dates as `(i % 28) + 1`, so `n=60` was 28 distinct January dates
+**repeated twice** - one overlapping cluster asserting it was sixty
+observations. The other two used consecutive calendar dates. All three now
+space dates 35 days apart. **No assertion was weakened**; the fixtures were
+made to construct the evidence they always claimed. The old fixtures passed
+only because the code counted raw rows - the test suite shared the bug.
+
+**Deleting the 11 now-dead price-cache files** (old key format, never hit
+again, ~3 MB tracked in git). Left alone: deleting tracked data files
+unattended is not worth 3 MB. Worth doing in a session that is looking at repo
+growth anyway.
+
+### Next
+
+**Monday's research note is owed** - the rotation lost its research day to
+priority 0. Take one specific thing and do it properly.
+
+Then, in priority order:
+- **Watch tomorrow's 02:00 run.** It is the first to exercise the new path
+  end-to-end unattended. Expect the log line "Improvement engine evidence: 2
+  effective (6 rows) at the 1m horizon; 23 rows across all horizons". If it
+  says something else, the bounded-fetch change is where to look.
+- **A heartbeat that complains when no run has been logged in 48 hours** -
+  still open from the retrospective, and still the dominant failure mode
+  (priority -1: 5 of 11 scheduled sessions never fired).
+- **The synthetic-data fabrication defect** (priority 1) - a failed fetch still
+  silently substitutes sector-realistic fiction upstream in `run_screener.py`.
+  `data-run.ps1` gates on it, but it should refuse at source.
+
+**Honest expectation, unchanged:** 8 independent 1-month observations is about
+**six more months** of daily running. The fix makes that visible rather than
+fixing it. The old behaviour would have reached "8 observations" much sooner
+and been wrong.
