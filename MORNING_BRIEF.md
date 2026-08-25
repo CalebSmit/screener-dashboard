@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 25 August 2026, 02:11
+# Morning Brief - Tuesday 25 August 2026, 06:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `d33dd04 docs: record the history gate, its evidence, and a defect it uncovered`
+- `7e7d23c test: syntax-check the emitted dashboard JavaScript`
+- `99fa64d feat(dashboard): What Changed - movers, rank deltas and per-stock history`
+- `db294e5 feat: history.py - a quality-gated historical spine for the dashboard`
+- `0232d40 brief: data run 2026-08-25`
 - `4a0a90f data: screener run 2026-08-25 - 501 scored, top: HST EXPE APA CF EIX`
 - `b149c65 brief: evening session 2026-08-24`
 - `b99158b log: evening session - priority 1 closed, tomorrow's evidence path de-risked`
@@ -28,55 +33,54 @@ history is in `NIGHTLY_LOG.md`.
 - `8cc18d9 data: repair the evidence base, and the 1-month backfill it unblocks`
 - `9a03e96 fix: the improvement engine's observation count was meaningless`
 - `cff2675 brief: data run 2026-08-24`
-- `37ab0c9 data: screener run 2026-08-24 - 501 scored, top: HST EXPE APA EIX CF`
 
 ## The session's own account
 
-> 2026-08-24 (evening) - Priority 1 closed: the screener no longer fabricates data
+> 2026-08-25 - PRODUCT. The dashboard gets a time dimension.
 > 
-> Owner-run session. Asked to make the routine work as well as it can going
-> forward, on the evening after priority 0 landed.
+> **Health numbers:** last code session **ran and shipped** (2026-08-24,
+> `good/2026-08-24`); data loop **published** 02:11 today, HEALTH: PASS, 501/501
+> price coverage, 0 fetch failures, 0 synthetic substitutions; evidence base
+> **23 rows, newest 2026-08-14, 2 effective observations at the `1m` horizon**;
+> priority 0 **DONE** (unchanged since 08-24).
 > 
-> **Health numbers:** last code session **ran and shipped** (06:21 today,
-> `good/2026-08-24`); data loop **published** 02:11, HEALTH: PASS; evidence base
-> **23 rows, newest 2026-08-14, 2 effective at the `1m` horizon**; priority 0
-> **DONE**.
-> 
-> **Tests:** before 590/590, after **596/596**
+> **Tests:** before **596/596**, after **627/627** (+31, no pre-existing
+> failures)
+> **Data loop:** healthy - see health numbers above.
 > 
 > ### Did
 > 
-> **1. De-risked tomorrow's 02:00 run before it happens.** This morning's session
-> flagged that tonight is the first unattended exercise of the new evidence path,
-> and named the exact log line to expect. Ran both reporting paths by hand:
+> Shipped the dashboard's first **time dimension**. This was gap 1 in
+> `.claude/plan/dashboard-north-star.md` ("There is no time dimension. This is
+> the biggest one... **Start here.**") and priority 2 in `CLAUDE.md`. Three
+> surfaces, all fed by a new `history.py` built from the snapshots the data loop
+> has been writing all along:
 > 
-> - `data-run.ps1`'s inline snippet prints *"2 effective (6 rows) at the 1m
->   horizon; 23 rows across all horizons"* - exactly as predicted.
-> - `write_brief.py` prints *"2 of 8 needed at the 1m horizon (6 rows, but
->   overlapping windows are not independent...)"*.
-> - `compute_forward_returns()` with today's date: **0 new rows in 0.1s, no
->   fetch triggered.** This was the flagged risk - the bounded-fetch change could
->   have turned every revisited snapshot into a full-universe download. It does
->   not.
+> 1. **A "What Changed" section** below the KPI row - biggest rank movers in each
+>    direction, each with an inline sparkline, the category that moved furthest,
+>    and the current rank.
+> 2. **A Δ column** in the Full Universe table, sortable, showing the rank change
+>    since the previous comparable run.
+> 3. **A "Rank History" block** in the per-stock drill-down - the full rank path
+>    plus the four categories that moved most, since the last run and since ~1
+>    month.
 > 
-> **2. Priority 1 - the synthetic-data fabrication defect, closed at source.**
-> Detail in `METHODOLOGY_CHANGELOG.md` 2026-08-24 (evening). `run_factor_engine()`
-> now exits 2 rather than generating fiction when the network probe fails;
-> `--allow-synthetic` is the deliberate opt-in and labels its own output.
+> **The hard part was not the arithmetic. It was deciding which runs are
+> comparable to each other**, and getting that wrong would have been worse than
+> shipping nothing.
 > 
-> Open since 08-06 and gated only downstream, so the scheduled loop was protected
-> and nothing else was.
+> `2026-07-28` is a degraded run sitting in `improvement/snapshots/`. It predates
+> `check_run_health.py`, so nothing ever blocked it. Its ranks correlate with the
+> run before at Spearman **0.016** and with the run after at **-0.020**. Diffed
+> naively it reports **411 of 501 stocks (82%) moving more than 50 ranks**. The
+> flagship new panel would have opened with 15 fictional movers.
 > 
-> ### Tried and rejected
-> 
-> **Adding the flag to `cli.py` alone.** That was the first attempt and it was
-> **inert** - `run_screener.py` defines its own `parse_args()` and never imports
-> `cli.py`. `args.allow_synthetic` would not have existed, the `getattr` default
-> would have refused *every* run including the intended opt-in, and the 02:00
-> loop would have failed tomorrow. Caught only because `--help` did not list the
-> new flag. The regression test now asserts the flag on the **live** parser and
-> parses an empty argv through it.
-> 
+> **First attempt was wrong and the real data caught it.** I reused
+> `check_run_health`'s dispersion rule (>20% below trailing median) on the theory
+> that reusing an already-justified threshold beats inventing one. It excluded
+> **16 of 20 runs**. Risk dispersion has drifted legitimately from 26.7 (Feb) to
+> 19.5 (Aug), and because my baseline only recorded *kept* runs it froze in
+> February and every later run failed against it - one exclusion cascading into
 > ...
 
 ---
