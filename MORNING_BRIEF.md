@@ -1,4 +1,4 @@
-# Morning Brief - Monday 24 August 2026, 22:06
+# Morning Brief - Tuesday 25 August 2026, 02:11
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-24T02:00:03.959537 |
+| Dashboard data from | 2026-08-25T02:00:03.840225 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | HST, EXPE, APA, EIX, CF |
+| Top 5 | HST, EXPE, APA, CF, EIX |
 | Evidence for weight changes | 2 of 8 needed at the 1m horizon (6 rows, but overlapping windows are not independent; 23 rows across all horizons), newest 2026-08-14 |
 
 ## What changed in the repo
 
+- `4a0a90f data: screener run 2026-08-25 - 501 scored, top: HST EXPE APA CF EIX`
+- `b149c65 brief: evening session 2026-08-24`
 - `b99158b log: evening session - priority 1 closed, tomorrow's evidence path de-risked`
 - `8a87b3e fix: the screener refuses to fabricate data when the network is down`
 - `30ee3c5 brief: code session 2026-08-24`
