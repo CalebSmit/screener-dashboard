@@ -400,3 +400,60 @@ build the evidence their assertions always claimed.
 **Rollback:** `good/2026-08-21-0616`. Note that reverting restores the inert
 engine *and* the inflated history; `scripts/repair_evidence_base.py` is
 idempotent and can be re-run afterwards.
+
+---
+
+## 2026-08-24 (evening) - The screener refuses to fabricate data
+
+**Area:** data integrity / what may be published
+**Applied by:** owner-run session
+
+**Changed:** `run_factor_engine()` in `run_screener.py` caught a failed network
+probe, set `USE_SAMPLE = True`, and generated "sector-realistic sample values"
+for the entire universe. It now **exits 2 with an explanation** unless the new
+`--allow-synthetic` flag is passed. The opt-in path additionally prints
+`*** THIS OUTPUT IS FABRICATED. DO NOT PUBLISH IT. ***`.
+
+**Evidence - a documented failure, not a citation.** On 2026-08-06 the 02:00
+data run executed with no network. It fabricated all 503 tickers and produced a
+normal-looking 2.6 MB dashboard payload reporting `stocks_scored: 503,
+avg_composite: 50.5`. `scripts/data-run.ps1` committed it. The only reason
+invented stock scores did not reach the public site is that the push failed on
+the same dead network.
+
+Nothing in the output distinguished it from a real run: the payload was a
+normal size, the run summary reported no issues, and the single tell was
+`validation/data_quality_log.csv` reading "Network unavailable - using
+synthetic data" 503 times. A caller who did not read that file had no way to
+know.
+
+**Why this is a methodology matter.** `CLAUDE.md` opens with "its credibility
+is the product". A screener that silently emits fiction when its data source is
+down is not robust, it is dishonest - and the failure is invisible precisely
+when it matters most. Refusing is the correct behaviour; a missing run is
+recoverable, a fabricated one that gets believed is not.
+
+**What did NOT change:** no factor weight, metric, threshold or scoring formula.
+`_generate_sample_data()` itself is untouched and still available for pipeline
+testing, which is what it was written for - it is only no longer reachable by
+accident.
+
+**Expected effect:** none on any healthy run. A run with no network now fails
+loudly instead of publishing invented numbers.
+
+**Validated by:** `tests/test_no_synthetic_by_default.py`, 6 tests. Verified
+red against the pre-fix file: all four content assertions fail on
+`git show HEAD:run_screener.py`. Full suite 595 -> 596 passing; gates 2, 3 and
+4 re-run by hand.
+
+**Backtest observation:** none - benched until 2027-02-11 per rule 5.
+
+**Rollback:** revert the guard in `run_factor_engine()`; the flag can stay.
+
+**Noticed while doing this, not fixed:** `cli.py` defines a near-identical
+argument parser that **nothing imports except `tests/test_cli.py`**.
+`run_screener.py` has its own `parse_args()` at line ~100, and that is the one
+that runs. The first version of this change added the flag only to `cli.py`,
+where it was completely inert - caught because `--help` did not list it. Two
+parsers that drift apart, one of them tested and dead, is a trap; they should
+be reconciled.

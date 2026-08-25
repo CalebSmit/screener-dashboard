@@ -42,6 +42,12 @@ Examples:
   python run_screener.py --show-weights
         """)
 
+    p.add_argument("--allow-synthetic", action="store_true",
+                   help="Permit fabricated 'sector-realistic' values when the "
+                        "network is unavailable. OFF by default: without this "
+                        "the run refuses rather than emitting fiction that is "
+                        "indistinguishable from analysis. For pipeline "
+                        "validation only - never for anything published.")
     p.add_argument("--refresh", action="store_true",
                    help="Force-clear all cache and re-fetch everything")
     p.add_argument("--tickers", type=str, default=None,

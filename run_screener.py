@@ -100,6 +100,11 @@ def flush_sector_coverage(sector_stats: dict):
 def parse_args():
     p = argparse.ArgumentParser(
         description="Multi-Factor Stock Screener v1.0")
+    p.add_argument("--allow-synthetic", action="store_true",
+                   help="Permit fabricated 'sector-realistic' values when the "
+                        "network is unavailable. OFF by default: without it the "
+                        "run refuses rather than emitting fiction that looks "
+                        "exactly like analysis. Pipeline testing only.")
     p.add_argument("--refresh", action="store_true",
                    help="Force-clear all cache and re-fetch everything")
     p.add_argument("--tickers", type=str, default="",
@@ -1037,8 +1042,27 @@ def run_factor_engine(cfg, args, ctx=None):
             raise RuntimeError(test_rec["_error"])
         print("  Network OK — fetching live data")
     except Exception as e:
+        # Refuse by default. On 2026-08-06 this path ran with no network,
+        # fabricated all 503 tickers, and produced a normal-looking 2.6 MB
+        # dashboard payload; only a failed push kept invented stock scores off
+        # the public site. A screener that silently emits fiction when its data
+        # source is down is a credibility bug, not a robustness feature - the
+        # output is indistinguishable from a real run to anyone who does not
+        # read validation/data_quality_log.csv.
+        #
+        # scripts/data-run.ps1 gates on this downstream, but the gate only
+        # protects the scheduled loop. Anyone running the screener directly
+        # got fiction. This refuses at source.
+        if not getattr(args, "allow_synthetic", False):
+            print(f"  Network unavailable ({type(e).__name__}): {e}")
+            print("  REFUSING to run: synthetic data would be published as if real.")
+            print("  Fix the connection and re-run, or pass --allow-synthetic")
+            print("  if you genuinely want fabricated values for pipeline testing.")
+            raise SystemExit(2)
+
         print(f"  Network unavailable ({type(e).__name__})")
-        print("  Generating sector-realistic sample data")
+        print("  --allow-synthetic given: generating sector-realistic SAMPLE data.")
+        print("  *** THIS OUTPUT IS FABRICATED. DO NOT PUBLISH IT. ***")
         USE_SAMPLE = True
 
     skipped_tickers = []
