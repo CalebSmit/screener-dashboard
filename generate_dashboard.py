@@ -23,6 +23,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from history import build_history
+
 ROOT = Path(__file__).resolve().parent
 
 # ---------------------------------------------------------------------------
@@ -270,6 +272,19 @@ def _load_portfolio_from_excel(df: pd.DataFrame, port_df: pd.DataFrame = None) -
 # ---------------------------------------------------------------------------
 # Prepare JSON data for the dashboard
 # ---------------------------------------------------------------------------
+
+def _run_date_for_history(meta: dict) -> str | None:
+    """The run's calendar date, matching how snapshots are keyed.
+
+    ``improvement_engine`` names snapshots ``{run_date}_{run_id}.parquet``, so
+    the dashboard has to agree on the date or it would append a duplicate point
+    for the run it is publishing.
+    """
+    raw = meta.get("run_date") or meta.get("start_time") or ""
+    if not raw:
+        return None
+    return str(raw)[:10]
+
 
 def prepare_dashboard_data(run_data: dict) -> str:
     """Convert run data into a JSON string for embedding in HTML."""
@@ -655,8 +670,27 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "gt_growth": _gtf.get("growth_ceiling_percentile", 70),
     }
 
+    # --- Historical spine: rank/score movement across prior runs ---
+    # The dashboard's biggest documented gap is that it has no time dimension
+    # (.claude/plan/dashboard-north-star.md gap 1). `history` supplies it from
+    # the snapshots the data loop already writes. Never let a history problem
+    # take down the whole build: a run with no usable history is still a
+    # perfectly good snapshot dashboard.
+    try:
+        history_block = build_history(
+            current_df=df,
+            current_date=_run_date_for_history(meta),
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: history unavailable ({type(exc).__name__}: {exc})")
+        history_block = {"available": False, "dates": [], "series": {},
+                         "excluded": [], "noise": None,
+                         "compare": {"prev": None, "m1": None},
+                         "movers": {}, "delta": {}}
+
     dashboard_json = {
         "kpis": kpis,
+        "history": history_block,
         "portfolio": portfolio,
         "table_data": table_data,
         "stock_detail": stock_detail,
@@ -727,6 +761,31 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         <!-- KPI Row -->
         <section class="kpi-row" id="kpi-row"></section>
+
+        <!-- What Changed -->
+        <section class="section collapsible-section" id="sec-changed" style="display:none">
+            <div class="section-header" onclick="toggleSection('sec-changed')">
+                <h2 class="section-title" style="margin:0">What Changed</h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body">
+                <div class="changed-controls">
+                    <div class="seg-control" id="changed-range"></div>
+                    <span class="changed-caption" id="changed-caption"></span>
+                </div>
+                <div class="movers-grid">
+                    <div class="movers-col">
+                        <h3 class="chart-title">Moved up the rankings</h3>
+                        <div id="movers-up"></div>
+                    </div>
+                    <div class="movers-col">
+                        <h3 class="chart-title">Moved down the rankings</h3>
+                        <div id="movers-down"></div>
+                    </div>
+                </div>
+                <div class="changed-footnote" id="changed-footnote"></div>
+            </div>
+        </section>
 
         <!-- Top 5 Stocks -->
         <section class="section collapsible-section" id="sec-top5">
@@ -867,6 +926,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <table class="data-table" id="universe-table">
                         <thead><tr>
                             <th data-sort="Rank">Rank</th>
+                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the previous comparable run. Positive means the stock moved up the table.">&Delta;</th>
                             <th data-sort="Ticker">Ticker</th>
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
@@ -901,6 +961,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="modal-body">
                     <!-- Score summary row -->
                     <div class="modal-score-row" id="modal-score-row"></div>
+
+                    <!-- Rank history -->
+                    <div class="collapsible" id="section-history" style="display:none">
+                        <div class="collapsible-header" onclick="toggleSection('section-history')">
+                            <span>Rank History</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-history"></div>
+                    </div>
 
                     <!-- Analyst Price Targets -->
                     <div class="collapsible" id="section-price-targets">
@@ -1582,10 +1650,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 tableState.sortDir = (col === 'Rank' || col === 'Ticker') ? 'asc' : 'desc';
             }}
         }}
+        // `_rank_delta` is derived from the history payload rather than being a
+        // column on the row, so it needs its own accessor.
+        const cellValue = row => tableState.sortCol === '_rank_delta'
+            ? rankDelta(row.Ticker)
+            : row[tableState.sortCol];
         tableState.filtered.sort((a, b) => {{
-            let av = a[tableState.sortCol], bv = b[tableState.sortCol];
-            if (av === null) av = tableState.sortDir === 'asc' ? Infinity : -Infinity;
-            if (bv === null) bv = tableState.sortDir === 'asc' ? Infinity : -Infinity;
+            let av = cellValue(a), bv = cellValue(b);
+            if (av === null || av === undefined) av = tableState.sortDir === 'asc' ? Infinity : -Infinity;
+            if (bv === null || bv === undefined) bv = tableState.sortDir === 'asc' ? Infinity : -Infinity;
             if (typeof av === 'string') return tableState.sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
             return tableState.sortDir === 'asc' ? av - bv : bv - av;
         }});
@@ -1609,8 +1682,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (row.Value_Trap_Flag) trapIcons.push('VT');
             if (row.Growth_Trap_Flag) trapIcons.push('GT');
             const trapDisplay = trapIcons.length ? trapIcons.join('/') : '✓';
+            const rd = rankDelta(row.Ticker);
+            const rdCell = rd == null
+                ? '<td class="num delta-cell muted">&mdash;</td>'
+                : (rd === 0
+                    ? '<td class="num delta-cell muted">0</td>'
+                    : `<td class="num delta-cell ${{rd > 0 ? 'pos' : 'neg'}}">${{rd > 0 ? '▲' : '▼'}}${{Math.abs(rd)}}</td>`);
             return `<tr${{trapClass}}>
                 <td class="num">${{row.Rank}}</td>
+                ${{rdCell}}
                 <td class="ticker ticker-link" onclick="openStockDetail('${{escapeHtml(row.Ticker)}}')">${{escapeHtml(row.Ticker)}}</td>
                 <td>${{escapeHtml(row.Company || '')}}</td>
                 <td>${{escapeHtml(row.Sector)}}</td>
@@ -1636,6 +1716,128 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         th.style.cursor = 'pointer';
         th.addEventListener('click', () => sortTable(th.dataset.sort));
     }});
+
+    // =====================================================================
+    // WHAT CHANGED - the dashboard's time dimension
+    // =====================================================================
+    const H = D.history || {{}};
+    // Defaults to the ~1-month comparison, not the previous run. On the run
+    // this was built against, every one of the 10 material one-day movers was
+    // a round-trip (an excursion that returned to base), while 169 of 193
+    // one-month movers were genuine trends. Day-to-day rank changes at this
+    // cadence are dominated by metric noise, so leading with them would invite
+    // trading on artifacts.
+    let changedRange = (H.compare && H.compare.m1) ? 'm1' : 'prev';
+
+    function sparkline(ranks, dir) {{
+        // Rank 1 is best, so the y-axis is inverted: a line going up means the
+        // stock climbed the table. No axes or gridlines - a sparkline's job is
+        // shape, and the exact values are in the row beside it.
+        const pts = ranks.map((r, i) => [i, r]).filter(p => p[1] != null);
+        if (pts.length < 2) return '<span class="spark-empty">&mdash;</span>';
+        const W = 84, HT = 22, PAD = 3;
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs);
+        let y0 = Math.min(...ys), y1 = Math.max(...ys);
+        if (y1 === y0) {{ y1 = y0 + 1; }}
+        const sx = i => PAD + (x1 === x0 ? 0 : (i - x0) / (x1 - x0)) * (W - 2 * PAD);
+        const sy = r => PAD + (r - y0) / (y1 - y0) * (HT - 2 * PAD);
+        const d = pts.map((p, k) => (k ? 'L' : 'M') + sx(p[0]).toFixed(1) + ' ' + sy(p[1]).toFixed(1)).join(' ');
+        const last = pts[pts.length - 1];
+        // The endpoint is only coloured when the latest move clears the
+        // materiality floor. Colouring a 3-rank drift green would assert a
+        // significance the measurement does not support.
+        const floor = (H.noise && H.noise.material_threshold) || 0;
+        const sig = Math.abs(dir || 0) >= floor ? dir : 0;
+        const dotColor = sig > 0 ? 'var(--green)' : (sig < 0 ? 'var(--red)' : 'var(--text-secondary)');
+        return `<svg class="spark" width="${{W}}" height="${{HT}}" viewBox="0 0 ${{W}} ${{HT}}" aria-hidden="true">
+            <path d="${{d}}" fill="none" stroke="var(--text-secondary)" stroke-width="2"
+                  stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>
+            <circle cx="${{sx(last[0]).toFixed(1)}}" cy="${{sy(last[1]).toFixed(1)}}" r="2.5" fill="${{dotColor}}"/>
+        </svg>`;
+    }}
+
+    function moverRow(m) {{
+        const det = D.stock_detail[m.t] || {{}};
+        const series = (H.series && H.series[m.t]) ? H.series[m.t].r : [];
+        // Direction is carried by a glyph and a signed number as well as by
+        // colour, so the row is readable without colour vision.
+        const up = m.dr > 0;
+        const arrow = up ? '▲' : '▼';
+        const cls = up ? 'pos' : 'neg';
+        const drv = m.drv
+            ? `<span class="mover-driver">${{CAT_LABELS[m.drv[0]] || m.drv[0]}} ${{m.drv[1] > 0 ? '+' : ''}}${{m.drv[1].toFixed(1)}}</span>`
+            : '<span class="mover-driver muted">&mdash;</span>';
+        const rt = m.rt
+            ? `<span class="rt-badge" title="Round-trip: this stock's rank made a large excursion and came back to within ${{H.noise.material_threshold}} ranks of where it started. That pattern is usually a metric dropping out and returning rather than a real change - treat it as a data-quality flag, not news.">round-trip</span>`
+            : '';
+        return `<div class="mover-row" onclick="openStockDetail('${{escapeHtml(m.t)}}')">
+            <div class="mover-id">
+                <span class="mover-ticker">${{escapeHtml(m.t)}}</span>
+                <span class="mover-name">${{escapeHtml(det.company || '')}}</span>
+            </div>
+            ${{sparkline(series, m.dr)}}
+            <div class="mover-delta ${{cls}}"><span class="mover-arrow">${{arrow}}</span>${{Math.abs(m.dr)}}</div>
+            <div class="mover-meta">#${{det.rank != null ? det.rank : '?'}} ${{drv}} ${{rt}}</div>
+        </div>`;
+    }}
+
+    function renderChanged() {{
+        const sec = document.getElementById('sec-changed');
+        if (!H.available || !H.compare || !H.movers) return;
+        const cmp = H.compare[changedRange];
+        const mv = H.movers[changedRange];
+        if (!cmp || !mv) return;
+        sec.style.display = '';
+
+        // Range switch
+        const opts = [];
+        if (H.compare.prev) opts.push(['prev', 'Since last run']);
+        if (H.compare.m1) opts.push(['m1', 'Since ~1 month']);
+        document.getElementById('changed-range').innerHTML = opts.map(([k, label]) =>
+            `<button class="seg-btn${{k === changedRange ? ' active' : ''}}" onclick="setChangedRange('${{k}}')">${{label}}</button>`
+        ).join('');
+
+        const n = H.noise || {{}};
+        document.getElementById('changed-caption').innerHTML =
+            `Comparing <strong>${{escapeHtml(H.current_date || '')}}</strong> with <strong>${{escapeHtml(cmp.date)}}</strong> `
+            + `(${{cmp.gap_days}} ${{cmp.gap_days === 1 ? 'day' : 'days'}}). A move counts as material past <strong>&plusmn;${{n.material_threshold}} ranks</strong>`
+            + (n.source === 'measured'
+                ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${{n.n_pairs}} paired runs (${{n.n_observations.toLocaleString()}} observations).`
+                : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+
+        const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
+        const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
+        document.getElementById('movers-up').innerHTML = up;
+        document.getElementById('movers-down').innerHTML = down;
+
+        // Footnote: what was truncated, what was flagged, what was excluded.
+        const notes = [];
+        const shownUp = Math.min(mv.up.length, mv.n_up), shownDown = Math.min(mv.down.length, mv.n_down);
+        notes.push(`${{mv.n_up}} stocks moved up materially and ${{mv.n_down}} moved down; showing the largest ${{shownUp}} and ${{shownDown}}.`);
+        if (mv.n_round_trip) {{
+            notes.push(`<strong>${{mv.n_round_trip}} of ${{mv.n_up + mv.n_down}}</strong> are flagged round-trip &mdash; a large excursion that returned to base, which usually means a metric dropped out and came back rather than the stock changing.`);
+        }}
+        notes.push(`Built from ${{H.dates.length}} comparable runs (${{escapeHtml(H.dates[0])}} to ${{escapeHtml(H.dates[H.dates.length - 1])}}).`);
+        if (H.excluded && H.excluded.length) {{
+            const ex = H.excluded.map(e => `${{escapeHtml(e.date)}} (${{escapeHtml(e.detail)}})`).join('; ');
+            notes.push(`Excluded as not comparable: ${{ex}}.`);
+        }}
+        notes.push('Rank changes are not a recommendation. A stock that fell may be cheaper, not worse &mdash; open it to see which categories moved and why.');
+        document.getElementById('changed-footnote').innerHTML = notes.join(' ');
+    }}
+
+    function setChangedRange(k) {{
+        changedRange = k;
+        renderChanged();
+    }}
+
+    // Rank delta for the universe table, relative to the previous run.
+    function rankDelta(ticker) {{
+        const d = H.delta && H.delta[ticker] && H.delta[ticker].prev;
+        if (!d || d.new || d.dr == null) return null;
+        return d.dr;
+    }}
 
     // =====================================================================
     // STOCK DETAIL MODAL
@@ -1683,6 +1885,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // Company snapshot (financials) + peer comparison
         renderCompanySnapshot(s);
         renderPeerComparison(ticker, s);
+
+        // Rank history over prior comparable runs
+        renderStockHistory(ticker);
 
         // Data provenance
         renderProvenance(s);
@@ -2978,6 +3183,60 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         '</div>';
     }}
 
+    function renderStockHistory(ticker) {{
+        const wrap = document.getElementById('section-history');
+        const body = document.getElementById('modal-history');
+        if (!wrap || !body) return;
+        const ser = H.series && H.series[ticker];
+        if (!H.available || !ser) {{ wrap.style.display = 'none'; return; }}
+        const pts = ser.r.map((r, i) => [i, r]).filter(p => p[1] != null);
+        if (pts.length < 2) {{ wrap.style.display = 'none'; return; }}
+        wrap.style.display = '';
+
+        const d = (H.delta && H.delta[ticker]) || {{}};
+        const first = pts[0], last = pts[pts.length - 1];
+
+        // Category movement answers "what changed?" - the single most useful
+        // thing for a sell decision, and the reason this section exists.
+        function catTable(entry, label, date) {{
+            if (!entry || entry.new || !entry.cat) return '';
+            const rows = Object.entries(entry.cat)
+                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                .slice(0, 4)
+                .map(([c, v]) => `<tr><td>${{CAT_LABELS[c] || c}}</td>
+                    <td class="num ${{v > 0 ? 'pos' : 'neg'}}">${{v > 0 ? '+' : ''}}${{v.toFixed(1)}}</td></tr>`)
+                .join('');
+            if (!rows) return '';
+            const dr = entry.dr;
+            const drTxt = dr === 0 ? 'unchanged'
+                : `${{dr > 0 ? '▲' : '▼'}}${{Math.abs(dr)}} ranks`;
+            return `<div class="modal-hist-block">
+                <div class="modal-hist-head">${{label}} <span class="muted">(${{escapeHtml(date)}})</span>
+                    &mdash; <span class="${{dr > 0 ? 'pos' : (dr < 0 ? 'neg' : 'muted')}}">${{drTxt}}</span></div>
+                <table class="mini-table"><tbody>${{rows}}</tbody></table>
+            </div>`;
+        }}
+
+        const rt = (H.movers && H.movers[changedRange]
+            && [].concat(H.movers[changedRange].up, H.movers[changedRange].down)
+                 .some(m => m.t === ticker && m.rt));
+
+        body.innerHTML = `
+            <div class="modal-history-row">
+                <span class="modal-spark">${{sparkline(ser.r, d.prev ? d.prev.dr : 0)}}</span>
+                <span class="muted" style="font-size:.78rem">
+                    rank ${{first[1]}} on ${{escapeHtml(H.dates[first[0]])}}
+                    &rarr; ${{last[1]}} on ${{escapeHtml(H.dates[last[0]])}}
+                    across ${{pts.length}} comparable runs
+                </span>
+                ${{rt ? '<span class="rt-badge" title="A large rank excursion that returned to base. Usually a metric dropping out and returning rather than a real change.">round-trip</span>' : ''}}
+            </div>
+            ${{catTable(d.prev, 'Since last run', (H.compare.prev || {{}}).date || '')}}
+            ${{catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {{}}).date || '')}}
+            <p class="modal-note">History covers ${{H.dates.length}} runs judged comparable to each other. Score changes describe what the model saw, not what you should do.</p>
+        `;
+    }}
+
     function renderProvenance(s) {{
         const container = document.getElementById('modal-provenance');
         if (!container) return;
@@ -3020,6 +3279,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
     }} else {{
         renderKPIs();
+        renderChanged();
+        if (!H.available) {{
+            // No comparable history yet - hide the delta column rather than
+            // filling it with em-dashes on every row.
+            const ut = document.getElementById('universe-table');
+            if (ut) ut.classList.add('no-history');
+        }}
         renderTop5();
         renderPortfolio();
         renderSectorAlloc();
@@ -3138,6 +3404,78 @@ def _css() -> str:
             --font-heading: 'Space Grotesk', sans-serif;
             --font-body: 'DM Sans', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        /* ---- WHAT CHANGED (time dimension) ---- */
+        .changed-controls {
+            display: flex; align-items: baseline; gap: 14px;
+            flex-wrap: wrap; margin-bottom: var(--gap);
+        }
+        .seg-control { display: inline-flex; border: 1px solid var(--border-bright); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+        .seg-btn {
+            background: transparent; border: 0; color: var(--text-secondary);
+            font-family: var(--font-body); font-size: .82rem; padding: 6px 12px;
+            cursor: pointer; transition: background .12s, color .12s;
+        }
+        .seg-btn + .seg-btn { border-left: 1px solid var(--border-bright); }
+        .seg-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .seg-btn.active { background: var(--accent-glow); color: var(--accent); }
+        .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
+        .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+        .mover-row {
+            display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
+            grid-template-areas: "id spark delta" "meta meta meta";
+            align-items: center; gap: 2px 10px;
+            padding: 8px 10px; border-radius: 8px; cursor: pointer;
+            border: 1px solid transparent; transition: background .12s, border-color .12s;
+        }
+        .mover-row:hover { background: var(--bg-card-hover); border-color: var(--border-bright); }
+        .mover-id { grid-area: id; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+        .mover-ticker { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); font-size: .88rem; }
+        .mover-name { color: var(--text-secondary); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .spark { grid-area: spark; display: block; }
+        .spark-empty { grid-area: spark; color: var(--text-muted); font-size: .78rem; }
+        .mover-delta {
+            grid-area: delta; text-align: right; font-family: var(--font-mono);
+            font-size: .88rem; font-weight: 600; white-space: nowrap;
+        }
+        .mover-arrow { font-size: .7rem; margin-right: 2px; }
+        .mover-delta.pos, .delta-cell.pos { color: var(--green); }
+        .mover-delta.neg, .delta-cell.neg { color: var(--red); }
+        .mover-meta { grid-area: meta; font-size: .74rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .mover-driver { color: var(--text-secondary); }
+        .mover-driver.muted, .delta-cell.muted { color: var(--text-muted); }
+        .mover-none { padding: 10px; color: var(--text-muted); font-size: .82rem; }
+        .rt-badge {
+            font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--amber); background: var(--amber-dim);
+            border: 1px solid rgba(210,153,34,.35); border-radius: 4px;
+            padding: 1px 5px; cursor: help; white-space: nowrap;
+        }
+        .changed-footnote {
+            margin-top: var(--gap); padding-top: 12px; border-top: 1px solid var(--border);
+            font-size: .76rem; color: var(--text-secondary); line-height: 1.6;
+        }
+        .changed-footnote strong { color: var(--amber); }
+        .delta-cell { font-size: .8rem; white-space: nowrap; }
+        #universe-table.no-history .delta-cell,
+        #universe-table.no-history #th-rank-delta { display: none; }
+        .modal-history-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .modal-spark { flex-shrink: 0; }
+        .modal-hist-block { margin-top: 14px; }
+        .modal-hist-head { font-size: .8rem; color: var(--text-primary); margin-bottom: 6px; }
+        .modal-hist-head .pos { color: var(--green); }
+        .modal-hist-head .neg { color: var(--red); }
+        .mini-table { width: 100%; max-width: 320px; border-collapse: collapse; font-size: .8rem; }
+        .mini-table td { padding: 3px 8px 3px 0; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        .mini-table td.num { text-align: right; font-family: var(--font-mono); }
+        .mini-table td.pos { color: var(--green); }
+        .mini-table td.neg { color: var(--red); }
+        .modal-note { margin-top: 12px; font-size: .74rem; color: var(--text-muted); line-height: 1.5; }
+        .muted { color: var(--text-muted); }
+        @media (max-width: 780px) {
+            .movers-grid { grid-template-columns: 1fr; }
         }
 
         /* ---- ANIMATIONS ---- */
