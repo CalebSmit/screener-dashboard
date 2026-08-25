@@ -453,10 +453,40 @@ reads them.
    happens upstream in `run_screener.py` / `factor_engine.py` and should be
    fixed at source: refuse, or exit non-zero, rather than emitting fiction that
    looks like analysis. This is a credibility bug, not a robustness nicety.
-2. **Give the dashboard a time dimension.** Rank/score deltas between runs,
-   per-category trends, biggest movers. Unlocks the sell-side workflow and
-   time-series valuation. Buildable from `improvement/snapshots/` as the data
-   loop accumulates. See the north-star plan.
+1.5. **A transiently-failing metric is scored at an extreme percentile
+   instead of being treated as missing.** Found 2026-08-25 by the new movers
+   panel, on its first run. MNST's `return_12_1` percentile read 97.1 on 08-20,
+   **2.9** on 08-21 and 08-24, then 97.1 again on 08-25 - while its price went
+   47.5 -> 48.9. FCX's growth score did the same (68.3 -> 42.5 -> 68.3).
+
+   This is **not** the NaN path: `factor_engine` handles missing metrics
+   correctly (`na_option="keep"` plus the `has_data` mask, which renormalises
+   the weights). It is a *computed* value derived from bad price history, so it
+   is indistinguishable from a real collapse and every existing check passes it
+   through. It moves a stock roughly 100 ranks.
+
+   Same family as priority 1: output that looks like analysis and is not.
+   Reproduce from `improvement/snapshots/` by comparing `return_12_1_pct`
+   against `price_at_scoring` across consecutive run dates.
+
+2. **Give the dashboard a time dimension.** **DONE 2026-08-25** - shipped as
+   `history.py` plus three surfaces: a "What Changed" movers panel, a sortable
+   Δ column in the universe table, and a per-stock "Rank History" block.
+   Changelog 2026-08-25; `tests/test_history.py`, 31 tests.
+
+   **Do not weaken the comparability gate.** Runs enter the history only if
+   their ranking correlates with the last accepted run at Spearman >= 0.50.
+   `2026-07-28` is a degraded run in `improvement/snapshots/` that correlates
+   with its neighbours at 0.016 and -0.020; ungated, it reports 82% of the
+   universe as material movers. A regression test fails if it rejoins the
+   series. Note also that reusing `check_run_health`'s dispersion rule here was
+   tried and **excluded 16 of 20 real runs** - it is the right gate at publish
+   time and the wrong one for comparing runs. Reasons in the changelog.
+
+   **What is still missing:** per-category trend lines over the full history
+   (only the two comparison baselines carry category deltas today, to keep the
+   payload at +8%), and time-series valuation percentiles (north-star gap 3),
+   which need the same spine and are now cheap to build.
 3. **Backtest v2** - the current one has survivorship bias and holds
    fundamentals constant (look-ahead). It cannot honestly validate a
    methodology change, and now that the system validates *itself*, that bias

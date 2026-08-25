@@ -1221,3 +1221,142 @@ reclaim it.
 
 Then the heartbeat (no run logged in 48 hours), which remains open from the
 2026-08-21 retrospective and is the other half of the absence problem.
+
+## 2026-08-25 - PRODUCT. The dashboard gets a time dimension.
+
+**Health numbers:** last code session **ran and shipped** (2026-08-24,
+`good/2026-08-24`); data loop **published** 02:11 today, HEALTH: PASS, 501/501
+price coverage, 0 fetch failures, 0 synthetic substitutions; evidence base
+**23 rows, newest 2026-08-14, 2 effective observations at the `1m` horizon**;
+priority 0 **DONE** (unchanged since 08-24).
+
+**Tests:** before **596/596**, after **627/627** (+31, no pre-existing
+failures)
+**Data loop:** healthy - see health numbers above.
+
+### Did
+
+Shipped the dashboard's first **time dimension**. This was gap 1 in
+`.claude/plan/dashboard-north-star.md` ("There is no time dimension. This is
+the biggest one... **Start here.**") and priority 2 in `CLAUDE.md`. Three
+surfaces, all fed by a new `history.py` built from the snapshots the data loop
+has been writing all along:
+
+1. **A "What Changed" section** below the KPI row - biggest rank movers in each
+   direction, each with an inline sparkline, the category that moved furthest,
+   and the current rank.
+2. **A Δ column** in the Full Universe table, sortable, showing the rank change
+   since the previous comparable run.
+3. **A "Rank History" block** in the per-stock drill-down - the full rank path
+   plus the four categories that moved most, since the last run and since ~1
+   month.
+
+**The hard part was not the arithmetic. It was deciding which runs are
+comparable to each other**, and getting that wrong would have been worse than
+shipping nothing.
+
+`2026-07-28` is a degraded run sitting in `improvement/snapshots/`. It predates
+`check_run_health.py`, so nothing ever blocked it. Its ranks correlate with the
+run before at Spearman **0.016** and with the run after at **-0.020**. Diffed
+naively it reports **411 of 501 stocks (82%) moving more than 50 ranks**. The
+flagship new panel would have opened with 15 fictional movers.
+
+**First attempt was wrong and the real data caught it.** I reused
+`check_run_health`'s dispersion rule (>20% below trailing median) on the theory
+that reusing an already-justified threshold beats inventing one. It excluded
+**16 of 20 runs**. Risk dispersion has drifted legitimately from 26.7 (Feb) to
+19.5 (Aug), and because my baseline only recorded *kept* runs it froze in
+February and every later run failed against it - one exclusion cascading into
+all of them. Dispersion is the right gate at publish time and the wrong one
+here.
+
+The replacement gates on the property the feature actually needs - that a run's
+ranking is comparable to its neighbours' - via Spearman correlation against the
+last accepted run. Over all 19 consecutive pairs, the 17 clean ones span
+**0.882-1.000** (lowest is a 12-day gap; a 29-day gap still scores 0.951) and
+the only two breaks are either side of `2026-07-28`. **Any threshold in
+[0.05, 0.87] classifies every observed run identically**, so 0.50 is not tuned
+to a run - it sits in an empty region. Result: 18 runs kept, 2 excluded
+(`2026-07-28` discontinuous, `2026-03-01` a byte-identical warm-start re-run),
+both printed on the page with their reason.
+
+### Evidence / research
+
+Measured from this repo's own stored snapshots. None of it is a forward return,
+an IC or a backtest number, so rules 4 and 5 do not bite.
+
+- **Noise floor of a rank change.** Pooled over 13 consecutive clean pairs
+  (6,515 ticker-pairs): p50 **7**, p90 **36**, p95 **54**. The panel surfaces
+  only moves past p95 and states the sample size on screen. Recomputed each
+  build, not frozen.
+- **The degraded-run contrast.** Median abs(rank change) across the
+  `2026-07-28` boundary is **151** against a normal 4-23.
+- **Round-trips dominate daily movement.** On today's run **all 10** material
+  one-day movers were excursions that returned to base. Over ~1 month, **169 of
+  193** were genuine trends (GILD 44 -> 408 and staying there; BDX 253 -> 427).
+  **So the default comparison is the ~1-month window, not "since last run".**
+  That is a measurement, not a preference - and it lines up with research
+  question 2 in the north-star plan, which worries about a dashboard that
+  provokes churn.
+- **Applied `dataviz` skill guidance**: single series so no legend; direction
+  carried by a glyph and a signed number as well as colour, so the panel is
+  readable without colour vision; endpoint dot coloured only when the move
+  clears the materiality floor; the sortable Δ column is the table view.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-08-25** - "Which runs are comparable to
+  each other: the history gate". No factor weight, metric, threshold or scoring
+  formula changed; ranks and composites are byte-identical. What the entry
+  records is the two *display* thresholds and the evidence behind each.
+
+### Tried and rejected
+
+- **Reusing the dispersion gate for history selection** - rejected by
+  measurement: 16 of 20 real runs excluded. Written up in the changelog and in
+  `history.py`'s docstring so the next session does not retry it.
+- **Presenting daily movers as the headline** - rejected: every one of today's
+  was an artifact.
+- **Hiding round-trip movers** - rejected as the wrong instinct. They are
+  labelled instead, because the honest claim is "this looks like a data
+  artifact, here is the path", and suppressing them would have hidden the
+  data-quality bug below.
+
+### Found, not fixed - worth its own session
+
+**A transiently-failing metric is scored at an extreme percentile instead of
+being treated as missing.** MNST's `return_12_1` percentile read 97.1 on 08-20,
+**2.9** on 08-21 and 08-24, then 97.1 again on 08-25 - while the price went
+47.5 -> 48.9. FCX's growth score did the same (68.3 -> 42.5 -> 68.3). It is
+**not** a NaN: `factor_engine` handles missing metrics correctly
+(`na_option="keep"` plus the `has_data` mask). It is a *computed* value from bad
+price history, which is why nothing catches it - it moves a stock ~100 ranks
+and looks exactly like a real collapse. The movers panel is now the instrument
+that makes this visible; it found two cases on its first run.
+
+**`.claude/plan/dashboard-inventory.md` is now stale** - it still says "as of
+2026-08-05", lists 3 charts and 1 table, and does not mention the What Changed
+section, the Δ column or the Rank History block. I could not update it: edits
+under `.claude/` are blocked as sensitive in this session. Someone with write
+access should refresh it, or the next session will "discover" a gap that is
+now filled.
+
+### Also shipped
+
+**`tests/test_dashboard_js.py`** - the emitted dashboard script is ~2,000 lines
+of JS built inside a Python f-string, where one un-doubled brace blanks the
+entire public page while all four ship gates still pass (gate 3 checks that
+`dashboard_data.js` parses; nothing checked the script consuming it). Now
+syntax-checked with `node --check`, and I verified the check actually fails on
+broken input rather than trusting it. Skips cleanly where node is absent.
+
+### Next
+
+**The transient-metric defect above.** It is a scoring-integrity bug on the
+same footing as the 08-24 fabrication fix: the output is indistinguishable from
+analysis and is wrong. Two demonstrated cases, a reproduction path
+(`improvement/snapshots/`, compare `return_12_1_pct` against
+`price_at_scoring`), and a natural home in the same place the NaN handling
+already lives.
+
+Still owed and still slipping: **Monday's research note**, now missed twice.

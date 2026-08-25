@@ -457,3 +457,95 @@ that runs. The first version of this change added the flag only to `cli.py`,
 where it was completely inert - caught because `--help` did not list it. Two
 parsers that drift apart, one of them tested and dead, is a trap; they should
 be reconciled.
+
+---
+
+## 2026-08-25 - Which runs are comparable to each other: the history gate
+
+**Area:** run comparability / display thresholds (no scoring change)
+
+**What changed.** New module `history.py`, consumed by `generate_dashboard.py`
+as a `history` block in the payload. It builds the dashboard's first time
+dimension from the snapshots the data loop already writes, and it introduces
+two thresholds a reader is entitled to check:
+
+| Constant | Value | What it decides |
+|---|---|---|
+| `MIN_RANK_CONTINUITY` | 0.50 | whether a run may join the history at all |
+| materiality | measured p95 of run-to-run abs(rank change), 54 today | whether a move is shown as a mover |
+
+**What did NOT change:** no factor weight, category weight, metric definition,
+trap threshold or scoring formula. Composites and ranks are exactly as before;
+this decides only which past runs are placed beside each other, and which
+differences are large enough to surface.
+
+**Evidence - the exclusion rule.** The snapshot directory contains a run,
+`2026-07-28`, whose ranking bears no relation to its neighbours: Spearman
+**0.016** against the preceding run and **-0.020** against the following one,
+with valuation dispersion 17.2 against a trailing median of 23.9. It predates
+`scripts/check_run_health.py`, so nothing blocked it. Diffed naively it reports
+**411 of 501 stocks (82%) moving more than 50 ranks**. A "biggest movers" panel
+built without a gate would have led with pure artifact.
+
+Measured over all 19 consecutive pairs in the directory, the 17 clean pairs
+span **0.882 to 1.000** - the lowest being a 12-day gap, with a 29-day gap
+still at 0.951 - and the only two breaks are the pair either side of
+`2026-07-28`. **Any threshold between 0.05 and 0.87 classifies every observed
+run identically**, so 0.50 sits in the middle of an empty region rather than
+being fitted to one run.
+
+**Evidence - why not the existing dispersion rule.** The first implementation
+reused `check_run_health`'s "dispersion >20% below the trailing median". On the
+real directory it excluded **16 of 20 runs**. Two causes, both worth recording:
+risk-score dispersion has drifted legitimately from 26.7 (February) to 19.5
+(August), and a history that baselines only on *kept* runs freezes its own
+reference, so one exclusion cascades into excluding everything after it.
+Dispersion remains correct at publish time, where the pipeline maintains a
+baseline over every run. It is the wrong gate for judging comparability
+*between* runs.
+
+**Evidence - the materiality threshold.** Pooled over 13 consecutive clean
+pairs (6,515 ticker-pairs), the distribution of absolute rank change between
+runs is p50 **7**, p90 **36**, p95 **54**. Moves below that are ordinary
+variation, so the panel surfaces only moves beyond p95 and says so on screen
+with the sample size. The number is recomputed from the history at each build
+rather than frozen.
+
+**Evidence - round-trip flagging.** MNST's `return_12_1` percentile read 97.1
+on 08-20, **2.9** on 08-21 and 08-24, then 97.1 again on 08-25, while its price
+went 47.5 -> 48.9. A momentum score cannot cross 94 percentile points and back
+on a 3% price move; the twelve-month return failed to compute for two runs.
+Crucially it is **not** NaN - `factor_engine` correctly excludes missing
+metrics via `na_option="keep"` and the `has_data` mask - so it is a *computed*
+value from bad price history, and nothing downstream can distinguish it from a
+real collapse.
+
+On the 2026-08-25 run, **all 10** material one-day movers were excursions that
+returned to base; over ~1 month, **169 of 193** were genuine trends. Movers
+matching that signature are labelled `round-trip` rather than hidden, and the
+default comparison is the ~1-month window rather than the previous run.
+
+**Expected effect.** No stock's score or rank changes. The dashboard gains a
+movers panel, a rank-delta column and a per-stock rank history. Two of 20
+stored runs are excluded from the history, and both exclusions are printed on
+the page with their reason.
+
+**Validated by:** `tests/test_history.py` (31 tests), including a regression
+that fails if `2026-07-28` ever rejoins the series and one that fails if the
+gate becomes over-eager and rejects most real runs - the failure mode the first
+implementation actually had. Plus `tests/test_dashboard_js.py` (12 tests).
+Suite 596 -> 627, no pre-existing failures.
+
+**Backtest observation:** none - benched until 2027-02-11 per rule 5. None of
+the numbers above are forward returns or ICs; they are properties of the stored
+snapshots, so rule 4 does not apply either.
+
+**Rollback:** delete the `history` key from `dashboard_json` and the
+`sec-changed` section; nothing else reads `history.py`.
+
+**Open defect found while doing this, not fixed.** The MNST and FCX round-trips
+are a real data-quality bug: a metric whose inputs fail transiently is scored
+at an extreme percentile rather than being treated as missing. That silently
+moves a stock ~100 ranks and, unlike a NaN, is invisible to every existing
+check. Worth its own session - the movers panel is now the instrument that
+makes it visible.
