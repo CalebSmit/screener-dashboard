@@ -1,4 +1,4 @@
-# Morning Brief - Monday 24 August 2026, 06:21
+# Morning Brief - Monday 24 August 2026, 22:06
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,9 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `b99158b log: evening session - priority 1 closed, tomorrow's evidence path de-risked`
+- `8a87b3e fix: the screener refuses to fabricate data when the network is down`
+- `30ee3c5 brief: code session 2026-08-24`
 - `a118727 docs: priority 0 is done; record the evidence and what has not changed`
 - `5200fec fix: report effective observations, not the raw row count`
 - `8cc18d9 data: repair the evidence base, and the 1-month backfill it unblocks`
@@ -27,51 +30,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-08-24 - PRIORITY 0, all five steps. The number finally moved: 3 rows -> 23.
+> 2026-08-24 (evening) - Priority 1 closed: the screener no longer fabricates data
 > 
-> **Health numbers:** last code session **ran and shipped** (2026-08-21 06:16,
-> `good/2026-08-21-0616`); data loop **published** 02:11 today, HEALTH: PASS, 501
-> scored, 100% price coverage; evidence base **3 rows, newest 2026-02-22, 0
-> effective observations at the `1m` optimization horizon** -> now **23 rows,
-> newest 2026-08-14, 2 effective at `1m`**; priority 0 **FIXED**.
+> Owner-run session. Asked to make the routine work as well as it can going
+> forward, on the evening after priority 0 landed.
 > 
-> **Tests:** before 560/560, after **590/590**
-> **Data loop:** healthy - `logs/datarun-2026-08-24_020001.log` ends "Data loop
-> complete", HEALTH: PASS, 0 fetch failures, 0 synthetic substitutions.
+> **Health numbers:** last code session **ran and shipped** (06:21 today,
+> `good/2026-08-24`); data loop **published** 02:11, HEALTH: PASS; evidence base
+> **23 rows, newest 2026-08-14, 2 effective at the `1m` horizon**; priority 0
+> **DONE**.
 > 
-> ### Swapped the rotation focus, deliberately
-> 
-> Today was scheduled as **research**. I did not do research. `CLAUDE.md` priority
-> 0 says the first session must fix the forward-return bug ahead of any rotation
-> focus, the nightly prompt repeats that override, rule 8's three-session trigger
-> had fired (the evidence numbers had not moved on 08-13, 08-21 or 08-21-later),
-> and the previous session named step 5 as the single next thing. Three separate
-> rules pointed at the same work. **No research note today**; Monday's slot is
-> owed one, and the next session should take it.
+> **Tests:** before 590/590, after **596/596**
 > 
 > ### Did
 > 
-> **All five priority-0 steps, plus a sixth defect found while fixing them.**
-> Full detail in `METHODOLOGY_CHANGELOG.md` 2026-08-24. In short:
+> **1. De-risked tomorrow's 02:00 run before it happens.** This morning's session
+> flagged that tonight is the first unattended exercise of the new evidence path,
+> and named the exact log line to expect. Ran both reporting paths by hand:
 > 
-> 1. `compute_forward_returns()` tracks eligibility per `(run_date, horizon)`, so
->    a date is revisited as it ages instead of being frozen at its 7-day state.
-> 2. One snapshot per run date, not one per file.
-> 3. `_effective_observations()` - non-overlapping windows - now feeds every gate.
-> 4. Weekend run dates excluded.
-> 5. `record_run_snapshot()` calls `compute_live_ic()` for all three horizons.
-> 6. **New, found while fixing 1:** the price cache is keyed `(start, end)` and
->    `end` was the *current* date. My horizon fix would have turned every
->    revisited snapshot into a fresh full-universe yfinance download - about ten
->    of them in tomorrow's 02:00 run, against the rate limits that already cost
->    the loop 10-25% of its tickers. The fetch window is now bounded by the
->    horizon being measured, so the key is stable.
+> - `data-run.ps1`'s inline snippet prints *"2 effective (6 rows) at the 1m
+>   horizon; 23 rows across all horizons"* - exactly as predicted.
+> - `write_brief.py` prints *"2 of 8 needed at the 1m horizon (6 rows, but
+>   overlapping windows are not independent...)"*.
+> - `compute_forward_returns()` with today's date: **0 new rows in 0.1s, no
+>   fetch triggered.** This was the flagged risk - the bounded-fetch change could
+>   have turned every revisited snapshot into a full-universe download. It does
+>   not.
 > 
-> **Ran the real backfill rather than leaving it to discover itself overnight.**
-> 2,495 new rows, 4 tickers failed out of ~500 (HOLX, CTRA, BK, EA - Yahoo
-> "possibly delisted"). This is why the `1m` horizon has observations at all now.
+> **2. Priority 1 - the synthetic-data fabrication defect, closed at source.**
+> Detail in `METHODOLOGY_CHANGELOG.md` 2026-08-24 (evening). `run_factor_engine()`
+> now exits 2 rather than generating fiction when the network probe fails;
+> `--allow-synthetic` is the deliberate opt-in and labels its own output.
 > 
-> **Fixed both places that report the evidence count to the owner.** This was a
+> Open since 08-06 and gated only downstream, so the scheduled loop was protected
+> and nothing else was.
+> 
+> ### Tried and rejected
+> 
+> **Adding the flag to `cli.py` alone.** That was the first attempt and it was
+> **inert** - `run_screener.py` defines its own `parse_args()` and never imports
+> `cli.py`. `args.allow_synthetic` would not have existed, the `getattr` default
+> would have refused *every* run including the intended opt-in, and the 02:00
+> loop would have failed tomorrow. Caught only because `--help` did not list the
+> new flag. The regression test now asserts the flag on the **live** parser and
+> parses an empty argv through it.
+> 
 > ...
 
 ---
