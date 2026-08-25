@@ -1150,3 +1150,74 @@ Then, in priority order:
 **six more months** of daily running. The fix makes that visible rather than
 fixing it. The old behaviour would have reached "8 observations" much sooner
 and been wrong.
+
+---
+
+## 2026-08-24 (evening) - Priority 1 closed: the screener no longer fabricates data
+
+Owner-run session. Asked to make the routine work as well as it can going
+forward, on the evening after priority 0 landed.
+
+**Health numbers:** last code session **ran and shipped** (06:21 today,
+`good/2026-08-24`); data loop **published** 02:11, HEALTH: PASS; evidence base
+**23 rows, newest 2026-08-14, 2 effective at the `1m` horizon**; priority 0
+**DONE**.
+
+**Tests:** before 590/590, after **596/596**
+
+### Did
+
+**1. De-risked tomorrow's 02:00 run before it happens.** This morning's session
+flagged that tonight is the first unattended exercise of the new evidence path,
+and named the exact log line to expect. Ran both reporting paths by hand:
+
+- `data-run.ps1`'s inline snippet prints *"2 effective (6 rows) at the 1m
+  horizon; 23 rows across all horizons"* - exactly as predicted.
+- `write_brief.py` prints *"2 of 8 needed at the 1m horizon (6 rows, but
+  overlapping windows are not independent...)"*.
+- `compute_forward_returns()` with today's date: **0 new rows in 0.1s, no
+  fetch triggered.** This was the flagged risk - the bounded-fetch change could
+  have turned every revisited snapshot into a full-universe download. It does
+  not.
+
+**2. Priority 1 - the synthetic-data fabrication defect, closed at source.**
+Detail in `METHODOLOGY_CHANGELOG.md` 2026-08-24 (evening). `run_factor_engine()`
+now exits 2 rather than generating fiction when the network probe fails;
+`--allow-synthetic` is the deliberate opt-in and labels its own output.
+
+Open since 08-06 and gated only downstream, so the scheduled loop was protected
+and nothing else was.
+
+### Tried and rejected
+
+**Adding the flag to `cli.py` alone.** That was the first attempt and it was
+**inert** - `run_screener.py` defines its own `parse_args()` and never imports
+`cli.py`. `args.allow_synthetic` would not have existed, the `getattr` default
+would have refused *every* run including the intended opt-in, and the 02:00
+loop would have failed tomorrow. Caught only because `--help` did not list the
+new flag. The regression test now asserts the flag on the **live** parser and
+parses an empty argv through it.
+
+That near-miss is the same shape as the 08-11 `Write-NativeOutput` bug: a change
+that looked right, passed a shallow check, and would have broken the unattended
+run. Verifying through the actual entry point is what caught both.
+
+### Noticed, not fixed
+
+- **`cli.py` is dead code with a live-looking test.** Near-identical parser,
+  imported only by `tests/test_cli.py`. Two parsers that can drift, one of them
+  tested and unused. Reconcile them.
+- **No at-logon catch-up triggers are installed.** Checked tonight: both tasks
+  have exactly one trigger. `scripts/register-tasks.ps1` has never been run, so
+  the dominant failure mode (priority -1: 5 of 11 sessions never fired) is
+  still completely unmitigated. This is the single highest-value thing the
+  owner could do and it is one command.
+
+### Next
+
+Unchanged and now genuinely next: **Monday's research note is still owed** -
+the rotation lost its research day to priority 0 and this session did not
+reclaim it.
+
+Then the heartbeat (no run logged in 48 hours), which remains open from the
+2026-08-21 retrospective and is the other half of the absence problem.
