@@ -50,6 +50,15 @@ MIN_TARGET_COVERAGE = 0.50    # analyst coverage is genuinely patchy; 0% is not
 MAX_DISPERSION_DROP = 0.20    # >20% below trailing median = collapse
 MIN_HISTORY_FOR_CHECK = 3     # need a few prior runs before comparing
 
+# Momentum and risk are 23% of composite weight and every metric in both is
+# derived from one `Ticker.history()` call per stock. Since 2026-08-26 a
+# series that mixes two price scales is rejected outright and those metrics
+# are withheld (factor_engine.check_price_series_integrity), which is right
+# for the one-off case - MNST, 1 of 502 - but would be a silent catastrophe
+# if a Yahoo-side change ever rejected the universe. Dispersion would not
+# catch it: with most stocks NaN it is computed over whatever survives.
+MIN_CATEGORY_COVERAGE = 0.90
+
 
 class Result:
     def __init__(self) -> None:
@@ -133,6 +142,34 @@ def check_coverage(payload: dict, res: Result) -> None:
         )
     else:
         res.note(f"analyst target coverage {targeted}/{n} ({target_cov:.0%})")
+
+    check_price_derived_coverage(payload, res)
+
+
+def check_price_derived_coverage(payload: dict, res: Result) -> None:
+    """Momentum and risk go missing together when a price series is rejected.
+
+    One or two names is the mechanism working. Most of the universe means
+    the upstream feed changed shape, and publishing 23% of the composite as
+    "withheld" across the board is not a screener.
+    """
+    rows = payload.get("table_data") or []
+    if not rows:
+        return
+
+    n = len(rows)
+    for cat in ("momentum", "risk"):
+        key = f"{cat}_score"
+        present = sum(1 for r in rows if r.get(key) is not None)
+        cov = present / n
+        if cov < MIN_CATEGORY_COVERAGE:
+            res.fail(
+                f"only {present}/{n} stocks have a {cat} score "
+                f"({cov:.0%}, need >={MIN_CATEGORY_COVERAGE:.0%}) - "
+                f"price histories are being rejected en masse"
+            )
+        else:
+            res.note(f"{cat} coverage {present}/{n} ({cov:.0%})")
 
 
 def check_dispersion(payload: dict, res: Result) -> None:

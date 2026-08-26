@@ -135,6 +135,69 @@ class TestDispersionRegression:
         assert res.healthy
 
 
+class TestPriceDerivedCoverage:
+    """Momentum and risk are 23% of composite weight and every metric in both
+    comes from one `Ticker.history()` call per stock.
+
+    Since 2026-08-26 a series that mixes two price scales is rejected and
+    those metrics are withheld. One name (MNST, 1 of 502) is the mechanism
+    working; the whole universe means the feed changed shape. Dispersion
+    cannot catch that - with most stocks NaN it is computed over whatever
+    survives.
+    """
+
+    def _blank(self, payload, cat, k):
+        for row in payload["table_data"][:k]:
+            row[f"{cat}_score"] = None
+        return payload
+
+    def test_full_coverage_passes(self):
+        res = h.Result()
+        h.check_price_derived_coverage(_payload(n=100), res)
+        assert res.healthy
+
+    def test_one_rejected_name_is_tolerated(self):
+        """The MNST case must not fail the run."""
+        p = _payload(n=502)
+        for row in p["table_data"][:1]:
+            row["momentum_score"] = None
+            row["risk_score"] = None
+        res = h.Result()
+        h.check_price_derived_coverage(p, res)
+        assert res.healthy
+
+    @pytest.mark.parametrize("cat", ["momentum", "risk"])
+    def test_mass_rejection_fails(self, cat):
+        res = h.Result()
+        h.check_price_derived_coverage(self._blank(_payload(n=100), cat, 50), res)
+        assert not res.healthy
+        assert cat in res.failures[0]
+
+    @pytest.mark.parametrize("cat", ["momentum", "risk"])
+    def test_threshold_boundary(self, cat):
+        """9% missing passes, 11% fails - the gate is at 90%."""
+        res = h.Result()
+        h.check_price_derived_coverage(self._blank(_payload(n=100), cat, 9), res)
+        assert res.healthy
+
+        res = h.Result()
+        h.check_price_derived_coverage(self._blank(_payload(n=100), cat, 11), res)
+        assert not res.healthy
+
+    def test_empty_table_is_not_an_error(self):
+        """check_coverage already fails on an empty payload; this must not
+        raise a second, confusing failure on the way there."""
+        res = h.Result()
+        h.check_price_derived_coverage({"table_data": []}, res)
+        assert res.healthy
+
+    def test_runs_as_part_of_check_coverage(self):
+        """Wired in, not merely present."""
+        res = h.Result()
+        h.check_coverage(self._blank(_payload(n=100), "risk", 50), res)
+        assert not res.healthy
+
+
 class TestPayloadLoading:
     def test_malformed_payload_raises(self, tmp_path):
         (tmp_path / "dashboard_data.js").write_text(
