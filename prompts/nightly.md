@@ -68,7 +68,7 @@ evidence contradicts what this screener currently does. The note must be
 
 **Tuesday - product.** Open the live dashboard as a user would and ask whether
 it answers *what should I look at / should I buy this / should I sell what I
-hold / how much*. **Read `.claude/plan/dashboard-inventory.md` first** - the
+hold / how much*. **Read `plan/dashboard-inventory.md` first** - the
 most likely failure here is rebuilding something that already exists. Ship a
 dashboard change, or write down precisely what it cannot answer and why.
 

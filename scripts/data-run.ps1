@@ -370,6 +370,16 @@ print(f"{ie._effective_observations(at, h)} effective ({len(at)} rows) at "
     # failed run leaves no marker, so a catch-up trigger will retry it.
     [System.IO.File]::WriteAllText($SuccessMarker, $Date)
 
+    # --- Prune local scratch -------------------------------------------------
+    # runs/ and logs/ are gitignored working directories that every run appends
+    # to and nothing ever removed. Measured 2026-08-25, three weeks in: runs/
+    # held 44 directories and 62 MB, growing ~1.4 MB per run. improvement/,
+    # cache/ and validation/ are never touched - see scripts/prune_artifacts.py.
+    # Runs only after a successful publish, so an already-abnormal run never
+    # triggers deletions.
+    $prune = Invoke-Native 'python' @('scripts/prune_artifacts.py')
+    Write-NativeOutput $prune
+
     Write-Log "=== Data loop complete ==="
     exit 0
 }

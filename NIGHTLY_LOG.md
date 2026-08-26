@@ -122,7 +122,7 @@ accepting ~60 MB/month of git growth from the 3 MB payload.
 
 ### Dashboard inventory taken
 
-`.claude/plan/dashboard-inventory.md` records what actually exists, to stop
+`plan/dashboard-inventory.md` records what actually exists, to stop
 sessions rebuilding it. Highlights: `stock_detail` is 2.69 MB of the ~3 MB
 payload and covers all 501 stocks; there are only 3 charts and 1 table; and
 roughly half of `index.html` is an embedded methodology document whose category
@@ -297,7 +297,7 @@ be fixed:
 `backtest.py` documents its own survivorship and look-ahead biases. Now that
 the system validates its own methodology changes, a biased backtest doesn't
 just mislead a reader - it steers the self-improvement loop toward whatever the
-bias favours. See `.claude/plan/backtest-v2.md`; start by *quantifying* how
+bias favours. See `plan/backtest-v2.md`; start by *quantifying* how
 much those two biases are worth here before building anything, since that
 determines how urgent the rest is.
 
@@ -1237,7 +1237,7 @@ failures)
 ### Did
 
 Shipped the dashboard's first **time dimension**. This was gap 1 in
-`.claude/plan/dashboard-north-star.md` ("There is no time dimension. This is
+`plan/dashboard-north-star.md` ("There is no time dimension. This is
 the biggest one... **Start here.**") and priority 2 in `CLAUDE.md`. Three
 surfaces, all fed by a new `history.py` built from the snapshots the data loop
 has been writing all along:
@@ -1334,7 +1334,7 @@ price history, which is why nothing catches it - it moves a stock ~100 ranks
 and looks exactly like a real collapse. The movers panel is now the instrument
 that makes this visible; it found two cases on its first run.
 
-**`.claude/plan/dashboard-inventory.md` is now stale** - it still says "as of
+**`plan/dashboard-inventory.md` is now stale** - it still says "as of
 2026-08-05", lists 3 charts and 1 table, and does not mention the What Changed
 section, the Δ column or the Rank History block. I could not update it: edits
 under `.claude/` are blocked as sensitive in this session. Someone with write
@@ -1360,3 +1360,88 @@ analysis and is wrong. Two demonstrated cases, a reproduction path
 already lives.
 
 Still owed and still slipping: **Monday's research note**, now missed twice.
+
+---
+
+## 2026-08-25 (evening) - Removing the last things that needed a human
+
+Owner-run. Brief: make it run smoothly without being asked daily whether it
+ran, and without needing me to make updates.
+
+**Health numbers:** last code session **ran and shipped** (06:25 today,
+`good/2026-08-25-0625`); data loop **published** 02:11, HEALTH: PASS; evidence
+base **23 rows, newest 2026-08-14, 2 effective at the `1m` horizon**; priority 0
+**DONE**.
+
+**Tests:** before 639/639, after **647/647**
+
+### Did
+
+**1. `plan/` moved out of `.claude/`.** Eight plan files sessions work from
+daily. `.claude/` is blocked as sensitive, so a session could read them and not
+correct them - which is exactly what happened this morning: the session shipped
+the time dimension and then could not mark it shipped in
+`plan/dashboard-inventory.md`. Second occurrence of this shape; `prompts/` was
+moved for the same reason on 08-21. All references updated across nine files.
+
+**2. Refreshed `plan/dashboard-inventory.md`** from the live artifacts, which
+this morning's session was blocked from doing. It claimed "as of 2026-08-05",
+252,191 chars and no time dimension; reality is 270,427 chars, a `history` key
+of 0.25 MB over 18 accepted run dates, and gap 1 closed. Also recorded the two
+things not to undo: the Spearman >= 0.50 comparability gate, and the ~1-month
+default comparison window.
+
+**3. `CLAUDE.md` rule 9 - keep your own docs true.** Now that `prompts/` and
+`plan/` are editable there is no excuse for stale process docs, and the Tuesday
+focus tells the next session to *trust* the inventory. A wrong inventory sends
+it to rebuild something that exists.
+
+**4. `scripts/prune_artifacts.py` + wired into the data loop.** `runs/` and
+`logs/` are gitignored working directories nothing ever removed. Measured
+today: **44 directories, 62 MB**, three weeks in, growing ~1.4 MB per run. That
+is a disk-space failure some months out whose first symptom would be a failed
+run. Keeps the newest 20 runs and 60 logs; **never touches `improvement/`,
+`cache/` or `validation/`** - the evidence base gets *more* valuable with age,
+and `cache/` freshness rules are load-bearing. 8 tests.
+
+### Tried and rejected
+
+Nothing rejected - but the pruner took **three wrong diagnoses** before it
+worked, and all three are now pinned by tests:
+
+- **Husks displaced real runs.** Emptying a directory gives it a fresh mtime,
+  so a newest-first sort ranked husks above populated runs and the second pass
+  deleted the 20 directories the retention count had just protected. Caught by
+  checking the directory count afterwards rather than trusting the script's own
+  "removed 24" line. Nothing of value lost - `runs/` is gitignored scratch and
+  the evidence base was verified intact - but the logic was inverted.
+- **Blamed OneDrive for holding handles.** It was not.
+- **Blamed `Path.iterdir()` leaving a scandir handle open.** Also not.
+- **Actual cause:** OneDrive marks synced directories **read-only**. `os.rmdir`
+  honours that and fails WinError 5 on an already-empty directory, while
+  `rmdir` from Git Bash succeeds because the POSIX layer clears the attribute
+  first. Found by printing the errno instead of guessing a fourth time.
+
+The lesson is the recurring one in this project: the script reported success
+while leaving 44 husks behind. Verifying the *effect* rather than the *report*
+is what caught it, twice.
+
+### Still needs the owner - and only these
+
+1. **Nothing pushes a notification.** The brief is written and pushed after
+   every run and shows staleness prominently, but it must be *looked at*. The
+   zero-credential fix is GitHub -> Watch -> All Activity, which emails on
+   every push; commit subjects already carry the headline numbers. An
+   unattended script cannot send mail without a stored password.
+2. **Stay logged in.** The at-logon catch-up (installed 08-24) covers a reboot,
+   but the tasks are `InteractiveToken` and cannot run with nobody signed in.
+   Settings > Accounts > Sign-in options > "Use my sign-in info to
+   automatically finish setting up after an update or restart" closes this.
+
+### Next
+
+Unchanged: **Monday's research note is still owed** - two sessions have now
+skipped it for higher-priority work, correctly both times, but the debt is real.
+
+Then the heartbeat that complains when no run has been logged in 48 hours,
+still open from the 2026-08-21 retrospective.

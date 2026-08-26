@@ -101,7 +101,7 @@ happen to be in the index today. Until this is fixed, "validated by backtest"
 in this file should be read with suspicion, and IC measurements from the live
 data loop are the more trustworthy evidence.
 
-See `.claude/plan/backtest-v2.md`. This is priority 2 in `CLAUDE.md` for a
+See `plan/backtest-v2.md`. This is priority 2 in `CLAUDE.md` for a
 reason.
 
 ---

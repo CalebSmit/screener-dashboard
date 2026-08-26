@@ -779,7 +779,7 @@ GOVERNANCE (owner direction, 2026-08-11)
   A number carrying the two biases above is not weak evidence - it is evidence
   pointing in an unknown direction. Methodology decisions rest on published
   research and documented professional practice until backtest v2 replaces
-  this. See CLAUDE.md rule 5 and .claude/plan/backtest-v2.md.
+  this. See CLAUDE.md rule 5 and plan/backtest-v2.md.
 --------------------------------------------------------------------------------
 
 To acknowledge these biases and proceed, re-run with:

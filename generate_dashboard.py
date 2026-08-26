@@ -672,7 +672,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
 
     # --- Historical spine: rank/score movement across prior runs ---
     # The dashboard's biggest documented gap is that it has no time dimension
-    # (.claude/plan/dashboard-north-star.md gap 1). `history` supplies it from
+    # (plan/dashboard-north-star.md gap 1). `history` supplies it from
     # the snapshots the data loop already writes. Never let a history problem
     # take down the whole build: a run with no usable history is still a
     # perfectly good snapshot dashboard.

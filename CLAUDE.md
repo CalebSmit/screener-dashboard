@@ -40,7 +40,7 @@ That authority comes with exactly one obligation:
 **Owner direction, 2026-08-11: the first two carry as much weight as the
 third.** Do not stall a well-reasoned, well-sourced methodology change because
 it cannot be backtested yet. The backtest is known-broken (see
-`.claude/plan/backtest-v2.md`) and genuinely independent IC observations accrue
+`plan/backtest-v2.md`) and genuinely independent IC observations accrue
 at roughly one a month, so demanding measured proof up front would freeze the
 project for half a year. Measurement is how a change is *confirmed over time*,
 not the gate it must pass to be made.
@@ -158,7 +158,21 @@ improving.
    moving. **If those two numbers have not moved in three consecutive sessions,
    making them move is that session's work, whatever the rotation says.**
 
-9. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
+9. **You can edit your own instructions and plans - so keep them true.**
+   `prompts/` and `plan/` are ordinary tracked directories, deliberately *not*
+   under `.claude/`, because files there are blocked as sensitive and twice a
+   session was unable to correct its own documentation: the 2026-08-21
+   retrospective could not fix a rotation description it had just replaced, and
+   the 2026-08-25 session could not update `plan/dashboard-inventory.md` after
+   shipping the feature that made it wrong.
+
+   So there is no longer an excuse for stale process docs. If you change the
+   rotation, update `prompts/nightly.md`. If you change the dashboard, update
+   `plan/dashboard-inventory.md` in the same session - the Tuesday focus tells
+   the next session to trust that file, and a wrong inventory sends it to
+   rebuild something that already exists.
+
+10. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
    generator. `index.html` is what Pages serves.
 
@@ -234,7 +248,7 @@ outcome.
 - `factor_engine.py` - metric registry (`METRIC_COLS`, 44 entries), scoring
 - `portfolio_constructor.py` - sector-constrained portfolio construction
 - `improvement_engine.py` - **the methodology learning loop** (see below)
-- `backtest.py` - decile backtest + IC validation. Known-weak; see `.claude/plan/backtest-v2.md`
+- `backtest.py` - decile backtest + IC validation. Known-weak; see `plan/backtest-v2.md`
 - `presets.py` - weighting presets (balanced/value/growth/momentum)
 - `config.yaml` - all tuneable parameters
 - `schemas.py`, `cli.py`, `run_context.py`, `instrumentation.py`
@@ -245,7 +259,7 @@ outcome.
   with all 8 category scores; `stock_detail` covers **all ~500 stocks** (raw
   values, percentiles, per-category `contrib` attribution, peers, price
   targets, financials, provenance) and is ~90% of the payload weight. Check
-  `.claude/plan/dashboard-inventory.md` before building anything "new".
+  `plan/dashboard-inventory.md` before building anything "new".
 
 ### Docs (public-facing - keep truthful)
 - `SCREENER_OVERVIEW.md` - canonical methodology reference
@@ -322,12 +336,12 @@ Owner directive, 2026-08-05: **the dashboard should become the single place to
 look when considering buying or selling a stock.** You have authority to add
 and to delete features. Research before building.
 
-**Read `.claude/plan/dashboard-inventory.md` before touching the dashboard.**
+**Read `plan/dashboard-inventory.md` before touching the dashboard.**
 There is much more in it than a first look suggests - 501-stock detail
 payloads, contribution attribution, sector peers, price targets, provenance,
 and a very large embedded methodology document. The most likely failure mode is
 rebuilding something that already exists. The governing plan is
-`.claude/plan/dashboard-north-star.md`. In short: every element must help answer one of *what
+`plan/dashboard-north-star.md`. In short: every element must help answer one of *what
 should I look at / should I buy this / should I sell what I hold / how much*.
 The dashboard is already strong at evaluating a single name; its real gaps are
 the **absence of any time dimension** and the **absence of a sell-side
@@ -490,7 +504,7 @@ reads them.
 3. **Backtest v2** - the current one has survivorship bias and holds
    fundamentals constant (look-ahead). It cannot honestly validate a
    methodology change, and now that the system validates *itself*, that bias
-   steers the learning loop. `.claude/plan/backtest-v2.md`.
+   steers the learning loop. `plan/backtest-v2.md`.
 4. **Replace the AI chat with generated per-stock summaries** (owner directive
    2026-08-10). The chat needs each visitor to paste their own Anthropic API
    key, which is unusable for an investment club and un-reproducible. Build the
@@ -498,10 +512,10 @@ reads them.
    `pct`, `peers` and price targets, so summaries can be exact, free, identical
    for every viewer, and impossible to hallucinate. Explains *why it ranks
    there*, never *whether to buy*. Plus a run-level overview of what changed.
-   See `.claude/plan/dashboard-north-star.md`.
+   See `plan/dashboard-north-star.md`.
 5. **Sell-side workflow** - client-side watchlist/holdings, deterioration
    flags, review queue. Question 3 is currently unanswerable.
-6. **Investor profile selector** - `.claude/plan/investor-profiles.md`.
+6. **Investor profile selector** - `plan/investor-profiles.md`.
    Reconcile with `presets.py` first. Note `contrib` is Balanced-only.
 7. **Investment-club readiness** - can a student open this on a phone and
    understand what they're looking at?

@@ -83,7 +83,7 @@ def test_no_unescaped_format_placeholders_survived(html):
 ])
 def test_history_ui_hooks_are_present(html, hook):
     """The time dimension is the dashboard's biggest documented gap
-    (.claude/plan/dashboard-north-star.md). If a refactor drops one of these
+    (plan/dashboard-north-star.md). If a refactor drops one of these
     ids the corresponding panel silently renders nothing."""
     assert hook in html
 

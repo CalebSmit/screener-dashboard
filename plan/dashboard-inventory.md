@@ -1,11 +1,17 @@
-# Dashboard inventory (as of 2026-08-05)
+# Dashboard inventory (as of 2026-08-25)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
 something that already exists. Refresh this doc when you materially change the
 layout.
 
-Generated from `index.html` (252,191 chars) and `dashboard_data.js`.
+Generated from `index.html` (270,427 chars) and `dashboard_data.js`.
+
+**Refresh this file whenever you change the layout.** It went stale on
+2026-08-25 because the session that shipped the time dimension could not
+edit it - `.claude/` was blocked as sensitive. The plans now live in
+`plan/` precisely so that cannot happen again; there is no excuse for
+leaving it wrong.
 
 ## Top-level views
 
@@ -44,7 +50,8 @@ correctness fix, not a polish task.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.687 | **90% of the payload.** All 501 stocks |
+| `stock_detail` | 2.682 | **~85% of the payload.** All 501 stocks |
+| `history` | 0.251 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.244 | 501 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.03 | |
 
@@ -67,8 +74,21 @@ Adding history will grow this fast. Lazy-load or downsample - do not ship a
 
 Confirmed against the above, not guessed:
 
-1. **Any time dimension.** No history, no deltas, no trends. Every view is a
-   snapshot. This is the single biggest gap for buy/sell decisions.
+1. ~~Any time dimension.~~ **SHIPPED 2026-08-25.** `history.py` builds a
+   quality-gated spine from `improvement/snapshots/`, surfaced as: a
+   **What Changed** panel under the KPI row (biggest movers each way, inline
+   sparklines, category that moved most), a sortable **delta column** in the
+   universe table, and a **Rank History** block in each stock's drill-down.
+   Payload key `history` (~0.25 MB): `dates`, `series`, `delta`, `movers`,
+   `noise`, `compare`, `excluded`, `available`.
+
+   Two things not to undo. **Runs enter the history only if their ranking
+   correlates with the previous accepted run at Spearman >= 0.50** - the
+   `2026-07-28` degraded run correlates at 0.016/-0.020 and, ungated, reports
+   82% of the universe as material movers. And **the default comparison is the
+   ~1-month window, not the previous run**: measured on this repo's snapshots,
+   every material one-day mover on 2026-08-25 was a round-trip, while 169 of
+   193 one-month moves were genuine trends.
 2. **Any sell-side workflow.** No watchlist, no holdings, no deterioration
    alerts.
 3. **Time-series valuation context.** `pct` is cross-sectional only.
