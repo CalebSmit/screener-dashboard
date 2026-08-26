@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 26 August 2026, 02:11
+# Morning Brief - Wednesday 26 August 2026, 06:23
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `f055475 docs: record the fix, and correct the record it was diagnosed from`
+- `3bf9798 guard: bound the blast radius of a withheld price series`
+- `bdda9a7 fix: refuse a price series that mixes two split scales`
+- `f997570 brief: data run 2026-08-26`
 - `0a61fd4 data: screener run 2026-08-26 - 502 scored, top: HST EXPE APA EIX CF`
 - `a32f390 brief: evening session 2026-08-25`
 - `f2f5c74 chore: remove the last things that needed a human`
@@ -29,56 +33,54 @@ history is in `NIGHTLY_LOG.md`.
 - `0232d40 brief: data run 2026-08-25`
 - `4a0a90f data: screener run 2026-08-25 - 501 scored, top: HST EXPE APA CF EIX`
 - `b149c65 brief: evening session 2026-08-24`
-- `b99158b log: evening session - priority 1 closed, tomorrow's evidence path de-risked`
-- `8a87b3e fix: the screener refuses to fabricate data when the network is down`
 
 ## The session's own account
 
-> 2026-08-25 (evening) - Removing the last things that needed a human
+> 2026-08-26 - SYNTHESIS. How does this fit the rest of the screener?
 > 
-> Owner-run. Brief: make it run smoothly without being asked daily whether it
-> ran, and without needing me to make updates.
+> **Health numbers:** last code session **ran and shipped** (06:25 on 08-25,
+> `good/2026-08-25-0625`); data loop **published** 02:11 today, HEALTH: PASS,
+> 502/502 price coverage; evidence base **23 rows, newest 2026-08-14, 2 effective
+> observations at the `1m` horizon**; priority 0 **DONE**, priority 1.5 **closed
+> today**.
 > 
-> **Health numbers:** last code session **ran and shipped** (06:25 today,
-> `good/2026-08-25-0625`); data loop **published** 02:11, HEALTH: PASS; evidence
-> base **23 rows, newest 2026-08-14, 2 effective at the `1m` horizon**; priority 0
-> **DONE**.
+> **Tests:** before 647/647, after **676/676**
+> **Data loop:** healthy - `logs/datarun-2026-08-26_020001.log` ends "Data loop
+> complete", HEALTH: PASS, 0 fetch failures, 0 synthetic substitutions.
 > 
-> **Tests:** before 639/639, after **647/647**
+> **On the evidence base not moving.** 23 rows / 2026-08-14 / 2 effective is
+> identical to 08-25, which is two consecutive sessions. That is **expected
+> latency, not a stall**: the newest snapshot old enough for a `1w` IC is
+> 2026-08-20, which becomes eligible on 08-27. Snapshots exist for 08-20, 08-21,
+> 08-24, 08-25 and 08-26 and are queued. If the row count has not moved by the
+> 08-27 session, rule 8 bites and that becomes the work.
 > 
 > ### Did
 > 
-> **1. `plan/` moved out of `.claude/`.** Eight plan files sessions work from
-> daily. `.claude/` is blocked as sensitive, so a session could read them and not
-> correct them - which is exactly what happened this morning: the session shipped
-> the time dimension and then could not mark it shipped in
-> `plan/dashboard-inventory.md`. Second occurrence of this shape; `prompts/` was
-> moved for the same reason on 08-21. All references updated across nine files.
+> **Root-caused and fixed priority 1.5 - and the 08-25 diagnosis of it was
+> backwards.**
 > 
-> **2. Refreshed `plan/dashboard-inventory.md`** from the live artifacts, which
-> this morning's session was blocked from doing. It claimed "as of 2026-08-05",
-> 252,191 chars and no time dimension; reality is 270,427 chars, a `history` key
-> of 0.25 MB over 18 accepted run dates, and gap 1 closed. Also recorded the two
-> things not to undo: the Spearman >= 0.50 comparability gate, and the ~1-month
-> default comparison window.
+> MNST's `return_12_1` percentile round-trip (97.1 -> 2.9 -> 97.1) was not a
+> transiently-failing metric. Yahoo's 13-month series for MNST **alternates
+> between pre- and post-split prices** across its 2026-08-11 2:1 split:
 > 
-> **3. `CLAUDE.md` rule 9 - keep your own docs true.** Now that `prompts/` and
-> `plan/` are editable there is no excuse for stale process docs, and the Tuesday
-> focus tells the next session to *trust* the inventory. A wrong inventory sends
-> it to rebuild something that exists.
+> ```
+> 2026-08-05    94.46      <- unadjusted
+> 2026-08-06    47.08      <- adjusted
+> 2026-08-07    90.36      <- unadjusted
+> 2026-08-11    45.53      <- split date
+> ```
 > 
-> **4. `scripts/prune_artifacts.py` + wired into the data loop.** `runs/` and
-> `logs/` are gitignored working directories nothing ever removed. Measured
-> today: **44 directories, 62 MB**, three weeks in, growing ~1.4 MB per run. That
-> is a disk-space failure some months out whose first symptom would be a failed
-> run. Keeps the newest 20 runs and 60 logs; **never touches `improvement/`,
-> `cache/` or `validation/`** - the evidence base gets *more* valuable with age,
-> and `cache/` freshness rules are load-bearing. 8 tests.
+> `auto_adjust=False` returns byte-identical numbers, so no adjustment was ever
+> applied. From today's live `runs/83c9e2e2dd48/00_raw_fetch.parquet` the pipeline
+> divided an unadjusted July close (93.49) by an adjusted 2025 close (62.30):
 > 
-> ### Tried and rejected
+>     published   return_12_1 = +0.5006  -> 97th percentile
+>     correct     return_12_1 = -0.2497  ->  3rd percentile
 > 
-> Nothing rejected - but the pruner took **three wrong diagnoses** before it
-> worked, and all three are now pinned by tests:
+> **So 97.1 was the artifact and 2.9 was right** - the reverse of what
+> `NIGHTLY_LOG.md` 08-25, `history.py` and `CLAUDE.md` priority 1.5 all said.
+> MNST was live on the public site at momentum 71.5, rank 360, roughly **110
 > ...
 
 ---
