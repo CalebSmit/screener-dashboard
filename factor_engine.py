@@ -591,6 +591,104 @@ def _compute_beneish_mscore(d: dict):
     return m_score, (m_score > -2.22)
 
 
+# =========================================================================
+# E½. Price-series integrity (split-scale consistency)
+# =========================================================================
+# Nine of the 44 metrics - the whole risk category and three quarters of
+# momentum - are derived from one `Ticker.history()` call.  Nothing used to
+# check that the series it returns is internally consistent, and on
+# 2026-08-26 it was not: Yahoo's 13-month series for MNST alternated between
+# pre- and post-split prices across its 2026-08-11 2:1 split, so
+# `return_12_1` was computed as (unadjusted July price) / (adjusted 2025
+# price) = +50%, landing MNST in the 97th percentile of momentum when its
+# true split-adjusted 12-1 return was about -25% (3rd percentile).  Setting
+# `auto_adjust=False` returned byte-identical numbers, so the adjustment was
+# never applied at all.  See METHODOLOGY_CHANGELOG.md 2026-08-26.
+#
+# The test below is exact rather than heuristic: it uses the split ratio
+# Yahoo itself reports.  A correctly back-adjusted series contains no day
+# whose close-to-close price ratio is near 1/k or k for a declared split of
+# ratio k - if one does, the series is mixing two price scales.
+
+# Arm the check only for splits big enough to be distinguishable from an
+# ordinary trading day.  Measured 2026-08-26 over 137,313 ticker-days
+# (503 S&P 500 names, 13 months): p99.9 of |daily return| is 17.2% and only
+# 21 days in the whole sample exceed 30%.  A ratio implying a jump smaller
+# than 25% cannot be told apart from real trading, so it is left alone -
+# which excludes the small spin-off "ratios" (SPGI 1.057, HON 1.061,
+# CMCSA 1.067, FDX 1.241, BDX 1.272) that Yahoo also reports as splits.
+_SPLIT_MIN_JUMP = 0.25
+
+# Tolerance in log-price-ratio space.  MNST's seven artifact days sat
+# 0.008-0.041 from the exact 2:1 ratio, so 0.06 catches them with margin
+# while staying far from the 25% arming floor.
+_SPLIT_RATIO_TOL_LOG = 0.06
+
+
+def check_price_series_integrity(closes, splits=None) -> str | None:
+    """Return None if a price series is self-consistent, else why it is not.
+
+    `closes` is the Close column of a yfinance history frame; `splits` is the
+    matching "Stock Splits" column (zero on ordinary days).  When a split of
+    ratio k is declared inside the window, a properly back-adjusted series
+    must not contain a day whose price ratio is close to 1/k (unadjusted) or
+    k (adjusted history against an unadjusted quote).
+
+    Verified 2026-08-26 against all 17 S&P 500 split events of the previous
+    13 months: 11 were large enough to arm the check, and it fired on
+    exactly one - MNST, the known-bad series - with no false positives.
+    """
+    if closes is None or splits is None or len(closes) < 3:
+        return None
+
+    try:
+        ratios = pd.Series(splits).reindex(closes.index).fillna(0.0)
+    except (TypeError, ValueError):
+        return None
+
+    declared = {float(k) for k in ratios.values if pd.notna(k) and k not in (0.0, 1.0)}
+    if not declared:
+        return None
+
+    day_ratio = (closes / closes.shift(1)).dropna()
+    if day_ratio.empty:
+        return None
+    log_day = np.log(day_ratio.where(day_ratio > 0))
+
+    for k in sorted(declared):
+        if k <= 0:
+            continue
+        # The jump an unadjusted series would show, and its mirror image.
+        if abs(1.0 / k - 1.0) < _SPLIT_MIN_JUMP and abs(k - 1.0) < _SPLIT_MIN_JUMP:
+            continue
+        for target in (1.0 / k, k):
+            if abs(target - 1.0) < _SPLIT_MIN_JUMP:
+                continue
+            hits = log_day[(log_day - np.log(target)).abs() <= _SPLIT_RATIO_TOL_LOG]
+            if len(hits):
+                when = ", ".join(str(d.date()) for d in hits.index[:3])
+                return (
+                    f"series mixes pre- and post-split prices across a "
+                    f"{k:g}:1 split - {len(hits)} day(s) move by ~{target:.3g}x "
+                    f"({when}{'...' if len(hits) > 3 else ''})"
+                )
+    return None
+
+
+# Everything computed from the 13-month price history.  When the series
+# fails its integrity check these are all withheld, and `factor_engine`'s
+# existing missing-data path (`na_option="keep"` plus the `has_data` mask in
+# compute_category_scores) renormalises the surviving weights.  `price_latest`
+# is deliberately NOT in this list: it is a single point from the most recent
+# bar, `info["currentPrice"]` takes precedence over it everywhere it is used,
+# and the defect is in relationships *between* prices at different dates -
+# which is exactly what the withheld metrics measure.
+PRICE_SERIES_DERIVED_FIELDS = (
+    "price_1m_ago", "price_6m_ago", "price_12m_ago",
+    "volatility_1y", "_daily_returns", "avg_daily_dollar_volume",
+)
+
+
 def fetch_single_ticker(ticker_str: str, max_retries: int = 3,
                         per_request_delay: float = 0.0) -> dict:
     """Fetch all required data for one ticker via yfinance.
@@ -937,34 +1035,50 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 daily_ret = np.log(closes / closes.shift(1)).dropna()
                 rec["price_latest"] = float(closes.iloc[-1])
 
-                # Calendar-based lookback: find the closest trading day
-                # to each target date instead of using fixed index offsets
-                # (iloc[-22] ≈ 1 month but varies with holidays).
-                last_date = closes.index[-1]
-                for label, delta_days in [("price_1m_ago", 30),
-                                          ("price_6m_ago", 182),
-                                          ("price_12m_ago", 365)]:
-                    target = last_date - pd.Timedelta(days=delta_days)
-                    # Find the closest trading day on or before the target
-                    mask = closes.index <= target
-                    if mask.any():
-                        rec[label] = float(closes.loc[mask].iloc[-1])
-                    else:
-                        rec[label] = np.nan
+                # Refuse to derive metrics from a series that mixes two price
+                # scales.  Withholding them is the honest outcome: the
+                # alternative is a number indistinguishable from analysis that
+                # is wrong by the split ratio.  Repair is not attempted -
+                # MNST's series flipped scale on seven separate days, so there
+                # is no single factor that puts it right.
+                _integrity = check_price_series_integrity(
+                    closes, hist.get("Stock Splits"))
+                if _integrity is not None:
+                    rec["_price_series_rejected"] = _integrity
+                    for _f in PRICE_SERIES_DERIVED_FIELDS:
+                        rec[_f] = np.nan
+                    warnings.warn(
+                        f"{ticker_str}: price history rejected - {_integrity}; "
+                        f"momentum and risk metrics withheld")
+                else:
+                    # Calendar-based lookback: find the closest trading day
+                    # to each target date instead of using fixed index offsets
+                    # (iloc[-22] ≈ 1 month but varies with holidays).
+                    last_date = closes.index[-1]
+                    for label, delta_days in [("price_1m_ago", 30),
+                                              ("price_6m_ago", 182),
+                                              ("price_12m_ago", 365)]:
+                        target = last_date - pd.Timedelta(days=delta_days)
+                        # Find the closest trading day on or before the target
+                        mask = closes.index <= target
+                        if mask.any():
+                            rec[label] = float(closes.loc[mask].iloc[-1])
+                        else:
+                            rec[label] = np.nan
 
-                rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
-                rec["_daily_returns"] = {
-                    dt.strftime("%Y-%m-%d"): v
-                    for dt, v in zip(daily_ret.index, daily_ret.values)
-                }
+                    rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
+                    rec["_daily_returns"] = {
+                        dt.strftime("%Y-%m-%d"): v
+                        for dt, v in zip(daily_ret.index, daily_ret.values)
+                    }
 
-                # Avg daily dollar volume (63 trading days ≈ 3 months)
-                if "Volume" in hist.columns:
-                    dv = hist["Close"] * hist["Volume"]
-                    dv_63 = dv.tail(63).dropna()
-                    rec["avg_daily_dollar_volume"] = (
-                        float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
-                    )
+                    # Avg daily dollar volume (63 trading days ≈ 3 months)
+                    if "Volume" in hist.columns:
+                        dv = hist["Close"] * hist["Volume"]
+                        dv_63 = dv.tail(63).dropna()
+                        rec["avg_daily_dollar_volume"] = (
+                            float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
+                        )
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: price history extraction failed: {type(e).__name__}: {e}")
 
@@ -2078,6 +2192,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # -- Data provenance summary --
         rec["_data_source"] = d.get("_data_source", "unknown")
         rec["_ltm_annualized"] = d.get("_ltm_annualized", False)
+        # Why momentum/risk are blank for this name, when they are.
+        rec["_price_series_rejected"] = d.get("_price_series_rejected", None)
         _metric_keys = [
             "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
             "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score",

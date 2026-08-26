@@ -1583,6 +1583,26 @@ def _run_data_quality_checks(df: pd.DataFrame):
                    f"Revenue TTM = ${r/1e6:.0f}M vs prior ${rp/1e6:.0f}M ({r/rp*100:.0f}%)",
                    "Flagged for manual review")
 
+    # Rejected price series (see factor_engine.check_price_series_integrity).
+    # Reported separately from "missing metric" because the cause is
+    # different and actionable: the upstream series mixed two price scales,
+    # so 23% of composite weight (momentum 13 + risk 10) was withheld rather
+    # than computed wrong.
+    if "_price_series_rejected" in df.columns:
+        rej = df["_price_series_rejected"]
+        rej_mask = rej.notna() & (rej.astype(str).str.len() > 0)
+        n_rej = int(rej_mask.sum())
+        if n_rej:
+            print(f"\n  !! {n_rej} ticker(s) had their price history rejected; "
+                  f"momentum and risk withheld:")
+            for idx in df.index[rej_mask]:
+                tkr = df.at[idx, "Ticker"]
+                print(f"       {tkr}: {rej.at[idx]}")
+                dq_log(tkr, "price_series_rejected", "High",
+                       str(rej.at[idx]),
+                       "Momentum and risk metrics withheld; "
+                       "remaining category weights renormalized")
+
     # Missing critical metrics (vectorized)
     critical = ["ev_ebitda", "roic", "return_12_1"]
     for col in critical:
