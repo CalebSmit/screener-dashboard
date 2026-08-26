@@ -467,21 +467,49 @@ reads them.
    happens upstream in `run_screener.py` / `factor_engine.py` and should be
    fixed at source: refuse, or exit non-zero, rather than emitting fiction that
    looks like analysis. This is a credibility bug, not a robustness nicety.
-1.5. **A transiently-failing metric is scored at an extreme percentile
-   instead of being treated as missing.** Found 2026-08-25 by the new movers
-   panel, on its first run. MNST's `return_12_1` percentile read 97.1 on 08-20,
-   **2.9** on 08-21 and 08-24, then 97.1 again on 08-25 - while its price went
-   47.5 -> 48.9. FCX's growth score did the same (68.3 -> 42.5 -> 68.3).
+1.5. **DONE 2026-08-26 - and the 08-25 diagnosis was backwards.** Found
+   2026-08-25 by the movers panel; root-caused and fixed 2026-08-26. Changelog
+   2026-08-26; `tests/test_price_series_integrity.py`, 21 tests.
 
-   This is **not** the NaN path: `factor_engine` handles missing metrics
-   correctly (`na_option="keep"` plus the `has_data` mask, which renormalises
-   the weights). It is a *computed* value derived from bad price history, so it
-   is indistinguishable from a real collapse and every existing check passes it
-   through. It moves a stock roughly 100 ranks.
+   The cause was not a transient failure. Yahoo's 13-month series for MNST
+   **alternates between pre- and post-split prices** across its 2026-08-11 2:1
+   split (94.46 / 47.08 / 90.36 on consecutive days), and `auto_adjust=False`
+   returns byte-identical numbers, so no adjustment was ever applied. The
+   pipeline divided an unadjusted July close (93.49) by an adjusted 2025 close
+   (62.30) and got `return_12_1 = +0.50`, the 97th percentile, against a true
+   split-adjusted **-0.25**, the 3rd percentile.
 
-   Same family as priority 1: output that looks like analysis and is not.
-   Reproduce from `improvement/snapshots/` by comparing `return_12_1_pct`
-   against `price_at_scoring` across consecutive run dates.
+   **So 97.1 was the artifact and 2.9 was correct** - the reverse of what
+   `NIGHTLY_LOG.md` 2026-08-25 and this entry originally said. MNST was live on
+   the public site at momentum 71.5 / rank 360, roughly 110 ranks too high.
+
+   Fixed at source: `factor_engine.check_price_series_integrity()` refuses a
+   series that mixes two split scales and withholds the eight metrics derived
+   from it, which the existing `has_data` renormalisation already handles.
+   Verified against all 17 S&P 500 split events of the prior 13 months - one
+   true positive, zero false positives.
+
+   **Two things not to undo.** The 25% arming floor is measured (p99.9 of
+   |daily return| is 17.2% over 137,313 ticker-days); below it a "split ratio"
+   cannot be told apart from an ordinary down day, which is what keeps the
+   small spin-off ratios (SPGI 1.057, HON 1.061) from flagging everything. And
+   `check_run_health`'s `MIN_CATEGORY_COVERAGE = 0.90` bounds the blast radius:
+   withholding one name in 502 is the mechanism working, withholding the
+   universe is a feed change that must not publish.
+
+   **The coherence finding worth carrying forward:** the eight categories are
+   not eight independent bets. Momentum and risk are **23% of composite weight
+   and 100% derived from one `Ticker.history()` call** - momentum's only
+   non-price metric, `proximity_52w_high`, carries weight 0, so a rejected
+   series costs a stock two entire categories.
+
+   **FCX, the other case cited on 08-25, was never a bug.** Its growth score
+   moved 68.3 -> 42.5 -> 68.3 because on 08-24 `forward_eps_growth` and
+   `peg_ratio` were genuinely NaN and growth correctly renormalised over the
+   remaining three metrics. Do not go looking for a defect there. What it does
+   expose is a *product* gap for a Tuesday: the movers panel cannot distinguish
+   "moved on new information" from "moved because two inputs went missing",
+   even though `Composite_Confidence` already carries that fact.
 
 2. **Give the dashboard a time dimension.** **DONE 2026-08-25** - shipped as
    `history.py` plus three surfaces: a "What Changed" movers panel, a sortable

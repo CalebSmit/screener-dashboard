@@ -549,3 +549,168 @@ at an extreme percentile rather than being treated as missing. That silently
 moves a stock ~100 ranks and, unlike a NaN, is invisible to every existing
 check. Worth its own session - the movers panel is now the instrument that
 makes it visible.
+
+> **Diagnosed and fixed 2026-08-26 (entry below).** The cause was not a
+> transient failure: Yahoo's MNST series mixes pre- and post-split prices.
+> Note also that this entry has the direction backwards - the 97.1 reading
+> was the artifact, not the 2.9 one.
+
+---
+
+## 2026-08-26 - A price series that mixes two split scales is refused, not scored
+
+**Area:** metric definitions (momentum, risk) / data integrity
+
+**Changed.** `factor_engine.check_price_series_integrity()` is new and runs on
+every ticker's 13-month price history. When the series is internally
+inconsistent across a declared stock split, the eight metrics derived from it
+are withheld (set NaN) rather than computed:
+
+| Category | Withheld | Kept |
+|---|---|---|
+| momentum | `return_12_1`, `return_6m`, `jensens_alpha` | `proximity_52w_high` |
+| risk | `volatility`, `beta`, `sharpe_ratio`, `sortino_ratio`, `max_drawdown_1y` | - |
+
+Also withheld: `avg_daily_dollar_volume`, so the name drops out of the model
+portfolio's liquidity filter. `price_latest` is deliberately **kept** - it is a
+single point from the most recent bar, `info["currentPrice"]` takes precedence
+over it everywhere it is used, and the defect is in relationships *between*
+prices at different dates, which is exactly what the withheld metrics measure.
+
+No weight, threshold or scoring formula changed. Every stock with a sound price
+series scores identically to yesterday.
+
+**Evidence - the documented failure.** Yahoo's 13-month series for MNST
+alternates between pre- and post-split prices across its 2026-08-11 2:1 split:
+
+```
+2026-08-05    94.46      <- unadjusted
+2026-08-06    47.08      <- adjusted
+2026-08-07    90.36      <- unadjusted
+2026-08-11    45.53      <- split date
+```
+
+`auto_adjust=True` and `auto_adjust=False` return **byte-identical** values, so
+no adjustment was ever applied. From `runs/83c9e2e2dd48/00_raw_fetch.parquet`
+(today's live run) the pipeline read `price_1m_ago = 93.49` (an unadjusted July
+close) and `price_12m_ago = 62.30` (an adjusted 2025 close), giving
+
+    return_12_1 = (93.49 - 62.30) / 62.30 = +0.5006     -> 97th percentile
+
+against a true split-adjusted value of
+
+    return_12_1 = (46.74 - 62.30) / 62.30 = -0.2497     -> 3rd percentile
+
+MNST was published at momentum 71.5 and rank 360 on that basis. The error is
+worth roughly **110 composite ranks**, and it was live on the public site.
+
+**Evidence - calibration, measured 2026-08-26.** The check is exact rather than
+heuristic: it uses the split ratio Yahoo itself reports, and asks whether any
+day's close-to-close price ratio sits near `1/k` or `k`. Two numbers set it:
+
+- **Arming floor, 25%.** Over **137,313 ticker-days** (503 S&P 500 names, 13
+  months) p99.9 of |daily return| is **17.2%** and only **21 days in the whole
+  sample** exceed 30%. A ratio implying a jump smaller than 25% cannot be told
+  apart from ordinary trading, so it is left alone. This is what stops the
+  small spin-off "ratios" Yahoo also reports as splits (SPGI 1.057, HON 1.061,
+  CMCSA 1.067, FDX 1.241, BDX 1.272) from flagging every routine down day.
+- **False-positive rate, zero.** Run against **all 17 real S&P 500 split events
+  of the previous 13 months**: 11 were large enough to arm the check, and it
+  fired on exactly one - MNST - passing AMCR, BDX, BKNG, CVNA, CMCSA, CRWD, DD
+  (twice), FDX, HON (twice), KLAC, NFLX, SPGI, NOW and TPL, plus volatile
+  controls including MRNA's genuine +177% single-day move.
+
+**Why withhold rather than repair.** MNST's series flips scale on **seven**
+separate days (2026-07-20, 07-23, 07-31, 08-03, 08-06, 08-07, 08-11), so there
+is no single factor that puts it right. Withholding routes the problem into
+machinery that already exists and is already trusted: `na_option="keep"` plus
+the `has_data` mask in `compute_category_scores` renormalises the surviving
+weights, so a missing category is neutral - the stock neither gains nor loses
+from it.
+
+**The synthesis finding - what this says about the screener as a whole.** The
+eight categories are not eight independent bets. **Momentum and risk together
+are 23% of composite weight (13 + 10), and every metric in both is derived from
+one `Ticker.history()` call per stock.** Nothing checked that call's output for
+internal consistency, so a single upstream defect could - and did - corrupt
+almost a quarter of the composite for a name while every existing guard passed
+it: `check_run_health` saw 100% price coverage and normal dispersion, and
+winsorization *hid* the severity rather than catching it (MNST's raw
+`volatility_1y` was **1.77**, capped to 0.845, which merely made Monster
+Beverage look as volatile as SMCI).
+
+A second, smaller coherence finding, now pinned by a test: momentum's only
+non-price metric, `proximity_52w_high`, carries
+`metric_weights.momentum.proximity_52w_high: 0` as a Phase 11 candidate. So on
+paper a rejected series costs momentum 3/4 of its inputs; in practice the
+renormalised weight sum is zero and the category goes NaN. **A rejected price
+series costs a stock two entire categories, not one and a fraction.**
+
+**Blast-radius guard.** Because withholding is now possible, a Yahoo-side change
+that rejected the universe would publish a screener with 23% of the composite
+blank, and dispersion could not catch it (with most stocks NaN it is computed
+over whatever survives). `check_run_health.py` gains
+`MIN_CATEGORY_COVERAGE = 0.90`: a run fails if under 90% of stocks have a
+momentum or a risk score. One rejected name in 502 passes; fifty do not.
+
+**Correction to the record.** `NIGHTLY_LOG.md` 2026-08-25, `history.py`'s
+`round_trip_tickers` docstring and priority 1.5 in `CLAUDE.md` all recorded
+this defect the other way round - that MNST's 2.9 percentile reading on 08-21
+and 08-24 was the artifact and 97.1 was correct. **It is the reverse:** 08-21
+and 08-24 were the two runs that got MNST right. The round-trip detector
+shipped on 08-25 was nonetheless correct to flag it, and correct about why - a
+round trip in the ranking is evidence of a data artifact somewhere, whichever
+end of it is wrong. `history.py` and `CLAUDE.md` are corrected in this commit.
+
+**Expected effect.** One stock of 502 (MNST) loses its momentum and risk scores
+until Yahoo's series is repaired, and drops out of the model portfolio's
+liquidity filter. Its `Composite_Confidence` falls - measured on a synthetic
+universe, 80.0 -> 61.8 for the same stock with and without the eight metrics -
+so the loss is visible to a dashboard user without any new UI. Its composite
+moves by a couple of points, not tens, because renormalisation is neutral by
+construction. No other stock is affected. Expect roughly **one name a year**:
+17 split events per year in this universe, of which this is the first observed
+failure.
+
+**Validated by:** `tests/test_price_series_integrity.py` (21 tests) and six new
+tests in `tests/test_run_health.py`. Suite **647 -> 668**, no pre-existing
+failures and none introduced. End-to-end against the live feed: MNST's eight
+metrics come back NaN with `proximity_52w_high` (0.971), `ev_ebitda` (32.24)
+and `roic` (0.248) intact, while KO as a control is unchanged.
+
+**Backtest observation:** none - benched until 2027-02-11 per rule 5. Nothing
+above is a forward return or an IC, so rule 4 does not apply either; the
+evidence is a demonstrated failure plus a distributional measurement over
+stored and live price data. MNST's forward returns in
+`improvement/performance_history.csv` were checked and are **not** polluted
+(max 15.9%), so the evidence base needed no repair.
+
+**FCX was not the same defect - and was not a defect.** The 08-25 entry cited
+FCX's growth score (68.3 -> 42.5 -> 68.3) alongside MNST as the same bug. It is
+not. On 2026-08-24 FCX's `forward_eps_growth` and `peg_ratio` were genuinely
+**NaN** - the fetch did not return them - and `compute_category_scores`
+correctly renormalised growth over the remaining three metrics, giving 42.5.
+That is the missing-data path working exactly as designed, and the honest
+number for that day. So priority 1.5 cited two cases: one real scoring bug,
+fixed here, and one instance of correct behaviour.
+
+What FCX does show is a **presentation** gap rather than a scoring one: a stock
+whose category score moves 26 points because two of five inputs went missing
+appears in the movers panel indistinguishably from one that moved on new
+information. `Composite_Confidence` already falls, so the information is
+present but not adjacent to the move. That is a product question for a Tuesday,
+not a defect, and it is recorded here so the next session does not go looking
+for a bug that is not there.
+
+**Known limit, not fixed.** The check only speaks about splits Yahoo declares.
+A corrupted series whose split record is missing entirely would pass. The
+obvious generic detector - "more than one +-30% day in 13 months", which in
+this sample separates MNST (7 days) from every other name (at most 1) - was
+**not** shipped as a gate, because 13 months cannot rule out a genuine crash
+producing repeated 30% days. It is recorded here so a future session can test
+it against a wider window rather than rediscover it.
+
+**Rollback:** `good/2026-08-25-0625`. Removing `check_price_series_integrity`'s
+call site in `factor_engine.py` restores the previous behaviour exactly.
+
+**Applied by:** morning session (manual)

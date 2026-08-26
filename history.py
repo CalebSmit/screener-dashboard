@@ -339,11 +339,27 @@ def round_trip_tickers(kept: list[RunSnapshot], threshold: int) -> set[str]:
     worked example: its ``return_12_1`` percentile read 97.1 on 2026-08-20,
     **2.9** on 08-21 and 08-24, then 97.1 again on 08-25, while its price went
     47.5 -> 48.9. A momentum score cannot travel from the 97th percentile to
-    the 3rd and back on a 3% price move; the underlying twelve-month return
-    failed to compute for two runs. The metric is not NaN - missing metrics are
-    correctly excluded by ``factor_engine``'s ``na_option="keep"`` and
-    ``has_data`` mask - so it is a *computed* value from bad price history, and
-    nothing downstream can tell it apart from a real collapse.
+    the 3rd and back on a 3% price move; the underlying twelve-month return was
+    being computed from a corrupted price series. The metric is not NaN -
+    missing metrics are correctly excluded by ``factor_engine``'s
+    ``na_option="keep"`` and ``has_data`` mask - so it is a *computed* value
+    from bad price history, and nothing downstream can tell it apart from a
+    real collapse.
+
+    **Correction, 2026-08-26.** This docstring originally read "failed to
+    compute for two runs", i.e. that 2.9 was the artifact and 97.1 the truth.
+    It was the other way round. Yahoo's 13-month series for MNST alternates
+    between pre- and post-split prices across its 2026-08-11 2:1 split, so
+    ``return_12_1`` was computed as (unadjusted July price 93.49 - adjusted
+    2025 price 62.30) / 62.30 = **+0.50**, the 97th percentile. The true
+    split-adjusted figure is about **-0.25**, the 3rd percentile - so 08-21
+    and 08-24 were the two runs that got it *right*. Fixed at source by
+    ``factor_engine.check_price_series_integrity``; see
+    METHODOLOGY_CHANGELOG.md 2026-08-26.
+
+    None of this changes the detector below, which was correct to flag MNST
+    and correct about why: a round trip in the ranking is evidence of a data
+    artifact somewhere, whichever end of it is wrong.
 
     The signature is detectable without knowing the cause: over a short window
     the rank made a material excursion and then came back to within noise of

@@ -1445,3 +1445,163 @@ skipped it for higher-priority work, correctly both times, but the debt is real.
 
 Then the heartbeat that complains when no run has been logged in 48 hours,
 still open from the 2026-08-21 retrospective.
+
+---
+
+## 2026-08-26 - SYNTHESIS. How does this fit the rest of the screener?
+
+**Health numbers:** last code session **ran and shipped** (06:25 on 08-25,
+`good/2026-08-25-0625`); data loop **published** 02:11 today, HEALTH: PASS,
+502/502 price coverage; evidence base **23 rows, newest 2026-08-14, 2 effective
+observations at the `1m` horizon**; priority 0 **DONE**, priority 1.5 **closed
+today**.
+
+**Tests:** before 647/647, after **676/676**
+**Data loop:** healthy - `logs/datarun-2026-08-26_020001.log` ends "Data loop
+complete", HEALTH: PASS, 0 fetch failures, 0 synthetic substitutions.
+
+**On the evidence base not moving.** 23 rows / 2026-08-14 / 2 effective is
+identical to 08-25, which is two consecutive sessions. That is **expected
+latency, not a stall**: the newest snapshot old enough for a `1w` IC is
+2026-08-20, which becomes eligible on 08-27. Snapshots exist for 08-20, 08-21,
+08-24, 08-25 and 08-26 and are queued. If the row count has not moved by the
+08-27 session, rule 8 bites and that becomes the work.
+
+### Did
+
+**Root-caused and fixed priority 1.5 - and the 08-25 diagnosis of it was
+backwards.**
+
+MNST's `return_12_1` percentile round-trip (97.1 -> 2.9 -> 97.1) was not a
+transiently-failing metric. Yahoo's 13-month series for MNST **alternates
+between pre- and post-split prices** across its 2026-08-11 2:1 split:
+
+```
+2026-08-05    94.46      <- unadjusted
+2026-08-06    47.08      <- adjusted
+2026-08-07    90.36      <- unadjusted
+2026-08-11    45.53      <- split date
+```
+
+`auto_adjust=False` returns byte-identical numbers, so no adjustment was ever
+applied. From today's live `runs/83c9e2e2dd48/00_raw_fetch.parquet` the pipeline
+divided an unadjusted July close (93.49) by an adjusted 2025 close (62.30):
+
+    published   return_12_1 = +0.5006  -> 97th percentile
+    correct     return_12_1 = -0.2497  ->  3rd percentile
+
+**So 97.1 was the artifact and 2.9 was right** - the reverse of what
+`NIGHTLY_LOG.md` 08-25, `history.py` and `CLAUDE.md` priority 1.5 all said.
+MNST was live on the public site at momentum 71.5, rank 360, roughly **110
+ranks too high**. All three records are corrected in this commit.
+
+Fixed at source: `factor_engine.check_price_series_integrity()` refuses a series
+that mixes two split scales, and the eight metrics derived from it are withheld
+rather than computed. Withholding routes into machinery that already exists -
+`na_option="keep"` plus the `has_data` mask renormalise the surviving weights,
+so a missing category is neutral. Repair was rejected: MNST's series flips scale
+on **seven** separate days, so no single factor puts it right.
+
+### Evidence / research
+
+All measured today; none of it is a forward return, an IC or a backtest number,
+so rules 4 and 5 do not bite.
+
+- **The failure itself**, arithmetically exact against the live run artifact
+  and reproducible from `cache/factor_scores_19c853468405_*.parquet`.
+- **Arming floor, 25%.** Over **137,313 ticker-days** (503 names, 13 months)
+  p99.9 of |daily return| is **17.2%** and only **21 days in the entire sample**
+  exceed 30%. Below a 25% implied jump a "split ratio" cannot be told apart from
+  an ordinary down day - which is what keeps the small spin-off ratios Yahoo
+  also reports as splits (SPGI 1.057, HON 1.061, CMCSA 1.067, FDX 1.241,
+  BDX 1.272) from flagging everything.
+- **False positives: zero.** Run against **all 17 real S&P 500 split events of
+  the prior 13 months** - 11 armed the check, it fired on exactly one (MNST) -
+  plus volatile controls including MRNA's genuine +177% single-day move.
+- **Frequency:** ~17 split events a year in this universe, so expect roughly
+  **one affected name a year**. This is the first observed failure.
+
+### The synthesis - what this says about the screener as a whole
+
+**The eight categories are not eight independent bets.** Momentum and risk
+together are **23% of composite weight (13 + 10), and every metric in both is
+derived from one `Ticker.history()` call per stock.** Nothing checked that
+call's output for internal consistency, so one upstream defect corrupted almost
+a quarter of a stock's composite while every guard passed it:
+`check_run_health` saw 100% price coverage and normal dispersion, and
+**winsorization hid the severity rather than catching it** - MNST's raw
+`volatility_1y` was **1.77**, capped to 0.845, which merely made Monster
+Beverage look as volatile as SMCI.
+
+Second finding, now pinned by a test: momentum's only non-price metric,
+`proximity_52w_high`, carries weight **0** as a Phase 11 candidate. So on paper
+a rejected series costs momentum 3 of 4 inputs; in practice the renormalised
+weight sum is zero and the category goes NaN. **A rejected series costs a stock
+two entire categories, not one and a fraction.**
+
+Because withholding is now possible, `check_run_health.py` gains
+`MIN_CATEGORY_COVERAGE = 0.90` - one rejected name in 502 is the mechanism
+working, fifty is a feed change that must not publish. Dispersion could not
+catch that case: with most stocks NaN it is computed over whatever survives.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-08-26** - "A price series that mixes two
+  split scales is refused, not scored". No weight, threshold or scoring formula
+  changed; every stock with a sound price series scores identically to
+  yesterday.
+
+### Tried and rejected
+
+- **Repairing the series by back-adjusting pre-split prices** - rejected by the
+  data: MNST flips scale on seven days, not once, so there is no single factor
+  that fixes it.
+- **A generic "more than one +-30% day in 13 months" detector** - it separates
+  MNST (7 days) from every other name in the universe (at most 1), which is a
+  clean empty region, but 13 months cannot rule out a genuine crash producing
+  repeated 30% days. Recorded in the changelog rather than shipped as a gate,
+  so a future session can test it against a wider window instead of
+  rediscovering it.
+- **Nulling `price_latest` along with the rest** - rejected: it is a single
+  point from the most recent bar, `info["currentPrice"]` takes precedence over
+  it everywhere, and dropping it would disable valuation metrics that have
+  nothing to do with the defect.
+
+### Corrected, not found
+
+**FCX was never a bug.** The 08-25 entry cited FCX's growth score
+(68.3 -> 42.5 -> 68.3) as the same defect as MNST. It is not: on 08-24
+`forward_eps_growth` and `peg_ratio` were genuinely **NaN** and
+`compute_category_scores` correctly renormalised growth over the remaining
+three metrics. That is the missing-data path working as designed, and 42.5 was
+the honest number for that day.
+
+What it does expose is a **product** gap, not a scoring one: the movers panel
+cannot distinguish "moved on new information" from "moved because two inputs
+went missing", even though `Composite_Confidence` already carries that fact.
+That is a Tuesday question.
+
+### Not done, deliberately
+
+**The published dashboard still shows the old MNST numbers.** I did not
+regenerate it - a code session republishing data would create a second snapshot
+for a date the 02:00 loop already covered, for no gain. The fix takes effect on
+tomorrow's 02:00 data run, after which MNST should show blank momentum and risk
+and a lower `Composite_Confidence`. **Worth checking that it does.**
+
+### Next
+
+**Verify the fix landed on the live site** in tomorrow's run: MNST's momentum
+and risk blank, health check still PASS, and the new `price_series_rejected`
+line in `validation/data_quality_log.csv`. That is a five-minute check, not a
+session.
+
+Then the highest-value work is still infrastructure, unchanged since the
+08-21 retrospective and now the oldest open item: **the scheduled-task
+definitions are not in version control** (`Register-ScheduledTask` appears
+nowhere in the repo), and **nothing watches whether the loop is running** - a
+run that never fires writes no log, so its absence stays invisible.
+
+Still owed: **Monday's research note**, now missed three times. Each session
+skipped it for a demonstrable data-integrity defect, correctly, but the debt is
+real and the rotation is not producing the thing it was designed around.
