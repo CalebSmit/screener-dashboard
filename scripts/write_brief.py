@@ -89,6 +89,15 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
     return "failed", notable
 
 
+# The payload keys this brief reads. Checked at runtime rather than assumed,
+# because every lookup below uses `.get()` with a default: when the dashboard
+# dropped the `portfolio` key on 2026-08-26 the Top 5 row simply stopped being
+# emitted, with no error in the run log and nothing missing that anyone would
+# notice from the page itself. A silently-shortened status page is the same
+# failure shape as a silently-stalled loop.
+PAYLOAD_KEYS = ("kpis", "stock_detail", "table_data")
+
+
 def dashboard_facts() -> dict:
     path = ROOT / "dashboard_data.js"
     if not path.exists():
@@ -99,14 +108,39 @@ def dashboard_facts() -> dict:
     except (OSError, ValueError):
         return {}
     detail = d.get("stock_detail") or {}
-    n = len(detail) or 1
     return {
         "timestamp": d.get("kpis", {}).get("run_timestamp", "?"),
         "scored": d.get("kpis", {}).get("stocks_scored", "?"),
         "priced": f"{sum(1 for v in detail.values() if v.get('price'))}/{len(detail)}",
         "targeted": f"{sum(1 for v in detail.values() if v.get('pt_mean'))}/{len(detail)}",
-        "top5": [h["ticker"] for h in (d.get("portfolio", {}).get("holdings") or [])[:5]],
+        "top5": top5_tickers(d.get("table_data") or []),
+        "missing_keys": [k for k in PAYLOAD_KEYS if k not in d],
     }
+
+
+def top5_tickers(table: list[dict]) -> list[str]:
+    """The dashboard's Top 5, computed the way the dashboard computes it.
+
+    Until 2026-08-26 this read `portfolio.holdings`. That surface was removed
+    that evening and its payload key went with it, so `d.get("portfolio", {})`
+    quietly returned an empty dict, `top5` became `[]`, and the row was
+    dropped. The brief has shipped without a Top 5 line ever since - the single
+    most decision-relevant row on the owner's daily page, gone with no error
+    anywhere, because every step of that path degrades silently.
+
+    Mirrors `renderTop5()` in generate_dashboard.py: trap-flagged names are
+    excluded, then rank order. Keep the two in step - if they disagree, the
+    brief is telling the owner something the dashboard does not show.
+    """
+    ranked = [
+        r for r in table
+        if not r.get("Value_Trap_Flag")
+        and not r.get("Growth_Trap_Flag")
+        and r.get("Rank") is not None
+        and r.get("Ticker")
+    ]
+    ranked.sort(key=lambda r: r["Rank"])
+    return [r["Ticker"] for r in ranked[:5]]
 
 
 OPTIMIZATION_HORIZON = "1m"
@@ -261,10 +295,20 @@ def main() -> int:
     a(f"| Evidence for weight changes | {ic_observations()} |")
     a("")
 
-    if data_notes or code_notes:
+    payload_notes = []
+    if facts.get("missing_keys"):
+        payload_notes.append(
+            "`dashboard_data.js` no longer has: "
+            + ", ".join(f"`{k}`" for k in facts["missing_keys"])
+            + ". Rows above that depend on it are missing from this brief. A "
+            "payload key was probably renamed or removed - see "
+            "`PAYLOAD_KEYS` in `scripts/write_brief.py`."
+        )
+
+    if data_notes or code_notes or payload_notes:
         a("## Things that needed attention")
         a("")
-        for n in dict.fromkeys(data_notes + code_notes):
+        for n in dict.fromkeys(payload_notes + data_notes + code_notes):
             a(f"- {n}")
         a("")
 
