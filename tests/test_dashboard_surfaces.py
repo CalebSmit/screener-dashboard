@@ -226,3 +226,51 @@ def test_about_names_its_source(html):
     block = html[html.index('id="modal-about"'):][:1200]
     assert "Yahoo Finance" in block
     assert re.search(r"not scored", block)
+
+
+# ---------------------------------------------------------------------------
+# 4. Section order and default collapse state (owner request, 2026-08-26 eve)
+# ---------------------------------------------------------------------------
+
+def _section_pos(html: str, sec_id: str) -> int:
+    marker = 'id="%s"' % sec_id
+    assert marker in html, sec_id
+    return html.index(marker)
+
+
+def test_top5_comes_before_what_changed(html):
+    """The owner reads the ranking first and the deltas second. Section order
+    in the emitted HTML *is* the reading order - there is no ordering layer."""
+    assert _section_pos(html, "sec-top5") < _section_pos(html, "sec-changed")
+
+
+def test_what_changed_still_precedes_the_universe_table(html):
+    assert _section_pos(html, "sec-changed") < _section_pos(html, "sec-universe")
+
+
+@pytest.mark.parametrize("sec_id", ["sec-changed", "sec-analytics", "sec-defensibility"])
+def test_collapsed_by_default(html, sec_id):
+    """Owner request: the landing view is Top 5 and the full table. Everything
+    else is one click away rather than scrolled past."""
+    tag = html[_section_pos(html, sec_id) - 200:_section_pos(html, sec_id) + 60]
+    section = tag[tag.rindex("<section"):]
+    assert "collapsed" in section, "%s should be collapsed by default" % sec_id
+
+
+@pytest.mark.parametrize("sec_id", ["sec-top5", "sec-universe"])
+def test_open_by_default(html, sec_id):
+    """These two are the landing view. Collapsing them would leave a visitor
+    looking at nothing but headers."""
+    tag = html[_section_pos(html, sec_id) - 200:_section_pos(html, sec_id) + 60]
+    section = tag[tag.rindex("<section"):]
+    assert "collapsed" not in section, "%s must not be collapsed" % sec_id
+
+
+def test_what_changed_reveal_does_not_fight_the_collapse(html):
+    """`renderChanged()` un-hides the section with `style.display` when history
+    exists. That must not also expand it - the two mechanisms are independent,
+    and clearing `collapsed` there would silently undo the default."""
+    block = html[html.index("function renderChanged()"):]
+    block = block[:block.index("// Range switch")]
+    assert "sec.style.display = ''" in block
+    assert "classList.remove('collapsed')" not in block

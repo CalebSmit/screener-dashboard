@@ -1782,3 +1782,29 @@ tonight - but it is a real trap for a future session.
    descriptions from 2026-08-27. If it does not, the merge in
    `generate_dashboard.load_run_data` is the place to look.
 4. Monday's research note is still owed. Two sessions have skipped it.
+
+### Follow-up, same evening - layout tweaks (owner request)
+
+Three changes to the landing view, all owner-directed:
+
+- **"What Changed" moved below "Top 5 Stocks."** Section order in the emitted
+  HTML *is* the reading order - there is no ordering layer - so this is a
+  literal move of the markup block.
+- **"What Changed" and "Factor Analytics" now collapsed by default.** The
+  landing view is Top 5 plus the full universe table; everything else is one
+  click away rather than scrolled past. `sec-defensibility` was already
+  collapsed.
+
+**A worry that turned out to be unfounded, checked rather than assumed.**
+Collapsing `sec-analytics` puts two Chart.js canvases inside a container with
+`max-height: 0`, and a chart that initialises at zero size normally stays
+broken after expansion. Measured in the browser: both canvases are 856x320 and
+428x320 *while collapsed*, unchanged after expanding. `overflow: hidden` with
+`max-height: 0` preserves layout width and the canvases keep their explicit
+height, so Chart.js sizes correctly. No workaround needed - and no
+`requestAnimationFrame` hack added on spec.
+
+Pinned by 8 more tests in `tests/test_dashboard_surfaces.py`: section order,
+collapse state per section, and that `renderChanged()` - which un-hides the
+section via `style.display` when history exists - does not also clear
+`collapsed` and silently undo the default. Suite 713 -> 721.

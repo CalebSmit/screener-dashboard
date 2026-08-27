@@ -713,8 +713,19 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- KPI Row -->
         <section class="kpi-row" id="kpi-row"></section>
 
+        <!-- Top 5 Stocks -->
+        <section class="section collapsible-section" id="sec-top5">
+            <div class="section-header" onclick="toggleSection('sec-top5')">
+                <h2 class="section-title" style="margin:0">Top 5 Stocks</h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body">
+                <div class="top5-row" id="top5-row"></div>
+            </div>
+        </section>
+
         <!-- What Changed -->
-        <section class="section collapsible-section" id="sec-changed" style="display:none">
+        <section class="section collapsible-section collapsed" id="sec-changed" style="display:none">
             <div class="section-header" onclick="toggleSection('sec-changed')">
                 <h2 class="section-title" style="margin:0">What Changed</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -738,19 +749,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </section>
 
-        <!-- Top 5 Stocks -->
-        <section class="section collapsible-section" id="sec-top5">
-            <div class="section-header" onclick="toggleSection('sec-top5')">
-                <h2 class="section-title" style="margin:0">Top 5 Stocks</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="section-body">
-                <div class="top5-row" id="top5-row"></div>
-            </div>
-        </section>
-
         <!-- Factor Analytics Section -->
-        <section class="section collapsible-section" id="sec-analytics">
+        <section class="section collapsible-section collapsed" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor Analytics</h2>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
