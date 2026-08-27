@@ -334,7 +334,13 @@ try {
     $headline = "data: screener run $Date"
     $subj = Invoke-Native 'python' @('scripts/commit_subject.py', $Date)
     if ($subj.ExitCode -eq 0) {
-        $line = ($subj.Output | Where-Object { $_ -and $_.Trim() } | Select-Object -Last 1)
+        # Invoke-Native merges stderr, so an element can be an ErrorRecord
+        # rather than a string. ToString() first - calling .Trim() straight on
+        # an ErrorRecord throws, and this runs unattended.
+        $line = ($subj.Output |
+                 ForEach-Object { if ($null -ne $_) { $_.ToString() } } |
+                 Where-Object { $_.Trim() } |
+                 Select-Object -Last 1)
         if ($line -and $line.Trim().StartsWith('data:')) { $headline = $line.Trim() }
     }
 

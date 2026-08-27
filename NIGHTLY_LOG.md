@@ -1874,3 +1874,40 @@ consumers outside the front end - shell scripts included - before deleting a
 key.
 
 Suite 721 -> 733.
+
+### Scheduled-run audit (end of session)
+
+Owner asked for confirmation that future runs fire cleanly. Everything below
+was checked against the live machine, not inferred from the scripts.
+
+| Check | Result |
+|---|---|
+| Task Scheduler entries | `Screener Data Run` and `Nightly Screener Improvement`, both **Ready** |
+| Last result | both ran 2026-08-26, `LastTaskResult=0` |
+| Next run | 2026-08-27 02:00 and 06:00 |
+| Triggers | 2 each: weekly `DaysOfWeek=62` (Mon-Fri) + logon catch-up, both enabled |
+| Settings | `StartWhenAvailable=True`, `WakeToRun=True`, `Enabled=True` |
+| Registered vs version control | actions, times and days match `scripts/register-tasks.ps1` exactly - no drift |
+| Neither task passes `-Refresh` | correct; a warm start is the normal cheap path |
+| Success markers | `.datarun-last-success` and `.nightly-last-success` both `2026-08-26`, **no BOM**, so tomorrow's date differs and neither run-once guard blocks |
+| Lock files | none left behind |
+| Script syntax | `data-run.ps1`, `nightly-screener.ps1`, `register-tasks.ps1`, `fix-trust.ps1` all parse via `Parser::ParseFile` |
+| Nightly preflight | `git`, `python`, `claude` all resolve on PATH; both prompt templates present; folder trust `hasTrustDialogAccepted=true` for both path spellings in `.claude.json` |
+| Next sessions | 08-27 Thu = BUILD, 08-28 Fri = normal (ISO week 35 is odd, so not a retrospective), 08-31 Mon = RESEARCH |
+
+**One hardening made.** The new commit-subject call reads `Invoke-Native`'s
+`.Output`, which merges stderr - so an element can be an `ErrorRecord`, and
+calling `.Trim()` straight on one throws. Now goes through `.ToString()` first.
+Verified both paths in a real PowerShell process: the good path returns
+`data: screener run 2026-08-27 - 502 scored, top: HST EXPE APA EIX CF`, and a
+deliberately missing script falls back to the plain subject at exit 2 without
+throwing.
+
+**Two things checked and found to be non-issues**, recorded so nobody re-opens
+them: `output/` is gitignored and empty, so the `Permission denied` seen during
+a `git stash -u` cannot affect the runners (data-run stages explicit paths, and
+`git checkout -- .` only touches tracked files); and `SCREENER_OVERVIEW.md` is
+already in `$DataArtifacts`, so the overview being regenerated every run does
+not leave a dirty tree - tonight's run confirmed it empirically.
+
+The local preview server on :8931 was stopped and the port confirmed free.
