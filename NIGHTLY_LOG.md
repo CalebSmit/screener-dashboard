@@ -1808,3 +1808,69 @@ Pinned by 8 more tests in `tests/test_dashboard_surfaces.py`: section order,
 collapse state per section, and that `renderChanged()` - which un-hides the
 section via `style.display` when history exists - does not also clear
 `collapsed` and silently undo the default. Suite 713 -> 721.
+
+### The fresh run, and a bug the fresh run exposed
+
+The owner asked for a full run so the new `about` field would populate.
+
+**It worked: 501/502 stocks now carry a real business description**, run
+`cc84fe992a17`, HEALTH: PASS, 502/502 price coverage, 498/502 analyst targets,
+all five dispersion checks within tolerance of the trailing median.
+
+**First attempt failed correctly, and that is worth recording.** A plain
+`data-run.ps1 -Force` finished in **5.6 seconds** and was refused by
+`check_run_health` with "no evidence of a live fetch". The `factor_scores`
+cache from the 02:00 run was still inside its 1-day window, so the run
+warm-started. That is the intended behaviour - but it means **a cached run can
+never populate a newly added fetch field**, because the cache predates the
+column. Added a `-Refresh` switch to `data-run.ps1` that passes `--refresh`
+through, rather than hand-running the pipeline and skipping its health gate.
+The scheduled 02:00 run must not set it; a warm start is the normal cheap path.
+
+**A cache worry that turned out to be unfounded.** I expected tonight's cache
+(written ~19:50) to still be inside the 1-day window at 02:00 tomorrow and so
+suppress the scheduled fetch. It will not: `_find_latest_cache` derives the
+cache timestamp from the **date suffix in the filename**, i.e. midnight of that
+calendar day, not the file mtime. At 02:00 on 08-27 the cache reads as 26 hours
+old and the run fetches. No cleanup was needed and none was done. This also
+explains the 19:37 warm start (19.6h) and why 02:00 runs fetch every day.
+
+### The bug: my portfolio removal made every future data commit lie
+
+The 19:38 run committed **`data: screener run 2026-08-26 - 502 scored, top: MAA
+DOC KIM REG UDR`**. The real top five were `HST EXPE APA EIX CF` - unchanged
+from the morning run, Spearman **0.9966** between the two composites, median
+absolute rank move 4.
+
+`data-run.ps1` built that subject by regex over the raw payload: first five
+matches of `"ticker": "XXX"`. The lowercase key belonged to the **model
+portfolio holdings**, which happened to be serialised in rank order. I removed
+that surface earlier tonight, so the same regex began matching the first
+stock's **sector peers** instead. `stock_detail` starts at HST, HST is a REIT,
+its peers are REITs - so the wrong answer read as a plausible all-REIT top five
+and I nearly accepted it as a market move.
+
+Nothing failed. Health passed, the push succeeded, the payload was correct.
+Only the audit trail lied. **The same failure shape this repo keeps
+rediscovering: the system reporting success while producing garbage** - and
+this time I introduced it, and caught it only because the committed headline
+disagreed with what I already knew the top five to be.
+
+Replaced with `scripts/commit_subject.py`, which loads the payload and sorts
+`table_data` by `Rank`. It cannot be fooled by key casing, serialisation order,
+or a lowercase `ticker` key appearing elsewhere, and on any error it prints an
+*uninformative* subject rather than a wrong one - a crash there must never stop
+a healthy run publishing. 9 tests in `tests/test_commit_subject.py`, including
+a fixture whose peer block reproduces the exact trap and a check that
+`data-run.ps1` never scrapes `"ticker":` again.
+
+**Commit `d6074a9` keeps its wrong subject.** Rule 2 - history on `main` is
+never rewritten - and the correction lives here and in the changelog instead.
+
+**The general lesson, worth carrying:** removing a payload key is not a
+self-contained change. Anything that *pattern-matches* the payload rather than
+parsing it can silently re-aim at a different key of the same name. Grep for
+consumers outside the front end - shell scripts included - before deleting a
+key.
+
+Suite 721 -> 733.

@@ -64,3 +64,12 @@ which metrics overlap, and how the eight categories fit together is what the
 research rotation is for, and it is driven by published research and
 professional practice rather than by requests. If you *want* a specific factor
 researched, though, say so — that is a legitimate item.
+
+- **2026-08-26 — Layout: Top 5 first, two sections collapsed.** "What Changed"
+  moved below "Top 5 Stocks"; both it and "Factor Analytics" now start
+  collapsed, so the landing view is the Top 5 plus the full table and
+  everything else is one click away.
+
+- **2026-08-26 — Full fresh run to load the descriptions.** Ran with a forced
+  refetch; 501 of 502 stocks now carry a real business description on the live
+  site.
