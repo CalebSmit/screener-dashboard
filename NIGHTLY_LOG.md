@@ -2086,22 +2086,34 @@ defect. Every stock scores today exactly as it did yesterday.
   Git no longer lists it as a worktree and `git status --porcelain` is clean of
   it, so no gate is affected; it is untracked internal metadata that will prune
   when the lock releases.
-- **The workflow has never actually executed.** It cannot until it is on
-  `main`, since GitHub only runs scheduled workflows from the default branch.
-  The YAML parses, the embedded JavaScript passes `node --check`, and 9 static
-  tests pin the schedule, permissions, fetch-depth and issue-handling
-  behaviour - but the first real proof is its first scheduled run. **Next
-  session: check the Actions tab.**
 - The double-publish trap flagged on 08-26 is untouched and still real.
+
+### Verified after merging, not left to the next session
+
+The workflow could not run until it was on `main` - GitHub only runs scheduled
+workflows from the default branch - so it was merged and then **dispatched
+manually**. Run
+[33066665935](https://github.com/CalebSmit/screener-dashboard/actions/runs/33066665935)
+is green in 11s, all five steps passing, and no issue was opened, which is the
+correct behaviour at verdict `ok`.
+
+**The part local tests could not prove.** GitHub's runner is UTC and fired at
+`11:16Z`; the checker reported *"Loop health as of 2026-08-27 06:16 (scheduling
+timezone)"* and found both heartbeats. The offset self-calibration from the
+newest commit works in CI, and `fetch-depth: 0` gives it the history it needs -
+the two things most likely to have been wrong in an environment I cannot run
+locally. CI output is identical to local output.
+
+The run raised a Node 20 deprecation annotation, so the three actions were
+bumped to their current majors (`checkout@v7`, `setup-python@v7`,
+`github-script@v9`) and re-verified rather than left to fail later.
 
 ### Next
 
-1. **Confirm the watchdog ran.** Its first scheduled firing is 23:00 UTC today.
-   Check the Actions tab; a green run with verdict `ok` is the proof. If it
-   failed, the likely causes are Actions being disabled on the repo or the
-   default `GITHUB_TOKEN` lacking issue permission.
-2. **Monday's research note, now missed four times.** Every skip has been for a
+1. **Monday's research note, now missed four times.** Every skip has been for a
    demonstrable defect and each was the right call in isolation, but the
    rotation is not producing the thing it was designed around. This is the
    oldest real debt in the project and it should outrank a fifth firefight.
-3. Per-category trend lines over the full history (priority 2's remainder).
+2. Per-category trend lines over the full history (priority 2's remainder).
+3. Confirm the watchdog's first *scheduled* firing (23:00 UTC weekdays) also
+   went green - the manual dispatch proves the job, not the cron.
