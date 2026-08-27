@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 27 August 2026, 02:13
+# Morning Brief - Thursday 27 August 2026, 06:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -13,10 +13,16 @@ history is in `NIGHTLY_LOG.md`.
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
+| Top 5 | HST, EXPE, EIX, APA, CF |
 | Evidence for weight changes | 3 of 8 needed at the 1m horizon (7 rows, but overlapping windows are not independent; 25 rows across all horizons), newest 2026-08-20 |
 
 ## What changed in the repo
 
+- `3175da4 watch: verify the workflow on GitHub, and bump the actions off Node 20`
+- `1af2643 docs: both priority -1 infrastructure items are done; correct the record`
+- `0fda98d fix: the morning brief lost its Top 5 when the portfolio key was removed`
+- `c05faf6 watch: report a loop that stops firing, from outside the machine`
+- `c52abb3 brief: data run 2026-08-27`
 - `8e021ab data: screener run 2026-08-27 - 502 scored, top: HST EXPE EIX APA CF`
 - `42c278d harden: ToString() the commit-subject output before trimming it`
 - `9273625 fix: the data-run commit subject named sector peers, not the top five`
@@ -27,59 +33,54 @@ history is in `NIGHTLY_LOG.md`.
 - `253be1d product: remove the model portfolio, give each stock an "about"`
 - `9bed64f brief: code session 2026-08-26`
 - `f055475 docs: record the fix, and correct the record it was diagnosed from`
-- `3bf9798 guard: bound the blast radius of a withheld price series`
-- `bdda9a7 fix: refuse a price series that mixes two split scales`
-- `f997570 brief: data run 2026-08-26`
-- `0a61fd4 data: screener run 2026-08-26 - 502 scored, top: HST EXPE APA EIX CF`
-- `a32f390 brief: evening session 2026-08-25`
 
 ## The session's own account
 
-> 2026-08-26 (evening) - Owner-directed: the model portfolio leaves the dashboard, stocks gain an "about"
-> 
-> **Not a scheduled session.** The owner asked for two specific changes in an
-> interactive session and, separately, asked *how he is supposed to tell this
-> routine what to focus on*. That question turned out to be the most important
-> part of the evening: until tonight there was no answer. See "The channel" below.
+> 2026-08-27 - BUILD. The watchdog moves outside the thing it was watching.
 > 
 > ### Health numbers (rule 8)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-26_060001.log` - ran, shipped to main, tagged `good/2026-08-26` |
-> | Data loop published? | `logs/datarun-2026-08-26_020001.log` - HEALTH: PASS, 0 fetch failures, 502 scored, published |
-> | Evidence base | **23 rows, newest 2026-08-14, 2 effective observations at `1m`** (6 raw) |
-> | Priority 0 | Fixed 2026-08-24, still holding |
+> | Last code session ran? | `logs/nightly-2026-08-26_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-08-27_020001.log` - "Data loop complete", HEALTH: PASS, 0 fetch failures, 502/502 price coverage |
+> | Evidence base | **25 rows, newest 2026-08-20, 3 effective observations at `1m`** (7 raw) |
+> | Priority 0 | Fixed 2026-08-24, holding |
 > 
-> The evidence base has not moved since 08-24 by row count. The 08-26 morning
-> session recorded why: the next eligible snapshot becomes computable on
-> **2026-08-27** with five queued behind it, and wrote itself a tripwire - if the
-> count has not moved by tomorrow's session, rule 8 bites and that becomes the
-> work regardless of rotation. **That tripwire is still armed and this session
-> did not touch it.** Tomorrow: check `live_ic_history.csv` first.
+> **Tests:** before 733/733, after **791/791**
+> **Data loop:** healthy
 > 
-> ### The channel (the part worth keeping)
+> **The 08-26 tripwire is released.** The previous two sessions read "23 rows,
+> newest 2026-08-14, 2 effective at `1m`" and armed rule 8: if it had not moved
+> today, making it move was today's work regardless of rotation. It moved -
+> **23 -> 25 rows, 2 -> 3 effective at `1m`** - so the 08-24 fix is accruing
+> evidence as predicted and the rotation stood. Independent 1-month observations
+> still arrive about one a month; 3 of 8 is roughly five more months.
 > 
-> The owner had no way to direct this routine. `CLAUDE.md` priorities are written
-> *by sessions, for sessions*; the weekly rotation is fixed; and he is explicitly
-> not reading diffs. So a request like tonight's could only ever reach the system
-> by him opening a chat and asking - which does not scale and leaves no record.
+> ### First, the five-minute check the last session asked for
 > 
-> `OWNER_FOCUS.md` is now that channel: plain English, **Open** and **Done**
-> headings, read during Orient *before* the rotation is consulted. Open items
-> outrank the day's nominal focus. Only two things outrank an owner item - a
-> stalled data loop and the ship gates - and the prompt now requires a session
-> that defers one to *say so in the log*, because an unmentioned deferral is
-> indistinguishable from an ignored request.
+> **The MNST price-series fix landed on the live site.** Confirmed in today's
+> 02:00 run rather than assumed:
 > 
-> Wired into `prompts/nightly.md` (step 1) and `CLAUDE.md`. Pinned by
-> `tests/test_owner_focus.py` (7 tests) - including that the reference appears
-> between "## 1. Orient" and "## 2. Baseline", so it cannot drift to a position
-> after the work is already chosen. **A silent channel looks exactly like an
-> empty one**, which is the same shape as the evidence base sitting at 3 rows for
-> 183 days while every run reported success.
+> - `validation/data_quality_log.csv` carries the first-ever
+>   `price_series_rejected` row - MNST, "series mixes pre- and post-split prices
+>   across a 2:1 split - 4 day(s) move by ~0.5x".
+> - The published payload has `momentum_score: null` and `risk_score: null` for
+>   MNST, and `return_12_1`/`return_6m`/`volatility`/`beta` all null in `raw`.
+> - MNST moved rank **360 -> 370**, in the direction the correction implies.
+> - `check_run_health` still PASS: one withheld name in 502, which is
+>   `MIN_CATEGORY_COVERAGE = 0.90` doing its job rather than tripping.
 > 
-> While in `prompts/nightly.md` I also corrected two stale claims it was still
+> ### Did - 1. A watchdog that is not inside the thing it watches
+> 
+> `CLAUDE.md` priority -1 listed two open infrastructure items. **One of them was
+> already done and the file did not know.** `scripts/register-tasks.ps1` shipped
+> 2026-08-21 (commit `33f3ca7`), yet the priority section, `ACTION_REQUIRED.md`
+> and a research note all still asserted that `grep -rn "Register-ScheduledTask"
+> .` "finds nothing". It finds it at `scripts/register-tasks.ps1:111`. Corrected
+> in all three places - rule 9.
+> 
+> The second item was real, and is the session's work: **nothing watched whether
 > ...
 
 ---
