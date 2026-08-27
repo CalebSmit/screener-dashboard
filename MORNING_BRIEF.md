@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 26 August 2026, 06:23
+# Morning Brief - Wednesday 26 August 2026, 19:37
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,17 +7,24 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **stopped deliberately** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-08-26T02:00:03.870018 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, APA, EIX, CF |
 | Evidence for weight changes | 2 of 8 needed at the 1m horizon (6 rows, but overlapping windows are not independent; 23 rows across all horizons), newest 2026-08-14 |
+
+## Things that needed attention
+
+- Run is DEGRADED. Refusing to publish.
+- Run discarded by health check - the live dashboard is unchanged.
 
 ## What changed in the repo
 
+- `4a622a8 product: Top 5 first, What Changed and Factor Analytics collapsed by default`
+- `253be1d product: remove the model portfolio, give each stock an "about"`
+- `9bed64f brief: code session 2026-08-26`
 - `f055475 docs: record the fix, and correct the record it was diagnosed from`
 - `3bf9798 guard: bound the blast radius of a withheld price series`
 - `bdda9a7 fix: refuse a price series that mixes two split scales`
@@ -25,62 +32,54 @@ history is in `NIGHTLY_LOG.md`.
 - `0a61fd4 data: screener run 2026-08-26 - 502 scored, top: HST EXPE APA EIX CF`
 - `a32f390 brief: evening session 2026-08-25`
 - `f2f5c74 chore: remove the last things that needed a human`
-- `3083968 brief: code session 2026-08-25`
-- `d33dd04 docs: record the history gate, its evidence, and a defect it uncovered`
-- `7e7d23c test: syntax-check the emitted dashboard JavaScript`
-- `99fa64d feat(dashboard): What Changed - movers, rank deltas and per-stock history`
-- `db294e5 feat: history.py - a quality-gated historical spine for the dashboard`
-- `0232d40 brief: data run 2026-08-25`
-- `4a0a90f data: screener run 2026-08-25 - 501 scored, top: HST EXPE APA CF EIX`
-- `b149c65 brief: evening session 2026-08-24`
 
 ## The session's own account
 
-> 2026-08-26 - SYNTHESIS. How does this fit the rest of the screener?
+> 2026-08-26 (evening) - Owner-directed: the model portfolio leaves the dashboard, stocks gain an "about"
 > 
-> **Health numbers:** last code session **ran and shipped** (06:25 on 08-25,
-> `good/2026-08-25-0625`); data loop **published** 02:11 today, HEALTH: PASS,
-> 502/502 price coverage; evidence base **23 rows, newest 2026-08-14, 2 effective
-> observations at the `1m` horizon**; priority 0 **DONE**, priority 1.5 **closed
-> today**.
+> **Not a scheduled session.** The owner asked for two specific changes in an
+> interactive session and, separately, asked *how he is supposed to tell this
+> routine what to focus on*. That question turned out to be the most important
+> part of the evening: until tonight there was no answer. See "The channel" below.
 > 
-> **Tests:** before 647/647, after **676/676**
-> **Data loop:** healthy - `logs/datarun-2026-08-26_020001.log` ends "Data loop
-> complete", HEALTH: PASS, 0 fetch failures, 0 synthetic substitutions.
+> ### Health numbers (rule 8)
 > 
-> **On the evidence base not moving.** 23 rows / 2026-08-14 / 2 effective is
-> identical to 08-25, which is two consecutive sessions. That is **expected
-> latency, not a stall**: the newest snapshot old enough for a `1w` IC is
-> 2026-08-20, which becomes eligible on 08-27. Snapshots exist for 08-20, 08-21,
-> 08-24, 08-25 and 08-26 and are queued. If the row count has not moved by the
-> 08-27 session, rule 8 bites and that becomes the work.
+> | Check | Reading |
+> |---|---|
+> | Last code session ran? | `logs/nightly-2026-08-26_060001.log` - ran, shipped to main, tagged `good/2026-08-26` |
+> | Data loop published? | `logs/datarun-2026-08-26_020001.log` - HEALTH: PASS, 0 fetch failures, 502 scored, published |
+> | Evidence base | **23 rows, newest 2026-08-14, 2 effective observations at `1m`** (6 raw) |
+> | Priority 0 | Fixed 2026-08-24, still holding |
 > 
-> ### Did
+> The evidence base has not moved since 08-24 by row count. The 08-26 morning
+> session recorded why: the next eligible snapshot becomes computable on
+> **2026-08-27** with five queued behind it, and wrote itself a tripwire - if the
+> count has not moved by tomorrow's session, rule 8 bites and that becomes the
+> work regardless of rotation. **That tripwire is still armed and this session
+> did not touch it.** Tomorrow: check `live_ic_history.csv` first.
 > 
-> **Root-caused and fixed priority 1.5 - and the 08-25 diagnosis of it was
-> backwards.**
+> ### The channel (the part worth keeping)
 > 
-> MNST's `return_12_1` percentile round-trip (97.1 -> 2.9 -> 97.1) was not a
-> transiently-failing metric. Yahoo's 13-month series for MNST **alternates
-> between pre- and post-split prices** across its 2026-08-11 2:1 split:
+> The owner had no way to direct this routine. `CLAUDE.md` priorities are written
+> *by sessions, for sessions*; the weekly rotation is fixed; and he is explicitly
+> not reading diffs. So a request like tonight's could only ever reach the system
+> by him opening a chat and asking - which does not scale and leaves no record.
 > 
-> ```
-> 2026-08-05    94.46      <- unadjusted
-> 2026-08-06    47.08      <- adjusted
-> 2026-08-07    90.36      <- unadjusted
-> 2026-08-11    45.53      <- split date
-> ```
+> `OWNER_FOCUS.md` is now that channel: plain English, **Open** and **Done**
+> headings, read during Orient *before* the rotation is consulted. Open items
+> outrank the day's nominal focus. Only two things outrank an owner item - a
+> stalled data loop and the ship gates - and the prompt now requires a session
+> that defers one to *say so in the log*, because an unmentioned deferral is
+> indistinguishable from an ignored request.
 > 
-> `auto_adjust=False` returns byte-identical numbers, so no adjustment was ever
-> applied. From today's live `runs/83c9e2e2dd48/00_raw_fetch.parquet` the pipeline
-> divided an unadjusted July close (93.49) by an adjusted 2025 close (62.30):
+> Wired into `prompts/nightly.md` (step 1) and `CLAUDE.md`. Pinned by
+> `tests/test_owner_focus.py` (7 tests) - including that the reference appears
+> between "## 1. Orient" and "## 2. Baseline", so it cannot drift to a position
+> after the work is already chosen. **A silent channel looks exactly like an
+> empty one**, which is the same shape as the evidence base sitting at 3 rows for
+> 183 days while every run reported success.
 > 
->     published   return_12_1 = +0.5006  -> 97th percentile
->     correct     return_12_1 = -0.2497  ->  3rd percentile
-> 
-> **So 97.1 was the artifact and 2.9 was right** - the reverse of what
-> `NIGHTLY_LOG.md` 08-25, `history.py` and `CLAUDE.md` priority 1.5 all said.
-> MNST was live on the public site at momentum 71.5, rank 360, roughly **110
+> While in `prompts/nightly.md` I also corrected two stale claims it was still
 > ...
 
 ---
