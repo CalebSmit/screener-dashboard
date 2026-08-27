@@ -1,0 +1,154 @@
+# Watches whether the nightly loops are still firing.
+#
+# Why this runs on GitHub and not on the machine
+# ----------------------------------------------
+# `CLAUDE.md` priority -1: "Nothing watches whether the loop is running. A run
+# that never fires writes no log, so its absence is invisible until someone
+# counts files." The 2026-08-21 retrospective measured it: 5 of 11 scheduled
+# code-loop slots never fired, four of them consecutive weekdays (08-17..08-20)
+# while the machine sat logged out. Nobody noticed for six days.
+#
+# `scripts/write_brief.py` already prints a "THE ROUTINE IS NOT RUNNING"
+# banner, and it structurally cannot cover this case: it is invoked only from
+# `data-run.ps1` and `nightly-screener.ps1`, so when neither loop fires the
+# brief is never regenerated and the banner never appears. The watchdog was
+# living inside the thing it was watching.
+#
+# This job runs on GitHub's infrastructure, so a PC that is off, asleep or
+# logged out cannot silence it. The heartbeat it reads is the commit each loop
+# pushes to `main` from a `finally` block - see scripts/check_loop_health.py.
+#
+# The issue it opens contains only dates and verdicts. No secrets, no data.
+#
+# Note: GitHub disables scheduled workflows in a repository with no activity
+# for 60 days. This repo commits every weekday when healthy; if it has been
+# silent for 60 days the watchdog going quiet is not the first problem.
+
+name: loop-watchdog
+
+on:
+  schedule:
+    # 23:00 UTC on weekdays = 18:00 CDT / 17:00 CST, comfortably past both
+    # deadlines in check_loop_health.py (12:00 data, 16:00 code) year-round,
+    # and past the at-logon catch-up window that a same-morning sign-in uses.
+    - cron: '0 23 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: loop-watchdog
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          # The heartbeat is the commit history itself, so a shallow clone
+          # would report a stall on a healthy repo.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Read the loop heartbeats
+        id: verdict
+        run: |
+          python scripts/check_loop_health.py            # human-readable, for the run log
+          python scripts/check_loop_health.py --json > verdict.json
+
+      - name: Open, update or close the alert issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('verdict.json', 'utf8'));
+            const TITLE = 'Loop watchdog: the nightly routine has stopped';
+
+            // One issue, reused. Opening a fresh issue per run would bury the
+            // signal in its own noise, which is how a watchdog gets muted.
+            const existing = (await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })).data.find(i => i.title === TITLE);
+
+            const line = l =>
+              `| ${l.label} (${l.slot}) | **${l.verdict.toUpperCase()}** | ` +
+              `${l.last_heartbeat || 'never'} | ${l.consecutive_missed} | ` +
+              `${l.missed.length} of ${l.weekdays_checked} |`;
+
+            const body = [
+              `As of \`${v.checked_at}\` (scheduling timezone), checked from`,
+              `GitHub Actions rather than from the machine that runs the loops.`,
+              ``,
+              `| Loop | Verdict | Last heartbeat | Missed in a row | Missed recently |`,
+              `|---|---|---|---|---|`,
+              ...v.loops.map(line),
+              ``,
+              `A loop that never fires writes no log, so nothing on the machine`,
+              `reports this and \`MORNING_BRIEF.md\` keeps describing the last run`,
+              `that *did* happen.`,
+              ``,
+              `**Most likely cause, by past frequency:** the PC rebooted and nobody`,
+              `signed back in — the scheduled tasks run only while a user is logged`,
+              `on. See \`NIGHTLY_LOG.md\` 2026-08-20.`,
+              ``,
+              `**To fix:**`,
+              `1. Is the machine on and logged in?`,
+              `2. Task Scheduler — are "Screener Data Run" and "Nightly Screener`,
+              `   Improvement" present and enabled? Re-register from version control:`,
+              `   \`powershell -ExecutionPolicy Bypass -File scripts\\register-tasks.ps1\``,
+              `3. \`logs/\` — a task that fired and failed leaves a log. A task that`,
+              `   never fired leaves nothing, which is what this alert means.`,
+              ``,
+              `<sub>Raised by \`.github/workflows/loop-watchdog.yml\`. This issue is`,
+              `updated in place and closed automatically once both loops report a`,
+              `heartbeat again.</sub>`,
+            ].join('\n');
+
+            if (v.verdict === 'stalled') {
+              if (existing) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: existing.number, body,
+                });
+                core.notice(`Updated issue #${existing.number}`);
+              } else {
+                const created = await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  title: TITLE, body,
+                });
+                core.notice(`Opened issue #${created.data.number}`);
+              }
+              core.setFailed('One or more loops are stalled.');
+              return;
+            }
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Recovered — both loops are reporting heartbeats again as of \`${v.checked_at}\`. Closing.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, state: 'closed',
+              });
+              core.notice(`Closed issue #${existing.number}`);
+            }
+
+            if (v.verdict === 'warn') {
+              // One missed weekday is a blip. Recorded in the run log, but not
+              // worth an issue: an alarm that fires on noise gets ignored, and
+              // an ignored alarm is worse than none because it looks like cover.
+              core.warning('One loop missed a single weekday slot.');
+            }
