@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 26 August 2026, 19:37
+# Morning Brief - Wednesday 26 August 2026, 19:50
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,21 +7,18 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **stopped deliberately** - last ran today |
+| Data run (2 AM) | **failed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-26T02:00:03.870018 |
+| Dashboard data from | 2026-08-26T19:38:23.969875 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
 | Evidence for weight changes | 2 of 8 needed at the 1m horizon (6 rows, but overlapping windows are not independent; 23 rows across all horizons), newest 2026-08-14 |
 
-## Things that needed attention
-
-- Run is DEGRADED. Refusing to publish.
-- Run discarded by health check - the live dashboard is unchanged.
-
 ## What changed in the repo
 
+- `d6074a9 data: screener run 2026-08-26 - 502 scored, top: MAA DOC KIM REG UDR`
+- `5494086 brief: data run 2026-08-26`
 - `4a622a8 product: Top 5 first, What Changed and Factor Analytics collapsed by default`
 - `253be1d product: remove the model portfolio, give each stock an "about"`
 - `9bed64f brief: code session 2026-08-26`
