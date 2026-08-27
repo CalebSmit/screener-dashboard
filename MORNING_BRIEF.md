@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 26 August 2026, 19:50
+# Morning Brief - Thursday 27 August 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,16 +7,20 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **failed** - last ran today |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-26T19:38:23.969875 |
+| Dashboard data from | 2026-08-27T02:00:03.379939 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Evidence for weight changes | 2 of 8 needed at the 1m horizon (6 rows, but overlapping windows are not independent; 23 rows across all horizons), newest 2026-08-14 |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (7 rows, but overlapping windows are not independent; 25 rows across all horizons), newest 2026-08-20 |
 
 ## What changed in the repo
 
+- `8e021ab data: screener run 2026-08-27 - 502 scored, top: HST EXPE EIX APA CF`
+- `42c278d harden: ToString() the commit-subject output before trimming it`
+- `9273625 fix: the data-run commit subject named sector peers, not the top five`
+- `39dbfca brief: data run 2026-08-26`
 - `d6074a9 data: screener run 2026-08-26 - 502 scored, top: MAA DOC KIM REG UDR`
 - `5494086 brief: data run 2026-08-26`
 - `4a622a8 product: Top 5 first, What Changed and Factor Analytics collapsed by default`
@@ -28,7 +32,6 @@ history is in `NIGHTLY_LOG.md`.
 - `f997570 brief: data run 2026-08-26`
 - `0a61fd4 data: screener run 2026-08-26 - 502 scored, top: HST EXPE APA EIX CF`
 - `a32f390 brief: evening session 2026-08-25`
-- `f2f5c74 chore: remove the last things that needed a human`
 
 ## The session's own account
 
