@@ -28,7 +28,14 @@
 param(
     [switch]$SkipPush,
     [string]$Tickers,
-    [switch]$Force
+    [switch]$Force,
+    # Pass --refresh to the screener: clear every cache tier and re-fetch.
+    # The scheduled 02:00 run must NOT set this - a warm start is the normal
+    # and cheap path, and check_run_health refuses to publish one anyway.
+    # It exists for the case where a new field was added to the fetch and the
+    # cache predates it, so a warm start would publish a schema that is
+    # silently missing the new column.
+    [switch]$Refresh
 )
 
 $ErrorActionPreference = 'Continue'
@@ -163,6 +170,7 @@ try {
     # --- Run the screener ---------------------------------------------------
     $args = @('run_screener.py')
     if ($Tickers) { $args += @('--tickers', $Tickers) }
+    if ($Refresh) { $args += '--refresh' }
     Write-Log "Running: python $($args -join ' ')  (expect this to take a while)"
 
     $run = Invoke-Native 'python' $args
@@ -316,18 +324,19 @@ try {
 
     # A descriptive commit subject means the GitHub notification email is
     # actually informative, rather than just "data: screener run".
+    # Built by scripts/commit_subject.py, which reads table_data and sorts by
+    # Rank. This was a regex over the raw payload until 2026-08-26; it matched
+    # the lowercase "ticker" key that belonged to the model-portfolio holdings,
+    # and when that surface was removed the same regex silently started
+    # matching the first stock's sector PEERS. The 19:38 run committed
+    # "top: MAA DOC KIM REG UDR" when the real top five were HST EXPE APA EIX
+    # CF. Do not go back to scraping.
     $headline = "data: screener run $Date"
-    try {
-        $djs = Join-Path $RepoPath 'dashboard_data.js'
-        if (Test-Path $djs) {
-            $raw = Get-Content $djs -TotalCount 1
-            if ($raw -match '"stocks_scored":\s*(\d+)') { $scored = $Matches[1] }
-            $tickers = [regex]::Matches($raw, '"ticker":\s*"([A-Z.\-]+)"') |
-                       Select-Object -First 5 | ForEach-Object { $_.Groups[1].Value }
-            if ($scored) { $headline = "data: screener run $Date - $scored scored" }
-            if ($tickers) { $headline += ", top: $($tickers -join ' ')" }
-        }
-    } catch { }
+    $subj = Invoke-Native 'python' @('scripts/commit_subject.py', $Date)
+    if ($subj.ExitCode -eq 0) {
+        $line = ($subj.Output | Where-Object { $_ -and $_.Trim() } | Select-Object -Last 1)
+        if ($line -and $line.Trim().StartsWith('data:')) { $headline = $line.Trim() }
+    }
 
     $commit = Invoke-Native 'git' @('commit', '-m', $headline)
     if ($commit.ExitCode -ne 0) { Stop-Run "Commit failed." 2 }
