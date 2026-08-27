@@ -414,17 +414,38 @@ git and uses none of it. So a data run is always affordable; a code session is
 the scarce resource, which is an argument for sessions that do one thing well
 rather than many shallow things.
 
-Two things remain open:
+Both of the items that used to sit here are now **DONE - do not undo them.**
 
-- **The scheduled-task definitions are not in version control.**
-  `grep -rn "Register-ScheduledTask" .` finds nothing. The 02:00 and 06:00
-  triggers exist only as hand-made Task Scheduler entries on one machine.
-  Committing a registration script is the single highest-value infrastructure
-  work available.
-- **Nothing watches whether the loop is running.** A run that never fires
-  writes no log, so its absence is invisible until someone counts files.
-  The 2026-08-21 fix makes a *failed* session loud; a *missing* one is still
-  silent.
+- **The scheduled-task definitions are in version control.** Shipped
+  2026-08-21 as `scripts/register-tasks.ps1`, which registers both tasks
+  idempotently with an at-logon catch-up trigger. This entry went on claiming
+  `grep -rn "Register-ScheduledTask" .` "finds nothing" for six days after the
+  script landed; it finds it at `scripts/register-tasks.ps1:111`. Rule 9.
+- **Something watches whether the loop is running.** Shipped 2026-08-27:
+  `scripts/check_loop_health.py` plus `.github/workflows/loop-watchdog.yml`.
+  43 tests in `tests/test_loop_watchdog.py`.
+
+  **The point is where it runs.** `write_brief.py` already printed a "THE
+  ROUTINE IS NOT RUNNING" banner and structurally could not cover this case:
+  it is invoked only from `data-run.ps1` and `nightly-screener.ps1`, so when
+  neither loop fires the brief is never regenerated and the banner never
+  appears. The watchdog was living inside the thing it was watching. The new
+  one runs on GitHub Actions, where a PC that is off, asleep or logged out
+  cannot silence it, and opens a single reused issue when a loop goes quiet.
+
+  The heartbeat is the commit each loop pushes to `main` from a `finally`
+  block, so it lands whether the run succeeded or failed - `brief: data run
+  <date>` and `brief: code session <date>`. A session that failed still
+  counts: this answers "did the task fire", which is a different question from
+  "did it do anything useful", and the brief already covers the second.
+
+  **Do not make it alarm faster.** Two *consecutive* missed weekdays is the
+  threshold, weekends are excluded, and a day is not judged until its deadline
+  (12:00 data / 16:00 code) has passed - late enough that the at-logon
+  catch-up has had its chance. Replayed against the real 08-17..08-20 outage
+  it would have raised the alarm on **08-18**, two days in rather than six. A
+  watchdog that cries wolf gets muted, and a muted watchdog is worse than none
+  because it still looks like coverage.
 
 Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now

@@ -1911,3 +1911,197 @@ already in `$DataArtifacts`, so the overview being regenerated every run does
 not leave a dirty tree - tonight's run confirmed it empirically.
 
 The local preview server on :8931 was stopped and the port confirmed free.
+
+---
+
+## 2026-08-27 - BUILD. The watchdog moves outside the thing it was watching.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-26_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | `logs/datarun-2026-08-27_020001.log` - "Data loop complete", HEALTH: PASS, 0 fetch failures, 502/502 price coverage |
+| Evidence base | **25 rows, newest 2026-08-20, 3 effective observations at `1m`** (7 raw) |
+| Priority 0 | Fixed 2026-08-24, holding |
+
+**Tests:** before 733/733, after **791/791**
+**Data loop:** healthy
+
+**The 08-26 tripwire is released.** The previous two sessions read "23 rows,
+newest 2026-08-14, 2 effective at `1m`" and armed rule 8: if it had not moved
+today, making it move was today's work regardless of rotation. It moved -
+**23 -> 25 rows, 2 -> 3 effective at `1m`** - so the 08-24 fix is accruing
+evidence as predicted and the rotation stood. Independent 1-month observations
+still arrive about one a month; 3 of 8 is roughly five more months.
+
+### First, the five-minute check the last session asked for
+
+**The MNST price-series fix landed on the live site.** Confirmed in today's
+02:00 run rather than assumed:
+
+- `validation/data_quality_log.csv` carries the first-ever
+  `price_series_rejected` row - MNST, "series mixes pre- and post-split prices
+  across a 2:1 split - 4 day(s) move by ~0.5x".
+- The published payload has `momentum_score: null` and `risk_score: null` for
+  MNST, and `return_12_1`/`return_6m`/`volatility`/`beta` all null in `raw`.
+- MNST moved rank **360 -> 370**, in the direction the correction implies.
+- `check_run_health` still PASS: one withheld name in 502, which is
+  `MIN_CATEGORY_COVERAGE = 0.90` doing its job rather than tripping.
+
+### Did - 1. A watchdog that is not inside the thing it watches
+
+`CLAUDE.md` priority -1 listed two open infrastructure items. **One of them was
+already done and the file did not know.** `scripts/register-tasks.ps1` shipped
+2026-08-21 (commit `33f3ca7`), yet the priority section, `ACTION_REQUIRED.md`
+and a research note all still asserted that `grep -rn "Register-ScheduledTask"
+.` "finds nothing". It finds it at `scripts/register-tasks.ps1:111`. Corrected
+in all three places - rule 9.
+
+The second item was real, and is the session's work: **nothing watched whether
+the loops were running.**
+
+**Why the existing detector could not have caught it.** `write_brief.py`
+already prints a "THE ROUTINE IS NOT RUNNING" banner when a loop has been quiet
+for two days. It is structurally incapable of covering the case that matters,
+and this is the finding worth keeping: **the watchdog was living inside the
+thing it was watching.** `write_brief.py` is invoked only from `data-run.ps1`
+(line 90) and `nightly-screener.ps1` (line 107). If neither loop fires, the
+brief is never regenerated, so the banner never renders and `MORNING_BRIEF.md`
+goes on describing the last run that *did* happen. That banner can only ever
+catch "one loop died while the other lived" - never "the machine was off",
+which is the documented dominant failure mode.
+
+Shipped:
+
+- **`scripts/check_loop_health.py`** - the decision logic. Stdlib-only, for the
+  same reason `write_brief.py` is: it is what reports that everything else is
+  broken, so it must not break with it.
+- **`.github/workflows/loop-watchdog.yml`** - the external observer. Runs on
+  GitHub Actions at 23:00 UTC on weekdays, where a PC that is off, asleep or
+  logged out cannot silence it. Opens **one** reused issue when a loop stalls,
+  updates it in place, and closes it on recovery.
+- **`tests/test_loop_watchdog.py`** - 43 tests.
+
+**The heartbeat.** Both loops push a commit to `main` from a `finally` block,
+so it lands whether the run succeeded, was discarded by a gate, or crashed:
+`brief: data run <date>` and `brief: code session <date>`. A failed session's
+`- SESSION DID NOT RUN` suffix still counts as a heartbeat, deliberately: this
+answers "did the task fire", which is a different question from "did it do
+anything useful", and `write_brief.py` already answers the second.
+`brief: evening session <date>` is deliberately *not* matched - owner-initiated
+interactive work proves a human was present, not that the 06:00 task fired.
+
+**Most of the design is about staying quiet.** An alarm that fires on noise
+gets muted, and a muted alarm is worse than none because it still looks like
+coverage. So: weekends are excluded; a day is not judged until its deadline
+(12:00 data, 16:00 code) has passed, which is late enough that the at-logon
+catch-up in `register-tasks.ps1` has had its chance; one missed weekday is a
+WARN with no issue; two *consecutive* missed weekdays is the alarm.
+
+### Evidence / research
+
+Not a backtest, not an IC number, so rules 4 and 5 do not bite. The evidence is
+a documented failure and a replay of it.
+
+- **The failure.** 2026-08-21 retrospective, quoted in `CLAUDE.md` priority -1:
+  of 11 scheduled code-loop slots from 2026-08-06 to 2026-08-20, **5 never
+  fired at all**, four of them consecutive weekdays (08-17..08-20) while the
+  machine sat logged out. It went unnoticed for six days because a run that
+  never fires writes no log.
+- **The detector reproduces that outage from live history, unprompted.** Run
+  against this repo's real `main`, `check_loop_health.py` reports the code loop
+  missing exactly `2026-08-17, 08-18, 08-19, 08-20` and the data loop missing
+  `08-17, 08-18, 08-19`. The one-day difference is correct and was verified:
+  `data: screener run 2026-08-20` was committed at **23:28 on 08-20**, the
+  logon catch-up firing when the owner signed back in. A UTC-based watchdog
+  that used the observer's date would have mis-filed that commit to 08-21;
+  pinned by `test_the_commits_own_date_is_used_not_the_observers`.
+- **When it would have spoken: 2026-08-18, two days in rather than six.**
+  `TestRealOutage` replays the outage day by day and asserts WARN on 08-17,
+  STALLED on 08-18, and - importantly - OK on 08-14, the Friday before, so the
+  alarm would not have been lost in prior noise.
+
+### Did - 2. The morning brief had silently lost its Top 5
+
+Found while reading `write_brief.py` for the above, and confirmed against the
+published artifact rather than inferred.
+
+`dashboard_facts()` read `d["portfolio"]["holdings"]`. The 2026-08-26 evening
+session removed the Model Portfolio and its payload key. Every lookup on that
+path uses `.get()` with a default, so `d.get("portfolio", {})` returned `{}`,
+`top5` became `[]`, and `if facts.get("top5")` dropped the row. **No exception,
+no log line, no empty row - the single most decision-relevant line on the
+owner's daily page just stopped being emitted, and had been missing from every
+brief since.** Verified by importing the pre-fix module from a detached
+worktree at `c52abb3`: `top5 -> []` against the same payload that the live
+dashboard renders as `HST EXPE EIX APA CF`.
+
+Fixed by computing it the way the dashboard does - trap-flagged names excluded,
+then rank order, mirroring `renderTop5()`. Brief and dashboard now agree
+exactly, and both agree with today's data-run commit subject.
+
+**And the bug class, not just the bug.** `PAYLOAD_KEYS` names the payload keys
+the brief depends on; `dashboard_facts()` reports any that have gone missing,
+and `main()` surfaces them under "Things that needed attention". A future
+payload change that breaks the brief now says so on the brief itself instead of
+quietly shortening it. `tests/test_morning_brief.py`, 15 tests - the file had
+**no tests at all** before today, which is precisely how this shipped.
+
+**12 of those 15 fail against `c52abb3`**, the two headline ones with the exact
+live symptom: `assert [] == ['HST', 'EXPE', 'EIX', 'APA', 'CF']`.
+
+### Methodology changed
+
+**None.** No weight, threshold, metric or scoring formula moved, so there is no
+`METHODOLOGY_CHANGELOG.md` entry - this was infrastructure and a reporting
+defect. Every stock scores today exactly as it did yesterday.
+
+### Tried and rejected
+
+- **A third scheduled task on the same machine as the watchdog.** It would
+  share the failure mode it exists to detect: nobody logged on means the
+  watchdog does not run either. The observer has to be off-box, which is what
+  forced the GitHub Actions design.
+- **Alarming on a single missed weekday.** Rejected against the record: the
+  documented outages ran 2+ consecutive days, while single misses have
+  ordinary transient causes (one reboot, one network drop). Firing on those
+  trains the owner to ignore the alarm.
+- **Reusing `write_brief.py`'s "2 days since last run" rule.** It is calendar
+  days, so it alarms every Monday - the last run was Friday, three calendar
+  days and zero missed weekday slots.
+  `test_a_weekend_gap_is_not_a_stall` pins this.
+- **`zoneinfo` for the scheduling timezone.** Needs the `tzdata` package on
+  Windows, and this script must not acquire a dependency. The offset is taken
+  from the newest heartbeat commit instead, which is self-calibrating. Across a
+  DST boundary it can be an hour out, immaterial against deadlines in hours.
+- **Deleting `ACTION_REQUIRED.md`.** Its own header invites deletion and its
+  premise is now false, but it documents a trust-regression path worth keeping.
+  Marked RESOLVED with dates instead; deleting it is the owner's call.
+
+### Noticed, not fixed
+
+- **A `.git/worktrees/prefix-check` admin directory could not be deleted**
+  (Permission denied, presumably a OneDrive or AV lock after pytest ran there).
+  Git no longer lists it as a worktree and `git status --porcelain` is clean of
+  it, so no gate is affected; it is untracked internal metadata that will prune
+  when the lock releases.
+- **The workflow has never actually executed.** It cannot until it is on
+  `main`, since GitHub only runs scheduled workflows from the default branch.
+  The YAML parses, the embedded JavaScript passes `node --check`, and 9 static
+  tests pin the schedule, permissions, fetch-depth and issue-handling
+  behaviour - but the first real proof is its first scheduled run. **Next
+  session: check the Actions tab.**
+- The double-publish trap flagged on 08-26 is untouched and still real.
+
+### Next
+
+1. **Confirm the watchdog ran.** Its first scheduled firing is 23:00 UTC today.
+   Check the Actions tab; a green run with verdict `ok` is the proof. If it
+   failed, the likely causes are Actions being disabled on the repo or the
+   default `GITHUB_TOKEN` lacking issue permission.
+2. **Monday's research note, now missed four times.** Every skip has been for a
+   demonstrable defect and each was the right call in isolation, but the
+   rotation is not producing the thing it was designed around. This is the
+   oldest real debt in the project and it should outrank a fifth firefight.
+3. Per-category trend lines over the full history (priority 2's remainder).

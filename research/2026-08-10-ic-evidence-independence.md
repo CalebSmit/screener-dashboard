@@ -405,6 +405,14 @@ triggers — the thing the entire two-loop premise depends on — exist only as
 hand-made entries in Windows Task Scheduler on one machine, undocumented and
 unreproducible. Worth committing a registration script.
 
+> **Resolved since this note was written** (added 2026-08-27; the paragraph
+> above is left as it stood on 2026-08-10). `scripts/register-tasks.ps1`
+> shipped 2026-08-21 and the grep now finds it. The related gap this note
+> gestures at — that a loop which never fires leaves no trace — was closed
+> 2026-08-27 by `scripts/check_loop_health.py` and
+> `.github/workflows/loop-watchdog.yml`, which read the heartbeat from GitHub
+> rather than from the machine that may be the thing that is off.
+
 **Also observed:** the data loop did not run today (Monday 2026-08-10). Logs
 exist for `datarun-2026-08-06` and `datarun-2026-08-07` and for
 `nightly-2026-08-10_060040`, but there is no `datarun-2026-08-10`. The 6:00 AM

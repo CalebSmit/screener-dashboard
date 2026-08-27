@@ -86,12 +86,21 @@ package that fixes it properly.
 
 Read that note before doing any further work on the improvement engine.
 
-## Also worth fixing while you are here
+## Also worth fixing while you are here — RESOLVED
 
-The scheduled-task definitions are **not in version control**
-(`grep -rn "Register-ScheduledTask" .` finds nothing). The 2:00 AM data loop and
-6:00 AM code loop exist only as hand-made Task Scheduler entries on one machine.
-The data loop silently did not fire on Monday 2026-08-10 — there is no
+> **Both fixed. Left here for the reasoning, not as an open item.**
+> Updated 2026-08-27.
+
+The scheduled-task definitions were **not in version control**
+(`grep -rn "Register-ScheduledTask" .` found nothing). The 2:00 AM data loop and
+6:00 AM code loop existed only as hand-made Task Scheduler entries on one
+machine. The data loop silently did not fire on Monday 2026-08-10 — there is no
 `logs/datarun-2026-08-10*` — while the 6:00 AM code loop did. A missing
-`WakeToRun` / `StartWhenAvailable` is the likely cause. Committing a
-registration script would make both loops reproducible and fix the missed run.
+`WakeToRun` / `StartWhenAvailable` was the likely cause.
+
+- **2026-08-21** — `scripts/register-tasks.ps1` registers both tasks from
+  version control, with `WakeToRun`, `StartWhenAvailable` and an at-logon
+  catch-up trigger.
+- **2026-08-27** — `.github/workflows/loop-watchdog.yml` now reports a loop
+  that stops firing, from GitHub rather than from the machine itself, so the
+  silent-miss case that produced this note cannot go unnoticed again.
