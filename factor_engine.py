@@ -764,6 +764,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["priceToBook"]       = _safe(info, "priceToBook")
         rec["bookValue"]         = _safe(info, "bookValue")
         rec["industry"]          = _safe(info, "industry", "")
+        # Plain-English business description for the dashboard drilldown.
+        # Zero additional API cost - same .info dict fetched above. Display
+        # only: never scored, never ranked, never fed to a metric.
+        rec["longBusinessSummary"] = _safe(info, "longBusinessSummary", "")
         # Analyst price target fields (zero additional API cost — same .info dict)
         rec["targetMeanPrice"]         = _safe(info, "targetMeanPrice")
         rec["targetHighPrice"]         = _safe(info, "targetHighPrice")

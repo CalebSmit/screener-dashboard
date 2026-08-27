@@ -341,7 +341,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 
 ## What Is This?
 
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to {n_total} financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.
+This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to {n_total} financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
 
 Not every stock sees all {n_total} metrics. The screener uses {n_generic} generic metrics for most stocks and a separate set of {n_bank_only} bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about {n_generic} metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has {n_registry} entries: {n_total} carry scoring weight today ({n_generic} generic + {n_bank_only} bank-specific) plus {n_candidate} candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
 
@@ -613,6 +613,14 @@ By default, growth-trap-flagged stocks are {gt_action} from the model portfolio 
 
 ## Portfolio Construction
 
+**This is an Excel/artifact output, not a dashboard feature.** The dashboard was
+never the place for it and stopped showing it on 2026-08-26: a named, fixed list
+of holdings published to a public site reads as a recommendation, and this tool
+is decision support - it shows you *why* a stock ranks where it does and leaves
+the buy/sell/size judgement to you. The ranking on the dashboard is the product.
+What follows describes the `ModelPortfolio` sheet in the generated workbook, for
+research use by the owner.
+
 After scoring and ranking, the screener builds a **model portfolio** from the top-ranked stocks:
 
 - **Number of holdings:** Top {num_stocks} stocks (configurable)
@@ -643,7 +651,7 @@ The final portfolio with ticker, sector, composite score, position weights, and 
 The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.
 
 ### Sheet 5: Weight Sensitivity (when available)
-Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 portfolio when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the portfolio is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
+Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
 
 ### Sheet 6: Factor Correlation (when available)
 Spearman rank correlation matrix of all {n_factors} category scores across the universe. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate factor overlap. Useful for understanding effective independent factor count.
@@ -693,7 +701,7 @@ Every screener run is assigned a unique run ID and tracked via `RunContext`. Thi
 The screener includes several features designed to make its outputs auditable and defensible:
 
 ### Weight Sensitivity Analysis
-After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 portfolio changes using **Jaccard similarity** (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the portfolio is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.
+After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 ranking changes using **Jaccard similarity** (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.
 
 ### EPS Basis Mismatch Detection
 Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of forward-to-trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with `_eps_basis_mismatch = True`. This alerts users that the forward EPS growth and PEG ratio metrics may be distorted by a GAAP/non-GAAP mismatch rather than a genuine change in earnings expectations. Flagged stocks appear highlighted in the DataValidation sheet.
@@ -797,7 +805,7 @@ It does this by:
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)
 6. Applying a liquidity filter to ensure tradeability
-7. Building a diversified model portfolio from the top picks
+7. Reporting how stable that ranking is when the weights are nudged
 
 The result is a disciplined, repeatable, multi-dimensional ranking that avoids the tunnel vision of looking at any single metric in isolation.
 """

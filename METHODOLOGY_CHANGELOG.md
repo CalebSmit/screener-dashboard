@@ -714,3 +714,119 @@ it against a wider window rather than rediscover it.
 call site in `factor_engine.py` restores the previous behaviour exactly.
 
 **Applied by:** morning session (manual)
+
+---
+
+## 2026-08-26 (evening) - The model portfolio leaves the dashboard; stocks gain a plain-English "about"
+
+**Area:** dashboard surfaces / payload composition. **No scoring change.** No
+weight, threshold, metric definition, or trap rule moved. Composite scores and
+ranks are byte-identical before and after; this entry exists because the
+Methodology text and the published payload both changed, and because a future
+session must be able to find out why a surface disappeared.
+
+**Applied by:** owner-directed session (interactive), owner request 2026-08-26.
+
+### Changed - 1. The Model Portfolio surface is gone
+
+Removed from the dashboard: the `Model Portfolio` section, the `Portfolio
+Sector Allocation vs S&P 500` chart, `renderPortfolio()`,
+`renderSectorAlloc()`, the `portfolio` payload key, and the `spx_weights` key.
+Methodology text and AI-chat context updated to speak of the *ranking* rather
+than a portfolio. `How Stable Is the Portfolio?` is now `How Stable Is the
+Ranking?` - which is what that chart always measured (top-20 by composite via
+`run_weight_sensitivity(..., top_n=20)`, never the constructed portfolio).
+
+**Kept deliberately:** `portfolio_constructor.py`, the `08_model_portfolio`
+artifact, the `ModelPortfolio` Excel sheet, and the `in_portfolio` snapshot
+column. `plan/dashboard-inventory.md` warned that
+`improvement_engine.record_run_snapshot()` computes **turnover** from
+`in_portfolio`, so deleting construction outright would have quietly damaged
+the evidence base. That warning was checked and found correct.
+
+**Evidence.** Three findings, each measured rather than asserted:
+
+1. **The panel carried no information `table_data` did not already hold.**
+   Every field in a holding (`ticker`, `company`, `sector`, `composite`, the
+   eight category scores, `vt`, `gt`) exists in `table_data` under a different
+   case. The set difference is empty. It was a renamed, row-filtered copy.
+
+2. **It did not answer "how much".** `plan/dashboard-north-star.md` names four
+   questions, the fourth being position sizing, so removing the only
+   portfolio-shaped surface looked like it might cost the tool an answer. It
+   does not: the holdings payload **carries no position weights at all**. The
+   sizing logic exists in `portfolio_constructor.py` and the Excel sheet, and
+   was never exposed to the dashboard. Question 4 was already unanswered there.
+
+3. **The owner's stated reason - that it wasted space - is not true, and the
+   real reason is better.** Measured: `portfolio` was 9,681 bytes of a
+   3,373,395-byte payload, **0.29%**. Removing it saves nothing. It was removed
+   because a fixed 25-name sector-capped list published on a public site is the
+   closest this tool came to emitting a recommendation, which contradicts the
+   governing line in `CLAUDE.md`: *decision support, not a recommendation
+   engine*. A ranking a reader sorts and filters is a screen. A named portfolio
+   is advice.
+
+**Top 5 was verified, not assumed.** It had been reading
+`D.portfolio.holdings.slice(0, 5)`. It now filters `table_data` for trap-free
+names and sorts by rank. On the live 2026-08-26 data both paths give
+`HST, EXPE, APA, EIX, CF` - the sector cap is 8-of-25 and cannot bind on five
+rows. The trap exclusion was preserved; dropping it would have promoted a
+flagged name into the headline five.
+
+### Changed - 2. Business descriptions in the stock drilldown
+
+`factor_engine._fetch_single_ticker_inner()` now captures
+`longBusinessSummary`, and the drilldown renders it under the score cards as an
+`About` block with the company's specific industry, a 4-line clamp with a
+"Show more" toggle, and an attribution line.
+
+**Evidence.** The dashboard could score a company across 44 metrics but could
+not tell a reader what it sold. For the investment-club audience that is a
+teachability gap, not a polish item: a student looking at `APA` at rank 3 has
+no way to learn it is oil and gas exploration without leaving the tool.
+
+**Cost, measured rather than estimated:**
+
+- **API: zero.** The field rides the `.info` dict `_fetch_single_ticker_inner`
+  already pulls. A second endpoint would have multiplied per-ticker requests on
+  a loop already losing 10-25% of tickers to Yahoo rate limits - that would
+  have traded evidence accrual for prose and was not acceptable.
+- **Payload: +0.71 MB raw (~+21%), ~+60 KB gzipped (~+8%).** Sampled across 8
+  tickers the summaries average 1,421 characters; prose gzips ~11.6x against
+  the payload's overall 4.2x. Pages serves gzip, so raw size overstates the
+  cost by an order of magnitude here.
+
+**It is display-only and must stay that way.** Never scored, ranked, or fed to
+a metric. `test_description_is_not_scored` asserts it never appears in `raw` or
+`pct`. It is provider text rendered verbatim with its source named, for the
+same reason every other number on the page shows its provenance.
+
+**Expected effect:** none on ranking. On the product: the drilldown answers
+"what is this company?" without leaving the page. The `about` field is empty
+for every stock until the next data run fetches it - the field did not exist in
+the raw parquet before tonight, so it populates at the 02:00 run on 2026-08-27.
+`industry` populated immediately (501/502) because it was already being
+fetched and merely unused.
+
+**Validated by:** `tests/test_dashboard_surfaces.py`, 30 tests. **29 of the 30
+fail against the pre-change code** (run in a detached worktree at `9bed64f` to
+confirm); the one that passes both ways is the guard asserting the
+defensibility section survived. Full suite 706 passed, up from 676, no
+regressions. Rendered and driven in a browser: no console errors, portfolio
+section absent from the DOM, Top 5 renders five cards, and the About block
+verified across all three data shapes (long text - block and toggle shown;
+short text - block shown, toggle hidden; missing - block hidden).
+
+**One real bug was found by rendering it rather than reading it.** The first
+cut measured `scrollHeight > clientHeight` inside `renderAbout()`, which runs
+while the modal is still `display:none`. Both heights read 0, so "Show more"
+was hidden on every stock and long descriptions were permanently truncated with
+no way to expand. Fixed by deferring the measurement to
+`requestAnimationFrame`; `test_about_overflow_is_measured_after_layout` pins
+it. A static read of that code looks correct, which is the point.
+
+**Rollback:** `good/2026-08-26`. The two changes are independent and can be
+reverted separately: the About block is confined to `renderAbout`/`toggleAbout`
+plus the `_about`/`_industry` merge, and the portfolio removal is confined to
+`generate_dashboard.py` - no pipeline or scoring code was touched by either.

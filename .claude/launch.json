@@ -1,0 +1,12 @@
+{
+  "//": "Serves the repo root so index.html + dashboard_data.js load together. Use this to LOOK at the dashboard before shipping it. The 2026-08-26 session found a real bug this way (the 'Show more' toggle was hidden on every stock because overflow was measured while the modal was display:none) that reads as correct in the source.",
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8931", "--directory", "."],
+      "port": 8931
+    }
+  ]
+}

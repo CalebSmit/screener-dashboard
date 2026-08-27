@@ -4,7 +4,7 @@ Interactive HTML Dashboard Generator for the Multi-Factor Screener.
 ===================================================================
 Reads run artifacts (parquet + meta.json) and the Excel output to produce
 a single self-contained HTML dashboard with Chart.js visualisations,
-sortable/filterable tables, and portfolio analytics.
+sortable/filterable tables, and factor analytics.
 
 Usage:
     python generate_dashboard.py                        # latest run
@@ -151,7 +151,10 @@ def load_run_data(run_dir: Path) -> dict:
                          ("sharesOutstanding", "_shares_out"),
                          ("trailingEps", "_trailing_eps"),
                          ("forwardEps", "_forward_eps"),
-                         ("shortRatio", "_short_ratio")]:
+                         ("shortRatio", "_short_ratio"),
+                         # Display-only descriptive fields for the drilldown.
+                         ("longBusinessSummary", "_about"),
+                         ("industry", "_industry")]:
             if src in raw.columns and dst not in df.columns:
                 raw = raw.rename(columns={src: dst})
                 merge_cols.append(dst)
@@ -189,16 +192,6 @@ def load_run_data(run_dir: Path) -> dict:
         except (OSError, ValueError):
             corr_df = None  # Graceful fallback — section won't render
 
-    # Load model portfolio — prefer the real artifact from construct_portfolio()
-    port_path = run_dir / "08_model_portfolio.parquet"
-    port_df = None
-    if port_path.exists():
-        try:
-            port_df = pd.read_parquet(port_path)
-        except (OSError, ValueError):
-            port_df = None  # Graceful fallback — uses naive top-25 instead
-    portfolio_data = _load_portfolio_from_excel(df, port_df)
-
     # Load config snapshot for trap filter thresholds
     cfg_path = run_dir / "config.yaml"
     run_cfg = {}
@@ -210,7 +203,6 @@ def load_run_data(run_dir: Path) -> dict:
     return {
         "df": df,
         "meta": meta,
-        "portfolio": portfolio_data,
         "weights": weights,
         "sens_df": sens_df,
         "corr_df": corr_df,
@@ -218,60 +210,26 @@ def load_run_data(run_dir: Path) -> dict:
     }
 
 
-def _load_portfolio_from_excel(df: pd.DataFrame, port_df: pd.DataFrame = None) -> dict:
-    """Extract model portfolio data.
-
-    If port_df is provided (the real output from construct_portfolio()),
-    use it directly. Otherwise fall back to the naive top-25 approximation.
-    """
-    if port_df is not None and len(port_df) > 0:
-        eligible = port_df.sort_values("Rank" if "Rank" in port_df.columns else "Composite",
-                                       ascending="Rank" in port_df.columns).copy()
-    else:
-        # Fallback: naive top-25 (no sector caps)
-        eligible = df[~df["Value_Trap_Flag"].fillna(False)].copy()
-        if "Growth_Trap_Flag" in df.columns:
-            eligible = eligible[~eligible["Growth_Trap_Flag"].fillna(False)]
-        eligible = eligible.sort_values("Rank").head(25)
-
-    holdings = []
-    for _, row in eligible.iterrows():
-        holdings.append({
-            "rank": _safe(row.get("Rank")),
-            "ticker": row["Ticker"],
-            "company": row.get("Company", ""),
-            "sector": row.get("Sector", "Unknown"),
-            "composite": _safe(row.get("Composite")),
-            "valuation": _safe(row.get("valuation_score")),
-            "quality": _safe(row.get("quality_score")),
-            "growth": _safe(row.get("growth_score")),
-            "momentum": _safe(row.get("momentum_score")),
-            "risk": _safe(row.get("risk_score")),
-            "revisions": _safe(row.get("revisions_score")),
-            "size": _safe(row.get("size_score")),
-            "investment": _safe(row.get("investment_score")),
-            "vt": _safe(row.get("Value_Trap_Flag")),
-            "gt": _safe(row.get("Growth_Trap_Flag")),
-        })
-
-    # Sector allocation
-    sector_counts = eligible["Sector"].value_counts().to_dict()
-
-    # Portfolio beta
-    avg_beta = round(float(eligible["beta"].mean()), 2) if "beta" in eligible.columns else None
-
-    return {
-        "holdings": holdings,
-        "sector_counts": sector_counts,
-        "avg_beta": avg_beta,
-        "avg_composite": round(float(eligible["Composite"].mean()), 1),
-        "num_stocks": len(eligible),
-    }
-
-
 # ---------------------------------------------------------------------------
 # Prepare JSON data for the dashboard
 # ---------------------------------------------------------------------------
+
+def _clean_text(value) -> str:
+    """Normalise a provider text field for JSON embedding.
+
+    Returns "" for NaN/None so the front end can test truthiness directly
+    rather than rendering the string "nan" to a reader.
+    """
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return "" if text.lower() in ("nan", "none") else text
+
 
 def _run_date_for_history(meta: dict) -> str | None:
     """The run's calendar date, matching how snapshots are keyed.
@@ -290,7 +248,6 @@ def prepare_dashboard_data(run_data: dict) -> str:
     """Convert run data into a JSON string for embedding in HTML."""
     df = run_data["df"]
     meta = run_data["meta"]
-    portfolio = run_data["portfolio"]
 
     weights = run_data.get("weights", {})
 
@@ -407,6 +364,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
         detail["rank"] = _safe(row.get("Rank"))
         detail["sector"] = row.get("Sector", "")
         detail["company"] = row.get("Company", "")
+        # Display-only context. Not scored; sourced verbatim from the data
+        # provider so a reader can see what the company actually does.
+        detail["industry"] = _clean_text(row.get("_industry"))
+        detail["about"] = _clean_text(row.get("_about"))
         detail["vt"] = _safe(row.get("Value_Trap_Flag"))
         detail["gt"] = _safe(row.get("Growth_Trap_Flag"))
         # Analyst price targets (dollar values)
@@ -555,14 +516,6 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "median_composite": round(float(df["Composite"].median()), 1),
     }
 
-    # SPX sector weights for comparison
-    spx_weights = {
-        "Information Technology": 29.0, "Financials": 14.0, "Health Care": 12.0,
-        "Consumer Discretionary": 10.0, "Industrials": 9.0, "Communication Services": 9.0,
-        "Consumer Staples": 6.0, "Energy": 4.0, "Utilities": 3.0,
-        "Real Estate": 2.0, "Materials": 2.0,
-    }
-
     # Metric display metadata
     metric_meta = {
         "ev_ebitda": {"label": "EV/EBITDA", "fmt": "ratio", "category": "valuation"},
@@ -691,7 +644,6 @@ def prepare_dashboard_data(run_data: dict) -> str:
     dashboard_json = {
         "kpis": kpis,
         "history": history_block,
-        "portfolio": portfolio,
         "table_data": table_data,
         "stock_detail": stock_detail,
         "weights": weights,
@@ -702,7 +654,6 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "vt_by_sector": vt_by_sector,
         "gt_by_sector": gt_by_sector,
         "sector_distributions": sector_distributions,
-        "spx_weights": spx_weights,
         "factor_correlation": factor_corr_data,
         "weight_sensitivity": weight_sens_data,
         "data_quality": data_quality_summary,
@@ -798,24 +749,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </section>
 
-        <!-- Model Portfolio -->
-        <section class="section collapsible-section collapsed" id="sec-portfolio">
-            <div class="section-header" onclick="toggleSection('sec-portfolio')">
-                <h2 class="section-title" style="margin:0">Model Portfolio</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="section-body">
-                <div class="kpi-row" id="portfolio-kpis"></div>
-                <div class="chart-row" style="margin-bottom:var(--gap)">
-                    <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">Portfolio Sector Allocation vs S&P 500</h3>
-                        <canvas id="sector-alloc-chart"></canvas>
-                    </div>
-                </div>
-                <div class="table-section" id="portfolio-table"></div>
-            </div>
-        </section>
-
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
@@ -875,7 +808,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">How Stable Is the Portfolio?</h3>
+                        <h3 class="chart-title">How Stable Is the Ranking?</h3>
                         <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> Green (&ge;0.85) means almost no change. Red (&lt;0.70) means the ranking is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
@@ -961,6 +894,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="modal-body">
                     <!-- Score summary row -->
                     <div class="modal-score-row" id="modal-score-row"></div>
+
+                    <!-- What the company does (provider description, display only) -->
+                    <div class="about-block" id="modal-about" style="display:none">
+                        <div class="about-head">
+                            <span class="about-title">About</span>
+                            <span class="about-industry" id="modal-industry"></span>
+                        </div>
+                        <p class="about-text clamped" id="modal-about-text"></p>
+                        <button class="about-toggle" id="modal-about-toggle"
+                                onclick="toggleAbout()">Show more</button>
+                        <div class="about-source">Business description supplied by Yahoo Finance. Descriptive only &mdash; it is not scored and does not affect the ranking.</div>
+                    </div>
 
                     <!-- Rank history -->
                     <div class="collapsible" id="section-history" style="display:none">
@@ -1142,10 +1087,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
     // Defensive defaults: keep the page usable even if a stale payload is cached.
     setDefault(D, 'kpis', {{ universe_size: 0, value_traps: 0, growth_traps: 0, run_timestamp: null }});
-    setDefault(D, 'portfolio', {{ holdings: [], avg_composite: null, avg_beta: null, num_stocks: 0, sector_counts: {{}} }});
     setDefault(D, 'table_data', []);
     setDefault(D, 'stock_detail', {{}});
-    setDefault(D, 'spx_weights', {{}});
     setDefault(D, 'vt_by_sector', {{}});
     setDefault(D, 'gt_by_sector', {{}});
     setDefault(D, 'sector_distributions', {{ composite_score: {{}} }});
@@ -1203,7 +1146,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     function renderKPIs() {{
         const k = D.kpis;
-        const p = D.portfolio;
         const html = [
             kpiCard('Universe', k.universe_size, 'stocks scored'),
             kpiCard('Value Traps', k.value_traps, `${{(k.value_traps/k.universe_size*100).toFixed(0)}}% flagged`),
@@ -1233,7 +1175,25 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // TOP 5 STOCKS
     // =====================================================================
     function renderTop5() {{
-        const top5 = D.portfolio.holdings.slice(0, 5);
+        // Top 5 of the ranking, excluding trap-flagged names. Previously this
+        // read the model-portfolio holdings; that surface was removed and the
+        // sector cap (8 of 25) cannot bind on five rows, so the list is
+        // unchanged - see METHODOLOGY_CHANGELOG 2026-08-26 (evening).
+        const top5 = D.table_data
+            .filter(function(r) {{ return !r.Value_Trap_Flag && !r.Growth_Trap_Flag; }})
+            .sort(function(a, b) {{ return a.Rank - b.Rank; }})
+            .slice(0, 5)
+            .map(function(r) {{
+                return {{
+                    rank: r.Rank, ticker: r.Ticker, company: r.Company, sector: r.Sector,
+                    composite: r.Composite, valuation: r.valuation_score,
+                    quality: r.quality_score, growth: r.growth_score,
+                    momentum: r.momentum_score, risk: r.risk_score,
+                    revisions: r.revisions_score, size: r.size_score,
+                    investment: r.investment_score,
+                    vt: r.Value_Trap_Flag, gt: r.Growth_Trap_Flag
+                }};
+            }});
         const catKeys = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
         const catLabels = {{ valuation:'Val', quality:'Qual', growth:'Grow', momentum:'Mom', risk:'Risk', revisions:'Rev', size:'Size', investment:'Inv' }};
         const catColors = {{
@@ -1287,90 +1247,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="top5-cta">Click for full breakdown</div>
             </div>`;
         }}).join('');
-    }}
-
-    // =====================================================================
-    // MODEL PORTFOLIO TABLE (all holdings)
-    // =====================================================================
-    function renderPortfolio() {{
-        const holdings = D.portfolio.holdings;
-        const p = D.portfolio;
-        if (!holdings || holdings.length === 0) return;
-
-        // Portfolio KPI cards
-        const kpis = [
-            kpiCard('Holdings', p.num_stocks, 'stocks selected'),
-            kpiCard('Avg Composite', p.avg_composite, 'portfolio average'),
-            kpiCard('Portfolio Beta', p.avg_beta !== null ? p.avg_beta.toFixed(2) : '\u2014', 'avg systematic risk'),
-            kpiCard('Sectors', Object.keys(p.sector_counts).length, 'of 11 represented'),
-        ].join('');
-        document.getElementById('portfolio-kpis').innerHTML = kpis;
-
-        let html = '<table class="data-table"><thead><tr>';
-        html += '<th>Rank</th><th>Ticker</th><th>Company</th><th>Sector</th>';
-        html += '<th>Composite</th><th>Val</th><th>Qual</th><th>Grow</th>';
-        html += '<th>Mom</th><th>Risk</th><th>Rev</th><th>Size</th><th>Inv</th>';
-        html += '</tr></thead><tbody>';
-
-        holdings.forEach(function(h) {{
-            html += '<tr>';
-            html += '<td class="num">' + h.rank + '</td>';
-            html += '<td class="ticker ticker-link" onclick="openStockDetail(\\'' + escapeHtml(h.ticker) + '\\')">' + escapeHtml(h.ticker) + '</td>';
-            html += '<td>' + escapeHtml(h.company || '') + '</td>';
-            html += '<td>' + escapeHtml(h.sector) + '</td>';
-            html += '<td class="num">' + fmt(h.composite,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.valuation,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.quality,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.growth,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.momentum,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.risk,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.revisions,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.size,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.investment,'score') + '</td>';
-            html += '</tr>';
-        }});
-
-        html += '</tbody></table>';
-        document.getElementById('portfolio-table').innerHTML = html;
-    }}
-
-    // =====================================================================
-    // SECTOR ALLOCATION CHART (portfolio vs SPX)
-    // =====================================================================
-    function renderSectorAlloc() {{
-        if (!HAS_CHART) {{
-            const target = document.getElementById('sector-alloc-chart');
-            if (target && target.parentElement) {{
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Portfolio table data is still available below.</div>';
-            }}
-            return;
-        }}
-        const sc = D.portfolio.sector_counts;
-        const total = D.portfolio.num_stocks;
-        const allSectors = [...new Set([...Object.keys(sc), ...Object.keys(D.spx_weights)])].sort();
-        const portfolioPcts = allSectors.map(s => ((sc[s] || 0) / total * 100).toFixed(1));
-        const spxPcts = allSectors.map(s => D.spx_weights[s] || 0);
-        const labels = allSectors.map(s => s.length > 18 ? s.slice(0, 16) + '…' : s);
-
-        new Chart(document.getElementById('sector-alloc-chart'), {{
-            type: 'bar',
-            data: {{
-                labels: labels,
-                datasets: [
-                    {{ label: 'Portfolio %', data: portfolioPcts, backgroundColor: COLORS[0] + 'CC', borderRadius: 3 }},
-                    {{ label: 'S&P 500 %', data: spxPcts, backgroundColor: COLORS[1] + 'CC', borderRadius: 3 }},
-                ]
-            }},
-            options: {{
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {{ legend: {{ position: 'top', labels: {{ color: '#7d8590' }} }} }},
-                scales: {{
-                    x: {{ beginAtZero: true, title: {{ display: true, text: 'Weight %', color: '#7d8590' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#7d8590' }} }},
-                    y: {{ ticks: {{ font: {{ size: 11 }}, color: '#7d8590' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
-                }}
-            }}
-        }});
     }}
 
     // =====================================================================
@@ -1852,6 +1728,37 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         momentum: 'Momentum', risk: 'Risk', revisions: 'Revisions',
         size: 'Size', investment: 'Investment'
     }};
+    // "What does this company actually do?" - the one question the screener
+    // could not answer before 2026-08-26. Verbatim provider text, never scored.
+    function renderAbout(s) {{
+        const box = document.getElementById('modal-about');
+        const txt = document.getElementById('modal-about-text');
+        const btn = document.getElementById('modal-about-toggle');
+        const ind = document.getElementById('modal-industry');
+        const about = (s && s.about) ? String(s.about).trim() : '';
+        ind.textContent = (s && s.industry) ? s.industry : '';
+        if (!about) {{ box.style.display = 'none'; return; }}
+        box.style.display = '';
+        txt.textContent = about;
+        txt.classList.add('clamped');
+        btn.textContent = 'Show more';
+        // Only offer the toggle when the text is actually being cut off.
+        // Measured after layout: renderAbout runs while the modal is still
+        // display:none, where both heights read 0 and the button would be
+        // hidden on every stock.
+        btn.style.display = 'none';
+        requestAnimationFrame(function() {{
+            btn.style.display = (txt.scrollHeight > txt.clientHeight + 2) ? '' : 'none';
+        }});
+    }}
+
+    function toggleAbout() {{
+        const txt = document.getElementById('modal-about-text');
+        const btn = document.getElementById('modal-about-toggle');
+        const clamped = txt.classList.toggle('clamped');
+        btn.textContent = clamped ? 'Show more' : 'Show less';
+    }}
+
     function openStockDetail(ticker) {{
         const s = D.stock_detail[ticker];
         if (!s) return;
@@ -1859,6 +1766,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         document.getElementById('modal-ticker').textContent = ticker;
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
+
+        renderAbout(s);
 
         // Score summary cards
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
@@ -2445,9 +2354,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     const STARTER_QUESTIONS = [
         "Why is the #1 ranked stock rated so high? Search for recent news on it.",
         "What sectors look strongest? Compare to recent market trends.",
-        "Which portfolio stocks have the best analyst ratings right now?",
+        "Which top-ranked stocks have the best analyst ratings right now?",
         "Which stocks are flagged as value traps and why?",
-        "Search for recent earnings surprises among our top 10 holdings.",
+        "Search for recent earnings surprises among our top 10 ranked stocks.",
         "How defensible is this screener's methodology?",
     ];
 
@@ -2595,7 +2504,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (/worst|lowest|weakest|bottom/i.test(text)) return 'bottom_n';
         if (/compar|vs\\.?|versus|differ/i.test(text)) return 'compare';
         if (/sector|industr/i.test(text)) return 'sector';
-        if (/portfolio|holdings|picks/i.test(text)) return 'portfolio';
         if (/trap|flag/i.test(text)) return 'traps';
         return 'general';
     }}
@@ -2660,14 +2568,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const qtype = detectQueryType(msg);
         let ctx = '';
 
-        // Always include portfolio summary
-        ctx += '\\n## Portfolio Summary (Top ' + D.portfolio.holdings.length + ')\\n';
-        D.portfolio.holdings.forEach(function(h) {{
-            ctx += h.rank + '. ' + h.ticker + ' (' + h.sector + ') Composite:' + (h.composite != null ? h.composite.toFixed(1) : '?') +
-                ' Val:' + (h.valuation != null ? h.valuation.toFixed(0) : '?') +
-                ' Qual:' + (h.quality != null ? h.quality.toFixed(0) : '?') +
-                ' Grow:' + (h.growth != null ? h.growth.toFixed(0) : '?') +
-                ' Mom:' + (h.momentum != null ? h.momentum.toFixed(0) : '?') + '\\n';
+        // Always include the head of the ranking. This used to read the
+        // model-portfolio holdings; that surface was removed 2026-08-26.
+        var ranked = D.table_data.slice().sort(function(a, b) {{ return a.Rank - b.Rank; }}).slice(0, 25);
+        ctx += '\\n## Top ' + ranked.length + ' by Composite\\n';
+        ranked.forEach(function(r) {{
+            ctx += r.Rank + '. ' + r.Ticker + ' (' + r.Sector + ') Composite:' + (r.Composite != null ? r.Composite.toFixed(1) : '?') +
+                ' Val:' + (r.valuation_score != null ? r.valuation_score.toFixed(0) : '?') +
+                ' Qual:' + (r.quality_score != null ? r.quality_score.toFixed(0) : '?') +
+                ' Grow:' + (r.growth_score != null ? r.growth_score.toFixed(0) : '?') +
+                ' Mom:' + (r.momentum_score != null ? r.momentum_score.toFixed(0) : '?') + '\\n';
         }});
 
         // Include mentioned tickers
@@ -2754,13 +2664,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '### Trap Filters:\\n' +
             '- **Value Trap**: Flagged if 2-of-3: Quality < ' + vtQual + 'th pctile, Momentum < ' + vtMom + 'th pctile, Revisions < ' + vtRev + 'th pctile.\\n' +
             '- **Growth Trap**: Flagged if Growth > ' + gtGrow + 'th pctile AND fails 2-of-3 weakness checks.\\n\\n' +
-            '### Portfolio: Top ' + D.portfolio.holdings.length + ' stocks by composite, sector-capped.\\n\\n' +
+            '### Ranking: all ' + D.table_data.length + ' stocks scored and ranked by composite.\\n\\n' +
             '### Defensibility Features:\\n' +
-            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\\n' +
+            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 ranking is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\\n' +
             '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\\n' +
             '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\\n' +
             '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The metric registry (METRIC_COLS) has 44 entries: those carrying scoring weight today (generic + bank-specific) plus the candidate metrics held at weight 0 that the self-improving engine may activate.\\n' +
-            '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\\n\\n' +
+            '- **DataValidation Sheet**: Top 10 ranked stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\\n\\n' +
             '## Web Search\\n' +
             'You have access to real-time web search. Use it proactively when the user asks about:\\n' +
             '- Recent news, earnings, analyst ratings, price targets, or events for a specific stock\\n' +
@@ -3287,8 +3197,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (ut) ut.classList.add('no-history');
         }}
         renderTop5();
-        renderPortfolio();
-        renderSectorAlloc();
         renderTrapChart();
         updateSectorDist();
         setupFilters();
@@ -4089,6 +3997,62 @@ def _css() -> str:
             background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
             border-radius: 14px 14px 0 0;
             border-bottom: 1px solid var(--border);
+        }
+        .about-block {
+            background: var(--bg-elevated, rgba(255,255,255,0.03));
+            border: 1px solid var(--border, rgba(255,255,255,0.08));
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: var(--gap, 16px);
+        }
+        .about-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .about-title {
+            font-family: var(--font-heading);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #7d8590);
+        }
+        .about-industry {
+            font-size: 12px;
+            color: var(--accent, #58a6ff);
+        }
+        .about-text {
+            margin: 0;
+            font-size: 13.5px;
+            line-height: 1.62;
+            color: var(--text-primary, #e6edf3);
+            white-space: pre-wrap;
+        }
+        .about-text.clamped {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .about-toggle {
+            margin-top: 8px;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-size: 12.5px;
+            color: var(--accent, #58a6ff);
+            cursor: pointer;
+        }
+        .about-toggle:hover { text-decoration: underline; }
+        .about-source {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-secondary, #7d8590);
+            opacity: 0.85;
         }
         .modal-ticker {
             font-family: var(--font-heading);

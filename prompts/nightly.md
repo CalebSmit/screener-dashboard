@@ -9,12 +9,24 @@ Read `CLAUDE.md` in full before anything else. Its rules override this prompt.
 
 ## 1. Orient
 
+- **Read `OWNER_FOCUS.md` first.** It is how the owner directs this routine.
+  Anything under its **Open** heading outranks today's nominal focus. Work the
+  top open item; if you finish it, take the next one. When an item is done,
+  move it to **Done** in that file with the date and a one-line account of what
+  shipped, and say in the log that you did.
+
+  Two things still outrank it: a stalled data loop, and the ship gates. If you
+  defer an owner item for either, say so explicitly in the log - a deferred
+  item that nobody mentions looks identical to an ignored one.
+
+  If an owner item is a bad idea, do not silently skip it. Say why in the log,
+  do the part that is sound, and leave the item open with your reasoning.
+
 - Read the last 3 entries of `NIGHTLY_LOG.md`. What was in progress? What did
   the last session say to do next? What did it flag as broken?
-- **Check priority 0 in `CLAUDE.md` first.** If the forward-return horizon bug
-  is still unfixed, that is today's work regardless of the nominal focus - the
-  improvement engine cannot propose anything until it is done, so every other
-  methodology task is blocked behind it.
+- **Check the priorities section in `CLAUDE.md`.** The forward-return horizon
+  bug that used to sit at priority 0 shipped 2026-08-24; do not go looking for
+  it. Read what is at the top of the queue *now*.
 - Check the data loop: has `scripts/data-run.ps1` run recently? Look at
   `logs/`, `improvement/live_ic_history.csv`, and the newest files in
   `improvement/snapshots/`. **If the data loop is stalled or failing, fixing it
@@ -47,8 +59,11 @@ professional practice, a failing test that now passes, a profiling result, or a
 concrete user-facing failure you can demonstrate.
 
 **Not yet acceptable:** a backtest number (benched until 2027-02-11) or an IC
-measurement from this system's own history (3 observations, all `1w`, all
-February). Both look like evidence and are not.
+measurement from this system's own history. The history restarted growing on
+2026-08-24, but at the `1m` optimization horizon it still holds a low
+single-digit number of *effective* (non-overlapping) observations against a
+gate of 8. Quote `_n_observations`, never `_n_raw_observations`. Both look like
+evidence and are not.
 
 Never acceptable: "it's cleaner", "it's more modern", "best practice".
 
