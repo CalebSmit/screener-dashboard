@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=c9860e9613e1"></script>
+    <script src="./dashboard_data.js?v=e4e098c15786"></script>
     <style>
 
         /* ====================================================================
@@ -725,6 +725,62 @@
             background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
             border-radius: 14px 14px 0 0;
             border-bottom: 1px solid var(--border);
+        }
+        .about-block {
+            background: var(--bg-elevated, rgba(255,255,255,0.03));
+            border: 1px solid var(--border, rgba(255,255,255,0.08));
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: var(--gap, 16px);
+        }
+        .about-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .about-title {
+            font-family: var(--font-heading);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-secondary, #7d8590);
+        }
+        .about-industry {
+            font-size: 12px;
+            color: var(--accent, #58a6ff);
+        }
+        .about-text {
+            margin: 0;
+            font-size: 13.5px;
+            line-height: 1.62;
+            color: var(--text-primary, #e6edf3);
+            white-space: pre-wrap;
+        }
+        .about-text.clamped {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .about-toggle {
+            margin-top: 8px;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-size: 12.5px;
+            color: var(--accent, #58a6ff);
+            cursor: pointer;
+        }
+        .about-toggle:hover { text-decoration: underline; }
+        .about-source {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-secondary, #7d8590);
+            opacity: 0.85;
         }
         .modal-ticker {
             font-family: var(--font-heading);
@@ -2238,24 +2294,6 @@
             </div>
         </section>
 
-        <!-- Model Portfolio -->
-        <section class="section collapsible-section collapsed" id="sec-portfolio">
-            <div class="section-header" onclick="toggleSection('sec-portfolio')">
-                <h2 class="section-title" style="margin:0">Model Portfolio</h2>
-                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="section-body">
-                <div class="kpi-row" id="portfolio-kpis"></div>
-                <div class="chart-row" style="margin-bottom:var(--gap)">
-                    <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">Portfolio Sector Allocation vs S&P 500</h3>
-                        <canvas id="sector-alloc-chart"></canvas>
-                    </div>
-                </div>
-                <div class="table-section" id="portfolio-table"></div>
-            </div>
-        </section>
-
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
@@ -2315,7 +2353,7 @@
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">How Stable Is the Portfolio?</h3>
+                        <h3 class="chart-title">How Stable Is the Ranking?</h3>
                         <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> Green (&ge;0.85) means almost no change. Red (&lt;0.70) means the ranking is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
@@ -2402,6 +2440,18 @@
                     <!-- Score summary row -->
                     <div class="modal-score-row" id="modal-score-row"></div>
 
+                    <!-- What the company does (provider description, display only) -->
+                    <div class="about-block" id="modal-about" style="display:none">
+                        <div class="about-head">
+                            <span class="about-title">About</span>
+                            <span class="about-industry" id="modal-industry"></span>
+                        </div>
+                        <p class="about-text clamped" id="modal-about-text"></p>
+                        <button class="about-toggle" id="modal-about-toggle"
+                                onclick="toggleAbout()">Show more</button>
+                        <div class="about-source">Business description supplied by Yahoo Finance. Descriptive only &mdash; it is not scored and does not affect the ranking.</div>
+                    </div>
+
                     <!-- Rank history -->
                     <div class="collapsible" id="section-history" style="display:none">
                         <div class="collapsible-header" onclick="toggleSection('section-history')">
@@ -2482,7 +2532,7 @@
 <p><strong>A plain-language guide to what the screener does, why it does it, and how it arrives at its picks.</strong></p>
 <hr />
 <h2>What Is This?</h2>
-<p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst. The top-ranked stocks form a model portfolio.</p>
+<p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.</p>
 <p>Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 44 entries: 34 carry scoring weight today (30 generic + 4 bank-specific) plus 10 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
 <p>The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.</p>
 <hr />
@@ -2921,6 +2971,13 @@
 <p>By default, growth-trap-flagged stocks are <strong>excluded</strong> from the model portfolio (configurable to flag-only mode).</p>
 <hr />
 <h2>Portfolio Construction</h2>
+<p><strong>This is an Excel/artifact output, not a dashboard feature.</strong> The dashboard was
+never the place for it and stopped showing it on 2026-08-26: a named, fixed list
+of holdings published to a public site reads as a recommendation, and this tool
+is decision support - it shows you <em>why</em> a stock ranks where it does and leaves
+the buy/sell/size judgement to you. The ranking on the dashboard is the product.
+What follows describes the <code>ModelPortfolio</code> sheet in the generated workbook, for
+research use by the owner.</p>
 <p>After scoring and ranking, the screener builds a <strong>model portfolio</strong> from the top-ranked stocks:</p>
 <ul>
 <li><strong>Number of holdings:</strong> Top 25 stocks (configurable)</li>
@@ -2943,7 +3000,7 @@
 <h3>Sheet 4: DataValidation</h3>
 <p>The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.</p>
 <h3>Sheet 5: Weight Sensitivity (when available)</h3>
-<p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 portfolio when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the portfolio is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
+<p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
 <h3>Sheet 6: Factor Correlation (when available)</h3>
 <p>Spearman rank correlation matrix of all 8 category scores across the universe. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate factor overlap. Useful for understanding effective independent factor count.</p>
 <p>Additional outputs:
@@ -2976,7 +3033,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <h2>Defensibility &amp; Transparency Features</h2>
 <p>The screener includes several features designed to make its outputs auditable and defensible:</p>
 <h3>Weight Sensitivity Analysis</h3>
-<p>After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 portfolio changes using <strong>Jaccard similarity</strong> (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the portfolio is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.</p>
+<p>After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 ranking changes using <strong>Jaccard similarity</strong> (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.</p>
 <h3>EPS Basis Mismatch Detection</h3>
 <p>Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of forward-to-trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with <code>_eps_basis_mismatch = True</code>. This alerts users that the forward EPS growth and PEG ratio metrics may be distorted by a GAAP/non-GAAP mismatch rather than a genuine change in earnings expectations. Flagged stocks appear highlighted in the DataValidation sheet.</p>
 <h3>Factor Correlation Matrix</h3>
@@ -3152,7 +3209,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)
 6. Applying a liquidity filter to ensure tradeability
-7. Building a diversified model portfolio from the top picks</p>
+7. Reporting how stable that ranking is when the weights are nudged</p>
 <p>The result is a disciplined, repeatable, multi-dimensional ranking that avoids the tunnel vision of looking at any single metric in isolation.</p>
                 </div>
             </div>
@@ -3257,10 +3314,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
     // Defensive defaults: keep the page usable even if a stale payload is cached.
     setDefault(D, 'kpis', { universe_size: 0, value_traps: 0, growth_traps: 0, run_timestamp: null });
-    setDefault(D, 'portfolio', { holdings: [], avg_composite: null, avg_beta: null, num_stocks: 0, sector_counts: {} });
     setDefault(D, 'table_data', []);
     setDefault(D, 'stock_detail', {});
-    setDefault(D, 'spx_weights', {});
     setDefault(D, 'vt_by_sector', {});
     setDefault(D, 'gt_by_sector', {});
     setDefault(D, 'sector_distributions', { composite_score: {} });
@@ -3318,7 +3373,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // =====================================================================
     function renderKPIs() {
         const k = D.kpis;
-        const p = D.portfolio;
         const html = [
             kpiCard('Universe', k.universe_size, 'stocks scored'),
             kpiCard('Value Traps', k.value_traps, `${(k.value_traps/k.universe_size*100).toFixed(0)}% flagged`),
@@ -3348,7 +3402,25 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // TOP 5 STOCKS
     // =====================================================================
     function renderTop5() {
-        const top5 = D.portfolio.holdings.slice(0, 5);
+        // Top 5 of the ranking, excluding trap-flagged names. Previously this
+        // read the model-portfolio holdings; that surface was removed and the
+        // sector cap (8 of 25) cannot bind on five rows, so the list is
+        // unchanged - see METHODOLOGY_CHANGELOG 2026-08-26 (evening).
+        const top5 = D.table_data
+            .filter(function(r) { return !r.Value_Trap_Flag && !r.Growth_Trap_Flag; })
+            .sort(function(a, b) { return a.Rank - b.Rank; })
+            .slice(0, 5)
+            .map(function(r) {
+                return {
+                    rank: r.Rank, ticker: r.Ticker, company: r.Company, sector: r.Sector,
+                    composite: r.Composite, valuation: r.valuation_score,
+                    quality: r.quality_score, growth: r.growth_score,
+                    momentum: r.momentum_score, risk: r.risk_score,
+                    revisions: r.revisions_score, size: r.size_score,
+                    investment: r.investment_score,
+                    vt: r.Value_Trap_Flag, gt: r.Growth_Trap_Flag
+                };
+            });
         const catKeys = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
         const catLabels = { valuation:'Val', quality:'Qual', growth:'Grow', momentum:'Mom', risk:'Risk', revisions:'Rev', size:'Size', investment:'Inv' };
         const catColors = {
@@ -3402,90 +3474,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <div class="top5-cta">Click for full breakdown</div>
             </div>`;
         }).join('');
-    }
-
-    // =====================================================================
-    // MODEL PORTFOLIO TABLE (all holdings)
-    // =====================================================================
-    function renderPortfolio() {
-        const holdings = D.portfolio.holdings;
-        const p = D.portfolio;
-        if (!holdings || holdings.length === 0) return;
-
-        // Portfolio KPI cards
-        const kpis = [
-            kpiCard('Holdings', p.num_stocks, 'stocks selected'),
-            kpiCard('Avg Composite', p.avg_composite, 'portfolio average'),
-            kpiCard('Portfolio Beta', p.avg_beta !== null ? p.avg_beta.toFixed(2) : '—', 'avg systematic risk'),
-            kpiCard('Sectors', Object.keys(p.sector_counts).length, 'of 11 represented'),
-        ].join('');
-        document.getElementById('portfolio-kpis').innerHTML = kpis;
-
-        let html = '<table class="data-table"><thead><tr>';
-        html += '<th>Rank</th><th>Ticker</th><th>Company</th><th>Sector</th>';
-        html += '<th>Composite</th><th>Val</th><th>Qual</th><th>Grow</th>';
-        html += '<th>Mom</th><th>Risk</th><th>Rev</th><th>Size</th><th>Inv</th>';
-        html += '</tr></thead><tbody>';
-
-        holdings.forEach(function(h) {
-            html += '<tr>';
-            html += '<td class="num">' + h.rank + '</td>';
-            html += '<td class="ticker ticker-link" onclick="openStockDetail(\'' + escapeHtml(h.ticker) + '\')">' + escapeHtml(h.ticker) + '</td>';
-            html += '<td>' + escapeHtml(h.company || '') + '</td>';
-            html += '<td>' + escapeHtml(h.sector) + '</td>';
-            html += '<td class="num">' + fmt(h.composite,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.valuation,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.quality,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.growth,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.momentum,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.risk,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.revisions,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.size,'score') + '</td>';
-            html += '<td class="num">' + fmt(h.investment,'score') + '</td>';
-            html += '</tr>';
-        });
-
-        html += '</tbody></table>';
-        document.getElementById('portfolio-table').innerHTML = html;
-    }
-
-    // =====================================================================
-    // SECTOR ALLOCATION CHART (portfolio vs SPX)
-    // =====================================================================
-    function renderSectorAlloc() {
-        if (!HAS_CHART) {
-            const target = document.getElementById('sector-alloc-chart');
-            if (target && target.parentElement) {
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Portfolio table data is still available below.</div>';
-            }
-            return;
-        }
-        const sc = D.portfolio.sector_counts;
-        const total = D.portfolio.num_stocks;
-        const allSectors = [...new Set([...Object.keys(sc), ...Object.keys(D.spx_weights)])].sort();
-        const portfolioPcts = allSectors.map(s => ((sc[s] || 0) / total * 100).toFixed(1));
-        const spxPcts = allSectors.map(s => D.spx_weights[s] || 0);
-        const labels = allSectors.map(s => s.length > 18 ? s.slice(0, 16) + '…' : s);
-
-        new Chart(document.getElementById('sector-alloc-chart'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Portfolio %', data: portfolioPcts, backgroundColor: COLORS[0] + 'CC', borderRadius: 3 },
-                    { label: 'S&P 500 %', data: spxPcts, backgroundColor: COLORS[1] + 'CC', borderRadius: 3 },
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: { legend: { position: 'top', labels: { color: '#7d8590' } } },
-                scales: {
-                    x: { beginAtZero: true, title: { display: true, text: 'Weight %', color: '#7d8590' }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590' } },
-                    y: { ticks: { font: { size: 11 }, color: '#7d8590' }, grid: { color: 'rgba(255,255,255,0.04)' } }
-                }
-            }
-        });
     }
 
     // =====================================================================
@@ -3967,6 +3955,37 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         momentum: 'Momentum', risk: 'Risk', revisions: 'Revisions',
         size: 'Size', investment: 'Investment'
     };
+    // "What does this company actually do?" - the one question the screener
+    // could not answer before 2026-08-26. Verbatim provider text, never scored.
+    function renderAbout(s) {
+        const box = document.getElementById('modal-about');
+        const txt = document.getElementById('modal-about-text');
+        const btn = document.getElementById('modal-about-toggle');
+        const ind = document.getElementById('modal-industry');
+        const about = (s && s.about) ? String(s.about).trim() : '';
+        ind.textContent = (s && s.industry) ? s.industry : '';
+        if (!about) { box.style.display = 'none'; return; }
+        box.style.display = '';
+        txt.textContent = about;
+        txt.classList.add('clamped');
+        btn.textContent = 'Show more';
+        // Only offer the toggle when the text is actually being cut off.
+        // Measured after layout: renderAbout runs while the modal is still
+        // display:none, where both heights read 0 and the button would be
+        // hidden on every stock.
+        btn.style.display = 'none';
+        requestAnimationFrame(function() {
+            btn.style.display = (txt.scrollHeight > txt.clientHeight + 2) ? '' : 'none';
+        });
+    }
+
+    function toggleAbout() {
+        const txt = document.getElementById('modal-about-text');
+        const btn = document.getElementById('modal-about-toggle');
+        const clamped = txt.classList.toggle('clamped');
+        btn.textContent = clamped ? 'Show more' : 'Show less';
+    }
+
     function openStockDetail(ticker) {
         const s = D.stock_detail[ticker];
         if (!s) return;
@@ -3974,6 +3993,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.getElementById('modal-ticker').textContent = ticker;
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
+
+        renderAbout(s);
 
         // Score summary cards
         const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
@@ -4560,9 +4581,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     const STARTER_QUESTIONS = [
         "Why is the #1 ranked stock rated so high? Search for recent news on it.",
         "What sectors look strongest? Compare to recent market trends.",
-        "Which portfolio stocks have the best analyst ratings right now?",
+        "Which top-ranked stocks have the best analyst ratings right now?",
         "Which stocks are flagged as value traps and why?",
-        "Search for recent earnings surprises among our top 10 holdings.",
+        "Search for recent earnings surprises among our top 10 ranked stocks.",
         "How defensible is this screener's methodology?",
     ];
 
@@ -4710,7 +4731,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (/worst|lowest|weakest|bottom/i.test(text)) return 'bottom_n';
         if (/compar|vs\.?|versus|differ/i.test(text)) return 'compare';
         if (/sector|industr/i.test(text)) return 'sector';
-        if (/portfolio|holdings|picks/i.test(text)) return 'portfolio';
         if (/trap|flag/i.test(text)) return 'traps';
         return 'general';
     }
@@ -4775,14 +4795,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const qtype = detectQueryType(msg);
         let ctx = '';
 
-        // Always include portfolio summary
-        ctx += '\n## Portfolio Summary (Top ' + D.portfolio.holdings.length + ')\n';
-        D.portfolio.holdings.forEach(function(h) {
-            ctx += h.rank + '. ' + h.ticker + ' (' + h.sector + ') Composite:' + (h.composite != null ? h.composite.toFixed(1) : '?') +
-                ' Val:' + (h.valuation != null ? h.valuation.toFixed(0) : '?') +
-                ' Qual:' + (h.quality != null ? h.quality.toFixed(0) : '?') +
-                ' Grow:' + (h.growth != null ? h.growth.toFixed(0) : '?') +
-                ' Mom:' + (h.momentum != null ? h.momentum.toFixed(0) : '?') + '\n';
+        // Always include the head of the ranking. This used to read the
+        // model-portfolio holdings; that surface was removed 2026-08-26.
+        var ranked = D.table_data.slice().sort(function(a, b) { return a.Rank - b.Rank; }).slice(0, 25);
+        ctx += '\n## Top ' + ranked.length + ' by Composite\n';
+        ranked.forEach(function(r) {
+            ctx += r.Rank + '. ' + r.Ticker + ' (' + r.Sector + ') Composite:' + (r.Composite != null ? r.Composite.toFixed(1) : '?') +
+                ' Val:' + (r.valuation_score != null ? r.valuation_score.toFixed(0) : '?') +
+                ' Qual:' + (r.quality_score != null ? r.quality_score.toFixed(0) : '?') +
+                ' Grow:' + (r.growth_score != null ? r.growth_score.toFixed(0) : '?') +
+                ' Mom:' + (r.momentum_score != null ? r.momentum_score.toFixed(0) : '?') + '\n';
         });
 
         // Include mentioned tickers
@@ -4869,13 +4891,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '### Trap Filters:\n' +
             '- **Value Trap**: Flagged if 2-of-3: Quality < ' + vtQual + 'th pctile, Momentum < ' + vtMom + 'th pctile, Revisions < ' + vtRev + 'th pctile.\n' +
             '- **Growth Trap**: Flagged if Growth > ' + gtGrow + 'th pctile AND fails 2-of-3 weakness checks.\n\n' +
-            '### Portfolio: Top ' + D.portfolio.holdings.length + ' stocks by composite, sector-capped.\n\n' +
+            '### Ranking: all ' + D.table_data.length + ' stocks scored and ranked by composite.\n\n' +
             '### Defensibility Features:\n' +
-            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 portfolio is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\n' +
+            '- **Weight Sensitivity Analysis**: Each factor weight is perturbed +/-5% and the Jaccard similarity of the top-20 ranking is measured. Jaccard >= 0.85 = robust; < 0.70 = sensitive.\n' +
             '- **EPS Basis Mismatch Detection**: Stocks where forward/trailing EPS ratio exceeds 2.0x or is below 0.3x are flagged.\n' +
             '- **Factor Correlation Matrix**: Spearman correlation of all category scores is computed. Correlations > 0.6 = meaningful overlap; > 0.8 = double-counting risk.\n' +
             '- **Data Provenance**: Each stock carries `_data_source`, `_metric_count` (valid metrics present, out of the applicable set), and `_metric_total`. The metric registry (METRIC_COLS) has 44 entries: those carrying scoring weight today (generic + bank-specific) plus the candidate metrics held at weight 0 that the self-improving engine may activate.\n' +
-            '- **DataValidation Sheet**: Top 10 portfolio stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\n\n' +
+            '- **DataValidation Sheet**: Top 10 ranked stocks shown with raw financials for manual spot-checking against Bloomberg/SEC filings.\n\n' +
             '## Web Search\n' +
             'You have access to real-time web search. Use it proactively when the user asks about:\n' +
             '- Recent news, earnings, analyst ratings, price targets, or events for a specific stock\n' +
@@ -5402,8 +5424,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (ut) ut.classList.add('no-history');
         }
         renderTop5();
-        renderPortfolio();
-        renderSectorAlloc();
         renderTrapChart();
         updateSectorDist();
         setupFilters();

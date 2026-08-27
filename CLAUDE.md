@@ -50,6 +50,26 @@ The bar is a written argument a sceptical reader could follow to its sources.
 If you cannot produce that, spend the session finding it instead. **A night
 that produces one well-sourced finding and no code is a good night.**
 
+### How the owner directs this: `OWNER_FOCUS.md`
+
+The owner is not reviewing PRs and does not write tickets. `OWNER_FOCUS.md` is
+the one place he says what he wants, in plain English. **Read it before the
+rotation, every session.** Open items there outrank the day's nominal focus.
+
+Only two things outrank *it*: a stalled data loop and the ship gates. If you
+defer an owner item for either, say so in `NIGHTLY_LOG.md` - an unmentioned
+deferral is indistinguishable from an ignored request.
+
+When you finish an item, move it to **Done** in that file with the date and
+what shipped. If an item is a bad idea, do not quietly skip it: do the sound
+part, leave it open, and write down the argument. He can then overrule you,
+which is the point of him having a queue at all.
+
+Items will usually be about the *product* - a surface that does not help, a
+question the dashboard cannot answer. That is the half of this work only he can
+see. Methodology stays research-led per the mandate above, unless he
+specifically asks for a factor to be researched, which is a legitimate item.
+
 ### Build a coherent screener, not a pile of good ideas
 
 The point is not to accumulate individually-defensible tweaks. It is to
@@ -351,6 +371,22 @@ And the line that keeps it defensible: **decision support, not a
 recommendation engine.** Show why, with sources and uncertainty visible. Never
 emit a bare "buy". That distinction is what makes it appropriate for a college
 investment club rather than a liability.
+
+**That line has teeth, and it cost a feature.** The Model Portfolio panel was
+removed 2026-08-26 because a fixed 25-name sector-capped list on a public site
+is the closest this tool came to emitting a recommendation. It also turned out
+to carry no column `table_data` did not already have, and no position weights -
+so it did not answer "how much" either. The construction engine stays (the
+Excel sheet, and `in_portfolio` feeds turnover in the snapshots); only the
+dashboard surface went. Changelog 2026-08-26 (evening);
+`tests/test_dashboard_surfaces.py`.
+
+**Display-only fields are legitimate and must stay display-only.** The same
+session added each stock's business description and industry to the drilldown,
+because the tool could score a company on 44 metrics without telling a student
+what it sold. They ride the `.info` dict the fetch already pulls, so they cost
+no API calls, and a test asserts they never enter `raw`/`pct`. Prose is never
+scored.
 
 ## Current priorities (rewrite this section as things land)
 

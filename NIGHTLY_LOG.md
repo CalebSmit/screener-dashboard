@@ -1605,3 +1605,180 @@ run that never fires writes no log, so its absence stays invisible.
 Still owed: **Monday's research note**, now missed three times. Each session
 skipped it for a demonstrable data-integrity defect, correctly, but the debt is
 real and the rotation is not producing the thing it was designed around.
+
+---
+
+## 2026-08-26 (evening) - Owner-directed: the model portfolio leaves the dashboard, stocks gain an "about"
+
+**Not a scheduled session.** The owner asked for two specific changes in an
+interactive session and, separately, asked *how he is supposed to tell this
+routine what to focus on*. That question turned out to be the most important
+part of the evening: until tonight there was no answer. See "The channel" below.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-26_060001.log` - ran, shipped to main, tagged `good/2026-08-26` |
+| Data loop published? | `logs/datarun-2026-08-26_020001.log` - HEALTH: PASS, 0 fetch failures, 502 scored, published |
+| Evidence base | **23 rows, newest 2026-08-14, 2 effective observations at `1m`** (6 raw) |
+| Priority 0 | Fixed 2026-08-24, still holding |
+
+The evidence base has not moved since 08-24 by row count. The 08-26 morning
+session recorded why: the next eligible snapshot becomes computable on
+**2026-08-27** with five queued behind it, and wrote itself a tripwire - if the
+count has not moved by tomorrow's session, rule 8 bites and that becomes the
+work regardless of rotation. **That tripwire is still armed and this session
+did not touch it.** Tomorrow: check `live_ic_history.csv` first.
+
+### The channel (the part worth keeping)
+
+The owner had no way to direct this routine. `CLAUDE.md` priorities are written
+*by sessions, for sessions*; the weekly rotation is fixed; and he is explicitly
+not reading diffs. So a request like tonight's could only ever reach the system
+by him opening a chat and asking - which does not scale and leaves no record.
+
+`OWNER_FOCUS.md` is now that channel: plain English, **Open** and **Done**
+headings, read during Orient *before* the rotation is consulted. Open items
+outrank the day's nominal focus. Only two things outrank an owner item - a
+stalled data loop and the ship gates - and the prompt now requires a session
+that defers one to *say so in the log*, because an unmentioned deferral is
+indistinguishable from an ignored request.
+
+Wired into `prompts/nightly.md` (step 1) and `CLAUDE.md`. Pinned by
+`tests/test_owner_focus.py` (7 tests) - including that the reference appears
+between "## 1. Orient" and "## 2. Baseline", so it cannot drift to a position
+after the work is already chosen. **A silent channel looks exactly like an
+empty one**, which is the same shape as the evidence base sitting at 3 rows for
+183 days while every run reported success.
+
+While in `prompts/nightly.md` I also corrected two stale claims it was still
+making: that the forward-return horizon bug is unfixed (it shipped 08-24) and
+that the IC history holds "3 observations, all `1w`, all February" (23 rows;
+the number that matters is 2 effective at `1m`). Rule 9.
+
+### Did - 1. Removed the Model Portfolio from the dashboard
+
+Owner's stated reasons: it serves no genuine purpose, and it wastes payload.
+**The second reason is false and I checked before acting** - `portfolio` was
+9,681 bytes of a 3,373,395-byte payload, 0.29%. Removing it saves nothing.
+
+The first reason is right, and stronger than stated. Two findings:
+
+- **It carried no column `table_data` did not already have.** Holdings held
+  `ticker/company/sector/composite`, the eight category scores, `vt`, `gt` -
+  every one already present under a different case. A renamed, row-filtered copy.
+- **It did not answer "how much" either.** The north star names position sizing
+  as question 4, so this looked like it might cost an answer. It does not: the
+  holdings payload **carries no weights at all**. The sizing logic lives in
+  `portfolio_constructor.py` and the Excel sheet and was never exposed.
+
+So the real justification is the governing line in `CLAUDE.md`: a fixed 25-name
+sector-capped list published to a public site is the closest this tool came to
+emitting a recommendation. A ranking a reader sorts is a screen; a named
+portfolio is advice.
+
+**`plan/dashboard-inventory.md` had already worked this out** (owner directive
+2026-08-05) and warned: do not blindly delete `portfolio_constructor.py`,
+because `improvement_engine.record_run_snapshot()` computes **turnover** from
+`in_portfolio`. Checked - correct. The engine, artifact, Excel sheet and
+snapshot column all stay; only the dashboard surface went. That file is now
+marked DONE with what shipped.
+
+Also removed `spx_weights`: the portfolio-vs-SPX chart was its only consumer,
+and a sector split of the S&P 500 against itself is a tautology.
+
+**Top 5 was verified, not assumed.** It read `D.portfolio.holdings.slice(0,5)`.
+It now filters `table_data` for trap-free names and sorts by rank. Both paths
+give `HST, EXPE, APA, EIX, CF` on live data - the sector cap is 8-of-25 and
+cannot bind on five rows. The trap exclusion was kept deliberately; dropping it
+would promote a flagged name into the headline five.
+
+### Did - 2. "About" sections in the stock drilldown
+
+The tool could score a company on 44 metrics and not say what it sold. For the
+investment-club audience that is a teachability gap, not polish: a student
+looking at APA at rank 3 cannot learn it is oil-and-gas exploration without
+leaving the tool.
+
+`longBusinessSummary` now comes off the `.info` dict the fetch **already
+pulls**, so the API cost is zero - important, because the data loop is already
+losing tickers to Yahoo rate limits and buying prose with evidence would have
+been a bad trade. Rendered under the score cards with the specific industry, a
+4-line clamp, a "Show more" toggle, and an attribution line.
+
+Payload: **+0.71 MB raw (~+21%), ~+60 KB gzipped**. Prose gzips ~11.6x against
+the payload's overall 4.2x, and Pages serves gzip, so raw size overstates this
+by an order of magnitude. Worth writing down generally: **measure gzip before
+calling a payload change expensive.**
+
+Display-only, and a test enforces it - `about` must never appear in `raw`/`pct`.
+The screener does not rank prose.
+
+**`about` is empty on the site until the 02:00 run on 2026-08-27.** The field
+did not exist in the raw parquet before tonight. `industry` populated
+immediately (501/502) because it was already being fetched and simply unused -
+which is also how I confirmed the merge path works before trusting it.
+
+### Found by looking, not by reading
+
+The first cut measured `scrollHeight > clientHeight` inside `renderAbout()`,
+which runs while the modal is still `display:none`. Both heights read 0, so
+**"Show more" was hidden on every stock** and long descriptions were
+permanently truncated with no way to expand them. The source reads as correct.
+It was caught by rendering the page in a browser and driving it.
+
+Fixed with `requestAnimationFrame`; pinned by
+`test_about_overflow_is_measured_after_layout`. `.claude/launch.json` now
+serves the repo root on :8931 so the next session can do the same thing cheaply
+- there is now a standing way to *look at* the dashboard before shipping it,
+which this repo did not have.
+
+### Tried and rejected
+
+- **Deleting `portfolio_constructor.py` outright.** Would have broken turnover
+  in the evidence base. The inventory file predicted this; I verified rather
+  than trusting it.
+- **Truncating summaries to ~2 sentences to save payload.** Unnecessary once
+  gzip was measured, and it would have cut mid-thought for the diversified
+  names that most need explaining.
+- **Justifying the removal on payload size.** It is 0.29%. Shipping that
+  reasoning into the changelog would have put a false number in the audit trail.
+
+### Verification
+
+- **706 passed**, up from 676. No regressions; the baseline was clean both
+  before and after.
+- The 30 new dashboard tests were run against `9bed64f` in a detached worktree:
+  **29 of 30 fail** there. The one that passes both ways is the guard asserting
+  the defensibility section survived - correct behaviour for a "do not break
+  this" test.
+- Browser-driven: no console errors, `sec-portfolio` absent from the DOM, Top 5
+  renders five cards, About verified across all three data shapes (long -
+  block and toggle; short - block only; missing - no block).
+- Published artifacts regenerated from `runs/83c9e2e2dd48`, the same run
+  already live, so the data is unchanged and only the surfaces differ.
+
+### Noticed, not fixed
+
+**The publish path writes the root artifacts twice, by two different routes.**
+`run_screener.py` step 12 generates into the run dir and copies to root;
+`data-run.ps1` then regenerates into the run dir and copies only
+`dashboard.html` to `index.html`. Root `dashboard_data.js` is never re-copied -
+it stays correct today only because the second generation is byte-identical to
+the first. If anything makes those two generations differ (a changed
+`SCREENER_OVERVIEW.md` between them would do it), `index.html` and
+`dashboard_data.js` could ship out of step, and the embedded `data_version`
+hash would disagree with the data actually loaded. Not urgent, not touched
+tonight - but it is a real trap for a future session.
+
+### Next
+
+1. **Check `improvement/live_ic_history.csv` first.** The 08-26 tripwire is
+   armed: if the row count has not moved past 23, that is the session's work.
+2. **Read `OWNER_FOCUS.md`.** It is empty now, but it is the first thing to
+   check from here on.
+3. Confirm the 02:00 run populated `about` - the drilldown should show real
+   descriptions from 2026-08-27. If it does not, the merge in
+   `generate_dashboard.load_run_data` is the place to look.
+4. Monday's research note is still owed. Two sessions have skipped it.

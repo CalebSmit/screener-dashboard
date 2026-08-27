@@ -17,15 +17,14 @@ leaving it wrong.
 
 | Section | Contents |
 |---|---|
-| **Top 5 Stocks** | Highest-composite names, card layout |
-| **Model Portfolio** | Holdings + `Portfolio Sector Allocation vs S&P 500` chart. **Slated for removal - see below** |
+| **Top 5 Stocks** | Highest-composite names, card layout. Reads `table_data` directly, excluding trap-flagged names |
 | **Factor Analytics** | `Factor Scores by Sector`, `Trap Rate by Sector` |
-| **Defensibility & Diagnostics** | `How Stable Is the Portfolio?` (weight sensitivity), `Are the Factors Independent?` (factor correlation) |
+| **Defensibility & Diagnostics** | `How Stable Is the Ranking?` (weight sensitivity), `Are the Factors Independent?` (factor correlation) |
 | **Full Universe Rankings** | The 501-row sortable table - the workhorse view |
 | **Methodology** | A very large embedded explainer (~30 headings) |
 
-Interactive elements are sparse: **3 charts** (`sector-alloc-chart`,
-`sector-dist-chart`, `vt-chart`) and **1 table** (`universe-table`). There is
+Interactive elements are sparse: **2 charts** (`sector-dist-chart`,
+`vt-chart`) and **1 table** (`universe-table`). There is
 also a "Screener AI" chat with a Chat Settings panel.
 
 ## The Methodology section is roughly half the file
@@ -50,25 +49,40 @@ correctness fix, not a polish task.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.682 | **~85% of the payload.** All 501 stocks |
-| `history` | 0.251 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
-| `table_data` | 0.244 | 501 rows, 8 category scores + composite/rank/flags |
-| everything else | <0.03 | |
+| `stock_detail` | 2.81 -> ~3.5 | **~83% of the payload.** All 502 stocks. Grew 2026-08-26 with `about` |
+| `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
+| `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
+| everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
+
+**Raw size is the wrong number to optimise.** Pages serves gzip, and the
+payload compresses 4.2x overall - prose closer to 11x. The business
+descriptions add ~0.71 MB raw but only ~60 KB on the wire. Measure gzip before
+calling anything expensive.
 
 `stock_detail` dominates. Per stock: `raw`, `pct`, `cat_scores`, `contrib`,
-`composite`, `rank`, `sector`, `company`, `vt`/`gt`, `price`,
-`pt_mean/high/low`, `num_analysts`, `eps_mismatch`, `eps_ratio`, `data_source`,
-`metric_count`/`metric_total`, `financials`, `flags`, `peers`, `self_metrics`.
+`composite`, `rank`, `sector`, `company`, `industry`, `about`, `vt`/`gt`,
+`price`, `pt_mean/high/low`, `num_analysts`, `eps_mismatch`, `eps_ratio`,
+`data_source`, `metric_count`/`metric_total`, `financials`, `flags`, `peers`,
+`self_metrics`.
+
+`industry` and `about` were added 2026-08-26 (owner request). Both are
+**display-only** - `about` is the provider's `longBusinessSummary`, rendered
+verbatim in a clamped block under the score cards with a "Show more" toggle and
+an attribution line. Neither is scored, ranked, or fed to a metric, and
+`tests/test_dashboard_surfaces.py` asserts they never appear in `raw`/`pct`.
+Both ride the `.info` dict the fetch already pulls, so they cost no API calls.
 
 Adding history will grow this fast. Lazy-load or downsample - do not ship a
 10 MB payload to a phone.
 
 ## Other payload keys
 
-`kpis`, `portfolio`, `weights` (factor + metric), `metric_meta` (36 metrics),
+`kpis`, `weights` (factor + metric), `metric_meta` (36 metrics),
 `sectors` (11), `sector_composition`, `histogram`, `vt_by_sector`,
-`gt_by_sector`, `sector_distributions`, `spx_weights`, `factor_correlation`,
-`weight_sensitivity` (8), `data_quality`, `config_traps`.
+`gt_by_sector`, `sector_distributions`, `factor_correlation`,
+`weight_sensitivity` (8), `data_quality`, `config_traps`, `history`.
+
+`portfolio` and `spx_weights` were removed 2026-08-26 - see below.
 
 ## What is genuinely missing
 
@@ -98,26 +112,34 @@ Confirmed against the above, not guessed:
 6. **Charting breadth.** Three charts for a 3 MB payload is thin - though add
    charts only where they beat a table, not for decoration.
 
-## Model Portfolio removal (owner directive 2026-08-05)
+## Model Portfolio removal - DONE 2026-08-26
 
-The owner does not want the Model Portfolio in the dashboard; it does not serve
-the buy/sell decision goal.
+Owner directive 2026-08-05, restated as a priority 2026-08-26 and shipped the
+same evening. The recommendation this file made was followed exactly: **the
+dashboard surface went, the construction engine stayed.**
 
-**Remove:** the `Model Portfolio` section and its `Portfolio Sector Allocation
-vs S&P 500` chart from the dashboard UI, plus the `Top 5` framing if it is
-merely a portfolio preview rather than a screening result.
+**Removed:** the `Model Portfolio` section, the `Portfolio Sector Allocation vs
+S&P 500` chart, `renderPortfolio()`, `renderSectorAlloc()`, the `portfolio`
+payload key, and the `spx_weights` key - the latter because that chart was its
+only consumer, and a sector split of the S&P 500 against itself says nothing.
 
-**Do not blindly delete `portfolio_constructor.py`.** Check these first:
+**Kept, deliberately:** `portfolio_constructor.py`, the `08_model_portfolio`
+artifact, the `ModelPortfolio` Excel sheet, and the `in_portfolio` snapshot
+column. The warning in the previous version of this section was correct -
+`improvement_engine.record_run_snapshot()` writes `in_portfolio` into every
+snapshot and computes **turnover** from it, so deleting construction outright
+would have silently damaged the evidence base. Three test modules cover it too.
 
-- `improvement_engine.record_run_snapshot()` takes `portfolio_df` and writes an
-  `in_portfolio` column into every snapshot, and uses portfolio membership to
-  compute **turnover**. Removing portfolio construction outright would break
-  turnover tracking, which is part of the evidence base.
-- The Excel workbook has a `ModelPortfolio` sheet, and the Methodology section
-  documents it.
-- `tests/test_portfolio_weighting.py`, `tests/test_portfolio_risk.py`, and
-  parts of `tests/test_defensibility_improvements.py` cover it.
+**Top 5 was checked, not assumed.** It had been reading the portfolio holdings.
+It now filters `table_data` for trap-free names and sorts by rank. Verified
+identical on live data (`HST, EXPE, APA, EIX, CF` both ways): the sector cap is
+8-of-25 and cannot bind on five rows.
 
-**Recommended:** remove it from the dashboard UI and the Methodology text, keep
-the construction logic feeding snapshots/turnover/Excel. If a later session
-shows turnover is unused, revisit. Record the decision in `NIGHTLY_LOG.md`.
+Pinned by `tests/test_dashboard_surfaces.py` (30 tests, 29 of which fail
+against the pre-removal code). A *partial* removal is the dangerous state -
+`D.portfolio` undefined at render time takes the whole script down and the page
+goes blank with every ship gate still green.
+
+If the owner later wants the construction engine gone too, the open questions
+are whether turnover is actually used by anything and whether the Excel sheet
+is still wanted.
