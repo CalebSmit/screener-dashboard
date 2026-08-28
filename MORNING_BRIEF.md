@@ -1,4 +1,4 @@
-# Morning Brief - Friday 28 August 2026, 02:12
+# Morning Brief - Friday 28 August 2026, 06:18
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -19,9 +19,15 @@ history is in `NIGHTLY_LOG.md`.
 ## Things that needed attention
 
 - Stale lock. Reclaiming.
+- Stale lock (24h). Reclaiming.
 
 ## What changed in the repo
 
+- `493ddeb data: republish the dashboard with weights that add up`
+- `71da63c docs: the printed weights are defaults, and a run may not use them`
+- `6344a72 teach: show the weight each score was actually multiplied by`
+- `14027d9 fix: record the weights the composite was actually built from`
+- `5c0966d brief: data run 2026-08-28`
 - `7dfe548 data: screener run 2026-08-28 - 502 scored, top: HST EXPE APA EIX CF`
 - `bc127cd brief: code session 2026-08-27`
 - `3175da4 watch: verify the workflow on GitHub, and bump the actions off Node 20`
@@ -32,59 +38,54 @@ history is in `NIGHTLY_LOG.md`.
 - `8e021ab data: screener run 2026-08-27 - 502 scored, top: HST EXPE EIX APA CF`
 - `42c278d harden: ToString() the commit-subject output before trimming it`
 - `9273625 fix: the data-run commit subject named sector peers, not the top five`
-- `39dbfca brief: data run 2026-08-26`
-- `d6074a9 data: screener run 2026-08-26 - 502 scored, top: MAA DOC KIM REG UDR`
-- `5494086 brief: data run 2026-08-26`
-- `4a622a8 product: Top 5 first, What Changed and Factor Analytics collapsed by default`
-- `253be1d product: remove the model portfolio, give each stock an "about"`
 
 ## The session's own account
 
-> 2026-08-27 - BUILD. The watchdog moves outside the thing it was watching.
+> 2026-08-28 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
 > 
 > ### Health numbers (rule 8)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-26_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | `logs/datarun-2026-08-27_020001.log` - "Data loop complete", HEALTH: PASS, 0 fetch failures, 502/502 price coverage |
-> | Evidence base | **25 rows, newest 2026-08-20, 3 effective observations at `1m`** (7 raw) |
+> | Last code session ran? | `logs/nightly-2026-08-27_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-08-28_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+> | Evidence base | **27 rows, newest 2026-08-21, 3 effective observations at `1m`** (8 raw) |
 > | Priority 0 | Fixed 2026-08-24, holding |
 > 
-> **Tests:** before 733/733, after **791/791**
+> **Tests:** before 791/791, after **825/825**
 > **Data loop:** healthy
+> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
+> rotation stood. Nothing was deferred.
+> **Rotation:** ISO week 35 is odd, so this was a normal Friday, not a
+> retrospective.
 > 
-> **The 08-26 tripwire is released.** The previous two sessions read "23 rows,
-> newest 2026-08-14, 2 effective at `1m`" and armed rule 8: if it had not moved
-> today, making it move was today's work regardless of rotation. It moved -
-> **23 -> 25 rows, 2 -> 3 effective at `1m`** - so the 08-24 fix is accruing
-> evidence as predicted and the rotation stood. Independent 1-month observations
-> still arrive about one a month; 3 of 8 is roughly five more months.
+> **Last session's item 3 is closed first, because it was cheap.** The watchdog's
+> first *scheduled* firing (run
+> [33148005073](https://github.com/CalebSmit/screener-dashboard/actions/runs/33148005073),
+> `schedule` trigger, 10s, success) is green. The cron works, not just the manual
+> dispatch.
 > 
-> ### First, the five-minute check the last session asked for
+> ### The question this day asks, asked literally
 > 
-> **The MNST price-series fix landed on the live site.** Confirmed in today's
-> 02:00 run rather than assumed:
+> "Would a finance student understand what they are looking at?" The most
+> teachable surface in the tool is the drilldown's contribution panel, because it
+> does not just show a score - it shows the working:
 > 
-> - `validation/data_quality_log.csv` carries the first-ever
->   `price_series_rejected` row - MNST, "series mixes pre- and post-split prices
->   across a 2:1 split - 4 day(s) move by ~0.5x".
-> - The published payload has `momentum_score: null` and `risk_score: null` for
->   MNST, and `return_12_1`/`return_6m`/`volatility`/`beta` all null in `raw`.
-> - MNST moved rank **360 -> 370**, in the direction the correction implies.
-> - `check_run_health` still PASS: one withheld name in 502, which is
->   `MIN_CATEGORY_COVERAGE = 0.90` doing its job rather than tripping.
+> ```
+> Momentum   13% weight
+> Score: 65.3/100  [Average]  x 13% = 9.76 pts
+> ```
 > 
-> ### Did - 1. A watchdog that is not inside the thing it watches
+> So I checked the arithmetic against the payload that was live on `main` this
+> morning. **65.3 x 13% is 8.49, not 9.76.** The one worked example on the site
+> did not add up.
 > 
-> `CLAUDE.md` priority -1 listed two open infrastructure items. **One of them was
-> already done and the file did not know.** `scripts/register-tasks.ps1` shipped
-> 2026-08-21 (commit `33f3ca7`), yet the priority section, `ACTION_REQUIRED.md`
-> and a research note all still asserted that `grep -rn "Register-ScheduledTask"
-> .` "finds nothing". It finds it at `scripts/register-tasks.ps1:111`. Corrected
-> in all three places - rule 9.
+> ### Did - the weights shown were not the weights used
 > 
-> The second item was real, and is the session's work: **nothing watched whether
+> Solving `contrib / score` over the 491 stocks with all eight categories
+> populated recovers what the composite was really built from: **valuation 20.05,
+> momentum 14.95**, the other six unchanged, summing to 100.000. Those are
+> exactly a LOW VOL regime - `13 x 1.15 = 14.95`, the 1.95pp taken out of
 > ...
 
 ---
