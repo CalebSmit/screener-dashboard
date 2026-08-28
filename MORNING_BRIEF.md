@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 27 August 2026, 06:20
+# Morning Brief - Friday 28 August 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,21 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-27T02:00:03.379939 |
+| Dashboard data from | 2026-08-28T02:00:03.803219 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, EIX, APA, CF |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (7 rows, but overlapping windows are not independent; 25 rows across all horizons), newest 2026-08-20 |
+| Top 5 | HST, EXPE, APA, EIX, CF |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 27 rows across all horizons), newest 2026-08-21 |
+
+## Things that needed attention
+
+- Stale lock. Reclaiming.
 
 ## What changed in the repo
 
+- `7dfe548 data: screener run 2026-08-28 - 502 scored, top: HST EXPE APA EIX CF`
+- `bc127cd brief: code session 2026-08-27`
 - `3175da4 watch: verify the workflow on GitHub, and bump the actions off Node 20`
 - `1af2643 docs: both priority -1 infrastructure items are done; correct the record`
 - `0fda98d fix: the morning brief lost its Top 5 when the portfolio key was removed`
@@ -31,8 +37,6 @@ history is in `NIGHTLY_LOG.md`.
 - `5494086 brief: data run 2026-08-26`
 - `4a622a8 product: Top 5 first, What Changed and Factor Analytics collapsed by default`
 - `253be1d product: remove the model portfolio, give each stock an "about"`
-- `9bed64f brief: code session 2026-08-26`
-- `f055475 docs: record the fix, and correct the record it was diagnosed from`
 
 ## The session's own account
 
