@@ -547,6 +547,13 @@ Raw Composite = {' + '.join(composite_parts)}
 
 The same missing-data redistribution logic applies: if a category score is NaN (e.g., all revisions data missing for a stock), its weight is redistributed to available categories rather than producing a NaN composite.
 
+**The weights above are the configured defaults, and an individual run may not use them.** Two rules move them, both described in this document:
+
+1. **The volatility-regime adjustment** changes the momentum weight for the whole run (see the Momentum section). It is funded from Valuation in calm markets and paid back into Quality and Valuation in turbulent ones.
+2. **Missing-data redistribution** changes them for one stock, whenever a category could not be scored for it.
+
+So a stock's momentum score may be multiplied by something other than the {fw.get("momentum", 0)}% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows **the weight each score was actually multiplied by**, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to `runs/<run_id>/effective_weights.json`.
+
 The raw composite is then converted to a cross-sectional percentile rank (0-100), so a score of 95 means "better than 95% of stocks in the universe."
 
 ### Step 6: Apply Trap Filters & Rank
@@ -1370,6 +1377,16 @@ def run_factor_engine(cfg, args, ctx=None):
     print("Adjusting momentum weight for vol regime...")
     cfg = adjust_momentum_weight(df, cfg, str(ROOT))
 
+    # adjust_momentum_weight returns a deep copy, so from here on `cfg` is a
+    # different object from the caller's. The revisions/investment auto-disables
+    # above mutate the shared dict and therefore reach main() on their own; this
+    # one cannot, and for 183 days it did not - the published
+    # effective_weights.json recorded the *configured* weights while the
+    # composite was built from the regime-adjusted ones. The dashboard prints
+    # that arithmetic to the user ("Score x 13% = 9.76 pts"), so the sum shown
+    # on the public site did not add up. Hand the real weights back explicitly.
+    stats["_effective_factor_weights"] = dict(cfg.get("factor_weights", {}))
+
     print("Computing composite scores...")
     df = compute_composite(df, cfg)
     pipeline_log.info("Composite scores complete: %d stocks", len(df))
@@ -2164,6 +2181,9 @@ def main():
     # Extract correlation matrix and sensitivity analysis from stats
     sens_df = fe_stats.pop("_sens_df", None)
     corr_df = fe_stats.pop("_corr_df", None)
+    # Weights actually used to build the composite (see run_factor_engine).
+    # Absent on the warm-cache path, which returns before scoring runs.
+    effective_fw = fe_stats.pop("_effective_factor_weights", None)
 
     print("\nWriting Excel workbook...")
     excel_path, n_sheets = write_excel_safe(
@@ -2194,7 +2214,7 @@ def main():
                        excel_path, n_sheets, n_cache_files, total_time)
 
     # ---- 10. Save run metadata ----
-    ctx.save_effective_weights(cfg)
+    ctx.save_effective_weights(cfg, factor_weights=effective_fw)
     ctx.save_metadata({
         "cli_flags": {
             "refresh": args.refresh,

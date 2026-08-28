@@ -134,11 +134,27 @@ class RunContext:
             json.dump(data, f, indent=2)
         return path
 
-    def save_effective_weights(self, cfg: dict) -> Path:
-        """Save the effective weights (after any auto-disable adjustments)."""
+    def save_effective_weights(self, cfg: dict,
+                               factor_weights: dict | None = None) -> Path:
+        """Save the weights the composite was actually built from.
+
+        `cfg` carries the configured weights after the revisions/investment
+        auto-disables, which mutate the shared config dict and so are already
+        visible here. The volatility-regime adjustment is *not*: it returns a
+        deep copy inside `run_factor_engine`, so the caller never sees it.
+        Pass those through explicitly as `factor_weights`.
+
+        Writes both, because the dashboard needs to show the arithmetic that
+        was actually done (`factor_weights`) *and* explain why it differs from
+        the published methodology (`base_factor_weights`).
+        """
+        base = cfg.get("factor_weights", {})
+        effective = factor_weights if factor_weights else base
         data = {
-            "factor_weights": cfg.get("factor_weights", {}),
+            "factor_weights": dict(effective),
             "metric_weights": cfg.get("metric_weights", {}),
+            "base_factor_weights": dict(base),
+            "factor_weights_adjusted": dict(effective) != dict(base),
         }
         path = self.run_dir / "effective_weights.json"
         with open(path, "w") as f:
