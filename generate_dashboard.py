@@ -244,12 +244,108 @@ def _run_date_for_history(meta: dict) -> str | None:
     return str(raw)[:10]
 
 
+CATEGORIES = ["valuation", "quality", "growth", "momentum",
+              "risk", "revisions", "size", "investment"]
+
+
+def _effective_weight_row(weights: dict, present: list) -> dict:
+    """Per-stock weights after redistributing away categories with no score.
+
+    Mirrors ``factor_engine.compute_factor_contributions`` exactly: a category
+    with no data drops out and the survivors are renormalised over the weight
+    that remains. The JS does the same arithmetic for display; this is the
+    Python side used to verify it.
+    """
+    live = {c: weights.get(c, 0) for c in present if weights.get(c, 0) > 0}
+    total = sum(live.values())
+    if total <= 0:
+        return {c: 0.0 for c in CATEGORIES}
+    return {c: (live[c] / total * 100.0 if c in live else 0.0)
+            for c in CATEGORIES}
+
+
+def _derive_factor_weights(df) -> dict | None:
+    """Recover the weights actually used, from the scored rows themselves.
+
+    For a stock with all eight categories populated the weights are not
+    renormalised, so ``contrib = score * weight / 100`` and the weight falls
+    straight out. Taking the median over every such stock is robust to the
+    2-decimal rounding on ``*_contrib``.
+
+    Used only as a cross-check and last-resort fallback: the weights are
+    supposed to arrive from ``effective_weights.json``.
+    """
+    score_cols = {c: f"{c}_score" for c in CATEGORIES}
+    contrib_cols = {c: f"{c}_contrib" for c in CATEGORIES}
+    if any(col not in df.columns for col in
+           list(score_cols.values()) + list(contrib_cols.values())):
+        return None
+
+    full = df.dropna(subset=list(score_cols.values()))
+    if len(full) < 20:
+        return None
+
+    derived = {}
+    for cat in CATEGORIES:
+        s, c = full[score_cols[cat]], full[contrib_cols[cat]]
+        usable = s > 1.0  # tiny scores make contrib/score rounding-dominated
+        if usable.sum() < 20:
+            return None
+        derived[cat] = float((c[usable] / s[usable] * 100.0).median())
+
+    total = sum(derived.values())
+    if not (99.0 <= total <= 101.0):
+        return None
+    return {c: round(v, 2) for c, v in derived.items()}
+
+
+def _reconcile_factor_weights(df, weights: dict) -> dict:
+    """Make sure the weights we publish reproduce the contributions we publish.
+
+    The dashboard prints its own arithmetic to the reader - "Score 65.3 x 13%
+    = 9.76 pts". That is the tool's central teaching claim, and between
+    2026-02 and 2026-08-28 it was false for 501 of 502 stocks: the volatility
+    regime adjustment was applied to the composite but never reached
+    ``effective_weights.json``, so the page showed 13% where 14.95% had been
+    used. Nothing failed, because nobody was checking that the sum added up.
+
+    So check it here, every build. Weights that do not reproduce the
+    contributions are not published.
+    """
+    fw = dict(weights.get("factor_weights") or {})
+    if not fw or df is None or df.empty:
+        return weights
+
+    derived = _derive_factor_weights(df)
+    if derived is None:
+        return weights  # cannot verify (e.g. tiny universe) - leave as-is
+
+    worst = max(abs(derived[c] - fw.get(c, 0)) for c in CATEGORIES)
+    if worst <= 0.05:
+        return weights  # recorded weights check out
+
+    print(f"  [WEIGHTS] Recorded factor weights do not reproduce the published "
+          f"contributions (worst gap {worst:.2f}pp). Publishing the weights the "
+          f"scores were actually built from.")
+    for cat in CATEGORIES:
+        if abs(derived[cat] - fw.get(cat, 0)) > 0.05:
+            print(f"    {cat}: recorded {fw.get(cat, 0)} -> actual {derived[cat]}")
+
+    weights = dict(weights)
+    weights.setdefault("base_factor_weights", fw)
+    weights["factor_weights"] = derived
+    weights["factor_weights_adjusted"] = derived != dict(
+        weights.get("base_factor_weights") or {})
+    weights["factor_weights_derived"] = True
+    return weights
+
+
 def prepare_dashboard_data(run_data: dict) -> str:
     """Convert run data into a JSON string for embedding in HTML."""
     df = run_data["df"]
     meta = run_data["meta"]
 
-    weights = run_data.get("weights", {})
+    weights = _reconcile_factor_weights(df, run_data.get("weights", {}))
 
     # --- Raw metric columns, percentile columns, contribution columns ---
     raw_metrics = [
@@ -954,7 +1050,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         </div>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe.</p>
+                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe. <strong>The weights below are the ones this stock's scores were actually multiplied by</strong> — they can differ from the defaults in Methodology, and any gap is explained underneath.</p>
                                 <div id="contrib-visual"></div>
                                 <div class="contrib-total-row" id="contrib-total"></div>
                             </div>
@@ -1759,6 +1855,40 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         btn.textContent = clamped ? 'Show more' : 'Show less';
     }}
 
+    // Weights for ONE stock, after dropping categories it has no score for.
+    //
+    // Two things move a weight away from the headline number in the
+    // Methodology page, and both have to be shown or the arithmetic on this
+    // page does not add up:
+    //   1. the run-level volatility-regime adjustment, already baked into
+    //      D.weights.factor_weights; and
+    //   2. this renormalisation, when a category was withheld for this stock
+    //      (e.g. a rejected price series takes out Momentum and Risk).
+    // Mirrors factor_engine.compute_factor_contributions.
+    function effWeights(s) {{
+        const fw = D.weights.factor_weights || {{}};
+        const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        let total = 0;
+        cats.forEach(c => {{
+            const w = fw[c] || 0;
+            if (w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined) total += w;
+        }});
+        const out = {{}};
+        cats.forEach(c => {{
+            const w = fw[c] || 0;
+            const live = w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
+            out[c] = (live && total > 0) ? (w / total) * 100 : 0;
+        }});
+        out._renormalised = total > 0 && Math.abs(total - 100) > 0.01;
+        return out;
+    }}
+
+    // How a weight should read: "13%", or "15.0%" once it stops being round.
+    function fmtWeight(w) {{
+        if (w === null || w === undefined) return '—';
+        return (Math.abs(w - Math.round(w)) < 0.05 ? Math.round(w) : w.toFixed(1)) + '%';
+    }}
+
     function openStockDetail(ticker) {{
         const s = D.stock_detail[ticker];
         if (!s) return;
@@ -1776,14 +1906,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="modal-score-val">${{fmt(s.composite,'score')}}</div>
             <div class="modal-score-sub">Rank #${{s.rank}} of ${{D.kpis.universe_size}}</div>
         </div>`;
+        const ew = effWeights(s);
         cats.forEach(c => {{
             const score = s.cat_scores[c];
             const contrib = s.contrib[c];
-            const weight = D.weights.factor_weights ? D.weights.factor_weights[c] : '—';
+            const weight = (score === null || score === undefined) ? null : ew[c];
+            const wtText = weight === null ? 'no data' : fmtWeight(weight) + ' wt';
             scoreHtml += `<div class="modal-score-card">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
                 <div class="modal-score-val" style="color:${{CAT_COLORS[c]}}">${{fmt(score,'score')}}</div>
-                <div class="modal-score-sub">${{fmt(contrib,'score')}} pts (${{weight}}% wt)</div>
+                <div class="modal-score-sub">${{fmt(contrib,'score')}} pts (${{wtText}})</div>
             </div>`;
         }});
         document.getElementById('modal-score-row').innerHTML = scoreHtml;
@@ -2193,18 +2325,80 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </div>`;
     }}
 
+    // Explain, in words, any gap between the weights used above and the
+    // headline weights on the Methodology page. A reader who checks the
+    // arithmetic and finds 14.9% where the docs say 13% should be told why,
+    // not left to conclude the tool is wrong.
+    function weightNote(ew, anyWithheld) {{
+        const base = D.weights.base_factor_weights;
+        const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        let parts = [];
+
+        if (base && D.weights.factor_weights) {{
+            const moved = cats.filter(c =>
+                Math.abs((D.weights.factor_weights[c] || 0) - (base[c] || 0)) > 0.05);
+            if (moved.length) {{
+                const desc = moved.map(c =>
+                    `${{CAT_LABELS[c]}} ${{fmtWeight(base[c] || 0)}} &rarr; <strong>${{fmtWeight(D.weights.factor_weights[c] || 0)}}</strong>`
+                ).join(', ');
+                parts.push(`<strong>This run's weights differ from the published defaults.</strong> ` +
+                    `The screener scales momentum with the market's volatility regime &mdash; ` +
+                    `momentum is cut in turbulent markets, where momentum crashes cluster, and raised in calm ones. ` +
+                    `For this run: ${{desc}}.`);
+            }}
+        }}
+
+        if (anyWithheld) {{
+            parts.push(`<strong>One or more categories could not be scored for this stock</strong> &mdash; ` +
+                `usually missing fundamentals, or a price series the integrity check rejected. ` +
+                `Rather than score it as zero, which would penalise a stock for a data gap, ` +
+                `the screener drops the category and shares its weight across the rest. ` +
+                `That is why the weights above do not match the defaults, and why they still total 100%.`);
+        }}
+
+        if (!parts.length) return '';
+        return `<div class="contrib-weight-note">` +
+            parts.map(p => `<p>${{p}}</p>`).join('') +
+            `<p class="contrib-weight-note-foot">The weights shown above are the ones this stock's scores were ` +
+            `actually multiplied by, so every row is an equation you can check.</p></div>`;
+    }}
+
     function renderContribVisual(s, cats) {{
-        const fw = D.weights.factor_weights || {{}};
+        const ew = effWeights(s);
+        const base = D.weights.base_factor_weights || {{}};
         let html = '';
         let runningTotal = 0;
+        let anyWithheld = false;
 
         cats.forEach(c => {{
             const score = s.cat_scores[c];
+            const hasScore = score !== null && score !== undefined;
+            if (!hasScore) anyWithheld = true;
             const contrib = s.contrib[c] || 0;
-            const weight = fw[c] || 0;
+            // The weight this stock's score was actually multiplied by, so the
+            // "score x weight = pts" line below is an equation the reader can
+            // check rather than an approximation.
+            const weight = ew[c] || 0;
             const maxContrib = weight; // max contribution = weight * (100/100)
             const fillPct = maxContrib > 0 ? (contrib / maxContrib) * 100 : 0;
             runningTotal += contrib;
+
+            if (!hasScore) {{
+                html += `<div class="contrib-row contrib-row-na">
+                    <div class="contrib-label">
+                        <span class="contrib-cat-dot" style="background:${{CAT_COLORS[c]}};opacity:.35"></span>
+                        <span class="contrib-cat-name">${{CAT_LABELS[c]}}</span>
+                        <span class="contrib-cat-weight">no data</span>
+                    </div>
+                    <div class="contrib-bar-area">
+                        <div class="contrib-bar-annotation">
+                            <span class="contrib-score-val">Not scored for this stock &mdash; its ${{fmtWeight(base[c] || 0)}} was shared out across the categories below.</span>
+                        </div>
+                    </div>
+                    <div class="contrib-pts">0.0</div>
+                </div>`;
+                return;
+            }}
 
             // Score quality label
             let qualLabel = '', qualClass = '';
@@ -2219,7 +2413,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="contrib-label">
                     <span class="contrib-cat-dot" style="background:${{CAT_COLORS[c]}}"></span>
                     <span class="contrib-cat-name">${{CAT_LABELS[c]}}</span>
-                    <span class="contrib-cat-weight">${{weight}}% weight</span>
+                    <span class="contrib-cat-weight">${{fmtWeight(weight)}} weight</span>
                 </div>
                 <div class="contrib-bar-area">
                     <div class="contrib-bar-track">
@@ -2227,17 +2421,19 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             ${{fillPct > 15 ? `<span class="contrib-bar-inner-label">${{contrib.toFixed(1)}}</span>` : ''}}
                         </div>
                         ${{fillPct <= 15 ? `<span class="contrib-bar-outer-label">${{contrib.toFixed(1)}}</span>` : ''}}
-                        <div class="contrib-bar-max-marker" style="left:100%" title="Max possible: ${{maxContrib}} pts"></div>
+                        <div class="contrib-bar-max-marker" style="left:100%" title="Max possible: ${{maxContrib.toFixed(2)}} pts"></div>
                     </div>
                     <div class="contrib-bar-annotation">
                         <span class="contrib-score-val">Score: ${{fmt(score,'score')}}/100</span>
                         <span class="contrib-qual ${{qualClass}}">${{qualLabel}}</span>
-                        <span class="contrib-math">× ${{weight}}% = <strong>${{contrib.toFixed(1)}} pts</strong></span>
+                        <span class="contrib-math">× ${{fmtWeight(weight)}} = <strong>${{contrib.toFixed(1)}} pts</strong></span>
                     </div>
                 </div>
-                <div class="contrib-pts">${{contrib.toFixed(1)}}<span class="contrib-pts-max">/${{maxContrib}}</span></div>
+                <div class="contrib-pts">${{contrib.toFixed(1)}}<span class="contrib-pts-max">/${{maxContrib.toFixed(1)}}</span></div>
             </div>`;
         }});
+
+        html += weightNote(ew, anyWithheld);
 
         document.getElementById('contrib-visual').innerHTML = html;
 
@@ -2258,6 +2454,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const container = document.getElementById('modal-categories');
         container.innerHTML = '';
         const mw = D.weights.metric_weights || {{}};
+        const ew = effWeights(s);
 
         cats.forEach(cat => {{
             const catMetrics = mw[cat] || {{}};
@@ -2268,13 +2465,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
             const catScore = s.cat_scores[cat];
             const contrib = s.contrib[cat];
-            const factorWt = D.weights.factor_weights ? D.weights.factor_weights[cat] : null;
+            const scored = catScore !== null && catScore !== undefined;
+            // The weight this stock's score was multiplied by - see effWeights().
+            const badge = scored
+                ? `${{fmtWeight(ew[cat])}} weight → ${{fmt(contrib,'score')}} pts`
+                : `not scored for this stock`;
 
             let html = `<div class="cat-detail-section">
                 <div class="cat-detail-header" onclick="this.parentElement.querySelector('.cat-detail-body').classList.toggle('collapsed')">
                     <div>
                         <h3 style="display:inline;color:${{CAT_COLORS[cat]}}">${{CAT_LABELS[cat]}}</h3>
-                        <span class="cat-weight-badge">${{factorWt}}% weight → ${{fmt(contrib,'score')}} pts</span>
+                        <span class="cat-weight-badge">${{badge}}</span>
                     </div>
                     <div>
                         <span class="cat-score-badge">Score: ${{fmt(catScore,'score')}}</span>
@@ -4696,6 +4897,30 @@ def _css() -> str:
         .contrib-total-label strong {
             font-size: 18px;
             color: var(--text-primary);
+        }
+        /* A category with no score for this stock: shown, not hidden, so the
+           reader can see why the remaining weights add to more than the
+           published defaults. */
+        .contrib-row-na .contrib-cat-name { color: var(--text-muted); }
+        .contrib-row-na .contrib-score-val { font-style: italic; }
+        .contrib-row-na .contrib-pts { color: var(--text-muted); }
+        .contrib-weight-note {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            background: var(--bg-card);
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+        .contrib-weight-note p { margin: 0 0 8px; }
+        .contrib-weight-note p:last-child { margin-bottom: 0; }
+        .contrib-weight-note strong { color: var(--text-primary); }
+        .contrib-weight-note-foot {
+            color: var(--text-muted);
+            font-size: 11.5px;
         }
 
         /* ---- CATEGORY DETAIL ---- */
