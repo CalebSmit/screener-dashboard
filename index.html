@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=7c8ce015f02a"></script>
+    <script src="./dashboard_data.js?v=86ebd6095b96"></script>
     <style>
 
         /* ====================================================================
@@ -1425,6 +1425,30 @@
             font-size: 18px;
             color: var(--text-primary);
         }
+        /* A category with no score for this stock: shown, not hidden, so the
+           reader can see why the remaining weights add to more than the
+           published defaults. */
+        .contrib-row-na .contrib-cat-name { color: var(--text-muted); }
+        .contrib-row-na .contrib-score-val { font-style: italic; }
+        .contrib-row-na .contrib-pts { color: var(--text-muted); }
+        .contrib-weight-note {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            background: var(--bg-card);
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+        .contrib-weight-note p { margin: 0 0 8px; }
+        .contrib-weight-note p:last-child { margin-bottom: 0; }
+        .contrib-weight-note strong { color: var(--text-primary); }
+        .contrib-weight-note-foot {
+            color: var(--text-muted);
+            font-size: 11.5px;
+        }
 
         /* ---- CATEGORY DETAIL ---- */
         .cat-detail-section {
@@ -2499,7 +2523,7 @@
                         </div>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe.</p>
+                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe. <strong>The weights below are the ones this stock's scores were actually multiplied by</strong> — they can differ from the defaults in Methodology, and any gap is explained underneath.</p>
                                 <div id="contrib-visual"></div>
                                 <div class="contrib-total-row" id="contrib-total"></div>
                             </div>
@@ -2919,6 +2943,12 @@
 <pre><code>Raw Composite = 22% × Valuation + 22% × Quality + 13% × Growth + 13% × Momentum + 10% × Risk + 10% × Revisions + 5% × Size + 5% × Investment
 </code></pre>
 <p>The same missing-data redistribution logic applies: if a category score is NaN (e.g., all revisions data missing for a stock), its weight is redistributed to available categories rather than producing a NaN composite.</p>
+<p><strong>The weights above are the configured defaults, and an individual run may not use them.</strong> Two rules move them, both described in this document:</p>
+<ol>
+<li><strong>The volatility-regime adjustment</strong> changes the momentum weight for the whole run (see the Momentum section). It is funded from Valuation in calm markets and paid back into Quality and Valuation in turbulent ones.</li>
+<li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
+</ol>
+<p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
 <p>The raw composite is then converted to a cross-sectional percentile rank (0-100), so a score of 95 means "better than 95% of stocks in the universe."</p>
 <h3>Step 6: Apply Trap Filters &amp; Rank</h3>
 <p>After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.</p>
@@ -3986,6 +4016,40 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         btn.textContent = clamped ? 'Show more' : 'Show less';
     }
 
+    // Weights for ONE stock, after dropping categories it has no score for.
+    //
+    // Two things move a weight away from the headline number in the
+    // Methodology page, and both have to be shown or the arithmetic on this
+    // page does not add up:
+    //   1. the run-level volatility-regime adjustment, already baked into
+    //      D.weights.factor_weights; and
+    //   2. this renormalisation, when a category was withheld for this stock
+    //      (e.g. a rejected price series takes out Momentum and Risk).
+    // Mirrors factor_engine.compute_factor_contributions.
+    function effWeights(s) {
+        const fw = D.weights.factor_weights || {};
+        const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        let total = 0;
+        cats.forEach(c => {
+            const w = fw[c] || 0;
+            if (w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined) total += w;
+        });
+        const out = {};
+        cats.forEach(c => {
+            const w = fw[c] || 0;
+            const live = w > 0 && s.cat_scores[c] !== null && s.cat_scores[c] !== undefined;
+            out[c] = (live && total > 0) ? (w / total) * 100 : 0;
+        });
+        out._renormalised = total > 0 && Math.abs(total - 100) > 0.01;
+        return out;
+    }
+
+    // How a weight should read: "13%", or "15.0%" once it stops being round.
+    function fmtWeight(w) {
+        if (w === null || w === undefined) return '—';
+        return (Math.abs(w - Math.round(w)) < 0.05 ? Math.round(w) : w.toFixed(1)) + '%';
+    }
+
     function openStockDetail(ticker) {
         const s = D.stock_detail[ticker];
         if (!s) return;
@@ -4003,14 +4067,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             <div class="modal-score-val">${fmt(s.composite,'score')}</div>
             <div class="modal-score-sub">Rank #${s.rank} of ${D.kpis.universe_size}</div>
         </div>`;
+        const ew = effWeights(s);
         cats.forEach(c => {
             const score = s.cat_scores[c];
             const contrib = s.contrib[c];
-            const weight = D.weights.factor_weights ? D.weights.factor_weights[c] : '—';
+            const weight = (score === null || score === undefined) ? null : ew[c];
+            const wtText = weight === null ? 'no data' : fmtWeight(weight) + ' wt';
             scoreHtml += `<div class="modal-score-card">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
                 <div class="modal-score-val" style="color:${CAT_COLORS[c]}">${fmt(score,'score')}</div>
-                <div class="modal-score-sub">${fmt(contrib,'score')} pts (${weight}% wt)</div>
+                <div class="modal-score-sub">${fmt(contrib,'score')} pts (${wtText})</div>
             </div>`;
         });
         document.getElementById('modal-score-row').innerHTML = scoreHtml;
@@ -4420,18 +4486,80 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>`;
     }
 
+    // Explain, in words, any gap between the weights used above and the
+    // headline weights on the Methodology page. A reader who checks the
+    // arithmetic and finds 14.9% where the docs say 13% should be told why,
+    // not left to conclude the tool is wrong.
+    function weightNote(ew, anyWithheld) {
+        const base = D.weights.base_factor_weights;
+        const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+        let parts = [];
+
+        if (base && D.weights.factor_weights) {
+            const moved = cats.filter(c =>
+                Math.abs((D.weights.factor_weights[c] || 0) - (base[c] || 0)) > 0.05);
+            if (moved.length) {
+                const desc = moved.map(c =>
+                    `${CAT_LABELS[c]} ${fmtWeight(base[c] || 0)} &rarr; <strong>${fmtWeight(D.weights.factor_weights[c] || 0)}</strong>`
+                ).join(', ');
+                parts.push(`<strong>This run's weights differ from the published defaults.</strong> ` +
+                    `The screener scales momentum with the market's volatility regime &mdash; ` +
+                    `momentum is cut in turbulent markets, where momentum crashes cluster, and raised in calm ones. ` +
+                    `For this run: ${desc}.`);
+            }
+        }
+
+        if (anyWithheld) {
+            parts.push(`<strong>One or more categories could not be scored for this stock</strong> &mdash; ` +
+                `usually missing fundamentals, or a price series the integrity check rejected. ` +
+                `Rather than score it as zero, which would penalise a stock for a data gap, ` +
+                `the screener drops the category and shares its weight across the rest. ` +
+                `That is why the weights above do not match the defaults, and why they still total 100%.`);
+        }
+
+        if (!parts.length) return '';
+        return `<div class="contrib-weight-note">` +
+            parts.map(p => `<p>${p}</p>`).join('') +
+            `<p class="contrib-weight-note-foot">The weights shown above are the ones this stock's scores were ` +
+            `actually multiplied by, so every row is an equation you can check.</p></div>`;
+    }
+
     function renderContribVisual(s, cats) {
-        const fw = D.weights.factor_weights || {};
+        const ew = effWeights(s);
+        const base = D.weights.base_factor_weights || {};
         let html = '';
         let runningTotal = 0;
+        let anyWithheld = false;
 
         cats.forEach(c => {
             const score = s.cat_scores[c];
+            const hasScore = score !== null && score !== undefined;
+            if (!hasScore) anyWithheld = true;
             const contrib = s.contrib[c] || 0;
-            const weight = fw[c] || 0;
+            // The weight this stock's score was actually multiplied by, so the
+            // "score x weight = pts" line below is an equation the reader can
+            // check rather than an approximation.
+            const weight = ew[c] || 0;
             const maxContrib = weight; // max contribution = weight * (100/100)
             const fillPct = maxContrib > 0 ? (contrib / maxContrib) * 100 : 0;
             runningTotal += contrib;
+
+            if (!hasScore) {
+                html += `<div class="contrib-row contrib-row-na">
+                    <div class="contrib-label">
+                        <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]};opacity:.35"></span>
+                        <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
+                        <span class="contrib-cat-weight">no data</span>
+                    </div>
+                    <div class="contrib-bar-area">
+                        <div class="contrib-bar-annotation">
+                            <span class="contrib-score-val">Not scored for this stock &mdash; its ${fmtWeight(base[c] || 0)} was shared out across the categories below.</span>
+                        </div>
+                    </div>
+                    <div class="contrib-pts">0.0</div>
+                </div>`;
+                return;
+            }
 
             // Score quality label
             let qualLabel = '', qualClass = '';
@@ -4446,7 +4574,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <div class="contrib-label">
                     <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]}"></span>
                     <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
-                    <span class="contrib-cat-weight">${weight}% weight</span>
+                    <span class="contrib-cat-weight">${fmtWeight(weight)} weight</span>
                 </div>
                 <div class="contrib-bar-area">
                     <div class="contrib-bar-track">
@@ -4454,17 +4582,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                             ${fillPct > 15 ? `<span class="contrib-bar-inner-label">${contrib.toFixed(1)}</span>` : ''}
                         </div>
                         ${fillPct <= 15 ? `<span class="contrib-bar-outer-label">${contrib.toFixed(1)}</span>` : ''}
-                        <div class="contrib-bar-max-marker" style="left:100%" title="Max possible: ${maxContrib} pts"></div>
+                        <div class="contrib-bar-max-marker" style="left:100%" title="Max possible: ${maxContrib.toFixed(2)} pts"></div>
                     </div>
                     <div class="contrib-bar-annotation">
                         <span class="contrib-score-val">Score: ${fmt(score,'score')}/100</span>
                         <span class="contrib-qual ${qualClass}">${qualLabel}</span>
-                        <span class="contrib-math">× ${weight}% = <strong>${contrib.toFixed(1)} pts</strong></span>
+                        <span class="contrib-math">× ${fmtWeight(weight)} = <strong>${contrib.toFixed(1)} pts</strong></span>
                     </div>
                 </div>
-                <div class="contrib-pts">${contrib.toFixed(1)}<span class="contrib-pts-max">/${maxContrib}</span></div>
+                <div class="contrib-pts">${contrib.toFixed(1)}<span class="contrib-pts-max">/${maxContrib.toFixed(1)}</span></div>
             </div>`;
         });
+
+        html += weightNote(ew, anyWithheld);
 
         document.getElementById('contrib-visual').innerHTML = html;
 
@@ -4485,6 +4615,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const container = document.getElementById('modal-categories');
         container.innerHTML = '';
         const mw = D.weights.metric_weights || {};
+        const ew = effWeights(s);
 
         cats.forEach(cat => {
             const catMetrics = mw[cat] || {};
@@ -4495,13 +4626,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
             const catScore = s.cat_scores[cat];
             const contrib = s.contrib[cat];
-            const factorWt = D.weights.factor_weights ? D.weights.factor_weights[cat] : null;
+            const scored = catScore !== null && catScore !== undefined;
+            // The weight this stock's score was multiplied by - see effWeights().
+            const badge = scored
+                ? `${fmtWeight(ew[cat])} weight → ${fmt(contrib,'score')} pts`
+                : `not scored for this stock`;
 
             let html = `<div class="cat-detail-section">
                 <div class="cat-detail-header" onclick="this.parentElement.querySelector('.cat-detail-body').classList.toggle('collapsed')">
                     <div>
                         <h3 style="display:inline;color:${CAT_COLORS[cat]}">${CAT_LABELS[cat]}</h3>
-                        <span class="cat-weight-badge">${factorWt}% weight → ${fmt(contrib,'score')} pts</span>
+                        <span class="cat-weight-badge">${badge}</span>
                     </div>
                     <div>
                         <span class="cat-score-badge">Score: ${fmt(catScore,'score')}</span>
