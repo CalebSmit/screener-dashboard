@@ -830,3 +830,104 @@ it. A static read of that code looks correct, which is the point.
 reverted separately: the About block is confined to `renderAbout`/`toggleAbout`
 plus the `_about`/`_industry` merge, and the portfolio removal is confined to
 `generate_dashboard.py` - no pipeline or scoring code was touched by either.
+
+## 2026-08-28 - The dashboard showed weights the scores were never multiplied by
+
+**Area:** methodology reporting - `effective_weights.json`, the stock drilldown,
+`SCREENER_OVERVIEW.md`. **No scoring change.** No weight, threshold, metric or
+formula moved; every stock ranks exactly as it did before this entry. What
+changed is what the tool *says* it did.
+
+**Changed:**
+
+1. `run_factor_engine()` now hands the regime-adjusted factor weights back to
+   `main()`, and `RunContext.save_effective_weights()` records them - plus
+   `base_factor_weights` and a `factor_weights_adjusted` flag.
+2. `generate_dashboard.prepare_dashboard_data()` reconciles the recorded
+   weights against the published contributions before publishing, and refuses
+   to publish weights that do not reproduce them.
+3. The drilldown displays **per-stock** effective weights - after both the
+   run-level regime adjustment and the per-stock renormalisation - and
+   explains, in prose, any gap against the Methodology page.
+4. `SCREENER_OVERVIEW.md` now states that its printed weights are configured
+   defaults, names the two rules that move them, and says where to see what a
+   run actually used.
+
+**Evidence:** a demonstrated, live, user-facing failure - not a citation, and
+not this system's own IC series. Rules 4 and 5 do not bite: nothing here was
+justified by a return number or a backtest.
+
+The drilldown prints its arithmetic to the reader: `Score: 65.3/100 x 13% =
+9.76 pts`. Measured against `dashboard_data.js` as served from `main` on the
+morning of 2026-08-28, that equation was false. 65.3 x 13% is 8.49.
+
+Solving `contrib / score` across the 491 stocks with all eight categories
+populated recovers the weights the composite was really built from:
+
+| Category | Published | Actually used |
+|---|---|---|
+| Valuation | 22 | **20.05** |
+| Momentum | 13 | **14.95** |
+| the other six | unchanged | unchanged |
+
+Those are exactly a LOW VOL regime: `13 x 1.15 = 14.95`, the 1.95pp funded out
+of Valuation, per `adjust_momentum_weight()`. The implied weights sum to
+100.000.
+
+**Root cause.** `adjust_momentum_weight()` returns a deep copy of the config.
+`run_factor_engine` does `cfg = adjust_momentum_weight(...)`, rebinding a
+*local* name, so the adjustment never reached `main()` - and
+`ctx.save_effective_weights(cfg)` is called from `main()`. The
+revisions/investment auto-disables assign into the shared dict
+(`cfg["factor_weights"] = ...`) and therefore did propagate, which is precisely
+why only momentum and valuation were wrong while the other six were right. The
+file has been named `effective_weights.json`, with the docstring "the effective
+weights", the whole time.
+
+**Blast radius, counted rather than estimated:** of 4,016 (stock, category)
+cells in the live payload, **1,051 displayed arithmetic that did not hold** -
+momentum wrong for 498 of 502 stocks, valuation for 501 of 502, plus 52 cells
+across 11 stocks from the second cause below. After the fix: **0 of 4,002.**
+
+**The second cause, found alongside it.** When a category cannot be scored for
+a stock, `compute_factor_contributions` drops it and renormalises the
+survivors. The page showed the universe weight regardless. MNST - whose price
+series the 2026-08-26 split-integrity check rejects, removing Momentum and Risk
+- displayed "22% weight -> 20.64 pts" against a quality score of 70.43. The
+drilldown now shows MNST's own ~28.4% and says why.
+
+**Expected effect:** no ranking movement of any kind. The published
+`weights.factor_weights` changes from the configured defaults to the run's real
+weights, so the figure a reader sees next to Momentum moves 13% -> 15.0% in a
+low-vol regime. The AI chat's system prompt reads the same key and stops
+telling users the wrong number.
+
+**Why this matters more than a display bug.** The tool's claim is not that its
+numbers are good; it is that they are *checkable*. "Decision support, not a
+recommendation engine - show why, with sources and uncertainty visible."
+A student who checked the one worked example on the page found it did not add
+up, and had no way to tell whether the weight or the score was wrong. That is
+the credibility product failing in the exact place it is most on display.
+
+**Validated by:** `tests/test_weight_transparency.py`, 34 tests. The
+reconciliation guard reproduces the live case: given contributions built at
+14.95% and weights recorded as 13%, it recovers 14.95 and 20.05 to within
+0.02pp and flags the run. `TestPublishedPayloadAddsUp` asserts `score x
+published weight = published contribution` for every stock and category,
+including a stock with two categories withheld. End-to-end against the real
+2026-08-28 run: the guard fired, printed both corrections, and the republished
+payload reconciles on all 4,002 cells.
+
+**A note on the fallback.** The reconciliation *derives* weights from the
+scored rows when the recorded ones disagree. That is a repair path, not the
+design - the fix is at source, in the pipeline. It exists so that old run
+directories, every one of which records 22/13, republish truthfully, and so
+that a future divergence is loud rather than silent. It declines to guess on a
+universe under 20 rows and leaves the recorded weights alone.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-08-27`. Self-contained: `run_screener.py` (the
+handback plus the overview wording), `run_context.py` (the recorder), and
+`generate_dashboard.py` (the guard plus the display). No scoring code was
+touched, so a revert changes no rank.

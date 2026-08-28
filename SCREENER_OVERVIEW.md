@@ -239,6 +239,13 @@ Raw Composite = 22% × Valuation + 22% × Quality + 13% × Growth + 13% × Momen
 
 The same missing-data redistribution logic applies: if a category score is NaN (e.g., all revisions data missing for a stock), its weight is redistributed to available categories rather than producing a NaN composite.
 
+**The weights above are the configured defaults, and an individual run may not use them.** Two rules move them, both described in this document:
+
+1. **The volatility-regime adjustment** changes the momentum weight for the whole run (see the Momentum section). It is funded from Valuation in calm markets and paid back into Quality and Valuation in turbulent ones.
+2. **Missing-data redistribution** changes them for one stock, whenever a category could not be scored for it.
+
+So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows **the weight each score was actually multiplied by**, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to `runs/<run_id>/effective_weights.json`.
+
 The raw composite is then converted to a cross-sectional percentile rank (0-100), so a score of 95 means "better than 95% of stocks in the universe."
 
 ### Step 6: Apply Trap Filters & Rank

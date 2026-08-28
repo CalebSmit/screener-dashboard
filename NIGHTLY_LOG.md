@@ -2117,3 +2117,169 @@ bumped to their current majors (`checkout@v7`, `setup-python@v7`,
 2. Per-category trend lines over the full history (priority 2's remainder).
 3. Confirm the watchdog's first *scheduled* firing (23:00 UTC weekdays) also
    went green - the manual dispatch proves the job, not the cron.
+
+## 2026-08-28 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-27_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | `logs/datarun-2026-08-28_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **27 rows, newest 2026-08-21, 3 effective observations at `1m`** (8 raw) |
+| Priority 0 | Fixed 2026-08-24, holding |
+
+**Tests:** before 791/791, after **825/825**
+**Data loop:** healthy
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
+rotation stood. Nothing was deferred.
+**Rotation:** ISO week 35 is odd, so this was a normal Friday, not a
+retrospective.
+
+**Last session's item 3 is closed first, because it was cheap.** The watchdog's
+first *scheduled* firing (run
+[33148005073](https://github.com/CalebSmit/screener-dashboard/actions/runs/33148005073),
+`schedule` trigger, 10s, success) is green. The cron works, not just the manual
+dispatch.
+
+### The question this day asks, asked literally
+
+"Would a finance student understand what they are looking at?" The most
+teachable surface in the tool is the drilldown's contribution panel, because it
+does not just show a score - it shows the working:
+
+```
+Momentum   13% weight
+Score: 65.3/100  [Average]  x 13% = 9.76 pts
+```
+
+So I checked the arithmetic against the payload that was live on `main` this
+morning. **65.3 x 13% is 8.49, not 9.76.** The one worked example on the site
+did not add up.
+
+### Did - the weights shown were not the weights used
+
+Solving `contrib / score` over the 491 stocks with all eight categories
+populated recovers what the composite was really built from: **valuation 20.05,
+momentum 14.95**, the other six unchanged, summing to 100.000. Those are
+exactly a LOW VOL regime - `13 x 1.15 = 14.95`, the 1.95pp taken out of
+valuation, per `adjust_momentum_weight()`.
+
+**Root cause, and why it hit only two categories.** `adjust_momentum_weight()`
+returns a deep copy. `run_factor_engine` does `cfg = adjust_momentum_weight(...)`,
+which rebinds a *local* name, so the adjustment never reached `main()` - and
+`ctx.save_effective_weights(cfg)` is called from `main()`. The
+revisions/investment auto-disables assign into the shared dict
+(`cfg["factor_weights"] = ...`) and so did propagate. That asymmetry is the
+whole bug, and it is why six categories were right and two were wrong. The file
+has been called `effective_weights.json`, docstring "the effective weights",
+the entire time.
+
+**A second cause, found alongside.** When a category cannot be scored for a
+stock, `compute_factor_contributions` drops it and renormalises the survivors;
+the page showed the universe weight anyway. MNST - the name whose price series
+the 2026-08-26 split check rejects, removing Momentum and Risk - displayed
+"22% weight -> 20.64 pts" against a quality score of 70.43.
+
+**Blast radius, counted:** of 4,016 (stock, category) cells in the live
+payload, **1,051 showed arithmetic that did not hold** - momentum wrong for 498
+of 502 stocks, valuation for 501 of 502, plus 52 cells across 11 stocks from
+the renormalisation. **After the fix: 0 of 4,002.**
+
+Shipped:
+
+- **`run_screener.py`** hands the regime-adjusted weights back through `stats`;
+  **`run_context.py`** records them, plus `base_factor_weights` and a
+  `factor_weights_adjusted` flag. That is the fix at source.
+- **`generate_dashboard.py`** reconciles recorded weights against published
+  contributions on every build and **will not publish weights that fail to
+  reproduce them**. On the real 2026-08-28 run it fired, printed
+  `valuation: recorded 22 -> actual 20.05` and `momentum: recorded 13 -> actual
+  14.95`, and republished truthfully. This is the guard that would have caught
+  the original bug; nothing was checking that the sum added up.
+- **The drilldown shows per-stock effective weights** across all three
+  surfaces, and `weightNote()` explains any gap in prose - which regime rule
+  moved it, or which category was withheld and where its weight went. A
+  withheld category keeps its row, marked "no data", rather than vanishing;
+  hiding it would leave the reader unable to see why the rest total more than
+  the defaults.
+- **`SCREENER_OVERVIEW.md`** (generated - I edited the generator, rule 10) now
+  says its printed weights are configured defaults, names both rules that move
+  them, and points at `effective_weights.json`.
+
+**The live site is already corrected** - regenerated from today's run and
+republished, not left for Monday's 02:00 loop.
+
+### Evidence / research
+
+A demonstrated user-facing failure, measured on the published artifact. No
+citation, no backtest, no IC number - rules 4 and 5 do not bite, because
+nothing here was justified by a return.
+
+The measurement is reproducible from the payload alone: for each stock, predict
+`cat_score x eff_weight / sum(eff_weights over categories with data)` and
+compare to the published `contrib`. Before: 1,051 of 4,016 cells disagree by
+more than 0.011. After: 0 of 4,002.
+
+### Methodology changed
+
+`METHODOLOGY_CHANGELOG.md` 2026-08-28. Filed there deliberately even though
+**no stock's score or rank moves by a single place** - no weight, threshold,
+metric or formula changed. What changed is what the tool asserts about how it
+scored, which is exactly what that file exists to keep honest. The published
+`weights.factor_weights` now reads 20.05/14.95 rather than 22/13.
+
+### Tried and rejected
+
+- **Generating the methodology prose from `config.yaml`.** `plan/dashboard-inventory.md`
+  proposed this as "a genuine correctness fix" because the weights were
+  "hardcoded into the prose". They are not - `generate_screener_overview(cfg)`
+  has been templating the whole document from config all along. I checked all 8
+  category weights and ~40 metric weights against `config.yaml`: every one
+  matched. The inventory was wrong and is corrected. The real defect was one
+  level down and the opposite shape: the *document* was faithful to config
+  while the *screener* was not.
+- **Publishing per-stock effective weights in the payload.** 8 floats x 502
+  stocks, when the renormalisation is a pure function of which categories have
+  data - which the payload already carries as nulls in `cat_scores`. The JS
+  recomputes it instead, mirroring `compute_factor_contributions`. No payload
+  growth.
+- **Making the reconciliation a hard build failure.** Tempting, and wrong:
+  every run directory on disk records 22/13, so a build that refuses would have
+  taken the data loop down on Monday morning rather than fixing anything. It
+  corrects, says loudly what it corrected, and flags the payload
+  `factor_weights_derived`.
+- **Trusting the derived weights as the design.** The derivation is a repair
+  path for old runs and a tripwire for future divergence. The fix is the
+  pipeline handback. It declines to guess on a universe under 20 rows.
+
+### Noticed, not fixed
+
+- **`runs/` holds test-created directories** (`test_hash_1`, `test_meta`,
+  `test_artifact`, `test_save_cfg`, `test_git_sha`, ...) alongside real runs.
+  Harmless today - `_find_latest_run()` picks by artifact presence and got the
+  right one - but it is priority 8 (test isolation) leaving litter in a
+  directory the dashboard reads from. My own new tests deliberately avoid it by
+  calling `save_effective_weights` on a stub rather than constructing a
+  `RunContext`.
+- **`data-run.ps1` logs the raw IC row count** - "27 raw IC row(s) (effective
+  count unavailable)". Honest about its own limitation, so not misleading, but
+  the effective count is the one that matters (`CLAUDE.md` rule 8) and the
+  script could compute it.
+- **`data-run.ps1` regenerates the dashboard into the run directory, not the
+  repo root.** The root artifacts come from `run_screener.py` earlier in the
+  same run, so the standalone `generate_dashboard.py` call at line 253 has no
+  effect on what gets published. It is redundant rather than broken, but it
+  means a dashboard-only change does not reach the site by re-running that
+  script alone.
+
+### Next
+
+1. **Monday's research note, now missed five times.** Unchanged from last
+   session and now a day older. Every skip has been for a demonstrable defect,
+   including today's, and each was right in isolation - but the rotation has
+   produced one research note in a month. The next Monday should be spent on it
+   even if something else is broken, unless the data loop itself is down.
+2. Per-category trend lines over the full history (priority 2's remainder).
+3. The `runs/` test-litter above - small, and it is the visible edge of
+   priority 8.

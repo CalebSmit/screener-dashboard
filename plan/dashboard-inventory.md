@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-08-25)
+# Dashboard inventory (as of 2026-08-28)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -38,12 +38,20 @@ Defensibility & Transparency Features, Key Design Decisions, Limitations,
 Quick Start, Summary.
 
 This is **an asset for the investment-club audience and the main reason the
-tool is defensible** - do not delete it. But it is reference material sitting
-in the same document as the decision surface, and the category weights are
-hardcoded into the prose ("1. Valuation (22% of final score)"). Once the
-improvement engine starts adjusting weights, **this text will silently go
-stale and start lying.** Generating it from `config.yaml` is a genuine
-correctness fix, not a polish task.
+tool is defensible** - do not delete it.
+
+**Correction, 2026-08-28: it is already generated from config.** The previous
+version of this section warned that the weights were "hardcoded into the
+prose" and would go stale. They are not: `run_screener.generate_screener_overview(cfg)`
+templates the whole document out of `config.yaml` on every run, and all 8
+category weights and ~40 metric weights were checked against `config.yaml`
+that morning and matched exactly. **Edit the generator, not the file**
+(rule 10).
+
+The real failure was one level down, and worse: the document was faithful to
+`config.yaml` while the *screener* was not. A run's momentum weight is scaled
+by the volatility regime, so the composite was built at 14.95% while every
+surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 ## Payload weight
 
@@ -75,9 +83,35 @@ Both ride the `.info` dict the fetch already pulls, so they cost no API calls.
 Adding history will grow this fast. Lazy-load or downsample - do not ship a
 10 MB payload to a phone.
 
+## Weights: what the drilldown shows - DONE 2026-08-28
+
+The stock drilldown shows **per-stock effective weights**, not the configured
+defaults. Three surfaces read them (`effWeights()` in the emitted JS): the
+score cards, the contribution bars, and the category-detail badges.
+
+Two things move a weight away from the Methodology page's number, and both are
+now stated on the page by `weightNote()`:
+
+1. **The volatility-regime adjustment**, run-level. Baked into
+   `weights.factor_weights`, with `weights.base_factor_weights` kept alongside
+   so the page can show `13% -> 15.0%` rather than just asserting 15.0%.
+2. **Per-stock renormalisation**, when a category could not be scored. The
+   category keeps its row, marked "no data", instead of disappearing - hiding
+   it would leave the reader unable to see why the rest add to more than the
+   defaults.
+
+**Do not revert these to `D.weights.factor_weights[c]`.** That is the bug:
+between February and 2026-08-28 the page printed `Score x 13% = 9.76 pts`,
+which is false, for 498 of 502 stocks. `prepare_dashboard_data()` now
+reconciles the recorded weights against the published contributions on every
+build and will not publish weights that fail to reproduce them.
+`tests/test_weight_transparency.py`, 34 tests.
+
 ## Other payload keys
 
-`kpis`, `weights` (factor + metric), `metric_meta` (36 metrics),
+`kpis`, `weights` (factor + metric, plus `base_factor_weights` /
+`factor_weights_adjusted` / `factor_weights_derived` since 2026-08-28),
+`metric_meta` (36 metrics),
 `sectors` (11), `sector_composition`, `histogram`, `vt_by_sector`,
 `gt_by_sector`, `sector_distributions`, `factor_correlation`,
 `weight_sensitivity` (8), `data_quality`, `config_traps`, `history`.
