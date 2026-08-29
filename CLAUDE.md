@@ -447,6 +447,29 @@ Both of the items that used to sit here are now **DONE - do not undo them.**
   watchdog that cries wolf gets muted, and a muted watchdog is worse than none
   because it still looks like coverage.
 
+**The catch-up trigger had a defect of its own, fixed 2026-08-29.** Both tasks
+carried an at-logon trigger with the *same* `PT3M` delay, so on the first logon
+of the day they started in the same second and raced for `.git/index.lock`. On
+2026-08-29 the data loop's `git checkout main` hit the index while the code
+loop's `Restore-Artifacts` was running `git status`; git exits 128, the data
+loop treated that as fatal, and the run stopped before the screener ran at all.
+The mechanism built to stop days being lost had become a way to lose one.
+
+Fixed by `scripts/repo-lock.ps1`, a shared lock both loops take before their
+first git command and release after `Publish-Brief`. The loser **waits** rather
+than dying - data runs take 11.8-13.6 min and code sessions 16.9-25.9 min
+against 3h/4h execution limits, so waiting is nearly free and giving up costs
+the day. Logon delays are now staggered (data `PT3M`, code `PT20M`) so the
+order is deterministic: evidence first, then the session that reads it.
+`scripts/add-catchup-trigger.ps1` wrote its own `PT3M`-for-both triggers and
+would have silently restored the collision, so it now delegates to
+`register-tasks.ps1`. 15 tests in `tests/test_loop_mutual_exclusion.py`; 853
+tests overall, up from 825.
+
+**Do not give the two loops the same logon delay again**, and do not make the
+loser exit instead of wait. Each script's own single-instance lock stops it
+racing *itself*; only the shared lock stops the two racing *each other*.
+
 Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now
 fails fast with instructions.

@@ -2283,3 +2283,189 @@ scored, which is exactly what that file exists to keep honest. The published
 2. Per-category trend lines over the full history (priority 2's remainder).
 3. The `runs/` test-litter above - small, and it is the visible edge of
    priority 8.
+
+## 2026-08-29 - CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-28_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | **NO - `logs/datarun-2026-08-29_121115.log` died at "Could not check out main." That is today's work.** Last good run: `datarun-2026-08-28_020001.log`, "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **27 rows, newest 2026-08-21, 3 effective observations at `1m`** (8 raw) |
+| Priority 0 | Fixed 2026-08-24, holding |
+
+**Tests:** before 825/825, after **853/853**
+**Data loop:** **was broken this morning - fixed**
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+**Rotation:** Saturday catch-up, so there was no nominal focus to defer. The
+data-loop failure would have outranked one anyway (`CLAUDE.md`: "fixing it is
+the highest priority work available, ahead of any feature").
+
+### Did - the catch-up trigger killed the data run it exists to protect
+
+Both logs are stamped the same second:
+
+```
+logs/datarun-2026-08-29_121115.log   [12:11:15] === Data loop 2026-08-29 ===
+logs/nightly-2026-08-29_121115.log   [12:11:15] === Code loop 2026-08-29 ===
+```
+
+One second later the data loop was dead:
+
+```
+[12:11:16] [ERROR] Could not check out main.
+```
+
+**Root cause.** `register-tasks.ps1` gave both scheduled tasks an at-logon
+catch-up trigger with the *same* `PT3M` delay, so on the first logon of a day
+they start together. They share one working tree and git serialises nothing for
+them. At 12:11:16 the data loop ran `git checkout main` while the code loop was
+inside `Restore-Artifacts` running `git status` - which takes `.git/index.lock`
+to refresh the index. The data loop treated a transient lock as fatal and
+stopped **before running the screener at all**.
+
+The at-logon trigger is the fix for priority -1, the dominant failure mode
+("sessions do not start"). It had become a way to lose a run.
+
+**Why nothing caught it.** Each script has a single-instance lock
+(`.datarun.lock`, `.nightly.lock`). Those stop a loop racing *itself*; nothing
+stopped the two loops racing *each other*. The watchdog meanwhile reported
+healthy, correctly: the data loop pushed `brief: data run 2026-08-29` from its
+`finally` block, which is the heartbeat, and by design that answers "did the
+task fire", not "did it do anything". Only the log said otherwise.
+
+Shipped:
+
+- **`scripts/repo-lock.ps1`** - a shared lock both loops take before their
+  first git command and release *after* `Publish-Brief` (which itself runs
+  git add/commit/push). Acquisition uses `FileMode::CreateNew`, which is
+  atomic; `Test-Path` then `Set-Content` is not, and two processes three
+  seconds apart both pass that test.
+- **The loser waits, it does not die.** Measured over 2026-08-21..28, data runs
+  take 11.8-13.6 min and code sessions 16.9-25.9 min, against task execution
+  limits of 3h and 4h. The 60-minute default wait is over twice the longest
+  observed hold. A lock whose owning process is gone is reclaimed at once, with
+  a hard 6h age ceiling to cover PID reuse.
+- **Staggered logon delays** - data `PT3M`, code `PT20M`. The lock makes a
+  collision *safe*; the stagger makes the order *deterministic*, and the right
+  order is evidence first, then the session that reads it.
+- **`data-run.ps1` reports git's own words, and retries.** The fatal path said
+  only "Could not check out main." and discarded git's stderr, which is why
+  diagnosing this needed a reproduction rather than a read of the log. It now
+  logs the stderr and retries 5x/10s first: the repo lock excludes the other
+  loop, but an editor or a stray `gh` can still hold the index briefly, and
+  that must not cost a day.
+- **`add-catchup-trigger.ps1` now delegates to `register-tasks.ps1`.** It wrote
+  its own `PT3M`-for-both triggers, so running it once would have silently
+  restored the collision. Two scripts writing the same triggers is exactly the
+  drift the 2026-08-21 retrospective shipped `register-tasks.ps1` to end.
+
+### Evidence / research
+
+A demonstrated failure in the published logs, plus a reproduction. No citation,
+no backtest, no IC number - rules 4 and 5 do not bite, because nothing here was
+justified by a return.
+
+**The reproduction.** In a scratch repo, with `.git/index.lock` present and
+nothing else wrong:
+
+```
+no contention   -> exit 0   | Already on 'main'
+index.lock held -> exit 128 | fatal: Unable to create '.../.git/index.lock':
+                              File exists.
+```
+
+Exit 128 is exactly the `$co.ExitCode -ne 0` branch that logged "Could not
+check out main."
+
+**15 new tests** in `tests/test_loop_mutual_exclusion.py` (853 in the suite
+overall, up from 825 - the other 13 are the parser check below applied to each
+script, plus the existing static checks picking up the new file). Five of the
+15 drive real PowerShell processes against the real lock, two of them
+concurrently: a held lock cannot be taken; a released one can; a lock left by a
+dead process is reclaimed; releasing does not drop a lock that now belongs to
+someone else; and of six processes started together, **exactly one** holds the
+repo. Eleven of the static assertions were re-applied to the pre-fix scripts
+pulled from `git show HEAD:` - **all eleven fail** against them.
+
+One of those tests failed first time for the right reason and is worth
+recording: six racers all "won", because each acquired and exited without
+holding, so every contender found a lock owned by a dead process and correctly
+reclaimed it. The lock was right and the test was wrong. The racers now hold
+for 15s, which is the case the test is actually about.
+
+Also added, because these scripts are unattended infrastructure: every
+`scripts/*.ps1` is now handed to PowerShell's own parser
+(`test_parses_as_powershell`). The module previously counted braces as a proxy
+for this. All 8 scripts parse.
+
+### Methodology changed
+
+**None, deliberately.** No weight, threshold, metric or formula changed, and
+nothing changed about what the tool asserts about how it scored. This is runner
+infrastructure, which by precedent (`register-tasks.ps1` 2026-08-21, the
+watchdog 2026-08-27) lives in this log and not in
+`METHODOLOGY_CHANGELOG.md`. `CLAUDE.md` priority -1 is updated per rule 9.
+
+### Did not do, and why
+
+- **Did not re-run the data loop to recover today.** Nothing was lost.
+  `_normalize_performance_history()` drops weekend run dates at generation
+  (`improvement_engine.py:120`, priority 0 item 4), so a Saturday snapshot
+  contributes **no** evidence. Re-running would have added ~3 MB of
+  poorly-compressing JSON to git history for zero observations. The evidence
+  base is unmoved for the second consecutive session at 3 effective `1m`
+  observations - rule 8's three-session trigger is not met, and the cause is
+  structural rather than a defect: `1m` rows mature only as older run dates
+  age, and the newest `1w` row (2026-08-21) is exactly what an 08-28 run could
+  reach.
+
+### Tried and rejected
+
+- **Making the loser exit rather than wait.** Simpler, and it converts a
+  collision straight back into a lost day - the thing being fixed. Waiting
+  costs at most one loop's duration out of a 3-4h limit.
+- **Staggering the logon delays and stopping there.** It does not fix anything:
+  a data run lasts ~13 minutes, so no plausible stagger prevents an overlap,
+  and the two tasks can still be started by hand or by different triggers. The
+  lock is the fix; the stagger only fixes the ordering.
+- **Gating the at-logon catch-up to weekdays.** A weekend data run provably
+  accrues no evidence (above), so today's firing was pure cost. But the *code*
+  session it also started is this one, which is doing useful work, and
+  narrowing a recovery mechanism that priority -1 calls load-bearing is not
+  something to do off one Saturday's observation. Left open; see Next.
+- **Duplicating the lock functions into both scripts** instead of a
+  dot-sourced module. Two copies of an unattended-infrastructure primitive will
+  drift, which is exactly what `add-catchup-trigger.ps1` did. Instead
+  `test_scripts_static.py` now resolves dot-sourced files when checking for
+  undefined functions - narrower than adding names to `KNOWN`, and it still
+  catches the 2026-08-11 bug that module was written for.
+
+### Noticed, not fixed
+
+- **`history.py` does not exclude weekend run dates**, though
+  `improvement_engine.py` does. A weekend catch-up data run would therefore
+  enter the dashboard's rank-history spine as its own day, computed against
+  Friday's closes. It would pass the Spearman >= 0.50 comparability gate easily
+  (it correlates ~1.0 with Friday), so the visible effect is a spurious extra
+  point on the sparkline rather than a wrong comparison. Small, but it is the
+  same weekend question as above and the two should be decided together.
+- **Verification limits, stated plainly.** The lock primitive is tested with
+  real concurrent processes, and both scripts are checked statically and
+  parsed. I did **not** run `data-run.ps1` or `nightly-screener.ps1` end to
+  end: the first would publish a weekend run, and the second would recursively
+  invoke a session inside this one. The first real proof is Monday's 02:00 run.
+- The `runs/` test-litter noted on 2026-08-28 is untouched and still real.
+
+### Next
+
+1. **Monday's research note, now missed six times.** Unchanged and a day older.
+   Today was a data-loop failure, which outranks everything by rule - but that
+   is the sixth consecutive defensible skip, and the rotation has produced one
+   research note in a month. Monday should be spent on it unless the data loop
+   is actually down.
+2. Confirm Monday's 02:00 data run publishes normally with the repo lock in
+   place, and that `live_ic_history.csv` gains its 2026-08-24 `1w` row.
+3. Decide the weekend question once: should the at-logon catch-up fire on
+   weekends at all, and should `history.py` exclude weekend run dates?
