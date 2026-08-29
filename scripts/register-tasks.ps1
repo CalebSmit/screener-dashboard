@@ -14,11 +14,17 @@
       Screener Data Run             02:00 Mon-Fri  -> scripts/data-run.ps1
       Nightly Screener Improvement  06:00 Mon-Fri  -> scripts/nightly-screener.ps1
 
-    Both also get an at-logon trigger (3 min delay) so a run missed while the
-    machine sat at the login screen is picked up when the owner next signs in.
-    That is safe because both scripts write a once-per-day success marker and
-    exit early if the day already succeeded; a failed run leaves no marker and
-    is correctly retried.
+    Both also get an at-logon trigger so a run missed while the machine sat at
+    the login screen is picked up when the owner next signs in. That is safe
+    because both scripts write a once-per-day success marker and exit early if
+    the day already succeeded; a failed run leaves no marker and is correctly
+    retried.
+
+    The logon delays are staggered - data 3 min, code 20 min. They were both
+    3 min until 2026-08-29, when the two loops started in the same second and
+    fought over .git/index.lock; the data run exited before running the
+    screener. scripts/repo-lock.ps1 makes a collision safe; the stagger makes
+    the order deterministic.
 
     Idempotent: re-running replaces the definitions with these.
 
@@ -57,6 +63,7 @@ $Specs = @(
         Name        = 'Screener Data Run'
         Script      = 'data-run.ps1'
         At          = '2:00AM'
+        LogonDelay  = 'PT3M'
         Limit       = (New-TimeSpan -Hours 3)
         Description = 'Runs the screener live, health-gates the result, refreshes the dashboard and feeds the improvement engine. Pure Python and git - uses no Claude quota.'
     },
@@ -64,6 +71,14 @@ $Specs = @(
         Name        = 'Nightly Screener Improvement'
         Script      = 'nightly-screener.ps1'
         At          = '6:00AM'
+        # Deliberately later than the data run's PT3M. Both used to be PT3M, so
+        # at logon they started in the same second and fought over
+        # .git/index.lock; on 2026-08-29 that killed the data run outright.
+        # scripts/repo-lock.ps1 is the actual fix - it makes a collision safe -
+        # and this makes the order deterministic: evidence first, then the
+        # session that reads it. 20 minutes clears a data run, measured at
+        # 11.8-13.6 min over 2026-08-21..28.
+        LogonDelay  = 'PT20M'
         Limit       = (New-TimeSpan -Hours 4)
         Description = 'Autonomous Claude Code session. Re-verifies all four ship gates itself, merges to main on success and tags good/<date>. Never merges on a failing gate.'
     }
@@ -91,7 +106,7 @@ foreach ($s in $Specs) {
     )
     if (-not $NoLogonCatchup) {
         $logon = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
-        $logon.Delay = 'PT3M'
+        $logon.Delay = $s.LogonDelay
         $triggers += $logon
     }
 
