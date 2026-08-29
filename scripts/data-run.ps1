@@ -106,6 +106,13 @@ function Publish-Brief {
     }
 }
 
+# Mutual exclusion against the code loop. Both tasks carry an at-logon
+# catch-up trigger, so on the first logon of the day they start together and
+# race for .git/index.lock - which cost the whole 2026-08-29 data run. See
+# scripts/repo-lock.ps1.
+. (Join-Path $PSScriptRoot 'repo-lock.ps1')
+$RepoLock = $null
+
 $env:Path = "$([Environment]::GetEnvironmentVariable('Path','Machine'));$([Environment]::GetEnvironmentVariable('Path','User'))"
 
 if (Test-Path $LockFile) {
@@ -163,8 +170,37 @@ try {
     }
     Write-Log "Network is up."
 
-    $co = Invoke-Native 'git' @('checkout', 'main')
-    if ($co.ExitCode -ne 0) { Stop-Run "Could not check out main." }
+    # --- Take the repo, then touch git ---------------------------------------
+    # Acquired here rather than at the top of the script so the 5-minute
+    # network wait above does not hold the code loop off the repo for work
+    # that never touches it.
+    $RepoLock = Enter-RepoLock -LogDir $LogDir -Holder 'data loop' `
+                    -Logger { param($m, $l) Write-Log $m $l }
+    if (-not $RepoLock) {
+        Stop-Run "Could not get exclusive use of the repo. Not running git alongside another loop." 2
+    }
+
+    # Retry rather than abandon the day. The repo lock excludes the other loop,
+    # but any other git process - an editor, a stray gh, OneDrive - can still
+    # hold .git/index.lock for a moment, and `git checkout` exits 128 when it
+    # does. Reproduced 2026-08-29: with the lock file present, `git checkout
+    # main` on an otherwise clean repo exits 128, "Unable to create
+    # '.git/index.lock': File exists".
+    $co = $null
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        $co = Invoke-Native 'git' @('checkout', 'main')
+        if ($co.ExitCode -eq 0) { break }
+        Write-NativeOutput $co 'WARN'
+        Write-Log "git checkout main failed (attempt $attempt/5). Retrying in 10s..." 'WARN'
+        Start-Sleep -Seconds 10
+    }
+    if ($co.ExitCode -ne 0) {
+        # Report git's own words. The original of this line said only "Could
+        # not check out main", which is why diagnosing 2026-08-29 needed a
+        # reproduction rather than a read of the log.
+        Write-NativeOutput $co 'ERROR'
+        Stop-Run "Could not check out main."
+    }
     Invoke-Native 'git' @('pull', '--ff-only') | Out-Null
 
     # --- Run the screener ---------------------------------------------------
@@ -404,6 +440,8 @@ catch {
     exit 1
 }
 finally {
+    # Publish-Brief runs git, so the repo lock is released after it, not before.
     Publish-Brief "data run $Date"
+    Exit-RepoLock $RepoLock
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }

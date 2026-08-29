@@ -184,6 +184,14 @@ function Restore-Artifacts {
     }
 }
 
+# Mutual exclusion against the data loop. Both tasks carry an at-logon
+# catch-up trigger, so on the first logon of the day they start together and
+# race for .git/index.lock. On 2026-08-29 this script's Restore-Artifacts was
+# holding the index when the data loop tried to check out main, and the data
+# run died. See scripts/repo-lock.ps1.
+. (Join-Path $PSScriptRoot 'repo-lock.ps1')
+$RepoLock = $null
+
 # --- PATH repair -----------------------------------------------------------
 $env:Path = "$([Environment]::GetEnvironmentVariable('Path','Machine'));$([Environment]::GetEnvironmentVariable('Path','User'))"
 
@@ -266,6 +274,21 @@ try {
         if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
             Stop-Run "Required tool '$tool' is not on PATH. Aborting."
         }
+    }
+
+    # --- Take the repo before the first git command -------------------------
+    # Restore-Artifacts, immediately below, runs `git status` - which takes
+    # .git/index.lock to refresh the index. That is the exact command that
+    # killed the 2026-08-29 data run.
+    #
+    # A code session is the scarce resource (it draws on a weekly Claude usage
+    # ceiling; the data loop is pure Python and git), so it waits for the data
+    # loop rather than giving up the day. The wait costs at most one data run,
+    # measured at 11.8-13.6 minutes, out of a 4-hour execution limit.
+    $RepoLock = Enter-RepoLock -LogDir $LogDir -Holder 'code loop' `
+                    -Logger { param($m, $l) Write-Log $m $l }
+    if (-not $RepoLock) {
+        Stop-Run "Could not get exclusive use of the repo. Not running git alongside another loop."
     }
 
     Restore-Artifacts 'pre-existing'
@@ -537,6 +560,8 @@ catch {
 }
 finally {
     $briefLabel = if ($SessionFailed) { "code session $Date - SESSION DID NOT RUN" } else { "code session $Date" }
+    # Publish-Brief runs git, so the repo lock is released after it, not before.
     Publish-Brief $briefLabel
+    Exit-RepoLock $RepoLock
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }
