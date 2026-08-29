@@ -196,6 +196,30 @@ improving.
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
    generator. `index.html` is what Pages serves.
 
+11. **Finish what you find - apply the fix and verify it, don't leave a
+    command for the owner to run.** Owner direction, 2026-08-29: the routine
+    is supposed to be self-improving, which means machine-state changes are
+    the session's job too, not just repo changes. If a fix needs something
+    Task Scheduler or Windows has to apply - re-registering a task, a config
+    change outside git - do it in the same session and confirm it took effect
+    the same way you'd verify any other change, before you finish.
+
+    The 2026-08-29 session found and fixed the logon-trigger collision, then
+    stopped short: it registered a stagger in the versioned script but left
+    `powershell -ExecutionPolicy Bypass -File scripts\register-tasks.ps1`
+    for the owner to run by hand, because `register-tasks.ps1` unregisters
+    both tasks before re-adding them and a failure partway through would have
+    left the machine with neither. That caution was reasonable but the
+    conclusion was wrong: run it and immediately re-read both tasks' triggers
+    with `Get-ScheduledTask`/`Get-ScheduledTaskInfo` to confirm the change
+    took, the same as re-running the test suite after a code change. It is
+    idempotent, so a bad outcome is fixed by running it again, not by asking
+    someone else to.
+
+    The only time it is legitimate to leave something outstanding is when
+    verifying it genuinely requires something outside the session's reach -
+    and even then, the next scheduled session inherits it, not the owner.
+
 ## Ship gates
 
 Run these before pushing to `main`. All must pass. The runner script re-checks
@@ -470,14 +494,16 @@ tests overall, up from 825.
 loser exit instead of wait. Each script's own single-instance lock stops it
 racing *itself*; only the shared lock stops the two racing *each other*.
 
-**The stagger is not live yet, and does not need to be.** Registering tasks is
-machine state, not repo state: as of 2026-08-29 both live triggers still read
-`delay=PT3M`, and they will until someone runs `scripts/register-tasks.ps1`.
-That was left for the owner deliberately - the script unregisters before it
-registers, so a failure partway through would leave the machine with no loops
-at all, which is a worse outcome than the one being fixed. Nothing is broken
-meanwhile: the lock makes a simultaneous start *safe*, so the only cost is that
-which loop goes first is arbitrary instead of data-first.
+**The stagger went live 2026-08-29 (evening).** The morning session left
+`register-tasks.ps1` for the owner to run by hand, reasoning that the script
+unregisters both tasks before re-adding them and a failure partway through
+would leave the machine with neither. The owner's answer, verbatim: *"never
+have it leave things for me to do, it should figure it out on its own... it
+should be self improving."* That is now rule 11. Run the same evening and
+verified immediately after: both tasks re-registered `Ready`, `Get-ScheduledTask`
+confirms `Screener Data Run` at `delay=PT3M` and `Nightly Screener Improvement`
+at `delay=PT20M`. The caution about a partial failure was reasonable; the fix
+was to verify after running, not to decline to run it.
 
 Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now

@@ -7,6 +7,14 @@ is not "plausible", it is "I can show why this is right."
 
 Read `CLAUDE.md` in full before anything else. Its rules override this prompt.
 
+**Finish what you find (rule 11).** If a fix needs a machine-level change -
+re-registering a scheduled task, anything outside git - make the change
+yourself and verify it took effect before you finish, the same standard as
+verifying a code change. Do not leave a command in the log for the owner to
+run by hand. If verifying genuinely requires something outside this session's
+reach, say so in the log and leave it for the *next* session to finish - not
+for the owner.
+
 ## 1. Orient
 
 - **Read `OWNER_FOCUS.md` first.** It is how the owner directs this routine.

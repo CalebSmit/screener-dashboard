@@ -2478,3 +2478,61 @@ watchdog 2026-08-27) lives in this log and not in
    place, and that `live_ic_history.csv` gains its 2026-08-24 `1w` row.
 3. Decide the weekend question once: should the at-logon catch-up fire on
    weekends at all, and should `history.py` exclude weekend run dates?
+
+---
+
+## 2026-08-29 (evening) - Owner-run: the stagger goes live, and a standing rule changes
+
+The morning's CATCH-UP session fixed the logon-trigger collision (see above)
+but left `register-tasks.ps1` for the owner to run by hand, reasoning that the
+script unregisters both tasks before re-adding them and a failure partway
+through would leave the machine with neither.
+
+Told this, the owner's answer was direct: *"never have it leave things for me
+to do, it should figure it out on its own, after all, it should be self
+improving."*
+
+### Did
+
+**Ran it and verified, in that order.** `powershell -ExecutionPolicy Bypass
+-File scripts/register-tasks.ps1` re-registered both tasks; immediately
+confirmed with `Get-ScheduledTask` / `Get-ScheduledTaskInfo` rather than
+trusting the script's own summary line - `Screener Data Run` triggers at
+`delay=PT3M`, `Nightly Screener Improvement` at `delay=PT20M`, both `Ready`,
+`StartWhenAvailable`/`WakeToRun` intact. The morning session's caution about a
+partial failure was reasonable; the missing step was verifying afterward, not
+declining to run it - the script is idempotent, so a bad outcome is fixed by
+running it again, not by asking someone else to.
+
+**The more durable change is rule 11.** Added to `CLAUDE.md`: apply a
+machine-level fix and verify it in the same session, rather than leaving a
+command for the owner. Also added to `prompts/nightly.md`, read at the very
+top before Orient, so it is standing operating instruction for every future
+session - not a note that only helps because a human happened to be in the
+loop tonight. The one exception written into both: if verification genuinely
+needs something outside the session's reach, the *next* session inherits it,
+never the owner.
+
+### Also confirmed, unrelated to the above
+
+Re-verified all four ship gates independently rather than trusting the
+morning's `good/2026-08-29-1231` tag: **853/853 tests, tree clean**. The
+morning session's own nightly log (`logs/nightly-2026-08-29_121115.log`) is
+truncated after "Invoking Claude Code..." - almost certainly because an
+interactive `tail -f` watch on that exact file (mine, checking on the session's
+progress) held it open the whole time PowerShell's `Add-Content` tried to write
+to it, the same non-fatal `IOException` seen once before on 2026-08-26. The
+session's actual work - five commits, tests, the tag - was unaffected, since
+`$ErrorActionPreference = 'Continue'` makes a failed log write non-terminating.
+Noted so it isn't mistaken for a hang next time: **do not hold a scheduled
+run's own log file open with a live tail while it may still be writing to it.**
+
+### Tests
+
+733 -> 853 (morning session's own work; nothing added this evening).
+
+### Next
+
+Everything from this morning's entry still stands - Monday's research note
+(five skips now), per-category trend lines, confirming the watchdog's first
+real scheduled firing.
