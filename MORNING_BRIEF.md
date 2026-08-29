@@ -1,4 +1,4 @@
-# Morning Brief - Friday 28 August 2026, 06:18
+# Morning Brief - Saturday 29 August 2026, 12:11
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,8 +7,8 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
+| Data run (2 AM) | **failed** - last ran today |
+| Code session (6 AM) | **failed** - last ran today |
 | Dashboard data from | 2026-08-28T02:00:03.803219 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -18,26 +18,17 @@ history is in `NIGHTLY_LOG.md`.
 
 ## Things that needed attention
 
-- Stale lock. Reclaiming.
-- Stale lock (24h). Reclaiming.
+- Could not check out main.
 
 ## What changed in the repo
 
+- `bf98aa7 brief: code session 2026-08-28`
 - `493ddeb data: republish the dashboard with weights that add up`
 - `71da63c docs: the printed weights are defaults, and a run may not use them`
 - `6344a72 teach: show the weight each score was actually multiplied by`
 - `14027d9 fix: record the weights the composite was actually built from`
 - `5c0966d brief: data run 2026-08-28`
 - `7dfe548 data: screener run 2026-08-28 - 502 scored, top: HST EXPE APA EIX CF`
-- `bc127cd brief: code session 2026-08-27`
-- `3175da4 watch: verify the workflow on GitHub, and bump the actions off Node 20`
-- `1af2643 docs: both priority -1 infrastructure items are done; correct the record`
-- `0fda98d fix: the morning brief lost its Top 5 when the portfolio key was removed`
-- `c05faf6 watch: report a loop that stops firing, from outside the machine`
-- `c52abb3 brief: data run 2026-08-27`
-- `8e021ab data: screener run 2026-08-27 - 502 scored, top: HST EXPE EIX APA CF`
-- `42c278d harden: ToString() the commit-subject output before trimming it`
-- `9273625 fix: the data-run commit subject named sector peers, not the top five`
 
 ## The session's own account
 
