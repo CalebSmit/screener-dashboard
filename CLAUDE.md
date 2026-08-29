@@ -470,6 +470,15 @@ tests overall, up from 825.
 loser exit instead of wait. Each script's own single-instance lock stops it
 racing *itself*; only the shared lock stops the two racing *each other*.
 
+**The stagger is not live yet, and does not need to be.** Registering tasks is
+machine state, not repo state: as of 2026-08-29 both live triggers still read
+`delay=PT3M`, and they will until someone runs `scripts/register-tasks.ps1`.
+That was left for the owner deliberately - the script unregisters before it
+registers, so a failure partway through would leave the machine with no loops
+at all, which is a worse outcome than the one being fixed. Nothing is broken
+meanwhile: the lock makes a simultaneous start *safe*, so the only cost is that
+which loop goes first is arbitrary instead of data-first.
+
 Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now
 fails fast with instructions.

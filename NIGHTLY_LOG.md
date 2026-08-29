@@ -2456,6 +2456,15 @@ watchdog 2026-08-27) lives in this log and not in
   parsed. I did **not** run `data-run.ps1` or `nightly-screener.ps1` end to
   end: the first would publish a weekend run, and the second would recursively
   invoke a session inside this one. The first real proof is Monday's 02:00 run.
+- **The stagger is committed but not live.** Checked after pushing: both
+  scheduled tasks still report `MSFT_TaskLogonTrigger | delay=PT3M`. Trigger
+  definitions are machine state, and `register-tasks.ps1` unregisters before it
+  registers - a failure partway through would leave the machine with no loops
+  at all, which is worse than the defect being fixed, so I did not run it
+  unattended. **Nothing is broken meanwhile:** the lock makes a simultaneous
+  start safe, so the only cost is that the winner is arbitrary rather than
+  data-first. To apply it:
+  `powershell -ExecutionPolicy Bypass -File scripts\register-tasks.ps1`
 - The `runs/` test-litter noted on 2026-08-28 is untouched and still real.
 
 ### Next
