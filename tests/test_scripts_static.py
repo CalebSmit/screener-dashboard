@@ -11,12 +11,15 @@ skipped run, so they get the same regression coverage as the Python.
 """
 
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 SCRIPTS = sorted(SCRIPTS_DIR.glob("*.ps1"))
+POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 
 # Cmdlets and keywords the scripts legitimately rely on. Anything Verb-Noun
 # shaped that is neither here nor defined in the file is treated as a typo.
@@ -34,6 +37,7 @@ KNOWN = {
     "Sort-Object", "Select-String", "Format-Table", "Import-Csv",
     "ConvertFrom-Json", "ConvertTo-Json", "Start-Sleep", "Read-Host",
     "Invoke-WebRequest", "Get-Command", "Add-Member", "Set-Location",
+    "Get-Process", "New-Object",
     # scheduled task cmdlets
     "Get-ScheduledTask", "Set-ScheduledTask", "Register-ScheduledTask",
     "Unregister-ScheduledTask", "Enable-ScheduledTask", "Disable-ScheduledTask",
@@ -56,11 +60,40 @@ def _strip(src: str) -> str:
     return re.sub(r"(?m)#.*$", "", src)
 
 
+def _defined_in(path: Path) -> set[str]:
+    return set(
+        re.findall(r"(?im)^\s*function\s+([A-Za-z]+(?:-[A-Za-z]+)?)", _source(path))
+    )
+
+
+def _dot_sourced(path: Path) -> list[Path]:
+    """Scripts this one dot-sources, resolved relative to scripts/.
+
+    Only literal `. (Join-Path $PSScriptRoot 'x.ps1')` is recognised. That is
+    deliberately narrow: the original bug this module exists for was a helper
+    used across files that were never sourced into one another, so a call is
+    only excused by a dot-source the reader can see.
+    """
+    pattern = r"^\s*\.\s*\(\s*Join-Path\s+\$PSScriptRoot\s+'([^']+\.ps1)'\s*\)"
+    out = []
+    for name in re.findall(pattern, _source(path), flags=re.M):
+        target = SCRIPTS_DIR / name
+        assert target.exists(), f"{path.name} dot-sources missing {name}"
+        out.append(target)
+    return out
+
+
 @pytest.mark.parametrize("path", SCRIPTS, ids=lambda p: p.name)
 def test_no_undefined_functions(path: Path):
-    """Every Verb-Noun call resolves to a definition or a known cmdlet."""
+    """Every Verb-Noun call resolves to a definition or a known cmdlet.
+
+    A definition counts if it is in this file or in a script this file
+    dot-sources - not merely because it exists somewhere in scripts/.
+    """
     src = _source(path)
-    defined = set(re.findall(r"(?im)^\s*function\s+([A-Za-z]+(?:-[A-Za-z]+)?)", src))
+    defined = _defined_in(path)
+    for sourced in _dot_sourced(path):
+        defined |= _defined_in(sourced)
     body = _strip(src)
     called = set(re.findall(r"(?<![-\w$])([A-Z][a-z]+-[A-Za-z]+)", body))
     unknown = sorted(c for c in called if c not in defined and c not in KNOWN)
@@ -75,6 +108,48 @@ def test_balanced_blocks(path: Path):
     body = _strip(_source(path))
     assert body.count("{") == body.count("}"), f"{path.name}: unbalanced braces"
     assert body.count("(") == body.count(")"), f"{path.name}: unbalanced parens"
+
+
+@pytest.mark.skipif(POWERSHELL is None, reason="no PowerShell on this platform")
+@pytest.mark.parametrize("path", SCRIPTS, ids=lambda p: p.name)
+def test_parses_as_powershell(path: Path):
+    """Hand the file to PowerShell's own parser.
+
+    Counting braces above is a proxy; this is the real thing, and it costs a
+    subprocess. A script that does not parse is a silently skipped run, which
+    is how 2026-08-11 was lost.
+    """
+    probe = (
+        "$e = $null; "
+        "$null = [System.Management.Automation.Language.Parser]::ParseFile("
+        f"'{path.as_posix()}', [ref]$null, [ref]$e); "
+        "if ($e -and $e.Count) { "
+        "$e | ForEach-Object { Write-Host \"line $($_.Extent.StartLineNumber): $($_.Message)\" }; "
+        "exit 1 }"
+    )
+    r = subprocess.run(
+        [POWERSHELL, "-NoProfile", "-NonInteractive", "-Command", probe],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert r.returncode == 0, f"{path.name} does not parse:\n{r.stdout}{r.stderr}"
+
+
+def test_no_script_hardcodes_a_shared_logon_delay():
+    """Both tasks sharing one delay is what made them start together.
+
+    add-catchup-trigger.ps1 set 'PT3M' on both and would have quietly restored
+    the collision if it were ever re-run, so it now delegates to
+    register-tasks.ps1 instead of writing triggers of its own.
+    """
+    offenders = []
+    for path in SCRIPTS:
+        src = _strip(_source(path))
+        if re.search(r"\$logon\.Delay\s*=\s*'PT\d+M'", src):
+            offenders.append(path.name)
+    assert not offenders, (
+        f"{offenders} assign a literal logon delay; it must come from the "
+        f"per-task spec so the two loops can be staggered"
+    )
 
 
 @pytest.mark.parametrize("path", SCRIPTS, ids=lambda p: p.name)
