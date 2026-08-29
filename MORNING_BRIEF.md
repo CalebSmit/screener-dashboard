@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 29 August 2026, 12:11
+# Morning Brief - Saturday 29 August 2026, 12:32
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -22,6 +22,12 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `b12ad6b docs: the stagger is committed but not registered on the machine`
+- `0e64354 docs: record the catch-up trigger defect and its fix`
+- `373cef8 test: cover the loop collision, and parse the scripts for real`
+- `4a49f95 tasks: stagger the logon triggers, and stop two scripts writing them`
+- `1b056be fix: stop the two loops racing each other for git's index`
+- `d45f3ae brief: data run 2026-08-29`
 - `bf98aa7 brief: code session 2026-08-28`
 - `493ddeb data: republish the dashboard with weights that add up`
 - `71da63c docs: the printed weights are defaults, and a run may not use them`
@@ -32,51 +38,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-08-28 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+> 2026-08-29 - CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.
 > 
 > ### Health numbers (rule 8)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-27_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | `logs/datarun-2026-08-28_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+> | Last code session ran? | `logs/nightly-2026-08-28_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | **NO - `logs/datarun-2026-08-29_121115.log` died at "Could not check out main." That is today's work.** Last good run: `datarun-2026-08-28_020001.log`, "Data loop complete", HEALTH: PASS, 502 scored |
 > | Evidence base | **27 rows, newest 2026-08-21, 3 effective observations at `1m`** (8 raw) |
 > | Priority 0 | Fixed 2026-08-24, holding |
 > 
-> **Tests:** before 791/791, after **825/825**
-> **Data loop:** healthy
-> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
-> rotation stood. Nothing was deferred.
-> **Rotation:** ISO week 35 is odd, so this was a normal Friday, not a
-> retrospective.
+> **Tests:** before 825/825, after **853/853**
+> **Data loop:** **was broken this morning - fixed**
+> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+> **Rotation:** Saturday catch-up, so there was no nominal focus to defer. The
+> data-loop failure would have outranked one anyway (`CLAUDE.md`: "fixing it is
+> the highest priority work available, ahead of any feature").
 > 
-> **Last session's item 3 is closed first, because it was cheap.** The watchdog's
-> first *scheduled* firing (run
-> [33148005073](https://github.com/CalebSmit/screener-dashboard/actions/runs/33148005073),
-> `schedule` trigger, 10s, success) is green. The cron works, not just the manual
-> dispatch.
+> ### Did - the catch-up trigger killed the data run it exists to protect
 > 
-> ### The question this day asks, asked literally
-> 
-> "Would a finance student understand what they are looking at?" The most
-> teachable surface in the tool is the drilldown's contribution panel, because it
-> does not just show a score - it shows the working:
+> Both logs are stamped the same second:
 > 
 > ```
-> Momentum   13% weight
-> Score: 65.3/100  [Average]  x 13% = 9.76 pts
+> logs/datarun-2026-08-29_121115.log   [12:11:15] === Data loop 2026-08-29 ===
+> logs/nightly-2026-08-29_121115.log   [12:11:15] === Code loop 2026-08-29 ===
 > ```
 > 
-> So I checked the arithmetic against the payload that was live on `main` this
-> morning. **65.3 x 13% is 8.49, not 9.76.** The one worked example on the site
-> did not add up.
+> One second later the data loop was dead:
 > 
-> ### Did - the weights shown were not the weights used
+> ```
+> [12:11:16] [ERROR] Could not check out main.
+> ```
 > 
-> Solving `contrib / score` over the 491 stocks with all eight categories
-> populated recovers what the composite was really built from: **valuation 20.05,
-> momentum 14.95**, the other six unchanged, summing to 100.000. Those are
-> exactly a LOW VOL regime - `13 x 1.15 = 14.95`, the 1.95pp taken out of
+> **Root cause.** `register-tasks.ps1` gave both scheduled tasks an at-logon
+> catch-up trigger with the *same* `PT3M` delay, so on the first logon of a day
+> they start together. They share one working tree and git serialises nothing for
+> them. At 12:11:16 the data loop ran `git checkout main` while the code loop was
+> inside `Restore-Artifacts` running `git status` - which takes `.git/index.lock`
+> to refresh the index. The data loop treated a transient lock as fatal and
+> stopped **before running the screener at all**.
+> 
+> The at-logon trigger is the fix for priority -1, the dominant failure mode
+> ("sessions do not start"). It had become a way to lose a run.
+> 
+> **Why nothing caught it.** Each script has a single-instance lock
 > ...
 
 ---
