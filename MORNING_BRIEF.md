@@ -1,4 +1,4 @@
-# Morning Brief - Monday 31 August 2026, 02:12
+# Morning Brief - Monday 31 August 2026, 06:17
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **failed** - last ran yesterday |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-08-31T02:00:03.976670 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -18,55 +18,59 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `52f0d0d log: 2026-08-31 research session`
+- `be47a76 docs: research/README described the old split rotation`
+- `0603712 research: the size factor in a large-cap-only universe`
+- `a5671f4 brief: data run 2026-08-31`
 - `f4db5cd data: screener run 2026-08-31 - 502 scored, top: HST EXPE EIX APA CF`
 
 ## The session's own account
 
-> 2026-08-29 (evening) - Owner-run: the stagger goes live, and a standing rule changes
+> 2026-08-31 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
 > 
-> The morning's CATCH-UP session fixed the logon-trigger collision (see above)
-> but left `register-tasks.ps1` for the owner to run by hand, reasoning that the
-> script unregisters both tasks before re-adding them and a failure partway
-> through would leave the machine with neither.
+> ### Health numbers (rule 8)
 > 
-> Told this, the owner's answer was direct: *"never have it leave things for me
-> to do, it should figure it out on its own, after all, it should be self
-> improving."*
+> | Check | Reading |
+> |---|---|
+> | Last code session ran? | `logs/nightly-2026-08-29_121115.log` - catch-up session, shipped to main |
+> | Data loop published? | `logs/datarun-2026-08-31_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+> | Evidence base | **28 rows, newest 2026-08-24, 3 effective observations at `1m`** (8 raw) |
+> | Priority 0 | Fixed 2026-08-24, holding |
+> 
+> **Tests:** before 853/853, after 853/853
+> **Data loop:** healthy - ran 02:00, all coverage/dispersion checks passed, published to main
+> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
+> rotation stood. Nothing was deferred.
+> **Rotation:** ISO week 36, Monday. Research day.
+> 
+> **The research note is written. That is the whole session.** It had been skipped
+> five consecutive times, each skip for a real defect and each defensible in
+> isolation, but the rotation had produced exactly **one** note in a month. Today
+> nothing was broken, so there was no excuse.
 > 
 > ### Did
 > 
-> **Ran it and verified, in that order.** `powershell -ExecutionPolicy Bypass
-> -File scripts/register-tasks.ps1` re-registered both tasks; immediately
-> confirmed with `Get-ScheduledTask` / `Get-ScheduledTaskInfo` rather than
-> trusting the script's own summary line - `Screener Data Run` triggers at
-> `delay=PT3M`, `Nightly Screener Improvement` at `delay=PT20M`, both `Ready`,
-> `StartWhenAvailable`/`WakeToRun` intact. The morning session's caution about a
-> partial failure was reasonable; the missing step was verifying afterward, not
-> declining to run it - the script is idempotent, so a bad outcome is fixed by
-> running it again, not by asking someone else to.
+> Wrote `research/2026-08-31-size-factor-in-a-large-cap-universe.md`. The question:
+> the screener spends 5% of composite on `size_log_mcap` = `-ln(mcap)` inside the
+> S&P 500, a universe with no small caps. Does a size tilt belong here, and is this
+> the right way to build one?
 > 
-> **The more durable change is rule 11.** Added to `CLAUDE.md`: apply a
-> machine-level fix and verify it in the same session, rather than leaving a
-> command for the owner. Also added to `prompts/nightly.md`, read at the very
-> top before Orient, so it is standing operating instruction for every future
-> session - not a note that only helps because a human happened to be in the
-> loop tonight. The one exception written into both: if verification genuinely
-> needs something outside the session's reach, the *next* session inherits it,
-> never the owner.
+> **Answer: keep it at 5%, and the reason is better than the one it had.** Four
+> findings, all measured on the published payload from today's 02:00 run:
 > 
-> ### Also confirmed, unrelated to the above
-> 
-> Re-verified all four ship gates independently rather than trusting the
-> morning's `good/2026-08-29-1231` tag: **853/853 tests, tree clean**. The
-> morning session's own nightly log (`logs/nightly-2026-08-29_121115.log`) is
-> truncated after "Invoking Claude Code..." - almost certainly because an
-> interactive `tail -f` watch on that exact file (mine, checking on the session's
-> progress) held it open the whole time PowerShell's `Add-Content` tried to write
-> to it, the same non-fatal `IOException` seen once before on 2026-08-26. The
-> session's actual work - five commits, tests, the tag - was unaffected, since
-> `$ErrorActionPreference = 'Continue'` makes a failed log write non-terminating.
-> Noted so it isn't mistaken for a hang next time: **do not hold a scheduled
-> run's own log file open with a live tail while it may still be writing to it.**
+> - **The tilt is junk-seeking on average, exactly as the literature predicts.**
+>   The 50 names it promotes most vs the 50 it demotes: median cap $15.0B vs
+>   $264.1B, quality 49.3 vs 55.6, risk 44.9 vs 60.1, volatility 0.33 vs 0.30.
+>   That is the pattern Asness et al. (2018) identify as the reason raw SMB fails,
+>   and that MSCI concedes in its own Low Size brochure.
+> - **But the composite already controls for the junk where the product points.**
+>   Comparing the top 50 with and without the size category: quality moves
+>   **-0.20**, risk **-0.47**, median cap $38.5B -> $30.4B. The 22% quality weight
+>   removes the junk before size can promote it. Combined with the S&P 500's own
+>   GAAP-profitability entry gate, this screener is running much closer to the
+>   quality-controlled version of the factor (t = 4.89) than the raw one
+>   (t = 1.23). **That defence did not exist before today; the weight was
+>   previously unexamined.**
 > ...
 
 ---
