@@ -1,8 +1,14 @@
 # Research notes
 
-Monday and Tuesday sessions produce notes here. This directory is the evidence
-base the rest of the week builds on, and the reason a methodology change can be
-defended months later.
+Monday sessions produce notes here. This directory is the evidence base the rest
+of the week builds on, and the reason a methodology change can be defended months
+later.
+
+**A note must be complete in one session.** Research used to be split across
+Monday (literature) and Tuesday (practice); the 2026-08-21 retrospective ended
+that, because a lost Monday left Tuesday with nothing to append to. Tuesday is
+now the product day. One self-contained note, literature *and* documented
+practice, is the unit.
 
 ## Naming
 
@@ -21,8 +27,10 @@ defended months later.
 - **What would change our mind.** The falsifiable version.
 - **Recommendation.** Concrete enough to implement, or an explicit "no change
   warranted, here's why."
-- **Tuesday's design section.** The hypothesis, the implementation sketch, and
-  the measurement that would refute it.
+- **Wednesday's design section.** Wednesday is synthesis day and reads this note
+  to decide how the finding fits the rest of the screener. Give it the
+  hypothesis, the implementation sketch, and the measurement that would refute
+  it.
 
 ## Standards
 
