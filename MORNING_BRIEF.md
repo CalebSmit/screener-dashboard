@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 29 August 2026, 12:32
+# Morning Brief - Monday 31 August 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,82 +7,66 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **failed** - last ran today |
-| Code session (6 AM) | **failed** - last ran today |
-| Dashboard data from | 2026-08-28T02:00:03.803219 |
+| Data run (2 AM) | **completed** - last ran today |
+| Code session (6 AM) | **failed** - last ran yesterday |
+| Dashboard data from | 2026-08-31T02:00:03.976670 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, APA, EIX, CF |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 27 rows across all horizons), newest 2026-08-21 |
-
-## Things that needed attention
-
-- Could not check out main.
+| Top 5 | HST, EXPE, EIX, APA, CF |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 28 rows across all horizons), newest 2026-08-24 |
 
 ## What changed in the repo
 
-- `b12ad6b docs: the stagger is committed but not registered on the machine`
-- `0e64354 docs: record the catch-up trigger defect and its fix`
-- `373cef8 test: cover the loop collision, and parse the scripts for real`
-- `4a49f95 tasks: stagger the logon triggers, and stop two scripts writing them`
-- `1b056be fix: stop the two loops racing each other for git's index`
-- `d45f3ae brief: data run 2026-08-29`
-- `bf98aa7 brief: code session 2026-08-28`
-- `493ddeb data: republish the dashboard with weights that add up`
-- `71da63c docs: the printed weights are defaults, and a run may not use them`
-- `6344a72 teach: show the weight each score was actually multiplied by`
-- `14027d9 fix: record the weights the composite was actually built from`
-- `5c0966d brief: data run 2026-08-28`
-- `7dfe548 data: screener run 2026-08-28 - 502 scored, top: HST EXPE APA EIX CF`
+- `f4db5cd data: screener run 2026-08-31 - 502 scored, top: HST EXPE EIX APA CF`
 
 ## The session's own account
 
-> 2026-08-29 - CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.
+> 2026-08-29 (evening) - Owner-run: the stagger goes live, and a standing rule changes
 > 
-> ### Health numbers (rule 8)
+> The morning's CATCH-UP session fixed the logon-trigger collision (see above)
+> but left `register-tasks.ps1` for the owner to run by hand, reasoning that the
+> script unregisters both tasks before re-adding them and a failure partway
+> through would leave the machine with neither.
 > 
-> | Check | Reading |
-> |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-28_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | **NO - `logs/datarun-2026-08-29_121115.log` died at "Could not check out main." That is today's work.** Last good run: `datarun-2026-08-28_020001.log`, "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **27 rows, newest 2026-08-21, 3 effective observations at `1m`** (8 raw) |
-> | Priority 0 | Fixed 2026-08-24, holding |
+> Told this, the owner's answer was direct: *"never have it leave things for me
+> to do, it should figure it out on its own, after all, it should be self
+> improving."*
 > 
-> **Tests:** before 825/825, after **853/853**
-> **Data loop:** **was broken this morning - fixed**
-> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
-> **Rotation:** Saturday catch-up, so there was no nominal focus to defer. The
-> data-loop failure would have outranked one anyway (`CLAUDE.md`: "fixing it is
-> the highest priority work available, ahead of any feature").
+> ### Did
 > 
-> ### Did - the catch-up trigger killed the data run it exists to protect
+> **Ran it and verified, in that order.** `powershell -ExecutionPolicy Bypass
+> -File scripts/register-tasks.ps1` re-registered both tasks; immediately
+> confirmed with `Get-ScheduledTask` / `Get-ScheduledTaskInfo` rather than
+> trusting the script's own summary line - `Screener Data Run` triggers at
+> `delay=PT3M`, `Nightly Screener Improvement` at `delay=PT20M`, both `Ready`,
+> `StartWhenAvailable`/`WakeToRun` intact. The morning session's caution about a
+> partial failure was reasonable; the missing step was verifying afterward, not
+> declining to run it - the script is idempotent, so a bad outcome is fixed by
+> running it again, not by asking someone else to.
 > 
-> Both logs are stamped the same second:
+> **The more durable change is rule 11.** Added to `CLAUDE.md`: apply a
+> machine-level fix and verify it in the same session, rather than leaving a
+> command for the owner. Also added to `prompts/nightly.md`, read at the very
+> top before Orient, so it is standing operating instruction for every future
+> session - not a note that only helps because a human happened to be in the
+> loop tonight. The one exception written into both: if verification genuinely
+> needs something outside the session's reach, the *next* session inherits it,
+> never the owner.
 > 
-> ```
-> logs/datarun-2026-08-29_121115.log   [12:11:15] === Data loop 2026-08-29 ===
-> logs/nightly-2026-08-29_121115.log   [12:11:15] === Code loop 2026-08-29 ===
-> ```
+> ### Also confirmed, unrelated to the above
 > 
-> One second later the data loop was dead:
-> 
-> ```
-> [12:11:16] [ERROR] Could not check out main.
-> ```
-> 
-> **Root cause.** `register-tasks.ps1` gave both scheduled tasks an at-logon
-> catch-up trigger with the *same* `PT3M` delay, so on the first logon of a day
-> they start together. They share one working tree and git serialises nothing for
-> them. At 12:11:16 the data loop ran `git checkout main` while the code loop was
-> inside `Restore-Artifacts` running `git status` - which takes `.git/index.lock`
-> to refresh the index. The data loop treated a transient lock as fatal and
-> stopped **before running the screener at all**.
-> 
-> The at-logon trigger is the fix for priority -1, the dominant failure mode
-> ("sessions do not start"). It had become a way to lose a run.
-> 
-> **Why nothing caught it.** Each script has a single-instance lock
+> Re-verified all four ship gates independently rather than trusting the
+> morning's `good/2026-08-29-1231` tag: **853/853 tests, tree clean**. The
+> morning session's own nightly log (`logs/nightly-2026-08-29_121115.log`) is
+> truncated after "Invoking Claude Code..." - almost certainly because an
+> interactive `tail -f` watch on that exact file (mine, checking on the session's
+> progress) held it open the whole time PowerShell's `Add-Content` tried to write
+> to it, the same non-fatal `IOException` seen once before on 2026-08-26. The
+> session's actual work - five commits, tests, the tag - was unaffected, since
+> `$ErrorActionPreference = 'Continue'` makes a failed log write non-terminating.
+> Noted so it isn't mistaken for a hang next time: **do not hold a scheduled
+> run's own log file open with a live tail while it may still be writing to it.**
 > ...
 
 ---
