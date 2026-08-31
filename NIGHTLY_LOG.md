@@ -2536,3 +2536,161 @@ run's own log file open with a live tail while it may still be writing to it.**
 Everything from this morning's entry still stands - Monday's research note
 (five skips now), per-category trend lines, confirming the watchdog's first
 real scheduled firing.
+
+## 2026-08-31 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-29_121115.log` - catch-up session, shipped to main |
+| Data loop published? | `logs/datarun-2026-08-31_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **28 rows, newest 2026-08-24, 3 effective observations at `1m`** (8 raw) |
+| Priority 0 | Fixed 2026-08-24, holding |
+
+**Tests:** before 853/853, after 853/853
+**Data loop:** healthy - ran 02:00, all coverage/dispersion checks passed, published to main
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
+rotation stood. Nothing was deferred.
+**Rotation:** ISO week 36, Monday. Research day.
+
+**The research note is written. That is the whole session.** It had been skipped
+five consecutive times, each skip for a real defect and each defensible in
+isolation, but the rotation had produced exactly **one** note in a month. Today
+nothing was broken, so there was no excuse.
+
+### Did
+
+Wrote `research/2026-08-31-size-factor-in-a-large-cap-universe.md`. The question:
+the screener spends 5% of composite on `size_log_mcap` = `-ln(mcap)` inside the
+S&P 500, a universe with no small caps. Does a size tilt belong here, and is this
+the right way to build one?
+
+**Answer: keep it at 5%, and the reason is better than the one it had.** Four
+findings, all measured on the published payload from today's 02:00 run:
+
+- **The tilt is junk-seeking on average, exactly as the literature predicts.**
+  The 50 names it promotes most vs the 50 it demotes: median cap $15.0B vs
+  $264.1B, quality 49.3 vs 55.6, risk 44.9 vs 60.1, volatility 0.33 vs 0.30.
+  That is the pattern Asness et al. (2018) identify as the reason raw SMB fails,
+  and that MSCI concedes in its own Low Size brochure.
+- **But the composite already controls for the junk where the product points.**
+  Comparing the top 50 with and without the size category: quality moves
+  **-0.20**, risk **-0.47**, median cap $38.5B -> $30.4B. The 22% quality weight
+  removes the junk before size can promote it. Combined with the S&P 500's own
+  GAAP-profitability entry gate, this screener is running much closer to the
+  quality-controlled version of the factor (t = 4.89) than the raw one
+  (t = 1.23). **That defence did not exist before today; the weight was
+  previously unexamined.**
+- **The `log` in `size_log_mcap` is provably inert.** The pipeline ranks the
+  metric one step later, and percentile ranking is invariant to any monotone
+  transform: `max |rank(-log mcap) - rank(-mcap)| = 0.0000000000`. The log is
+  the entire mechanism by which MSCI keeps its size tilt gentle - their worked
+  example turns a 9x cap gap into a **4.6pp** weight gap. This screener turns the
+  same gap into a **15-57 point** score gap (CAT $368B score 1 vs UAL $36B score
+  59). Not a defect; the tilt is simply far more aggressive than the
+  practitioner standard it resembles, and nobody chose that.
+- **Size is a genuine independent bet**, not a restatement: R^2 = 0.279 when
+  regressed on the other seven categories, so 72% is unspanned.
+
+### Evidence / research
+
+- **Asness, Frazzini, Israel, Moskowitz & Pedersen (2018)**, "Size matters, if
+  you control your junk", *JFE* 129(3), 479-509. Raw SMB 1926-2012: 23 bps/month,
+  **t = 2.27**; insignificant over Banz's own sample; CAPM alpha 12 bps
+  (t = 1.12); FF3+UMD alpha 14 bps (t = 1.23). **Adding QMJ: 49 bps, t = 4.89.**
+  Outside January the raw effect is **-0.04%, t = -0.32** - no size effect for
+  eleven months of the year - which QMJ restores to +38 bps (t = 3.62). Within
+  quality quintiles: 50 bps, t = 3.18, but **among the junkiest quintile the
+  relation is not monotonic and is insignificant**. Adding RMW/CMA doubles alpha
+  to 33 bps (t = 2.81). *Numbers are from the Jan-2015 working paper, which is
+  the version I could read in full; flagged as such in the note.*
+- **Harvey, Liu & Zhu (2016)**, *RFS* 29(1), 5-68 - given factor data-mining,
+  **t > 3.0** is the appropriate bar. Raw SMB (2.27) fails it; quality-controlled
+  SMB (4.89) clears it. That is the whole argument in one line.
+- **Banz (1981)**, *JFE* 9(1), 3-18 - the original. 1936-1975 quintile spread
+  ~7.19%/yr equal-weighted vs ~2.73%/yr value-weighted (secondary source, flagged
+  in the note). The 2.6x gap is itself the warning: the effect lives in the
+  smallest names.
+- **MSCI Low Size Indexes brochure** (read in full) - weights in proportion to
+  **1/ln(mcap)**, applied to large+mid cap, reweighting not excluding. Worked
+  example: $90B vs $10B -> 47.7% / 52.3%. MSCI states the log is chosen because
+  it "minimized the impact of the largest values", and concedes that size
+  strategies come "at the expense of relatively poorer quality and more volatile
+  stocks".
+- **Barra USE4** - Size is a style **risk** factor, standardly neutralised rather
+  than harvested. This is the real academia/practice split and the note explains
+  why it is genuine: the academic premium is long-short, quality-controlled and
+  monthly-rebalanced, i.e. not directly investable by a long-only large-cap
+  manager.
+- **S&P DJI** - S&P 500 eligibility requires positive GAAP earnings in the most
+  recent quarter *and* over the trailing four quarters. A real junk screen at the
+  universe boundary, and a point in this screener's favour the literature alone
+  would not surface.
+- **S&P 500 Equal Weight** - the closest live analogue to a within-S&P-500 size
+  tilt: **+63 bps/yr since 1990**, attributed to smaller size, value orientation
+  and an anti-momentum bias (three of which match the tilt profile I measured).
+  But cap weight beat it by **~32% over 2023-2025**. A 63bp edge that can lose
+  32% over three years is not something a 5% weight delivers reliably.
+
+**The gap I could not close, stated plainly in the note:** no cited source
+establishes a size premium *within* the top two US market-cap deciles, which is
+the entire S&P 500. Asness et al.'s "not concentrated in microcaps" means the
+effect is not *exclusively* microcap - not that it survives among the 500 largest
+US companies. The screener is extrapolating, and the note labels it as such
+rather than papering over it.
+
+### Methodology changed
+
+**None.** No weight, threshold, metric or formula moved, and no production code
+was touched - correct for a research day. The note's recommendation is explicitly
+"keep 5%, and here is the argument it was missing".
+
+### Tried and rejected
+
+- **Raising the size weight on Asness et al.'s 49 bps / t = 4.89.** That premium
+  is measured on a long-short, quality-controlled, full-cross-section portfolio.
+  This screener is long-only, large-cap-only, and quality-controlled only
+  incidentally. Importing the effect size would be precisely the "pile of good
+  ideas" failure `CLAUDE.md` warns against.
+- **Cutting size to zero on the "premium died after 1981" literature.** Defeated
+  by Finding A - measured on the live payload, the junk mechanism that kills the
+  raw premium is neutralised in this screener's top 50.
+
+### Found while researching, NOT fixed (needs its own session)
+
+**Winsorising before ranking destroys information and cannot add any.**
+`winsorize_metrics()` runs at `factor_engine.py:3429`, four lines before
+`compute_sector_percentiles` at `:3433`. Ranks are already immune to outliers, so
+clipping the extreme 1% first cannot change any ordering - it can only create
+ties. Measured: **27 continuous metrics show the 1%/99% tie signature, collapsing
+282 (stock, metric) cells** (discrete metrics like `piotroski_f_score` excluded -
+their ties are genuine).
+
+It has a **user-facing consequence**: the winsorized values are what the dashboard
+publishes as `raw`, so the live site currently shows **AAPL, NVDA, GOOG, GOOGL,
+MSFT and AMZN with an identical market cap of $2,873.8B**. Same six-way tie at the
+bottom (TTD, AOS, TAP, NCLH, BLDR, MOS).
+
+Deliberately left alone today: it is outside the size question, it touches all 44
+metrics, and it needs its own changelog entry and a test that published market
+caps are distinct. Not left for the owner - it is the next session's work.
+
+### Also did
+
+Corrected `research/README.md` (rule 9). It still described the old split
+rotation - "Monday and Tuesday sessions produce notes here" and "Tuesday's design
+section" - which the 2026-08-21 retrospective replaced with one self-contained
+Monday, Tuesday being the product day. A note written to that spec would have
+handed its design section to the wrong day.
+
+### Next
+
+1. **The winsorise-before-rank defect above.** It is the only concrete,
+   demonstrable, user-facing problem this session found, it has a measured blast
+   radius (282 cells, 6 wrong market caps on the live site), and it is cheap.
+2. **Wednesday's synthesis has a real question waiting**, which is the first time
+   in weeks that has been true: are `size` and `investment` two 5% bets or one
+   10% bet? They correlate +0.281, they are one metric each, and Asness et al.
+   show CMA absorbs part of SMB's alpha.
+3. Per-category trend lines over the full history (priority 2's remainder).
