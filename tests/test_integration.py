@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from factor_engine import (
     compute_factor_correlation,
     _find_latest_cache,
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -48,7 +47,6 @@ def _make_scored_df(n=50, seed=42):
                 rec[col] = max(1, rng.normal(15, 5))
         records.append(rec)
     df = pd.DataFrame(records)
-    df = winsorize_metrics(df, 0.01, 0.01)
     df = compute_sector_percentiles(df)
     return df
 

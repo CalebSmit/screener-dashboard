@@ -1,4 +1,4 @@
-"""Tests for the scoring pipeline: winsorization, percentile ranking,
+"""Tests for the scoring pipeline: outlier flagging, percentile ranking,
 category scores, composite scoring, and ranking.
 
 All tests use synthetic data — no network access required.
@@ -14,7 +14,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from factor_engine import (
-    winsorize_metrics,
+    flag_metric_outliers,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -106,42 +106,49 @@ def _make_df(n=100, seed=42):
 
 
 # =====================================================================
-# WINSORIZATION
+# OUTLIER FLAGGING (report only — replaced winsorization 2026-09-01)
 # =====================================================================
 
-class TestWinsorization:
-    def test_extreme_values_clipped(self):
-        """Create a controlled dataset where one value is clearly extreme."""
-        n = 100
-        # All values tightly clustered around 15, with one extreme outlier
+class TestOutlierFlagging:
+    def _planted(self, n=100):
         vals = [15.0 + i * 0.1 for i in range(n)]
-        vals[0] = 9999.0  # Plant extreme outlier
+        vals[0] = 9999.0  # planted extreme outlier
         df = pd.DataFrame({
             "Ticker": [f"T{i}" for i in range(n)],
             "ev_ebitda": vals,
         })
-        # Add other metric cols as NaN so winsorize_metrics doesn't fail
         for col in METRIC_COLS:
             if col not in df.columns:
                 df[col] = np.nan
-        df = winsorize_metrics(df, 0.01, 0.01)
-        # After winsorization, the extreme value should be reduced
-        assert df.loc[0, "ev_ebitda"] < 9999.0
+        return df
 
-    def test_small_sample_no_winsorize(self):
-        """With < 10 non-NaN values, winsorization should be skipped."""
+    def test_extreme_value_is_reported_not_changed(self):
+        """The outlier must survive untouched — clipping it is the old bug."""
+        df = self._planted()
+        report = flag_metric_outliers(df, 0.01, 0.01)
+        assert df.loc[0, "ev_ebitda"] == 9999.0, "value was mutated"
+        assert "ev_ebitda" in report
+        assert report["ev_ebitda"]["n_high"] >= 1
+
+    def test_does_not_mutate_the_frame(self):
+        df = self._planted()
+        before = df.copy(deep=True)
+        flag_metric_outliers(df, 0.01, 0.01)
+        pd.testing.assert_frame_equal(df, before)
+
+    def test_small_sample_omitted(self):
+        """With < 10 non-NaN values a tail is not meaningful, so it is skipped."""
         df = pd.DataFrame({
             "Ticker": [f"T{i}" for i in range(5)],
             "ev_ebitda": [5.0, 10.0, 15.0, 20.0, 100.0],
         })
-        df_result = winsorize_metrics(df.copy(), 0.01, 0.01)
-        # Should be unchanged (< 10 values)
-        assert df_result.loc[4, "ev_ebitda"] == 100.0
+        report = flag_metric_outliers(df, 0.01, 0.01)
+        assert "ev_ebitda" not in report
 
     def test_nan_preserved(self):
         df = _make_df(50)
         nan_count_before = df["ev_ebitda"].isna().sum()
-        df = winsorize_metrics(df, 0.01, 0.01)
+        flag_metric_outliers(df, 0.01, 0.01)
         nan_count_after = df["ev_ebitda"].isna().sum()
         assert nan_count_before == nan_count_after
 
@@ -153,7 +160,6 @@ class TestWinsorization:
 class TestSectorPercentiles:
     def test_output_range(self):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         for col in METRIC_COLS:
             pc = f"{col}_pct"
@@ -234,7 +240,6 @@ class TestSectorPercentiles:
 class TestCategoryScores:
     def test_scores_computed(self, cfg):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         for cat in ["valuation_score", "quality_score", "growth_score",
@@ -245,7 +250,6 @@ class TestCategoryScores:
 
     def test_scores_in_range(self, cfg):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         for cat in ["valuation_score", "quality_score", "growth_score",
@@ -263,7 +267,6 @@ class TestCategoryScores:
 class TestComposite:
     def test_percentile_rank_scaling(self, cfg):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)
@@ -344,7 +347,6 @@ class TestComposite:
 class TestValueTrapFlags:
     def test_flags_applied(self, cfg):
         df = _make_df(100)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)
@@ -423,7 +425,6 @@ class TestValueTrapFlags:
 class TestRanking:
     def test_descending_order(self, cfg):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)
@@ -434,7 +435,6 @@ class TestRanking:
 
     def test_ranks_complete(self, cfg):
         df = _make_df(50)
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)

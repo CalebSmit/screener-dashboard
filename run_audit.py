@@ -79,7 +79,7 @@ def run_instrumented_pipeline(tickers: list, force_sample: bool = False):
             fetch_market_returns, compute_metrics,
             _generate_sample_data,
             apply_universe_filters,
-            winsorize_metrics, compute_sector_percentiles,
+            flag_metric_outliers, compute_sector_percentiles,
             compute_category_scores, compute_composite,
             apply_value_trap_flags, rank_stocks,
             compute_factor_correlation,
@@ -216,9 +216,9 @@ def run_instrumented_pipeline(tickers: list, force_sample: bool = False):
                     cfg["factor_weights"][k] = round(cfg["factor_weights"][k], 2)
             rev_disabled = True
 
-    # ---- CALC: Winsorize ----
-    with trace_event(log, "CALC", "Winsorize metrics at 1st/99th percentiles"):
-        df = winsorize_metrics(df, 0.01, 0.01)
+    # ---- CALC: Flag outliers (report only — values are not clipped) ----
+    with trace_event(log, "CALC", "Flag metric outliers beyond 1st/99th percentiles"):
+        outlier_report = flag_metric_outliers(df, 0.01, 0.01)
 
     # ---- CALC: Sector percentiles ----
     with trace_event(log, "CALC", "Compute sector-relative percentile ranks"):
@@ -279,7 +279,7 @@ def generate_composite_forensics(df: pd.DataFrame, cfg: dict,
     lines.append("         Market Returns          → fetch_market_returns()     [factor_engine.py]")
     lines.append("Stage 3: Metric Computation     → compute_metrics()          [factor_engine.py]")
     lines.append("Stage 4: Coverage Filter        → min_data_coverage_pct      [run_screener.py]")
-    lines.append("Stage 5: Winsorization          → winsorize_metrics()        [factor_engine.py]")
+    lines.append("Stage 5: Outlier Flagging       → flag_metric_outliers()     [factor_engine.py]")
     lines.append("Stage 6: Sector Percentile Rank → compute_sector_percentiles [factor_engine.py]")
     lines.append("Stage 7: Category Scores        → compute_category_scores()  [factor_engine.py]")
     lines.append("Stage 8: Composite Score        → compute_composite()        [factor_engine.py]")
@@ -326,7 +326,7 @@ def generate_composite_forensics(df: pd.DataFrame, cfg: dict,
             direction = "Higher=Better" if METRIC_DIR.get(m, True) else "Lower=Better"
             lines.append(
                 f"| `{m}` | {d.get('definition', 'N/A')} | {d.get('source', 'yfinance')} | "
-                f"{d.get('cleaning', 'Winsorize 1/99 pctile')} | "
+                f"{d.get('cleaning', 'Outliers flagged, not clipped')} | "
                 f"{d.get('normalization', 'Sector percentile rank')} | "
                 f"{gw}% | {bw}% | {direction} |"
             )
@@ -435,7 +435,7 @@ def generate_composite_forensics(df: pd.DataFrame, cfg: dict,
     lines.append("- **Status**: PARTIAL CONCERN")
     lines.append("- Sample data path (`_generate_sample_data`) uses DIFFERENT distributions than live data")
     lines.append("- Sample data has bank-like metrics only for Financials sector, not industry-granular")
-    lines.append("- Scoring pipeline is identical for both paths (winsorize, percentile, composite)")
+    lines.append("- Scoring pipeline is identical for both paths (percentile, composite)")
 
     path = report_dir / "composite_score_forensics.md"
     with open(path, "w", encoding="utf-8") as f:
@@ -507,7 +507,9 @@ def generate_defensibility_review(df: pd.DataFrame, cfg: dict,
     lines.append("- **What's right**: Per-row weight redistribution for NaN metrics")
     lines.append("- **What's right**: Coverage filter excludes stocks with < 60% applicable metrics")
     lines.append("- **What's right**: Auto-reduce metrics with > 70% NaN")
-    lines.append("- **What's right**: Winsorization at 1st/99th percentiles")
+    lines.append("- **What's right**: Tail values are flagged in the DQ log, not clipped — "
+                 "ranking is a rank transform so clipping could not change an ordering, "
+                 "and clipping hid data errors (changelog 2026-09-01)")
     lines.append("- **What's right**: Revisions auto-disable when coverage < 30%")
     lines.append("- **What's right**: NaN percentiles are NOT imputed to 50th (weight redistributed)")
     lines.append("- **Concern**: Earnings yield for negative-EPS stocks is correctly negative (not NaN), but this means deeply unprofitable companies get valid (very bad) valuation scores rather than being excluded")
@@ -714,49 +716,49 @@ def _get_metric_definitions() -> dict:
         "ev_ebitda": {
             "definition": "Enterprise Value / EBITDA",
             "source": "yfinance: enterpriseValue, EBITDA from financials",
-            "cleaning": "Winsorize 1/99 pctile; NaN if EBITDA<=0 or EV<=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if EBITDA<=0 or EV<=0",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "fcf_yield": {
             "definition": "Free Cash Flow / Enterprise Value",
             "source": "yfinance: operatingCashFlow - abs(capex) / EV",
-            "cleaning": "Winsorize 1/99 pctile; NaN if capex missing",
+            "cleaning": "Outliers flagged, not clipped; NaN if capex missing",
             "normalization": "Sector percentile rank",
         },
         "earnings_yield": {
             "definition": "Trailing EPS / Current Price (inverse P/E)",
             "source": "yfinance: trailingEps / currentPrice",
-            "cleaning": "Winsorize 1/99 pctile; can be negative",
+            "cleaning": "Outliers flagged, not clipped; can be negative",
             "normalization": "Sector percentile rank",
         },
         "ev_sales": {
             "definition": "Enterprise Value / Total Revenue",
             "source": "yfinance: enterpriseValue / totalRevenue",
-            "cleaning": "Winsorize 1/99 pctile; NaN if revenue<=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if revenue<=0",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "pb_ratio": {
             "definition": "Price-to-Book Ratio (bank-only)",
             "source": "yfinance: priceToBook or currentPrice/bookValue",
-            "cleaning": "Winsorize 1/99 pctile; NaN for non-banks",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "roic": {
             "definition": "NOPAT / Invested Capital (Eq + Debt - Excess Cash)",
             "source": "yfinance: EBIT*(1-tax) / (equity + debt_bs - excess_cash)",
-            "cleaning": "Winsorize 1/99 pctile; NaN if IC<=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if IC<=0",
             "normalization": "Sector percentile rank",
         },
         "gross_profit_assets": {
             "definition": "Gross Profit / Total Assets",
             "source": "yfinance: grossProfit / totalAssets",
-            "cleaning": "Winsorize 1/99 pctile",
+            "cleaning": "Outliers flagged, not clipped",
             "normalization": "Sector percentile rank",
         },
         "debt_equity": {
             "definition": "Total Debt / Stockholders Equity",
             "source": "yfinance: totalDebt / totalEquity",
-            "cleaning": "Winsorize 1/99 pctile; NaN if equity<=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if equity<=0",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "piotroski_f_score": {
@@ -768,25 +770,25 @@ def _get_metric_definitions() -> dict:
         "accruals": {
             "definition": "(Net Income - OCF) / Total Assets",
             "source": "yfinance: (netIncome - operatingCashFlow) / totalAssets",
-            "cleaning": "Winsorize 1/99 pctile",
+            "cleaning": "Outliers flagged, not clipped",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "roe": {
             "definition": "Return on Equity (bank-only)",
             "source": "yfinance: returnOnEquity or netIncome/equity",
-            "cleaning": "Winsorize 1/99 pctile; NaN for non-banks",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
             "normalization": "Sector percentile rank",
         },
         "roa": {
             "definition": "Return on Assets (bank-only)",
             "source": "yfinance: returnOnAssets or netIncome/totalAssets",
-            "cleaning": "Winsorize 1/99 pctile; NaN for non-banks",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
             "normalization": "Sector percentile rank",
         },
         "equity_ratio": {
             "definition": "Equity / Total Assets (bank-only)",
             "source": "yfinance: totalEquity / totalAssets",
-            "cleaning": "Winsorize 1/99 pctile; NaN for non-banks",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
             "normalization": "Sector percentile rank",
         },
         "forward_eps_growth": {
@@ -804,37 +806,37 @@ def _get_metric_definitions() -> dict:
         "revenue_growth": {
             "definition": "(Revenue - Revenue_Prior) / Revenue_Prior",
             "source": "yfinance: totalRevenue (col 0 vs col 1 from financials)",
-            "cleaning": "Winsorize 1/99 pctile; NaN if prior=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if prior=0",
             "normalization": "Sector percentile rank",
         },
         "sustainable_growth": {
             "definition": "ROE * Retention Ratio (1 - Payout Ratio)",
             "source": "yfinance: (NI/Eq) * (1 - dividendsPaid/NI)",
-            "cleaning": "Winsorize 1/99 pctile; NaN if NI<=0 or equity<=0",
+            "cleaning": "Outliers flagged, not clipped; NaN if NI<=0 or equity<=0",
             "normalization": "Sector percentile rank",
         },
         "return_12_1": {
             "definition": "12-1 Month Return (skip most recent month)",
             "source": "yfinance: (price_1m_ago - price_12m_ago) / price_12m_ago",
-            "cleaning": "Winsorize 1/99 pctile; uses calendar-based lookback",
+            "cleaning": "Outliers flagged, not clipped; uses calendar-based lookback",
             "normalization": "Sector percentile rank",
         },
         "return_6m": {
             "definition": "6-1 Month Return (skip most recent month)",
             "source": "yfinance: (price_1m_ago - price_6m_ago) / price_6m_ago",
-            "cleaning": "Winsorize 1/99 pctile; uses calendar-based lookback",
+            "cleaning": "Outliers flagged, not clipped; uses calendar-based lookback",
             "normalization": "Sector percentile rank",
         },
         "volatility": {
             "definition": "Annualized daily return std dev (252 trading days)",
             "source": "yfinance: std(daily_log_returns) * sqrt(252)",
-            "cleaning": "Winsorize 1/99 pctile; NaN if < 200 trading days",
+            "cleaning": "Outliers flagged, not clipped; NaN if < 200 trading days",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "beta": {
             "definition": "Cov(stock, market) / Var(market) using daily returns",
             "source": "yfinance: stock daily returns vs ^GSPC daily returns",
-            "cleaning": "Winsorize 1/99 pctile; NaN if < 200 common dates",
+            "cleaning": "Outliers flagged, not clipped; NaN if < 200 common dates",
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "analyst_surprise": {

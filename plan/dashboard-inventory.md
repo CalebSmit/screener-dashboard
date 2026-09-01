@@ -73,6 +73,16 @@ calling anything expensive.
 `data_source`, `metric_count`/`metric_total`, `financials`, `flags`, `peers`,
 `self_metrics`.
 
+**`raw` is the value as fetched, from 2026-09-01.** Until then the pipeline
+winsorized every metric at the 1st/99th percentiles immediately before ranking
+it, and `raw` carried the *clipped* number — so the site published AAPL, NVDA,
+MSFT, GOOG, GOOGL and AMZN with one identical market cap of $2,802.0B against a
+true $5,331.2B for NVDA. 301 cells across 33 metrics on 159 stocks were wrong
+the same way. Clipping could never have helped, because `pct` is a rank and a
+rank is invariant under monotone transforms. Removed; changelog 2026-09-01,
+`tests/test_no_winsorization.py`. If a metric ever again shows a cluster of
+identical values at its extremes, that is the defect returning.
+
 `industry` and `about` were added 2026-08-26 (owner request). Both are
 **display-only** - `about` is the provider's `longBusinessSummary`, rendered
 verbatim in a clamped block under the score cards with a "Show more" toggle and

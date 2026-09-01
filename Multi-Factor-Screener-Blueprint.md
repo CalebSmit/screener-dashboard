@@ -199,10 +199,10 @@ The low-volatility anomaly—the finding that lower-risk stocks tend to deliver 
 
 | Metric | Within-Category Weight | Why This Metric | Normalization |
 |--------|----------------------|-----------------|---------------|
-| **Trailing 1Y Volatility** | 60% | Simple measure of total risk; lower volatility stocks have historically outperformed on a risk-adjusted basis | Winsorized at 1st/99th percentile, then cross-sectional percentile (lower = better) |
-| **Beta (vs. S&P 500)** | 40% | Systematic risk exposure; helps control portfolio-level market sensitivity | Winsorized at 1st/99th percentile, then cross-sectional percentile (lower = better) |
+| **Trailing 1Y Volatility** | 60% | Simple measure of total risk; lower volatility stocks have historically outperformed on a risk-adjusted basis | Cross-sectional percentile (lower = better) |
+| **Beta (vs. S&P 500)** | 40% | Systematic risk exposure; helps control portfolio-level market sensitivity | Cross-sectional percentile (lower = better) |
 
-**Winsorization Applied:** Volatility and beta are **winsorized at the 1st and 99th percentiles before ranking** to prevent extreme outliers from distorting the distribution.
+**Outliers are flagged, not clipped.** This blueprint originally called for winsorizing volatility and beta at the 1st/99th percentiles before ranking, "to prevent extreme outliers from distorting the distribution". That rationale does not hold: the metrics are converted to percentile ranks, and a rank transform is invariant under any monotone transform of its input, so clipping the tails cannot change an ordering. What it does do is collapse several stocks onto one value, which then makes them tie, and publish the clipped number as the company's real figure. Removed 2026-09-01; the tails are recorded in the data-quality log instead. See `METHODOLOGY_CHANGELOG.md`.
 
 **Hard Risk Screen (Optional):** Exclude stocks with **Debt/Equity in top 5%** or **interest coverage below 2x** as part of the risk control layer.
 
@@ -2418,7 +2418,7 @@ caching:
 
 # Data Quality
 data_quality:
-  winsorize_percentiles: [1, 99]  # Winsorize at 1st and 99th percentiles
+  outlier_report_percentiles: [1, 99]  # Tails flagged in the DQ log; values are never clipped
   min_data_coverage_pct: 60  # Exclude stocks with < 60% of metrics available
   max_missing_metrics: 6  # Out of ~15 total metrics
 

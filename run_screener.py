@@ -323,7 +323,8 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     min_adv_m = min_adv / 1e6
 
     # Data quality
-    win_lo, win_hi = dq.get("winsorize_percentiles", [1, 99])
+    out_lo, out_hi = dq.get("outlier_report_percentiles",
+                            dq.get("winsorize_percentiles", [1, 99]))
     min_coverage = dq.get("min_data_coverage_pct", 60)
     auto_reduce_thresh = dq.get("auto_reduce_nan_threshold_pct", 70)
     alert_thresh = dq.get("metric_alert_threshold_pct", 50)
@@ -509,8 +510,10 @@ The scoring pipeline has six steps:
 ### Step 1: Collect Raw Data
 For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
 
-### Step 2: Clean the Data (Winsorization)
-Extreme outliers can distort rankings. The screener clips each metric at the {win_lo}st and {win_hi}th percentiles — for example, if one company has a Debt/Equity ratio of 50x while the rest are under 5x, that 50x gets clipped down to the {win_hi}th percentile value. This prevents a single extreme value from dominating the score.
+### Step 2: Flag Outliers (but do not change them)
+Every metric below is scored by its **rank** within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does **not** clip extreme values: it records them in the data-quality log (the tails beyond the {out_lo}st and {out_hi}th percentiles) and scores the number it actually fetched.
+
+Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.
 
 ### Step 3: Rank Within Sectors
 Each metric is converted to a **sector-relative percentile** (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.
@@ -740,7 +743,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Momentum skip-month** (12-1 and 6-1, not 12-0) | The most recent month's return tends to reverse. Skipping it improves signal quality (standard in academic momentum literature). |
 | **Calendar-based lookbacks** | Using calendar dates (e.g., 182 days ago) instead of fixed index offsets ensures consistent lookback periods regardless of holidays. |
 | **Denominator floors** ($0.10 for surprise, $1.00 for EPS growth) | Near-zero denominators produce extreme ratios that dominate rankings. Floors bound the maximum possible ratio. |
-| **Winsorization at {win_lo}%/{win_hi}%** | Prevents a single extreme data point from blowing up the rankings. Conservative clip — keeps {win_hi - win_lo}% of the distribution intact. |
+| **Outliers flagged, never clipped** ({out_lo}%/{out_hi}% tails) | Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught. |
 | **Value trap 2-of-3 majority logic** | OR logic (any 1 breach) flagged ~60% of the universe — too aggressive. Majority logic catches genuinely weak stocks while tolerating one bad dimension. |
 | **Growth trap 2-of-3 majority logic** | Mirror of value trap for the opposite scenario. Catches high-growth stocks with poor quality and/or deteriorating sentiment. |
 | **Liquidity filter** (${min_adv_m:.0f}M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
@@ -891,7 +894,7 @@ _RISK_DESCRIPTIONS = {
 _REV_DESCRIPTIONS = {
     "analyst_surprise": "Median of (Actual - Estimated EPS) / max(|Estimated|, $0.10) over last 4 quarters. Positive = beat expectations.",
     "price_target_upside": "(Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism.",
-    "earnings_acceleration": "Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous, winsorized at 1st/99th percentiles.",
+    "earnings_acceleration": "Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched.",
     "consecutive_beat_streak": "Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4.",
     "short_interest_ratio": "Days to cover (short interest shares / average daily volume). Lower = less bearish sentiment from short sellers. Contrarian signal.",
 }
@@ -929,7 +932,7 @@ def run_factor_engine(cfg, args, ctx=None):
         _generate_sample_data, _find_latest_cache,
         cache_age_days, cache_is_usable, factor_scores_cache_max_age_days,
         apply_universe_filters,
-        winsorize_metrics, compute_sector_percentiles,
+        flag_metric_outliers, compute_sector_percentiles,
         apply_percentile_transform,
         compute_category_scores, adjust_momentum_weight, compute_composite,
         apply_value_trap_flags, apply_growth_trap_flags, rank_stocks,
@@ -1328,31 +1331,33 @@ def run_factor_engine(cfg, args, ctx=None):
     _auto_reduce_high_nan_metrics(df, cfg, pipeline_log=pipeline_log)
 
     # ---- Scoring pipeline ----
-    # Phase 13 (F34): honor config winsorize_percentiles (was hardcoded 1/99,
-    # making the config key dead). Percentiles are given as [lo_pct, hi_pct]
-    # (e.g. [1, 99]); winsorize_metrics expects fractional tail sizes.
-    _win = cfg.get("data_quality", {}).get("winsorize_percentiles", [1, 99])
-    _win_lo = _win[0] / 100.0
-    _win_hi = (100 - _win[1]) / 100.0
+    # Outliers are reported, never clipped. compute_sector_percentiles() below
+    # is Series.rank(pct=True), which is invariant under any monotone transform
+    # of its input, so clipping the tails first could not change an ordering -
+    # it could only manufacture ties and corrupt the value published as `raw`.
+    # Removed 2026-09-01; see METHODOLOGY_CHANGELOG.md and flag_metric_outliers().
+    _tails = cfg.get("data_quality", {}).get(
+        "outlier_report_percentiles",
+        cfg.get("data_quality", {}).get("winsorize_percentiles", [1, 99]),
+    )
+    _lo_frac = _tails[0] / 100.0
+    _hi_frac = (100 - _tails[1]) / 100.0
     score_t0 = time.time()
-    print(f"Winsorizing at {_win[0]}th / {_win[1]}th percentiles...")
-    df = winsorize_metrics(df, _win_lo, _win_hi)
+    print(f"Flagging outliers beyond the {_tails[0]}th / {_tails[1]}th percentiles "
+          f"(values are reported, not clipped)...")
+    _outliers = flag_metric_outliers(df, _lo_frac, _hi_frac)
 
-    # Log winsorized outliers
-    for col in METRIC_COLS:
-        if col in df.columns:
-            s = df[col].dropna()
-            if len(s) > 10:
-                p01, p99 = s.quantile(0.01), s.quantile(0.99)
-                clipped = ((s <= p01) | (s >= p99)).sum()
-                if clipped > 0:
-                    dq_log("UNIVERSE", "outlier_winsorized", "Low",
-                           f"{col}: {clipped} values clipped at 1st/99th pctile",
-                           "Winsorized to boundary values")
+    for col, info in _outliers.items():
+        dq_log("UNIVERSE", "outlier_flagged", "Low",
+               f"{col}: {info['n_low']} at/below {info['lo_cut']:.4g}, "
+               f"{info['n_high']} at/above {info['hi_cut']:.4g} "
+               f"({_tails[0]}th/{_tails[1]}th pctile of {info['n_valid']} values)",
+               "Reported only - the value is scored and published as fetched")
 
     if ctx is not None:
-        ctx.save_artifact("02_winsorized", df)
-    pipeline_log.info("Winsorization complete: %d stocks", len(df))
+        ctx.save_artifact("02_outliers_flagged", df)
+    pipeline_log.info("Outlier flagging complete: %d stocks, %d metrics with tail values",
+                      len(df), len(_outliers))
 
     print("Computing sector-relative percentile ranks...")
     df = compute_sector_percentiles(df)

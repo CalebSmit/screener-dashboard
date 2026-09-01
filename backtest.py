@@ -42,7 +42,6 @@ from factor_engine import (
     METRIC_COLS,
     METRIC_DIR,
     CAT_METRICS,
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -305,8 +304,9 @@ def simulate_monthly_scores(base_scores: pd.DataFrame,
             if c not in df.columns:
                 df[c] = np.nan
 
-        # Winsorize
-        df = winsorize_metrics(df, 0.01, 0.01)
+        # No winsorization: compute_sector_percentiles is a rank transform, so
+        # clipping the tails cannot change an ordering (removed 2026-09-01).
+        # This mirrors run_screener.py — the two must stay identical.
 
         # Sector percentiles
         df = compute_sector_percentiles(df)

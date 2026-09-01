@@ -18,7 +18,6 @@ from factor_engine import (
     _NON_BANK_FINANCIALS,
     _BANK_ONLY_METRICS,
     _NONBANK_ONLY_METRICS,
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -180,7 +179,6 @@ class TestBankCategoryScores:
     def test_bank_valuation_uses_pb(self, cfg):
         """Bank valuation score should use P/B weight from bank_metric_weights."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
 
@@ -191,7 +189,6 @@ class TestBankCategoryScores:
     def test_bank_quality_uses_roe_roa(self, cfg):
         """Bank quality score should use ROE, ROA, Equity Ratio weights."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
 
@@ -201,7 +198,6 @@ class TestBankCategoryScores:
     def test_nonbank_scores_unchanged(self, cfg):
         """Non-bank scoring should produce valid scores with generic weights."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
 
@@ -212,7 +208,6 @@ class TestBankCategoryScores:
     def test_all_category_scores_valid(self, cfg):
         """Both bank and non-bank should have valid scores for all categories."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
 
@@ -229,7 +224,6 @@ class TestBankComposite:
     def test_bank_gets_valid_composite(self, cfg):
         """Bank stocks should produce valid Composite scores."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)
@@ -240,7 +234,6 @@ class TestBankComposite:
     def test_bank_nonbank_comparable(self, cfg):
         """Both types should produce scores in 0-100 range."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)
@@ -251,7 +244,6 @@ class TestBankComposite:
     def test_bank_not_all_bottom(self, cfg):
         """Bank stocks should not all be at the bottom of rankings."""
         df = _make_bank_df()
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)

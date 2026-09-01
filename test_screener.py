@@ -51,7 +51,7 @@ def sample_df(universe_df):
 def scored_df(sample_df, cfg):
     """Fully scored DataFrame ready for portfolio construction."""
     from factor_engine import (
-        winsorize_metrics, compute_sector_percentiles,
+        compute_sector_percentiles,
         compute_category_scores, compute_composite,
         apply_value_trap_flags, rank_stocks,
     )
@@ -73,7 +73,7 @@ def scored_df(sample_df, cfg):
             for k in others:
                 _cfg["factor_weights"][k] += old_w * _cfg["factor_weights"][k] / s
 
-    df = winsorize_metrics(sample_df.copy())
+    df = sample_df.copy()
     df = compute_sector_percentiles(df)
     df = compute_category_scores(df, _cfg)
     df = compute_composite(df, _cfg)
@@ -132,33 +132,33 @@ class TestGenerateSampleData:
         assert set(sample_df["Sector"]) == set(universe_df["Sector"])
 
 
-class TestWinsorize:
+class TestOutlierFlagging:
     def test_does_not_change_shape(self, sample_df):
-        from factor_engine import winsorize_metrics
+        from factor_engine import flag_metric_outliers
         before = len(sample_df)
-        df = winsorize_metrics(sample_df.copy())
-        assert len(df) == before
+        flag_metric_outliers(sample_df, 0.01, 0.01)
+        assert len(sample_df) == before
 
-    def test_reduces_outlier_range(self, sample_df):
-        from factor_engine import winsorize_metrics
+    def test_preserves_the_outlier_range(self, sample_df):
+        """Flagging must leave the spread intact — clipping it was the old bug."""
+        from factor_engine import flag_metric_outliers
         col = "ev_ebitda"
         raw_range = sample_df[col].max() - sample_df[col].min()
-        df = winsorize_metrics(sample_df.copy())
-        win_range = df[col].max() - df[col].min()
-        assert win_range <= raw_range
+        flag_metric_outliers(sample_df, 0.01, 0.01)
+        assert sample_df[col].max() - sample_df[col].min() == raw_range
 
 
 class TestSectorPercentiles:
     def test_pct_cols_created(self, sample_df):
-        from factor_engine import compute_sector_percentiles, METRIC_COLS, winsorize_metrics
-        df = winsorize_metrics(sample_df.copy())
+        from factor_engine import compute_sector_percentiles, METRIC_COLS
+        df = sample_df.copy()
         df = compute_sector_percentiles(df)
         for col in METRIC_COLS:
             assert f"{col}_pct" in df.columns
 
     def test_pct_range_0_100(self, sample_df):
-        from factor_engine import compute_sector_percentiles, winsorize_metrics
-        df = winsorize_metrics(sample_df.copy())
+        from factor_engine import compute_sector_percentiles
+        df = sample_df.copy()
         df = compute_sector_percentiles(df)
         for col in df.columns:
             if col.endswith("_pct"):
@@ -410,7 +410,7 @@ class TestFullPipeline:
         """3-ticker pipeline runs without crash."""
         from factor_engine import (
             get_sp500_tickers, _generate_sample_data,
-            winsorize_metrics, compute_sector_percentiles,
+            compute_sector_percentiles,
             compute_category_scores, compute_composite,
             apply_value_trap_flags, rank_stocks,
         )
@@ -418,7 +418,6 @@ class TestFullPipeline:
 
         univ = get_sp500_tickers(cfg).head(3)
         df = _generate_sample_data(univ, seed=99)
-        df = winsorize_metrics(df)
         df = compute_sector_percentiles(df)
 
         import copy
@@ -633,7 +632,7 @@ class TestSectorRelativeComposite:
     def test_sector_relative(self, sample_df, cfg):
         import copy
         from factor_engine import (
-            winsorize_metrics, compute_sector_percentiles,
+            compute_sector_percentiles,
             compute_category_scores, compute_composite,
         )
         _cfg = copy.deepcopy(cfg)
@@ -644,7 +643,7 @@ class TestSectorRelativeComposite:
             _cfg["factor_weights"][k] *= 100 / s
         _cfg.setdefault("sector_neutral", {})["sector_relative_composite"] = True
 
-        df = winsorize_metrics(sample_df.copy())
+        df = sample_df.copy()
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, _cfg)
         df = compute_composite(df, _cfg)
@@ -659,7 +658,7 @@ class TestSectorRelativeComposite:
     def test_default_is_global(self, sample_df, cfg):
         import copy
         from factor_engine import (
-            winsorize_metrics, compute_sector_percentiles,
+            compute_sector_percentiles,
             compute_category_scores, compute_composite,
         )
         _cfg = copy.deepcopy(cfg)
@@ -669,7 +668,7 @@ class TestSectorRelativeComposite:
         for k in others:
             _cfg["factor_weights"][k] *= 100 / s
 
-        df = winsorize_metrics(sample_df.copy())
+        df = sample_df.copy()
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, _cfg)
         df = compute_composite(df, _cfg)

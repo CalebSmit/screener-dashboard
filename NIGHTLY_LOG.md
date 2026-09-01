@@ -2694,3 +2694,177 @@ handed its design section to the wrong day.
    10% bet? They correlate +0.281, they are one metric each, and Asness et al.
    show CMA absorbs part of SMB's alpha.
 3. Per-category trend lines over the full history (priority 2's remainder).
+
+## 2026-09-01 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-08-31_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | `logs/datarun-2026-09-01_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **29 rows, newest 2026-08-25, 3 effective observations at `1m`** (8 raw) |
+| Priority 0 | Fixed 2026-08-24, holding |
+
+**Tests:** before 853/853, after **872/872**
+**Data loop:** healthy - ran 02:00, all coverage and dispersion checks passed, published to main
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+**Rotation:** ISO week 36, Tuesday. Product day - and the work was a product defect,
+so no swap was needed.
+
+### Did
+
+**Fixed the live site publishing false numbers.** The dashboard showed AAPL,
+NVDA, MSFT, GOOG, GOOGL and AMZN with an identical market capitalisation of
+**$2,802.0B**. Nvidia's true figure is **$5,331.2B** - understated by 47%, or
+$2.5 trillion. This is a product-day finding in the most literal sense: it is
+what a user sees, and it is wrong.
+
+The cause was `winsorize_metrics()`, which clipped the top and bottom 1% of
+every metric onto one boundary value four lines before the ranking step. The
+clipped number was then published as the stock's `raw` value. Removed; replaced
+by `flag_metric_outliers()`, which reports the same tails into the data-quality
+log and does not touch the frame. Changelog 2026-09-01;
+`tests/test_no_winsorization.py`, 18 tests.
+
+This was the item the 2026-08-31 session identified as the next session's work.
+It is done, and the diagnosis it left was right in substance - though its two
+headline numbers were slightly off and are corrected here: the tie value is
+**$2,802.0B**, not $2,873.8B, and on the current payload the signature covers
+**33 continuous metrics / 301 collapsed cells**, not 27 / 282.
+
+**Measured blast radius**, all on the published `dashboard_data.js` from today's
+02:00 run:
+
+- **301 (stock, metric) cells across 33 continuous metrics, on 159 of 502
+  stocks**, carried a clipped value instead of the fetched one.
+- **58 (metric, sector) tie groups** collapsed two or more stocks onto a single
+  percentile. Worst: 4 Energy names shared one `beta` rank in a 21-stock sector,
+  spanning **14.3 percentile points**; 5 Utilities shared one `volatility` rank
+  (12.9 pp); 6 Information Technology names shared one `return_6m` rank (6.8 pp).
+
+**Four call sites, not one.** `run_screener.py`, `backtest.py`, `run_audit.py`
+and - missed on the first pass - `factor_engine.py`'s own end-to-end path. The
+AST guard written for this change is what found the fourth, and it also found
+19 stale per-metric "Winsorize 1/99 pctile" descriptions in `run_audit.py`. Both
+guards fail against the pre-change code (5 offending calls, 32 offending
+user-facing strings), so they are not vacuous.
+
+**Verified end-to-end on the real universe, not just on fixtures.** Took the
+502-row cached frame, restored the six true market caps, and pushed it through
+the production `flag_metric_outliers` -> `compute_sector_percentiles` path: six
+distinct values, six distinct percentiles. AAPL/NVDA/MSFT separate from a shared
+2.74 into 2.74 / 1.37 / 4.11; GOOG/GOOGL from a shared 6.25 into 8.33 / 4.17.
+
+### Evidence / research
+
+Three independent lines. None is a backtest and none is an IC from this system,
+per rules 4 and 5.
+
+- **A proof, not an estimate.** `compute_sector_percentiles()` is
+  `Series.rank(pct=True)`. A rank transform is invariant under *any* monotone
+  transform of its input, so clipping the tails cannot change one ordering.
+  Winsorizing is monotone but not injective - it maps a whole tail to one number
+  - and manufacturing ties is therefore the *only* effect it can have. Both
+  halves are locked down by tests: an exponential rescale of the inputs leaves
+  every percentile identical; clipping four tail values collapses four distinct
+  ranks onto one and leaves the rest of the distribution untouched.
+- **A documented user-facing failure**, per the mandate's fourth category:
+  the six market caps above, with the true values fetched from the same source
+  the screener uses.
+- **In-repo evidence that it actively hid data errors.**
+  `METHODOLOGY_CHANGELOG.md` 2026-08-26 records that MNST's corrupt
+  `volatility_1y` of 1.77 was clipped to 0.845, "which merely made Monster
+  Beverage look as volatile as SMCI". An implausible value is the signal a feed
+  has broken; clipping deleted exactly that signal. That is why the replacement
+  logs the tails instead of discarding them.
+
+The stated rationale in the docs was simply false, and is corrected rather than
+softened. `SCREENER_OVERVIEW.md` Step 2 read "Extreme outliers can distort
+rankings" - they cannot, for a rank-based screen.
+`Multi-Factor-Screener-Blueprint.md` said volatility and beta were winsorized
+"to prevent extreme outliers from distorting the distribution". Both now explain
+why that is wrong, which matters more for the investment-club audience than the
+fix itself does.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-09-01** - winsorization removed from the
+  scoring path; `flag_metric_outliers()` added; config key
+  `data_quality.winsorize_percentiles` renamed `outlier_report_percentiles`
+  (old name still read as a fallback, still accepted by `schemas.py`).
+- No category weight, metric weight or threshold moved.
+- Docs corrected in the same commit: `SCREENER_OVERVIEW.md` (regenerated from
+  `run_screener.py`, its source), `Multi-Factor-Screener-Blueprint.md`,
+  `README.md`, `config.yaml`, `plan/dashboard-inventory.md` (rule 9).
+
+### Tried and rejected
+
+- **Fixing only the display - publish unwinsorized `raw` but keep clipping for
+  scoring.** Smaller and purely a product change, but worse: it leaves the 58
+  manufactured tie groups in the ranking and makes the tool harder to explain,
+  because the number shown would no longer be the number scored. The coherent
+  fix was the one the maths already licensed.
+- **Removing `metric_clamps` in the same pass.** Superficially the same shape,
+  but a different argument - a domain judgement that a forward EPS growth above
+  150% is not a credible input, rather than a claim about outliers distorting
+  ranks. On this run the clamps are not even binding (observed maxima 0.978
+  against a 1.50 bound; 0.583 against 1.00), so nothing was gained by touching
+  them. Left alone and flagged in the changelog. Whether a non-credible value
+  should be clamped or withheld as NaN is a real open question.
+- **Rewriting the dated audit reports** (`FORENSIC_AUDIT_REPORT.md`,
+  `INSTITUTIONAL_AUDIT_REPORT*.md`, `HARDENING_REPORT.md`,
+  `HEDGE_FUND_REVIEW_FINDINGS.md`, `IMPLEMENTATION_PLAN.md`), which all describe
+  winsorization approvingly. They are records of what was true when written;
+  editing them would be rewriting history rather than correcting documentation.
+
+### Not done, and why - the fix is not on the live site yet
+
+The public site still shows the wrong market caps as of this commit. I did
+**not** force a second full-universe fetch to republish today, and that is a
+judgement call worth stating plainly rather than burying:
+
+1. The 02:00 data run already fetched the universe today. A second full fetch
+   the same morning is the condition that produces the 10-25% ticker failures
+   noted at priority 1, and publishing a degraded run to the public site would
+   be a worse outcome than the defect it fixes.
+2. The health gates that protect publication live in `data-run.ps1`, which also
+   takes the shared repo lock and pushes to `main` - running it mid-session from
+   a branch would fight this session's own git state.
+
+This is not left for the owner (rule 11): the 2026-09-02 02:00 data run does it,
+and **two independent mechanisms guarantee it cannot reuse the clipped cache**.
+The cache key hashes `data_quality`, and renaming the key moved it from
+`19c853468405` to `2bde439e06ad`, so `_find_latest_cache()` cannot see the old
+files at all - verified this session. Independently, `factor_scores` is bounded
+by the price tier (1 day) and `cache_is_usable()` is exclusive, so only a cache
+written today is reusable anyway.
+
+**Verification for the next session, and it is one command:** after the 09-02
+data run, confirm the six megacaps carry six distinct market caps in
+`dashboard_data.js`. If they are still identical, both mechanisms failed and
+that is the thing to investigate before anything else.
+
+### Also found, not fixed
+
+`data-run.ps1` logs **"Improvement engine: 29 raw IC row(s) (effective count
+unavailable)"**. That is the raw row count - the number `CLAUDE.md` says
+explicitly is "how this went wrong the first time" - printed as the loop's daily
+evidence-base readout, with the effective count it should be reporting marked
+unavailable. `analyze_ic_trends()` returns `_n_observations` perfectly well when
+called directly; this session read 3 effective at `1m` from it in one line. The
+nightly readout is the one place the number is looked at without thinking, so it
+is the worst place for it to be the misleading one. Cheap to fix, and it is a
+data-loop instrumentation defect rather than a product one.
+
+### Next
+
+1. **Confirm the fix reached the live site** after the 09-02 02:00 data run -
+   six distinct megacap market caps in `dashboard_data.js`. One check, and it
+   closes this out.
+2. **Make `data-run.ps1` report the effective observation count**, not the raw
+   row count. See above.
+3. Per-category trend lines over the full history (priority 2's remainder), and
+   the movers panel still cannot distinguish "moved on new information" from
+   "moved because inputs went missing" even though `Composite_Confidence`
+   carries that fact - a real product gap for a future Tuesday.

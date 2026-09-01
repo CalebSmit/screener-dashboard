@@ -75,7 +75,7 @@ All tuneable parameters live in **`config.yaml`**:
 - **`value_trap_filters`** — quality/momentum/revisions floor percentiles; `flag_only` to flag without excluding.
 - **`portfolio`** — number of stocks, weighting scheme, position/sector caps, rebalance frequency.
 - **`caching`** — refresh intervals and format (`parquet` or `csv`); caches are config-hash-aware.
-- **`data_quality`** — winsorize percentiles, coverage thresholds, metric clamps.
+- **`data_quality`** — outlier-report percentiles (flagged, never clipped), coverage thresholds, metric clamps.
 - **`improvement`** — self-improvement / metric-evolution engine settings.
 - **`output`** — Excel filename and sheet names.
 
@@ -157,7 +157,7 @@ decisions.
 
 See `requirements.txt` for the full list. Core libraries:
 
-- **pandas / numpy / scipy** — data wrangling, statistics, winsorization
+- **pandas / numpy / scipy** — data wrangling and statistics
 - **yfinance** — market data (S&P 500 constituents, fundamentals, price history)
 - **openpyxl** — Excel workbook creation with formatting
 - **PyYAML** — configuration file parsing

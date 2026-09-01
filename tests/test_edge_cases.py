@@ -13,7 +13,6 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from factor_engine import (
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -175,7 +174,6 @@ class TestEmptyPropagation:
     def test_empty_through_full_pipeline(self, cfg):
         """Empty DataFrame should propagate through scoring without errors."""
         df = pd.DataFrame(columns=["Ticker", "Sector"] + list(METRIC_COLS))
-        df = winsorize_metrics(df, 0.01, 0.01)
         df = compute_sector_percentiles(df)
         df = compute_category_scores(df, cfg)
         df = compute_composite(df, cfg)

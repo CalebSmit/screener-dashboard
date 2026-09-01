@@ -214,7 +214,11 @@ caching:
 
 # Data Quality
 data_quality:
-  winsorize_percentiles: [1, 99]  # Winsorize at 1st and 99th percentiles
+  # Tails flagged in the data-quality log. Values are REPORTED, never clipped:
+  # scoring is a rank transform, so clipping could not change any ordering, and
+  # it corrupted the raw value the dashboard publishes (changelog 2026-09-01).
+  # Renamed from winsorize_percentiles; the old key is still read as a fallback.
+  outlier_report_percentiles: [1, 99]
   min_data_coverage_pct: 60  # Exclude stocks with < 60% of metrics available
   # max_missing_metrics: superseded by min_data_coverage_pct — removed
   metric_alert_threshold_pct: 50  # Warn if any metric is >50% missing
