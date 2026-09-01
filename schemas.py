@@ -389,6 +389,10 @@ class RunConfig(BaseModel):
             return v
 
     class DataQualityConfig(BaseModel):
+        # Tails reported in the DQ log, not clipped (changelog 2026-09-01).
+        # winsorize_percentiles is the pre-rename name, kept so an older
+        # config.yaml still validates.
+        outlier_report_percentiles: list[int] = [1, 99]
         winsorize_percentiles: list[int] = [1, 99]
         min_data_coverage_pct: float = Field(60, ge=0, le=100)
         metric_alert_threshold_pct: float = 50

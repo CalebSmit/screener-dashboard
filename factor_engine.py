@@ -30,7 +30,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from scipy.stats import mstats
 from openpyxl import Workbook
 
 # Phase 13 (F15): do NOT blanket-suppress warnings. A bare
@@ -2215,7 +2214,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
 
 # =========================================================================
-# F. Winsorize raw metrics (SS4.7)
+# F. Flag outliers in the raw metrics (SS4.7) — report only, never clip
 # =========================================================================
 METRIC_COLS = [
     "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
@@ -2253,15 +2252,49 @@ _NONBANK_ONLY_METRICS = {"ev_ebitda", "ev_sales", "roic", "gross_profit_assets",
                          "operating_margin", "current_ratio", "interest_coverage"}
 
 
-def winsorize_metrics(df: pd.DataFrame, lo: float = 0.01, hi: float = 0.01) -> pd.DataFrame:
+def flag_metric_outliers(df: pd.DataFrame, lo: float = 0.01,
+                         hi: float = 0.01) -> dict:
+    """Report which metric values sit in the distribution tails. Never mutates.
+
+    This replaced ``winsorize_metrics`` on 2026-09-01. Every column in
+    ``METRIC_COLS`` is scored through ``compute_sector_percentiles``, which is
+    ``Series.rank(pct=True)`` — a pure rank transform, and therefore invariant
+    under *any* monotone transform of its input. Clipping the tails first could
+    not change a single ordering. All it could do was collapse the clipped
+    values onto one number, which ``rank`` then resolved to a shared average
+    rank, and corrupt the value the dashboard publishes as the stock's ``raw``
+    figure. See METHODOLOGY_CHANGELOG.md 2026-09-01.
+
+    Outliers remain worth *knowing about* — an implausible value is usually a
+    data defect, and clipping it hid exactly the signal that would have caught
+    one (changelog 2026-08-26, MNST). So the tails are reported, not altered.
+
+    Returns ``{column: {...}}`` for each metric with at least 10 non-null
+    values, carrying the tail cut-offs and how many values fall at or beyond
+    them. Metrics with fewer than 10 values are omitted: a tail is not
+    meaningful there.
+    """
+    report: dict = {}
     for col in METRIC_COLS:
         if col not in df.columns:
             continue
         vals = df[col].dropna()
-        if len(vals) >= 10:
-            w = mstats.winsorize(vals, limits=(lo, hi))
-            df.loc[vals.index, col] = w
-    return df
+        if len(vals) < 10:
+            continue
+        lo_cut = float(vals.quantile(lo))
+        hi_cut = float(vals.quantile(1.0 - hi))
+        n_low = int((vals <= lo_cut).sum())
+        n_high = int((vals >= hi_cut).sum())
+        if n_low == 0 and n_high == 0:
+            continue
+        report[col] = {
+            "lo_cut": lo_cut,
+            "hi_cut": hi_cut,
+            "n_low": n_low,
+            "n_high": n_high,
+            "n_valid": int(len(vals)),
+        }
+    return report
 
 
 # =========================================================================
@@ -3424,9 +3457,10 @@ def main():
         for k in cfg["factor_weights"]:
             cfg["factor_weights"][k] = round(cfg["factor_weights"][k], 2)
 
-    # F. Winsorize
-    print("Winsorizing at 1st / 99th percentiles...")
-    df = winsorize_metrics(df, 0.01, 0.01)
+    # F. Flag outliers (report only — the values are scored as fetched)
+    print("Flagging outliers beyond the 1st / 99th percentiles...")
+    _outliers = flag_metric_outliers(df, 0.01, 0.01)
+    print(f"  {len(_outliers)} metric(s) have values in the tails")
 
     # G. Sector percentiles
     print("Computing sector-relative percentile ranks...")
