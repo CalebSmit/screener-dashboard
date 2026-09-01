@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 01 September 2026, 02:12
+# Morning Brief - Tuesday 01 September 2026, 06:23
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `97d5f10 docs: the winsorization rationale was false, so correct it rather than soften it`
+- `f1f5855 test: lock down the no-winsorization property and the megacap regression`
+- `4d47c42 fix: stop clipping metric values the screener then ranks`
+- `c2cf5c4 brief: data run 2026-09-01`
 - `c916b5e data: screener run 2026-09-01 - 502 scored, top: HST EXPE APA CF VLO`
 - `490c7cf brief: code session 2026-08-31`
 - `52f0d0d log: 2026-08-31 research session`
@@ -28,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-08-31 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+> 2026-09-01 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
 > 
 > ### Health numbers (rule 8)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-29_121115.log` - catch-up session, shipped to main |
-> | Data loop published? | `logs/datarun-2026-08-31_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **28 rows, newest 2026-08-24, 3 effective observations at `1m`** (8 raw) |
+> | Last code session ran? | `logs/nightly-2026-08-31_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-09-01_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+> | Evidence base | **29 rows, newest 2026-08-25, 3 effective observations at `1m`** (8 raw) |
 > | Priority 0 | Fixed 2026-08-24, holding |
 > 
-> **Tests:** before 853/853, after 853/853
-> **Data loop:** healthy - ran 02:00, all coverage/dispersion checks passed, published to main
-> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`, so the
-> rotation stood. Nothing was deferred.
-> **Rotation:** ISO week 36, Monday. Research day.
-> 
-> **The research note is written. That is the whole session.** It had been skipped
-> five consecutive times, each skip for a real defect and each defensible in
-> isolation, but the rotation had produced exactly **one** note in a month. Today
-> nothing was broken, so there was no excuse.
+> **Tests:** before 853/853, after **872/872**
+> **Data loop:** healthy - ran 02:00, all coverage and dispersion checks passed, published to main
+> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+> **Rotation:** ISO week 36, Tuesday. Product day - and the work was a product defect,
+> so no swap was needed.
 > 
 > ### Did
 > 
-> Wrote `research/2026-08-31-size-factor-in-a-large-cap-universe.md`. The question:
-> the screener spends 5% of composite on `size_log_mcap` = `-ln(mcap)` inside the
-> S&P 500, a universe with no small caps. Does a size tilt belong here, and is this
-> the right way to build one?
+> **Fixed the live site publishing false numbers.** The dashboard showed AAPL,
+> NVDA, MSFT, GOOG, GOOGL and AMZN with an identical market capitalisation of
+> **$2,802.0B**. Nvidia's true figure is **$5,331.2B** - understated by 47%, or
+> $2.5 trillion. This is a product-day finding in the most literal sense: it is
+> what a user sees, and it is wrong.
 > 
-> **Answer: keep it at 5%, and the reason is better than the one it had.** Four
-> findings, all measured on the published payload from today's 02:00 run:
+> The cause was `winsorize_metrics()`, which clipped the top and bottom 1% of
+> every metric onto one boundary value four lines before the ranking step. The
+> clipped number was then published as the stock's `raw` value. Removed; replaced
+> by `flag_metric_outliers()`, which reports the same tails into the data-quality
+> log and does not touch the frame. Changelog 2026-09-01;
+> `tests/test_no_winsorization.py`, 18 tests.
 > 
-> - **The tilt is junk-seeking on average, exactly as the literature predicts.**
->   The 50 names it promotes most vs the 50 it demotes: median cap $15.0B vs
->   $264.1B, quality 49.3 vs 55.6, risk 44.9 vs 60.1, volatility 0.33 vs 0.30.
->   That is the pattern Asness et al. (2018) identify as the reason raw SMB fails,
->   and that MSCI concedes in its own Low Size brochure.
-> - **But the composite already controls for the junk where the product points.**
->   Comparing the top 50 with and without the size category: quality moves
->   **-0.20**, risk **-0.47**, median cap $38.5B -> $30.4B. The 22% quality weight
->   removes the junk before size can promote it. Combined with the S&P 500's own
->   GAAP-profitability entry gate, this screener is running much closer to the
->   quality-controlled version of the factor (t = 4.89) than the raw one
->   (t = 1.23). **That defence did not exist before today; the weight was
->   previously unexamined.**
+> This was the item the 2026-08-31 session identified as the next session's work.
+> It is done, and the diagnosis it left was right in substance - though its two
+> headline numbers were slightly off and are corrected here: the tie value is
+> **$2,802.0B**, not $2,873.8B, and on the current payload the signature covers
+> **33 continuous metrics / 301 collapsed cells**, not 27 / 282.
+> 
+> **Measured blast radius**, all on the published `dashboard_data.js` from today's
+> 02:00 run:
+> 
+> - **301 (stock, metric) cells across 33 continuous metrics, on 159 of 502
+>   stocks**, carried a clipped value instead of the fetched one.
+> - **58 (metric, sector) tie groups** collapsed two or more stocks onto a single
+>   percentile. Worst: 4 Energy names shared one `beta` rank in a 21-stock sector,
 > ...
 
 ---
