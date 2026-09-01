@@ -19,7 +19,6 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from factor_engine import (
     _generate_sample_data,
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -69,7 +68,6 @@ def sample_universe():
 def scored_df(sample_universe, cfg):
     """Run full scoring pipeline on sample data."""
     df = _generate_sample_data(sample_universe, seed=42)
-    df = winsorize_metrics(df, 0.01, 0.01)
     df = compute_sector_percentiles(df)
     df = compute_category_scores(df, cfg)
     df = compute_composite(df, cfg)
@@ -183,7 +181,6 @@ class TestDeterminism:
         """Full pipeline run twice → identical results."""
         def run():
             df = _generate_sample_data(sample_universe, seed=42)
-            df = winsorize_metrics(df, 0.01, 0.01)
             df = compute_sector_percentiles(df)
             df = compute_category_scores(df, cfg)
             df = compute_composite(df, cfg)

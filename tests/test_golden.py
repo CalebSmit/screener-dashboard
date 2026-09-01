@@ -21,7 +21,6 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from factor_engine import (
     compute_metrics,
-    winsorize_metrics,
     compute_sector_percentiles,
     compute_category_scores,
     compute_composite,
@@ -59,7 +58,6 @@ def _run_pipeline_on_fixture(cfg):
     market_returns = pd.Series(dtype=float)  # No market returns → beta=NaN
 
     df = compute_metrics(raw, market_returns)
-    df = winsorize_metrics(df, 0.01, 0.01)
     df = compute_sector_percentiles(df)
     df = compute_category_scores(df, cfg)
     df = compute_composite(df, cfg)

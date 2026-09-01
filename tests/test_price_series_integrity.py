@@ -258,7 +258,6 @@ def _score_universe(cfg, blank_victim):
         compute_category_scores,
         compute_composite,
         compute_sector_percentiles,
-        winsorize_metrics,
     )
 
     df = _make_df(100)
@@ -267,7 +266,6 @@ def _score_universe(cfg, blank_victim):
         for m in WITHHELD_METRICS:
             df.loc[victim, m] = np.nan
 
-    df = winsorize_metrics(df, 0.01, 0.01)
     df = compute_sector_percentiles(df)
     df = compute_category_scores(df, cfg)
     df = compute_composite(df, cfg)
