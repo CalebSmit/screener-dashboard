@@ -1,4 +1,4 @@
-# Morning Brief - Monday 31 August 2026, 06:17
+# Morning Brief - Tuesday 01 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-08-31T02:00:03.976670 |
+| Dashboard data from | 2026-09-01T02:00:03.870132 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, EIX, APA, CF |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 28 rows across all horizons), newest 2026-08-24 |
+| Top 5 | HST, EXPE, APA, CF, VLO |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 29 rows across all horizons), newest 2026-08-25 |
 
 ## What changed in the repo
 
+- `c916b5e data: screener run 2026-09-01 - 502 scored, top: HST EXPE APA CF VLO`
+- `490c7cf brief: code session 2026-08-31`
 - `52f0d0d log: 2026-08-31 research session`
 - `be47a76 docs: research/README described the old split rotation`
 - `0603712 research: the size factor in a large-cap-only universe`
