@@ -73,3 +73,10 @@ researched, though, say so — that is a legitimate item.
 - **2026-08-26 — Full fresh run to load the descriptions.** Ran with a forced
   refetch; 501 of 502 stocks now carry a real business description on the live
   site.
+
+- **2026-09-01 — General smoothness/reliability pass.** Audited scheduled
+  tasks, repo hygiene, and stale documentation claims. Fixed a permanent false
+  "High severity" alarm in the data-quality log (bank-only metrics scored
+  against the wrong population), closed a synthetic-data-fabrication gap in
+  `factor_engine.py`'s own entry point, and made stray git branches from
+  interrupted runs self-clean instead of silently accumulating.

@@ -2868,3 +2868,82 @@ data-loop instrumentation defect rather than a product one.
    the movers panel still cannot distinguish "moved on new information" from
    "moved because inputs went missing" even though `Composite_Confidence`
    carries that fact - a real product gap for a future Tuesday.
+
+---
+
+## 2026-09-01 (evening) - Owner-run: a general audit for smoothness, three real findings
+
+Owner's brief: "make all necessary updates for it to run as smooth and
+effective moving forward." Interpreted as a health/reliability audit rather
+than a specific feature - checked scheduled tasks, repo hygiene, and whether
+CLAUDE.md's own priority claims still matched reality, then fixed what was
+actually wrong rather than inventing scope.
+
+### Did
+
+**1. Corrected a stale claim before acting on it.** Priority 1 said "~10-25%
+of tickers fail per run." Checked the last 15 data-run logs directly rather
+than trust it: every single one, back to 2026-08-10, reports 0 fetch
+failures. Updated CLAUDE.md to say so, with a note to re-verify periodically
+rather than let the record drift stale in either direction again.
+
+**2. Found and fixed a permanent false alarm.** `validation/data_quality_log.csv`
+flagged four bank-only metrics as "High severity - missing >50%" on every run
+since launch - 88.4%/88.2%, unchanging. Traced it: only ~58 of 502 stocks are
+banks, and these metrics are correctly absent from every non-bank by design.
+The drift check scored missing-% against the whole universe instead of the
+population a metric applies to; the coverage filter a few hundred lines away
+in the same function already did this correctly and the drift check simply
+never matched it. Extracted `_metric_missing_pct()`, scoped by the existing
+`_BANK_ONLY_METRICS`/`_NONBANK_ONLY_METRICS` sets. 7 tests.
+
+Worth naming plainly: a permanent "High severity" alert that never means
+anything is the same failure shape the loop watchdog was explicitly designed
+to avoid (CLAUDE.md rule 7's reasoning) - it trains a reader to stop looking,
+which is exactly when a real drift would go unnoticed.
+
+**3. Found the synthetic-data refusal only covered one of two entry points.**
+`run_screener.py` refuses to fabricate data on a failed fetch (fixed
+2026-08-11). `factor_engine.py` has its own independent `main()` - unreachable
+from the scheduled loops, reachable by anyone running it directly - and it
+still had the exact pre-fix behaviour: unconditional fabrication, no flag, no
+refusal. Fixed the same way. 4 new tests, confirmed to fail against the
+pre-fix file before trusting them.
+
+**4. Nightly branches were not actually self-cleaning.** `git branch` showed
+`nightly/2026-08-10` and `nightly/2026-08-27` still present, both fully
+merged weeks ago. The delete-after-merge call existed but piped its exit code
+to `Out-Null`, so a rare failure (transient lock, interrupted run) left debris
+with zero visibility. Fixed two ways: the delete now logs a `WARN` on
+failure, and every run sweeps any local `nightly/*` branch already merged
+into `main` at startup, so a miss self-heals on the next run instead of
+accumulating. Did the one-time cleanup directly too - deleted both stray
+branches and pruned a stale `prefix-check` worktree left over from
+2026-08-27 (same `.git/worktrees/` permission issue noted that day; the
+`os.chmod` + `shutil.rmtree(onerror=...)` workaround from `prune_artifacts.py`
+cleared it).
+
+### Methodology changed
+
+None. All four fixes are reporting, refusal-gate, and repo-hygiene changes -
+nothing in `raw`, `pct`, or `Composite` moved.
+
+### Verified, not just reasoned about
+
+- Manually swept the sweep logic against the real repo before committing it:
+  found exactly the two known-stray branches, deleted them, re-ran to confirm
+  idempotency (clean on the second pass).
+- Ran the new factor_engine.py tests against the pre-fix file via `git show`
+  before trusting them - all three key assertions correctly failed there.
+- Full suite, dry-run, dashboard artifacts and tree all re-verified
+  independently after merging, not just trusted from the commit.
+
+### Tests
+
+872 -> 883.
+
+### Next
+
+Everything from the 09-01 morning entry still stands, plus: watch
+`validation/data_quality_log.csv` on the next run to confirm the four
+bank-metric entries no longer appear as High severity.
