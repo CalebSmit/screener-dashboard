@@ -142,7 +142,7 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 |--------|--------|-----------------|
 | **Analyst Surprise** | 38% | Median of (Actual - Estimated EPS) / max(|Estimated|, $0.10) over last 4 quarters. Positive = beat expectations. |
 | **Price Target Upside** | 12% | (Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism. |
-| **Earnings Acceleration** | 20% | Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous, winsorized at 1st/99th percentiles. |
+| **Earnings Acceleration** | 20% | Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched. |
 | **Beat Score** | 20% | Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4. |
 | **Short Interest Ratio** | 10% | Days to cover (short interest shares / average daily volume). Lower = less bearish sentiment from short sellers. Contrarian signal. |
 
@@ -201,8 +201,10 @@ The scoring pipeline has six steps:
 ### Step 1: Collect Raw Data
 For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
 
-### Step 2: Clean the Data (Winsorization)
-Extreme outliers can distort rankings. The screener clips each metric at the 1st and 99th percentiles — for example, if one company has a Debt/Equity ratio of 50x while the rest are under 5x, that 50x gets clipped down to the 99th percentile value. This prevents a single extreme value from dominating the score.
+### Step 2: Flag Outliers (but do not change them)
+Every metric below is scored by its **rank** within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does **not** clip extreme values: it records them in the data-quality log (the tails beyond the 1st and 99th percentiles) and scores the number it actually fetched.
+
+Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.
 
 ### Step 3: Rank Within Sectors
 Each metric is converted to a **sector-relative percentile** (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.
@@ -441,7 +443,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Momentum skip-month** (12-1 and 6-1, not 12-0) | The most recent month's return tends to reverse. Skipping it improves signal quality (standard in academic momentum literature). |
 | **Calendar-based lookbacks** | Using calendar dates (e.g., 182 days ago) instead of fixed index offsets ensures consistent lookback periods regardless of holidays. |
 | **Denominator floors** ($0.10 for surprise, $1.00 for EPS growth) | Near-zero denominators produce extreme ratios that dominate rankings. Floors bound the maximum possible ratio. |
-| **Winsorization at 1%/99%** | Prevents a single extreme data point from blowing up the rankings. Conservative clip — keeps 98% of the distribution intact. |
+| **Outliers flagged, never clipped** (1%/99% tails) | Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught. |
 | **Value trap 2-of-3 majority logic** | OR logic (any 1 breach) flagged ~60% of the universe — too aggressive. Majority logic catches genuinely weak stocks while tolerating one bad dimension. |
 | **Growth trap 2-of-3 majority logic** | Mirror of value trap for the opposite scenario. Catches high-growth stocks with poor quality and/or deteriorating sentiment. |
 | **Liquidity filter** ($10M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |

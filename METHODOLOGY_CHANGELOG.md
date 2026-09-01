@@ -931,3 +931,127 @@ universe under 20 rows and leaves the recorded weights alone.
 handback plus the overview wording), `run_context.py` (the recorder), and
 `generate_dashboard.py` (the guard plus the display). No scoring code was
 touched, so a revert changes no rank.
+
+## 2026-09-01 - The screener clipped values it then ranked, and published the clipped number
+
+**Area:** scoring pipeline (pre-rank data treatment); public metric display.
+
+**Changed:** `winsorize_metrics()` is removed. It ran immediately before
+`compute_sector_percentiles()` in **four** places - `run_screener.py:1339`,
+`factor_engine.py:3429` (the module's own end-to-end path), `backtest.py:309`
+and `run_audit.py:221` - and clipped the top and bottom 1% of every one of the
+44 metrics onto a single boundary value. It is replaced by
+`factor_engine.flag_metric_outliers()`, which reports the same tails into the
+data-quality log and **does not modify the frame**. Config key
+`data_quality.winsorize_percentiles` is renamed `outlier_report_percentiles`
+(the old name is still read as a fallback, and still accepted by `schemas.py`,
+so an older `config.yaml` keeps working).
+
+**Evidence.** Three independent lines, none of them a backtest or an IC.
+
+1. **It could not have helped - this is a proof, not an estimate.**
+   `compute_sector_percentiles()` is `Series.rank(pct=True)`. A rank transform
+   is invariant under *any* monotone transform of its input. Winsorizing is
+   monotone, so it cannot change a single ordering. It is not monotone
+   *injective* - it maps the whole tail to one number - and that is the only
+   effect it can have: distinct values become ties, which `rank` then resolves
+   to a shared average rank. Locked down by
+   `tests/test_no_winsorization.py::TestRankIsInvariantToMonotoneTransforms`,
+   which shows an exponential rescale of the inputs leaves every percentile
+   identical, while clipping four tail values collapses four distinct ranks
+   onto one and leaves the rest of the distribution untouched.
+
+2. **A demonstrated, user-facing failure on the live public site.** Measured on
+   the published `dashboard_data.js` from the 2026-09-01 02:00 run: **301
+   (stock, metric) cells across 33 continuous metrics, touching 159 of 502
+   stocks**, carried a clipped value rather than the fetched one - and `raw` is
+   what the drilldown shows the reader. The flagship case, with true figures
+   fetched from the same source the screener uses:
+
+   | Ticker | Published | True | Understated by |
+   |---|---|---|---|
+   | NVDA | $2,802.0B | $5,331.2B | $2,529B (47%) |
+   | AAPL | $2,802.0B | $4,624.2B | $1,822B (39%) |
+   | GOOGL | $2,802.0B | $4,150.2B | $1,348B |
+   | GOOG | $2,802.0B | $4,102.0B | $1,300B |
+   | MSFT | $2,802.0B | $3,766.9B | $965B |
+   | AMZN | $2,802.0B | $2,802.0B | - (the survivor clipped onto) |
+
+   Six of the largest companies in the world were published with one identical
+   market capitalisation. For a tool whose credibility is the product, and
+   whose second audience is students, that is not a rounding issue.
+
+3. **It hid data errors - already documented in this file.** Changelog
+   2026-08-26: MNST's corrupt `volatility_1y` of **1.77** was clipped to
+   **0.845**, "which merely made Monster Beverage look as volatile as SMCI".
+   An implausible number is the signal that a feed has broken; clipping deleted
+   exactly that signal. Reporting the tails preserves it, which is why the
+   replacement logs rather than discards.
+
+**Scoring effect, measured, and deliberately not overstated.** Because ranking
+is invariant, no *ordering* changes; what changes is the resolution of the ties
+winsorization manufactured. On the same published run, **58 (metric, sector)
+tie groups collapsed two or more stocks onto a single percentile**. The largest:
+4 Energy stocks shared one `beta` rank in a 21-stock sector, spanning **14.3
+percentile points**; 5 Utilities shared one `volatility` rank (12.9 pp); 6
+Information Technology names shared one `return_6m` rank and one `beta` rank
+(6.8 pp each). Those stocks now receive their own ranks. Composite movement is
+correspondingly small - a single metric inside a 5-22% category weight - so the
+top of the ranking is not expected to reorder much. The defect being fixed is
+mostly one of *published truthfulness*, and secondarily of rank fidelity.
+
+**What this does NOT change, so it is not assumed away later:** `metric_clamps`
+stays exactly as it is. That is a different mechanism with a different argument
+- a domain judgement that a forward EPS growth above 150% is not a credible
+input - and on this run it is not even binding (observed maxima 0.978 against a
+1.50 bound, 0.583 against 1.00). Whether a non-credible value should be clamped
+or withheld as NaN is a real question and is left open, not answered here.
+
+**Expected effect:** every published `raw` value equals the value fetched.
+Ranks are unchanged except inside the 58 collapsed tie groups, whose members
+separate. No category weight, metric weight or threshold moved.
+
+**Validated by:** `tests/test_no_winsorization.py`, 18 tests, including the
+exact regression - the six largest US companies must keep six distinct market
+caps and six distinct size percentiles. Two of those tests are structural
+guards: an AST walk asserting no module in the scoring path *calls* a
+winsorizing function, and a second asserting no non-docstring string in those
+modules still *tells the reader* it winsorizes. Both fail against the
+pre-change code (5 offending calls; 32 offending user-facing strings), and the
+second is what caught 19 stale per-metric "Winsorize 1/99 pctile" descriptions
+in `run_audit.py` and the fourth call site in `factor_engine.py` that the first
+pass of this change had missed. Full suite **872 passed**, up from a session
+baseline of 853, no failures.
+
+**Docs corrected in the same commit,** because they asserted the false
+rationale: `SCREENER_OVERVIEW.md` Step 2 (regenerated from `run_screener.py`,
+which is its source) previously read "Extreme outliers can distort rankings" -
+they cannot, for a rank-based screen; `Multi-Factor-Screener-Blueprint.md`
+(volatility/beta rows and the "Winsorization Applied" note); `README.md`;
+`config.yaml`. The dated audit reports (`FORENSIC_AUDIT_REPORT.md`,
+`INSTITUTIONAL_AUDIT_REPORT*.md`, `HARDENING_REPORT.md`,
+`HEDGE_FUND_REVIEW_FINDINGS.md`, `IMPLEMENTATION_PLAN.md`) were left alone on
+purpose: they are records of what was true when written.
+
+**One consequence to expect.** `cache/factor_scores_*.parquet` stores the fully
+*scored* frame, so every cached file written before today still holds clipped
+values, and a warm cache hit returns them without re-scoring. Two independent
+mechanisms guarantee the next data run does not reuse one, so the fix reaches
+the live site on 2026-09-02:
+
+- The cache key includes a hash of `data_quality`, and renaming the config key
+  moved it from `19c853468405` to `2bde439e06ad`. `_find_latest_cache()` filters
+  on that hash, so the pre-fix files are unreachable - a cold start regardless
+  of age. This is the binding one.
+- Independently, `factor_scores` is bounded by the price tier
+  (`price_data_refresh_days: 1`) and `cache_is_usable()` is exclusive
+  (`age < max_age`), so only a cache written *today* is reusable anyway.
+
+If the published megacap market caps are still identical after the 2026-09-02
+run, both of those failed and that is the thing to investigate.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-08-31-0617`. The change is confined to
+`factor_engine.py`, `run_screener.py`, `backtest.py`, `run_audit.py`,
+`config.yaml`, `schemas.py`, the docs above, and the test suite.
