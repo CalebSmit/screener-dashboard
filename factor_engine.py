@@ -21,6 +21,7 @@ import copy
 import json
 import logging
 import os
+import sys
 import time
 import warnings
 from datetime import datetime, timedelta
@@ -3367,8 +3368,19 @@ def main():
     print(f"  Universe: {universe_size} tickers after exclusions")
     ticker_meta = universe_df.set_index("Ticker")[["Company", "Sector"]].to_dict("index")
 
-    # C/D. Attempt live data; fall back to sample data if network blocked
-    USE_SAMPLE = False
+    # C/D. Attempt live data; refuse rather than fabricate if network blocked.
+    #
+    # This is a standalone entry point (`python factor_engine.py`), separate
+    # from run_screener.py's own pipeline and its `--allow-synthetic` refusal
+    # gate added 2026-08-11. That gate never covered this path, so running
+    # this file directly still silently fabricated a full universe of
+    # sector-realistic sample data with no warning - the exact 2026-08-06
+    # credibility bug run_screener.py was fixed for, left open here because
+    # nothing runs this file directly in the scheduled loops. Found 2026-09-01
+    # while auditing for exactly this shape of gap. There is no supported way
+    # to opt into sample data through this entry point - use
+    # `python run_screener.py --tickers ... --allow-synthetic` instead, which
+    # is the one place that path is intentional and labelled as such.
     print("\nTesting network connectivity...")
     try:
         test = fetch_single_ticker(tickers[0])
@@ -3376,13 +3388,21 @@ def main():
             raise RuntimeError(test["_error"])
         print("  Network OK — will fetch live data from yfinance")
     except Exception as e:
-        print(f"  Network unavailable ({type(e).__name__})")
-        print("  Generating sector-realistic sample data for pipeline validation")
-        USE_SAMPLE = True
+        print(f"  Network unavailable ({type(e).__name__}): {e}")
+        print("  REFUSING to run: synthetic data would be indistinguishable from real.")
+        print("  For sample-data pipeline testing, use:")
+        print("    python run_screener.py --tickers AAPL,MSFT,GOOGL --allow-synthetic")
+        sys.exit(2)
 
+    # Reaching here means the network probe above succeeded, so this is
+    # always live data now. USE_SAMPLE stays as a plain constant (rather than
+    # deleting the branch below) to avoid a large, risk-for-no-reason
+    # de-indent of the live-fetch path that follows it.
+    USE_SAMPLE = False
     skipped_tickers = []
 
     if USE_SAMPLE:
+        # Unreachable - the refusal above exits before this can ever be True.
         # Generate sample data — all 17 metrics pre-computed
         df = _generate_sample_data(universe_df)
     else:

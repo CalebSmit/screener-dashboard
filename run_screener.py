@@ -909,6 +909,35 @@ _INV_DESCRIPTIONS = {
 
 
 # ---------------------------------------------------------------------------
+def _metric_missing_pct(df, col: str, is_bank) -> float:
+    """% of *applicable* rows where ``col`` is missing.
+
+    Bank-only and non-bank-only metrics (``_BANK_ONLY_METRICS`` /
+    ``_NONBANK_ONLY_METRICS`` in factor_engine.py) are structurally NaN outside
+    their population - about 58 of 502 S&P 500 stocks are banks - so scoring
+    "missing" against the whole universe manufactures a permanent false
+    positive: a bank-only metric absent from every non-bank reads as ~88%
+    missing forever, which is exactly what it should read as zero-signal
+    noise did in `validation/data_quality_log.csv` from launch through
+    2026-09-01, flagged "High severity" on every run. The coverage filter a
+    few hundred lines below this already scopes the same way; this mirrors it.
+    """
+    from factor_engine import _BANK_ONLY_METRICS, _NONBANK_ONLY_METRICS
+
+    if col not in df.columns:
+        return 100.0
+    if col in _BANK_ONLY_METRICS:
+        applies = is_bank
+    elif col in _NONBANK_ONLY_METRICS:
+        applies = ~is_bank
+    else:
+        applies = pd.Series(True, index=df.index)
+    denom = int(applies.sum())
+    if denom == 0:
+        return 0.0
+    return float(df.loc[applies, col].isna().sum()) / denom * 100
+
+
 def _init_pipeline_logger():
     """Initialize structured pipeline logger (coexists with existing print() UX)."""
     logger = logging.getLogger("screener.pipeline")
@@ -1439,9 +1468,13 @@ def run_factor_engine(cfg, args, ctx=None):
         ("Log Market Cap (size)", "size_log_mcap"),
         ("Asset Growth", "asset_growth"),
     ]
+    # Recomputed here rather than reusing the `is_bank` from the coverage
+    # filter above: `df` has been through several row-filtering and
+    # reassignment steps since then, and a stale mask risks index misalignment.
+    _is_bank_now = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
     stats["missing_pct"] = {}
     for lbl, col in labels:
-        pct = df[col].isna().sum() / len(df) * 100 if col in df.columns else 100
+        pct = _metric_missing_pct(df, col, _is_bank_now)
         stats["missing_pct"][lbl] = round(pct, 1)
         pipeline_log.debug("Metric coverage: %s = %.1f%% missing", lbl, pct)
 

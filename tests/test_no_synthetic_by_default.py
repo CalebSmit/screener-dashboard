@@ -104,3 +104,60 @@ def test_run_screener_still_parses():
     """A syntax error here means the 02:00 loop does not run at all."""
     ast.parse(_source(RUN_SCREENER))
     ast.parse(_source(CLI))
+
+
+# ---------------------------------------------------------------------------
+# factor_engine.py's own main() - a second, independent entry point
+# ---------------------------------------------------------------------------
+#
+# `python factor_engine.py` runs standalone, bypassing run_screener.py and its
+# --allow-synthetic gate entirely. Until 2026-09-01 its main() still contained
+# the exact pre-08-11 behaviour: on a failed connectivity probe it printed
+# "Generating sector-realistic sample data for pipeline validation" and set
+# USE_SAMPLE = True unconditionally - no flag, no refusal, no way to opt out.
+# Nothing in the scheduled loops calls this path, which is exactly why it went
+# unnoticed while the run_screener.py path was fixed three weeks earlier.
+
+FACTOR_ENGINE = ROOT / "factor_engine.py"
+
+
+def test_factor_engine_main_refuses_unconditionally():
+    """No --allow-synthetic equivalent exists here, so the refusal must be
+    unconditional - unlike run_screener.py, there is no opt-in to guard."""
+    src = _source(FACTOR_ENGINE)
+    i = src.index("def main():")
+    body = src[i:i + 4000]
+    assert "sys.exit(2)" in body, (
+        "factor_engine.py main() must exit non-zero on a failed network probe"
+    )
+    assert "REFUSING to run" in body
+
+
+def test_factor_engine_never_unconditionally_sets_use_sample_true():
+    """The old bug: USE_SAMPLE = True inside the except block, no guard at
+    all. If that literal reappears, sample data is reachable again."""
+    src = _source(FACTOR_ENGINE)
+    i = src.index("def main():")
+    body = src[i:i + 4000]
+    assert "USE_SAMPLE = True" not in body, (
+        "USE_SAMPLE = True must not be reachable from factor_engine.py's "
+        "main() - there is no flag here to guard it, so setting it at all "
+        "means every network failure fabricates a full universe"
+    )
+
+
+def test_factor_engine_refusal_precedes_the_sample_branch():
+    """The exit must come before the (now-unreachable) sample branch, not
+    after - same shape as the run_screener.py check above."""
+    src = _source(FACTOR_ENGINE)
+    i = src.index("def main():")
+    body = src[i:i + 4000]
+    exit_pos = body.index("sys.exit(2)")
+    sample_pos = body.index("_generate_sample_data(universe_df)")
+    assert exit_pos < sample_pos, (
+        "sys.exit(2) must appear before the sample-data branch it guards"
+    )
+
+
+def test_factor_engine_still_parses():
+    ast.parse(_source(FACTOR_ENGINE))

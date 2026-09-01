@@ -509,6 +509,18 @@ Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now
 fails fast with instructions.
 
+**Nightly branches now self-clean, fixed 2026-09-01.** `nightly-screener.ps1`
+deletes its own working branch after a successful merge, but the delete's
+exit code was piped to `Out-Null` and never checked, so a rare failure - a
+transient git lock, an interrupted run - left the branch behind with no log
+line. `nightly/2026-08-10` and `nightly/2026-08-27` were found this way,
+weeks apart, both cleanly merged and never noticed until someone ran
+`git branch`. Fixed two ways: the final delete now logs a `WARN` on failure
+instead of swallowing it, and every run sweeps any local `nightly/*` branch
+already merged into `main` at startup, so one missed delete self-heals on the
+next run rather than accumulating silently. Rule 11 territory - self-healing,
+not something to notice by hand.
+
 **0. DONE 2026-08-24 - do not weaken these.** All five steps shipped together,
 plus a sixth defect found while fixing them. See `METHODOLOGY_CHANGELOG.md`
 2026-08-24 and `tests/test_evidence_integrity.py` (30 tests; 24 of them fail
@@ -570,18 +582,48 @@ overlapping return windows, arriving by another route. Either skip the snapshot
 on a warm-start, or deduplicate on `(run_date, content hash)` before the engine
 reads them.
 
-1. **Keep the data loop healthy.** Currently ~10-25% of tickers fail per run
-   (Yahoo rate limits). Every failed ticker is lost evidence, and evidence now
-   drives both methodology and the historical spine below.
+1. **Data loop health - corrected 2026-09-01, ~10-25% was stale.** That figure
+   dated to the Yahoo rate-limit era around launch. Checked directly against
+   the last 15 data-run logs (2026-08-10 through 2026-09-01): **every one
+   reports 0 fetch failures.** Whatever combination of the cache-freshness fix
+   (2026-08-13), the price-series-integrity guard (2026-08-26) and simple
+   improved reliability on Yahoo's side resolved this, nobody had gone back to
+   check. Left here as a reminder to re-verify periodically rather than assume
+   either the old bad number or a permanent fix - and if a future run shows
+   real fetch failures again, this is where to update the record, not silently
+   let it drift stale in the other direction.
 
-   **Related open defect (found 2026-08-06):** when a fetch fails, the pipeline
-   silently substitutes *synthetic* values - "Generated sector-realistic sample
-   values" - and produces output indistinguishable from a real run. With no
-   network it fabricated all 503 tickers and still emitted a normal-looking
-   2.6 MB payload. `data-run.ps1` now gates on this, but the fabrication
-   happens upstream in `run_screener.py` / `factor_engine.py` and should be
-   fixed at source: refuse, or exit non-zero, rather than emitting fiction that
-   looks like analysis. This is a credibility bug, not a robustness nicety.
+   **The related fabrication defect - DONE 2026-09-01, both entry points now.**
+   Found 2026-08-06: a failed fetch made the pipeline silently substitute
+   *synthetic* "sector-realistic sample values" and emit output indistinguishable
+   from a real run. `run_screener.py` was fixed at source 2026-08-11 (refuses
+   unless `--allow-synthetic` is passed explicitly). What had **not** been
+   checked until 2026-09-01: `factor_engine.py` has its own independent `main()`
+   (`python factor_engine.py`, used by nothing in the scheduled loops but
+   reachable by anyone testing directly) that still had the exact pre-08-11
+   behaviour - unconditional fabrication, no flag, no refusal. Fixed the same
+   way: refuses unconditionally and points at the supported
+   `run_screener.py --allow-synthetic` path for sample-data testing.
+   `tests/test_no_synthetic_by_default.py`, 10 tests (4 new), the new ones
+   confirmed to fail against the pre-fix file.
+
+   **A permanent false "High severity" alarm in the same log - DONE
+   2026-09-01.** `validation/data_quality_log.csv` had flagged four bank-only
+   metrics (`pb_ratio`, `roe`, `roa`, `equity_ratio`) as "High severity -
+   missing >50% threshold" on every single run since launch: 88.4%/88.2%
+   missing, unchanging. Not a defect - only ~58 of 502 S&P 500 stocks are
+   banks, and these metrics are correctly absent from every non-bank by
+   design. The drift check scored the missing-% against the whole universe
+   instead of the population a metric actually applies to; the coverage
+   filter a few hundred lines away in the same function already scoped this
+   correctly and the drift check simply never matched it. A permanent,
+   always-firing "High severity" alert is the same failure shape the
+   watchdog's own design explicitly guards against (rule 7) - it trains a
+   reader to stop looking, which is exactly when a real drift goes unnoticed.
+   Extracted into `_metric_missing_pct()` in `run_screener.py` and fixed to
+   scope by `_BANK_ONLY_METRICS` / `_NONBANK_ONLY_METRICS`, mirroring the
+   existing coverage-filter pattern. `tests/test_metric_drift_scoping.py`,
+   7 tests, including one pinning the exact 88.4% figure the fix corrects.
 1.5. **DONE 2026-08-26 - and the 08-25 diagnosis was backwards.** Found
    2026-08-25 by the movers panel; root-caused and fixed 2026-08-26. Changelog
    2026-08-26; `tests/test_price_series_integrity.py`, 21 tests.

@@ -377,6 +377,24 @@ try {
     $BaseSha = (Invoke-Native 'git' @('rev-parse', 'HEAD')).Text.Trim()
     Write-Log "main is at $($BaseSha.Substring(0,8))"
 
+    # --- Sweep stray merged nightly/* branches -------------------------------
+    # The branch this run creates below is deleted on success (see the tag
+    # step). The exit code of that delete was never checked, so a rare failure -
+    # a transient git lock, an interrupted run - left debris with no log line
+    # and no visibility; nightly/2026-08-10 and nightly/2026-08-27 were found
+    # this way on 2026-09-01, both fully merged, neither cleaned up. Sweeping
+    # here makes that self-healing instead of something an interactive session
+    # has to notice: any local nightly/* branch already merged into main is
+    # stale by definition and safe to remove with 'git branch -d' (the safe
+    # form - it refuses anything not actually merged).
+    $stray = (Invoke-Native 'git' @('branch', '--merged', 'main')).Output |
+              ForEach-Object { $_.ToString().Trim(' *') } |
+              Where-Object { $_ -like 'nightly/*' }
+    foreach ($b in $stray) {
+        $del = Invoke-Native 'git' @('branch', '-d', $b)
+        if ($del.ExitCode -eq 0) { Write-Log "Swept stale merged branch: $b" }
+    }
+
     # --- Branch -------------------------------------------------------------
     $Branch = "nightly/$Date"
     $suffix = 2
@@ -548,7 +566,13 @@ try {
     Invoke-Native 'git' @('push', 'origin', $tag) | Out-Null
     Write-Log "Tagged $tag - roll back with: git reset --hard $tag"
 
-    Invoke-Native 'git' @('branch', '-d', $Branch) | Out-Null
+    $delBranch = Invoke-Native 'git' @('branch', '-d', $Branch)
+    if ($delBranch.ExitCode -ne 0) {
+        # Not fatal - the sweep at the top of the next run picks it up - but
+        # this used to fail silently into Out-Null, which is exactly how
+        # nightly/2026-08-10 and nightly/2026-08-27 went unnoticed for weeks.
+        Write-Log "Could not delete $Branch after merge (the next run sweep picks it up)." 'WARN'
+    }
     if (-not $SessionFailed) { [System.IO.File]::WriteAllText($SuccessMarker, $Date) }
     Write-Log "=== Run complete: shipped to main ==="
     exit 0
