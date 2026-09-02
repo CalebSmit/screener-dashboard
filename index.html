@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=1c0a946cdb4e"></script>
+    <script src="./dashboard_data.js?v=bf267b93dc60"></script>
     <style>
 
         /* ====================================================================
@@ -2849,7 +2849,7 @@
 <tr>
 <td><strong>Earnings Acceleration</strong></td>
 <td>20%</td>
-<td>Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous, winsorized at 1st/99th percentiles.</td>
+<td>Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched.</td>
 </tr>
 <tr>
 <td><strong>Beat Score</strong></td>
@@ -2922,8 +2922,9 @@
 <p>The scoring pipeline has six steps:</p>
 <h3>Step 1: Collect Raw Data</h3>
 <p>For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use <strong>LTM</strong> (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use <strong>MRQ</strong> (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies &gt; 10% (25% for Financials) trigger automatic correction. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.</p>
-<h3>Step 2: Clean the Data (Winsorization)</h3>
-<p>Extreme outliers can distort rankings. The screener clips each metric at the 1st and 99th percentiles — for example, if one company has a Debt/Equity ratio of 50x while the rest are under 5x, that 50x gets clipped down to the 99th percentile value. This prevents a single extreme value from dominating the score.</p>
+<h3>Step 2: Flag Outliers (but do not change them)</h3>
+<p>Every metric below is scored by its <strong>rank</strong> within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does <strong>not</strong> clip extreme values: it records them in the data-quality log (the tails beyond the 1st and 99th percentiles) and scores the number it actually fetched.</p>
+<p>Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.</p>
 <h3>Step 3: Rank Within Sectors</h3>
 <p>Each metric is converted to a <strong>sector-relative percentile</strong> (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.</p>
 <p>For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better."</p>
@@ -3131,8 +3132,8 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <td>Near-zero denominators produce extreme ratios that dominate rankings. Floors bound the maximum possible ratio.</td>
 </tr>
 <tr>
-<td><strong>Winsorization at 1%/99%</strong></td>
-<td>Prevents a single extreme data point from blowing up the rankings. Conservative clip — keeps 98% of the distribution intact.</td>
+<td><strong>Outliers flagged, never clipped</strong> (1%/99% tails)</td>
+<td>Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught.</td>
 </tr>
 <tr>
 <td><strong>Value trap 2-of-3 majority logic</strong></td>
@@ -3246,7 +3247,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-09-01 02:00 UTC</span><br>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-09-02 02:00 UTC</span><br>
             <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
         </footer>
     </div>
