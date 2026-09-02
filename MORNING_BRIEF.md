@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 02 September 2026, 02:12
+# Morning Brief - Wednesday 02 September 2026, 06:27
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **failed** - last ran today |
+| Code session (6 AM) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-09-02T02:00:05.461510 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -16,8 +16,17 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | HST, EXPE, APA, CF, EIX |
 | Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 30 rows across all horizons), newest 2026-08-26 |
 
+## Things that needed attention
+
+- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED test_screener.py::TestCacheRoundTrip::test_parquet_roundtrip - assert ... 1 failed, 904 passed, 32 warnings in 56.69s)
+- SHIP GATES FAILED: tests. Not merging.
+- Session had already committed onto local main. Resetting local main back to 09d856b0; work preserved on nightly/2026-09-02.
+- Work pushed to nightly/2026-09-02 for inspection. main is untouched.
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `09d856b brief: data run 2026-09-02`
 - `3024a59 data: screener run 2026-09-02 - 502 scored, top: HST EXPE APA CF EIX`
 - `94afb03 docs: log the smoothness pass, record it in the owner queue`
 - `891f2ee fix: three smoothness/reliability issues found in an owner-requested audit`
