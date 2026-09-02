@@ -6,9 +6,9 @@
 
 ## What Is This?
 
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 34 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
+This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 32 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
 
-Not every stock sees all 34 metrics. The screener uses 30 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 30 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has 44 entries: 34 carry scoring weight today (30 generic + 4 bank-specific) plus 10 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
+Not every stock sees all 32 metrics. The screener uses 28 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 28 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has 44 entries: 32 carry scoring weight today (28 generic + 4 bank-specific) plus 12 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
 
 The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.
 
@@ -124,13 +124,13 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-| **Volatility** | 30% | Annualized standard deviation of daily returns over the past year. Lower = smoother ride. |
-| **Beta** | 20% | Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk. |
-| **Sharpe Ratio** | 15% | (12-month return - risk-free rate) / volatility. Risk-adjusted return per unit of total risk. Higher = more efficient risk-taking. |
-| **Sortino Ratio** | 15% | (12-month return - risk-free rate) / downside deviation. Like Sharpe but only penalizes downside volatility. Higher = better downside-adjusted return. |
-| **Max Drawdown (1Y)** | 20% | Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss. |
+| **Volatility** | 42.86% | Annualized standard deviation of daily returns over the past year. Lower = smoother ride. |
+| **Beta** | 28.57% | Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk. |
+| **Max Drawdown (1Y)** | 28.57% | Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss. |
 
-**Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility and Beta measure total and systematic risk respectively. Sharpe and Sortino Ratios reward stocks that deliver more return per unit of risk (Sortino penalizes only downside volatility, which matters more to investors). Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. Together these five metrics favor steadier, more risk-efficient companies.
+**Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are *dispersion* measures: they describe how much a stock moves, not how well it did.
+
+**Why not Sharpe and Sortino?** They were scored here until 2026-09-02, at 15% each. Both are `(12-month return − risk-free rate) ÷ some measure of dispersion`, so they share their numerator with the momentum signal. Across the S&P 500 the spread in returns is far wider than the spread in volatility, so the numerator dominates: measured on the published payload, Sharpe correlates **+0.944** with the 12-1 month return but only **+0.025** with volatility. Scoring them inside Risk meant a stock was rated safer because it had gone up — which pushed the Risk and Momentum category scores to a **+0.516** correlation, the highest of any pair in the screener. Removing them drops that to **+0.150**. Both ratios are still computed and shown on each stock's detail page; they are simply no longer scored as risk. See `METHODOLOGY_CHANGELOG.md` 2026-09-02.
 
 ---
 
@@ -449,7 +449,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Liquidity filter** ($10M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
 | **4-metric revisions category** (Surprise + Target + Acceleration + Beat Score) | Broadens the analyst sentiment signal beyond a single backward-looking and forward-looking metric. Earnings Acceleration (continuous delta) and Beat Score (recency-weighted) capture the trajectory and consistency of beats with much higher granularity than binary signals. |
 | **Volatility-regime momentum scaling** | Momentum crashes in high-vol markets. Reducing momentum weight in turbulent conditions and boosting it in calm markets improves risk-adjusted returns (requires 20+ historical runs to activate). |
-| **5-metric risk category** (Vol + Beta + Sharpe + Sortino + MaxDD) | Volatility and Beta capture total and systematic risk; Sharpe and Sortino capture risk-adjusted efficiency; Max Drawdown captures tail risk. Five metrics give a more complete risk picture than two. |
+| **3-metric risk category** (Vol + Beta + MaxDD), dispersion only | Volatility captures total risk, Beta systematic risk, Max Drawdown tail risk. Sharpe and Sortino were dropped from scoring on 2026-09-02: both divide the *same* trailing return by a dispersion measure, so they correlated +0.993 with each other and +0.944 with the momentum signal, but only +0.025 with volatility. They were five metrics in name and three in substance, and the two extras were momentum wearing a risk label. Institutional risk models are built the same way — the Barra US Equity Model's volatility style factors use dispersion descriptors (daily standard deviation, cumulative range, residual sigma), not return/risk ratios. |
 | **Quartile-based Excel coloring** | Absolute thresholds (e.g., >80 = green) assume a stable score distribution. Quartile-based coloring adapts to the actual distribution, ensuring roughly 25% of cells in each color band regardless of market conditions. |
 | **Trap severity scores** (0-100 continuous) | Binary flags lose information. Severity scores quantify how deep in trap territory a stock is — severity 80 is much worse than severity 20, but both would be flagged as True. |
 | **Beta overlap validation** (≥80% required) | Stocks with limited trading history (IPOs, relisted) can produce misleading beta values from sparse overlap with the market index. The 80% threshold ensures the regression uses substantially the same time period as the market. |
@@ -510,7 +510,7 @@ The screener answers one question: **"Which S&P 500 stocks look best when measur
 
 It does this by:
 1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing up to 34 financial metrics across 8 categories (30 generic + 4 bank-specific, depending on company type)
+2. Computing up to 32 financial metrics across 8 categories (28 generic + 4 bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)

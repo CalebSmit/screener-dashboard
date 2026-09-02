@@ -63,11 +63,21 @@ metric_weights:
     proximity_52w_high: 0  # Candidate: George & Hwang (2004); price / 52W high
 
   risk:
-    volatility: 30     # Direct risk measure
-    beta: 20           # Systematic risk relative to market
-    sharpe_ratio: 15   # Risk-adjusted return efficiency; higher = better
-    sortino_ratio: 15  # Downside risk-adjusted return; higher = better
-    max_drawdown_1y: 20  # Max peak-to-trough decline; less negative = better
+    # Dispersion measures only. The three scored weights are the old 30/20/20
+    # renormalised over 70, so their relative emphasis is unchanged — the only
+    # decision made here is to stop scoring return-divided-by-risk ratios.
+    volatility: 42.86     # Direct risk measure (was 30)
+    beta: 28.57           # Systematic risk relative to market (was 20)
+    max_drawdown_1y: 28.57  # Max peak-to-trough decline; less negative = better (was 20)
+    # Candidates at weight 0 (still computed and shown in the drilldown).
+    # Removed from scoring 2026-09-02: both are (return_12m - rf) / dispersion,
+    # i.e. they share a numerator with the momentum signal. Measured on the
+    # published payload, sharpe~sortino = +0.993 and sharpe~return_12_1 = +0.944,
+    # while sharpe~volatility = +0.025 — they carried momentum, not risk, and
+    # drove the momentum/risk category correlation to +0.516.
+    # See METHODOLOGY_CHANGELOG.md 2026-09-02.
+    sharpe_ratio: 0
+    sortino_ratio: 0
 
   revisions:
     analyst_surprise: 38       # Backward-looking: did company beat estimates?
