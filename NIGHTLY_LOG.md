@@ -3135,3 +3135,109 @@ job.
    the other. That may well be correct - it is close to what the five-factor
    model does - but it is currently an accident of construction rather than a
    documented choice, and it is 18% of composite weight. Worth a research day.
+
+---
+
+## 2026-09-02 (evening) - Owner-run: investigating last night's first-ever ship-gate failure
+
+Owner asked how last night's run went. Last night's 6 AM session (Wednesday,
+SYNTHESIS) logged `SHIP GATES FAILED: tests. Not merging.` - the first gate
+failure in this project's history. What follows is what that actually meant,
+found by checking directly rather than trusting the log's own conclusion.
+
+### What actually happened, in order
+
+1. The session did real work: found the risk category was scoring two metrics
+   that were momentum, not risk, fixed it, wrote a synthesis note.
+2. Per `prompts/nightly.md`'s own instructions, the session merged and pushed
+   `main` itself, as its normal final step. That landed on `origin/main` at
+   06:24:22 - confirmed from the commit's own timestamp.
+3. `nightly-screener.ps1`'s independent re-verification then ran a fresh copy
+   of the test suite two minutes later and hit `test_parquet_roundtrip` FAIL.
+4. The wrapper's recovery path reset **local** `main` back to the last known
+   good commit and logged "main is untouched." **That claim was wrong.** The
+   session's own push in step 2 had already reached `origin/main` - the
+   branch GitHub Pages actually serves - before this independent check ever
+   ran. A local reset cannot undo a push it did not make.
+
+### Checked, not assumed
+
+- **The live public dashboard was never at risk.** Fetched it directly:
+  serving correct data from the clean 02:00 run.
+- **Last night's risk-category fix was legitimate**, not something that
+  needed reverting. `git log origin/main` showed the merge had genuinely
+  landed; re-running the exact same suite against that exact commit found no
+  regression in it.
+- **`test_parquet_roundtrip` is not flaky - it is a genuine, reproducible
+  test-isolation bug**, and I only believed "flaky" for about ten minutes
+  before it failed again, on demand, on this machine, tonight. Root cause:
+  it calls the real `write_scores_parquet`/`_find_latest_cache` against the
+  real, shared `cache/` directory. `_find_latest_cache("factor_scores")` with
+  no hash filter globs every `factor_scores_*.parquet` for *any* date and
+  reverse-sorts filenames; a hex hash starting with a-f sorts ahead of one
+  starting with a digit, so a same-day real pipeline cache file
+  (`factor_scores_2bde439e06ad_20260902.parquet`) beat the test's own
+  `factor_scores_20260902.parquet` and the test silently read 502 real
+  production rows instead of its own 503 synthetic ones. This is exactly the
+  test-isolation gap CLAUDE.md priority 8 already named, just never traced to
+  a specific test before. Fixed: isolated to `tmp_path` via `monkeypatch`,
+  confirmed deterministic across 4 consecutive runs with the real same-day
+  cache file present and untouched throughout.
+
+### Did - the actual fix, tested before it ever touches a live repo
+
+**`scripts/revert-bad-merge.ps1`.** If `origin/main` is still at the last
+known-good commit, it is a verified no-op (the common case - most gate
+failures really are caught before any push happens). If `origin/main` has
+moved past it - the session's own push landed before the independent check
+caught a problem - it reverts what changed there, as a **new commit, never a
+rewrite** (rule 2), and only pushes after confirming the reverted tree is
+**byte-identical** to the last known-good state. If that verification cannot
+be made exact, it refuses to push and leaves the state for a human rather
+than guessing - a smaller, clearer problem than pushing something unverified
+to the same branch that just failed verification.
+
+Built and proven against a real origin+clone git sandbox before it was wired
+into `nightly-screener.ps1` at all: the no-op case, a merge-commit divergence
+(the exact 09-02 shape), and a fast-forward divergence, each checked by
+reading the actual resulting file content and diffing trees, not by trusting
+exit codes. 7 dedicated tests plus 5 more from the existing `scripts/*.ps1`
+auto-discovery in `tests/test_scripts_static.py`.
+
+**Also fixed the false claim itself.** `nightly-screener.ps1` no longer prints
+"main is untouched" unconditionally after a gate failure - it now says so only
+after the revert script has actually confirmed it.
+
+### Methodology changed
+
+None. Everything tonight is process/test-infrastructure; last night's real
+methodology change (risk category) already has its own changelog entry from
+that session.
+
+### Not done, noticed while looking
+
+**Remote `nightly/*` branches are not being cleaned up.** Last session's
+smoothness pass fixed *local* branch accumulation; `origin` still carries
+`nightly/2026-08-10` through `nightly/2026-09-02`, several long since merged.
+Low urgency, real debt - worth a `git push origin --delete` sweep of anything
+`--merged main` on a future session.
+
+### Verified after merging, not left to the next session
+
+Reconciled local `main` (one unpushed brief commit) with `origin/main`
+(last night's legitimate work) via a plain merge - no rebase, no rewrite.
+Re-ran all four ship gates independently against the merged result before
+pushing: 917/917, dry-run PASS, dashboard artifacts intact, tree clean.
+
+### Tests
+
+895 (local, before merge) + last night's 22 -> **917**.
+
+### Next
+
+- Sweep merged remote `nightly/*` branches.
+- Confirm tonight's fix holds through a real gate failure someday (nothing to
+  do now - it is tested, not merely reasoned about - but worth remembering
+  this exists if `nightly-screener.ps1`'s log ever again claims "main is
+  untouched" after a merge).
+- Everything from last night's own entry still stands.
