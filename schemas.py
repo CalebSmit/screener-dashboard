@@ -253,11 +253,14 @@ class MomentumWeights(_MetricWeightBase):
 
 
 class RiskWeights(_MetricWeightBase):
-    volatility: float = 30
-    beta: float = 20
-    sharpe_ratio: float = 15
-    sortino_ratio: float = 15
-    max_drawdown_1y: float = 20
+    # Dispersion measures only — see config.yaml and METHODOLOGY_CHANGELOG.md
+    # 2026-09-02. Sharpe/Sortino are return-divided-by-risk ratios that shared a
+    # numerator with momentum; they are candidates at weight 0, not risk metrics.
+    volatility: float = 42.86
+    beta: float = 28.57
+    max_drawdown_1y: float = 28.57
+    sharpe_ratio: float = 0    # Candidate: risk-adjusted return, not a risk measure
+    sortino_ratio: float = 0   # Candidate: risk-adjusted return, not a risk measure
 
 
 class RevisionsWeights(_MetricWeightBase):

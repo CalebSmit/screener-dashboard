@@ -2947,3 +2947,191 @@ nothing in `raw`, `pct`, or `Composite` moved.
 Everything from the 09-01 morning entry still stands, plus: watch
 `validation/data_quality_log.csv` on the next run to confirm the four
 bank-metric entries no longer appear as High severity.
+
+---
+
+## 2026-09-02 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Tests:** before 882/883 (1 pre-existing failure), after 904/905 (same one)
+**Data loop:** healthy - `logs/datarun-2026-09-02_020001.log` ends "Data loop
+complete", HEALTH: PASS, 0 fetch failures, price coverage 502/502 (100%)
+**Evidence base:** `improvement/live_ic_history.csv` holds **30 rows**, newest
+**2026-08-26**, and **3 effective observations at the `1m` horizon** (8 raw)
+against a gate of 8. Moving: 29 -> 30 rows and 2 -> 3 effective since 09-01.
+**Priority 0:** DONE 2026-08-24, not reopened.
+**Owner queue:** empty. Nothing deferred.
+
+### Did
+
+**1. Verified last session's market-cap fix reached the live site.** The one
+check 09-01 asked for. The six megacaps now publish six distinct market caps -
+NVDA $5,250B, AAPL $4,745B, GOOGL $4,097B, MSFT $3,720B, AMZN $2,750B, META
+$1,474B - where they previously shared one winsorized value. Closed.
+
+**2. The synthesis, and the change it produced: the risk category was 30%
+momentum wearing a risk label.**
+
+Monday's note (`research/2026-08-31-size-factor...`) left three candidates and
+told Wednesday to decide whether they fit the screener as a whole. Doing that
+properly meant dropping size and measuring the entire 8x8 category structure.
+One number dominated it: **momentum ~ risk = +0.516**, the largest of the 28
+pairs, half again the next largest. Spanning regressions agreed - risk (R^2
+0.378) and momentum (0.352) were the *least* independent of the eight
+categories, and they carry ~25% of composite weight between them.
+
+The cause is not the shared `Ticker.history()` call `CLAUDE.md` already notes
+- volatility and 12-month return share that source and correlate -0.013. It is
+that two of the five scored risk metrics were not risk metrics.
+`factor_engine.py` builds `sharpe_ratio` (:1923) and `sortino_ratio` (:1946)
+from the **same numerator**, `(return_12m - rf)`, and across the S&P 500 the
+spread in returns swamps the spread in dispersion. Measured on published
+percentiles, identically across three consecutive runs:
+
+| Pair | 08-31 | 09-01 | 09-02 |
+|---|---|---|---|
+| sharpe ~ sortino | +0.993 | +0.994 | +0.993 |
+| sharpe ~ return_12_1 | +0.940 | +0.940 | +0.944 |
+| **sharpe ~ volatility** | **+0.029** | **+0.032** | **+0.025** |
+
+Five metrics that were three things: two of them were each other, and both
+were momentum rather than risk.
+
+**The user-facing consequence is what makes it a defect.** SNDK published a
+**risk score of 31.1** next to a **momentum score of 94.2**; on dispersion
+alone its risk score is **1.6**. Same for MRNA (34.7 -> 6.8), VRT (29.1 ->
+3.2), FIX (37.5 -> 12.0), MU (41.6 -> 17.2), WDC (39.9 -> 15.7) - every one a
+high-momentum name. The public site was telling a student that a violently
+volatile stock was mid-pack on risk *because it had gone up*.
+
+And `SCREENER_OVERVIEW.md` was actively asserting the opposite: "Five metrics
+give a more complete risk picture than two." A +0.993 correlation between two
+of the five refutes that sentence directly.
+
+Shipped: `sharpe_ratio` and `sortino_ratio` to **weight 0** within risk;
+30/20/20 renormalised over 70 to **42.86 / 28.57 / 28.57**, preserving relative
+emphasis exactly. Both ratios stay computed and stay on the drilldown - the
+same weight-0 treatment `proximity_52w_high` and `peg_ratio` already get. They
+are informative; they are not risk. Changelog 2026-09-02;
+`tests/test_risk_category_independence.py`, 13 tests.
+
+**Effect on the whole:** risk R^2 0.378 -> **0.188**, momentum 0.352 ->
+**0.115** - the two least-independent categories become two of the most, and
+nothing else moves more than 0.012. Composite Spearman 0.990, median rank
+change 10 places, 3 of the top 50 change (out DELL/FOX/STLD, in ADBE/CB/EXE).
+
+**3. The daily evidence readout was printing the misleading number.** 09-01
+flagged that `data-run.ps1` logs "30 raw IC row(s) (effective count
+unavailable)". The correct code already existed - that was the *fallback*
+firing, because the primary path was an inline `python -c` here-string that
+failed silently. So the one number the loop prints without anyone thinking
+about it was the raw row count, which `CLAUDE.md` rule 8 calls out by name as
+"how this went wrong the first time". 30 reads as though the gate were long
+cleared; the truth was 3 effective against 8.
+
+Moved into `scripts/report_evidence.py`. The deeper point is not the quoting:
+logic inside a here-string **cannot be unit-tested**, which is why nothing
+caught it. It is now tested - `tests/test_evidence_readout.py`, 9 tests, three
+confirmed to fail against the pre-fix script. The failure branch no longer
+substitutes a raw count at all; it logs a `WARN` saying the number is
+unavailable, because an authoritative-looking wrong number is worse than an
+admitted gap.
+
+### Evidence / research
+
+- **Ang, Hodrick, Xing and Zhang (2006)**, "The Cross-Section of Volatility and
+  Expected Returns," *JF* 61(1), 259-299. Sorts on **idiosyncratic
+  volatility**; quintile 1-minus-5 spread over **1%/month**, robust at
+  **-0.63%/month, t = -3.30** excluding the smallest growth firms.
+- **Frazzini and Pedersen (2014)**, "Betting Against Beta," *JFE* 111(1), 1-25.
+  Selects on **beta**; BAB factor Sharpe **0.78** (1926 - Mar 2012). Note what
+  they do with the Sharpe ratio: **evaluate the resulting portfolio**, not rank
+  the cross-section. That is the correct use of the statistic and precisely the
+  use this screener was not making of it.
+- **Practice:** Barra USE4 builds its Residual Volatility style factor from
+  dispersion descriptors (daily standard deviation, cumulative range, residual
+  sigma), Beta being its own; MSCI Minimum Volatility optimises against those
+  Barra BETA/RESVOL exposures while constraining every *other* style factor to
+  +/-0.25 sd. No index provider selects for low risk with a Sharpe ratio.
+  (Descriptor *weights* 0.74/0.16/0.10 are from a **secondary** source - the
+  primary MSCI PDF was not text-extractable this session, flagged as such in
+  the note and changelog. That the descriptors are all dispersion measures is
+  not in doubt.)
+- **Unusually, academia and practice agree here.** Worth saying, because
+  Monday's note found a genuine divergence on size. On how to measure risk
+  cross-sectionally they do the same thing, and this screener was doing
+  something else.
+- Full write-up: `research/2026-09-02-category-independence-synthesis.md`,
+  including the 8x8 matrix and spanning tables.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-09-02 - "The risk category was 30% momentum
+  wearing a risk label."** Metric weights within `risk` only. **Category
+  weights deliberately untouched** - the finding is that risk was mismeasuring
+  risk, not that risk deserves more or less composite weight. Re-deciding those
+  needs its own research, and doing both at once would make neither
+  attributable.
+- `tests/fixtures/golden_scores.parquet` regenerated. Before regenerating I
+  inspected the diff to confirm it was confined to `risk_score` and downstream:
+  all 50 preceding columns (Ticker, Sector, every one of the 44 metrics)
+  compared **equal**. No raw metric value moved.
+- `SCREENER_OVERVIEW.md` regenerated from live config so the public doc does
+  not contradict the config for a day. Metric counts moved 34 -> 32 scored and
+  10 -> 12 candidates automatically.
+
+### Tried and rejected
+
+- **Raising or lowering any of the eight category weights.** Tempting, since
+  ~3% of composite that was labelled risk was behaving as momentum. Rejected:
+  that is the categories *becoming what the documentation always said they
+  were*, not a new bet, and bundling it would make neither change
+  attributable.
+- **Rebalancing among the three surviving dispersion metrics.** The 42.86 /
+  28.57 / 28.57 is exactly the old 30/20/20 renormalised. Picking new relative
+  weights would be a second claim I did not research today.
+- **Deleting Sharpe and Sortino outright.** They are genuinely informative to a
+  reader - they are just not risk. Weight 0 with continued display is the
+  established house idiom and keeps the information.
+- **An "effective number of independent bets" metric.** I computed it (entropy
+  of the weighted correlation eigenspectrum): **5.18 -> 5.29 of 8**. It barely
+  moves because it is dominated by weight concentration rather than
+  correlation - quality and valuation alone are 42%. Wrong instrument.
+  Reported in the note rather than quietly dropped, so no future reader expects
+  a bigger number from it.
+- **Monday's candidate 2, `size` + `investment` as one 10% bet.** Measured and
+  **closed as two bets**: they correlate +0.280 but are 73% and 84% unspanned
+  by the other seven. Merging would lose information.
+- **Monday's candidate 1, the size tilt's aggressiveness.** Left **open,
+  deliberately**, and recorded as such on the Monday note rather than dropped.
+  A real question about one 5% category's transfer function, which lost today
+  to a 25%-of-weight overlap. Its own refutation criterion (does compressing
+  change the top 50 by fewer than ~2 names?) should be measured before any code
+  is written.
+
+### Not verified, and why
+
+`scripts/data-run.ps1` changed, and PowerShell execution is blocked in this
+session's sandbox, so I could not reproduce the original inline-invocation
+failure or run the new one end to end. What I did instead: made the logic a
+Python file that **is** directly executable and tested here (9 tests, run
+green, and verified to fail against the pre-fix script), plus the existing
+static PowerShell checks in `tests/test_scripts_static.py`. This is not left
+for the owner - the **2026-09-03 02:00 data run** exercises it. If its log line
+still reads "raw IC row(s)" or the new `WARN`, that is the next session's first
+job.
+
+### Next
+
+1. **Confirm both changes on the live site after the 09-03 02:00 run.** Two
+   checks: the published momentum/risk category correlation should read near
+   **+0.15**, not +0.52; and the log's evidence line should read "**3
+   effective (8 rows) at the 1m horizon**", not a raw count.
+2. **Monday's candidate 1** - measure whether compressing the size tilt changes
+   the top 50 by more than ~2 names *before* writing any code.
+3. **`growth` ~ `investment` = -0.331 is an undocumented internal tension.**
+   `investment` rewards low asset growth (CMA proxy); `growth` rewards fast
+   revenue and EPS growth. Companies growing fast grow assets to do it, so the
+   screener rewards growth with one hand and penalises how it is funded with
+   the other. That may well be correct - it is close to what the five-factor
+   model does - but it is currently an accident of construction rather than a
+   documented choice, and it is 18% of composite weight. Worth a research day.
