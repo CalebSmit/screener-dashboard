@@ -517,7 +517,28 @@ try {
         }
         $push = Invoke-Native 'git' @('push', '-u', 'origin', $Branch)
         Write-NativeOutput $push
-        Write-Log "Work pushed to $Branch for inspection. main is untouched." 'WARN'
+
+        # 2026-09-02: prompts/nightly.md has the session push main itself as
+        # its own last step, on the happy path, before this independent
+        # re-check ever runs. A local reset cannot undo a push the session
+        # already made - "main is untouched" used to be printed unconditionally
+        # here, which was simply false the one time it mattered. Check what is
+        # actually live on origin and, if the session already pushed before
+        # this gate failure was caught, revert it there - a new commit, never
+        # a rewrite (rule 2). scripts/revert-bad-merge.ps1 is deliberately
+        # conservative: it only pushes if the reverted tree verifies as
+        # byte-identical to $BaseSha, and does nothing (safely) if origin/main
+        # was never touched, which is the common case this whole block exists
+        # for.
+        $revertScript = Join-Path $RepoPath 'scripts\revert-bad-merge.ps1'
+        $rv = Invoke-Native 'powershell' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $revertScript,
+                                            '-BaseSha', $BaseSha, '-RepoPath', $RepoPath)
+        Write-NativeOutput $rv
+        if ($rv.ExitCode -eq 0) {
+            Write-Log "Work pushed to $Branch for inspection. origin/main verified clean (reverted if the earlier push had reached it)." 'WARN'
+        } else {
+            Write-Log "origin/main may still carry the failing commits and the automatic revert could not verify a clean fix - this needs a human right now." 'ERROR'
+        }
         Stop-Run "Run finished with failing gates - see above." 2
     }
 

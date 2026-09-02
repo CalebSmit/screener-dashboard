@@ -242,11 +242,31 @@ class TestComputeMetrics:
 
 
 class TestCacheRoundTrip:
-    def test_parquet_roundtrip(self, scored_df):
+    def test_parquet_roundtrip(self, scored_df, tmp_path, monkeypatch):
+        """Isolated in tmp_path: found 2026-09-02 reading the real cache/.
+
+        write_scores_parquet(scored_df) with no config_hash writes
+        factor_scores_<date>.parquet. _find_latest_cache("factor_scores"),
+        also called with no hash, globs *every* factor_scores_*.parquet for
+        any date and reverse-sorts the filenames - it has no way to prefer
+        the file this test just wrote over a same-day file a real pipeline
+        run already left in cache/. A hash starting with a-f sorts after all
+        digits in ASCII, so a live run's factor_scores_2bde439e06ad_<date>
+        beat this test's own factor_scores_<date> in reverse order and the
+        test silently read 502 real production rows instead of its own 503
+        synthetic ones - a false failure with no connection to the code
+        under test, reproduced by simply running the suite while a same-day
+        cache file existed (which is the normal state during business hours).
+        `cache/` is shared, real, production state; nothing in here should
+        touch it.
+        """
+        import factor_engine
+        monkeypatch.setattr(factor_engine, "CACHE_DIR", tmp_path)
         from factor_engine import write_scores_parquet, _find_latest_cache
         write_scores_parquet(scored_df)
         path, _ = _find_latest_cache("factor_scores")
         assert path is not None
+        assert Path(path).parent == tmp_path, "must not have found a file outside tmp_path"
         loaded = pd.read_parquet(str(path))
         assert loaded.shape[0] == scored_df.shape[0]
         assert abs(loaded["Composite"].sum() - scored_df["Composite"].sum()) < 1.0
