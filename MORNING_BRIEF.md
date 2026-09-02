@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 01 September 2026, 06:23
+# Morning Brief - Wednesday 02 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,75 +8,73 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-01T02:00:03.870132 |
+| Code session (6 AM) | **failed** - last ran today |
+| Dashboard data from | 2026-09-02T02:00:05.461510 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, APA, CF, VLO |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 29 rows across all horizons), newest 2026-08-25 |
+| Top 5 | HST, EXPE, APA, CF, EIX |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 30 rows across all horizons), newest 2026-08-26 |
 
 ## What changed in the repo
 
+- `3024a59 data: screener run 2026-09-02 - 502 scored, top: HST EXPE APA CF EIX`
+- `94afb03 docs: log the smoothness pass, record it in the owner queue`
+- `891f2ee fix: three smoothness/reliability issues found in an owner-requested audit`
+- `bcef439 brief: code session 2026-09-01`
 - `97d5f10 docs: the winsorization rationale was false, so correct it rather than soften it`
 - `f1f5855 test: lock down the no-winsorization property and the megacap regression`
 - `4d47c42 fix: stop clipping metric values the screener then ranks`
 - `c2cf5c4 brief: data run 2026-09-01`
 - `c916b5e data: screener run 2026-09-01 - 502 scored, top: HST EXPE APA CF VLO`
-- `490c7cf brief: code session 2026-08-31`
-- `52f0d0d log: 2026-08-31 research session`
-- `be47a76 docs: research/README described the old split rotation`
-- `0603712 research: the size factor in a large-cap-only universe`
-- `a5671f4 brief: data run 2026-08-31`
-- `f4db5cd data: screener run 2026-08-31 - 502 scored, top: HST EXPE EIX APA CF`
 
 ## The session's own account
 
-> 2026-09-01 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+> 2026-09-01 (evening) - Owner-run: a general audit for smoothness, three real findings
 > 
-> ### Health numbers (rule 8)
-> 
-> | Check | Reading |
-> |---|---|
-> | Last code session ran? | `logs/nightly-2026-08-31_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | `logs/datarun-2026-09-01_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **29 rows, newest 2026-08-25, 3 effective observations at `1m`** (8 raw) |
-> | Priority 0 | Fixed 2026-08-24, holding |
-> 
-> **Tests:** before 853/853, after **872/872**
-> **Data loop:** healthy - ran 02:00, all coverage and dispersion checks passed, published to main
-> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
-> **Rotation:** ISO week 36, Tuesday. Product day - and the work was a product defect,
-> so no swap was needed.
+> Owner's brief: "make all necessary updates for it to run as smooth and
+> effective moving forward." Interpreted as a health/reliability audit rather
+> than a specific feature - checked scheduled tasks, repo hygiene, and whether
+> CLAUDE.md's own priority claims still matched reality, then fixed what was
+> actually wrong rather than inventing scope.
 > 
 > ### Did
 > 
-> **Fixed the live site publishing false numbers.** The dashboard showed AAPL,
-> NVDA, MSFT, GOOG, GOOGL and AMZN with an identical market capitalisation of
-> **$2,802.0B**. Nvidia's true figure is **$5,331.2B** - understated by 47%, or
-> $2.5 trillion. This is a product-day finding in the most literal sense: it is
-> what a user sees, and it is wrong.
+> **1. Corrected a stale claim before acting on it.** Priority 1 said "~10-25%
+> of tickers fail per run." Checked the last 15 data-run logs directly rather
+> than trust it: every single one, back to 2026-08-10, reports 0 fetch
+> failures. Updated CLAUDE.md to say so, with a note to re-verify periodically
+> rather than let the record drift stale in either direction again.
 > 
-> The cause was `winsorize_metrics()`, which clipped the top and bottom 1% of
-> every metric onto one boundary value four lines before the ranking step. The
-> clipped number was then published as the stock's `raw` value. Removed; replaced
-> by `flag_metric_outliers()`, which reports the same tails into the data-quality
-> log and does not touch the frame. Changelog 2026-09-01;
-> `tests/test_no_winsorization.py`, 18 tests.
+> **2. Found and fixed a permanent false alarm.** `validation/data_quality_log.csv`
+> flagged four bank-only metrics as "High severity - missing >50%" on every run
+> since launch - 88.4%/88.2%, unchanging. Traced it: only ~58 of 502 stocks are
+> banks, and these metrics are correctly absent from every non-bank by design.
+> The drift check scored missing-% against the whole universe instead of the
+> population a metric applies to; the coverage filter a few hundred lines away
+> in the same function already did this correctly and the drift check simply
+> never matched it. Extracted `_metric_missing_pct()`, scoped by the existing
+> `_BANK_ONLY_METRICS`/`_NONBANK_ONLY_METRICS` sets. 7 tests.
 > 
-> This was the item the 2026-08-31 session identified as the next session's work.
-> It is done, and the diagnosis it left was right in substance - though its two
-> headline numbers were slightly off and are corrected here: the tie value is
-> **$2,802.0B**, not $2,873.8B, and on the current payload the signature covers
-> **33 continuous metrics / 301 collapsed cells**, not 27 / 282.
+> Worth naming plainly: a permanent "High severity" alert that never means
+> anything is the same failure shape the loop watchdog was explicitly designed
+> to avoid (CLAUDE.md rule 7's reasoning) - it trains a reader to stop looking,
+> which is exactly when a real drift would go unnoticed.
 > 
-> **Measured blast radius**, all on the published `dashboard_data.js` from today's
-> 02:00 run:
+> **3. Found the synthetic-data refusal only covered one of two entry points.**
+> `run_screener.py` refuses to fabricate data on a failed fetch (fixed
+> 2026-08-11). `factor_engine.py` has its own independent `main()` - unreachable
+> from the scheduled loops, reachable by anyone running it directly - and it
+> still had the exact pre-fix behaviour: unconditional fabrication, no flag, no
+> refusal. Fixed the same way. 4 new tests, confirmed to fail against the
+> pre-fix file before trusting them.
 > 
-> - **301 (stock, metric) cells across 33 continuous metrics, on 159 of 502
->   stocks**, carried a clipped value instead of the fetched one.
-> - **58 (metric, sector) tie groups** collapsed two or more stocks onto a single
->   percentile. Worst: 4 Energy names shared one `beta` rank in a 21-stock sector,
+> **4. Nightly branches were not actually self-cleaning.** `git branch` showed
+> `nightly/2026-08-10` and `nightly/2026-08-27` still present, both fully
+> merged weeks ago. The delete-after-merge call existed but piped its exit code
+> to `Out-Null`, so a rare failure (transient lock, interrupted run) left debris
+> with zero visibility. Fixed two ways: the delete now logs a `WARN` on
+> failure, and every run sweeps any local `nightly/*` branch already merged
 > ...
 
 ---
