@@ -2,7 +2,24 @@
 
 **Date:** 2026-08-31
 **Author:** nightly code session (research day)
-**Status:** complete. No production code changed. Design section is for Wednesday's synthesis.
+**Status:** complete. No production code changed by this note.
+
+**Wednesday's synthesis happened on 2026-09-02** —
+`research/2026-09-02-category-independence-synthesis.md`. Disposition of the
+three candidates below:
+
+- **Candidate 3 (winsorise-before-rank, Finding C):** shipped 2026-09-01,
+  verified live 2026-09-02. The six megacaps now publish six distinct market
+  caps. Closed.
+- **Candidate 2 (`size` and `investment` — one bet or two?):** answered
+  **two**. They correlate +0.280 but are 73% and 84% unspanned by the other
+  seven categories respectively. Not a disguised 10% bet; merging them would
+  lose information. Closed, no change.
+- **Candidate 1 (is the size tilt more aggressive than intended, Finding B?):**
+  **still open.** Deferred deliberately, not forgotten — synthesis day found a
+  larger overlap (momentum ~ risk at +0.516, ~25% of composite weight) and
+  spent itself there. The refutation criterion below still stands and should be
+  measured before any code is written.
 
 ---
 
