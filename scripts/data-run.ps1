@@ -396,24 +396,24 @@ try {
     # is much larger and would misreport the gate as nearly cleared: after the
     # 2026-08-24 repair the file holds 23 rows but 2 effective 1-month
     # observations. Overlapping 30-day windows are one measurement repeated.
+    # This was an inline `python -c` here-string until 2026-09-02. It failed
+    # silently and the fallback printed the RAW row count - the number rule 8
+    # names as "how this went wrong the first time" - as the loop's daily
+    # evidence readout. A multi-line quoted argument is fragile to pass to a
+    # native exe, and worse, logic inside a here-string cannot be unit-tested,
+    # so nothing caught it. It is now a script file with tests.
     $icPath = Join-Path $RepoPath 'improvement\live_ic_history.csv'
     if (Test-Path $icPath) {
-        $icReport = Invoke-Native 'python' @('-c', @'
-import sys
-sys.path.insert(0, ".")
-import pandas as pd, improvement_engine as ie
-ic = pd.read_csv(ie.LIVE_IC_HISTORY_PATH)
-h = ie._get_governance_config()["optimization_horizon"]
-at = ic.loc[ic["horizon"].astype(str) == h, "run_date"]
-print(f"{ie._effective_observations(at, h)} effective ({len(at)} rows) at "
-      f"the {h} horizon; {len(ic)} rows across all horizons")
-'@)
+        $icScript = Join-Path $RepoPath 'scripts\report_evidence.py'
+        $icReport = Invoke-Native 'python' @($icScript)
         if ($icReport.ExitCode -eq 0 -and $icReport.Text.Trim()) {
-            Write-Log ("Improvement engine evidence: " + $icReport.Text.Trim() +
-                       ". 8 effective observations are needed before it may propose a weight change.")
+            Write-Log ("Improvement engine evidence: " + $icReport.Text.Trim())
         } else {
-            $obs = (Get-Content $icPath | Measure-Object -Line).Lines - 1
-            Write-Log "Improvement engine: $obs raw IC row(s) (effective count unavailable)."
+            # Never substitute the raw row count here. A wrong number that
+            # looks authoritative is worse than admitting the gap.
+            Write-Log ("Improvement engine: effective observation count could not be " +
+                       "computed - NOT reporting a raw row count in its place. " +
+                       $icReport.Text.Trim()) 'WARN'
         }
     }
 

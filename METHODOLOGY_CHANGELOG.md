@@ -1055,3 +1055,139 @@ run, both of those failed and that is the thing to investigate.
 **Rollback:** `good/2026-08-31-0617`. The change is confined to
 `factor_engine.py`, `run_screener.py`, `backtest.py`, `run_audit.py`,
 `config.yaml`, `schemas.py`, the docs above, and the test suite.
+
+---
+
+## 2026-09-02 - The risk category was 30% momentum wearing a risk label
+
+**Area:** metric weights (`risk` category)
+
+**Changed:** `config.yaml -> metric_weights.risk` and the matching defaults in
+`schemas.py`:
+
+| Metric | Was | Now | What it measures |
+|---|---|---|---|
+| `volatility` | 30 | **42.86** | dispersion (total risk) |
+| `beta` | 20 | **28.57** | dispersion (systematic risk) |
+| `max_drawdown_1y` | 20 | **28.57** | dispersion (tail risk) |
+| `sharpe_ratio` | 15 | **0** | (return - rf) / volatility |
+| `sortino_ratio` | 15 | **0** | (return - rf) / downside deviation |
+
+The three survivors are the old 30/20/20 renormalised over 70, so their
+relative emphasis is **unchanged**. Rebalancing among the dispersion metrics
+would be a second claim this change does not make and did not research.
+
+Sharpe and Sortino are **not deleted**. They remain in `METRIC_COLS` and in
+`CAT_METRICS["risk"]`, are still computed, and still appear on each stock's
+detail page - weight-0 candidates, the same treatment `proximity_52w_high`
+and `peg_ratio` already get. They are informative; they are not risk.
+
+**Evidence:**
+
+*1. Measured on this screener's own published output.* Both ratios are built
+in `factor_engine.py` from the same numerator - `sharpe_ratio` at :1923 is
+`(return_12m - rf) / volatility`, `sortino_ratio` at :1946 is
+`(return_12m - rf) / downside_deviation`. Across the S&P 500 the
+cross-sectional spread in trailing returns is far wider than the spread in
+dispersion, so that shared numerator dominates both. Spearman correlations on
+the metric percentiles published on `main` (N = 498-499):
+
+| Pair | 2026-08-31 | 2026-09-01 | 2026-09-02 |
+|---|---|---|---|
+| `sharpe_ratio` ~ `sortino_ratio` | +0.993 | +0.994 | +0.993 |
+| `sharpe_ratio` ~ `return_12_1` | +0.940 | +0.940 | +0.944 |
+| `sortino_ratio` ~ `return_12_1` | +0.936 | +0.933 | +0.940 |
+| **`sharpe_ratio` ~ `volatility`** | **+0.029** | **+0.032** | **+0.025** |
+
+Three consecutive runs, essentially identical, and mechanically necessary
+rather than incidental. The category scored five metrics that were three
+distinct things: two of the five were each other (+0.993), and both were the
+momentum signal (+0.94) rather than a risk measure (+0.03).
+
+At category level this made **momentum ~ risk = +0.516**, the largest of the
+28 pairs in the 8x8 category-score matrix - larger than valuation~growth
+(-0.349) or size~valuation (+0.337). Recomputing the risk score on dispersion
+alone takes it to **+0.150**.
+
+*2. A demonstrable user-facing consequence.* On the 2026-09-02 run **SNDK
+published a risk score of 31.1 alongside a momentum score of 94.2**. Scored on
+dispersion alone its risk score is **1.6**. The same pattern held for MRNA
+(34.7 -> 6.8), VRT (29.1 -> 3.2), FIX (37.5 -> 12.0), MU (41.6 -> 17.2) and
+WDC (39.9 -> 15.7) - every one a high-momentum name. The public site was
+telling a student that a violently volatile stock was mid-pack on risk,
+*because it had gone up*. For a tool whose stated purpose is to be teachable,
+a category that does not mean what its name says is the defect.
+
+*3. The documentation asserted the opposite, and was wrong.*
+`SCREENER_OVERVIEW.md` justified the design with "Five metrics give a more
+complete risk picture than two." A +0.993 correlation between two of the five
+refutes that directly. The generator text in `run_screener.py` has been
+rewritten rather than softened.
+
+*4. Documented professional practice.* Institutional risk models measure risk
+with dispersion, never with return/risk ratios. The **Barra US Equity Model
+(USE4)** builds its Residual Volatility style factor from daily standard
+deviation, cumulative range and residual sigma; Beta is its own descriptor.
+**MSCI Minimum Volatility** indexes optimise against those Barra BETA and
+RESVOL exposures, leaving them unconstrained while constraining every other
+style factor to +/-0.25 sd. No index provider selects for low risk with a
+Sharpe ratio. (The specific USE4 descriptor weights - 0.74 DASTD + 0.16 CMRA
++ 0.10 HSIGMA - come from a **secondary** source; the primary MSCI PDF was not
+text-extractable in this session, so treat those decimals as indicative. The
+substantive point, that the descriptors are all dispersion measures, is not in
+doubt.)
+
+*5. Published literature.* The cross-sectional risk effects are documented on
+dispersion measures: **Ang, Hodrick, Xing and Zhang (2006), "The Cross-Section
+of Volatility and Expected Returns," *Journal of Finance* 61(1), 259-299** -
+idiosyncratic volatility, quintile 1-minus-5 spread over **1%/month**, robust
+at **-0.63%/month, t = -3.30** excluding the smallest growth firms; and
+**Frazzini and Pedersen (2014), "Betting Against Beta," *Journal of Financial
+Economics* 111(1), 1-25** - selection on **beta**, BAB factor Sharpe **0.78**
+(1926 - March 2012). Note what Frazzini and Pedersen do with the Sharpe ratio:
+they use it to *evaluate the resulting portfolio*, not to rank the
+cross-section. That is the correct use of the statistic, and it is the use this
+screener was not making of it.
+
+**Expected effect:** momentum ~ risk category correlation +0.516 -> +0.150.
+Composite ranking Spearman **0.990** against the old ranking; median absolute
+rank change **10 places**, p90 **35**, max **83**; **3 of the top 50 change**
+(out: DELL, FOX, STLD; in: ADBE, CB, EXE). High-momentum, high-volatility
+names fall in the risk category and therefore slightly in composite; genuinely
+low-dispersion names rise. Nominal category weights are untouched - but the
+*realised* exposure moves, because roughly 3% of composite that was labelled
+risk was behaving as momentum. Momentum's true weight falls back toward its
+stated 13-15% and risk's rises toward its stated 10%.
+
+**What deliberately did NOT change:** the eight category weights. The
+measurement says the risk category was mismeasuring risk, not that risk
+deserves more or less of the composite. Re-deciding the category weights is a
+separate question needing its own research, and doing both at once would make
+neither attributable.
+
+**Validated by:** `tests/test_risk_category_independence.py`, 13 tests. Three
+of them (`test_return_over_risk_ratios_carry_no_scoring_weight`,
+`test_only_dispersion_metrics_are_scored`,
+`test_overview_no_longer_claims_five_risk_metrics`) were confirmed to **fail
+against the pre-change config** before being trusted. Four more reproduce the
+mechanism deterministically on a synthetic cross-section built so volatility
+is independent of return by construction, so the finding does not depend on
+one day's live data. Full suite 882 -> 895 passing, same single pre-existing
+failure (`test_parquet_roundtrip`).
+
+`tests/fixtures/golden_scores.parquet` was regenerated. Before regenerating,
+the golden diff was inspected to confirm it was confined to `risk_score` and
+downstream: all 50 preceding columns (Ticker, Sector and every one of the 44
+metrics) compared **equal**. No raw metric value moved.
+
+**No backtest number and no figure from `live_ic_history.csv` appears in this
+entry** (rules 4 and 5). The `1m` optimization horizon currently holds **3
+effective observations** against a gate of 8; it will be a long time before it
+can speak to this, and the argument does not need it.
+
+**Applied by:** morning session (manual), synthesis day.
+
+**Rollback:** `good/2026-09-01-evening`. The change is confined to
+`config.yaml`, `schemas.py`, the two documentation blocks in
+`run_screener.py`, `tests/fixtures/golden_scores.parquet`, and the new test
+module.
