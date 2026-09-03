@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 03 September 2026, 02:12
+# Morning Brief - Thursday 03 September 2026, 06:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **stopped deliberately** - last ran today |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-09-03T02:00:03.208847 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -16,17 +16,12 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | HST, EXPE, APA, CF, VLO |
 | Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 31 rows across all horizons), newest 2026-08-27 |
 
-## Things that needed attention
-
-- GATE 1 tests: FAIL (=========================== short test summary info =========================== FAILED test_screener.py::TestCacheRoundTrip::test_parquet_roundtrip - assert ... 1 failed, 904 passed, 32 warnings in 56.69s)
-- SHIP GATES FAILED: tests. Not merging.
-- Session had already committed onto local main. Resetting local main back to 09d856b0; work preserved on nightly/2026-09-02.
-- Work pushed to nightly/2026-09-02 for inspection. main is untouched.
-- Run finished with failing gates - see above.
-- Brief committed locally; push failed.
-
 ## What changed in the repo
 
+- `0776450 log: 2026-09-03 build session - size tilt closed by measurement, remote branch sweep`
+- `7438356 fix: merged nightly/* branches are now swept from origin, not just locally`
+- `a8e685d docs: the size section described a compression the pipeline does not perform`
+- `f4e81c6 brief: data run 2026-09-03`
 - `115a5d6 data: screener run 2026-09-03 - 502 scored, top: HST EXPE APA CF VLO`
 - `b6b3e58 docs: log the investigation into last night's ship-gate failure`
 - `7875cb5 fix: the wrapper's ship-gate failure recovery could not undo an already-pushed merge`
@@ -39,51 +34,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-02 (evening) - Owner-run: investigating last night's first-ever ship-gate failure
+> 2026-09-03 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
-> Owner asked how last night's run went. Last night's 6 AM session (Wednesday,
-> SYNTHESIS) logged `SHIP GATES FAILED: tests. Not merging.` - the first gate
-> failure in this project's history. What follows is what that actually meant,
-> found by checking directly rather than trusting the log's own conclusion.
+> ### Health numbers (rule 8)
 > 
-> ### What actually happened, in order
+> | Check | Reading |
+> |---|---|
+> | Last code session ran? | `logs/nightly-2026-09-02_060001.log` - ran; gate failure investigated and resolved the same evening (see 09-02 evening entry) |
+> | Data loop published? | `logs/datarun-2026-09-03_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 (100%) |
+> | Evidence base | **31 rows, newest 2026-08-27, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+> | Priority 0 | DONE 2026-08-24, not reopened |
 > 
-> 1. The session did real work: found the risk category was scoring two metrics
->    that were momentum, not risk, fixed it, wrote a synthesis note.
-> 2. Per `prompts/nightly.md`'s own instructions, the session merged and pushed
->    `main` itself, as its normal final step. That landed on `origin/main` at
->    06:24:22 - confirmed from the commit's own timestamp.
-> 3. `nightly-screener.ps1`'s independent re-verification then ran a fresh copy
->    of the test suite two minutes later and hit `test_parquet_roundtrip` FAIL.
-> 4. The wrapper's recovery path reset **local** `main` back to the last known
->    good commit and logged "main is untouched." **That claim was wrong.** The
->    session's own push in step 2 had already reached `origin/main` - the
->    branch GitHub Pages actually serves - before this independent check ever
->    ran. A local reset cannot undo a push it did not make.
+> **Tests:** before 917/917, after **938/938** (+21, no pre-existing failures)
+> **Data loop:** healthy
+> **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+> **Rotation:** ISO week 36, Thursday. Build day.
 > 
-> ### Checked, not assumed
+> ### First: the two checks 09-02 asked for, both confirmed
 > 
-> - **The live public dashboard was never at risk.** Fetched it directly:
->   serving correct data from the clean 02:00 run.
-> - **Last night's risk-category fix was legitimate**, not something that
->   needed reverting. `git log origin/main` showed the merge had genuinely
->   landed; re-running the exact same suite against that exact commit found no
->   regression in it.
-> - **`test_parquet_roundtrip` is not flaky - it is a genuine, reproducible
->   test-isolation bug**, and I only believed "flaky" for about ten minutes
->   before it failed again, on demand, on this machine, tonight. Root cause:
->   it calls the real `write_scores_parquet`/`_find_latest_cache` against the
->   real, shared `cache/` directory. `_find_latest_cache("factor_scores")` with
->   no hash filter globs every `factor_scores_*.parquet` for *any* date and
->   reverse-sorts filenames; a hex hash starting with a-f sorts ahead of one
->   starting with a digit, so a same-day real pipeline cache file
->   (`factor_scores_2bde439e06ad_20260902.parquet`) beat the test's own
->   `factor_scores_20260902.parquet` and the test silently read 502 real
->   production rows instead of its own 503 synthetic ones. This is exactly the
->   test-isolation gap CLAUDE.md priority 8 already named, just never traced to
->   a specific test before. Fixed: isolated to `tmp_path` via `monkeypatch`,
->   confirmed deterministic across 4 consecutive runs with the real same-day
->   cache file present and untouched throughout.
+> 1. **Wednesday's risk-category fix reached the live site.** On the 09-03
+>    published run, `momentum ~ risk` is **+0.100** (it was +0.516 before the fix,
+>    and 09-02 predicted "near +0.15"). `sharpe_ratio ~ volatility` is +0.012,
+>    confirming the two dropped metrics carried essentially no dispersion signal.
+> 2. **The evidence readout prints the honest number.** The 02:00 log reads
+>    "3 effective (8 rows) at the 1m horizon" - the effective count, not the raw
+>    row count that `CLAUDE.md` rule 8 names as how this went wrong the first
+>    time. `scripts/report_evidence.py` works in production, which the 09-02
+>    session could not verify from its sandbox.
+> 
+> ### Did
+> 
+> **1. Closed Monday's Candidate 1 - the size tilt - by measurement, and the
+> answer was "do not change the methodology; the documentation was false".**
+> 
+> This was the week's open thread: Monday found the tilt far more aggressive than
+> the practitioner standard it resembles, Wednesday deferred it to a
+> pre-registered measurement, today ran it. All numbers from the 09-03 published
+> run, recomputed through the **real** `factor_engine.compute_composite` (exact
+> reproduction of the published composite, err 0.0).
+> 
+> **The pre-registered criterion did not discriminate.** "Refuted if the
+> compressed version changes the top 50 by fewer than ~2 names" returns 1, 2, 3
+> or 5 names depending only on which steepness constant you pick - and there is no
+> evidence for any particular one. A criterion whose verdict is set by a free
+> parameter is not a criterion.
+> 
 > ...
 
 ---
