@@ -521,6 +521,21 @@ already merged into `main` at startup, so one missed delete self-heals on the
 next run rather than accumulating silently. Rule 11 territory - self-healing,
 not something to notice by hand.
 
+**The same sweep now runs against `origin`, added 2026-09-03.** The 09-01 fix
+was local-only, so `origin` still gained one dead ref per session: 11 by
+2026-09-03 (`nightly/2026-08-10` .. `nightly/2026-09-02`), all fully merged.
+The 09-02 evening session spotted them and wrote it down as a sweep for "a
+future session" - manual work, which is what rule 11 forbids. It now runs in
+`nightly-screener.ps1` right after the run's branch is created.
+
+**Do not remove the `--merged origin/main` filter, and do not make a failed
+delete fatal.** That filter is the only thing standing between an unattended
+`git push origin --delete` loop and branches whose work never reached `main`;
+its semantics are asserted against a real origin+clone sandbox in
+`tests/test_branch_sweep.py` (10 tests) rather than assumed. `$Branch` is
+excluded so a same-day rerun cannot delete the branch it is about to push.
+A dead ref on origin is untidy, not dangerous - it is swept again next run.
+
 **0. DONE 2026-08-24 - do not weaken these.** All five steps shipped together,
 plus a sixth defect found while fixing them. See `METHODOLOGY_CHANGELOG.md`
 2026-08-24 and `tests/test_evidence_integrity.py` (30 tests; 24 of them fail

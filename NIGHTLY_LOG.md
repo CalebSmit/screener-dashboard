@@ -3241,3 +3241,185 @@ pushing: 917/917, dry-run PASS, dashboard artifacts intact, tree clean.
   this exists if `nightly-screener.ps1`'s log ever again claims "main is
   untouched" after a merge).
 - Everything from last night's own entry still stands.
+
+---
+
+## 2026-09-03 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-09-02_060001.log` - ran; gate failure investigated and resolved the same evening (see 09-02 evening entry) |
+| Data loop published? | `logs/datarun-2026-09-03_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 (100%) |
+| Evidence base | **31 rows, newest 2026-08-27, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+| Priority 0 | DONE 2026-08-24, not reopened |
+
+**Tests:** before 917/917, after **938/938** (+21, no pre-existing failures)
+**Data loop:** healthy
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+**Rotation:** ISO week 36, Thursday. Build day.
+
+### First: the two checks 09-02 asked for, both confirmed
+
+1. **Wednesday's risk-category fix reached the live site.** On the 09-03
+   published run, `momentum ~ risk` is **+0.100** (it was +0.516 before the fix,
+   and 09-02 predicted "near +0.15"). `sharpe_ratio ~ volatility` is +0.012,
+   confirming the two dropped metrics carried essentially no dispersion signal.
+2. **The evidence readout prints the honest number.** The 02:00 log reads
+   "3 effective (8 rows) at the 1m horizon" - the effective count, not the raw
+   row count that `CLAUDE.md` rule 8 names as how this went wrong the first
+   time. `scripts/report_evidence.py` works in production, which the 09-02
+   session could not verify from its sandbox.
+
+### Did
+
+**1. Closed Monday's Candidate 1 - the size tilt - by measurement, and the
+answer was "do not change the methodology; the documentation was false".**
+
+This was the week's open thread: Monday found the tilt far more aggressive than
+the practitioner standard it resembles, Wednesday deferred it to a
+pre-registered measurement, today ran it. All numbers from the 09-03 published
+run, recomputed through the **real** `factor_engine.compute_composite` (exact
+reproduction of the published composite, err 0.0).
+
+**The pre-registered criterion did not discriminate.** "Refuted if the
+compressed version changes the top 50 by fewer than ~2 names" returns 1, 2, 3
+or 5 names depending only on which steepness constant you pick - and there is no
+evidence for any particular one. A criterion whose verdict is set by a free
+parameter is not a criterion.
+
+**The number that settles it:** deleting the size category outright - the
+largest possible change to it - moves only **6** of the top 50 (Spearman 0.981).
+Every compression variant sits *inside* that footprint, so none is
+distinguishable at the decision surface from turning the category down or off.
+
+**And the argument I think is genuinely new:** compressing toward MSCI is a
+*disguised deletion*. Imported honestly onto this universe, MSCI Low Size's
+1/ln(mcap) weighting turns a **798x** spread in market cap into a **1.295x**
+spread in weight (0.1678%-0.2173% against an equal weight of 0.1992%). Rendered
+as a 0-100 score that either stretches back out to fill the range (reproducing
+the current tilt, achieving nothing) or stays flat (arithmetically ~ setting the
+size weight to zero). So the question was never "which transfer function" but
+"how much weight" - and burying a weight decision inside a formula is the
+opposite of explainable. The screener already has an honest knob for that, and
+Monday's research concluded it stays at 5%.
+
+**What did change: `SCREENER_OVERVIEW.md` was making a false claim.** The
+canonical public methodology page - read by the investment-club audience -
+justified the size metric with:
+
+> "Using the log transform compresses the enormous range of market caps ($2B to
+> $3T+) into a more linear scale that ranks sensibly."
+
+The *same document* contradicts this 44 lines later, where it correctly says
+every metric is scored by rank and "a rank does not care how far away an outlier
+is". Re-verified today against the real `compute_sector_percentiles`:
+`rank(-log mcap)` is identical to `rank(-mcap)`, `rank(-sqrt mcap)`,
+`rank(-cbrt mcap)` and `rank(-log10 mcap)` **to ten decimal places**. The quoted
+cap range was wrong too - the live universe spans $6.8B to $5,419B.
+
+The section now states what the log does and does not do, shows the evidence,
+gives the MSCI comparison, names the tilt as equal-weight-style rather than
+log-compressed, and labels the large-cap extrapolation as a known weakness.
+Fixed in the generator (`run_screener.py`), not the generated file (rule 10).
+`tests/test_size_tilt_is_documented_truthfully.py`, 11 tests - the 5
+documentation assertions confirmed to fail against the pre-fix files, the 6
+invariance assertions pin pipeline behaviour and hold either way.
+
+**2. Merged `nightly/*` branches are now swept from `origin`, not just
+locally.** The 09-02 evening session found 11 dead remote branches and wrote it
+down as a sweep for "a future session" - i.e. manual work, which is what rule 11
+exists to forbid. `nightly-screener.ps1` now sweeps them right after creating
+the run's branch, so it self-heals instead of accumulating one ref per session
+forever.
+
+The delete list comes from `git branch -r --merged origin/main`, so every commit
+on a swept branch is already reachable from `main` - deleting the ref discards
+no history and is not a rewrite (rule 2). `$Branch` is excluded so a same-day
+rerun cannot delete the branch it is about to push, and a failed delete is a
+`WARN` retried next run rather than a lost session.
+
+`tests/test_branch_sweep.py`, 10 tests. Because this is an unattended
+`git push origin --delete` loop against the repo that serves the public site, the
+`--merged` filter's semantics are asserted against a **real origin+clone git
+sandbox** containing one merged and one unmerged branch, rather than assumed -
+that filter is the only thing preventing it from destroying work that never
+reached `main`. The 4 remote-sweep assertions fail against the pre-fix script.
+
+### Evidence / research
+
+- **MSCI Low Size methodology** (weights proportional to `1/ln(mcap)`),
+  recomputed over this screener's actual 502-name universe: 798x cap spread ->
+  1.295x weight spread. This is the measurement that converts Monday's
+  qualitative "far more aggressive than the practitioner standard" into a
+  decision, and it points the opposite way from what Monday's sketch assumed.
+- **Asness, Frazzini, Israel, Moskowitz & Pedersen (2018)**, *JFE* 129(3) and
+  **S&P 500 Equal Weight** (+63 bps/yr since 1990; -32% relative 2023-2025) -
+  carried over from Monday's note, now quoted on the public methodology page as
+  the size section's stated known weakness rather than left in `research/`.
+- **No new literature was read today.** Today's work was measurement and
+  disclosure against research already gathered this week, which is what a build
+  day is for.
+- **No backtest number and no figure from `live_ic_history.csv` was used**
+  (rules 4 and 5).
+
+### Methodology changed
+
+**None - deliberately, and that is the finding.** No weight, threshold, metric
+or formula moved. `METHODOLOGY_CHANGELOG.md` has no new entry because nothing
+changed; the reasoning for *not* changing lives where a future reader will
+actually hit it - the size section of `SCREENER_OVERVIEW.md` now explains the
+tilt's real shape and links to the research note, whose "Disposition of
+Candidate 1" section carries the full measurement.
+
+All three of Monday's candidates are now resolved: 1 documented (today),
+2 closed as two bets (09-02), 3 shipped (09-01).
+
+### Tried and rejected
+
+- **Applying the existing `percentile_transform` logistic to `size_log_mcap`** -
+  Monday's own sketch. Rejected on its own pre-registered criterion once the
+  criterion turned out to be parameter-dependent, and on the stronger ground
+  that it is a weight change in disguise.
+- **Special-casing size's transfer function at all.** Rank-scoring is the
+  screener's universal mechanism across all 44 metrics and is what makes the
+  eight categories commensurable. Making one 5% category different, to chase a
+  shape indistinguishable from deleting it, is the "pile of good ideas" failure
+  `CLAUDE.md` warns against.
+- **Starting priority 4 (deterministic per-stock summaries) with the remaining
+  session.** It is the top open product item and fully designed in
+  `plan/dashboard-north-star.md`, but it is a new module plus generator wiring
+  plus dashboard rendering plus tests. Beginning it here would have produced a
+  half-built feature on a public site rather than a third finished thing.
+  Recorded as next instead.
+
+### Not done, and why - needs the next session, not the owner
+
+**The 11 existing dead branches on `origin` are still there.** The automated
+sweep ships and will remove them on the next scheduled run, but I could not do
+the one-time cleanup by hand: this session's sandbox denied
+`git push origin --delete`. The fix that matters - making it self-healing - is
+committed and tested; only the manual catch-up is outstanding, and the machine
+will do it at 06:00 tomorrow without anyone intervening.
+
+**Next session: confirm it happened.** `git branch -r | grep nightly` should
+show only recent branches, and the run log should carry
+"Swept stale merged remote branch: origin/nightly/..." lines. If it does not,
+the sweep block is wrong in a way static tests could not catch, and that is the
+first thing to fix.
+
+### Next
+
+1. **Verify the remote branch sweep fired** (above). Cheap, and it is the only
+   thing this session left unverified.
+2. **Priority 4 - deterministic per-stock summaries.** Owner directive from
+   2026-08-10, open 24 days, the top remaining north-star item, and fully
+   specified in `plan/dashboard-north-star.md` down to the template and the
+   scope (top ~25 plus holdings). The payload already carries `contrib`, `pct`,
+   `peers`, price targets and `metric_count` - everything the template needs, so
+   this is a build with no research dependency. It deserves a whole session.
+3. **`growth ~ investment = -0.331`** - still the best research question on the
+   board, carried from 09-02: the screener rewards fast growth with one hand and
+   penalises how it is funded with the other, across 18% of composite weight,
+   and nobody has written down whether that is intentional.
