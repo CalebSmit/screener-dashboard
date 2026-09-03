@@ -158,9 +158,15 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-| **Log Market Cap** | 100% | Negative natural log of market capitalization: -log(marketCap). Smaller companies get higher values. |
+| **Log Market Cap** | 100% | Negative natural log of market capitalization: -log(marketCap). Smaller companies get higher values. Scored by sector percentile rank, which the log does not affect - see the note below. |
 
-**Why this?** The Fama-French SMB (Small Minus Big) factor captures the historical tendency for smaller companies to outperform larger ones over long horizons. Within the S&P 500, this creates a mild tilt toward mid-cap names (which are still large-cap by absolute standards) rather than megacaps. Using the log transform compresses the enormous range of market caps ($2B to $3T+) into a more linear scale that ranks sensibly.
+**Why this?** The Fama-French SMB (Small Minus Big) factor captures the historical tendency for smaller companies to outperform larger ones over long horizons. Within the S&P 500 this tilts toward mid-cap names (still large-cap by absolute standards) rather than megacaps.
+
+**What the log does, and what it does not do.** The metric is stored as `-log(marketCap)`, but no stock's score depends on the log. Every metric here is converted to a **sector percentile rank** (see "How scoring works" below), and a rank is unchanged by any transformation that preserves order. Measured on the live universe, `rank(-log mcap)`, `rank(-mcap)` and `rank(-sqrt mcap)` are identical to ten decimal places. The log makes the stored number easier to read; it does not compress the tilt.
+
+**So how strong is the tilt?** Stronger than the metric's name suggests, which is worth stating plainly. Because the score is linear in rank, ordinary market-cap gaps become large score gaps: on the current universe CAT ($364B) scores 1 and UAL ($35B) scores 59, so a 10x cap ratio becomes a 57-point gap. For comparison, MSCI's Low Size indexes weight holdings in proportion to 1/ln(mcap), which across this same universe turns a **798x** spread in market cap into a **1.295x** spread in weight. This screener runs an equal-weight-style size tilt, not a log-compressed one. That is a defensible design - it is close to the bet the S&P 500 Equal Weight index makes - but it is a *stronger* bet than the name implies, and holding it to 5% of the composite is what keeps it proportionate.
+
+**Known weakness.** No published study establishes a size premium *within* the largest two market-cap deciles, which is the entire S&P 500. Applying SMB here extrapolates from research run on much broader universes, and the payoff is regime-dependent: S&P 500 Equal Weight has returned roughly +63 bps/yr since 1990 but trailed cap weighting by about 32% over 2023-2025. Detail and citations: `research/2026-08-31-size-factor-in-a-large-cap-universe.md`.
 
 ---
 

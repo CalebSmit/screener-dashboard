@@ -534,3 +534,96 @@ Internal measurements: `dashboard_data.js` from the 2026-08-31 02:00 data run;
 **No backtest number appears in this note** (`CLAUDE.md` rule 5) and **no figure
 from `live_ic_history.csv` or `performance_history.csv` is used as evidence**
 (rule 4).
+
+---
+
+## Disposition of Candidate 1 — resolved 2026-09-03 (Thursday, BUILD)
+
+Candidate 1 asked whether the size tilt's aggressiveness should be compressed
+toward MSCI's shape. Wednesday deferred it to a measurement. That measurement is
+now done, against the pre-registered refutation criterion above, on the
+2026-09-03 published run (502 stocks, `runs/19b051b811a6`). Composites were
+recomputed with the **real** `factor_engine.compute_composite`, so the coverage
+discount and every other downstream adjustment are exact — reproduction of the
+published composite is exact to 0.0.
+
+### The criterion does not discriminate
+
+| Size-score variant | sd | Top-50 names displaced | Composite Spearman |
+|---|---|---|---|
+| current (linear in rank) | 28.89 | — | 1.0000 |
+| MSCI shape (1/ln, linear-mapped) | 24.10 | **3** | 0.9980 |
+| logistic k=0.02 | 13.77 | **5** | 0.9947 |
+| logistic k=0.04 | 24.43 | **1** | 0.9994 |
+| logistic k=0.08 | 36.01 | **2** | 0.9979 |
+
+The criterion was "refuted if the compressed version changes the top 50 by fewer
+than ~2 names". The answer is 1, 2, 3 or 5 **depending entirely on a steepness
+constant for which there is no evidence at all**. A criterion whose verdict is
+set by a free parameter is not a criterion.
+
+### The number that actually settles it
+
+Deleting the size category outright — the largest possible change to it — moves
+only **6** of the top 50:
+
+| size weight | Top-50 displaced | Composite Spearman |
+|---|---|---|
+| 5% (current) | — | 1.0000 |
+| 3% | 4 | 0.9969 |
+| 2% | 5 | 0.9932 |
+| 1% | 6 | 0.9877 |
+| 0% | 6 | 0.9810 |
+
+Every compression variant (1–5 names) sits **inside the footprint of removing
+the category entirely** (6 names). So none of them is distinguishable, at the
+decision surface, from simply turning size down or off.
+
+### And "compress toward MSCI" is a disguised deletion
+
+This is the finding that closes the question. Imported honestly onto this
+universe, MSCI's 1/ln(mcap) weighting turns a **798x** spread in market cap into
+a **1.295x** spread in weight (0.1678% to 0.2173%, against an equal weight of
+0.1992%). MSCI's tilt is nearly flat in cardinal terms. Rendering that shape as a
+0–100 score either (a) stretches it back out to fill the range, which reproduces
+the current tilt and achieves nothing, or (b) preserves its flatness, which is
+arithmetically almost the same as setting the size weight to zero.
+
+So the choice was never "which transfer function". It was "how much weight" —
+and burying a weight decision inside a formula is the opposite of explainable.
+The screener already has a clear, honest knob for that, the category weight, and
+Monday's research concluded it should stay at 5%.
+
+**Decision: no methodology change.** Rank-scoring is the screener's universal
+mechanism across all 44 metrics and is what makes the categories commensurable;
+special-casing one 5% category's transfer function to chase a shape the
+measurement shows is indistinguishable from deletion would be exactly the "pile
+of good ideas" failure `CLAUDE.md` warns against.
+
+### What did change: the documentation, which was false
+
+Monday's Finding B noted the metric's name implies a compression the pipeline
+does not perform. It is worse than an implication — `SCREENER_OVERVIEW.md` was
+asserting it outright:
+
+> "Using the log transform compresses the enormous range of market caps ($2B to
+> $3T+) into a more linear scale that ranks sensibly."
+
+The same document contradicts this 44 lines later, where it correctly states
+that every metric is scored by rank and "a rank does not care how far away an
+outlier is". Re-verified today against the real `compute_sector_percentiles`:
+`rank(-log mcap)` is identical to `rank(-mcap)`, `rank(-sqrt mcap)`,
+`rank(-cbrt mcap)` and `rank(-log10 mcap)` to 10 decimal places. The quoted cap
+range was wrong too — the live universe spans $6.8B to $5,419B, not "$2B to
+$3T+".
+
+The size section now states what the log does and does not do, shows the
+evidence, gives the MSCI comparison, names the tilt as equal-weight-style, and
+labels the large-cap extrapolation as a known weakness. Pinned by
+`tests/test_size_tilt_is_documented_truthfully.py` (11 tests; the 5 documentation
+assertions confirmed to fail against the pre-fix files, the 6 invariance
+assertions pin pipeline behaviour and hold either way).
+
+**Candidate 1 is closed.** All three of Monday's candidates are now resolved:
+1 documented (2026-09-03), 2 closed as two bets (2026-09-02), 3 shipped
+(2026-09-01).
