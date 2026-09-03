@@ -405,6 +405,40 @@ try {
     if ($br.ExitCode -ne 0) { Stop-Run "Failed to create branch $Branch." }
     Write-Log "Working on $Branch"
 
+    # --- Sweep stray merged nightly/* branches on the REMOTE -----------------
+    # The local sweep above only cleans this machine. Each session pushes its
+    # working branch to origin before merging, and nothing ever deleted it
+    # there, so origin accumulated one dead branch per session indefinitely -
+    # 11 of them (nightly/2026-08-10 .. nightly/2026-09-02) by 2026-09-03, all
+    # fully merged. Noticed by the 2026-09-02 evening session and left as
+    # something to do by hand, which is exactly the pattern rule 11 exists to
+    # stop; sweeping here makes it self-healing.
+    #
+    # Safety: '--merged origin/main' means every commit on the branch is
+    # already reachable from main, so deleting the ref discards no history and
+    # is not a rewrite (rule 2). $Branch is skipped - an earlier same-day run
+    # may have pushed a merged branch of that name, and this run is about to
+    # push its own. A failed delete is a WARN, never fatal: dead refs on origin
+    # are untidy, not dangerous, and are swept again next run.
+    $fetchPrune = Invoke-Native 'git' @('fetch', '--prune', 'origin')
+    if ($fetchPrune.ExitCode -ne 0) {
+        Write-Log "WARN: git fetch --prune failed; skipping remote branch sweep."
+    } else {
+        $strayRemote = (Invoke-Native 'git' @('branch', '-r', '--merged', 'origin/main')).Output |
+                        ForEach-Object { $_.ToString().Trim(' *') } |
+                        Where-Object { $_ -like 'origin/nightly/*' } |
+                        ForEach-Object { $_.Substring('origin/'.Length) } |
+                        Where-Object { $_ -ne $Branch }
+        foreach ($rb in $strayRemote) {
+            $rdel = Invoke-Native 'git' @('push', 'origin', '--delete', $rb)
+            if ($rdel.ExitCode -eq 0) {
+                Write-Log "Swept stale merged remote branch: origin/$rb"
+            } else {
+                Write-Log "WARN: could not delete remote branch origin/$rb - will retry next run."
+            }
+        }
+    }
+
     # --- Prompt -------------------------------------------------------------
     $TemplateName = if ($IsRetro) { 'retrospective.md' } else { 'nightly.md' }
     $TemplatePath = Join-Path $RepoPath "prompts\$TemplateName"
