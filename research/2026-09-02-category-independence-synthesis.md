@@ -230,6 +230,15 @@ merging them would lose information. Asness et al.'s result that CMA absorbs
 *part* of SMB's alpha is consistent with +0.280 — partial overlap, not
 redundancy. **No change; the question is closed** rather than left open.
 
+> **Closed 2026-09-03.** The measurement below was run on the 09-03 BUILD day.
+> The refutation criterion turned out not to discriminate (1/2/3/5 names
+> displaced depending only on the steepness constant chosen), and every variant
+> sits inside the 6-name footprint of deleting the size category outright.
+> MSCI's compression imported honestly is a *disguised deletion* — 798x cap
+> spread becomes a 1.295x weight spread. No methodology change; the false
+> documentation claim it exposed was fixed instead. Full disposition at the end
+> of `research/2026-08-31-size-factor-in-a-large-cap-universe.md`.
+
 **Candidate 1 (is the size tilt more aggressive than intended?) — still open,
 deliberately deferred.** It is a genuine question and Monday's Finding B is
 right that the `log` in `size_log_mcap` is annihilated by the subsequent rank
