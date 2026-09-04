@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=fb67fa6f3d91"></script>
+    <script src="./dashboard_data.js?v=4c9477454ad9"></script>
     <style>
 
         /* ====================================================================
@@ -2871,11 +2871,14 @@
 <tr>
 <td><strong>Log Market Cap</strong></td>
 <td>100%</td>
-<td>Negative natural log of market capitalization: -log(marketCap). Smaller companies get higher values.</td>
+<td>Negative natural log of market capitalization: -log(marketCap). Smaller companies get higher values. Scored by sector percentile rank, which the log does not affect - see the note below.</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Why this?</strong> The Fama-French SMB (Small Minus Big) factor captures the historical tendency for smaller companies to outperform larger ones over long horizons. Within the S&amp;P 500, this creates a mild tilt toward mid-cap names (which are still large-cap by absolute standards) rather than megacaps. Using the log transform compresses the enormous range of market caps ($2B to $3T+) into a more linear scale that ranks sensibly.</p>
+<p><strong>Why this?</strong> The Fama-French SMB (Small Minus Big) factor captures the historical tendency for smaller companies to outperform larger ones over long horizons. Within the S&amp;P 500 this tilts toward mid-cap names (still large-cap by absolute standards) rather than megacaps.</p>
+<p><strong>What the log does, and what it does not do.</strong> The metric is stored as <code>-log(marketCap)</code>, but no stock's score depends on the log. Every metric here is converted to a <strong>sector percentile rank</strong> (see "How scoring works" below), and a rank is unchanged by any transformation that preserves order. Measured on the live universe, <code>rank(-log mcap)</code>, <code>rank(-mcap)</code> and <code>rank(-sqrt mcap)</code> are identical to ten decimal places. The log makes the stored number easier to read; it does not compress the tilt.</p>
+<p><strong>So how strong is the tilt?</strong> Stronger than the metric's name suggests, which is worth stating plainly. Because the score is linear in rank, ordinary market-cap gaps become large score gaps: on the current universe CAT ($364B) scores 1 and UAL ($35B) scores 59, so a 10x cap ratio becomes a 57-point gap. For comparison, MSCI's Low Size indexes weight holdings in proportion to 1/ln(mcap), which across this same universe turns a <strong>798x</strong> spread in market cap into a <strong>1.295x</strong> spread in weight. This screener runs an equal-weight-style size tilt, not a log-compressed one. That is a defensible design - it is close to the bet the S&amp;P 500 Equal Weight index makes - but it is a <em>stronger</em> bet than the name implies, and holding it to 5% of the composite is what keeps it proportionate.</p>
+<p><strong>Known weakness.</strong> No published study establishes a size premium <em>within</em> the largest two market-cap deciles, which is the entire S&amp;P 500. Applying SMB here extrapolates from research run on much broader universes, and the payoff is regime-dependent: S&amp;P 500 Equal Weight has returned roughly +63 bps/yr since 1990 but trailed cap weighting by about 32% over 2023-2025. Detail and citations: <code>research/2026-08-31-size-factor-in-a-large-cap-universe.md</code>.</p>
 <hr />
 <h3>8. Investment (5% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>Is this company investing conservatively or aggressively expanding its asset base?</em></p>
@@ -3238,7 +3241,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-09-03 02:00 UTC</span><br>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-09-04 02:00 UTC</span><br>
             <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
         </footer>
     </div>
