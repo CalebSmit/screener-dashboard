@@ -108,18 +108,15 @@ function Publish-Brief {
         Write-NativeOutput $b
         if ($b.ExitCode -ne 0) { return }
 
-        # Stage only the brief - the tree may legitimately be dirty after a
-        # failed run, and none of that is ours to publish.
-        Invoke-Native 'git' @('add', '--', 'MORNING_BRIEF.md') | Out-Null
-        $staged = Invoke-Native 'git' @('diff', '--cached', '--name-only', '--', 'MORNING_BRIEF.md')
-        if (-not $staged.Text.Trim()) { Write-Log "Brief unchanged; nothing to publish."; return }
-
-        $c = Invoke-Native 'git' @('commit', '-m', "brief: $Label")
-        if ($c.ExitCode -ne 0) { Write-Log "Could not commit brief." 'WARN'; return }
-
-        $p = Invoke-Native 'git' @('push', 'origin', 'HEAD:main')
-        if ($p.ExitCode -eq 0) { Write-Log "Morning brief published." }
-        else { Write-Log "Brief committed locally; push failed." 'WARN' }
+        # Nothing is staged here on purpose. The tree may legitimately be dirty
+        # after a failed run, and the publisher below compares the brief against
+        # origin/main's own tree rather than against this machine's index.
+        #
+        # Publish onto origin/main by building a single-file commit there - see
+        # scripts/publish-brief.ps1. This used to be `git push origin HEAD:main`,
+        # which on a gate failure pushes the whole refused branch to the public
+        # site from inside `finally`.
+        Publish-BriefToMain -RepoPath $RepoPath -Label $Label -Logger ${function:Write-Log} | Out-Null
     } catch {
         Write-Log "Brief step failed (non-fatal): $($_.Exception.Message)" 'WARN'
     }
@@ -191,6 +188,10 @@ function Restore-Artifacts {
 # run died. See scripts/repo-lock.ps1.
 . (Join-Path $PSScriptRoot 'repo-lock.ps1')
 $RepoLock = $null
+
+# The brief is published from `finally`, so it runs after a gate failure too.
+# It must therefore never be able to carry the refused work with it.
+. (Join-Path $PSScriptRoot 'publish-brief.ps1')
 
 # --- PATH repair -----------------------------------------------------------
 $env:Path = "$([Environment]::GetEnvironmentVariable('Path','Machine'));$([Environment]::GetEnvironmentVariable('Path','User'))"

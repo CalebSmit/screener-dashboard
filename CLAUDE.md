@@ -163,7 +163,7 @@ improving.
 8. **Update `NIGHTLY_LOG.md` every session.** It is the only memory that carries
    between sessions. Write it for a reader with no other context.
 
-   **Every entry starts with these four health numbers**, whatever the focus:
+   **Every entry starts with these five health numbers**, whatever the focus:
 
    | Check | Where | Healthy |
    |---|---|---|
@@ -171,12 +171,22 @@ improving.
    | Did the data loop publish? | newest `logs/datarun-*.log` | ends "Data loop complete", HEALTH: PASS |
    | Evidence base | `improvement/live_ic_history.csv` | **row count, newest date, and effective observations at `1m`, as three literal numbers** |
    | Priority 0 | below | fixed, or still top of the queue |
+   | Top open roadmap item | "Current priorities" below | **name it and give its age in days, as a literal number** |
 
    The evidence-base line would have read "3 rows, newest 2026-02-22" on every
    session from February to 2026-08-21, while the data loop ran successfully
    every weekday. Nobody wrote it down, so nobody noticed it had stopped
    moving. **If those two numbers have not moved in three consecutive sessions,
    making them move is that session's work, whatever the rotation says.**
+
+   The roadmap line is there for the same reason, added 2026-09-04. Between
+   2026-08-25 and 2026-09-03 nine sessions all produced real work and **not one
+   north-star item shipped** - seven correctness fixes, a research note and two
+   pieces of infrastructure, every one of them defensible on the day. Priority 4
+   is an owner directive from 2026-08-10 and nobody had written down how long it
+   had been sitting there. Defect-fixing will always look more urgent than
+   product work; writing the age down is what makes the trade visible at the
+   moment it is being made.
 
 9. **You can edit your own instructions and plans - so keep them true.**
    `prompts/` and `plan/` are ordinary tracked directories, deliberately *not*
@@ -222,8 +232,20 @@ improving.
 
 ## Ship gates
 
-Run these before pushing to `main`. All must pass. The runner script re-checks
-them independently and will refuse the push if you got it wrong.
+Run these before you finish. All must pass.
+
+**You push your branch. `nightly-screener.ps1` merges to `main`, and only after
+re-running all four gates itself** (changed by the 2026-09-04 retrospective).
+Until then the session merged and pushed `main` as its own last step and the
+runner re-checked *afterwards*, which made the gates an audit rather than a
+precondition: on 2026-09-02 a session published at 06:24:22, the independent
+test run failed two minutes later, and `scripts/revert-bad-merge.ps1` had to be
+written to undo a commit already live on the public site. That script stays as
+the second line of defence. It should now never have to fire.
+
+Still run the gates yourself - they tell you whether the work is fit to ship,
+and a session that hands the runner a broken tree has wasted the day.
+`tests/test_gate_ordering.py`, 8 tests.
 
 | # | Gate | Command |
 |---|---|---|
@@ -244,7 +266,7 @@ Research-weighted by design: understand before building, and prove it after.
 | **Mon** | **Research.** One specific thing - a factor, a metric, a threshold, a construction rule - learned properly, from *both* the literature and documented practice. Where they disagree, say so and say why. | A dated note in `research/`, complete in one session: citations with effect sizes, plus how practitioners actually do it |
 | **Tue** | **Product.** Open the live dashboard as a user would. Does it answer *what should I look at / should I buy this / should I sell what I hold / how much*? Fix or build what it can't. | A dashboard change, or a written account of what it cannot answer and why |
 | **Wed** | **Synthesis.** How does Monday's research fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. | A design section on Monday's note, plus any `METHODOLOGY_CHANGELOG.md` entry |
-| **Thu** | **Build.** Implement what the week justified. Write tests alongside. | Working, tested code |
+| **Thu** | **Build.** Implement what the week justified - or, if it justified no change, the top open item in "Current priorities". | Working, tested code |
 | **Fri** | **Harden and teach.** Tests, docs, methodology page, error handling, the investment-club experience. | A tool someone else can pick up and understand |
 
 **Monday must produce a complete note.** It used to be split across Monday
@@ -414,62 +436,58 @@ scored.
 
 ## Current priorities (rewrite this section as things land)
 
-**-1. Sessions do not start. This is the dominant failure mode.**
-Measured by the 2026-08-21 retrospective: of the 11 scheduled code-loop slots
-from 2026-08-06 to 2026-08-20, **2 produced anything, 4 started and produced
-nothing, and 5 never fired at all.** Causes, each fixed reactively after it had
-already cost a day: `gh` false negative (08-06), no network (08-07), untrusted
-workspace (08-10, 08-11), logged-out reboot (08-12), API weekly limit (08-14),
-machine off or logged out for four consecutive weekdays (08-17 to 08-20).
+**-1. Sessions not starting was the dominant failure mode. It is fixed - keep
+it fixed.** Measured by the 2026-08-21 retrospective: of 11 scheduled code-loop
+slots from 08-06 to 08-20, **2 produced anything and 5 never fired at all.**
+Measured again by the 2026-09-04 retrospective: of the 9 scheduled slots from
+08-24 to 09-03, **9 ran and 9 produced work.** The causes are gone, not dormant,
+and the machinery below is why. Do not undo any of it; the full history is in
+`NIGHTLY_LOG.md` 2026-08-21 and 2026-09-04.
 
-**Zero ship-gate failures in that whole period** - not because the gates are
-lenient, but because only one session ever produced code to gate.
+- **The scheduled-task definitions are in version control** -
+  `scripts/register-tasks.ps1` (2026-08-21), which registers both tasks
+  idempotently with an at-logon catch-up trigger.
+- **Something outside the machine watches whether the loop is running** -
+  `scripts/check_loop_health.py` + `.github/workflows/loop-watchdog.yml`
+  (2026-08-27), 43 tests in `tests/test_loop_watchdog.py`. It runs on GitHub
+  Actions specifically because a PC that is off, asleep or logged out cannot
+  silence it - the previous watchdog lived inside the thing it was watching.
 
-**On the 08-14 quota failure - correction, owner 2026-08-21.** The retrospective
-recorded this as "~$6/session". That is wrong and should not be repeated: the
-owner runs **Claude Max**, so sessions draw on included subscription usage, not
-per-session billing. There is no dollar cost per run to optimise.
+  The heartbeat is the `brief:` commit each loop pushes to `main` from a
+  `finally` block, so it lands whether the run succeeded or failed. That
+  answers "did the task fire", not "did it do anything useful"; the brief
+  itself covers the second.
 
-The finding underneath it stands: a **weekly usage ceiling** exists and it
-silently killed 08-14 with a 429. What follows from that is not "spend less
-money" but "do not let one loop exhaust the week". The 06:00 code loop is the
-only thing here consuming that quota - the 02:00 data loop is pure Python and
-git and uses none of it. So a data run is always affordable; a code session is
-the scarce resource, which is an argument for sessions that do one thing well
-rather than many shallow things.
+  **Do not make it alarm faster.** Two *consecutive* missed weekdays, weekends
+  excluded, and a day is not judged until its deadline (12:00 data / 16:00
+  code) has passed - late enough for the at-logon catch-up to have had its
+  chance. Replayed against the real 08-17..08-20 outage it alarms on **08-18**,
+  two days in rather than six. A watchdog that cries wolf gets muted, and a
+  muted watchdog is worse than none because it still looks like coverage.
 
-Both of the items that used to sit here are now **DONE - do not undo them.**
+  **The heartbeat must never carry anything but the heartbeat**, fixed
+  2026-09-04. Both runners published it with `git push origin HEAD:main` from
+  `finally`. On the happy path HEAD is `main` and that is correct, which is why
+  it ran unnoticed for a month. On a ship-gate failure HEAD is the nightly
+  branch holding the work the gates just refused, and that command
+  fast-forwards `origin/main` onto all of it - publishing to the live site,
+  after the gates said no, from the one block that always runs.
+  `scripts/publish-brief.ps1` now builds a single-file commit on top of
+  `origin/main` with plumbing and pushes the commit object, so
+  `MORNING_BRIEF.md` is the only path it can touch - by construction, not by
+  convention. **Do not go back to pushing a local ref**, and keep the two
+  runners on the one shared function so the safe one cannot drift.
+  `tests/test_brief_publish_safety.py`, 14 tests; the first drives the old
+  command in a sandbox and watches the refused work land on `main`.
 
-- **The scheduled-task definitions are in version control.** Shipped
-  2026-08-21 as `scripts/register-tasks.ps1`, which registers both tasks
-  idempotently with an at-logon catch-up trigger. This entry went on claiming
-  `grep -rn "Register-ScheduledTask" .` "finds nothing" for six days after the
-  script landed; it finds it at `scripts/register-tasks.ps1:111`. Rule 9.
-- **Something watches whether the loop is running.** Shipped 2026-08-27:
-  `scripts/check_loop_health.py` plus `.github/workflows/loop-watchdog.yml`.
-  43 tests in `tests/test_loop_watchdog.py`.
-
-  **The point is where it runs.** `write_brief.py` already printed a "THE
-  ROUTINE IS NOT RUNNING" banner and structurally could not cover this case:
-  it is invoked only from `data-run.ps1` and `nightly-screener.ps1`, so when
-  neither loop fires the brief is never regenerated and the banner never
-  appears. The watchdog was living inside the thing it was watching. The new
-  one runs on GitHub Actions, where a PC that is off, asleep or logged out
-  cannot silence it, and opens a single reused issue when a loop goes quiet.
-
-  The heartbeat is the commit each loop pushes to `main` from a `finally`
-  block, so it lands whether the run succeeded or failed - `brief: data run
-  <date>` and `brief: code session <date>`. A session that failed still
-  counts: this answers "did the task fire", which is a different question from
-  "did it do anything useful", and the brief already covers the second.
-
-  **Do not make it alarm faster.** Two *consecutive* missed weekdays is the
-  threshold, weekends are excluded, and a day is not judged until its deadline
-  (12:00 data / 16:00 code) has passed - late enough that the at-logon
-  catch-up has had its chance. Replayed against the real 08-17..08-20 outage
-  it would have raised the alarm on **08-18**, two days in rather than six. A
-  watchdog that cries wolf gets muted, and a muted watchdog is worse than none
-  because it still looks like coverage.
+**A weekly usage ceiling exists** and silently killed the 08-14 session with a
+429. There is no per-session dollar cost to optimise - the owner runs Claude
+Max, so this is included subscription usage (owner correction, 2026-08-21; do
+not reintroduce the "~$6/session" figure). What follows is "do not let one loop
+exhaust the week": the 06:00 code loop is the only thing consuming that quota,
+so a data run is always affordable and a code session is the scarce resource.
+That is an argument for sessions that do one thing well rather than many
+shallow things.
 
 **The catch-up trigger had a defect of its own, fixed 2026-08-29.** Both tasks
 carried an at-logon trigger with the *same* `PT3M` delay, so on the first logon

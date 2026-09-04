@@ -40,9 +40,10 @@ for the owner.
   `improvement/snapshots/`. **If the data loop is stalled or failing, fixing it
   is today's work regardless of the nominal focus.** Say so in the log and get
   on with it.
-- Sanity-check the evidence base: `live_ic_history.csv` should be gaining rows
-  at the `1m` horizon once priority 0 lands. If it is not growing, something is
-  broken - investigate before doing anything else.
+- Sanity-check the evidence base. `live_ic_history.csv` gains a `1w` row per
+  weekday run date as it ages past the horizon, so its newest date trails today
+  by about a week and its row count should rise every session. If either has
+  stalled, something is broken - investigate before doing anything else.
 
 ## 2. Baseline
 
@@ -109,6 +110,13 @@ differently arranged? Record any methodology change in
 **Thursday - build.** Implement what the week justified. Tests alongside, not
 after.
 
+If the week's research concluded *no change warranted* - a successful research
+outcome, not a failed one - do **not** invent a methodology change so there is
+something to build. Take the top open item in `CLAUDE.md`'s "Current
+priorities" instead, and say in the log which of the two this was. Added
+2026-09-04: nine consecutive sessions produced real work and no north-star item
+shipped, because every day found something smaller and more urgent first.
+
 **Friday - harden and teach.** Tests, docs, error handling, and the
 investment-club experience. Would a finance student understand what they're
 looking at?
@@ -132,13 +140,8 @@ looks authoritative. Until that date, methodology rests on research.
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected
 effect.
 
-**Justify them from research, not from this system's own numbers.** The IC
-series has 3 observations, all `1w`, all from February, and the significance
-test counts raw rows in a way that overstates independence ~2.35x. The backtest
-is benched until 2027-02-11. So neither is evidence yet - see rules 4 and 5 in
-`CLAUDE.md`. What counts today is published literature, documented
-professional practice, and a clear account of how the change fits the screener
-as a whole.
+**Justify them from research, not from this system's own numbers** - see the
+evidence rules above and rules 4 and 5 in `CLAUDE.md`.
 
 That includes weights. Changing a factor weight because the research says a
 factor is worth more or less - and explaining why - is legitimate work. Doing
@@ -167,8 +170,11 @@ Append to `NIGHTLY_LOG.md`:
 ```
 ## {{DATE}} - {{FOCUS}}
 
+**Health (rule 8, all five):** last code session ran? | data loop published? |
+evidence base = R rows, newest YYYY-MM-DD, E effective at `1m` | priority 0 |
+top open roadmap item + its age in days
 **Tests:** before N/M, after N/M
-**Data loop:** healthy | stalled | fixed - <evidence>
+**Owner queue / rotation:** what you took, and anything deferred
 
 ### Did
 - <what, and the evidence that it's an improvement>
@@ -186,11 +192,19 @@ Append to `NIGHTLY_LOG.md`:
 - <the single most valuable thing for the next session>
 ```
 
-Then: commit in small scoped commits, push the branch, merge it into `main`
-(fast-forward or a clean merge commit - no history rewriting), and push `main`.
+Then: commit in small scoped commits and **push the branch. Stop there.**
 
-If any ship gate failed: push the branch, do **not** merge, and make the log
-entry say clearly what is broken and what you'd try next.
+**The session does not merge or push `main`** (changed 2026-09-04). Run the
+gates yourself - they tell you whether the work is fit to ship, and a session
+that ignores them wastes the day - but `nightly-screener.ps1` re-runs all four
+independently and merges only if they pass. Publishing yourself puts your push
+*before* that check: on 2026-09-02 a session merged at 06:24:22, the
+independent run failed a test two minutes later, and the recovery path had to
+revert a commit already live on the public site. Leave the merge to the runner
+and the gates become a precondition instead of an audit.
+
+Nothing is lost if a gate fails: your branch is on origin, and the next session
+picks it up.
 
 ## If there is nothing worth doing
 
