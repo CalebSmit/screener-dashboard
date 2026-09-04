@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 03 September 2026, 06:20
+# Morning Brief - Friday 04 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,28 +9,22 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-03T02:00:03.208847 |
+| Dashboard data from | 2026-09-04T02:00:03.088823 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
 | Top 5 | HST, EXPE, APA, CF, VLO |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 31 rows across all horizons), newest 2026-08-27 |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 32 rows across all horizons), newest 2026-08-28 |
 
 ## What changed in the repo
 
+- `25f34f1 data: screener run 2026-09-04 - 502 scored, top: HST EXPE APA CF VLO`
+- `7beb43b brief: code session 2026-09-03`
 - `0776450 log: 2026-09-03 build session - size tilt closed by measurement, remote branch sweep`
 - `7438356 fix: merged nightly/* branches are now swept from origin, not just locally`
 - `a8e685d docs: the size section described a compression the pipeline does not perform`
 - `f4e81c6 brief: data run 2026-09-03`
 - `115a5d6 data: screener run 2026-09-03 - 502 scored, top: HST EXPE APA CF VLO`
-- `b6b3e58 docs: log the investigation into last night's ship-gate failure`
-- `7875cb5 fix: the wrapper's ship-gate failure recovery could not undo an already-pushed merge`
-- `579bef3 brief: code session 2026-09-02`
-- `25dc8ed docs: synthesis note, changelog entry, and the 2026-09-02 session log`
-- `4e55a1d fix: the data loop's daily evidence readout printed the raw row count`
-- `049bc8d fix: the risk category scored two metrics that were momentum, not risk`
-- `09d856b brief: data run 2026-09-02`
-- `3024a59 data: screener run 2026-09-02 - 502 scored, top: HST EXPE APA CF EIX`
 
 ## The session's own account
 
