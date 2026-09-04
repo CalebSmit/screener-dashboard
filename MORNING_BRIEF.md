@@ -1,4 +1,4 @@
-# Morning Brief - Friday 04 September 2026, 02:12
+# Morning Brief - Friday 04 September 2026, 06:24
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `af19547 log: 2026-09-04 retrospective - 9 of 9 sessions shipped; the gates were an audit`
+- `0fbb194 process: the ship gates decide before anything reaches main, not after`
+- `1904829 fix: the morning brief could publish the work the ship gates refused`
+- `af1ea03 brief: data run 2026-09-04`
 - `25f34f1 data: screener run 2026-09-04 - 502 scored, top: HST EXPE APA CF VLO`
 - `7beb43b brief: code session 2026-09-03`
 - `0776450 log: 2026-09-03 build session - size tilt closed by measurement, remote branch sweep`
@@ -28,50 +32,50 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-03 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-09-04 - RETROSPECTIVE. Evaluate whether this routine is producing value, and change the process where it is not.
 > 
 > ### Health numbers (rule 8)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-09-02_060001.log` - ran; gate failure investigated and resolved the same evening (see 09-02 evening entry) |
-> | Data loop published? | `logs/datarun-2026-09-03_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 (100%) |
-> | Evidence base | **31 rows, newest 2026-08-27, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+> | Last code session ran? | `logs/nightly-2026-09-03_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-09-04_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 (100%) |
+> | Evidence base | **32 rows, newest 2026-08-28, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
 > | Priority 0 | DONE 2026-08-24, not reopened |
+> | Top open roadmap item | **Priority 4, deterministic per-stock summaries - owner directive 2026-08-10, open 25 days** (this row is new; see Process changes) |
 > 
-> **Tests:** before 917/917, after **938/938** (+21, no pre-existing failures)
+> **Tests:** before 938/938, after **965/965** (+27, no pre-existing failures)
 > **Data loop:** healthy
 > **Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
-> **Rotation:** ISO week 36, Thursday. Build day.
+> **Rotation:** ISO week 36, Friday, even week - retrospective.
 > 
-> ### First: the two checks 09-02 asked for, both confirmed
+> Two carried-over checks first, both confirmed:
 > 
-> 1. **Wednesday's risk-category fix reached the live site.** On the 09-03
->    published run, `momentum ~ risk` is **+0.100** (it was +0.516 before the fix,
->    and 09-02 predicted "near +0.15"). `sharpe_ratio ~ volatility` is +0.012,
->    confirming the two dropped metrics carried essentially no dispersion signal.
-> 2. **The evidence readout prints the honest number.** The 02:00 log reads
->    "3 effective (8 rows) at the 1m horizon" - the effective count, not the raw
->    row count that `CLAUDE.md` rule 8 names as how this went wrong the first
->    time. `scripts/report_evidence.py` works in production, which the 09-02
->    session could not verify from its sandbox.
+> 1. **The remote branch sweep fired.** `logs/nightly-2026-09-04_060001.log` shows
+>    12 "Swept stale merged remote branch" lines; `git branch -r` is down to
+>    `origin/main`, `origin/master` and `origin/HEAD`. The 09-03 session left this
+>    as the one thing it could not verify from its sandbox.
+> 2. **The evidence base is moving.** 31 -> 32 rows, newest 08-27 -> 08-28. `1m`
+>    sits at 3 effective for the fifth session, which is structural rather than a
+>    defect: `1m` rows mature only as older run dates age past the horizon.
 > 
-> ### Did
+> ### Retrospective findings
 > 
-> **1. Closed Monday's Candidate 1 - the size tilt - by measurement, and the
-> answer was "do not change the methodology; the documentation was false".**
+> - **Sessions reviewed: 9 scheduled** (2026-08-24 to 2026-09-03), plus 6
+>   owner-run evening/catch-up sessions.
+> - **Genuinely valuable: 9 | Churn: 0 | Failed gates: 1** (2026-09-02, gate 1).
 > 
-> This was the week's open thread: Monday found the tilt far more aggressive than
-> the practitioner standard it resembles, Wednesday deferred it to a
-> pre-registered measurement, today ran it. All numbers from the 09-03 published
-> run, recomputed through the **real** `factor_engine.compute_composite` (exact
-> reproduction of the published composite, err 0.0).
-> 
-> **The pre-registered criterion did not discriminate.** "Refuted if the
-> compressed version changes the top 50 by fewer than ~2 names" returns 1, 2, 3
-> or 5 names depending only on which steepness constant you pick - and there is no
-> evidence for any particular one. A criterion whose verdict is set by a free
-> parameter is not a criterion.
+> **1. What fraction of sessions produced something genuinely valuable? All nine.**
+> The last retrospective measured 2 of 11 slots producing anything and 5 never
+> firing. This period: 9 of 9 fired and 9 of 9 shipped. Named - 08-24 the
+> evidence-base repair (5 defects, 3 IC rows -> 23), 08-25 `history.py` and the
+> dashboard's time dimension, 08-26 the split-scale price guard (MNST was live at
+> ~110 ranks too high), 08-27 the GitHub Actions loop watchdog, 08-28 the
+> weight-transparency fix, 08-31 the size-factor research note, 09-01 the removal
+> of winsorization (six megacaps published at an identical false $2,802.0B), 09-02
+> the risk category shedding two momentum metrics, 09-03 the size tilt documented
+> truthfully plus the origin branch sweep. Not one is churn. Sessions run 13.6-22.4
+> minutes against a 4-hour limit; nothing came close.
 > 
 > ...
 
