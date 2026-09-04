@@ -23,8 +23,12 @@ Do not rely on impressions. Go and look:
   plausible-sounding filler? Be harsh here; this is the easiest thing to fake.
 - **`improvement/live_ic_history.csv`** - is the evidence base growing? At
   which horizons?
-- **`git log --stat`** on a few nightly merges - is the code getting better, or
-  just getting *changed*?
+- **`scripts/nightly-screener.ps1` and `scripts/data-run.ps1`** - read the paths
+  that touch `main`: what publishes, in what order, and what runs from
+  `finally`. Nothing else in the rotation ever points here, and the 2026-09-04
+  retrospective found the brief being published with `git push origin HEAD:main`
+  from a `finally` block - one gate failure away from putting refused work on
+  the live site.
 
 ## 2. Answer these honestly
 
@@ -79,7 +83,8 @@ Everything else is fair game.
 
 ## 5. Ship gates and log
 
-Same four gates as any session - run them, and do not merge if any fails.
+Same four gates as any session. Run them yourself; `nightly-screener.ps1` runs
+them again and does the merge.
 
 Log the retrospective under the normal format, with an extra section:
 
@@ -96,4 +101,7 @@ Log the retrospective under the normal format, with an extra section:
 - <anything you think should change but chose not to change yourself>
 ```
 
-Then commit, merge, push - as normal.
+Then commit in scoped commits and push the branch. **Do not merge or push
+`main`** - the runner does that, after its own independent gate run. A
+retrospective that exempted itself from the rule it had just written would be
+the first step in the drift section 4 exists to prevent.
