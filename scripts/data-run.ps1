@@ -91,16 +91,11 @@ function Publish-Brief {
         Write-NativeOutput $b
         if ($b.ExitCode -ne 0) { return }
 
-        Invoke-Native 'git' @('add', '--', 'MORNING_BRIEF.md') | Out-Null
-        $staged = Invoke-Native 'git' @('diff', '--cached', '--name-only', '--', 'MORNING_BRIEF.md')
-        if (-not $staged.Text.Trim()) { Write-Log "Brief unchanged; nothing to publish."; return }
-
-        $c = Invoke-Native 'git' @('commit', '-m', "brief: $Label")
-        if ($c.ExitCode -ne 0) { Write-Log "Could not commit brief." 'WARN'; return }
-
-        $p = Invoke-Native 'git' @('push', 'origin', 'HEAD:main')
-        if ($p.ExitCode -eq 0) { Write-Log "Morning brief published." }
-        else { Write-Log "Brief committed locally; push failed." 'WARN' }
+        # Publish onto origin/main as a single-file commit built there, never by
+        # pushing local HEAD - see scripts/publish-brief.ps1. This loop normally
+        # sits on main, so the old `push HEAD:main` was usually harmless here;
+        # the two runners share one primitive so the safe one cannot drift back.
+        Publish-BriefToMain -RepoPath $RepoPath -Label $Label -Logger ${function:Write-Log} | Out-Null
     } catch {
         Write-Log "Brief step failed (non-fatal): $($_.Exception.Message)" 'WARN'
     }
@@ -111,6 +106,10 @@ function Publish-Brief {
 # race for .git/index.lock - which cost the whole 2026-08-29 data run. See
 # scripts/repo-lock.ps1.
 . (Join-Path $PSScriptRoot 'repo-lock.ps1')
+
+# Publishing the brief must never push anything but the brief. See
+# scripts/publish-brief.ps1 and NIGHTLY_LOG.md 2026-09-04.
+. (Join-Path $PSScriptRoot 'publish-brief.ps1')
 $RepoLock = $null
 
 $env:Path = "$([Environment]::GetEnvironmentVariable('Path','Machine'));$([Environment]::GetEnvironmentVariable('Path','User'))"
