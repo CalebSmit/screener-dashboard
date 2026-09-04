@@ -3423,3 +3423,272 @@ first thing to fix.
    board, carried from 09-02: the screener rewards fast growth with one hand and
    penalises how it is funded with the other, across 18% of composite weight,
    and nobody has written down whether that is intentional.
+
+---
+
+## 2026-09-04 - RETROSPECTIVE. Evaluate whether this routine is producing value, and change the process where it is not.
+
+### Health numbers (rule 8)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-09-03_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | `logs/datarun-2026-09-04_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 (100%) |
+| Evidence base | **32 rows, newest 2026-08-28, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+| Priority 0 | DONE 2026-08-24, not reopened |
+| Top open roadmap item | **Priority 4, deterministic per-stock summaries - owner directive 2026-08-10, open 25 days** (this row is new; see Process changes) |
+
+**Tests:** before 938/938, after **965/965** (+27, no pre-existing failures)
+**Data loop:** healthy
+**Owner queue:** empty - nothing under **Open** in `OWNER_FOCUS.md`. Nothing deferred.
+**Rotation:** ISO week 36, Friday, even week - retrospective.
+
+Two carried-over checks first, both confirmed:
+
+1. **The remote branch sweep fired.** `logs/nightly-2026-09-04_060001.log` shows
+   12 "Swept stale merged remote branch" lines; `git branch -r` is down to
+   `origin/main`, `origin/master` and `origin/HEAD`. The 09-03 session left this
+   as the one thing it could not verify from its sandbox.
+2. **The evidence base is moving.** 31 -> 32 rows, newest 08-27 -> 08-28. `1m`
+   sits at 3 effective for the fifth session, which is structural rather than a
+   defect: `1m` rows mature only as older run dates age past the horizon.
+
+### Retrospective findings
+
+- **Sessions reviewed: 9 scheduled** (2026-08-24 to 2026-09-03), plus 6
+  owner-run evening/catch-up sessions.
+- **Genuinely valuable: 9 | Churn: 0 | Failed gates: 1** (2026-09-02, gate 1).
+
+**1. What fraction of sessions produced something genuinely valuable? All nine.**
+The last retrospective measured 2 of 11 slots producing anything and 5 never
+firing. This period: 9 of 9 fired and 9 of 9 shipped. Named - 08-24 the
+evidence-base repair (5 defects, 3 IC rows -> 23), 08-25 `history.py` and the
+dashboard's time dimension, 08-26 the split-scale price guard (MNST was live at
+~110 ranks too high), 08-27 the GitHub Actions loop watchdog, 08-28 the
+weight-transparency fix, 08-31 the size-factor research note, 09-01 the removal
+of winsorization (six megacaps published at an identical false $2,802.0B), 09-02
+the risk category shedding two momentum metrics, 09-03 the size tilt documented
+truthfully plus the origin branch sweep. Not one is churn. Sessions run 13.6-22.4
+minutes against a 4-hour limit; nothing came close.
+
+**2. Which rotation day earns its place?** All five, on this sample, but the
+justification differs. **Tuesday (product) is the highest-yield day** and both
+its outings paid: 08-25 shipped the only new surface of the period, 09-01 found
+the trillion-dollar display error by opening the dashboard as a user. **Monday
+(research) works now that sessions start** - one complete note on 08-31 with real
+citations, after six consecutive skips under the old regime. **Thursday (build)
+is the weak one**, and specifically: when Monday's research concludes "no change
+warranted" - a successful outcome `research/README.md` explicitly endorses, and
+what 08-31 concluded - Thursday has nothing to build and improvises. 09-03
+improvised well, but it improvised. Fixed below rather than removed.
+
+**3. Is the evidence standard holding? Yes, and it has got stricter.** Every
+changelog entry since 08-24 carries an explicit `Backtest observation: none -
+benched until 2027-02-11 per rule 5`, and 09-03 states in terms that no figure
+from `live_ic_history.csv` was used. The research notes are real: the 08-31 size
+note carries Banz (1981), Asness/Frazzini/Israel/Moskowitz/Pedersen (2018) with
+SMB alphas and t-stats by specification (23bps/2.27 raw, 49bps/4.89 after QMJ),
+Alquist/Israel/Moskowitz (2018), and an MSCI Low Size reconstruction on this
+screener's own 502 names. Best sign of health: **09-01 and 09-03 both corrected
+published claims of this project's own that turned out to be false**, rather than
+softening them.
+
+**4. What keeps going wrong?** One thing, and it is structural rather than a
+recurring bug: **the ship gates were an audit, not a precondition.** See below.
+Otherwise the recurring pattern is that documentation goes stale faster than it
+is corrected - three of this period's sessions spent effort fixing claims in
+`CLAUDE.md`, `SCREENER_OVERVIEW.md` and `research/README.md` that were untrue.
+
+**5. Is the tool closer to the place you would look before buying or selling?
+On correctness, substantially. On surface, not at all.** A user today sees true
+market caps instead of six identical fakes, momentum that is not corrupted by
+split-scale price series, and a risk score that is not 30% momentum. Those are
+real. But **no north-star surface has shipped since 2026-08-25**: questions 3
+(should I sell what I hold) and 4 (how much) remain exactly as unanswerable as
+they were. The honest blocker is not difficulty - priority 4 is fully specified
+in `plan/dashboard-north-star.md` and needs no research - it is that **defect
+discovery outruns feature work.** Nine sessions each found something smaller,
+real, and more urgent, and each deferral was correct on the day.
+
+**6. What is the routine systematically blind to? The runner scripts.** No day in
+the rotation points at `scripts/*.ps1`, and every improvement to them in this
+period was reactive, made only after a run had already been damaged. Looking
+there today found the defect below on the first read.
+
+### Did - the ship gates now actually gate
+
+**The defect: the morning brief could publish the work the gates had just
+refused.** Both runners publish the brief from a `finally` block, because it is
+the watchdog heartbeat and must land whether the run succeeded or failed. They
+did it with:
+
+```
+git push origin HEAD:main
+```
+
+On the happy path HEAD is `main`, so that is correct - and it is what ran on
+every successful day, which is why it went unnoticed. On a **ship-gate failure**
+HEAD is the nightly branch carrying the work the gates refused, and that command
+fast-forwards `origin/main` onto every commit on it. `prompts/nightly.md` told a
+session that fails its own gates to leave the work on the branch, so that is not
+a hypothetical shape - it is the documented one.
+
+Reproduced in a real origin+clone sandbox before writing anything: with HEAD on
+`nightly/2026-09-04` carrying a file marked "BROKEN - gates refused this",
+`git push origin HEAD:main` puts that file on `origin/main`. That reproduction is
+now `tests/test_brief_publish_safety.py::test_pushing_head_to_main_publishes_the_whole_branch`.
+
+It had not fired only by luck of ordering. On 2026-09-02, the one gate failure in
+this project's history, the session had already merged onto local `main`, so the
+recovery path reset local `main` first and the subsequent push was rejected as a
+non-fast-forward - the log's "Brief committed locally; push failed." is that near
+miss, recorded as a routine warning.
+
+**Fixed: `scripts/publish-brief.ps1`.** Builds a single-file commit on top of
+`origin/main` with plumbing (`hash-object` -> throwaway index -> `write-tree` ->
+`commit-tree`) and pushes the **commit object**, not a ref:
+`git push origin <sha>:refs/heads/main`. It never checks out, never merges local
+work, and never names a local ref, so `MORNING_BRIEF.md` is the only path it can
+change - by construction rather than by convention. It retries on a moved
+`origin/main` (rebuilding on the new tip, so a concurrent data-run commit is not
+clobbered), leaves the working tree clean so the next run's `git pull` is not
+blocked, and does not disturb the repository index. Both runners dot-source the
+one function, on the 2026-08-29 precedent that two copies of an unattended
+primitive drift.
+
+**14 tests** in `tests/test_brief_publish_safety.py`, driving real git and real
+PowerShell. Four static assertions confirmed to fail against the pre-fix scripts
+pulled from `git show HEAD:`.
+
+**The deeper problem, and the actual process change: the session was publishing
+`main` before the gates ran.** `prompts/nightly.md` had the session merge and
+push `main` as its own final step; `nightly-screener.ps1` then re-verified all
+four gates *afterwards*. That is what 09-02 was: pushed at 06:24:22, gate 1
+failed at 06:26:53, and `scripts/revert-bad-merge.ps1` had to be written to undo
+a commit already live on the public site. `CLAUDE.md` rule 1 says "You may only
+push to `main` when all of them pass"; the routine did not implement that.
+
+**The session now pushes its branch and stops. The runner merges, after its own
+gate run.** This is strictly stricter, which is what section 4 of the
+retrospective prompt permits.
+
+`nightly-screener.ps1` already contains that merge path - but **it has never run
+in production.** Every successful log line reads "HEAD is on 'main'", because the
+session always merged first. So its git sequence is now exercised against an
+origin+clone sandbox: the merge lands the branch on `origin/main` and leaves the
+tree clean, and a conflicting merge aborts with `main` at exactly its previous
+sha and the work preserved on origin. `tests/test_gate_ordering.py`, 8 tests,
+including source-order assertions that the push to `main` sits downstream of the
+gate decision and the `good/` rollback tag downstream of a successful push.
+
+**This session is the first to follow the new rule**, deliberately. A
+retrospective that exempted itself from the rule it had just written would be the
+first step in the drift section 4 exists to prevent - so this work stops at
+`nightly/2026-09-04` and the runner merges it. If that path is wrong, the failure
+is fail-closed: the branch is pushed to origin and Monday's session inherits it.
+`prompts/retrospective.md` now says so too.
+
+### Process changes made
+
+1. **The gates are a precondition, not an audit.** `prompts/nightly.md` section 5
+   and `prompts/retrospective.md` section 5: the session pushes its branch and
+   does not merge or push `main`. `CLAUDE.md`'s Ship gates section says the same
+   and says why. `revert-bad-merge.ps1` stays as the second line of defence and
+   should now never fire.
+2. **The brief cannot carry anything but the brief** - `scripts/publish-brief.ps1`
+   above, recorded in `CLAUDE.md` priority -1 as a do-not-undo.
+3. **A fifth health number in rule 8: the top open roadmap item and its age in
+   days.** Same mechanism that fixed the evidence base, applied to the finding in
+   question 5. Nine sessions produced real work and no north-star item, and
+   nobody had written down that priority 4 had been open for 25 days. Writing the
+   age down makes the trade visible at the moment it is made; it does not force
+   the choice.
+4. **Thursday has a defined fallback.** If the week's research concluded "no
+   change warranted", Thursday takes the top open item in Current priorities
+   instead of inventing a methodology change to have something to build. The log
+   says which of the two it was.
+5. **The retrospective now reads the runner scripts** - added to section 1's
+   evidence list, in place of the `git log --stat` bullet, which the last two
+   retrospectives have not found informative next to the log entries themselves.
+
+**Deleted, per "prefer deleting to adding":** `CLAUDE.md` priority -1 loses ~30
+lines of narrative about outages that are fixed and recorded in this log;
+`prompts/nightly.md` loses a duplicated paragraph on IC evidence (it repeated
+section 3 and `CLAUDE.md` rules 4-5) and a stale sanity-check that still spoke of
+"once priority 0 lands". Both prompts are net shorter than they were.
+
+### Evidence / research
+
+A demonstrated failure plus a reproduction, per the mandate's fourth category.
+No citation, no backtest, no IC number - rules 4 and 5 do not bite, because
+nothing here was justified by a return.
+
+Session-rate measurement: 9 of 9 scheduled slots from 08-24 to 09-03 fired and
+shipped, from `logs/nightly-*.json` (`num_turns` 82-154, `is_error` false,
+13.6-22.4 min) cross-checked against `logs/nightly-*.log` and `git log`. Against
+the last retrospective's 2 of 11.
+
+### Methodology changed
+
+**None.** No weight, threshold, metric or formula moved. Runner and process
+infrastructure, which by precedent lives in this log rather than in
+`METHODOLOGY_CHANGELOG.md`.
+
+### Tried and rejected
+
+- **Leaving the session's self-merge in place and relying on
+  `revert-bad-merge.ps1`.** It works - it was built and proven against a sandbox
+  on 09-02 - but it is a mechanism for undoing a public push that should never
+  have happened. Ordering removes the class; recovery handles instances.
+- **Fixing `Publish-Brief` by skipping publication when the gates fail.** The
+  smallest change, and it breaks the watchdog: the heartbeat exists precisely to
+  answer "did the task fire" on days the run failed. Suppressing it on failure
+  would make a failed run look like a machine that never woke up.
+- **Committing the brief locally and pushing the branch's tip.** A smaller edit
+  than the plumbing route, but it still puts a local ref on the left of the
+  refspec, which is the property that failed. The safety had to be structural.
+- **Reserving a whole rotation day for north-star product work.** Tempting given
+  question 5, but the rotation already reserves Tuesday for product and the
+  problem is not the day - it is that a real defect found on that day rightly
+  wins. A sixth day would be consumed the same way. The health-number line is the
+  cheaper intervention and does not override a session's judgement.
+- **Making the retrospective monthly instead of fortnightly.** Considered because
+  the routine is now healthy. Rejected: this fortnight's finding was a live hole
+  in the publish path, found only because a retrospective looks at the runner at
+  all. Nothing else in the rotation does.
+
+### Not done, and why
+
+- **Priority 4 (deterministic per-stock summaries) is still not started**, now 25
+  days old. A retrospective is the wrong session to start it in - it would leave
+  a half-built feature on a public site - but it is the top open item and Monday
+  or Thursday should take it. This is exactly the deferral the new health-number
+  line is meant to make visible; it is recorded rather than hidden.
+- **Gate 3 still only regex-matches `dashboard_data.js`'s first line**, not a
+  real parse. Unchanged from the 08-21 retrospective's note. PowerShell *was*
+  executable this session, so the objection recorded then no longer holds and a
+  node parse is now buildable - a legitimate way to make a gate stricter. Left
+  for a session that can test it end to end rather than bolted on at the close of
+  this one.
+
+### Flagged for the owner
+
+- **Nothing needs your decision.** The queue in `OWNER_FOCUS.md` is empty and has
+  been for the period; the routine has been running unattended and correctly. If
+  you want the dashboard to move faster than the defect fixes allow, the single
+  most useful thing you can do is put one line under **Open** naming the surface
+  you want - an owner item outranks the rotation, which is the one lever that
+  reliably beats firefighting.
+
+### Next
+
+1. **Confirm the runner merged this session** - `git log origin/main` should show
+   `nightly 2026-09-04 - RETROSPECTIVE`, and the log should read "All gates
+   passed. Merging to main." with "HEAD is on 'nightly/2026-09-04'" above it.
+   That line has never appeared on a successful run; it is the first production
+   exercise of the merge path. If it did not merge, the work is on
+   `origin/nightly/2026-09-04` and recovering it is the first job.
+2. **Priority 4 - deterministic per-stock summaries.** Fully specified, no
+   research dependency, 25 days open.
+3. `growth ~ investment = -0.331`, carried from 09-02 and still the best research
+   question on the board.
