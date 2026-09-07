@@ -1,34 +1,34 @@
-# Morning Brief - Friday 04 September 2026, 06:24
+# Morning Brief - Monday 07 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-04T02:00:03.088823 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-09-07T02:00:03.446087 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, APA, CF, VLO |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 32 rows across all horizons), newest 2026-08-28 |
+| Top 5 | HST, EXPE, APA, CAH, VLO |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 33 rows across all horizons), newest 2026-08-31 |
 
 ## What changed in the repo
 
-- `af19547 log: 2026-09-04 retrospective - 9 of 9 sessions shipped; the gates were an audit`
-- `0fbb194 process: the ship gates decide before anything reaches main, not after`
-- `1904829 fix: the morning brief could publish the work the ship gates refused`
-- `af1ea03 brief: data run 2026-09-04`
-- `25f34f1 data: screener run 2026-09-04 - 502 scored, top: HST EXPE APA CF VLO`
-- `7beb43b brief: code session 2026-09-03`
-- `0776450 log: 2026-09-03 build session - size tilt closed by measurement, remote branch sweep`
-- `7438356 fix: merged nightly/* branches are now swept from origin, not just locally`
-- `a8e685d docs: the size section described a compression the pipeline does not perform`
-- `f4e81c6 brief: data run 2026-09-03`
-- `115a5d6 data: screener run 2026-09-03 - 502 scored, top: HST EXPE APA CF VLO`
+- `e2afbe4 data: screener run 2026-09-07 - 502 scored, top: HST EXPE APA CAH VLO`
 
 ## The session's own account
 
