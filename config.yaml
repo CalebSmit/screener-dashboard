@@ -87,9 +87,14 @@ metric_weights:
     short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
     short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
     analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
-    # NOTE: EPS forecast revision (change in consensus FWD EPS over 3-6 months) would be
-    # ideal here, but yfinance does not provide historical consensus data.
-    # Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.
+    # NOTE: none of the five scored metrics above is an estimate *revision*.
+    # A real one IS available from the current data source, contrary to what this
+    # comment said until 2026-09-07: Ticker.eps_trend returns consensus EPS now vs
+    # 7/30/60/90 days ago (FY1 and FY2), and Ticker.eps_revisions returns up/down
+    # analyst counts. Measured 2026-09-07: 97.6% coverage on an 84-name sample,
+    # +1 HTTP request per ticker. It does NOT require FactSet or Refinitiv I/B/E/S.
+    # Evidence and a proposed weighting:
+    # research/2026-09-07-revisions-category-has-no-revisions.md
 
   size:
     size_log_mcap: 100         # Single metric: -log(market cap). Small-cap premium (Fama-French SMB)
