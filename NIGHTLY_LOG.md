@@ -3692,3 +3692,177 @@ infrastructure, which by precedent lives in this log rather than in
    research dependency, 25 days open.
 3. `growth ~ investment = -0.331`, carried from 09-02 and still the best research
    question on the board.
+
+---
+
+## 2026-09-07 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-09-04_060001.log` - "Run complete: shipped to main" (09-05/09-06 were the weekend) |
+| Data loop published? | `logs/datarun-2026-09-07_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **33 rows, newest 2026-08-31, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+| Priority 0 | DONE 2026-08-24, not reopened |
+| Top open roadmap item | **Priority 4, deterministic per-stock summaries - owner directive 2026-08-10, open 28 days** |
+
+**Tests:** before 965/965, after 965/965 (no pre-existing failures; no tests added - research day)
+**Data loop:** healthy. Evidence base moved 32 -> 33 rows, newest 08-28 -> 08-31.
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred.
+ISO week 37, Monday - research day, taken as the focus.
+
+### Did
+
+**Researched the Revisions category and found it contains no revisions.**
+`research/2026-09-07-revisions-category-has-no-revisions.md`.
+
+The category carries **10% of the composite**. All five scored metrics are past
+earnings surprises, a price-target *level*, or short interest. The three
+surprise metrics come from the same four rows of `Ticker.earnings_history`
+(`factor_engine.py:1089-1130`) and are **78% of the category = 7.8% of the
+composite**.
+
+Three findings, in order of how much they should change what we do:
+
+**1. The category's public rationale rests on an effect documented as absent in
+this universe.** `SCREENER_OVERVIEW.md:149` justifies it with "When a company
+consistently beats earnings estimates, the stock price usually follows - but
+with a lag, which creates an opportunity." That is post-earnings announcement
+drift. Martineau (2022, *Critical Finance Review* 11(3-4)) finds PEAD
+**non-existent for all-but-microcap stocks since 2006**, with the 2016-2019
+60-day coefficient significantly *negative*; the return moved to the
+announcement date (large-stock BHAR[0,1] ~20bps in 1984-1990 -> ~120bps in
+2016-2019). His surprise measure is the analyst-estimate kind this screener
+computes, and every S&P 500 name is "all-but-microcap".
+
+**2. The claim that a revisions metric is impossible is false, and it was on the
+public methodology page.** `config.yaml` and `SCREENER_OVERVIEW.md` (twice) said
+forward-EPS revisions "would require a paid data source like FactSet or
+Refinitiv I/B/E/S". Measured today against the installed yfinance 0.2.66:
+`Ticker.eps_trend` returns consensus EPS now vs **7/30/60/90 days ago** for
+FY1/FY2, and `Ticker.eps_revisions` returns up/down analyst counts. Coverage on
+a deterministic 84-name sample (`sp500_tickers.json[::6]`): **82/84 = 97.6%**,
+95% Wilson CI [91.7%, 99.3%] - **identical to `analyst_surprise`**, the metric
+already carrying 38% of the category. Measured cost, by instrumenting every
+`YfData` network method: **+1 HTTP request per ticker**, after which
+`eps_revisions` and `earnings_estimate` are free from the same cached response.
+
+**3. The surprise signal is structurally stale and the metric does not know it.**
+`analyst_surprise` is the median of the last *four* reported quarters, with no
+time-since-announcement term anywhere. On the 84-name sample, days since last
+report: median **69**, and **0% of names within 30 days**, 85.5% in the 60-90
+day band. Reporting is clustered so this swings with the calendar - 09-07 sits
+mid-quarter, the stale end - and the note says so explicitly rather than
+claiming the number is representative. The point stands regardless: the metric
+weights a 2-day-old beat and an 89-day-old beat identically.
+
+**What is working and should not be shrunk.** The revisions category is the
+screener's **most independent** - max |Spearman| against the other seven is
+**0.192** (momentum), and `revisions ~ composite` is only +0.237. Against the
+2026-08-26 finding that momentum and risk were 23% of composite weight off one
+`Ticker.history()` call, this is the counter-example. So the recommendation is
+to fix what is *in* the 10% slot, not to cut the slot.
+
+**Also shipped: corrected the two false claims on the public methodology page**
+(`SCREENER_OVERVIEW.md` lines 151 and 476) and the matching `config.yaml`
+comment. Facts only - **no weight, threshold, metric or code path changed**, so
+there is no `METHODOLOGY_CHANGELOG.md` entry. Precedent: 09-01 and 09-03 both
+corrected published claims of this project's own that turned out to be false,
+and CLAUDE.md requires public docs be kept truthful. Leaving a demonstrably
+false "requires FactSet or Refinitiv" on a page an investment club reads, for
+four more days, was the worse option.
+
+### Evidence / research
+
+- **Chan, Jegadeesh & Lakonishok (1996)**, *JF* 51(5) 1681-1713. IBES 1977-1993.
+  REV6 = 6-month MA of (consensus revision / price). Top-vs-bottom **decile:
+  +7.7% over 6 months**, +8.7% at 12. SUE over 1973-1993: **+7.5%**. Rank
+  correlation SUE~revisions **0.440** - "do not reflect the same information".
+  Via Jegadeesh (2001) *Momentum* survey section 6, which also carries **Stickel
+  (1991)** (Zacks, 1981-1984, top/bottom 5%: **+7.07%** consensus revisions,
+  +6.36% individual) and the judgement that the revision strategy is
+  "remarkably robust... not sensitive to the specific definition... nor to the
+  source of analyst forecasts".
+- **Novy-Marx (2015)**, NBER WP 20984, US 1975-2012. Monthly excess returns by
+  size quintile, **largest quintile (72% of market cap)**: price momentum
+  **0.35 [t=1.48]**, CAR3 **0.20 [2.12]** with alpha **0.15 [1.66]** - both
+  insignificant. **SUE survives at 0.26 [2.46], alpha 0.29 [2.83].** Reported in
+  the note as cutting both ways: a properly standardised surprise did earn a
+  large-cap alpha, on the thinnest margin in the paper.
+- **Martineau (2022)**, *CFR* 11(3-4) 613-646. I/B/E/S 1984-2019, 312,462
+  announcements. Surprise = (actual - median forecast)/price. See finding 1.
+- **Bartov, Givoly & Hayn (2002)**, *JAE* 33(2) 173-204. Meet-or-beat premium
+  ~3%. Read from the paper rather than the abstract: it is a **return over the
+  quarter in which the MBE occurs**, not a forward return, and "leading
+  indicator of future performance" means future *fundamentals* (their Table 9,
+  "both of the years following the MBE year"). So it supports
+  `consecutive_beat_streak` as a persistence signal, not as a return predictor.
+- **Practice - MSCI Barra USFAST datasheet (March 2015)**, 24 style factors.
+  `Sentiment` = "return differences between stocks based on sell-side analyst
+  revisions and news sentiment", descriptors **Revision ratio / Change in
+  analyst-predicted earnings-to-price / Change in analyst-predicted earnings per
+  share** + news sentiment. Searched the full datasheet: the word **"surprise"
+  appears zero times** across all 24 factors and their descriptors.
+- **Practice - Zacks Rank**, four components: **Agreement** (revision breadth),
+  **Magnitude** (change in consensus for current/next fiscal year), **Upside**
+  (proprietary), **Surprise** ("a company's last few quarters' EPS surprises").
+  This screener implements **only Surprise** - one of four, and the only one
+  that is not a revision - in a category named for revisions.
+- **Where they disagree:** academia says analyst-surprise drift is dead outside
+  microcaps; Zacks still ships a surprise leg. The note takes the academic side
+  on *surprise alone in large caps* (Martineau's test matches our universe,
+  surprise definition and period) and the practitioner side on category shape
+  (surprise stays as one leg of several, not 78%).
+- **Measured on the live payload and a fresh sample**, not from the backtest or
+  the IC history: `analyst_surprise ~ consecutive_beat_streak` **+0.497** (58
+  points of category weight, largely one signal); `earnings_acceleration`
+  independent at **-0.070**; 90-day revision vs `analyst_surprise` **+0.346**,
+  *below* CJL's 0.440, so the duplication objection fails.
+
+### Methodology changed
+
+- **None.** No weight, threshold, metric or code path was touched. Doc
+  truthfulness corrections only (section 7 of the note). The proposed metric and
+  reweighting are argued in the note and left for Wednesday's synthesis and
+  Thursday's build.
+
+### Tried and rejected
+
+- **Adding a recency / time-since-announcement weighting to the surprise
+  metrics.** This was the obvious fix suggested by the 69-day staleness finding
+  and I worked it through before rejecting it. Ruled out by Martineau (2022):
+  conditioning on recency would sharpen a signal that does not exist in this
+  universe - a better estimate of zero, bought with an extra term and a
+  paragraph of explanation. It also makes every stock's score depend on its
+  reporting calendar, so the movers panel would show names shifting for a
+  reason a student cannot see.
+- **Using the up/down diffusion index `(up-down)/(up+down)` as the primary
+  revision metric.** Rejected on measurement, not preference: **62% of the
+  sample is tied**, with many names pinned at exactly +1.0. In a rank-scored
+  system that is a large tie block. `eps_trend` magnitude has **0% ties** and is
+  the better primary; diffusion is at best secondary.
+- **Scaling the revision by the estimate rather than by price.** The sampled
+  ratio has mean **+19.9%** against median **+1.7%** and sd 1.55 - a fat right
+  tail from small denominators, the same pathology `analyst_surprise` already
+  guards against with its `max(|e|, 0.10)` floor. CJL scale by *price*; so
+  should we.
+- **Cutting the revisions category's 10% weight.** Tempting given finding 1, and
+  rejected: at max |Spearman| 0.192 it is the most orthogonal category in the
+  screener. The slot is worth keeping; the contents are the problem.
+
+### Next
+
+**Wednesday's synthesis, and it has one measurement that must come first:**
+`fy1_revision_3m ~ forward_eps_growth`. `forward_eps_growth` is **45% of the
+growth category** and is built on the *same* FY1 consensus number. A level and a
+change in that level are different objects, but if they come back highly
+correlated, adding the revision metric would spend a growth slot and a revisions
+slot on one input - the 2026-08-26 momentum/risk failure in a new place. Measure
+that, and `revisions ~ momentum` (currently +0.192; Novy-Marx's thesis is that
+price momentum *is* earnings momentum), before writing any changelog entry.
+
+Standing, unchanged: **Priority 4, per-stock summaries, 28 days open** - and the
+note argues it gets easier, since "analysts raised their estimate 4% in three
+months" is a sentence a student understands and "the median of its last four
+quarterly EPS surprises is in the 71st percentile" is not.
