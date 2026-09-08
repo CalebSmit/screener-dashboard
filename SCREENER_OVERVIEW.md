@@ -148,14 +148,7 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 **Why these?** Estimate revisions and analyst targets are among the most powerful short-term return predictors. When a company consistently beats earnings estimates, the stock price usually follows — but with a lag, which creates an opportunity. Analyst Surprise gets the highest weight because it's a harder, backward-looking signal with less optimism bias than forward price targets. Earnings Acceleration (a continuous delta, not binary) and Beat Score (recency-weighted, not a simple streak counter) capture the *trajectory* and *consistency* of earnings beats — a company whose surprise % is improving quarter-over-quarter, and which has beaten in recent quarters with higher recency weight, signals genuine fundamental momentum. This category is weighted at only 10% because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.
 
-*Note: none of the five metrics above is actually an estimate **revision** — all
-five describe past surprises, a price-target level, or short interest. A true
-revision metric (change in consensus forward EPS over 3 months) **is** available
-from the current data source: `Ticker.eps_trend` returns consensus EPS now
-versus 7, 30, 60 and 90 days ago, measured at 97.6% coverage of this universe
-on 2026-09-07. An earlier version of this note said it required FactSet or
-Refinitiv I/B/E/S; that was wrong. Whether to add it, and at what weight, is
-assessed in `research/2026-09-07-revisions-category-has-no-revisions.md`.*
+*Note: EPS forecast revision (change in consensus forward EPS over 3-6 months) would be ideal as a fifth metric here but is not feasible with yfinance, which does not provide historical consensus data. Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.*
 
 ---
 
@@ -480,7 +473,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 4. **Analyst coverage:** The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.
 
-5. **The Revisions category contains no revisions.** All five of its scored metrics are past earnings surprises, a price-target level, or short interest — not changes in analyst estimates. This is a real gap: the literature's strongest earnings-momentum signal is the consensus forecast revision (Chan, Jegadeesh & Lakonishok 1996 report +7.7% over six months for the top-vs-bottom decile), and both Barra's `Sentiment` factor and the Zacks Rank are built on revisions rather than surprise. Earlier versions of this document said the data was unavailable without FactSet or Refinitiv I/B/E/S; that was wrong — `Ticker.eps_trend` and `Ticker.eps_revisions` supply it at ~97% coverage for one extra request per stock. See `research/2026-09-07-revisions-category-has-no-revisions.md` for the evidence and the proposed change.
+5. **No EPS revision data:** yfinance does not provide historical consensus EPS estimates, so the Revisions category cannot include the single most powerful revisions signal (change in forward EPS consensus over time). This would require a paid data source like FactSet or Refinitiv I/B/E/S.
 
 6. **Rebalance frequency:** The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.
 
