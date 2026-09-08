@@ -1,4 +1,4 @@
-# Morning Brief - Monday 07 September 2026, 06:18
+# Morning Brief - Tuesday 08 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-07T02:00:03.446087 |
+| Dashboard data from | 2026-09-08T02:00:04.268668 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
 | Top 5 | HST, EXPE, APA, CAH, VLO |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 33 rows across all horizons), newest 2026-08-31 |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (8 rows, but overlapping windows are not independent; 34 rows across all horizons), newest 2026-09-01 |
 
 ## What changed in the repo
 
+- `c72d9c1 data: screener run 2026-09-08 - 502 scored, top: HST EXPE APA CAH VLO`
+- `51cfa15 brief: code session 2026-09-07`
 - `cde9089 log: 2026-09-07 research session - the Revisions category has no revisions`
 - `7de239c docs: correct the false "revisions data requires FactSet/Refinitiv" claim`
 - `d09e7bc research: the Revisions category contains no revisions`
