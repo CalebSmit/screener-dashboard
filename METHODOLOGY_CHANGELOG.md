@@ -1191,3 +1191,154 @@ can speak to this, and the argument does not need it.
 `config.yaml`, `schemas.py`, the two documentation blocks in
 `run_screener.py`, `tests/fixtures/golden_scores.parquet`, and the new test
 module.
+
+---
+
+## 2026-09-08 - The AI chat leaves the dashboard; every stock gains a deterministic "Why it ranks here"
+
+**Area:** dashboard surfaces / payload composition. **No scoring change.** No
+weight, threshold, metric definition, trap rule or scoring formula moved.
+Composite scores and ranks are byte-identical before and after. This entry
+exists because a published surface was removed and another added, and because a
+future session must be able to find out why - the same reason the 2026-08-26
+(evening) model-portfolio entry exists.
+
+**Applied by:** morning session (manual), product day. Owner directive
+2026-08-10, priority 4 in `CLAUDE.md`, specified in
+`plan/dashboard-north-star.md` ("Replace the chatbot with generated summaries").
+Open **29 days**.
+
+### Changed - 1. The "Screener AI" chat is gone
+
+Removed from the generator: the chat FAB and panel, the Chat Settings dialog
+with its API-key field and model picker, 27 JavaScript functions
+(`sendMessage`, `callClaude`, `buildSystemPrompt`, `parseChatMd`,
+`initChatResize`, ...), the `chatSlideUp`/`chatFabPulse`/`chatDotBlink`
+keyframes and the whole `AI CHAT PANEL` stylesheet block. **891 lines**: 80
+HTML, 583 JS, 228 CSS. `generate_dashboard.py` is 921 lines shorter.
+
+The `config_traps` payload key went with it. It carried the four trap
+thresholds solely so the chat could put them in its system prompt; nothing
+rendered them, and the same thresholds are already published in the Methodology
+section, which `run_screener.generate_screener_overview()` templates from
+`config.yaml`. Same reasoning that retired `spx_weights` on 2026-08-26: a
+payload key whose only consumer has gone is dead weight that reads like a
+feature.
+
+**Evidence - a documented user-facing failure, not a preference.** The chat
+required each visitor to paste their own Anthropic API key into `localStorage`
+and then called `api.anthropic.com` **from the browser**. Four consequences,
+all demonstrable from the shipped code rather than argued:
+
+1. **It was unusable for the stated audience.** Every student in a college
+   investment club would need their own paid API account. Most do not have one,
+   so for most visitors the feature was a button that opened a form asking for a
+   credential they cannot obtain.
+2. **It taught a bad habit.** A public web page with a password field labelled
+   "Anthropic API Key" is the exact shape of a credential-phishing form. That is
+   a poor thing for a teaching tool to normalise.
+3. **It cost the reader money per question**, on a tool whose premise is that it
+   is free and reproducible.
+4. **It was un-reproducible, and that is the one that decides it.** Two students
+   asking the same question got different answers, and neither answer was
+   recorded anywhere. `plan/dashboard-north-star.md` puts the standard plainly:
+   *"decision support, not a recommendation engine... show why, with sources and
+   uncertainty visible."* An explainer that cannot be audited works directly
+   against the property the rest of this tool is built to have. The screener
+   refuses to publish a run whose price coverage is below 90%, while shipping an
+   explanation layer with no provenance at all.
+
+### Changed - 2. "Why it ranks here" replaces it
+
+`stock_summary.py` (new) builds an ordered list of factual sentences per stock
+from fields the payload already carried - `contrib`, `cat_scores`, `pct`, `raw`,
+`peers`, `flags`, the analyst targets, `metric_count`/`metric_total` and the
+`history` spine. It renders as the first block of the stock drilldown. Worked
+example, HST on the 2026-09-08 run:
+
+> Ranks 1st of 502. Its composite of 74.7 is a percentile: it scores above 75%
+> of the universe. Most of that composite comes from Valuation (category score
+> 96, 21.1 points) and Quality (category score 83, 18.4 points) - 39.4 of its
+> 74.7 points. Its weakest scored category is Risk at 38 out of 100,
+> contributing 3.8 points. A category score near 50 is the sector median. Inside
+> Valuation it sits in the 97th sector percentile on EV/EBITDA (8.99) and the
+> 97th on Earnings Yield (6.7%). Its lowest-ranked weighted input is Beta
+> (0.70), in the 17th sector percentile. Since the run of 2026-08-10 (29 days
+> ago) it has held its rank, with the composite down 3.3. It last traded at
+> $22.05 against an analyst price target of $25.14, 14.0% above the current
+> price, the mean of 20 analyst estimates. Among the 5 closest Real Estate names
+> by market cap plus itself, it ranks 1st of 6 on composite (best peer: REG at
+> 57.4). Flagged as a channel-stuffing risk (receivables growing faster than
+> revenue). The score rests on 18 of 18 metrics.
+
+Every figure is arithmetic on the run's own output. It is **generated at build
+time and baked into the payload**, not computed in the browser, so what a reader
+diffs is what shipped and two readers cannot see different text.
+
+**Three constraints are enforced by tests, not by care:**
+
+- **It explains; it never advises.** `BANNED_TERMS` in `stock_summary.py` is the
+  machine-checkable form of the north-star line ("good: *ranks 1st, driven by
+  valuation and momentum*; bad: *attractive entry point*"). All 502 summaries on
+  the live run contain **zero** matches, and the detector is itself tested
+  against the plan's own bad examples, so a clean sweep means something.
+- **Metric percentiles are labelled sector-relative**, because they are
+  (`factor_engine.compute_sector_percentiles`). Calling them plain percentiles
+  would publish a false claim about how the number was computed.
+- **A fact that cannot be stated exactly is omitted, never approximated.** A
+  stock with no history, no analyst coverage or a withheld category gets a
+  shorter summary, not a hedged one. FDXF reads *"The score rests on 12 of 18
+  metrics. Momentum, Risk and Investment could not be scored for this stock, so
+  the remaining categories were reweighted to fill the gap. Its filings are
+  flagged stale (282 days old)."* - which is north-star gap 5 (per-stock
+  confidence made legible) arriving as a side effect.
+
+**Scope: all 502 stocks, departing from the plan's "top ~25 first".** That
+guidance was written before anyone measured the cost; the measurement is **+665
+KB raw, +101 KB gzipped** (payload 1,078 -> 1,179 KB on the wire). Removing the
+chat gives back 11 KB of page (`index.html` 281,678 -> 237,952 chars; 66 -> 55
+KB gzipped), so the net is **+90 KB on the wire, +8%**. Against that, the
+drilldown is the surface that answers *should I buy this one*, and it is
+reachable for every name in the universe - a summary that appears only for names
+a reader already knows is missing exactly where it helps most.
+`plan/dashboard-north-star.md` now carries the measurement, so the next session
+inherits the number rather than the guess.
+
+**Expected effect:** none on any score, rank, weight or artifact other than
+`dashboard.html` / `index.html` / `dashboard_data.js`. The drilldown gains a
+lede; the page loses a credential form.
+
+**Validated by:** full suite **965 -> 1,117 passing**, no failures before or
+after. Two new modules: `tests/test_stock_summary.py` (77 tests) and
+`tests/test_ai_chat_removed.py` (75 tests). **58 of those 75 fail against the
+pre-change generator**, verified by swapping in `HEAD:generate_dashboard.py` and
+re-running; the working copy was restored and checked byte-identical by SHA-256
+afterwards.
+
+The removal tests assert **both halves**. A partial swap is the dangerous state:
+an `onclick="toggleChat()"` surviving its deleted function throws at click time,
+and a dangling identifier in the script body blanks the whole page with all four
+ship gates green - the failure `tests/test_dashboard_js.py` and the 2026-08-26
+portfolio removal were both written about. So the module checks that no chat
+symbol, element id, model id, `localStorage` key or provider URL survives, **and**
+that `renderSummary` exists, is wired into `openStockDetail`, escapes its text,
+and that every stock carries a non-empty summary. The emitted script is
+additionally parsed with `node --check`.
+
+**A parser-free brace-balance backstop was written for that last check and
+removed the same session.** JavaScript regex literals make it unsound:
+`escapeHtml` contains `.replace(/'/g, '&#39;')`, and a scanner without
+regex-literal support reads that apostrophe as a string delimiter and
+desynchronises. It reported the page unbalanced while `node --check` passed. A
+check that fires on healthy code is the failure shape the 2026-09-01
+bank-metrics fix was about - it trains a reader to ignore it, which is exactly
+when the real defect gets through. Where `node` is absent the syntax test skips
+visibly rather than pretending to cover.
+
+**No backtest number and no figure from `live_ic_history.csv` appears in this
+entry** (rules 4 and 5), and neither would be relevant: nothing here touches
+scoring.
+
+**Rollback:** `good/2026-09-07`. The change is confined to
+`generate_dashboard.py`, the new `stock_summary.py`, the two new test modules,
+the regenerated artifacts, and documentation.

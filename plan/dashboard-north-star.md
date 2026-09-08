@@ -44,11 +44,14 @@ per-category `contrib` attribution, `peers`, analyst price targets
 (`pt_mean/high/low`, `num_analysts`), `financials`, `flags`, `data_source`
 provenance, and `metric_count/metric_total` coverage.
 
-Rendered sections include: Full Universe Rankings, Model Portfolio, Top 5,
-Company Snapshot, Score Contribution Breakdown, Sector Peers, Analyst Price
-Targets, Data Provenance, Factor Correlation Matrix, Weight Sensitivity,
-Factor Scores by Sector, Trap Rate by Sector, Factor-Exposure Diagnostics, a
-large Methodology section, and a "Screener AI" chat.
+Rendered sections include: Full Universe Rankings, Top 5, What Changed,
+Why It Ranks Here, Company Snapshot, About, Rank History, Score Contribution
+Breakdown, Sector Peers, Analyst Price Targets, Data Provenance, Factor
+Correlation Matrix, Weight Sensitivity, Factor Scores by Sector, Trap Rate by
+Sector, Factor-Exposure Diagnostics, and a large Methodology section.
+
+*(Model Portfolio was removed 2026-08-26; the "Screener AI" chat 2026-09-08.
+`plan/dashboard-inventory.md` is the authoritative list - check it first.)*
 
 **The dashboard is already strong on question 2.** Its real gaps are elsewhere.
 
@@ -101,9 +104,41 @@ in `CLAUDE.md`. They may look like clutter on a decision surface; they are the
 reason anyone should trust the decision surface. Move or restyle them, don't
 remove them. Second, evaluate the "Screener AI" chat honestly against the
 criteria above - if it cannot ground its answers in the payload and cite them,
-it is a liability on a tool whose selling point is auditability.
+it is a liability on a tool whose selling point is auditability. *(Done
+2026-09-08: it could not, and it went. See the section below.)*
 
 ## Replace the chatbot with generated summaries (owner directive 2026-08-10)
+
+> **SHIPPED 2026-09-08.** The chat is gone - 891 lines of HTML, JS and CSS, the
+> API-key dialog, the model picker and the `config_traps` payload key that only
+> its system prompt read. Every stock's drilldown now opens with a **"Why it
+> ranks here"** block built by `stock_summary.py` at run time and baked into the
+> payload. `METHODOLOGY_CHANGELOG.md` 2026-09-08;
+> `tests/test_stock_summary.py` (77 tests) and `tests/test_ai_chat_removed.py`
+> (75 tests, 58 of which fail against the pre-change generator).
+>
+> **Two decisions that departed from what is written below, and why.**
+>
+> 1. **All 502 stocks, not "the top ~25 first".** The scope note below was
+>    written before anyone measured the cost. Measured: **+665 KB raw, +101 KB
+>    gzipped** (payload 1,078 -> 1,179 KB on the wire), against **-11 KB** from
+>    deleting the chat (`index.html` 66 -> 55 KB gzipped) - a net **+90 KB,
+>    +8%**. The drilldown is the surface that answers *should I buy this one*
+>    and it is reachable for every name; a summary that appears only for names a
+>    reader already knows is missing exactly where it helps most. If payload
+>    weight later becomes the binding constraint, the cheap lever is dropping the
+>    `peers` and `flags` sentences (both duplicate a panel a few hundred pixels
+>    below) rather than cutting coverage.
+> 2. **The optional LLM gloss layer was not built, and should not be built
+>    next.** The deterministic block already reads as plain English, so a second
+>    layer would restate it at the cost of the exact property that justified
+>    removing the chat. If it is ever wanted, the constraint below still stands:
+>    build time, reviewed, identical for everyone.
+>
+> **Still open from this section:** the run-level overview. Most of it already
+> exists as the **What Changed** movers panel (shipped 2026-08-25), so what is
+> genuinely missing is narrower than the paragraph below suggests - a sentence
+> or two on what moved across the *whole run*, not per stock.
 
 **Remove the "Screener AI" chat. Put per-stock summaries in its place.**
 

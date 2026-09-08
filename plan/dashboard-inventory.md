@@ -1,11 +1,11 @@
-# Dashboard inventory (as of 2026-08-28)
+# Dashboard inventory (as of 2026-09-08)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
 something that already exists. Refresh this doc when you materially change the
 layout.
 
-Generated from `index.html` (270,427 chars) and `dashboard_data.js`.
+Generated from `index.html` (237,952 chars) and `dashboard_data.js`.
 
 **Refresh this file whenever you change the layout.** It went stale on
 2026-08-25 because the session that shipped the time dimension could not
@@ -24,8 +24,55 @@ leaving it wrong.
 | **Methodology** | A very large embedded explainer (~30 headings) |
 
 Interactive elements are sparse: **2 charts** (`sector-dist-chart`,
-`vt-chart`) and **1 table** (`universe-table`). There is
-also a "Screener AI" chat with a Chat Settings panel.
+`vt-chart`) and **1 table** (`universe-table`).
+
+The **stock drilldown** (`openStockDetail`) is where most of the surface area
+actually is, in this order: **Why It Ranks Here**, the score-card row, About,
+Rank History, Analyst Price Targets, Company Snapshot, Sector Peers, Data
+Provenance, Score Contribution Breakdown, and the eight category-detail
+sections with their metric tables.
+
+## Why It Ranks Here - the deterministic summary (2026-09-08)
+
+Built by `stock_summary.py` **at run time**, stored per stock as
+`stock_detail[t]["summary"]` = `[{"k": kind, "t": sentence}, ...]`, rendered by
+`renderSummary()` as the first block of the drilldown. Ten kinds: `rank`,
+`drivers`, `weakest`, `best_inputs`, `worst_input`, `change`, `target`,
+`peers`, `flags`, `confidence`. A kind is omitted when it cannot be stated
+exactly, so a thin stock gets a shorter summary rather than a hedged one.
+
+**Do not move this into the browser.** Building it here is what makes it
+diffable and identical for every reader, which is the entire reason it replaced
+the chat.
+
+**Do not let advice language in.** `stock_summary.BANNED_TERMS` +
+`advice_terms_in()` are checked against all 502 live summaries by
+`tests/test_ai_chat_removed.py`. "Explains why it ranks there, never whether to
+buy" is a north-star constraint with teeth, not a style note.
+
+**It says "sector percentile" deliberately** - the percentiles are
+sector-relative (`factor_engine.compute_sector_percentiles`), and dropping the
+qualifier would publish a false claim about how the number was computed.
+
+## The "Screener AI" chat is gone - DONE 2026-09-08
+
+Owner directive 2026-08-10, priority 4, open 29 days. Removed: the chat FAB and
+panel, the Chat Settings dialog (API-key field + model picker), 27 JS functions,
+three keyframe blocks and the `AI CHAT PANEL` stylesheet - 891 lines, and 921
+lines off `generate_dashboard.py`. The `config_traps` payload key went with it:
+its only consumer was the chat's system prompt, and the same thresholds are
+already in the Methodology section.
+
+It required each visitor to paste an Anthropic API key into `localStorage` and
+called `api.anthropic.com` from the browser - unusable for a student club,
+costly per question, a credential-phishing-shaped form on a public page, and
+un-reproducible, which is the one that decided it. Changelog 2026-09-08.
+
+`tests/test_ai_chat_removed.py` (75 tests, 58 failing against the pre-change
+generator) pins **both halves**: no chat symbol, element id, model id,
+`localStorage` key or provider URL survives, *and* the summary block renders. A
+partial swap is the dangerous state - a dangling identifier blanks the page with
+all four ship gates green.
 
 ## The Methodology section is roughly half the file
 
@@ -57,21 +104,28 @@ surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.81 -> ~3.5 | **~83% of the payload.** All 502 stocks. Grew 2026-08-26 with `about` |
+| `stock_detail` | 2.81 -> ~4.2 | **~88% of the payload.** All 502 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw) |
 | `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
 
 **Raw size is the wrong number to optimise.** Pages serves gzip, and the
-payload compresses 4.2x overall - prose closer to 11x. The business
-descriptions add ~0.71 MB raw but only ~60 KB on the wire. Measure gzip before
-calling anything expensive.
+payload compresses ~4x overall. The business descriptions add ~0.71 MB raw but
+only ~60 KB on the wire. Measure gzip before calling anything expensive.
+
+**But do measure.** The 2026-09-08 summaries compress only **6.6x** (665 KB raw
+-> 101 KB gzipped), well short of the ~11x the earlier prose achieved, because
+every stock's sentences carry different numbers and gzip's 32 KB window cannot
+match far back. Wire payload went **1,078 -> 1,179 KB**; removing the chat gave
+back 11 KB of page, so the net was **+90 KB (+8%)**. That was judged worth it -
+see `plan/dashboard-north-star.md` - but it is the largest single addition since
+`about`, and the next thing added should be weighed against a phone on 4G.
 
 `stock_detail` dominates. Per stock: `raw`, `pct`, `cat_scores`, `contrib`,
-`composite`, `rank`, `sector`, `company`, `industry`, `about`, `vt`/`gt`,
-`price`, `pt_mean/high/low`, `num_analysts`, `eps_mismatch`, `eps_ratio`,
-`data_source`, `metric_count`/`metric_total`, `financials`, `flags`, `peers`,
-`self_metrics`.
+`composite`, `rank`, `sector`, `company`, `industry`, `about`, `summary`,
+`vt`/`gt`, `price`, `pt_mean/high/low`, `num_analysts`, `eps_mismatch`,
+`eps_ratio`, `data_source`, `metric_count`/`metric_total`, `financials`,
+`flags`, `peers`, `self_metrics`.
 
 **`raw` is the value as fetched, from 2026-09-01.** Until then the pipeline
 winsorized every metric at the 1st/99th percentiles immediately before ranking
@@ -124,9 +178,10 @@ build and will not publish weights that fail to reproduce them.
 `metric_meta` (36 metrics),
 `sectors` (11), `sector_composition`, `histogram`, `vt_by_sector`,
 `gt_by_sector`, `sector_distributions`, `factor_correlation`,
-`weight_sensitivity` (8), `data_quality`, `config_traps`, `history`.
+`weight_sensitivity` (8), `data_quality`, `history`.
 
 `portfolio` and `spx_weights` were removed 2026-08-26 - see below.
+`config_traps` was removed 2026-09-08 with the chat that was its only consumer.
 
 ## What is genuinely missing
 
@@ -151,8 +206,12 @@ Confirmed against the above, not guessed:
    alerts.
 3. **Time-series valuation context.** `pct` is cross-sectional only.
 4. **Catalyst/earnings-date proximity.**
-5. **Per-stock confidence surfaced.** `metric_count/metric_total` and
-   `num_analysts` are in the payload but not made legible.
+5. ~~Per-stock confidence surfaced.~~ **MOSTLY SHIPPED 2026-09-08.** The
+   summary's `confidence` and `target` sentences state metric coverage ("rests
+   on 12 of 18 metrics"), name any withheld category and the reweighting it
+   caused, flag stale filings with their age, flag an EPS-basis mismatch, and
+   call out a thin analyst base (<5). What is still not legible anywhere is
+   `data_source` (quarterly vs annual).
 6. **Charting breadth.** Three charts for a 3 MB payload is thin - though add
    charts only where they beat a table, not for decoration.
 

@@ -321,6 +321,8 @@ outcome.
 
 ### Front-end
 - `generate_dashboard.py` - **source of truth**; writes `dashboard.html` + `dashboard_data.js`
+- `stock_summary.py` - the deterministic "Why it ranks here" sentences, built at
+  run time into `stock_detail[t]["summary"]`. Never advises; see priority 4 below
 - `dashboard_data.js` - `window.SCREENER_DATA`. `table_data` holds all ~500 stocks
   with all 8 category scores; `stock_detail` covers **all ~500 stocks** (raw
   values, percentiles, per-category `contrib` attribution, peers, price
@@ -723,16 +725,38 @@ reads them.
    fundamentals constant (look-ahead). It cannot honestly validate a
    methodology change, and now that the system validates *itself*, that bias
    steers the learning loop. `plan/backtest-v2.md`.
-4. **Replace the AI chat with generated per-stock summaries** (owner directive
-   2026-08-10). The chat needs each visitor to paste their own Anthropic API
-   key, which is unusable for an investment club and un-reproducible. Build the
-   deterministic template version first - the payload already has `contrib`,
-   `pct`, `peers` and price targets, so summaries can be exact, free, identical
-   for every viewer, and impossible to hallucinate. Explains *why it ranks
-   there*, never *whether to buy*. Plus a run-level overview of what changed.
-   See `plan/dashboard-north-star.md`.
+4. **DONE 2026-09-08 - the AI chat is gone, replaced by deterministic per-stock
+   summaries.** Owner directive 2026-08-10, open 29 days. Changelog 2026-09-08;
+   `stock_summary.py`; `tests/test_stock_summary.py` (77) and
+   `tests/test_ai_chat_removed.py` (75, of which 58 fail against the pre-change
+   generator).
+
+   Removed: the chat panel, the API-key dialog, the model picker, 27 JS
+   functions, three keyframe blocks and the chat stylesheet - 891 lines, and the
+   `config_traps` payload key whose only consumer was the chat's system prompt.
+   Added: a **"Why it ranks here"** block opening every stock's drilldown, built
+   at run time from `contrib`, `cat_scores`, `pct`, `raw`, `peers`, `flags`, the
+   analyst targets and the history spine.
+
+   **Three things not to undo.** The summary is built **at build time and baked
+   into the payload** - moving it into the browser would give up the diffability
+   and per-reader identity that were the whole reason the chat went. Advice
+   language is blocked by `BANNED_TERMS` / `advice_terms_in()` and checked
+   against all 502 live summaries; "explains why it ranks there, never whether
+   to buy" is a constraint with a test, not a style note. And metric percentiles
+   are labelled **sector**-relative because that is what they are.
+
+   **Cost, measured:** +101 KB gzipped for the summaries, -11 KB from deleting
+   the chat, net **+90 KB (+8%)** on a 1,078 KB wire payload. Scope was widened
+   from the plan's "top ~25" to all 502 on that measurement; if payload weight
+   ever binds, drop the `peers` and `flags` sentences before cutting coverage.
+
+   **Still open from that directive:** the **run-level** overview - one or two
+   sentences on what moved across the whole run. Most of it already exists as the
+   What Changed movers panel (2026-08-25), so the remaining gap is narrow.
 5. **Sell-side workflow** - client-side watchlist/holdings, deterioration
-   flags, review queue. Question 3 is currently unanswerable.
+   flags, review queue. Question 3 is currently unanswerable. **Now the top open
+   north-star item.**
 6. **Investor profile selector** - `plan/investor-profiles.md`.
    Reconcile with `presets.py` first. Note `contrib` is Balanced-only.
 7. **Investment-club readiness** - can a student open this on a phone and
