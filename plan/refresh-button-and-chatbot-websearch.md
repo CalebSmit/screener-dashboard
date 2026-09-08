@@ -1,5 +1,16 @@
 # Implementation Plan: Dashboard Refresh Button + Chatbot Web Search
 
+> **HISTORICAL. Feature 2 no longer exists.** The chatbot was removed from the
+> dashboard on **2026-09-08** (owner directive 2026-08-10) and replaced by the
+> deterministic per-stock "Why it ranks here" summary in `stock_summary.py`.
+> Everything below about `parseChatMd`, `callClaude`, the API-key dialog and the
+> web-search tool describes code that is gone; it is kept as the record of why
+> the feature was built and what it did. See `METHODOLOGY_CHANGELOG.md`
+> 2026-09-08 for why it went, and `plan/dashboard-north-star.md` for what
+> replaced it.
+>
+> **Feature 1, the refresh button, still exists** and still works as described.
+
 ## Overview
 
 Two independent features:

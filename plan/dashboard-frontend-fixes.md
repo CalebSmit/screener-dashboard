@@ -1,5 +1,14 @@
 # Implementation Plan: Dashboard Frontend Security, Performance & Polish
 
+> **HISTORICAL, and partly superseded.** Step 3 (`parseChatMd` sanitisation),
+> the chat-context builders in Step 2, and the print rule hiding `.chat-fab` /
+> `.chat-panel` all refer to the "Screener AI" chat, which was removed on
+> **2026-09-08**. Those steps no longer have a target. The rest - `escapeHtml()`,
+> the filter debounce, the Python cleanups - shipped and is still live;
+> `escapeHtml()` in particular is now what the replacement summary block uses to
+> render its text. Line numbers throughout are from the pre-2026-08 file and no
+> longer resolve.
+
 ## Task Type
 - [x] Frontend (dashboard.html — both generated output and generate_dashboard.py template)
 - [x] Backend (generate_dashboard.py — Python data generation)

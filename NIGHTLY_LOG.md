@@ -3866,3 +3866,199 @@ Standing, unchanged: **Priority 4, per-stock summaries, 28 days open** - and the
 note argues it gets easier, since "analysts raised their estimate 4% in three
 months" is a sentence a student understands and "the median of its last four
 quarterly EPS surprises is in the 71st percentile" is not.
+
+---
+
+## 2026-09-08 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | `logs/nightly-2026-09-07_060001.log` - "Run complete: shipped to main" |
+| Data loop published? | `logs/datarun-2026-09-08_020002.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **34 rows, newest 2026-09-01, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+| Priority 0 | DONE 2026-08-24, not reopened |
+| Top open roadmap item | **Priority 4, per-stock summaries - owner directive 2026-08-10, open 29 days. Taken and shipped today.** Next up is priority 5, sell-side workflow (north-star gap 2, 2026-08-05, **34 days**) |
+
+**Tests:** before 965/965, after **1117/1117** (no pre-existing failures; +152 tests)
+**Data loop:** healthy. Evidence base moved 33 -> 34 rows, newest 08-31 -> 09-01.
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred.
+ISO week 37, Tuesday - product day, taken as the focus. The top open roadmap
+item happens to *be* a product item, so for once the rotation and the queue
+pointed at the same work.
+
+### Did
+
+**Shipped priority 4: the "Screener AI" chat is gone and every stock's
+drilldown now opens with a deterministic "Why it ranks here" block.** Owner
+directive 2026-08-10, open 29 days. `METHODOLOGY_CHANGELOG.md` 2026-09-08.
+
+This is the first north-star item to ship since 2026-08-25. The 2026-09-04
+retrospective added the roadmap-age line to rule 8 precisely because nine
+consecutive sessions had produced real work and no north-star item; writing the
+age down is what made "29 days" visible at the moment the day's focus was being
+chosen.
+
+**Removed** (891 lines: 80 HTML, 583 JS, 228 CSS; `generate_dashboard.py` is
+921 lines shorter): the chat FAB and panel, the Chat Settings dialog with its
+API-key field and model picker, 27 JS functions, three keyframe blocks and the
+`AI CHAT PANEL` stylesheet. The `config_traps` payload key went with it - it
+carried the four trap thresholds solely so the chat could put them in its system
+prompt, nothing rendered them, and the Methodology section already publishes
+them from `config.yaml`. Same reasoning that retired `spx_weights` on
+2026-08-26.
+
+**Why it had to go** - four consequences, all readable off the shipped code
+rather than argued. It required each visitor to paste an Anthropic API key into
+`localStorage` and called `api.anthropic.com` from the browser, so: every
+student in a college investment club needed a paid API account most do not have;
+a public page carried a password field labelled "Anthropic API Key", which is
+the shape of a phishing form; each question cost the reader money; and two
+students asking the same question got different answers, recorded nowhere. The
+last one decides it. This tool refuses to publish a run whose price coverage is
+below 90% and was shipping an explanation layer with no provenance at all.
+
+**Added:** `stock_summary.py` builds an ordered list of factual sentences per
+stock from fields the payload already carried - `contrib`, `cat_scores`, `pct`,
+`raw`, `peers`, `flags`, the analyst targets, `metric_count`/`metric_total` and
+the `history` spine - and `renderSummary()` puts it at the top of the drilldown.
+HST on this run:
+
+> Ranks 1st of 502. Its composite of 74.7 is a percentile: it scores above 75%
+> of the universe. Most of that composite comes from Valuation (category score
+> 96, 21.1 points) and Quality (category score 83, 18.4 points) - 39.4 of its
+> 74.7 points. Its weakest scored category is Risk at 38 out of 100,
+> contributing 3.8 points. A category score near 50 is the sector median. [...]
+> Since the run of 2026-08-10 (29 days ago) it has held its rank, with the
+> composite down 3.3. [...] The score rests on 18 of 18 metrics.
+
+**Built at run time and baked into the payload**, not computed in the browser -
+that is what makes it diffable and identical for every reader, which is the
+entire reason it replaced the chat. Three constraints are enforced by tests
+rather than by care:
+
+- **It explains; it never advises.** `BANNED_TERMS` / `advice_terms_in()` is the
+  machine-checkable form of the north-star line. All 502 live summaries contain
+  zero matches, and the detector is itself tested against the plan's own bad
+  examples ("attractive entry point", "undervalued", "a strong buy") so a clean
+  sweep means something.
+- **Percentiles are labelled sector-relative**, because they are.
+- **A fact that cannot be stated exactly is omitted, never approximated.**
+
+**A side effect worth naming:** this closes most of north-star gap 5, per-stock
+confidence made legible. FDXF now reads *"The score rests on 12 of 18 metrics.
+Momentum, Risk and Investment could not be scored for this stock, so the
+remaining categories were reweighted to fill the gap. Its filings are flagged
+stale (282 days old)."* That is the 2026-08-26 coherence finding - momentum and
+risk are 23% of composite weight off one `Ticker.history()` call - surfacing to
+a reader in prose, for the first time, without anyone building a feature for it.
+
+**Tests: 965 -> 1117.** `tests/test_stock_summary.py` (77) and
+`tests/test_ai_chat_removed.py` (75). **58 of those 75 fail against
+`HEAD:generate_dashboard.py`**, verified by swapping the file in, re-running,
+restoring, and confirming the working copy byte-identical by SHA-256. The
+removal module asserts **both halves** - no chat symbol, element id, model id,
+`localStorage` key or provider URL survives, *and* `renderSummary` exists, is
+wired into `openStockDetail`, and escapes its text. A partial swap is the
+dangerous state: a dangling identifier blanks the page with all four gates
+green. The emitted script is additionally parsed with `node --check`.
+
+**Payload cost, measured before deciding scope:** the summaries add 665 KB raw
+but compress only 6.6x, so **+101 KB gzipped**; deleting the chat gives back
+11 KB of page (`index.html` 281,678 -> 237,952 chars, 66 -> 55 KB gzipped). Net
+**+90 KB on the wire, +8%**. The plan said "top ~25 first"; that was written
+before anyone measured, and on the measurement all 502 is the right call - the
+drilldown is the surface that answers *should I buy this one*, and a summary
+that only appears for names a reader already knows is missing exactly where it
+helps most. The number is now in `plan/dashboard-north-star.md` and
+`plan/dashboard-inventory.md` so the next session inherits it rather than the
+guess, along with the cheap lever if payload weight ever binds (drop the `peers`
+and `flags` sentences, which duplicate panels a few hundred pixels below).
+
+**Docs kept true (rule 9):** `plan/dashboard-inventory.md` refreshed in the same
+session - new section on the summary, the chat section rewritten as a removal
+record, payload table and key list corrected, gap 5 updated.
+`plan/dashboard-north-star.md` marks the directive shipped and records both
+departures from what it specified. `plan/refresh-button-and-chatbot-websearch.md`
+and `plan/dashboard-frontend-fixes.md` both described chat code that no longer
+exists and now say so at the top. `CLAUDE.md` priority 4 rewritten as DONE with
+the three things not to undo.
+
+**`SCREENER_OVERVIEW.md` deliberately untouched.** It is generated from
+`run_screener.generate_screener_overview()` and documents *scoring*; nothing in
+it became false today. Adding the summary to its "Defensibility & Transparency
+Features" table would be a fair improvement but it is a separate change to a
+generator, not a truthfulness fix, and this session had one job.
+
+### Evidence / research
+
+- **A documented user-facing failure, which is the acceptable evidence class for
+  a product change.** The chat's four defects above are all readable off the
+  deleted code: `localStorage.getItem('screener_anthropic_api_key')`, a `fetch`
+  to `api.anthropic.com` with `anthropic-dangerous-direct-browser-access`, and a
+  model picker. No measurement was needed to establish that a browser-side LLM
+  call is not reproducible.
+- **The project's own standard, cited rather than invented.**
+  `plan/dashboard-north-star.md`: *"decision support, not a recommendation
+  engine... show why, with sources and uncertainty visible... never emit a bare
+  'buy'."* The `BANNED_TERMS` list is that sentence turned into a test.
+- **Measured, not assumed:** gzip cost of the summaries (665 KB -> 101 KB, 6.6x,
+  against the ~11x the inventory had recorded for earlier prose); page size
+  before and after; 58/75 tests failing against the pre-change generator;
+  0 advice-term matches across 502 live summaries.
+- **No backtest number and no figure from `live_ic_history.csv`** appears
+  anywhere in today's work (rules 4 and 5), and neither would be relevant -
+  nothing here touches scoring. Composites and ranks are byte-identical.
+
+### Methodology changed
+
+- **None in substance.** No weight, threshold, metric definition, trap rule or
+  scoring formula moved; composites and ranks are byte-identical before and
+  after. A `METHODOLOGY_CHANGELOG.md` entry was written anyway, for the same
+  reason the 2026-08-26 (evening) model-portfolio entry exists: a published
+  surface was removed and another added, and a future session has to be able to
+  find out why.
+
+### Tried and rejected
+
+- **A parser-free brace-balance check on the emitted JS.** Written as a backstop
+  for machines without `node`, and removed the same session because JavaScript
+  regex literals make it unsound: `escapeHtml` contains
+  `.replace(/'/g, '&#39;')`, and a scanner without regex-literal support reads
+  that apostrophe as a string delimiter and desynchronises everything after it.
+  It reported the page unbalanced while `node --check` passed. A check that
+  fires on healthy code is the exact failure shape the 2026-09-01 bank-metrics
+  fix was about - it trains a reader to ignore it, which is when the real defect
+  gets through. The `node` test now skips visibly where node is absent rather
+  than pretending to cover.
+- **Scoping summaries to the top 25, as the plan specified.** Rejected on the
+  measurement, not on preference - see the cost paragraph above. Recorded as a
+  deliberate departure in the plan file rather than silently done.
+- **Building the optional LLM gloss layer** the north star allows as a second
+  step. The deterministic block already reads as plain English, so a generated
+  gloss would restate it while giving back the reproducibility that justified
+  removing the chat in the first place.
+- **Rebuilding a run-level overview.** The inventory check did its job: the
+  "What Changed" movers panel (2026-08-25) already covers most of what the
+  directive's last paragraph asks for. What remains is genuinely narrow and is
+  written down as such rather than being built twice.
+- **Adding a recency weighting to trap severity, and three other drilldown
+  ideas** that surfaced while reading the payload. Left alone: the session had
+  one job and a weekly usage ceiling exists.
+
+### Next
+
+1. **Priority 5, the sell-side workflow** - client-side watchlist/holdings,
+   deterioration flags, a review queue. Now the top open north-star item at
+   **34 days** (gap 2, dated 2026-08-05), and question 3 of four is still
+   completely unanswerable. The summary shipped today is a good foundation for
+   it: `_sentence_change` already states what moved and `_sentence_confidence`
+   already states what broke, so a deterioration flag is largely a matter of
+   deciding the threshold and where to surface it.
+2. **The run-level overview sentence**, the narrow remainder of priority 4.
+   Cheap now that `history.movers` and the summary template both exist.
+3. Carried from 09-07, still the best research question on the board:
+   `fy1_revision_3m ~ forward_eps_growth`, before any revisions-category change
+   is written up - a level and a change in the same FY1 consensus number could
+   spend a growth slot and a revisions slot on one input.
