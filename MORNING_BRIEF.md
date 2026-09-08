@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 08 September 2026, 02:12
+# Morning Brief - Tuesday 08 September 2026, 06:30
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `402708b docs: record the chat removal and keep the plan files true`
+- `3d80a9b data: regenerate the published dashboard without the chat`
+- `9680674 product: remove the "Screener AI" chat, render the summary in its place`
+- `388c614 product: deterministic per-stock "Why it ranks here" summaries`
+- `f200b41 brief: data run 2026-09-08`
 - `c72d9c1 data: screener run 2026-09-08 - 502 scored, top: HST EXPE APA CAH VLO`
 - `51cfa15 brief: code session 2026-09-07`
 - `cde9089 log: 2026-09-07 research session - the Revisions category has no revisions`
@@ -28,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-07 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+> 2026-09-08 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
 > 
 > ### Health numbers (rule 8, all five)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-09-04_060001.log` - "Run complete: shipped to main" (09-05/09-06 were the weekend) |
-> | Data loop published? | `logs/datarun-2026-09-07_020001.log` - "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **33 rows, newest 2026-08-31, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+> | Last code session ran? | `logs/nightly-2026-09-07_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-09-08_020002.log` - "Data loop complete", HEALTH: PASS, 502 scored |
+> | Evidence base | **34 rows, newest 2026-09-01, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
 > | Priority 0 | DONE 2026-08-24, not reopened |
-> | Top open roadmap item | **Priority 4, deterministic per-stock summaries - owner directive 2026-08-10, open 28 days** |
+> | Top open roadmap item | **Priority 4, per-stock summaries - owner directive 2026-08-10, open 29 days. Taken and shipped today.** Next up is priority 5, sell-side workflow (north-star gap 2, 2026-08-05, **34 days**) |
 > 
-> **Tests:** before 965/965, after 965/965 (no pre-existing failures; no tests added - research day)
-> **Data loop:** healthy. Evidence base moved 32 -> 33 rows, newest 08-28 -> 08-31.
+> **Tests:** before 965/965, after **1117/1117** (no pre-existing failures; +152 tests)
+> **Data loop:** healthy. Evidence base moved 33 -> 34 rows, newest 08-31 -> 09-01.
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred.
-> ISO week 37, Monday - research day, taken as the focus.
+> ISO week 37, Tuesday - product day, taken as the focus. The top open roadmap
+> item happens to *be* a product item, so for once the rotation and the queue
+> pointed at the same work.
 > 
 > ### Did
 > 
-> **Researched the Revisions category and found it contains no revisions.**
-> `research/2026-09-07-revisions-category-has-no-revisions.md`.
+> **Shipped priority 4: the "Screener AI" chat is gone and every stock's
+> drilldown now opens with a deterministic "Why it ranks here" block.** Owner
+> directive 2026-08-10, open 29 days. `METHODOLOGY_CHANGELOG.md` 2026-09-08.
 > 
-> The category carries **10% of the composite**. All five scored metrics are past
-> earnings surprises, a price-target *level*, or short interest. The three
-> surprise metrics come from the same four rows of `Ticker.earnings_history`
-> (`factor_engine.py:1089-1130`) and are **78% of the category = 7.8% of the
-> composite**.
+> This is the first north-star item to ship since 2026-08-25. The 2026-09-04
+> retrospective added the roadmap-age line to rule 8 precisely because nine
+> consecutive sessions had produced real work and no north-star item; writing the
+> age down is what made "29 days" visible at the moment the day's focus was being
+> chosen.
 > 
-> Three findings, in order of how much they should change what we do:
+> **Removed** (891 lines: 80 HTML, 583 JS, 228 CSS; `generate_dashboard.py` is
+> 921 lines shorter): the chat FAB and panel, the Chat Settings dialog with its
+> API-key field and model picker, 27 JS functions, three keyframe blocks and the
+> `AI CHAT PANEL` stylesheet. The `config_traps` payload key went with it - it
+> carried the four trap thresholds solely so the chat could put them in its system
+> prompt, nothing rendered them, and the Methodology section already publishes
+> them from `config.yaml`. Same reasoning that retired `spx_weights` on
+> 2026-08-26.
 > 
-> **1. The category's public rationale rests on an effect documented as absent in
-> this universe.** `SCREENER_OVERVIEW.md:149` justifies it with "When a company
-> consistently beats earnings estimates, the stock price usually follows - but
-> with a lag, which creates an opportunity." That is post-earnings announcement
-> drift. Martineau (2022, *Critical Finance Review* 11(3-4)) finds PEAD
-> **non-existent for all-but-microcap stocks since 2006**, with the 2016-2019
-> 60-day coefficient significantly *negative*; the return moved to the
-> announcement date (large-stock BHAR[0,1] ~20bps in 1984-1990 -> ~120bps in
-> 2016-2019). His surprise measure is the analyst-estimate kind this screener
-> computes, and every S&P 500 name is "all-but-microcap".
-> 
-> **2. The claim that a revisions metric is impossible is false, and it was on the
-> public methodology page.** `config.yaml` and `SCREENER_OVERVIEW.md` (twice) said
-> forward-EPS revisions "would require a paid data source like FactSet or
-> Refinitiv I/B/E/S". Measured today against the installed yfinance 0.2.66:
+> **Why it had to go** - four consequences, all readable off the shipped code
+> rather than argued. It required each visitor to paste an Anthropic API key into
+> `localStorage` and called `api.anthropic.com` from the browser, so: every
+> student in a college investment club needed a paid API account most do not have;
+> a public page carried a password field labelled "Anthropic API Key", which is
 > ...
 
 ---
