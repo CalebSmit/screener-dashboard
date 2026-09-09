@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 09 September 2026, 02:12
+# Morning Brief - Wednesday 09 September 2026, 06:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `2dab71b log: 2026-09-09 synthesis session`
+- `d88f1fd changelog: confirm the 2026-09-02 risk-category change against its prediction`
+- `4a74d5d research: synthesis section on the revisions category (2026-09-07 note, Â§8)`
+- `bed35c0 brief: data run 2026-09-09`
 - `a195b07 data: screener run 2026-09-09 - 502 scored, top: HST EXPE APA VLO ALL`
 - `7cb1b63 brief: code session 2026-09-08`
 - `402708b docs: record the chat removal and keep the plan files true`
@@ -29,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-08 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+> 2026-09-09 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
 > 
 > ### Health numbers (rule 8, all five)
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-09-07_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | `logs/datarun-2026-09-08_020002.log` - "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **34 rows, newest 2026-09-01, 3 effective observations at `1m`** (8 raw) against a gate of 8 |
+> | Last code session ran? | `logs/nightly-2026-09-08_060001.log` - "Run complete: shipped to main" |
+> | Data loop published? | `logs/datarun-2026-09-09_020001.log` - "Data loop complete", **HEALTH: PASS**, 502 scored |
+> | Evidence base | **36 rows, newest 2026-09-02, 3 effective observations at `1m`** (9 raw) against a gate of 8 |
 > | Priority 0 | DONE 2026-08-24, not reopened |
-> | Top open roadmap item | **Priority 4, per-stock summaries - owner directive 2026-08-10, open 29 days. Taken and shipped today.** Next up is priority 5, sell-side workflow (north-star gap 2, 2026-08-05, **34 days**) |
+> | Top open roadmap item | **Priority 5, sell-side workflow** - north-star gap 2, dated 2026-08-05, **35 days open**. Not taken today; see "Owner queue / rotation" |
 > 
-> **Tests:** before 965/965, after **1117/1117** (no pre-existing failures; +152 tests)
-> **Data loop:** healthy. Evidence base moved 33 -> 34 rows, newest 08-31 -> 09-01.
-> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred.
-> ISO week 37, Tuesday - product day, taken as the focus. The top open roadmap
-> item happens to *be* a product item, so for once the rotation and the queue
-> pointed at the same work.
+> **Tests:** before 1117/1117, after **1117/1117** (no pre-existing failures; no
+> code changed today, so no test changed)
+> **Data loop:** healthy. Evidence base moved 34 -> 36 rows, newest 09-01 -> 09-02.
+> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred
+> for a stalled loop or a failing gate. ISO week 37, Wednesday - synthesis day,
+> taken as the focus, with Monday's note
+> (`research/2026-09-07-revisions-category-has-no-revisions.md`) as its subject,
+> exactly as that note's §6 instructed. Priority 5 was **not** taken: Monday
+> deferred a specific measurement to Wednesday and a synthesis day that skips it
+> leaves Thursday building on an unverified design. Priority 5 remains the top
+> open north-star item and its age is written above so the trade stays visible.
 > 
 > ### Did
 > 
-> **Shipped priority 4: the "Screener AI" chat is gone and every stock's
-> drilldown now opens with a deterministic "Why it ranks here" block.** Owner
-> directive 2026-08-10, open 29 days. `METHODOLOGY_CHANGELOG.md` 2026-09-08.
+> **Answered the coherence question Monday deferred, on the full 502-name
+> universe, and settled the design for Thursday's build.** No code, weight,
+> threshold or scoring path changed today. Output is §8 of the research note
+> (~330 lines) plus a measured confirmation against the 2026-09-02 changelog
+> entry.
 > 
-> This is the first north-star item to ship since 2026-08-25. The 2026-09-04
-> retrospective added the roadmap-age line to rule 8 precisely because nine
-> consecutive sessions had produced real work and no north-star item; writing the
-> age down is what made "29 days" visible at the moment the day's focus was being
-> chosen.
+> **First, the counterfactual was made trustworthy.** Before computing anything
+> hypothetical, the published composite was reproduced from its own inputs -
+> the eight category scores through `compute_composite`'s per-row
+> renormalisation, the revisions category rebuilt from its five published metric
+> percentiles, and the coverage discount reconstructed from per-stock metric
+> presence split by `_BANK_ONLY_METRICS`/`_NONBANK_ONLY_METRICS`. **Max absolute
+> error 0.000000000000 on all 502 names**, including the three where the
+> discount actually bites (FDXF at 62.5% coverage, FISV, L). A counterfactual is
+> only worth reading if the factual reproduces first.
 > 
-> **Removed** (891 lines: 80 HTML, 583 JS, 228 CSS; `generate_dashboard.py` is
-> 921 lines shorter): the chat FAB and panel, the Chat Settings dialog with its
-> API-key field and model picker, 27 JS functions, three keyframe blocks and the
-> `AI CHAT PANEL` stylesheet. The `config_traps` payload key went with it - it
-> carried the four trap thresholds solely so the chat could put them in its system
-> prompt, nothing rendered them, and the Methodology section already publishes
-> them from `config.yaml`. Same reasoning that retired `spx_weights` on
-> 2026-08-26.
-> 
-> **Why it had to go** - four consequences, all readable off the shipped code
-> rather than argued. It required each visitor to paste an Anthropic API key into
-> `localStorage` and called `api.anthropic.com` from the browser, so: every
-> student in a college investment club needed a paid API account most do not have;
-> a public page carried a password field labelled "Anthropic API Key", which is
+> *Trap for the next session, now written down:* the published `Composite` is
+> stored rounded to 2dp while category scores are stored at full precision, so a
+> naive comparison shows a spurious ~0.005 residual on **every** name and looks
 > ...
 
 ---
