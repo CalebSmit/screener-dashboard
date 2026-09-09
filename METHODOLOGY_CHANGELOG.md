@@ -1192,6 +1192,33 @@ can speak to this, and the argument does not need it.
 `run_screener.py`, `tests/fixtures/golden_scores.parquet`, and the new test
 module.
 
+### Confirmed 2026-09-09 — the predicted effect landed, and overshot in the right direction
+
+Seven days of live running later, measured on the 2026-09-09 02:00 run
+(N = 501, `improvement/snapshots/2026-09-09_8d92af6b7208.parquet`):
+
+| Quantity | Before (2026-09-02) | Predicted | **Measured 2026-09-09** |
+|---|---|---|---|
+| `momentum_score` ~ `risk_score` | +0.516 | +0.150 | **+0.084** |
+| Its rank among the 28 category pairs | **1st (largest)** | — | **20th** |
+
+The pair went from the largest correlation in the 8x8 category matrix to the
+20th of 28. The mechanism is confirmed too, not just the outcome: on the same
+run `sharpe_ratio` and `sortino_ratio` correlate **+0.925 / +0.917 with
+momentum** and **+0.119 / +0.120 with risk** — which is precisely the
+diagnosis ("two of the five were the momentum signal rather than a risk
+measure") that justified moving them to weight 0. They are still computed and
+still shown on each stock's detail page.
+
+Recorded per `CLAUDE.md`'s "validation is continuous" rule: when evidence
+accumulates, go back and check the entry that made the change. This is a
+structural correlation measured on published output, **not** a return or IC
+measurement — rules 4 and 5 are untouched, and nothing here is offered as
+evidence for a further change.
+
+Measured during the 2026-09-09 synthesis session; full context in
+`research/2026-09-07-revisions-category-has-no-revisions.md` §8.8.
+
 ---
 
 ## 2026-09-08 - The AI chat leaves the dashboard; every stock gains a deterministic "Why it ranks here"
