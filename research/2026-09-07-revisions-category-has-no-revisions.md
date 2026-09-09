@@ -1,9 +1,10 @@
 # The Revisions category contains no revisions
 
-**Date:** 2026-09-07 (Monday, research)
+**Date:** 2026-09-07 (Monday, research); **§8 added 2026-09-09 (Wednesday, synthesis)**
 **Author:** nightly code session
-**Status:** complete. Recommends a methodology change; the change itself is
-Wednesday's synthesis and Thursday's build.
+**Status:** research complete; **synthesis complete (§8)**. The design is
+settled and one of Monday's arguments is corrected. Implementation is
+Thursday's build. No code or weight has changed as of 2026-09-09.
 
 ---
 
@@ -444,6 +445,9 @@ Falsifiable, in priority order:
    reported **0.440** between SUE and forecast revisions and called them
    distinct. +0.346 is lower than that, so the duplication case fails on the
    project's own coherence standard.
+   > **Corrected 2026-09-09 (§8.6): on the full 502-name universe it is
+   > +0.401, not +0.346.** The conclusion holds — still under CJL's 0.440 —
+   > but the margin is 0.04, not 0.09. Do not quote +0.346.
 5. **The +1 request/ticker is unaffordable.** It is not — the data loop runs
    11.8–13.6 minutes against a 3-hour limit — but if fetch reliability
    regressed, the trade would need revisiting.
@@ -519,6 +523,12 @@ weight, or removing any metric outright. Both would need their own argument.
 ---
 
 ## 6. Wednesday's design section — the hypothesis and the coherence question
+
+> **Answered in §8 (2026-09-09).** Risk 1 (growth) is cleared at +0.152. Risk 2
+> (momentum) is real at +0.417 and *economic, not mechanical*. The materiality
+> test below fired — the change moves fewer names than deleting the category —
+> so it is argued on construct validity and explainability, as instructed.
+> Read §8 for the decision; this section is the question, not the answer.
 
 **Hypothesis.** Replacing 33 points of surprise-family weight with a 3-month
 FY1 consensus revision makes the revisions category measure the construct it is
@@ -605,3 +615,387 @@ the published `dashboard_data.js` from the 02:00 data run, and a deterministic
 `improvement/live_ic_history.csv` is used anywhere above — the backtest is
 benched until 2027-02-11 (rule 5) and the IC history holds 3 effective
 observations at `1m` (rule 4).
+
+---
+
+# §8. Synthesis (2026-09-09, Wednesday)
+
+Monday ended with a hypothesis, two named coherence risks, and a
+pre-registered test for each. This section runs them on the **full 502-name
+universe** rather than Monday's 84-name sample, and settles the design.
+
+**Headline: the two risks came out backwards.** The growth-overlap risk Monday
+flagged as "measure this first" is not there. The momentum risk Monday listed
+second is real, is larger than expected, and is *economic rather than
+mechanical* — which is a more interesting finding than either.
+
+**One of Monday's arguments does not survive the wider sample** and is
+corrected in §8.6. The recommendation is unchanged; its supporting reason is
+not.
+
+---
+
+## 8.0 Method, and why the counterfactual can be trusted
+
+Every number below comes from the **2026-09-09 02:00 data run** — its
+improvement-engine snapshot
+(`improvement/snapshots/2026-09-09_8d92af6b7208.parquet`, full float precision)
+for scores and percentiles, and the published `dashboard_data.js` for raw
+metric values. The `eps_trend` data is a full-universe fetch taken 2026-09-09
+against yfinance 0.2.66 (503 tickers, 17 batches of 30 at 3 workers, mirroring
+`fetch_all_tickers`' throttling).
+
+Before computing any counterfactual, the **published composite was reproduced
+from its inputs**: the eight published category scores through
+`compute_composite`'s per-row weight renormalisation, the revisions category
+rebuilt from its five published metric percentiles through
+`compute_category_scores`' logic, and the coverage discount
+(`threshold 0.80, penalty_rate 0.15`) reconstructed from per-stock metric
+presence over `METRIC_COLS`, split by `_BANK_ONLY_METRICS` /
+`_NONBANK_ONLY_METRICS`.
+
+| Reproduction | Max absolute error, N = 502 |
+|---|---|
+| `revisions_score` from its five metric percentiles | **0.000000000000** |
+| `Composite` from the eight category scores + coverage discount | **0.000000000000** |
+
+Exact on every name, including the three where the coverage discount actually
+bites (FDXF at 62.5% coverage → ×0.97375, FISV, L). This is the same discipline
+the 2026-09-03 session used, and it is the precondition for believing anything
+downstream: a counterfactual is only worth reading if the factual reproduces
+first.
+
+*(Note for a future reader: the published `Composite` is stored rounded to 2dp
+while category scores are stored at full precision, so a naive comparison shows
+a spurious ~0.005 residual on every name. Round the recomputation to 2dp before
+comparing.)*
+
+Scratch harness on this machine at `cache/_synth.py`, `_step1.py` … `_step6.py`
+(gitignored). Every formula needed to reproduce it is stated below.
+
+---
+
+## 8.1 The candidate metric, as it will be built
+
+```
+fy1_revision_3m = (eps_trend['0y','current'] - eps_trend['0y','90daysAgo'])
+                  / price
+```
+
+**Coverage, full universe (Monday sampled 84 names; this is all 502):**
+
+| Signal | Coverage | vs Monday's sample |
+|---|---|---|
+| `fy1_revision_3m` | **500/502 = 99.6%** | 97.6% [91.7, 99.3] — inside the CI, at the top |
+| `analyst_surprise` (incumbent, 38% of the category) | 498/502 = **99.2%** | — |
+
+The new metric covers **more** of the universe than the metric it is taking
+weight from. Monday's coverage argument holds and strengthens.
+
+**Dispersion, full universe:**
+
+| Construction | p10 | median | p90 | mean | sd | ties |
+|---|---|---|---|---|---|---|
+| **/ price** (proposed) | −0.00195 | +0.00059 | +0.00525 | +0.00202 | 0.0218 | **0.0%** |
+| / \|estimate\| | −0.036 | +0.0135 | +0.123 | **+inf** | **nan** | 0.4% |
+
+**Monday's §5(b) warning is confirmed, and harder than Monday put it.** On the
+84-name sample the estimate-scaled ratio had a fat right tail (mean +19.9% vs
+median +1.7%). On the full universe it has a **zero denominator** — a name
+whose 90-day-ago FY1 consensus rounds to 0.00 — so its mean is literally
+infinite and its standard deviation undefined. That is not a tail to winsorise;
+it is an undefined value in the metric. Price scaling is not a refinement here,
+it is the difference between a computable metric and one that needs a special
+case.
+
+**Diffusion is dead, confirmed.** Monday measured 62% ties on 84 names and
+called it "at best a secondary". On all 502 it is **75.8% ties, with 37.3% of
+names pinned at exactly +1.0**. In a rank-scored system three names in eight
+are one indistinguishable block. Not a candidate, primary or secondary.
+
+---
+
+## 8.2 Risk 1 — growth overlap: **cleared**
+
+Monday: *"`forward_eps_growth` carries 45% of the growth category and is built
+on the same FY1 consensus. If `fy1_revision_3m ~ forward_eps_growth` comes back
+high, the screener would be spending both a growth slot and a revisions slot on
+one estimate. Measure this first."*
+
+Measured, Spearman, full universe:
+
+| Pair | ρ | n |
+|---|---|---|
+| `fy1_revision_3m` ~ **`forward_eps_growth`** | **+0.152** | 397 |
+| `fy1_revision_3m` ~ `peg_ratio` | −0.244 | 348 |
+| `fy1_revision_3m` ~ `revenue_growth` | +0.075 | 499 |
+| `revisions_score` ~ `growth_score`, before → after | +0.039 → **+0.089** | 500 |
+
+**A level and a change in that level really are different objects**, and the
+data says so plainly: +0.152 between two numbers computed from the same
+consensus line. The 2026-08-26 momentum/risk failure — two categories, 23% of
+composite, one `Ticker.history()` call — does **not** repeat here. Shared data
+source, genuinely different construct. Risk 1 is closed.
+
+---
+
+## 8.3 Risk 2 — momentum overlap: **real, and economic rather than mechanical**
+
+Monday: *"Novy-Marx's whole thesis is that price momentum is earnings momentum.
+Current `revisions ~ momentum` is +0.192; if adding revisions pushes it
+materially above ~0.35 that is a coherence cost."*
+
+The metric's own correlations are the largest of anything measured today:
+
+| Pair | ρ |
+|---|---|
+| `fy1_revision_3m` ~ **`momentum_score`** | **+0.417** |
+| `fy1_revision_3m` ~ **`return_12_1`** | **+0.416** |
+| `fy1_revision_3m` ~ `revisions_score` (the category it would join) | +0.387 |
+
+The candidate is **more correlated with momentum than with the category it is
+being added to.** That deserved a hard look rather than a shrug, because the
+obvious suspect is the construction itself: `Δ EPS / price` puts price in the
+denominator, and a stock that has fallen has both a small denominator and
+(probably) a negative revision. If that were the mechanism, the +0.417 would be
+an artifact of Monday's own scaling choice.
+
+**It is not.** Every construction — including two with no price term anywhere
+and one with no denominator at all — carries the same correlation:
+
+| Construction | ~ `momentum_score` | ~ `return_12_1` | ~ `analyst_surprise` | ~ `forward_eps_growth` |
+|---|---|---|---|---|
+| / price *(proposed)* | **+0.417** | +0.416 | +0.401 | +0.152 |
+| / \|estimate\| *(no price term)* | **+0.429** | +0.441 | +0.393 | +0.167 |
+| / \|estimate\|, winsorised 5/95 | +0.430 | +0.442 | +0.393 | +0.166 |
+| **sign only (−1/0/+1)** *(no denominator at all)* | **+0.324** | +0.317 | +0.267 | +0.202 |
+| numerator alone ($ EPS change) | +0.408 | +0.434 | +0.357 | +0.204 |
+
+And the denominator on its own does not carry the signal:
+
+```
+1/price      ~ momentum_score   -0.128   (wrong sign for the mechanism)
+price        ~ momentum_score   +0.128
+1/|estimate| ~ momentum_score   -0.036
+```
+
+**So the overlap is a fact about the market, not about the formula.** In the
+S&P 500 as of 2026-09-09, a stock whose analysts have raised their FY1 estimate
+over the last three months has, with rank correlation ~0.42, also gone up over
+the last twelve months. That is **Novy-Marx (2015) measured directly in this
+screener's own universe** — "fundamentally, momentum is fundamental momentum" —
+and it is the single most useful thing this session found. It cannot be
+engineered away by choosing a different denominator, and any future session
+that thinks it has found a cleverer scaling should re-run the table above
+before believing it.
+
+---
+
+## 8.4 What that costs at category level — and the pre-registered bar
+
+The metric is 35% of a category, so the category-level effect is diluted:
+
+| Category pair | Before | After (proposed) | After (conservative, fy1=20) |
+|---|---|---|---|
+| **revisions ~ momentum** | +0.171 | **+0.317** | +0.272 |
+| revisions ~ growth | +0.039 | +0.089 | +0.057 |
+| revisions ~ size | −0.119 | −0.196 | −0.168 |
+| revisions ~ risk | −0.158 | −0.088 | −0.122 |
+| revisions ~ valuation | +0.029 | −0.018 | +0.010 |
+| revisions ~ quality | +0.048 | +0.047 | +0.049 |
+| revisions ~ investment | −0.044 | −0.060 | −0.046 |
+| revisions ~ composite | +0.238 | +0.290 | +0.270 |
+
+**+0.317 is under the ~0.35 bar Monday set before seeing the number.** That is
+the right way to use a pre-registered threshold, and it is the reason to state
+one in advance.
+
+For scale, the 28 category pairs on the 2026-09-09 run, largest first:
+valuation~growth −0.336, valuation~size +0.333, growth~investment −0.331,
+growth~size −0.289, size~investment +0.283, valuation~investment +0.241, then
+22 more all under 0.216. A post-change revisions~momentum of **+0.317 would be
+the 4th largest of 28** — a real move up the table, and still smaller than
+three pairs the screener already lives with.
+
+**Spanning regressions** say the same thing more precisely. Regressing the
+candidate's rank on all eight category ranks:
+
+```
+fy1_revision_3m on all 8 category ranks:  R2 = 0.284  (71.6% unspanned, n=498)
+fy1_revision_3m on momentum alone:        R2 = 0.173  (82.7% unspanned)
+```
+
+**72% of the new metric is not explained by anything the screener already
+scores.** And the category it joins stays near the top of the independence
+table:
+
+| Category | Unspanned (1 − R² on the other seven) | Weight |
+|---|---|---|
+| quality | 91.8% | 22.00% |
+| **revisions (today)** | **91.1%** | 10.00% |
+| momentum | 91.0% | 14.95% |
+| investment | 83.6% | 5.00% |
+| risk | 83.2% | 10.00% |
+| valuation | 76.0% | 20.05% |
+| growth | 73.5% | 13.00% |
+| size | 72.9% | 5.00% |
+| **revisions (after the change)** | **85.2%** | 10.00% |
+
+Revisions drops from roughly tied-first to **fourth**, still above risk,
+valuation, growth and size. Monday's §3.5 — "a 10% slot uncorrelated with
+everything else is valuable real estate" — takes a real dent, and the dent is
+affordable. **This is the honest trade and it should be named as such in the
+changelog: independence is being spent, deliberately, to buy construct
+validity.**
+
+---
+
+## 8.5 Materiality — and Monday's own test says: argue this on explainability
+
+Monday's §6: *"If the change moves fewer names than deleting the category
+outright — the calibration bar 09-03 established — then it is a presentational
+change and should be argued on explainability alone, honestly."*
+
+Ranking effect, recomputed through the verified pipeline:
+
+| Scenario | Top-50 turnover | median \|Δrank\| | p90 | max | names moving >10 |
+|---|---|---|---|---|---|
+| **Delete the revisions category outright** (the bar) | **7 of 50** | 17 | 53 | 92 | — |
+| Proposed (fy1 35 / as 15 / cbs 10 / ea 20 / pt 10 / si 10) | **3 of 50** | 9 | 33 | 109 | 218 |
+| Conservative (fy1 20 / as 28 / cbs 15 / ea 20 / pt 10 / si 10) | 1 of 50 | 5 | 18 | 79 | 127 |
+
+**3 < 7. The test fires.** So, taking Monday's instruction at face value:
+**this change is not justified by what it does to the ranking, and the changelog
+must not claim otherwise.**
+
+Two honest qualifications, neither of which rescues it:
+
+- The bar is **asymmetric by construction**. Deleting the category removes 10%
+  of composite weight; the proposed change reallocates 33 of 100 points inside
+  that 10% slot — about **3.3% of composite**. A within-category reweight
+  moving half as many top-50 names as a whole-category deletion is arguably a
+  *large* effect per unit of weight moved. That is a fair point about the bar,
+  and it is not permission to ignore the bar. The bar was set in advance; it
+  fired; the conclusion stands.
+- 218 of 502 names move more than 10 ranks and the largest move is 109 places,
+  so this is not *nothing* — it is simply not the reason to do it.
+
+**The reason to do it is construct validity**, which is a first-class concern
+for this project rather than a consolation prize. `CLAUDE.md`: the tool "must be
+*teachable and explainable*, not merely accurate", and "a change that improves a
+number but makes the tool harder to explain is usually a bad trade." The
+converse holds too. The current state is a public methodology page that names a
+category **Revisions**, justifies its 10% weight with post-earnings announcement
+drift (documented absent in this universe since 2006, §1.3), and fills it with
+five metrics of which **none is a revision**. That is a defensibility defect in a
+tool whose credibility is the product — and the defensibility features are the
+one thing rule 7 says may be redesigned but never quietly dropped.
+
+---
+
+## 8.6 A correction to Monday: the duplication argument was thinner than stated
+
+Monday §4.4, as a falsification criterion:
+
+> *"A revision metric duplicates something already scored. Measured on the
+> sample: 90-day revision vs `analyst_surprise` Spearman = **+0.346**. CJL
+> reported **0.440** between SUE and forecast revisions and called them
+> distinct. +0.346 is lower than that, so the duplication case fails on the
+> project's own coherence standard."*
+
+**On the full 502-name universe it is +0.401, not +0.346** (n = 498). Monday's
+84-name sample understated it by 0.055.
+
+The conclusion survives — +0.401 is still below the 0.440 that Chan, Jegadeesh &
+Lakonishok explicitly characterised as capturing "different aspects of
+improvement or deterioration in a company's performance" — but the *margin*
+does not, falling from a comfortable 0.09 to a slim 0.04. The within-category
+picture:
+
+```
+fy1_revision_3m ~ analyst_surprise          +0.401
+fy1_revision_3m ~ consecutive_beat_streak   +0.338
+fy1_revision_3m ~ earnings_acceleration     +0.153
+fy1_revision_3m ~ price_target_upside       -0.053
+```
+
+This makes Monday's §5(c) reweighting *more* necessary rather than less. Adding
+`fy1_revision_3m` at 35 while leaving the surprise family at 78 would have
+created a category where the two heaviest metrics correlate at +0.401 — which is
+the same overlap complaint §3.3 makes about `analyst_surprise` ~
+`consecutive_beat_streak` at +0.497, arriving by a new route. **Cutting the
+surprise family from 78 to 45 is what keeps the addition coherent; the two
+halves of Monday's proposal are one change, not two, and shipping (b) without
+(c) would make the category worse.**
+
+---
+
+## 8.7 Decision
+
+**Proceed with Monday's §5(b) and §5(c) exactly as specified**, on Thursday, as
+a single change.
+
+| Metric | Now | Thursday | Why |
+|---|---|---|---|
+| `fy1_revision_3m` | — | **35** | CJL's strongest leg; Barra + Zacks both build on it; **99.6%** coverage; 71.6% unspanned by the existing eight categories |
+| `analyst_surprise` | 38 | **15** | Martineau: no drift in this universe since 2006; +0.401 with the new metric |
+| `consecutive_beat_streak` | 20 | **10** | +0.497 with `analyst_surprise`, +0.338 with the new metric |
+| `earnings_acceleration` | 20 | **20** | genuinely independent (+0.153 with the new metric, −0.07 with surprise) |
+| `price_target_upside` | 12 | **10** | −0.053 with the new metric; no overlap; role unchanged |
+| `short_interest_ratio` | 10 | **10** | unchanged; not analyst data, not this note's subject |
+
+The category's **10% composite weight does not change**, and `fy1=35` rather
+than the conservative `fy1=20` is kept: the pre-registered coherence bar was met
+at 35, and at 20 the surprise family would still be 63% of a category named for
+revisions, which leaves the defect the change exists to fix largely in place.
+
+**What the changelog entry must and must not say.** Under *Evidence*: CJL (1996)
++7.7%/6mo decile spread on REV6 and its Stickel (1991) replication; Martineau
+(2022) on PEAD's absence in this universe since 2006; Novy-Marx (2015) on the
+size gradient; Barra USFAST and the Zacks Rank on what practitioners build; and
+today's measured coverage, dispersion, correlation and spanning numbers. Under
+*Expected effect*: 3 of the top 50 change, median \|Δrank\| 9, revisions~momentum
++0.171 → +0.317, revisions unspanned 91.1% → 85.2%. **Not** under Evidence: any
+claim that the ranking improves — §8.5 says that case is not made — and no
+backtest figure or IC number (rules 4 and 5).
+
+**Three things a future session must not undo or assume away:**
+
+1. **Scale by price, and know why.** Not because it reduces the momentum overlap
+   — §8.3 shows it does not, at all — but because the estimate-scaled
+   denominator is **undefined** on this universe (mean +inf) and price scaling is
+   CJL's own construction.
+2. **The momentum correlation is economic.** ~0.42 survives every
+   reconstruction including sign-only. Do not "fix" it. Do not read it as a bug
+   in the metric.
+3. **The revisions category has spent its independence budget.** It goes from
+   ~91% unspanned to 85.2%, and revisions~momentum becomes the 4th largest of 28
+   category pairs. **Adding any further momentum-adjacent metric to this category
+   requires re-running §8.4 first**, not a citation.
+
+**Also settled, so Thursday does not relitigate them:** diffusion
+(`eps_revisions`) is rejected — 75.8% ties. `0y` (FY1) not `0q`, per Monday. And
+the +1 HTTP request per ticker is confirmed affordable: today's full-universe
+fetch of all 503 names completed in 17 batches without a single rate-limit
+backoff.
+
+---
+
+## 8.8 An unrelated confirmation, recorded because validation is continuous
+
+While building the 8×8 matrix: the **2026-09-02 risk-category change has been
+confirmed by seven days of live running.** That entry predicted momentum~risk
+would fall from +0.516 to +0.150. Measured on the 2026-09-09 run (N = 501):
+**+0.084** — better than predicted. It has gone from the **largest** of the 28
+category pairs to the **20th**. `sharpe_ratio` and `sortino_ratio` now sit at
++0.925 / +0.917 with momentum and +0.119 / +0.120 with risk, which is exactly
+the diagnosis that motivated moving them to weight 0. Recorded against the
+original entry in `METHODOLOGY_CHANGELOG.md`.
+
+---
+
+**Measurements in §8** were taken 2026-09-09 against the 02:00 data run's
+snapshot and published payload, plus a full-universe `eps_trend` fetch
+(yfinance 0.2.66, 503 tickers). No figure from `backtest.py` (benched until
+2027-02-11, rule 5) or from `improvement/live_ic_history.csv` (3 effective
+observations at `1m`, rule 4) is used anywhere in this section.
