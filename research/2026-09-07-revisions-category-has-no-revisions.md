@@ -932,6 +932,27 @@ halves of Monday's proposal are one change, not two, and shipping (b) without
 
 ## 8.7 Decision
 
+> **SHIPPED 2026-09-10.** Built exactly as specified below, as one change.
+> `METHODOLOGY_CHANGELOG.md` 2026-09-10; `tests/test_fy1_revision.py` (44
+> tests); suite 1117 → 1161 passing. Two things this section left open were
+> closed on the way:
+>
+> - **The second-order coverage-discount effect was measured**, not assumed.
+>   The discount denominator really is `METRIC_COLS`, so a 45th metric does
+>   shift every stock's coverage ratio - but on the live payload the maximum
+>   change is **0.0019** of composite and **zero** names cross the 0.80
+>   threshold.
+> - **Display needed a new format.** Under the existing `pct` at one decimal,
+>   the measured p10/median/p90 collapse onto two strings - manufacturing
+>   visible ties in a metric this note measured at 0.0% actual ties. A `bp`
+>   format was added to both the Python and JS formatters, which are now
+>   asserted to agree.
+>
+> One thing deliberately *not* done: the synthetic sample-data path leaves the
+> metric `NaN` rather than fabricating it. That generator emits finished metric
+> values and carries no price field, so a value invented there would be the
+> fabrication failure the 2026-08-11 and 2026-09-01 fixes exist to prevent.
+
 **Proceed with Monday's §5(b) and §5(c) exactly as specified**, on Thursday, as
 a single change.
 
