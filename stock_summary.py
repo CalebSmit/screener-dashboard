@@ -112,6 +112,8 @@ def _fmt_metric(value, fmt: str) -> str:
         return "n/a"
     if fmt == "pct":
         return f"{value * 100:.1f}%"
+    if fmt == "bp":
+        return f"{value * 10000:.0f} bp"
     if fmt == "int":
         return f"{round(value):.0f}"
     return f"{value:.2f}"

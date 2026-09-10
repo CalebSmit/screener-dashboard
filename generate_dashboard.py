@@ -357,6 +357,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth",
         "return_12_1", "return_6m", "jensens_alpha",
         "volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y",
+        "fy1_revision_3m",
         "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
         "short_interest_ratio",
         "size_log_mcap", "asset_growth",
@@ -644,6 +645,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "sharpe_ratio": {"label": "Sharpe Ratio", "fmt": "ratio", "category": "risk"},
         "sortino_ratio": {"label": "Sortino Ratio", "fmt": "ratio", "category": "risk"},
         "max_drawdown_1y": {"label": "Max Drawdown (1Y)", "fmt": "pct", "category": "risk"},
+        "fy1_revision_3m": {"label": "FY1 EPS Revision (90d)", "fmt": "bp", "category": "revisions"},
         "analyst_surprise": {"label": "Analyst Surprise", "fmt": "pct", "category": "revisions"},
         "price_target_upside": {"label": "Price Target Upside", "fmt": "pct", "category": "revisions"},
         "earnings_acceleration": {"label": "Earnings Accel.", "fmt": "ratio", "category": "revisions"},
@@ -2501,6 +2503,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     function fmtMetric(v, type) {{
         if (v === null || v === undefined) return '—';
         if (type === 'pct') return (v * 100).toFixed(1) + '%';
+        // Basis points of price. 'pct' at one decimal would round most of the
+        // universe to 0.0%/0.1% and manufacture display ties in a metric that
+        // has none (0.0% ties measured on all 502 names).
+        if (type === 'bp') return (v * 10000).toFixed(0) + ' bp';
         if (type === 'int') return Math.round(v).toString();
         if (type === 'ratio') return v.toFixed(2);
         return v.toString();
