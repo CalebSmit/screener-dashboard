@@ -173,6 +173,11 @@ class TestDailyLoopActuallyFetches:
         daily close, across five of the eight categories. If someone adds or
         renames one of these, the changelog claim silently becomes false -
         so assert it here rather than trusting prose.
+
+        Updated 2026-09-10 to 19 of 45: `fy1_revision_3m` scales the 90-day
+        change in FY1 consensus EPS by price, so it moves with the daily close
+        too. The changelog entry carries the same correction. The claim it
+        supports is unchanged in substance and slightly stronger.
         """
         from factor_engine import METRIC_COLS
 
@@ -187,6 +192,7 @@ class TestDailyLoopActuallyFetches:
             "max_drawdown_1y", "jensens_alpha",
             # Revisions
             "price_target_upside",
+            "fy1_revision_3m",          # (d FY1 consensus EPS) / price
             # Size
             "size_log_mcap",
         }
@@ -196,8 +202,8 @@ class TestDailyLoopActuallyFetches:
             f"METRIC_COLS no longer contains {missing}; the 2026-08-13 "
             "changelog entry needs updating"
         )
-        assert len(price_driven) == 18
-        assert len(METRIC_COLS) == 44
+        assert len(price_driven) == 19
+        assert len(METRIC_COLS) == 45
 
     def test_same_day_rerun_still_warm_starts(self):
         """A manual re-run on the same day has no new close to fetch.

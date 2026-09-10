@@ -123,10 +123,30 @@ class TestGenerateSampleData:
     def test_shape_matches_universe(self, universe_df, sample_df):
         assert len(sample_df) == len(universe_df)
 
+    # Metrics the sample generator deliberately cannot produce. It emits
+    # finished metric values and carries no price field, so any metric built in
+    # compute_metrics() from raw inputs plus a price denominator is out of its
+    # reach. Fabricating one would be the synthetic-data failure the 2026-08-11
+    # and 2026-09-01 fixes exist to prevent, so NaN is the correct outcome and
+    # the has_data renormalisation absorbs it.
+    SAMPLE_DATA_EXCEPTIONS = {
+        "fy1_revision_3m",   # needs FY1 consensus endpoints + price (2026-09-10)
+    }
+
     def test_has_all_metric_cols(self, sample_df):
+        """Every METRIC_COL is generated, bar a short documented exception list.
+
+        The exception list is asserted to stay short: it is a place to record a
+        metric the generator genuinely cannot build, not a place to park one
+        that was simply never wired up.
+        """
         from factor_engine import METRIC_COLS
-        for col in METRIC_COLS:
-            assert col in sample_df.columns, f"Missing column: {col}"
+        missing = [c for c in METRIC_COLS if c not in sample_df.columns]
+        assert set(missing) <= self.SAMPLE_DATA_EXCEPTIONS, (
+            f"Missing columns not on the documented exception list: "
+            f"{sorted(set(missing) - self.SAMPLE_DATA_EXCEPTIONS)}"
+        )
+        assert len(self.SAMPLE_DATA_EXCEPTIONS) <= 3
 
     def test_sectors_preserved(self, universe_df, sample_df):
         assert set(sample_df["Sector"]) == set(universe_df["Sector"])

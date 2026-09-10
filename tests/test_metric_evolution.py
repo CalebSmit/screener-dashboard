@@ -75,9 +75,15 @@ def _write_config(tmp_path):
                 "volatility": 30, "beta": 20, "sharpe_ratio": 15,
                 "sortino_ratio": 15, "max_drawdown_1y": 20,
             },
+            # Mirrors the shipped weights (reweighted 2026-09-10). This block
+            # is validated against RevisionsWeights, so it has to carry every
+            # scored metric - a stale copy here fails as a schema error, which
+            # reads like a bug in apply_metric_changes rather than a stale
+            # fixture.
             "revisions": {
-                "analyst_surprise": 38, "price_target_upside": 12,
-                "earnings_acceleration": 20, "consecutive_beat_streak": 20,
+                "fy1_revision_3m": 35,
+                "analyst_surprise": 15, "price_target_upside": 10,
+                "earnings_acceleration": 20, "consecutive_beat_streak": 10,
                 "short_interest_ratio": 10, "short_pct_float": 0, "analyst_rating": 0,
             },
             "size": {"size_log_mcap": 100},
