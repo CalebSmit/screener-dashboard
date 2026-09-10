@@ -33,14 +33,19 @@ companies) use a bank-specific metric set within Valuation and Quality.
 
 ### Metric Registry
 
-The metric registry (`METRIC_COLS` in `factor_engine.py`) has **44 entries**:
+The metric registry (`METRIC_COLS` in `factor_engine.py`) has **45 entries**:
 
-- **32 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
+- **29 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
 - **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — substituted for
   certain generic metrics on financial companies.
-- **8 candidate metrics at weight 0** — pre-implemented but inactive; the
+- **12 candidate metrics at weight 0** — pre-implemented but inactive; the
   self-improvement engine may activate them over time based on live
   information-coefficient evidence.
+
+*(Counts corrected 2026-09-10. The total was right but the split had read
+32/4/8 since before `sharpe_ratio` and `sortino_ratio` were moved to weight 0
+on 2026-09-02 — the errors cancelled, so the sum stayed plausible. Verified
+against `METRIC_COLS` and `config.yaml` rather than incremented by hand.)*
 
 ### Composite Score
 

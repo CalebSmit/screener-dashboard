@@ -50,7 +50,9 @@
     "numberOfAnalystOpinions": 40,
     "da_cf": 15000000000,
     "totalEquity_prior": 55200000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 7.2,
+    "_fy1_eps_90d_ago": 7.05
   },
   {
     "Ticker": "MSFT",
@@ -103,7 +105,9 @@
     "numberOfAnalystOpinions": 38,
     "da_cf": 10000000000,
     "totalEquity_prior": 184000000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 14.0,
+    "_fy1_eps_90d_ago": 13.55
   },
   {
     "Ticker": "JPM",
@@ -156,7 +160,9 @@
     "numberOfAnalystOpinions": 25,
     "da_cf": 5000000000,
     "totalEquity_prior": 276000000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 17.0,
+    "_fy1_eps_90d_ago": 17.3
   },
   {
     "Ticker": "JNJ",
@@ -209,7 +215,9 @@
     "numberOfAnalystOpinions": 20,
     "da_cf": 6000000000,
     "totalEquity_prior": 64400000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 6.4,
+    "_fy1_eps_90d_ago": 6.42
   },
   {
     "Ticker": "XOM",
@@ -262,7 +270,9 @@
     "numberOfAnalystOpinions": 28,
     "da_cf": 15000000000,
     "totalEquity_prior": 184000000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 7.8,
+    "_fy1_eps_90d_ago": 8.35
   },
   {
     "Ticker": "LOSS",
@@ -316,7 +326,9 @@
     "numberOfAnalystOpinions": 2,
     "da_cf": 200000000,
     "totalEquity_prior": 2760000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": -1.0,
+    "_fy1_eps_90d_ago": -1.35
   },
   {
     "Ticker": "ZERO",
@@ -370,7 +382,9 @@
     "numberOfAnalystOpinions": null,
     "da_cf": null,
     "totalEquity_prior": -460000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 0.8,
+    "_fy1_eps_90d_ago": 0.78
   },
   {
     "Ticker": "SPARSE",
@@ -477,7 +491,9 @@
     "numberOfAnalystOpinions": 22,
     "da_cf": 4000000000,
     "totalEquity_prior": 41400000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 6.6,
+    "_fy1_eps_90d_ago": 6.58
   },
   {
     "Ticker": "HD",
@@ -530,6 +546,8 @@
     "numberOfAnalystOpinions": 30,
     "da_cf": 3000000000,
     "totalEquity_prior": -1840000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "_fy1_eps_current": 17.5,
+    "_fy1_eps_90d_ago": 17.1
   }
 ]

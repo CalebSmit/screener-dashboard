@@ -311,7 +311,7 @@ outcome.
 
 ### Scoring engine
 - `run_screener.py` - pipeline entry point
-- `factor_engine.py` - metric registry (`METRIC_COLS`, 44 entries), scoring
+- `factor_engine.py` - metric registry (`METRIC_COLS`, 45 entries), scoring
 - `portfolio_constructor.py` - sector-constrained portfolio construction
 - `improvement_engine.py` - **the methodology learning loop** (see below)
 - `backtest.py` - decile backtest + IC validation. Known-weak; see `plan/backtest-v2.md`

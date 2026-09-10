@@ -1129,6 +1129,30 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: earnings surprise extraction failed: {type(e).__name__}: {e}")
 
+        # ---- FY1 consensus EPS revision (raw components only) ----
+        # Ticker.eps_trend is a 4x5 frame: rows are the forecast period
+        # ('0q', '+1q', '0y', '+1y'), columns the consensus as it stood
+        # 'current' / '7daysAgo' / ... / '90daysAgo'.  We take the '0y' (FY1)
+        # row, per research/2026-09-07 SS5: FY1 is the horizon Chan, Jegadeesh &
+        # Lakonishok (1996) and Barra's Sentiment descriptors both use, and the
+        # quarterly row rolls over mid-window, which would put the 'current'
+        # and '90daysAgo' figures on different fiscal periods.
+        #
+        # Only the two raw endpoints are stored here.  The metric itself is
+        # built in compute_metrics(), where the price denominator lives, so it
+        # is computable from a plain dict in tests and in the golden fixture.
+        try:
+            et = t.eps_trend
+            if et is not None and not et.empty and "0y" in et.index:
+                _row = et.loc["0y"]
+                for _col, _key in [("current", "_fy1_eps_current"),
+                                   ("90daysAgo", "_fy1_eps_90d_ago")]:
+                    if _col in _row.index:
+                        _v = _row[_col]
+                        rec[_key] = float(_v) if pd.notna(_v) else np.nan
+        except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
+            warnings.warn(f"{ticker_str}: eps_trend extraction failed: {type(e).__name__}: {e}")
+
     except Exception as exc:
         err_str = str(exc)
         rec["_error"] = err_str
@@ -1322,6 +1346,15 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
         # Earnings acceleration and beat streak: same sparsity as analyst surprise
         earnings_accel = tn(0.02, 0.05) if pd.notna(analyst_surprise) else np.nan
         beat_streak = round(tn(5, 3, low=0, high=10)) if pd.notna(analyst_surprise) else np.nan
+        # NOTE: fy1_revision_3m is deliberately NOT synthesized. This generator
+        # emits finished metric values and carries no price field, while the
+        # revision is built in compute_metrics() from two raw consensus
+        # endpoints and a price denominator - so a fabricated value here would
+        # be silently overwritten with NaN, exactly as price_target_upside and
+        # proximity_52w_high already are on this path. Leaving it missing is
+        # the honest outcome and the existing has_data renormalisation handles
+        # it. Adding a price field to make it compute would change five
+        # unrelated metrics on this path; that is a separate change.
 
         rec = {
             "Ticker": row["Ticker"],
@@ -1984,14 +2017,41 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["jensens_alpha"] = np.nan
 
         # -- Revisions --
-        # NOTE: An EPS forecast revision metric (change in consensus forward EPS
-        # over 3-6 months) would strengthen this category, but yfinance only
-        # provides static forwardEps — no historical consensus data.
-        # Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.
         try:
             rec["analyst_surprise"] = d.get("analyst_surprise", np.nan)
             rec["earnings_acceleration"] = d.get("earnings_acceleration", np.nan)
             rec["consecutive_beat_streak"] = d.get("consecutive_beat_streak", np.nan)
+
+            # FY1 consensus EPS revision over 90 days, scaled by price.
+            # This is the category's only actual *revision* metric and, since
+            # 2026-09-10, its heaviest (weight 35).  See
+            # research/2026-09-07-revisions-category-has-no-revisions.md.
+            #
+            # Scaled by price, NOT by |estimate|, and the reason is not
+            # cosmetic: on the full 502-name universe the estimate-scaled
+            # denominator hits zero for at least one name, making its mean
+            # literally +inf and its sd undefined (SS8.1).  Price scaling is
+            # also CJL (1996)'s own construction.  It does NOT reduce the
+            # correlation with momentum - SS8.3 measured five reconstructions,
+            # including a sign-only variant with no denominator at all, and
+            # every one carries ~0.32-0.43.  That overlap is economic
+            # (Novy-Marx 2015), not an artifact of this formula; do not try to
+            # "fix" it with a cleverer denominator without re-running SS8.3.
+            _fy1_now = d.get("_fy1_eps_current", np.nan)
+            _fy1_then = d.get("_fy1_eps_90d_ago", np.nan)
+            # Fall back on a PRESENT-but-NaN currentPrice, not just an absent
+            # key.  dict.get() returns the NaN in that case and never reaches
+            # the default, so a name that has the key but no value would lose
+            # the metric despite price_latest being available.
+            _rev_price = d.get("currentPrice", np.nan)
+            if pd.isna(_rev_price):
+                _rev_price = d.get("price_latest", np.nan)
+            if (pd.notna(_fy1_now) and pd.notna(_fy1_then)
+                    and pd.notna(_rev_price) and _rev_price > 0):
+                rec["fy1_revision_3m"] = float(
+                    (_fy1_now - _fy1_then) / _rev_price)
+            else:
+                rec["fy1_revision_3m"] = np.nan
 
             # Price target upside: consensus analyst target vs current price.
             # Require >= 3 covering analysts for a meaningful consensus.
@@ -2228,6 +2288,7 @@ METRIC_COLS = [
     "return_12_1", "return_6m", "jensens_alpha",                      # momentum + risk-adjusted alpha
     "volatility", "beta", "sharpe_ratio", "sortino_ratio",              # risk + risk-adjusted return
     "max_drawdown_1y",                                                   # tail risk: max peak-to-trough
+    "fy1_revision_3m",                                               # FY1 consensus EPS revision, 90d
     "analyst_surprise", "price_target_upside",
     "earnings_acceleration", "consecutive_beat_streak",              # fundamental momentum
     "short_interest_ratio",                                          # short interest sentiment
@@ -2319,6 +2380,7 @@ METRIC_DIR = {
     "sharpe_ratio": True,                                    # higher Sharpe = better risk-adjusted return
     "sortino_ratio": True,                                   # higher Sortino = better downside-adjusted return
     "max_drawdown_1y": True,                                 # less negative = smaller drawdown = better
+    "fy1_revision_3m": True,                                 # upward consensus revision = better
     "analyst_surprise": True, "price_target_upside": True,
     "earnings_acceleration": True, "consecutive_beat_streak": True,  # fundamental momentum
     "short_interest_ratio": False,                                   # lower days-to-cover = less short pressure = better
@@ -2431,7 +2493,8 @@ CAT_METRICS = {
     "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
     "momentum":  ["return_12_1", "return_6m", "jensens_alpha", "proximity_52w_high"],
     "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],
-    "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
+    "revisions": ["fy1_revision_3m",
+                  "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
                   "short_interest_ratio", "short_pct_float", "analyst_rating"],
     "size":       ["size_log_mcap"],
     "investment": ["asset_growth"],

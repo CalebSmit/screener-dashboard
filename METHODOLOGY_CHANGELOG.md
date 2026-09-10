@@ -176,14 +176,16 @@ starting with the day it was written.** So `price_data_refresh_days: 1` means
 
 **Why this is a methodology change, not a performance tweak.** `factor_scores`
 is the *fully scored* dataset. **18 of the 44 metrics in `METRIC_COLS` move
-with the daily close**, spanning five of the eight categories:
+with the daily close** *(19 of 45 as of 2026-09-10 - `fy1_revision_3m` scales
+by price too; the claim is unchanged in substance and slightly stronger)*,
+spanning five of the eight categories:
 
 | Category | Price-driven metrics |
 |---|---|
 | Valuation | `ev_ebitda`, `fcf_yield`, `earnings_yield`, `ev_sales`, `pb_ratio`, `peg_ratio`, `dividend_yield` |
 | Momentum | `return_12_1`, `return_6m`, `proximity_52w_high` |
 | Risk | `volatility`, `beta`, `sharpe_ratio`, `sortino_ratio`, `max_drawdown_1y`, `jensens_alpha` |
-| Revisions | `price_target_upside` |
+| Revisions | `price_target_upside`, `fy1_revision_3m` *(added 2026-09-10)* |
 | Size | `size_log_mcap` |
 
 Every valuation ratio has price or market cap in its numerator or denominator,
@@ -1369,3 +1371,148 @@ scoring.
 **Rollback:** `good/2026-09-07`. The change is confined to
 `generate_dashboard.py`, the new `stock_summary.py`, the two new test modules,
 the regenerated artifacts, and documentation.
+
+---
+
+## 2026-09-10 - The revisions category gets an actual revision, and stops being 78% earnings surprise
+
+**Area:** metric definition (new metric) + `metric_weights.revisions`
+
+**Changed:** two halves of one change. Splitting them would leave the
+category's two heaviest metrics correlating at +0.401, so they ship together.
+
+*(a) New metric `fy1_revision_3m`* - the 90-day change in FY1 consensus EPS,
+scaled by price:
+
+```
+fy1_revision_3m = (eps_trend['0y','current'] - eps_trend['0y','90daysAgo']) / price
+```
+
+Source is `Ticker.eps_trend`, +1 HTTP request per ticker. Direction: higher is
+better. Coverage measured on the full universe: **500/502 = 99.6%**, which is
+*better* than the `analyst_surprise` it takes weight from (99.2%).
+
+*(b) Within-category reweight.* The category's **10% share of the composite is
+unchanged** - only the split inside it moved:
+
+| Metric | Was | Now |
+|---|---|---|
+| `fy1_revision_3m` | - | **35** |
+| `analyst_surprise` | 38 | **15** |
+| `consecutive_beat_streak` | 20 | **10** |
+| `earnings_acceleration` | 20 | 20 |
+| `price_target_upside` | 12 | **10** |
+| `short_interest_ratio` | 10 | 10 |
+
+**The defect this fixes.** The category was named "revisions" and contained
+none. 78 of its 100 points sat on the earnings-**surprise** family
+(`analyst_surprise` + `consecutive_beat_streak`). The `config.yaml` comment
+asserting that a revision metric was unavailable without FactSet or Refinitiv
+I/B/E/S was **false** - it is one field on the data source already in use.
+
+**Evidence:**
+
+- **Chan, Jegadeesh & Lakonishok (1996), "Momentum Strategies", J. Finance
+  51(5).** Of the three earnings-momentum legs, the analyst-revision measure
+  (REV6) was the strongest: **+7.7% six-month decile spread**, IBES universe
+  1977-93. Replicated by **Stickel (1991)** at **+7.07%**. Price scaling by the
+  prior close is CJL's own construction, not a choice invented here.
+- **Martineau (2022), "Rest in Peace Post-Earnings Announcement Drift",
+  Critical Finance Review 11(4).** PEAD - the effect the *surprise* metrics
+  rely on - is documented as **non-existent since 2006** for all but microcaps,
+  with a **significantly negative** 2016-19 coefficient. This is an S&P 500
+  screener, i.e. exactly the population where the effect is gone. That is the
+  case for cutting surprise from 38 to 15, and it is a claim about the
+  incumbent metrics rather than about the new one.
+- **Novy-Marx (2015), "Fundamentally, Momentum is Fundamental Momentum",
+  NBER w20984.** Earnings-momentum alpha is strongest in large caps
+  (SUE **t = 2.83** in the top quintile, where price momentum is insignificant
+  at t = 1.48). This is why the measured overlap with price momentum below is
+  read as an economic fact rather than a construction error.
+- **Documented practice.** Barra's USFAST `Sentiment` factor is built from
+  analyst **revision** descriptors; "surprise" appears **zero** times in the
+  datasheet. The Zacks Rank has four components (Agreement, Magnitude, Upside,
+  Surprise); this screener implemented **only Surprise**, the one practitioners
+  weight least.
+- **Measured on the full 502-name published payload, 2026-09-09.** Coverage
+  99.6%; **0.0% ties** price-scaled; overlap with `forward_eps_growth` (the
+  same FY1 consensus line, 45% of the growth category) only **+0.152**, so a
+  level and a change in that level are confirmed to be distinct objects;
+  **71.6% unspanned** by all eight existing categories (R2 0.284).
+- Full working: `research/2026-09-07-revisions-category-has-no-revisions.md`,
+  sections 8.0-8.7.
+
+**What this entry does NOT claim.** It does **not** claim the ranking improves.
+The research pre-registered a materiality bar - "if the change moves fewer
+names than deleting the category outright, argue it on explainability alone" -
+and that bar **fired**: deleting the category moves 7 of the top 50, this
+change moves 3. The bar is asymmetric (a 3.3%-of-composite within-category
+reweight measured against deleting a 10% slot), but a threshold set in advance
+and explained away the moment it fires is not a threshold. **The case is
+construct validity: a category named for revisions now measures revisions.**
+No backtest figure and no `live_ic_history.csv` number appears anywhere in this
+entry (rules 4 and 5); the `1m` horizon holds **3 effective observations**
+against a gate of 8.
+
+**Expected effect:** 3 of the top 50 change; median |delta rank| 9; 218 names
+move more than 10 ranks; max 109. `revisions ~ momentum` category correlation
+**+0.171 -> +0.317** (4th largest of the 28 pairs). Revisions unspanned
+**91.1% -> 85.2%**. That last pair is independence **spent deliberately** to
+buy construct validity, and is named as a cost rather than left unremarked.
+
+**Validated by:** `tests/test_fy1_revision.py`, **44 tests** - formula, sign,
+price scaling, the change-vs-level property, every missing-input path, the
+`eps_trend` extraction against a mock frame (including that a broken
+`eps_trend` costs one metric and not the whole ticker), the three registries,
+the exact reweight, both display formatters, and end-to-end through the scoring
+pipeline. Full suite **1117 -> 1161 passed, 0 failed**. Golden fixture
+regenerated; its mock data now carries FY1 endpoints spanning both signs, plus
+a loss-making name with an upward revision and one name with no data at all.
+
+**Live verification:** fetched 8 real tickers end-to-end - 8/8 coverage, values
++1.9 to +52.7 bp, inside the measured full-universe distribution
+(p10 -19.5, median +5.9, p90 +52.5 bp).
+
+**Second-order effect, flagged as unmeasured by the research and now
+measured.** The coverage-discount denominator in `compute_composite()` is
+`METRIC_COLS`, so a 45th metric shifts every stock's coverage ratio. On the
+live payload: max change in the discount **0.0019** (about 0.1 point of
+composite), and **zero** names cross the 0.80 threshold in either direction.
+For the ~2 names that lack the metric the discount rises by at most 0.0029 -
+the mechanism working as intended, since they genuinely do have less data.
+
+**Three things a future session must not undo:**
+
+1. **Scale by price, and know why.** Not to reduce the momentum overlap - it
+   does not, at all - but because the estimate-scaled denominator is
+   **undefined** on this universe (a name whose 90-day-ago FY1 consensus rounds
+   to 0.00 makes the mean literally +inf).
+2. **The ~+0.42 correlation with momentum is economic, not mechanical.** Five
+   reconstructions were measured, including a **sign-only** variant with no
+   denominator at all; every one carries +0.32 to +0.43, while `1/price ~
+   momentum` is -0.128, the *wrong sign* for the artifact explanation. Do not
+   "fix" it with a cleverer denominator without re-running section 8.3.
+3. **The revisions category has spent its independence budget.** Adding any
+   further momentum-adjacent metric here requires re-running the section 8.4
+   spanning regression first, not just a citation.
+
+**Rejected, and why:** diffusion (`eps_revisions`, the Zacks "Agreement"
+component) - **75.8% ties** on the full universe, 37.3% of names pinned at
+exactly +1.0; three names in eight would form one indistinguishable rank block.
+Also the conservative `fy1_revision_3m = 20` variant: at 20 the surprise family
+is still 63% of a category named for revisions, leaving the defect largely in
+place.
+
+**Display note.** A `bp` (basis points of price) format was added to both the
+Python and JS metric formatters. Under the existing `pct` format at one
+decimal, the measured p10/median/p90 (-0.00195 / +0.00059 / +0.00525) collapse
+onto two strings, manufacturing visible ties in a metric with 0.0% actual ties.
+The two formatters are asserted to agree, because the drilldown's prose and its
+metric table are rendered by different code paths.
+
+**Applied by:** morning session (manual, research-led per rule 4).
+
+**Rollback:** `good/2026-09-09`. The change touches `factor_engine.py`
+(fetch + metric + three registries), `config.yaml`, `schemas.py`,
+`generate_dashboard.py`, `stock_summary.py`, the golden fixture, three existing
+test modules whose pinned counts moved, and documentation.

@@ -134,6 +134,7 @@ class FactorScores(BaseModel):
     price_target_upside: Optional[float] = None
     earnings_acceleration: Optional[float] = None   # Fundamental momentum: acceleration
     consecutive_beat_streak: Optional[float] = None  # Fundamental momentum: beat streak
+    fy1_revision_3m: Optional[float] = None   # 90-day change in FY1 consensus EPS / price
     size_log_mcap: Optional[float] = None     # Size factor: -log(marketCap)
     asset_growth: Optional[float] = None      # Investment factor: YoY total asset growth
 
@@ -264,10 +265,13 @@ class RiskWeights(_MetricWeightBase):
 
 
 class RevisionsWeights(_MetricWeightBase):
-    analyst_surprise: float = 38       # Backward-looking: did company beat estimates?
-    price_target_upside: float = 12    # Forward-looking: analyst consensus upside
+    # Reweighted 2026-09-10; see METHODOLOGY_CHANGELOG.md. The category's share
+    # of the composite is unchanged - only the split within it moved.
+    fy1_revision_3m: float = 35        # 90-day change in FY1 consensus EPS / price
+    analyst_surprise: float = 15       # Backward-looking: did company beat estimates?
+    price_target_upside: float = 10    # Forward-looking: analyst consensus upside
     earnings_acceleration: float = 20  # Most recent quarter surprise > prior quarter
-    consecutive_beat_streak: float = 20  # Recency-weighted beat score (0-10); higher = better
+    consecutive_beat_streak: float = 10  # Recency-weighted beat score (0-10); higher = better
     short_interest_ratio: float = 10   # Days to cover; lower = less bearish sentiment
     short_pct_float: float = 0    # Candidate: activated by improvement engine
     analyst_rating: float = 0     # Candidate: activated by improvement engine

@@ -4271,3 +4271,190 @@ as a **Confirmed 2026-09-09** subsection to the 2026-09-02 entry.
    to something else. If Thursday's build lands cleanly, this is Friday's or
    next week's, and it should not slip again without the age being written down.
 3. The run-level overview sentence, the narrow remainder of priority 4.
+
+---
+
+## 2026-09-10 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - `logs/nightly-2026-09-09_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-09` |
+| Data loop published? | **Yes** - `logs/datarun-2026-09-10_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | **37 rows, newest 2026-09-03, 3 effective observations at `1m`** (9 raw) against a gate of 8 |
+| Priority 0 | Fixed 2026-08-24, not weakened today. `_effective_observations()` untouched |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 36 days old**, still untouched |
+
+**Tests:** before 1117/1117, after **1161/1161**. Zero failures either side; the
+44 new tests are `tests/test_fy1_revision.py`.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Thursday taken as the focus, building exactly what §8.7 of Monday's
+research note specified and Wednesday settled. Priority 5 was **not** taken -
+see *Next*, and note its age is now written down for the third consecutive
+session.
+
+### Did
+
+**Shipped `fy1_revision_3m` and the revisions reweight as one change.** The
+category was named for revisions and contained none: 78 of its 100 points sat
+on the earnings-**surprise** family, whose drift Martineau (2022) documents as
+absent in large caps since 2006. It now leads with an actual revision, at
+weight 35. The category's **10% share of the composite did not change** - only
+the split inside it.
+
+| Metric | Was | Now |
+|---|---|---|
+| `fy1_revision_3m` | - | **35** |
+| `analyst_surprise` | 38 | **15** |
+| `consecutive_beat_streak` | 20 | **10** |
+| `earnings_acceleration` | 20 | 20 |
+| `price_target_upside` | 12 | **10** |
+| `short_interest_ratio` | 10 | 10 |
+
+Touched: `factor_engine.py` (fetch block, metric, `METRIC_COLS` / `METRIC_DIR`
+/ `CAT_METRICS`), `config.yaml`, `schemas.py`, `generate_dashboard.py`,
+`stock_summary.py`, the golden fixture, three existing test modules whose
+pinned counts genuinely moved, and five documents.
+
+**Verified live, not just against mocks.** Fetched 8 real tickers end-to-end:
+**8/8 coverage**, +1.9 to +52.7 bp, inside the full-universe distribution the
+research measured (p10 -19.5, median +5.9, p90 +52.5 bp). A metric that passes
+44 unit tests and has never touched the real feed is not finished.
+
+**Closed the second-order effect §8.7 flagged and left unmeasured.** The
+coverage-discount denominator in `compute_composite()` really is `METRIC_COLS`,
+so a 45th metric does shift every stock's coverage ratio - the note was right to
+flag it. Measured on the live payload: max change in the discount **0.0019**
+(~0.1 point of composite) and **zero** names cross the 0.80 threshold. For the
+~2 names lacking the metric it rises by at most 0.0029, which is the mechanism
+working, since they do have less data.
+
+**Found and fixed a defect while writing the tests.** The price-denominator
+lookup followed the existing `d.get("currentPrice", d.get("price_latest"))`
+idiom, which does **not** fall back when `currentPrice` is *present but NaN* -
+`dict.get` returns the NaN and never reaches the default. A name in that state
+would have lost the metric despite `price_latest` being available. The test was
+written first, failed, and the code was fixed rather than the expectation
+lowered. **Note for a future session: five other metrics still use the unguarded
+idiom** (lines ~1802, 1909, 2064, 2090, 2170) and have the same latent hole.
+Not fixed today - out of scope and each needs its own check - but written down.
+
+**Two things deliberately not done, both to avoid fabricating data.**
+
+- **The synthetic sample path leaves the metric `NaN`.** That generator emits
+  finished metric values and carries no price field at all, so it cannot build
+  this one. I started to add a price so it would compute, then measured the
+  blast radius: it would have changed five unrelated metrics on that path.
+  Inventing a consensus revision is also precisely the fabrication failure the
+  2026-08-11 and 2026-09-01 fixes exist to prevent. NaN is honest, matches how
+  `price_target_upside` and `proximity_52w_high` already behave there, and the
+  `has_data` renormalisation absorbs it. `test_screener.py`'s "generator
+  produces every `METRIC_COL`" guard now carries a **documented exception
+  list**, asserted to stay at most 3 long, rather than being deleted.
+- **The revisions coverage auto-disable guard was left alone.** It samples
+  `analyst_surprise` and `price_target_upside` only, so it no longer includes
+  the category's heaviest metric. Adding the new one would make the guard
+  *less* likely to fire - a behaviour change with no evidence behind it, in a
+  degenerate-case guard that has never fired. Flagged, not touched.
+
+**Display needed a new format, which the research had not anticipated.** Under
+the existing `pct` at one decimal, the measured p10/median/p90
+(-0.00195 / +0.00059 / +0.00525) collapse onto two strings - manufacturing
+*visible* ties in a metric measured at **0.0% actual ties**. Added a `bp`
+(basis points of price) format to both the Python and the JS formatter, with a
+test asserting they agree: the drilldown's prose and its metric table are
+rendered by different code paths, and `_fmt_metric`'s docstring already promised
+it mirrors the emitted JS.
+
+**Corrected three stale documentation claims** found by following my own change
+rather than by looking for them:
+
+- `SCREENER_OVERVIEW.md` limitation 5 said a revision metric "would require a
+  paid data source like FactSet or Refinitiv I/B/E/S". **False**, and now
+  corrected in place with the correction visible rather than silently rewritten.
+  The honest residual limitation is that the feed only reaches 90 days back, so
+  revision *persistence* and CJL's 6-month window remain out of reach.
+- The 2026-08-13 changelog entry pins "18 of the 44 metrics move with the daily
+  close". `fy1_revision_3m` has price in its denominator, so it is **19 of 45**.
+  The claim it supports gets slightly stronger. `tests/test_cache_freshness.py`
+  pins the new numbers.
+- `README.md` and `SCREENER_DEFENSIBILITY_SPEC.md` both described the registry
+  split as **32 scored + 4 bank + 8 candidates**. The true split has been
+  **28/4/12** since `sharpe_ratio` and `sortino_ratio` went to weight 0 on
+  2026-09-02 - the two errors cancelled, so the total stayed a plausible 44 and
+  nobody noticed. Now 29/4/12 of 45, counted from `METRIC_COLS` and
+  `config.yaml` rather than incremented by hand.
+
+### Evidence / research
+
+- **Chan, Jegadeesh & Lakonishok (1996)**, J. Finance 51(5): of the three
+  earnings-momentum legs the analyst-revision measure (REV6) was strongest,
+  **+7.7% six-month decile spread**, IBES 1977-93; **Stickel (1991)**
+  replication **+7.07%**. Price scaling is CJL's own construction.
+- **Martineau (2022)**, Critical Finance Review 11(4): PEAD - what the surprise
+  metrics rely on - **non-existent since 2006** outside microcaps, 2016-19
+  coefficient significantly negative. This is an S&P 500 screener, so that is
+  exactly this universe. The case for cutting surprise 38 → 15.
+- **Novy-Marx (2015)**, NBER w20984: earnings-momentum alpha strongest in large
+  caps (SUE **t = 2.83** top quintile, price momentum insignificant at 1.48).
+  Why the momentum overlap is read as economic rather than as a bug.
+- **Practice:** Barra USFAST `Sentiment` is built from revision descriptors -
+  "surprise" appears **zero** times in the datasheet; the Zacks Rank has four
+  components and this screener implemented only Surprise, the weakest.
+- **Measured (full 502-name payload, 2026-09-09):** coverage 99.6% vs 99.2% for
+  the metric it takes weight from; 0.0% ties; +0.152 with `forward_eps_growth`;
+  71.6% unspanned by the other eight categories.
+- **Measured today:** live 8-ticker fetch; the coverage-discount second-order
+  effect.
+- **No backtest figure and no `live_ic_history.csv` number** appears in the
+  changelog entry (rules 4 and 5). The `1m` horizon holds **3 effective**
+  observations against a gate of 8.
+
+### Methodology changed
+
+- **`METHODOLOGY_CHANGELOG.md` 2026-09-10** - the new metric and the reweight,
+  as one entry. It states explicitly that it does **not** claim the ranking
+  improves, and why: Monday's pre-registered materiality bar **fired** (deleting
+  the category outright moves 7 of the top 50; this change moves 3). The bar is
+  asymmetric and the entry says so, but a threshold set in advance and explained
+  away the moment it fires is not a threshold. The case rests on **construct
+  validity** - a category named for revisions now measures revisions - and on
+  the literature, not on a claim of better ranking.
+- The entry also records the cost in the open: `revisions ~ momentum`
+  **+0.171 → +0.317**, 4th largest of the 28 category pairs, and revisions
+  unspanned **91.1% → 85.2%**. Independence spent deliberately, named as a cost.
+- **Inline correction** to the 2026-08-13 entry (18 of 44 → 19 of 45).
+
+### Tried and rejected
+
+- **Adding a price field to the synthetic generator** so the metric would
+  compute there. Measured first: it would have activated five unrelated
+  metrics on that path. Rejected as out of scope, and fabricating a consensus
+  revision would be the exact failure two prior fixes exist to prevent.
+- **Weakening the "generator produces every `METRIC_COL`" test** to make it
+  pass. Replaced with a documented exception list that is itself bounded, so
+  the guard still fails on any metric that was simply never wired up.
+- **Diffusion (`eps_revisions`)** and the **conservative `fy1=20` variant** -
+  both settled by Wednesday (75.8% ties; and at 20 the surprise family is still
+  63% of the category). Not relitigated, per §8.7.
+- **Touching the revisions auto-disable guard.** No evidence either way; a
+  behaviour change smuggled in beside a justified one.
+
+### Next
+
+1. **Priority 5, the sell-side workflow** - top open north-star item, now **36
+   days**. The week's research is shipped and Thursday's build landed, so there
+   is no longer a research thread pulling against it. Question 3 ("should I sell
+   what I hold?") is still unanswerable. **This should be the next session's
+   work unless the data loop breaks.**
+2. **The `dict.get` NaN-fallback hole in five other metrics** (`factor_engine.py`
+   ~1802, 1909, 2064, 2090, 2170). Same shape as the one fixed today; each needs
+   its own check of whether a present-but-NaN `currentPrice` actually occurs.
+   Small, contained, and a good warm-up rather than a session.
+3. Confirm the shipped change against the live run: tomorrow's 02:00 data run is
+   the first to score with the new weights, so the What Changed panel should
+   show roughly the predicted 3-of-top-50 turnover. If it shows far more, the
+   *Expected effect* line is wrong and the changelog entry needs the correction
+   recorded against it.

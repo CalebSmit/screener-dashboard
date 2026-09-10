@@ -80,19 +80,28 @@ metric_weights:
     sortino_ratio: 0
 
   revisions:
-    analyst_surprise: 38       # Backward-looking: did company beat estimates?
-    price_target_upside: 12   # Forward-looking: analyst consensus upside; reduced (sell-side optimism bias)
-    earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise %
-    consecutive_beat_streak: 20  # Recency-weighted beat score (0-10); higher = more/recent beats
+    # Reweighted 2026-09-10. Until then the category was named for revisions and
+    # contained none: 78 of its 100 points sat on the earnings-SURPRISE family
+    # (analyst_surprise + consecutive_beat_streak), whose drift Martineau (2022)
+    # documents as absent in large caps since 2006. fy1_revision_3m is the
+    # category's first actual revision metric and is now its heaviest.
+    # See METHODOLOGY_CHANGELOG.md 2026-09-10 and
+    # research/2026-09-07-revisions-category-has-no-revisions.md SS8.7.
+    # The category's 10% share of the composite is UNCHANGED - this is a
+    # within-category reweight only.
+    fy1_revision_3m: 35        # 90-day change in FY1 consensus EPS / price (was absent)
+    analyst_surprise: 15       # Backward-looking: did company beat estimates? (was 38)
+    price_target_upside: 10    # Forward-looking: analyst consensus upside (was 12)
+    earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise % (unchanged)
+    consecutive_beat_streak: 10  # Recency-weighted beat score (0-10) (was 20)
     short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
     short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
     analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
-    # NOTE: none of the five scored metrics above is an estimate *revision*.
-    # A real one IS available from the current data source, contrary to what this
-    # comment said until 2026-09-07: Ticker.eps_trend returns consensus EPS now vs
-    # 7/30/60/90 days ago (FY1 and FY2), and Ticker.eps_revisions returns up/down
-    # analyst counts. Measured 2026-09-07: 97.6% coverage on an 84-name sample,
-    # +1 HTTP request per ticker. It does NOT require FactSet or Refinitiv I/B/E/S.
+    # The revisions category has now SPENT its independence budget: it goes from
+    # ~91% unspanned by the other seven categories to 85.2%, and revisions~momentum
+    # becomes the 4th largest of the 28 category pairs (+0.171 -> +0.317).
+    # Adding any further momentum-adjacent metric here requires re-running the
+    # SS8.4 spanning regression first, not just a citation.
     # Evidence and a proposed weighting:
     # research/2026-09-07-revisions-category-has-no-revisions.md
 
