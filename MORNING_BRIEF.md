@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 09 September 2026, 06:20
+# Morning Brief - Thursday 10 September 2026, 02:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,28 +8,23 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-09T02:00:08.689246 |
+| Code session (6 AM) | **failed** - last ran today |
+| Dashboard data from | 2026-09-10T02:00:04.141425 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
 | Top 5 | HST, EXPE, APA, VLO, ALL |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (9 rows, but overlapping windows are not independent; 36 rows across all horizons), newest 2026-09-02 |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (9 rows, but overlapping windows are not independent; 37 rows across all horizons), newest 2026-09-03 |
 
 ## What changed in the repo
 
+- `f68979d data: screener run 2026-09-10 - 502 scored, top: HST EXPE APA VLO ALL`
+- `06a897d brief: code session 2026-09-09`
 - `2dab71b log: 2026-09-09 synthesis session`
 - `d88f1fd changelog: confirm the 2026-09-02 risk-category change against its prediction`
 - `4a74d5d research: synthesis section on the revisions category (2026-09-07 note, Â§8)`
 - `bed35c0 brief: data run 2026-09-09`
 - `a195b07 data: screener run 2026-09-09 - 502 scored, top: HST EXPE APA VLO ALL`
-- `7cb1b63 brief: code session 2026-09-08`
-- `402708b docs: record the chat removal and keep the plan files true`
-- `3d80a9b data: regenerate the published dashboard without the chat`
-- `9680674 product: remove the "Screener AI" chat, render the summary in its place`
-- `388c614 product: deterministic per-stock "Why it ranks here" summaries`
-- `f200b41 brief: data run 2026-09-08`
-- `c72d9c1 data: screener run 2026-09-08 - 502 scored, top: HST EXPE APA CAH VLO`
 
 ## The session's own account
 
