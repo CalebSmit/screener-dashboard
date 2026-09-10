@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 10 September 2026, 02:12
+# Morning Brief - Thursday 10 September 2026, 06:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **failed** - last ran today |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-09-10T02:00:04.141425 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `eeb79a8 docs: changelog for the revisions change; correct three stale claims`
+- `40454df test: 44 tests for fy1_revision_3m; update three pinned counts`
+- `1d5e162 feat(dashboard): surface the FY1 revision in basis points of price`
+- `b3c9f76 feat: add fy1_revision_3m, the revisions category's first actual revision`
+- `ba668bb brief: data run 2026-09-10`
 - `f68979d data: screener run 2026-09-10 - 502 scored, top: HST EXPE APA VLO ALL`
 - `06a897d brief: code session 2026-09-09`
 - `2dab71b log: 2026-09-09 synthesis session`
@@ -28,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-09 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+> 2026-09-10 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
-> ### Health numbers (rule 8, all five)
+> **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | `logs/nightly-2026-09-08_060001.log` - "Run complete: shipped to main" |
-> | Data loop published? | `logs/datarun-2026-09-09_020001.log` - "Data loop complete", **HEALTH: PASS**, 502 scored |
-> | Evidence base | **36 rows, newest 2026-09-02, 3 effective observations at `1m`** (9 raw) against a gate of 8 |
-> | Priority 0 | DONE 2026-08-24, not reopened |
-> | Top open roadmap item | **Priority 5, sell-side workflow** - north-star gap 2, dated 2026-08-05, **35 days open**. Not taken today; see "Owner queue / rotation" |
+> | Last code session ran? | **Yes** - `logs/nightly-2026-09-09_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-09` |
+> | Data loop published? | **Yes** - `logs/datarun-2026-09-10_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored |
+> | Evidence base | **37 rows, newest 2026-09-03, 3 effective observations at `1m`** (9 raw) against a gate of 8 |
+> | Priority 0 | Fixed 2026-08-24, not weakened today. `_effective_observations()` untouched |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 36 days old**, still untouched |
 > 
-> **Tests:** before 1117/1117, after **1117/1117** (no pre-existing failures; no
-> code changed today, so no test changed)
-> **Data loop:** healthy. Evidence base moved 34 -> 36 rows, newest 09-01 -> 09-02.
-> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty. Nothing deferred
-> for a stalled loop or a failing gate. ISO week 37, Wednesday - synthesis day,
-> taken as the focus, with Monday's note
-> (`research/2026-09-07-revisions-category-has-no-revisions.md`) as its subject,
-> exactly as that note's §6 instructed. Priority 5 was **not** taken: Monday
-> deferred a specific measurement to Wednesday and a synthesis day that skips it
-> leaves Thursday building on an unverified design. Priority 5 remains the top
-> open north-star item and its age is written above so the trade stays visible.
+> **Tests:** before 1117/1117, after **1161/1161**. Zero failures either side; the
+> 44 new tests are `tests/test_fy1_revision.py`.
+> 
+> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+> deferred. Thursday taken as the focus, building exactly what §8.7 of Monday's
+> research note specified and Wednesday settled. Priority 5 was **not** taken -
+> see *Next*, and note its age is now written down for the third consecutive
+> session.
 > 
 > ### Did
 > 
-> **Answered the coherence question Monday deferred, on the full 502-name
-> universe, and settled the design for Thursday's build.** No code, weight,
-> threshold or scoring path changed today. Output is §8 of the research note
-> (~330 lines) plus a measured confirmation against the 2026-09-02 changelog
-> entry.
+> **Shipped `fy1_revision_3m` and the revisions reweight as one change.** The
+> category was named for revisions and contained none: 78 of its 100 points sat
+> on the earnings-**surprise** family, whose drift Martineau (2022) documents as
+> absent in large caps since 2006. It now leads with an actual revision, at
+> weight 35. The category's **10% share of the composite did not change** - only
+> the split inside it.
 > 
-> **First, the counterfactual was made trustworthy.** Before computing anything
-> hypothetical, the published composite was reproduced from its own inputs -
-> the eight category scores through `compute_composite`'s per-row
-> renormalisation, the revisions category rebuilt from its five published metric
-> percentiles, and the coverage discount reconstructed from per-stock metric
-> presence split by `_BANK_ONLY_METRICS`/`_NONBANK_ONLY_METRICS`. **Max absolute
-> error 0.000000000000 on all 502 names**, including the three where the
-> discount actually bites (FDXF at 62.5% coverage, FISV, L). A counterfactual is
-> only worth reading if the factual reproduces first.
+> | Metric | Was | Now |
+> |---|---|---|
+> | `fy1_revision_3m` | - | **35** |
+> | `analyst_surprise` | 38 | **15** |
+> | `consecutive_beat_streak` | 20 | **10** |
+> | `earnings_acceleration` | 20 | 20 |
+> | `price_target_upside` | 12 | **10** |
+> | `short_interest_ratio` | 10 | 10 |
 > 
-> *Trap for the next session, now written down:* the published `Composite` is
-> stored rounded to 2dp while category scores are stored at full precision, so a
-> naive comparison shows a spurious ~0.005 residual on **every** name and looks
+> Touched: `factor_engine.py` (fetch block, metric, `METRIC_COLS` / `METRIC_DIR`
+> / `CAT_METRICS`), `config.yaml`, `schemas.py`, `generate_dashboard.py`,
+> `stock_summary.py`, the golden fixture, three existing test modules whose
+> pinned counts genuinely moved, and five documents.
+> 
+> **Verified live, not just against mocks.** Fetched 8 real tickers end-to-end:
 > ...
 
 ---
