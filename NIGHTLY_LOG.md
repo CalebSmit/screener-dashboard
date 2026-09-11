@@ -4458,3 +4458,155 @@ rather than by looking for them:
    show roughly the predicted 3-of-top-50 turnover. If it shows far more, the
    *Expected effect* line is wrong and the changelog entry needs the correction
    recorded against it.
+
+---
+
+## 2026-09-11 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - `logs/nightly-2026-09-10_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-10` |
+| Data loop published? | **Yes** - `logs/datarun-2026-09-11_020001.log` ends "Data loop complete", 502 scored, top EXPE HST APA VLO EIX |
+| Evidence base | **39 rows, newest 2026-09-04, 3 effective observations at `1m`** (10 raw) against a gate of 8 |
+| Priority 0 | Fixed 2026-08-24, not weakened today. Nothing in this session touches `_effective_observations()` or any scoring path |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 37 days old**, still untouched |
+
+**Tests:** before 1161/1161, after **1193/1193**. Zero failures either side; the
+32 new tests are `tests/test_percentile_direction.py`.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Friday's focus taken as written. Priority 5 was **not** taken - see
+*Next*, fourth consecutive session its age has been written down.
+
+### Did
+
+**The dashboard published a percentile whose obvious reading was backwards, and
+now it doesn't.** `compute_sector_percentiles()` does `ranks = 100 - ranks`
+wherever `METRIC_DIR` is `False`, so a published percentile always means "best
+in its sector" and never "largest". That is **13 of the 37 published metrics**,
+and nothing on the page said so. Measured on the live payload:
+
+| Stock | EV/EBITDA | Published percentile |
+|---|---|---|
+| HON | 6.95 | **99** |
+| AXON | 98.61 | **0** |
+
+Same shape for beta (RSG -0.37 at the 99th vs CVNA 2.35 at the 0th) and PEG
+(UAL 0.24 at the 99th vs KMI 28.34 at the 0th). In prose it read as a flat
+contradiction: *"the 97th sector percentile on EV/EBITDA (9.02)"* (HST, live).
+
+This is the surface whose entire purpose is explaining **why** a stock ranks
+where it does. A student who learns the convention backwards misreads every
+valuation and risk metric on the site - which is the exact question this day
+exists to ask.
+
+Three fixes, plus the category columns:
+
+1. **`metric_meta[m]["dir"]`, derived from `factor_engine.METRIC_DIR`** rather
+   than written out. This is the load-bearing decision: the page cannot claim a
+   direction the scorer disagrees with, and a test compares the two on every
+   build. Hand-writing 37 directions would have been a second source of truth,
+   which is how three documentation claims went wrong before 2026-09-10.
+2. **Drilldown metric table** - header `Percentile Rank` → `Sector Percentile -
+   100 = best`, a convention note under it, and a `↓ better` / `↑ better` chip
+   with a tooltip beside every metric name.
+3. **Summary prose** - `_label_and_value()` appends `, lower is better` for the
+   13 inverted metrics only.
+4. **The eight category columns** (`Val`, `Qual`, `Grow`, `Mom`, `Risk`, `Rev`,
+   `Size`, `Inv`) were bare abbreviations with no explanation anywhere on the
+   page - only `Δ` had a tooltip. They now carry definitions naming their scored
+   metrics and weights, the bank carve-out for Valuation and Quality, and, for
+   `Risk`, the fact that a **high** score means **low** risk.
+
+**Verified I changed nothing I said I didn't.** Rebuilt the payload and compared
+cell-by-cell against the live one: **0 differing `Composite`/`Rank`/category
+cells and 0 stocks with changed `raw`/`pct`**, across all 502. Cost measured at
+**+1.2 KB gzipped (+0.1%)** on a 1,200 KB wire payload - measured after gzip,
+because raw size is the wrong number here.
+
+**Two false claims caught before shipping, by checking instead of recalling.**
+My draft tooltips named **P/B** under Valuation and **PEG** under Growth. Both
+carry **zero** weight for non-banks - `config.yaml` marks P/B "Bank-only" and
+PEG "Removed: P/E ÷ growth double-counts valuation". I had written them from
+`metric_meta`, which lists everything *displayed*; the scored set is in
+`config.yaml`'s active weights, and `CAT_METRICS` is also wrong for this because
+it includes zero-weight candidates. A test now pins the correction. Writing
+tooltips from memory would have shipped a confident, specific, wrong account of
+how the score is built - worse than the silence it replaced.
+
+**Confirmed yesterday's change against the live run, and it confirms nothing.**
+The 2026-09-11 run was the first scored with the new revisions weights. Top-50
+turnover was **exactly 3**, matching the pre-registered figure. But baseline
+day-over-day churn across the prior ten transitions is **median 3, range 0-7**,
+so a no-op day yields the same number. The prediction was not falsified and was
+also not tested. Recorded against the 2026-09-10 changelog entry as an
+underpowered observation rather than as confirmation, because filing it as a
+pass would make the next reader believe the change was validated when it wasn't.
+
+### Evidence / research
+
+- **A demonstrable user-facing failure**, which is the acceptable evidence type
+  for a hardening day: the HON/AXON, RSG/CVNA and UAL/KMI pairs above, read off
+  the live published payload, plus the HST summary sentence.
+- **The mechanism, in this repo's own code:** `factor_engine.py` lines ~2416 and
+  ~2435, `ranks = 100 - ranks` guarded by `METRIC_DIR`. 13 of 37 published
+  metrics, counted rather than estimated.
+- **27 of the 32 new tests fail against the pre-change code** (26 generator, 1
+  prose), each confirmed by stashing the change and re-running.
+- **Measured:** 0 score/rank/raw/pct cells changed; +1.2 KB gzipped; 515 summary
+  sentences gained the qualifier; 0 advice-term breaches across all 502
+  summaries, checked through `advice_terms_in()` rather than by eye.
+- **No backtest figure and no `live_ic_history.csv` number** is used anywhere -
+  neither would be relevant, since nothing about scoring changed.
+
+### Methodology changed
+
+- **`METHODOLOGY_CHANGELOG.md` 2026-09-11** - filed under presentation of scored
+  data, and states plainly that **no weight, metric, threshold or formula
+  moved**. It is in the changelog because it changes what a published number
+  *means to a reader*, which is the part of methodology the audit trail is for.
+- **Validation note appended to the 2026-09-10 entry** recording the
+  3-of-top-50 observation and why it is underpowered.
+- `plan/dashboard-inventory.md` updated in the same session (rule 9), including
+  the warning to read active weights from `config.yaml` rather than
+  `CAT_METRICS` when describing what a category scores.
+
+### Tried and rejected
+
+- **Adding the direction qualifier to higher-is-better metrics in the prose.**
+  The ambiguity exists only where percentile and raw value point opposite ways;
+  502 stocks of prose is ~101 KB gzipped, and a phrase in every sentence is not
+  free. The drilldown chip covers all 37, so the general case is still taught.
+- **Hand-writing `dir` into the 37 `metric_meta` literals.** Faster to read, but
+  a second source of truth for a fact the scorer already owns. Derived instead,
+  with a test asserting agreement.
+- **A hardcoded "13 of 37" in the convention note.** Computed in JS from the
+  payload, so it cannot go stale when a metric is added or reweighted.
+- **The `dict.get` NaN-fallback hole in five other metrics**, left by the
+  2026-09-10 session as the suggested warm-up. I checked it and it is **not
+  worth fixing as described**: `rec["currentPrice"]` is set unconditionally by
+  `_safe()`, so the key always exists and the `d.get("currentPrice",
+  d.get("price_latest"))` fallback is **dead code at every site**, not just
+  latent. But incidence is **zero** - all 502 names on the live payload carry a
+  price. So it is a safety net that does not exist rather than a bug that is
+  firing, and the honest fix is to make the fallback real *or* delete it and
+  stop implying coverage. That is a decision, not a warm-up; it should not be
+  bundled into a session about something else. Written up here so the next
+  session inherits the finding rather than repeating the investigation.
+
+### Next
+
+1. **Priority 5, the sell-side workflow** - top open north-star item, now **37
+   days**. Question 3 ("should I sell what I hold?") is still unanswerable.
+   Nothing is now pulling against it: the week's research shipped, Thursday's
+   build landed, and today's work is closed. **This should be the next session's
+   work unless the data loop breaks.**
+2. **Decide the `currentPrice` fallback** (see *Tried and rejected*): make it
+   real at all six sites, or remove it and the comment at `factor_engine.py`
+   line ~683 that promises it. Either is defensible; leaving a documented
+   safety net that cannot fire is not.
+3. The 2026-09-10 *Expected effect* line still has no discriminating test
+   behind it. If run-level A/B scoring is ever cheap to add, it would make
+   every future "expected effect" claim checkable instead of decorative.

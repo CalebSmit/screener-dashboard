@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-09-08)
+# Dashboard inventory (as of 2026-09-11)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -53,6 +53,43 @@ buy" is a north-star constraint with teeth, not a style note.
 **It says "sector percentile" deliberately** - the percentiles are
 sector-relative (`factor_engine.compute_sector_percentiles`), and dropping the
 qualifier would publish a false claim about how the number was computed.
+
+## Percentiles are direction-adjusted, and the page says so - 2026-09-11
+
+**Read this before touching any percentile surface.** `compute_sector_percentiles()`
+does `ranks = 100 - ranks` wherever `METRIC_DIR` is `False`, so a published
+percentile **always means "best in its sector", never "largest"**. That is true
+of 13 of the 37 metrics in `metric_meta` - on the live payload HON's EV/EBITDA
+of 6.95 is the 99th percentile and AXON's 98.61 is the 0th.
+
+Until 2026-09-11 nothing said so, and the natural reading of the drilldown was
+exactly backwards. Three things now state it, and all three must stay:
+
+1. **`metric_meta[m]["dir"]`** - `"higher"` or `"lower"`, **derived in
+   `prepare_dashboard_data()` from `factor_engine.METRIC_DIR`.** Do not
+   hand-write these. The derivation is what makes it impossible for the page to
+   claim a direction the scorer disagrees with, and
+   `tests/test_percentile_direction.py` compares the two on every build.
+2. **The drilldown metric table** - header reads `Sector Percentile - 100 =
+   best`, a `.pctile-convention-note` sits under it, and `dirChip()` renders a
+   `↓ better` / `↑ better` chip beside every metric name. The note's "13 of 37"
+   count is computed in JS from the payload, not written as a literal.
+3. **The summary prose** - `_label_and_value()` appends `, lower is better` for
+   inverted metrics only. Higher-is-better metrics are deliberately left plain:
+   the ambiguity only exists where percentile and raw value point opposite ways,
+   and the prose is ~101 KB gzipped across 502 stocks.
+
+Total cost measured at **+1.2 KB gzipped (+0.1%)**. No score, rank, `raw` or
+`pct` value changed - verified cell-by-cell across all 502 stocks.
+
+**The eight category columns also carry definitions now** (`title` on each
+`<th>`), naming their scored metrics with weights, the bank carve-out for
+Valuation/Quality, and the fact that a **high `Risk` score means low risk**.
+
+**Name only metrics that actually carry weight.** Draft tooltips listed P/B
+under Valuation and PEG under Growth; both are weight 0 for non-banks. Read
+`config.yaml`'s active weights rather than `CAT_METRICS`, which includes
+zero-weight candidates. A test pins this.
 
 ## The "Screener AI" chat is gone - DONE 2026-09-08
 

@@ -29,6 +29,14 @@ Two rules govern the wording, and both are enforced by tests:
    so the text says "sector percentile" and never implies a universe ranking.
    The composite *is* a universe percentile, and the text says so once,
    because that is a thing a student needs told.
+3. **Metric percentiles are also direction-adjusted**, added 2026-09-11. The
+   same function does ``100 - rank`` wherever ``METRIC_DIR`` is ``False``, so
+   for 13 of the 37 published metrics the percentile runs *opposite* to the raw
+   value quoted beside it. "the 97th sector percentile on EV/EBITDA (9.02)"
+   reads as a contradiction, and the obvious repair - assuming the percentile
+   tracks the number - is the wrong one. ``_label_and_value()`` appends
+   "lower is better" for exactly those metrics. It describes the ranking rule,
+   not an action, so it is not advice language.
 
 Summaries are built here, at build time, and baked into the payload - not
 computed in the browser - so what shipped is what a reader can diff.
@@ -226,11 +234,31 @@ def _weighted_metrics(detail: dict, metric_weights: dict, category: str
 
 
 def _label_and_value(metric: str, raw, metric_meta: dict) -> str:
+    """"EV/EBITDA (6.95, lower is better)".
+
+    The percentile quoted beside this value is direction-adjusted - see
+    ``factor_engine.compute_sector_percentiles`` - so for the 13 of 37 published
+    metrics where lower is better, the percentile runs *opposite* to the number
+    printed here. "the 99th sector percentile on EV/EBITDA (6.95)" reads as a
+    contradiction without the qualifier, and the obvious repair a reader makes
+    is the wrong one.
+
+    The qualifier is added only for inverted metrics, which is where the
+    ambiguity lives; the drilldown's per-metric direction chip covers all 37.
+    Prose here is ~101 KB gzipped across 502 stocks, so a phrase on every metric
+    in every sentence is not free.
+
+    "lower is better" states how the tool ranks, not what to do about it, so it
+    is not advice language - ``BANNED_TERMS`` is unaffected.
+    """
     meta = metric_meta.get(metric) or {}
     label = meta.get("label", metric)
     if raw is None:
         return label
-    return f"{label} ({_fmt_metric(raw, meta.get('fmt', 'ratio'))})"
+    value = _fmt_metric(raw, meta.get("fmt", "ratio"))
+    if meta.get("dir") == "lower":
+        return f"{label} ({value}, lower is better)"
+    return f"{label} ({value})"
 
 
 def _sentence_best_inputs(detail: dict, metric_meta: dict,
