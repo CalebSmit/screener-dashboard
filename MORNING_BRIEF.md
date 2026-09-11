@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 10 September 2026, 06:26
+# Morning Brief - Friday 11 September 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,27 +9,23 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-10T02:00:04.141425 |
+| Dashboard data from | 2026-09-11T02:00:03.557036 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, APA, VLO, ALL |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (9 rows, but overlapping windows are not independent; 37 rows across all horizons), newest 2026-09-03 |
+| Top 5 | EXPE, HST, APA, VLO, EIX |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (10 rows, but overlapping windows are not independent; 39 rows across all horizons), newest 2026-09-04 |
 
 ## What changed in the repo
 
+- `88b4b46 data: screener run 2026-09-11 - 502 scored, top: EXPE HST APA VLO EIX`
+- `678017d brief: code session 2026-09-10`
 - `eeb79a8 docs: changelog for the revisions change; correct three stale claims`
 - `40454df test: 44 tests for fy1_revision_3m; update three pinned counts`
 - `1d5e162 feat(dashboard): surface the FY1 revision in basis points of price`
 - `b3c9f76 feat: add fy1_revision_3m, the revisions category's first actual revision`
 - `ba668bb brief: data run 2026-09-10`
 - `f68979d data: screener run 2026-09-10 - 502 scored, top: HST EXPE APA VLO ALL`
-- `06a897d brief: code session 2026-09-09`
-- `2dab71b log: 2026-09-09 synthesis session`
-- `d88f1fd changelog: confirm the 2026-09-02 risk-category change against its prediction`
-- `4a74d5d research: synthesis section on the revisions category (2026-09-07 note, Â§8)`
-- `bed35c0 brief: data run 2026-09-09`
-- `a195b07 data: screener run 2026-09-09 - 502 scored, top: HST EXPE APA VLO ALL`
 
 ## The session's own account
 
