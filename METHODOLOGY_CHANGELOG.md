@@ -1460,6 +1460,20 @@ move more than 10 ranks; max 109. `revisions ~ momentum` category correlation
 **91.1% -> 85.2%**. That last pair is independence **spent deliberately** to
 buy construct validity, and is named as a cost rather than left unremarked.
 
+**Observed 2026-09-11 (first live run scored with the new weights).** Top-50
+turnover 2026-09-10 -> 2026-09-11 was **exactly 3** (`AMCR`, `MAS`, `STLD` in;
+`ADSK`, `CVS`, `HIG` out), matching the pre-registered figure, with rank
+Spearman 0.9841.
+
+**But the check is underpowered and does not confirm anything.** Ordinary
+day-over-day top-50 churn across the prior ten run transitions (2026-08-28
+onward) is **median 3, range 0-7**, so a no-op day produces the same number.
+Spearman 0.9841 is the second-lowest of those eleven transitions - marginally
+more movement than typical, well inside the range. The prediction was not
+falsified; it was also not tested. Separating the weight change from one day of
+price movement needs the same run scored both ways, which the pipeline does not
+currently support. Recorded here rather than claimed as confirmation.
+
 **Validated by:** `tests/test_fy1_revision.py`, **44 tests** - formula, sign,
 price scaling, the change-vs-level property, every missing-input path, the
 `eps_trend` extraction against a mock frame (including that a broken
@@ -1516,3 +1530,86 @@ metric table are rendered by different code paths.
 (fetch + metric + three registries), `config.yaml`, `schemas.py`,
 `generate_dashboard.py`, `stock_summary.py`, the golden fixture, three existing
 test modules whose pinned counts moved, and documentation.
+
+---
+
+## 2026-09-11 - The published percentile means "best", not "largest", and the page now says so
+
+**Area:** presentation of scored data (no scoring change)
+
+**Changed:** three surfaces that publish a direction-adjusted percentile without
+stating the convention.
+
+1. `metric_meta[m]["dir"]` added for all 37 published metrics, **derived from
+   `factor_engine.METRIC_DIR`** rather than written out, so the page cannot
+   drift from the ranking it describes.
+2. The drilldown's metric table: the column header `Percentile Rank` becomes
+   `Sector Percentile - 100 = best`, a convention note is rendered beneath it,
+   and each metric name carries a `↓ better` / `↑ better` chip with a tooltip.
+3. The "Why it ranks here" prose appends `, lower is better` for the 13
+   inverted metrics only - `_label_and_value()` in `stock_summary.py`.
+
+Also: the eight category columns in the universe table (`Val`, `Qual`, `Grow`,
+`Mom`, `Risk`, `Rev`, `Size`, `Inv`) gained definition tooltips naming their
+scored metrics and weights, the bank carve-out, and - for `Risk` - the fact
+that a **high** score means **low** risk.
+
+**Nothing about how a stock is scored or ranked changed.** No weight, metric,
+threshold or formula moved; `Composite` and `Rank` are unaffected.
+
+**Evidence - a demonstrable user-facing failure, measured on the live payload.**
+`compute_sector_percentiles()` does `ranks = 100 - ranks` wherever `METRIC_DIR`
+is `False`, which is **13 of the 37 published metrics**. The percentile
+therefore always means "better than this share of its sector" and never "larger
+than". On the 2026-09-11 published payload:
+
+| Stock | EV/EBITDA | Published percentile |
+|---|---|---|
+| HON | 6.95 | **99** |
+| AXON | 98.61 | **0** |
+
+and equivalently RSG beta -0.37 at the 99th against CVNA 2.35 at the 0th, and
+UAL PEG 0.24 at the 99th against KMI 28.34 at the 0th.
+
+Nothing on the page stated this. A reader seeing `EV/EBITDA 6.95` beside "99th
+percentile" had no way to distinguish it from a raw rank, and the natural
+reading - "this company's EV/EBITDA is high for its sector" - is exactly
+backwards. The same contradiction appeared in prose: *"the 97th sector
+percentile on EV/EBITDA (9.02)"* (HST, live).
+
+This is the surface whose entire purpose is explaining **why** a stock ranks
+where it does (priority 4, owner directive 2026-08-10). A correct number
+presented so that its obvious reading is inverted is a comprehension defect, and
+for the investment-club audience it is the expensive kind: a student who learns
+the convention backwards misreads every valuation and risk metric on the site.
+
+**Two errors caught before shipping, by checking rather than recalling.** Draft
+tooltips named **P/B** under Valuation and **PEG** under Growth. Both carry
+**zero** weight for non-banks - `config.yaml` marks P/B "Bank-only" and PEG
+"Removed: P/E / growth double-counts valuation". Both would have taught
+something false about how the score is built. The active weights were read from
+`config.yaml` directly; `tests/test_percentile_direction.py` pins the
+correction so the claim cannot silently return.
+
+**Expected effect:** no change to any score, rank, or scored output file.
+Payload cost measured at **+1.2 KB gzipped (+0.1%)** on a 1,200 KB wire payload
+- 515 summary sentences gained the qualifier, and 37 metrics gained a short
+`dir` string.
+
+**Validated by:** `tests/test_percentile_direction.py`, **32 tests**, of which
+**27 fail against the pre-change code** (26 of the generator's, plus the prose
+test). The agreement test is the load-bearing one: it compares every published
+`dir` against `METRIC_DIR` itself, so a future change to one and not the other
+fails rather than silently publishing a false direction. Full suite
+1161 -> 1193, zero failures either side.
+
+**Not done, deliberately:** the qualifier was **not** added to the prose for
+higher-is-better metrics. The ambiguity exists only where the percentile and the
+raw value point opposite ways, and 502 stocks of prose is ~101 KB gzipped - a
+phrase on every metric in every sentence is not free. The per-metric chip in the
+drilldown covers all 37.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-09-10`. Touches `generate_dashboard.py` and
+`stock_summary.py` only; no scoring code, no config.
