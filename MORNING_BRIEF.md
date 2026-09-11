@@ -1,4 +1,4 @@
-# Morning Brief - Friday 11 September 2026, 02:13
+# Morning Brief - Friday 11 September 2026, 06:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,9 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `f545136 docs: changelog, inventory and log for the percentile-direction change`
+- `a3f4ef1 teach: say that the published percentile means best, not largest`
+- `78b86fd brief: data run 2026-09-11`
 - `88b4b46 data: screener run 2026-09-11 - 502 scored, top: EXPE HST APA VLO EIX`
 - `678017d brief: code session 2026-09-10`
 - `eeb79a8 docs: changelog for the revisions change; correct three stale claims`
@@ -29,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-10 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-09-11 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes** - `logs/nightly-2026-09-09_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-09` |
-> | Data loop published? | **Yes** - `logs/datarun-2026-09-10_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored |
-> | Evidence base | **37 rows, newest 2026-09-03, 3 effective observations at `1m`** (9 raw) against a gate of 8 |
-> | Priority 0 | Fixed 2026-08-24, not weakened today. `_effective_observations()` untouched |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 36 days old**, still untouched |
+> | Last code session ran? | **Yes** - `logs/nightly-2026-09-10_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-10` |
+> | Data loop published? | **Yes** - `logs/datarun-2026-09-11_020001.log` ends "Data loop complete", 502 scored, top EXPE HST APA VLO EIX |
+> | Evidence base | **39 rows, newest 2026-09-04, 3 effective observations at `1m`** (10 raw) against a gate of 8 |
+> | Priority 0 | Fixed 2026-08-24, not weakened today. Nothing in this session touches `_effective_observations()` or any scoring path |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 37 days old**, still untouched |
 > 
-> **Tests:** before 1117/1117, after **1161/1161**. Zero failures either side; the
-> 44 new tests are `tests/test_fy1_revision.py`.
+> **Tests:** before 1161/1161, after **1193/1193**. Zero failures either side; the
+> 32 new tests are `tests/test_percentile_direction.py`.
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Thursday taken as the focus, building exactly what §8.7 of Monday's
-> research note specified and Wednesday settled. Priority 5 was **not** taken -
-> see *Next*, and note its age is now written down for the third consecutive
-> session.
+> deferred. Friday's focus taken as written. Priority 5 was **not** taken - see
+> *Next*, fourth consecutive session its age has been written down.
 > 
 > ### Did
 > 
-> **Shipped `fy1_revision_3m` and the revisions reweight as one change.** The
-> category was named for revisions and contained none: 78 of its 100 points sat
-> on the earnings-**surprise** family, whose drift Martineau (2022) documents as
-> absent in large caps since 2006. It now leads with an actual revision, at
-> weight 35. The category's **10% share of the composite did not change** - only
-> the split inside it.
+> **The dashboard published a percentile whose obvious reading was backwards, and
+> now it doesn't.** `compute_sector_percentiles()` does `ranks = 100 - ranks`
+> wherever `METRIC_DIR` is `False`, so a published percentile always means "best
+> in its sector" and never "largest". That is **13 of the 37 published metrics**,
+> and nothing on the page said so. Measured on the live payload:
 > 
-> | Metric | Was | Now |
+> | Stock | EV/EBITDA | Published percentile |
 > |---|---|---|
-> | `fy1_revision_3m` | - | **35** |
-> | `analyst_surprise` | 38 | **15** |
-> | `consecutive_beat_streak` | 20 | **10** |
-> | `earnings_acceleration` | 20 | 20 |
-> | `price_target_upside` | 12 | **10** |
-> | `short_interest_ratio` | 10 | 10 |
+> | HON | 6.95 | **99** |
+> | AXON | 98.61 | **0** |
 > 
-> Touched: `factor_engine.py` (fetch block, metric, `METRIC_COLS` / `METRIC_DIR`
-> / `CAT_METRICS`), `config.yaml`, `schemas.py`, `generate_dashboard.py`,
-> `stock_summary.py`, the golden fixture, three existing test modules whose
-> pinned counts genuinely moved, and five documents.
+> Same shape for beta (RSG -0.37 at the 99th vs CVNA 2.35 at the 0th) and PEG
+> (UAL 0.24 at the 99th vs KMI 28.34 at the 0th). In prose it read as a flat
+> contradiction: *"the 97th sector percentile on EV/EBITDA (9.02)"* (HST, live).
 > 
-> **Verified live, not just against mocks.** Fetched 8 real tickers end-to-end:
+> This is the surface whose entire purpose is explaining **why** a stock ranks
+> where it does. A student who learns the convention backwards misreads every
+> valuation and risk metric on the site - which is the exact question this day
+> exists to ask.
+> 
+> Three fixes, plus the category columns:
+> 
+> 1. **`metric_meta[m]["dir"]`, derived from `factor_engine.METRIC_DIR`** rather
+>    than written out. This is the load-bearing decision: the page cannot claim a
 > ...
 
 ---
