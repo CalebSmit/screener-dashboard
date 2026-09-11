@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from factor_engine import METRIC_DIR
 from history import build_history
 from stock_summary import build_summary
 
@@ -655,6 +656,22 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "asset_growth": {"label": "Asset Growth", "fmt": "pct", "category": "investment"},
     }
 
+    # Which way is good?  Derived from the scorer's own METRIC_DIR rather than
+    # written out here, so the page cannot disagree with how the number was
+    # actually ranked.  `compute_sector_percentiles()` does `100 - rank` when
+    # METRIC_DIR is False, which means the published percentile always reads
+    # "better", never "larger" - HON's EV/EBITDA of 6.95 is the 99th percentile
+    # and AXON's 98.61 is the 0th.  Nothing on the page said so before
+    # 2026-09-11, so a reader had no way to tell those apart from a raw rank.
+    #
+    # METRIC_DIR describes the direction of the *same* number shown in the Raw
+    # Value column, which is what makes this safe for the two transformed
+    # metrics: `size_log_mcap` displays -log(mcap) and `max_drawdown_1y`
+    # displays a negative fraction, and "higher is better" is literally true of
+    # both as displayed.
+    for _m, _meta in metric_meta.items():
+        _meta["dir"] = "higher" if METRIC_DIR.get(_m, True) else "lower"
+
     # --- Factor-level correlation (8x8 Spearman from category scores) ---
     factor_score_cols = ["valuation_score", "quality_score", "growth_score",
                          "momentum_score", "risk_score", "revisions_score",
@@ -986,15 +1003,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <th data-sort="Ticker">Ticker</th>
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
-                            <th data-sort="Composite">Composite</th>
-                            <th data-sort="valuation_score">Val</th>
-                            <th data-sort="quality_score">Qual</th>
-                            <th data-sort="growth_score">Grow</th>
-                            <th data-sort="momentum_score">Mom</th>
-                            <th data-sort="risk_score">Risk</th>
-                            <th data-sort="revisions_score">Rev</th>
-                            <th data-sort="size_score">Size</th>
-                            <th data-sort="investment_score">Inv</th>
+                            <th data-sort="Composite" title="The weighted blend of all eight category scores below. This is the ranking key. Higher is better; 0-100.">Composite</th>
+                            <th data-sort="valuation_score" title="Valuation - is it cheap? FCF yield (45%), EV/EBITDA (25%), earnings yield (20%), EV/Sales (10%). Banks are scored instead on P/B (60%) and earnings yield (40%), because enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
+                            <th data-sort="quality_score" title="Quality - is the business sound? ROIC (27%), gross profit/assets (20%), net debt/EBITDA (18%), Piotroski F-Score (15%), operating leverage (8%), Beneish M-Score (7%), accruals (5%). Banks use ROE (35%), ROA (25%), equity ratio (15%), Piotroski (15%) and accruals (10%). Higher score = better quality; 0-100.">Qual</th>
+                            <th data-sort="growth_score" title="Growth - is it expanding? Forward EPS growth (45%), revenue growth (25%), 3-year revenue CAGR (15%), sustainable growth (15%). PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
+                            <th data-sort="momentum_score" title="Momentum - has the price been rising? 12-month return excluding the last month (40%), 6-month return (35%), Jensen's alpha (25%). The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
+                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? Volatility (42.9%), beta (28.6%), max 1-year drawdown (28.6%). Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
+                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? 90-day FY1 EPS revision (35%), earnings acceleration (20%), earnings surprise (15%), price-target upside (10%), beat streak (10%), short interest (10%). Higher score = improving expectations; 0-100.">Rev</th>
+                            <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
+                            <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag">Flags</th>
                         </tr></thead>
                         <tbody id="universe-tbody"></tbody>
@@ -1781,6 +1798,36 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         momentum: 'Momentum', risk: 'Risk', revisions: 'Revisions',
         size: 'Size', investment: 'Investment'
     }};
+
+    // Percentiles are direction-adjusted: compute_sector_percentiles() does
+    // `100 - rank` for every metric whose METRIC_DIR is False, so 100 always
+    // means "best in sector" and never "largest number". Stating this is not
+    // decoration - without it a reader sees EV/EBITDA 6.95 at the 99th
+    // percentile and reasonably concludes the percentile tracks the raw value,
+    // which is backwards for 15 of the 37 published metrics.
+    // The count is read off the payload rather than written here, so it stays
+    // true as metrics are added or their direction changes.
+    const PCTILE_CONVENTION = (() => {{
+        const mm = (typeof D !== 'undefined' && D.metric_meta) || {{}};
+        const n = Object.keys(mm).filter(m => mm[m].dir === 'lower').length;
+        const total = Object.keys(mm).length;
+        return '100 = best in its sector, not largest. For the ' + n + ' of '
+            + total + ' metrics marked ↓ better (EV/EBITDA, Beta and PEG among '
+            + 'them) a low raw value earns a high percentile. Percentiles '
+            + 'compare a stock with its own sector, not the whole index.';
+    }})();
+
+    // Reads metric_meta.dir, which generate_dashboard derives from the scorer's
+    // METRIC_DIR - so this marker cannot drift from the ranking it describes.
+    function dirChip(meta) {{
+        if (!meta || !meta.dir) return '';
+        const lower = meta.dir === 'lower';
+        const arrow = lower ? '↓' : '↑';
+        const tip = lower
+            ? 'Lower is better: a smaller value earns a higher percentile.'
+            : 'Higher is better: a larger value earns a higher percentile.';
+        return ` <span class="metric-dir ${{lower ? 'metric-dir-lower' : 'metric-dir-higher'}}" title="${{tip}}">${{arrow}} better</span>`;
+    }}
     // "What does this company actually do?" - the one question the screener
     // could not answer before 2026-08-26. Verbatim provider text, never scored.
     function renderAbout(s) {{
@@ -2463,9 +2510,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div style="display:flex;padding:4px 0;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border-bright);margin-bottom:4px;font-family:var(--font-heading);letter-spacing:.5px;text-transform:uppercase;">
                         <span style="flex:0 0 160px">Metric</span>
                         <span style="flex:0 0 100px;text-align:right">Raw Value</span>
-                        <span style="flex:1;margin-left:16px">Percentile Rank</span>
+                        <span style="flex:1;margin-left:16px" title="${{PCTILE_CONVENTION}}">Sector Percentile &mdash; 100 = best</span>
                         <span style="flex:0 0 50px;text-align:right">Weight</span>
-                    </div>`;
+                    </div>
+                    <div class="pctile-convention-note">${{PCTILE_CONVENTION}}</div>`;
 
             activeMetrics.forEach(metric => {{
                 const meta = D.metric_meta[metric] || {{ label: metric, fmt: 'ratio' }};
@@ -2477,7 +2525,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const barColor = pctBarColor(pctVal, cat);
 
                 html += `<div class="metric-row">
-                    <span class="metric-name">${{meta.label}}</span>
+                    <span class="metric-name">${{meta.label}}${{dirChip(meta)}}</span>
                     <span class="metric-raw">${{raw !== null && raw !== undefined ? rawStr : '<span class=metric-na>N/A</span>'}}</span>
                     <div class="metric-pct-bar-container">
                         <div class="metric-pct-bar">
@@ -4417,6 +4465,28 @@ def _css() -> str:
             flex: 0 0 160px;
             color: var(--text-secondary);
             font-family: var(--font-body);
+        }
+        /* Direction marker: says which way is good for THIS metric, because the
+           percentile beside it is direction-adjusted and therefore cannot be
+           read off the raw value. */
+        .metric-dir {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            letter-spacing: .3px;
+            padding: 1px 5px;
+            border-radius: 8px;
+            white-space: nowrap;
+            cursor: help;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+        }
+        .metric-dir-lower  { color: #d29922; }
+        .metric-dir-higher { color: var(--text-muted); }
+        .pctile-convention-note {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin: 0 0 8px 0;
         }
         .metric-raw {
             flex: 0 0 100px;
