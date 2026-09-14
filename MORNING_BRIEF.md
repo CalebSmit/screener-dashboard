@@ -1,24 +1,14 @@
-# Morning Brief - Monday 14 September 2026, 02:13
+# Morning Brief - Monday 14 September 2026, 06:21
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## THE ROUTINE IS NOT RUNNING
-
-- **Code session** has not run since 2 days ago
-
-Nothing below is current. A loop that stops firing writes no log, so
-the rest of this page describes the last run that *did* happen, not
-today. Most likely cause: the PC rebooted and nobody logged back in -
-the tasks only run while a user is signed in. See NIGHTLY_LOG.md
-2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-09-14T02:00:05.118731 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -28,55 +18,58 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 
 ## What changed in the repo
 
+- `58cee59 docs: north-star plan corrected by today's research, plus the session log`
+- `463760f research: sell discipline, hold bands, and what the evidence forbids`
+- `caf830a brief: data run 2026-09-14`
 - `6b8d071 data: screener run 2026-09-14 - 502 scored, top: EXPE HST VLO APA CAH`
 
 ## The session's own account
 
-> 2026-09-11 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+> 2026-09-14 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes** - `logs/nightly-2026-09-10_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-10` |
-> | Data loop published? | **Yes** - `logs/datarun-2026-09-11_020001.log` ends "Data loop complete", 502 scored, top EXPE HST APA VLO EIX |
-> | Evidence base | **39 rows, newest 2026-09-04, 3 effective observations at `1m`** (10 raw) against a gate of 8 |
-> | Priority 0 | Fixed 2026-08-24, not weakened today. Nothing in this session touches `_effective_observations()` or any scoring path |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 37 days old**, still untouched |
+> | Last code session ran? | **Yes** - `logs/nightly-2026-09-11_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-11` |
+> | Data loop published? | **Yes** - `logs/datarun-2026-09-14_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
+> | Evidence base | **41 rows, newest 2026-09-07, 3 effective observations at `1m`** (11 raw) against a gate of 8 |
+> | Priority 0 | Fixed 2026-08-24, not weakened today. Research-only session; `_effective_observations()` and every scoring path untouched |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 40 days old.** Not built today, but this session is the research that unblocks it - see *Owner queue / rotation* |
 > 
-> **Tests:** before 1161/1161, after **1193/1193**. Zero failures either side; the
-> 32 new tests are `tests/test_percentile_direction.py`.
+> **Tests:** before 1193/1193, after **1193/1193**. No production code changed;
+> the run is a no-new-failures check, not a claim of new coverage.
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Friday's focus taken as written. Priority 5 was **not** taken - see
-> *Next*, fourth consecutive session its age has been written down.
+> deferred. Monday's focus taken as written.
+> 
+> **On priority 5, and why this counts as progress on it.** Its age has now been
+> written down for five consecutive sessions, each time as "still untouched".
+> Monday is research day and priority 5 is a build item, so the two do not compete
+> directly - but the topic was chosen so that they stop pulling against each
+> other. `plan/dashboard-north-star.md` parked "what sell disciplines have
+> evidence behind them?" as Monday research question 3, and priority 5 is the
+> build that question exists to inform. That question is now answered. Thursday
+> can build from a note instead of from intuition, which is the whole point of
+> having a research day ahead of a build day.
 > 
 > ### Did
 > 
-> **The dashboard published a percentile whose obvious reading was backwards, and
-> now it doesn't.** `compute_sector_percentiles()` does `ranks = 100 - ranks`
-> wherever `METRIC_DIR` is `False`, so a published percentile always means "best
-> in its sector" and never "largest". That is **13 of the 37 published metrics**,
-> and nothing on the page said so. Measured on the live payload:
+> **One research note, complete today:
+> `research/2026-09-14-sell-discipline-and-hold-bands.md`.** Five papers and three
+> index-provider methodologies, read from primary sources rather than summaries -
+> `pypdf` against the downloaded PDFs, because `WebFetch` cannot read a PDF and
+> returns a confident "I cannot extract this" that is easy to mistake for "the
+> source does not say".
 > 
-> | Stock | EV/EBITDA | Published percentile |
-> |---|---|---|
-> | HON | 6.95 | **99** |
-> | AXON | 98.61 | **0** |
+> **The headline finding is that selling is the part of the process where
+> documented professional skill disappears.** Akepanidtaworn, Di Mascio, Imas &
+> Schmidt (2023, *JF* 78(6)) track 783 institutional portfolios averaging $573M,
+> 2000-2016, 4.4M trades. Against counterfactuals built from the managers' own
+> holdings: buys beat a random-buy counterfactual by **over +100 bp/year**; sells
+> **underperform a factor-neutral random-sell counterfactual by -80 bp/year**.
+> That deficit is larger than the fee these managers charge.
 > 
-> Same shape for beta (RSG -0.37 at the 99th vs CVNA 2.35 at the 0th) and PEG
-> (UAL 0.24 at the 99th vs KMI 28.34 at the 0th). In prose it read as a flat
-> contradiction: *"the 97th sector percentile on EV/EBITDA (9.02)"* (HST, live).
-> 
-> This is the surface whose entire purpose is explaining **why** a stock ranks
-> where it does. A student who learns the convention backwards misreads every
-> valuation and risk metric on the site - which is the exact question this day
-> exists to ask.
-> 
-> Three fixes, plus the category columns:
-> 
-> 1. **`metric_meta[m]["dir"]`, derived from `factor_engine.METRIC_DIR`** rather
->    than written out. This is the load-bearing decision: the page cannot claim a
 > ...
 
 ---
