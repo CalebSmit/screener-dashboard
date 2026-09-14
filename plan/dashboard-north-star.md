@@ -75,6 +75,23 @@ client-side watchlist/holdings list (localStorage, no backend), deterioration
 flags against it, and a "review queue" of owned names whose scores dropped
 materially.
 
+> **Amended 2026-09-14 by `research/2026-09-14-sell-discipline-and-hold-bands.md`.**
+> The last sentence above is the part to be careful with. "A review queue of
+> names whose scores dropped materially" is a queue ranked by size of move, and
+> that is the documented failure mode, not the feature: institutional PMs sell
+> prior-return extremes at rates >50% higher than middling positions, and that
+> heuristic is the identified cause of a **−80 bp/year** selling deficit
+> (Akepanidtaworn, Di Mascio, Imas & Schmidt 2023, *Journal of Finance* 78(6)).
+> The same paper's earnings-day natural experiment (+150 bp/year) points the
+> other way: sells anchored to **information** do well. So prefer a queue that
+> shows **all** holdings with the deteriorating ones *annotated by why* -
+> `contrib` attribution, `fy1_revision_3m`, `Composite_Confidence`, trap flags -
+> over one that filters to the biggest fallers. Two further constraints: use an
+> **asymmetric hold band** rather than a top-N cut (buy 25 / hold ~50; see the
+> note's §4 for three independent practitioner precedents), and **do not lead
+> with gain/loss versus purchase price**, which installs the disposition
+> effect's reference point (Odean 1998). Per-stock stop-losses are unsupported.
+
 **3. Valuation is only cross-sectional.** `pct` says cheap *versus peers*. It
 never says cheap *versus its own history*. A stock in the 90th percentile on
 EV/EBITDA across the S&P may still be at the top of its own 5-year range.
@@ -270,6 +287,21 @@ Roughly in priority order. One per week is plenty.
 3. **What sell disciplines have evidence behind them?** Momentum-based exits,
    fundamental deterioration triggers, valuation-based trims. What actually
    survives out-of-sample?
+   **ANSWERED 2026-09-14** - `research/2026-09-14-sell-discipline-and-hold-bands.md`.
+   Short version: the one well-evidenced construction rule is an **asymmetric
+   hold band** (buy test ≠ hold test), which Novy-Marx & Velikov (2016) find is
+   the single most effective cost mitigation technique and which MSCI and
+   S&P DJI both implement in live index products. **Per-stock stop-losses are
+   not supported.** Two findings constrain the build described under gap 2
+   below, and both cut against the obvious design:
+   - A **review queue ranked by size of move** automates the exact heuristic
+     that costs institutional PMs 80 bp/year (Akepanidtaworn et al. 2023, *JF*).
+   - A holdings view that **leads with gain/loss vs purchase price** installs
+     the disposition effect's reference point (Odean 1998, *JF*).
+
+   Also measured there: **the movers panel's 43-rank threshold fires for a
+   top-25 name 0.15% of the time**, so a holdings surface cannot be built on
+   it. Read the note before starting gap 2.
 4. **Time-series vs cross-sectional valuation** - which better predicts forward
    returns in US large caps, and does combining them add anything?
 5. **How do you present uncertainty to a non-expert** without either hiding it

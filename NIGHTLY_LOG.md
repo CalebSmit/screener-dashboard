@@ -4610,3 +4610,178 @@ pass would make the next reader believe the change was validated when it wasn't.
 3. The 2026-09-10 *Expected effect* line still has no discriminating test
    behind it. If run-level A/B scoring is ever cheap to add, it would make
    every future "expected effect" claim checkable instead of decorative.
+
+---
+
+## 2026-09-14 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - `logs/nightly-2026-09-11_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-11` |
+| Data loop published? | **Yes** - `logs/datarun-2026-09-14_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
+| Evidence base | **41 rows, newest 2026-09-07, 3 effective observations at `1m`** (11 raw) against a gate of 8 |
+| Priority 0 | Fixed 2026-08-24, not weakened today. Research-only session; `_effective_observations()` and every scoring path untouched |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 40 days old.** Not built today, but this session is the research that unblocks it - see *Owner queue / rotation* |
+
+**Tests:** before 1193/1193, after **1193/1193**. No production code changed;
+the run is a no-new-failures check, not a claim of new coverage.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Monday's focus taken as written.
+
+**On priority 5, and why this counts as progress on it.** Its age has now been
+written down for five consecutive sessions, each time as "still untouched".
+Monday is research day and priority 5 is a build item, so the two do not compete
+directly - but the topic was chosen so that they stop pulling against each
+other. `plan/dashboard-north-star.md` parked "what sell disciplines have
+evidence behind them?" as Monday research question 3, and priority 5 is the
+build that question exists to inform. That question is now answered. Thursday
+can build from a note instead of from intuition, which is the whole point of
+having a research day ahead of a build day.
+
+### Did
+
+**One research note, complete today:
+`research/2026-09-14-sell-discipline-and-hold-bands.md`.** Five papers and three
+index-provider methodologies, read from primary sources rather than summaries -
+`pypdf` against the downloaded PDFs, because `WebFetch` cannot read a PDF and
+returns a confident "I cannot extract this" that is easy to mistake for "the
+source does not say".
+
+**The headline finding is that selling is the part of the process where
+documented professional skill disappears.** Akepanidtaworn, Di Mascio, Imas &
+Schmidt (2023, *JF* 78(6)) track 783 institutional portfolios averaging $573M,
+2000-2016, 4.4M trades. Against counterfactuals built from the managers' own
+holdings: buys beat a random-buy counterfactual by **over +100 bp/year**; sells
+**underperform a factor-neutral random-sell counterfactual by -80 bp/year**.
+That deficit is larger than the fee these managers charge.
+
+**The mechanism is what constrains the build, and it cuts against the obvious
+design.** The deficit is an attention failure, not a skill failure: PMs sell
+positions that are extreme on prior returns - best *and* worst - at rates
+**more than 50% higher** than middling positions, a pattern that survives
+stock-date fixed effects. The proof that it is attention: on earnings-
+announcement days, sells beat non-announcement-day sells by **+150 bp/year** and
+actually beat the counterfactual, while buying performance is unchanged.
+
+So **a review queue ranked by size of move is the documented error, automated**
+- and that is exactly what `plan/dashboard-north-star.md` gap 2 currently
+specifies ("a review queue of owned names whose scores dropped materially").
+Amended in place today, rule 9.
+
+**The one construction rule that is both well-evidenced and standard practice:
+an asymmetric hold band.** Novy-Marx & Velikov (2016, *RFS* 29(1)) find a
+buy/hold spread is "the single most effective simple cost mitigation strategy";
+their momentum factor nets **0.51%/month (net FF4 alpha 0.33, t=8.81)** under
+trading hysteresis against **0.31%/month (alpha 0.17, t=3.06)** restricting to a
+low-cost universe. MSCI Momentum buffers at 50% of target count (buy rank 250,
+hold to 750) and pointedly does *not* apply its turnover buffer to deletions.
+S&P DJI states the principle outright: **"the addition criteria are for addition
+to an index, not for continued membership."** Three sources, hold bands of
+1.5x-3x the buy band, none symmetric. This screener has **one** test -
+`config.yaml -> portfolio.num_stocks: 25`, a plain top-N cut.
+
+**Measured on our own ranking - two findings I did not expect.** Descriptive
+statistics only, from `improvement/snapshots/` through the existing Spearman
+comparability gate; **no forward returns, no IC, no backtest**, so rules 4 and 5
+do not bite.
+
+- **The top of the ranking is far stickier than the universe.** Absolute rank
+  change between consecutive runs: universe p50 **7**, p95 **43** (n=13,542);
+  names in the top 25, p50 **1**, p95 **10** (n=675).
+- **Therefore the movers panel is nearly blind to holdings.** Its "material
+  mover" threshold is the universe 95th percentile, currently 43 ranks. Top-25
+  names clear it **1 time in 675 holding-days - 0.15%**. A name can fall from
+  rank 3 to rank 27 and never appear in "What Changed". Not a defect in that
+  panel, which is a universe-discovery surface doing its job; a demonstration
+  that **the cheapest way to build priority 5 - reuse the movers threshold -
+  is the wrong one.**
+- **A strict sell rule would mostly generate trades that undo themselves.** Over
+  the dense 18-run weekday window 08-20 to 09-14, "sell when it leaves the top
+  25" fires on **7.3%** of holding-days (31 of 425) and **71% of those (22 of
+  31) are back inside the top 25 within five runs**. A 25/50 band produced zero
+  signals - though see the caveat, which is in the note and repeated below.
+
+### Evidence / research
+
+- **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023)**, *JF* 78(6) 3055-3098 /
+  NBER w29076: buys +>100 bp/yr, sells **-80 bp/yr** vs random-sell; extremes
+  sold at **>50%** higher rates; earnings-day sells **+150 bp/yr** better.
+  Deficit **worst** among fundamentals-oriented concentrated high-tracking-error
+  managers - which is precisely this screener's shape.
+- **Odean (1998)**, *JF* 53(5): PGR **0.233** vs PLR **0.155** (1.50x, t=-32);
+  winners sold beat losers held by **+1.03%/84d (p=0.002), +3.41%/252d
+  (p=0.001), +3.58%/504d (p=0.014)**. Reverses in December (t=4.6).
+- **Barber & Odean (2000)**, *JF* 55(2): 66,465 households 1991-96;
+  highest-turnover **11.4%/yr** vs market **17.9%**; average household 16.4% at
+  75% annual turnover. The number to show an investment club.
+- **Novy-Marx & Velikov (2016)**, *RFS* 29(1) / NBER w20721: Table 5 above.
+  Round-trip costs **>50 bp** value-weighted; costs cut realized spreads by
+  **>1% of monthly one-sided turnover**; anomalies under **50%** monthly
+  one-sided turnover mostly survive costs, few above do.
+- **Kaminski & Lo (2014)**, *JFM* 18, 234-254: stopping premium **always
+  negative** under a random walk (Proposition 1, analytic). Positive only under
+  return persistence; the empirical result (+1.5% return, -5% vol, Sharpe +20%)
+  is a **stocks-vs-bonds index-futures overlay at monthly frequency**, and they
+  find **no value at short sampling frequencies**.
+- **Practice, primary documents read directly:** MSCI Momentum Indexes
+  Methodology (July 2025) §3.1.1 / §3.1.2 / Appendix III; S&P DJI Select
+  Industry Methodology, "Turnover".
+- **Measured here:** the three bullets above, from 32 comparable runs
+  2026-02-20 to 2026-09-14.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, formula or scoring path was touched,
+  so there is no `METHODOLOGY_CHANGELOG.md` entry. Monday is research day and
+  the prompt says no production code; the note's recommendations are explicitly
+  left for Wednesday's synthesis (§8) to settle and Thursday to build.
+- `plan/dashboard-north-star.md` updated in the same session (rule 9): research
+  question 3 marked answered with its findings, and **gap 2's "review queue"
+  wording amended in place**, because that sentence is what a future session
+  would build from and the evidence now contradicts it.
+
+### Tried and rejected
+
+- **A per-stock stop-loss**, the first thing anyone reaches for and a genuine
+  academia/practice disagreement. Ruled out by Kaminski & Lo (2014): the only
+  rigorous study of stops proves the stopping premium is negative under a random
+  walk, and its positive result is confined to an **asset-class overlay at
+  monthly frequency** - not single names, not daily. Practice applies stops in
+  exactly the regime the paper finds worthless. Second, independent reason: a
+  stop fires on prior-return extremes, which is the heuristic that costs
+  80 bp/yr.
+- **Reviewing more often than quarterly.** `config.yaml` line 221 already
+  records quarterly manual rebalancing. MSCI reviews quarterly; NMV's
+  staggered-quarterly variant beats the low-cost-universe variant; Barber &
+  Odean price the churn. **No change warranted** - written into the note so a
+  future session does not relitigate it.
+- **Treating the 25/50 band's zero signals as proof the band is right.** It is
+  an 18-run, 25-day, fairly quiet window, and the worst next-run rank for any
+  top-25 name in it was 46 - so "never breached" partly means "nothing bad
+  happened". The robust numbers are the **71% round-trip rate** and the rank
+  distributions, computed over the full 32-run series. A band that never fires
+  is a dead feature, not a conservative one, and the synthesis has to settle
+  that before anything ships. Recording this rather than quoting the clean zero.
+- **Citing the S&P Quality 20% buffer as primary evidence.** spglobal.com
+  returns HTTP 403 to automated fetches, so that parameterisation rests on two
+  independent search retrievals, not the PDF. Flagged as such in the note
+  instead of being presented at the same confidence as the seven sources I
+  actually opened.
+
+### Next
+
+1. **Wednesday 2026-09-16 is the synthesis, and section 8 of the note lists the
+   five questions it must settle** - band width above all, since a 2x band may
+   be too wide to ever fire on this screener. Then **Thursday builds priority
+   5**, at last, from a written argument rather than from intuition.
+2. **The band width needs re-measuring at 60+ comparable runs.** There are 32
+   today. This is the single measurement that would change the design, and it
+   accrues on its own as the data loop runs - no work required, just don't
+   commit to a width before it exists.
+3. Still open from 2026-09-11: **decide the `currentPrice` fallback** - make it
+   real at all six sites in `factor_engine.py`, or delete it and the comment at
+   ~line 683 that promises it. Unchanged today; a documented safety net that
+   cannot fire is still worse than none.
