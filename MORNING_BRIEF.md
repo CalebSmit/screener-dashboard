@@ -1,34 +1,34 @@
-# Morning Brief - Friday 11 September 2026, 06:20
+# Morning Brief - Monday 14 September 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-11T02:00:03.557036 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-09-14T02:00:05.118731 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, APA, VLO, EIX |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (10 rows, but overlapping windows are not independent; 39 rows across all horizons), newest 2026-09-04 |
+| Top 5 | EXPE, HST, VLO, APA, CAH |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 41 rows across all horizons), newest 2026-09-07 |
 
 ## What changed in the repo
 
-- `f545136 docs: changelog, inventory and log for the percentile-direction change`
-- `a3f4ef1 teach: say that the published percentile means best, not largest`
-- `78b86fd brief: data run 2026-09-11`
-- `88b4b46 data: screener run 2026-09-11 - 502 scored, top: EXPE HST APA VLO EIX`
-- `678017d brief: code session 2026-09-10`
-- `eeb79a8 docs: changelog for the revisions change; correct three stale claims`
-- `40454df test: 44 tests for fy1_revision_3m; update three pinned counts`
-- `1d5e162 feat(dashboard): surface the FY1 revision in basis points of price`
-- `b3c9f76 feat: add fy1_revision_3m, the revisions category's first actual revision`
-- `ba668bb brief: data run 2026-09-10`
-- `f68979d data: screener run 2026-09-10 - 502 scored, top: HST EXPE APA VLO ALL`
+- `6b8d071 data: screener run 2026-09-14 - 502 scored, top: EXPE HST VLO APA CAH`
 
 ## The session's own account
 
