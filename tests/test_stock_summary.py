@@ -397,6 +397,20 @@ def test_change_falls_back_to_the_previous_run_when_no_month_baseline():
     assert "composite down 1.1" in fact
 
 
+def test_a_one_rank_move_is_singular():
+    """"moved up 1 places" was on the public site for every one-rank mover -
+    and a one-rank move is the *median* for a top-25 name (research
+    2026-09-14 §6.1), so it was the commonest sentence on the holdings surface
+    this fix shipped alongside."""
+    up = _fact(_build(history_delta={"m1": {"dr": 1}}, history_compare=COMPARE),
+               "change")
+    down = _fact(_build(history_delta={"m1": {"dr": -1}}, history_compare=COMPARE),
+                 "change")
+    assert "moved up 1 place." in up or "moved up 1 place," in up
+    assert "1 places" not in up and "1 places" not in down
+    assert "moved down 1 place" in down
+
+
 def test_a_held_rank_is_reported_as_held_not_omitted():
     fact = _fact(_build(history_delta={"m1": {"dr": 0, "dc": 0.0}},
                         history_compare=COMPARE), "change")
@@ -411,6 +425,101 @@ def test_a_stock_new_to_the_universe_says_so():
 
 def test_no_history_means_no_change_sentence_not_a_guess():
     assert "change" not in _kinds(_build(history_delta=None))
+
+
+# ---------------------------------------------------------------------------
+# 4b. Why it moved, not just how far - added 2026-09-15
+#
+# `change` says how far a stock travelled. `change_driver` says which category
+# carried it. The distinction is what the sell-discipline research turns on:
+# Akepanidtaworn, Di Mascio, Imas & Schmidt (2023, JF 78(6)) find institutional
+# sells trail a random-sell counterfactual by 80 bp/year because attention goes
+# to the size of prior moves, while their earnings-day natural experiment
+# (+150 bp/year) shows sells anchored to *information* do well. A screener that
+# reports magnitude and not cause supplies only the first kind of input.
+# See research/2026-09-14-sell-discipline-and-hold-bands.md.
+# ---------------------------------------------------------------------------
+
+DRIVER_DELTA = {"m1": {"dr": -14, "dc": -3.2,
+                       "cat": {"growth": -4.1, "risk": -22.1, "size": 6.0}},
+                "prev": {"dr": -1, "dc": -0.2, "cat": {"momentum": -2.0}}}
+
+
+def test_change_driver_names_the_largest_absolute_category_move():
+    fact = _fact(_build(history_delta=DRIVER_DELTA, history_compare=COMPARE),
+                 "change_driver")
+    assert "Risk" in fact
+    assert "22.1 points" in fact
+    # Not the largest *positive* move, and not the first one listed.
+    assert "Size" not in fact and "Growth" not in fact
+
+
+def test_change_driver_quotes_the_same_baseline_as_the_change_sentence():
+    """Two sentences that picked a window independently could report a rank
+    move against one run and explain it with category moves from another."""
+    summary = _build(history_delta=DRIVER_DELTA, history_compare=COMPARE)
+    change = _fact(summary, "change")
+    driver = _fact(summary, "change_driver")
+    assert "2026-08-10" in change and "2026-08-10" in driver
+    assert "2026-09-07" not in driver
+
+
+def test_change_driver_falls_back_with_the_change_sentence():
+    summary = _build(history_delta={"prev": {"dr": -3, "cat": {"quality": -8.0}}},
+                     history_compare=COMPARE)
+    driver = _fact(summary, "change_driver")
+    assert "2026-09-07" in driver
+    assert "Quality" in driver and "8.0 points" in driver
+
+
+def test_change_driver_reports_the_direction_of_the_score_not_of_the_risk():
+    """A high Risk *score* means low risk. "Risk down 22 points" reads as an
+    improvement to anyone who has not read the methodology page, so the
+    sentence talks about the score explicitly."""
+    fact = _fact(_build(history_delta=DRIVER_DELTA, history_compare=COMPARE),
+                 "change_driver")
+    assert "that score down" in fact
+
+
+def test_change_driver_states_what_that_category_now_contributes():
+    """The point of the sentence is to connect the move to the composite: a
+    22-point fall in a category worth 3.8 points is a different fact from the
+    same fall in one worth 21."""
+    fact = _fact(_build(history_delta=DRIVER_DELTA, history_compare=COMPARE),
+                 "change_driver")
+    assert "Risk now contributes 3.8 of its 74.7 composite points" in fact
+
+
+def test_change_driver_omitted_when_no_category_moved():
+    for delta in (None,
+                  {"m1": {"dr": -14, "dc": -3.2}},          # no cat block
+                  {"m1": {"dr": -14, "cat": {}}},           # empty cat block
+                  {"m1": {"new": True}}):                   # new to the universe
+        summary = _build(history_delta=delta, history_compare=COMPARE)
+        assert "change_driver" not in _kinds(summary), delta
+
+
+def test_change_driver_ignores_categories_the_payload_does_not_define():
+    """`history.py` only ever writes the eight known categories, but a stray
+    key must not be quoted at a reader as though it were a factor."""
+    summary = _build(history_delta={"m1": {"dr": 2, "cat": {"nonsense": -99.0,
+                                                            "quality": 5.0}}},
+                     history_compare=COMPARE)
+    fact = _fact(summary, "change_driver")
+    assert "nonsense" not in fact
+    assert "Quality" in fact
+
+
+def test_change_driver_is_advice_free():
+    fact = _fact(_build(history_delta=DRIVER_DELTA, history_compare=COMPARE),
+                 "change_driver")
+    assert ss.advice_terms_in(fact) == []
+
+
+def test_change_driver_follows_the_change_sentence():
+    """Order is the argument: how far, then why."""
+    kinds = _kinds(_build(history_delta=DRIVER_DELTA, history_compare=COMPARE))
+    assert kinds.index("change_driver") == kinds.index("change") + 1
 
 
 # ---------------------------------------------------------------------------

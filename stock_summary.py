@@ -302,13 +302,29 @@ def _sentence_worst_input(detail: dict, metric_meta: dict,
     )
 
 
-def _sentence_change(delta: dict | None, compare: dict | None) -> str | None:
-    """Rank movement against the ~1-month baseline, falling back to the last run.
+def _baseline_phrase(compare: dict | None, key: str) -> str:
+    """"the run of 2026-08-14 (32 days ago)", or a generic fallback."""
+    base = (compare or {}).get(key) or {}
+    date, gap = base.get("date"), base.get("gap_days")
+    when = f"the run of {date}" if date else "the last comparable run"
+    if gap:
+        when += f" ({int(gap)} day{'s' if int(gap) != 1 else ''} ago)"
+    return when
 
-    The one-month window is the default for the same reason the movers panel
-    uses it (``plan/dashboard-inventory.md``): measured on this repo's
-    snapshots, every material one-day mover on 2026-08-25 was a round-trip,
-    while 169 of 193 one-month moves were genuine trends.
+
+def _pick_comparison(delta: dict | None) -> tuple[str, dict] | None:
+    """Which history baseline the change sentences report against.
+
+    The ~1-month window is preferred over the previous run for the same reason
+    the movers panel prefers it (``plan/dashboard-inventory.md``): measured on
+    this repo's snapshots, every material one-day mover on 2026-08-25 was a
+    round-trip, while 169 of 193 one-month moves were genuine trends.
+
+    Both change sentences read the baseline from here rather than choosing one
+    each. Two sentences that picked independently could report a rank move
+    against one run and explain it with category moves from another, and the
+    drilldown would read as self-contradictory with no way for a reader to tell
+    which window each number came from.
     """
     if not delta:
         return None
@@ -316,25 +332,84 @@ def _sentence_change(delta: dict | None, compare: dict | None) -> str | None:
         entry = delta.get(key)
         if not entry:
             continue
-        base = (compare or {}).get(key) or {}
-        date, gap = base.get("date"), base.get("gap_days")
-        when = f"the run of {date}" if date else "the last comparable run"
-        if gap:
-            when += f" ({int(gap)} day{'s' if int(gap) != 1 else ''} ago)"
         if entry.get("new"):
-            return f"It was not in {when}, so no rank change is available."
-        dr = _num(entry.get("dr"))
-        dc = _num(entry.get("dc"))
-        if dr is None:
+            return key, entry
+        if _num(entry.get("dr")) is None:
             continue
-        move = f"moved up {int(dr)} places" if dr > 0 else (
-            f"moved down {int(abs(dr))} places" if dr < 0 else "held its rank")
-        tail = ""
-        if dc is not None and abs(dc) >= 0.05:
-            direction = "up" if dc > 0 else "down"
-            tail = f", with the composite {direction} {abs(dc):.1f}"
-        return f"Since {when} it has {move}{tail}."
+        return key, entry
     return None
+
+
+def _sentence_change(delta: dict | None, compare: dict | None) -> str | None:
+    """Rank movement against the baseline chosen by ``_pick_comparison``."""
+    picked = _pick_comparison(delta)
+    if picked is None:
+        return None
+    key, entry = picked
+    when = _baseline_phrase(compare, key)
+    if entry.get("new"):
+        return f"It was not in {when}, so no rank change is available."
+    dr = _num(entry.get("dr"))
+    dc = _num(entry.get("dc"))
+    if dr is None:
+        return None
+    steps = int(abs(dr))
+    places = "place" if steps == 1 else "places"
+    move = f"moved up {steps} {places}" if dr > 0 else (
+        f"moved down {steps} {places}" if dr < 0 else "held its rank")
+    tail = ""
+    if dc is not None and abs(dc) >= 0.05:
+        direction = "up" if dc > 0 else "down"
+        tail = f", with the composite {direction} {abs(dc):.1f}"
+    return f"Since {when} it has {move}{tail}."
+
+
+def _sentence_change_driver(detail: dict, delta: dict | None,
+                            compare: dict | None) -> str | None:
+    """Which category moved most since the baseline, and what it now contributes.
+
+    ``_sentence_change`` says *how far* a stock moved. This says *why*, which is
+    the distinction the sell-discipline research turns on: Akepanidtaworn, Di
+    Mascio, Imas & Schmidt (2023, *Journal of Finance* 78(6)) find institutional
+    sells trail a random-sell counterfactual by 80 bp/year because attention
+    goes to prior-return extremes, while their earnings-day natural experiment
+    (+150 bp/year) shows sells anchored to *information* do well. A screener
+    that reports the size of a move and not its cause is supplying exactly the
+    first kind of input. See ``research/2026-09-14-sell-discipline-and-hold-bands.md``.
+
+    The category score is named explicitly ("its Risk score") rather than the
+    category alone, because a high Risk *score* means low risk and "Risk down
+    22 points" reads as an improvement to anyone who has not read the
+    methodology page.
+    """
+    picked = _pick_comparison(delta)
+    if picked is None:
+        return None
+    key, entry = picked
+    if entry.get("new"):
+        return None
+    moves = [
+        (cat, _num(value))
+        for cat, value in (entry.get("cat") or {}).items()
+        if cat in CAT_LABELS and _num(value)
+    ]
+    if not moves:
+        return None
+    # Ties break on the category order history.py wrote, which is fixed, so the
+    # sentence is reproducible across builds of the same run.
+    cat, move = max(moves, key=lambda t: abs(t[1]))
+    label = CAT_LABELS[cat]
+    direction = "up" if move > 0 else "down"
+    sentence = (
+        f"Its largest category move since {_baseline_phrase(compare, key)} is "
+        f"{label}, with that score {direction} {abs(move):.1f} points"
+    )
+    contrib = _num((detail.get("contrib") or {}).get(cat))
+    composite = _num(detail.get("composite"))
+    if contrib is not None and composite is not None:
+        sentence += (f"; {label} now contributes {contrib:.1f} of its "
+                     f"{composite:.1f} composite points")
+    return sentence + "."
 
 
 def _sentence_target(detail: dict) -> str | None:
@@ -450,6 +525,8 @@ def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
         ("best_inputs", _sentence_best_inputs(detail, metric_meta, metric_weights)),
         ("worst_input", _sentence_worst_input(detail, metric_meta, metric_weights)),
         ("change", _sentence_change(history_delta, history_compare)),
+        ("change_driver", _sentence_change_driver(detail, history_delta,
+                                                  history_compare)),
         ("target", _sentence_target(detail)),
         ("peers", _sentence_peers(detail)),
         ("flags", _sentence_flags(detail)),
