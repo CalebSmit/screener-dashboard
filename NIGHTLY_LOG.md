@@ -4785,3 +4785,183 @@ do not bite.
    real at all six sites in `factor_engine.py`, or delete it and the comment at
    ~line 683 that promises it. Unchanged today; a documented safety net that
    cannot fire is still worse than none.
+
+---
+
+## 2026-09-15 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - `logs/nightly-2026-09-14_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-14` |
+| Data loop published? | **Yes** - `logs/datarun-2026-09-15_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
+| Evidence base | **42 rows, newest 2026-09-08, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 41 rows yesterday - moving |
+| Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call was touched today |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 41 days old. The list half shipped today.** The remaining half (a hold band) is blocked on measurement, not design - see below. Next unblocked item is **Priority 3, backtest v2**, whose plan file dates to 2026-08-25 - **21 days** |
+
+**Tests:** before **1193/1193**, after **1264/1264**. 71 new tests, zero
+failures either side.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Tuesday's product focus taken as written, and it pointed at the same
+place the roadmap did: Priority 5 is a *product* gap and Tuesday is the product
+day, so for once the rotation and the north star wanted the same thing.
+
+**On running ahead of Wednesday's synthesis.** Monday's note (2026-09-14) parked
+five design questions for the 09-16 synthesis. I built anyway, and only the part
+that none of those questions gate: the **list**, with no threshold of any kind.
+Question 1 - band width - is untouched and still open, which is the point.
+`CLAUDE.md` records nine consecutive sessions that produced real work and
+shipped no north-star item because something smaller always looked more urgent;
+deferring a 41-day-old product item on the product day, when the research it was
+waiting for landed yesterday, would have been the tenth.
+
+### Did
+
+**Shipped the sell-side workflow's list half: a "My Holdings" panel.** Between
+Top 5 and What Changed. A `localStorage` list under `screener_holdings_v1`
+holding **tickers and nothing else**, rendering every saved name each run as a
+card: rank, composite, an eight-category score-and-delta strip, and the review
+sentences already baked into `stock_detail[t]["summary"]`. Above it, a
+concentration line - names, sectors, largest sector share, how many sit inside
+the top 25 and the top 100, how many carry a trap flag.
+
+**It costs nothing in payload.** It is a *view* over fields `stock_detail`
+already carried. `plan/dashboard-inventory.md` warns that the likeliest failure
+here is rebuilding what exists; the useful version of heeding that was noticing
+that `stock_summary.py` already produces build-time, advice-screened sentences
+covering what changed, what is flagged and what the score rests on. The panel
+renders those rather than composing its own prose in the browser, which keeps
+the 2026-09-08 property that what shipped is what a reader can diff.
+
+**Three of its properties are research constraints with tests behind them**, not
+styling, and each is the opposite of the obvious design:
+
+1. **Every saved name renders, every time** - never a filtered subset, because
+   the documented institutional failure is a *restricted consideration set*.
+2. **Ordered by rank, never by size of move.** The rank change is shown for
+   context; it is not the sort key and not a filter.
+3. **No cost basis, share count or P&L**, in the code or in storage. A key
+   hand-edited to hold `{ticker, shares, cost}` is read for its ticker and
+   written back clean. This is also why it works equally as a watchlist -
+   nothing about it assumes you own the name.
+
+**Added `change_driver` to the per-stock summary**, which every drilldown gets,
+not just holdings. `change` said how far a stock moved; nothing said *what
+moved it*. The new sentence names the category that moved furthest since the
+history baseline, the direction of its **score** (said explicitly, because a
+high Risk score means low risk and "Risk down 22 points" otherwise reads as an
+improvement), and what that category now contributes to the composite. It and
+`change` read their baseline from one helper so they cannot describe different
+windows.
+
+**Fixed a live grammar defect while in the file:** "moved up 1 **places**" was
+on the public site for every one-rank mover - and a one-rank move is the
+*median* for a top-25 name, so it was about to become the commonest sentence on
+the surface I was shipping.
+
+**Verified by rendering, not by grepping.** Nine of the new tests drive the real
+emitted script under Node against a stubbed DOM and assert on output, because
+"the string appears in the file" is a weak check for a panel whose entire
+contract is what it renders. I also rendered the live 502-stock payload with six
+real holdings and read the result through.
+
+### Evidence / research
+
+All from `research/2026-09-14-sell-discipline-and-hold-bands.md`, which read
+each source directly.
+
+- **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023)**, *JF* 78(6) 3055-3098.
+  783 institutional portfolios averaging $573M, 2000-2016, 4.4M trades. Sells
+  underperform a factor-neutral random-sell counterfactual by **-80 bp/year**;
+  buys beat theirs by **over +100 bp/year**. The mechanism is attention:
+  positions extreme on prior returns - best *and* worst - are sold at rates
+  **>50% higher** than middling ones, surviving stock-date fixed effects;
+  earnings-day sells beat non-announcement-day sells by **+150 bp/year**. The
+  deficit is *worst* among fundamentals-oriented concentrated
+  high-tracking-error managers. → constraints 1 and 2, and `change_driver`.
+- **Odean (1998)**, *JF* 53(5) 1775-1798. PGR **0.233** vs PLR **0.155**, a
+  **1.50x** ratio at **t = -32**; winners sold beat losers held by **+1.03% /
+  84 days (p=0.002)** and **+3.41% / year (p=0.001)**. The effect is defined
+  relative to purchase price. → constraint 3.
+- **Novy-Marx & Velikov (2016)**, *RFS* 29(1) 104-147. A buy/hold spread is
+  "the single most effective simple cost mitigation strategy"; hysteresis nets
+  **0.51%/month, net FF4 alpha 0.33 (t=8.81)** against **0.31%/month, alpha
+  0.17 (t=3.06)** for a low-cost universe. With **MSCI Momentum** (buy 250,
+  hold 750 against a 500 target) and **S&P DJI** ("the addition criteria are
+  for addition to an index, not for continued membership"). → why a hold band
+  belongs here eventually, and why it is a *different* test.
+- **Barber & Odean (2000)**, *JF* 55(2) 773-806. Highest-turnover households
+  **11.4%/yr** against a market **17.9%**. → the footnote's cost-of-churn line,
+  which is the sentence an investment club should read.
+- **Measured here, new today:** across the 500 live stocks with a one-month
+  category delta, the largest mover is **Risk 34.0%, Revisions 29.0%, Momentum
+  26.4%, Valuation 3.2%, Investment 3.2%, Growth 2.8%, Size 1.2%, Quality 0.2%
+  - one stock in 500.** ~90% of one-month category movement comes from the
+  three categories fed by daily prices and estimates. **A deterioration trigger
+  keyed to Quality or Growth would essentially never fire at monthly cadence**,
+  which rules out the most intuitive reading of "fundamental deterioration" and
+  is a direct input to §8 question 2. Descriptive statistics on published
+  scores - no forward returns, no IC, no backtest.
+- **Measured here, costs:** `change_driver` **+99 KB raw / +10.5 KB gzipped
+  (+0.89%)** across 502 stocks; the page **+25.9 KB raw / +6.4 KB gzipped**.
+  Total **+16.9 KB on the wire, ~+1.4%**.
+
+### Methodology changed
+
+- **`METHODOLOGY_CHANGELOG.md` 2026-09-15.** No weight, metric, threshold,
+  formula or scoring path changed. The entry exists because the *shape* of the
+  surface is a methodology decision - three of its properties are omissions
+  taken from the literature, and without the record they read as arbitrary.
+- Rule 9 updates in the same session: `plan/dashboard-inventory.md` (new
+  section, eleven summary kinds, payload table, "genuinely missing" item 2),
+  `plan/dashboard-north-star.md` (gap 2 marked shipped-in-part with what is
+  left), `CLAUDE.md` priority 5, and an update block on §8 of the research note
+  recording which of its five questions moved.
+
+### Tried and rejected
+
+- **A hold band, which is the best-evidenced rule in the whole note.** Three
+  independent sources put it at 1.5x-3x the buy band and two of them are live
+  index products. I did not ship one. §6.3 measured a 25/50 band firing **zero**
+  times across the 18-run window and the strict top-25 rule producing sells that
+  **round-trip 71% of the time** (22 of 31 back inside the top 25 within five
+  runs); §9 asks for **60+ comparable runs** before committing to a width and
+  there are **32**. A band that never fires is a dead feature, not a
+  conservative one, and picking 50 because MSCI doubles would be borrowing a
+  number from a 500-name quarterly index for a 25-name daily screen. It accrues
+  on its own - **do not guess a width.**
+- **Reusing the movers panel's threshold**, which is the cheapest way to build
+  this. Measured: 43 ranks is the universe p95, and a top-25 name clears it
+  **1 time in 675 holding-days - 0.15%**. A name can fall from rank 3 to rank 27
+  and never appear. Not a defect in that panel; a demonstration that it is the
+  wrong instrument here.
+- **A "review queue of names whose scores dropped materially"**, which is what
+  `plan/dashboard-north-star.md` originally specified and what anyone would
+  build. That is a queue ranked by size of move, i.e. the -80 bp/year heuristic
+  automated and presented as a feature. The plan was amended yesterday; today
+  the code makes the amendment real, and both the plan and the inventory now
+  keep the argument rather than just the conclusion, because the shortcut will
+  look reasonable again to the next reader.
+- **A gain/loss column.** Every retail portfolio tracker has one. Odean (1998)
+  is the reason not to, the cost of honouring it is zero, and retrofitting it
+  later would be expensive - so it was settled before the first line of code.
+- **Putting the review prose in the browser.** It would have been simpler, and
+  it would have given up exactly the diffability and per-reader identity that
+  justified deleting the chat on 2026-09-08.
+
+### Next
+
+1. **Wednesday 2026-09-16, the synthesis (§8 of the note).** Questions 1 (band
+   width), 4 (earnings dates) and 5 (implied turnover) are untouched. Question 2
+   now has the category-movement distribution above to work from, and question 3
+   is answered in shipped code. Question 4 looks like the strongest remaining
+   thread: earnings-date proximity is north-star gap 4 *and* the one
+   information anchor the evidence positively endorses (+150 bp/year), and it is
+   cheap - the fetch already touches the provider response that carries it.
+2. **The band still needs 60+ comparable runs** (32 today, ~1 per weekday). No
+   work required; just do not commit to a width before it exists.
+3. Still open from 2026-09-11: **decide the `currentPrice` fallback** in
+   `factor_engine.py` - make it real at all six sites or delete it and the
+   comment at ~line 683 that promises it. Unchanged again today.

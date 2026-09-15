@@ -754,9 +754,46 @@ reads them.
    **Still open from that directive:** the **run-level** overview - one or two
    sentences on what moved across the whole run. Most of it already exists as the
    What Changed movers panel (2026-08-25), so the remaining gap is narrow.
-5. **Sell-side workflow** - client-side watchlist/holdings, deterioration
-   flags, review queue. Question 3 is currently unanswerable. **Now the top open
-   north-star item.**
+5. **Sell-side workflow - the list shipped 2026-09-15, the rule did not.**
+   Owner directive via the north star, open 42 days. Changelog 2026-09-15;
+   `tests/test_holdings_panel.py` (61 tests, 60 of which fail against the
+   pre-change generator), plus `change_driver` in `stock_summary.py`.
+
+   **My Holdings** is a `localStorage` list holding **tickers and nothing
+   else**, rendering every saved name each run with rank, composite, an
+   eight-category score-and-delta strip, and the baked review sentences. Zero
+   payload cost - it is a view over fields `stock_detail` already carried.
+
+   **Three properties are research constraints with tests, not styling.** Do
+   not "tidy" them; the sources are in
+   `research/2026-09-14-sell-discipline-and-hold-bands.md`:
+   - **Every saved name renders, every time.** Akepanidtaworn et al. (2023,
+     *JF* 78(6)) trace an **-80 bp/year** institutional selling deficit to a
+     restricted consideration set: extremes on prior returns are sold at rates
+     **>50% higher** than middling positions. A move-ranked review queue is
+     that heuristic automated, which is what the north-star plan originally
+     specified and what this does not do.
+   - **Ordered by rank, never by size of move.** Same source. The rank change
+     is shown for context; it is not the sort key and not a filter.
+   - **No cost basis, share count or P&L**, in the code or in storage. Odean
+     (1998): PGR/PLR **1.50, t = -32**; winners sold beat losers held by
+     **+3.41%** over the following year. A key hand-edited to hold a position
+     dict is read for its ticker and written back clean.
+
+   **What is still open: the hold band.** The screener has one test
+   (`portfolio.num_stocks: 25`) where Novy-Marx & Velikov (2016), MSCI and
+   S&P DJI all use a wider, different test for continued membership. It was
+   **not** shipped because a 25/50 band fired **zero** times across the 18-run
+   measured window and the note's §9 asks for **60+ comparable runs** before a
+   width is committed to - there are 32. A band that never fires is a dead
+   feature, not a conservative one. This accrues on its own; do not guess a
+   width, and **do not reuse the movers panel's threshold** (measured: it fires
+   for a top-25 name **0.15%** of the time).
+
+   **One measurement to carry forward:** the largest one-month category move is
+   Risk 34%, Revisions 29%, Momentum 26% and **Quality 0.2% - one stock in
+   500**. A deterioration trigger keyed to the fundamentals categories would
+   essentially never fire at monthly cadence.
 6. **Investor profile selector** - `plan/investor-profiles.md`.
    Reconcile with `presets.py` first. Note `contrib` is Balanced-only.
 7. **Investment-club readiness** - can a student open this on a phone and

@@ -69,14 +69,35 @@ exists. Rank/score deltas between runs, sparklines per category, and a
 "biggest movers" view are all reachable from data you will be accumulating
 from day one. **Start here.**
 
-**2. There is no sell-side workflow.** The tool is built to find candidates,
-not to monitor what you own. Question 3 is currently unanswerable. Consider: a
-client-side watchlist/holdings list (localStorage, no backend), deterioration
-flags against it, and a "review queue" of owned names whose scores dropped
-materially.
+**2. ~~There is no sell-side workflow.~~ SHIPPED 2026-09-15 - the list half.
+The rule half is deliberately still open.** The tool was built to find
+candidates, not to monitor what you own, and question 3 was unanswerable.
+`generate_dashboard.py` now carries a **My Holdings** panel: a client-side
+`localStorage` list (tickers only), rendering every saved name each run with
+rank, composite, a per-category score-and-delta strip, and the baked review
+sentences. Changelog 2026-09-15; `tests/test_holdings_panel.py`, 61 tests, 60
+of which fail against the pre-change generator.
 
-> **Amended 2026-09-14 by `research/2026-09-14-sell-discipline-and-hold-bands.md`.**
-> The last sentence above is the part to be careful with. "A review queue of
+> **What is still open, and why it was not built.** There is **no exit rule and
+> no hold band**. `research/2026-09-14-...md` §6.3 measured a 25/50 band firing
+> zero times across 18 runs, and the strict top-25 rule producing sells that
+> round-trip 71% of the time; §9 asks for **60+ comparable runs** before a width
+> is committed to, and there are 32. A band that never fires is a dead feature,
+> not a conservative one - so the panel shows the evidence and sets no
+> threshold. **This is the remaining piece of gap 2**, and it accrues on its own
+> as the data loop runs. Two further inputs a future session should not
+> rediscover: measured on the live payload, the largest one-month category move
+> is Risk 34%, Revisions 29%, Momentum 26% and **Quality 0.2% (one stock in
+> 500)**, so a trigger keyed to the fundamentals categories would never fire at
+> monthly cadence; and earnings-date proximity (gap 4) is the one *information*
+> anchor the evidence positively endorses.
+
+> **Amended 2026-09-14 by `research/2026-09-14-sell-discipline-and-hold-bands.md`;
+> acted on 2026-09-15.** The wording this note corrected - "a review queue of
+> owned names whose scores dropped materially" - is what the panel above
+> deliberately does *not* do. Keeping the argument here because the tempting
+> shortcut will look reasonable again to the next reader.
+> "A review queue of
 > names whose scores dropped materially" is a queue ranked by size of move, and
 > that is the documented failure mode, not the feature: institutional PMs sell
 > prior-return extremes at rates >50% higher than middling positions, and that

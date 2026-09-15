@@ -1613,3 +1613,111 @@ drilldown covers all 37.
 
 **Rollback:** `good/2026-09-10`. Touches `generate_dashboard.py` and
 `stock_summary.py` only; no scoring code, no config.
+
+---
+
+## 2026-09-15 - The dashboard gains a sell-side surface, built to the shape the evidence allows
+
+**Area:** dashboard surfaces (no scoring change); per-stock summary prose
+
+**Changed:** three things - one product, two supporting.
+
+1. **New "My Holdings" section** in `generate_dashboard.py`, between Top 5 and
+   What Changed. A client-side list (`localStorage`, key
+   `screener_holdings_v1`, **tickers only**) that renders every saved name on
+   every run with its rank, composite, a per-category score-and-delta strip,
+   and the review sentences already baked into `stock_detail[t]["summary"]`.
+   Plus a concentration line: names, sectors, largest sector share, how many
+   sit inside the top 25 and top 100, how many carry a trap flag.
+2. **New summary fact kind `change_driver`** in `stock_summary.py`: the
+   category that moved furthest since the history baseline, the direction of
+   its *score*, and what that category now contributes to the composite. It
+   appears in every stock's drilldown, not only on holdings.
+3. **A grammar fix in the existing `change` sentence** - "moved up 1
+   **places**" had been live for every one-rank mover, which is the *median*
+   move for a top-25 name.
+
+**No weight, metric, threshold, formula or scoring path was touched.** This
+entry exists because the *shape* of the surface is a methodology decision:
+three of its properties are constraints taken from the literature, and without
+this record they would read as arbitrary omissions to whoever finds them next.
+
+**Evidence** - all from `research/2026-09-14-sell-discipline-and-hold-bands.md`,
+which read each source directly:
+
+- **Why the list is never filtered or sorted by size of move.**
+  Akepanidtaworn, Di Mascio, Imas & Schmidt (2023), *Journal of Finance* 78(6),
+  3055-3098: 783 institutional portfolios averaging $573M, 2000-2016, 4.4M
+  trades. Sells underperform a factor-neutral random-sell counterfactual by
+  **-80 bp/year** while buys beat theirs by **over +100 bp/year**. The
+  mechanism is an attention failure: positions extreme on prior returns - best
+  *and* worst - are sold at rates **more than 50% higher** than middling ones,
+  surviving stock-date fixed effects. The proof that it is attention rather
+  than ability is the earnings-day natural experiment, where sells beat
+  non-announcement-day sells by **+150 bp/year**. The deficit is *worst* among
+  fundamentals-oriented concentrated high-tracking-error managers - this
+  screener's exact shape. A review queue ranked by size of move is that
+  heuristic automated, so the surface lists everything, ordered by rank.
+- **Why it never asks what you paid.** Odean (1998), *JF* 53(5), 1775-1798:
+  PGR **0.233** against PLR **0.155**, a **1.50x** ratio at **t = -32**; the
+  winners sold beat the losers held by **+1.03% over 84 days (p=0.002)** and
+  **+3.41% over a year (p=0.001)**. The disposition effect is defined relative
+  to the purchase price, so a cost basis *is* the reference point that produces
+  it. No cost basis, share count or P&L field exists in the code or in what it
+  stores, and a parametrised test asserts 23 such terms are absent.
+- **Why there is no exit signal.** Novy-Marx & Velikov (2016), *RFS* 29(1),
+  104-147: a buy/hold spread is "the single most effective simple cost
+  mitigation strategy"; their hysteresis momentum factor nets **0.51%/month
+  (net FF4 alpha 0.33, t=8.81)** against **0.31%/month (alpha 0.17, t=3.06)**
+  for restricting to a low-cost universe. MSCI Momentum buffers between rank
+  250 and 750 against a 500-name target; S&P DJI states the principle outright:
+  "the addition criteria are for addition to an index, not for continued
+  membership." This screener has one test (`portfolio.num_stocks: 25`). The
+  second threshold is **deliberately not set here**: §6.3 of the note measured
+  a 25/50 band firing **zero** times across 18 runs, and the strict top-25 rule
+  producing sells that **round-trip 71% of the time** (22 of 31 back inside the
+  top 25 within five runs). §9 asks for 60+ comparable runs before committing
+  to a width; there are 32. Shipping a band today would have been shipping a
+  guess dressed as a rule.
+- **Why the movers panel could not simply be reused.** Measured on this repo's
+  32 comparable runs: a top-25 name's median absolute rank change between runs
+  is **1** (p95 **10**, n=675 holding-days) against a universe median of **7**
+  (p95 **43**, n=13,542). The movers panel's material threshold *is* that
+  universe p95, so it fires for a top-25 name **1 time in 675 - 0.15%**.
+- **Why `change_driver` exists.** Same paper, earnings-day result: sells
+  anchored to *information* do well, sells anchored to the *size* of a move do
+  not. Until today the dashboard could state how far a stock had moved and not
+  what moved it.
+
+**Measured while building, and worth carrying forward:** across the 500 stocks
+with a one-month category delta, the named largest mover is **Risk 34.0%,
+Revisions 29.0%, Momentum 26.4%** - and **Quality 0.2%, one stock in 500**.
+Roughly 90% of one-month category movement comes from the three categories fed
+by daily prices and estimates; the fundamentals categories barely move between
+quarterly filings. **Any future deterioration trigger keyed to Quality or Growth
+would essentially never fire at monthly cadence.** That is a direct input to
+question 2 of the research note's §8.
+
+**Expected effect:** no change to any score, rank, or scored output file.
+Payload cost measured: `change_driver` adds **+99 KB raw / +10.5 KB gzipped
+(+0.89%)** across 502 stocks; the page adds **+25.9 KB raw / +6.4 KB gzipped**.
+Total **+16.9 KB on the wire, about +1.4%**. The holdings panel reads only
+fields the payload already carried, so it costs nothing beyond its own markup.
+
+**Validated by:** `tests/test_holdings_panel.py`, **61 tests**, of which **60
+fail against the pre-change generator**. Nine drive the real emitted script
+under Node against a stubbed DOM and assert on rendered output, because "the
+string is in the file" is a weak check for a panel whose entire contract is
+what it renders: that a rank-300 name which moved not at all still appears, and
+appears last; that a name new to the universe with a withheld category still
+renders; that the drilldown's other sentences do not leak onto a review row;
+and that a `localStorage` key hand-edited to hold `{ticker, shares, cost}` is
+read for its ticker and written back clean. Plus **13 tests** for
+`change_driver` and the plural fix in `tests/test_stock_summary.py`. Full suite
+**1193 -> 1264, zero failures** either side. Also rendered against the live
+502-stock payload with six real holdings and read through.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-09-14`. Touches `generate_dashboard.py` and
+`stock_summary.py` only; no scoring code, no config, no data artifact.

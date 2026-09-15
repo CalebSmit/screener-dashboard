@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-09-11)
+# Dashboard inventory (as of 2026-09-15)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -18,6 +18,7 @@ leaving it wrong.
 | Section | Contents |
 |---|---|
 | **Top 5 Stocks** | Highest-composite names, card layout. Reads `table_data` directly, excluding trap-flagged names |
+| **My Holdings** | The sell-side surface, added 2026-09-15. Client-side list, one card per saved name |
 | **Factor Analytics** | `Factor Scores by Sector`, `Trap Rate by Sector` |
 | **Defensibility & Diagnostics** | `How Stable Is the Ranking?` (weight sensitivity), `Are the Factors Independent?` (factor correlation) |
 | **Full Universe Rankings** | The 501-row sortable table - the workhorse view |
@@ -32,14 +33,60 @@ Rank History, Analyst Price Targets, Company Snapshot, Sector Peers, Data
 Provenance, Score Contribution Breakdown, and the eight category-detail
 sections with their metric tables.
 
+## My Holdings - the sell-side surface (2026-09-15)
+
+Priority 5 / north-star gap 2. A `localStorage` list under
+`screener_holdings_v1` holding **tickers and nothing else**, rendered as one
+card per name: rank, composite, an eight-category score-and-delta strip, and
+the `change` / `change_driver` / `flags` / `confidence` sentences lifted from
+`stock_detail[t]["summary"]`. Above it, a concentration line (names, sectors,
+largest sector share, count inside the top 25 and top 100, trap-flag count) -
+the honest half of "how much / does it fit", since the list holds no weights.
+
+**Zero payload cost.** It is a *view* over fields the payload already carried;
+nothing was added to `stock_detail` for it.
+
+**Three properties are research constraints, not styling.** All three have
+tests, and the sources are in `research/2026-09-14-sell-discipline-and-hold-bands.md`
+and `METHODOLOGY_CHANGELOG.md` 2026-09-15:
+
+1. **Every saved name renders, every time** - never a filtered subset.
+   Akepanidtaworn et al. (2023, *JF* 78(6)) trace an 80 bp/year institutional
+   selling deficit to a restricted consideration set.
+2. **Ordered by rank, never by size of move.** The rank change is shown for
+   context; it is not the sort key and not a filter. Same source.
+3. **No cost basis, share count or P&L anywhere**, in the code or in storage -
+   Odean (1998). A hand-edited key containing a position dict is read for its
+   ticker and written back clean. This is also why the panel works equally as a
+   watchlist.
+
+**There is no exit rule and no hold band, deliberately.** 32 comparable runs is
+short of the 60+ the research asks for before a width is committed to, and a
+25/50 band fired zero times in the measured window. Do not add one without that
+measurement. Equally: **do not reuse the movers panel's threshold** - measured,
+it fires for a top-25 name 0.15% of the time.
+
+The empty panel ships **collapsed**; a saved list auto-expands it.
+`tests/test_holdings_panel.py`, 61 tests (60 fail against the pre-change
+generator); nine drive the emitted script under Node against a stubbed DOM.
+
 ## Why It Ranks Here - the deterministic summary (2026-09-08)
 
 Built by `stock_summary.py` **at run time**, stored per stock as
 `stock_detail[t]["summary"]` = `[{"k": kind, "t": sentence}, ...]`, rendered by
-`renderSummary()` as the first block of the drilldown. Ten kinds: `rank`,
-`drivers`, `weakest`, `best_inputs`, `worst_input`, `change`, `target`,
-`peers`, `flags`, `confidence`. A kind is omitted when it cannot be stated
-exactly, so a thin stock gets a shorter summary rather than a hedged one.
+`renderSummary()` as the first block of the drilldown. **Eleven kinds**: `rank`,
+`drivers`, `weakest`, `best_inputs`, `worst_input`, `change`, `change_driver`,
+`target`, `peers`, `flags`, `confidence`. A kind is omitted when it cannot be
+stated exactly, so a thin stock gets a shorter summary rather than a hedged one.
+
+**`change_driver` was added 2026-09-15** and says *why* a stock moved, not how
+far: the category that moved furthest since the baseline, the direction of its
+**score** (stated explicitly, because a high Risk score means low risk), and
+what that category now contributes. It and `change` read their baseline from
+one place (`_pick_comparison`) so they cannot end up describing different
+windows. Measured across the live payload it names Risk 34%, Revisions 29%,
+Momentum 26%, Quality 0.2% - the fundamentals categories barely move between
+quarterly filings. Cost: **+10.5 KB gzipped (+0.89%)**.
 
 **Do not move this into the browser.** Building it here is what makes it
 diffable and identical for every reader, which is the entire reason it replaced
@@ -141,7 +188,7 @@ surface printed 13%. See below and `METHODOLOGY_CHANGELOG.md` 2026-08-28.
 
 | Key | Size (MB) | Notes |
 |---|---|---|
-| `stock_detail` | 2.81 -> ~4.2 | **~88% of the payload.** All 502 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw) |
+| `stock_detail` | 2.81 -> ~4.3 | **~88% of the payload.** All 502 stocks. Grew 2026-08-26 with `about`, 2026-09-08 with `summary` (+0.67 raw), 2026-09-15 with `change_driver` (+0.10 raw / +10.5 KB gz) |
 | `history` | 0.27 | Added 2026-08-25. 18 accepted run dates, 2 excluded |
 | `table_data` | 0.26 | 502 rows, 8 category scores + composite/rank/flags |
 | everything else | <0.02 | `portfolio` (0.010) and `spx_weights` removed 2026-08-26 |
@@ -239,8 +286,11 @@ Confirmed against the above, not guessed:
    ~1-month window, not the previous run**: measured on this repo's snapshots,
    every material one-day mover on 2026-08-25 was a round-trip, while 169 of
    193 one-month moves were genuine trends.
-2. **Any sell-side workflow.** No watchlist, no holdings, no deterioration
-   alerts.
+2. ~~Any sell-side workflow.~~ **MOSTLY SHIPPED 2026-09-15** - see the My
+   Holdings section above. What remains is the **hold band**: the screener
+   still has one test (top 25) where the evidence says entry and continued
+   holding should use different, asymmetric tests. Blocked on measurement, not
+   on design - re-measure the band at 60+ comparable runs (32 today).
 3. **Time-series valuation context.** `pct` is cross-sectional only.
 4. **Catalyst/earnings-date proximity.**
 5. ~~Per-stock confidence surfaced.~~ **MOSTLY SHIPPED 2026-09-08.** The
