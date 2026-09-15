@@ -441,6 +441,32 @@ series. The band widths should be re-measured once the series is longer.
 
 *To be written 2026-09-16 (synthesis). Left deliberately empty.*
 
+> **Update 2026-09-15 (Tuesday, product day).** The **list** half of Priority 5
+> shipped ahead of this section - the My Holdings panel, built to constraints
+> 2 and 3 below rather than to the band. `METHODOLOGY_CHANGELOG.md` 2026-09-15;
+> `tests/test_holdings_panel.py`, 61 tests. Nothing in §8 was pre-empted: the
+> panel sets **no threshold of any kind**, which is exactly what question 1
+> exists to decide. Two of the five questions moved, though, and the synthesis
+> should start from where they now are:
+>
+> - **Question 2 gained a measurement.** Across the 500 live stocks with a
+>   one-month category delta, the largest mover is **Risk 34.0%, Revisions
+>   29.0%, Momentum 26.4%, Valuation 3.2%, Investment 3.2%, Growth 2.8%, Size
+>   1.2%, Quality 0.2% (one stock in 500)**. ~90% of one-month category
+>   movement comes from the three categories fed by daily prices and estimates.
+>   **A deterioration trigger keyed to Quality or Growth would essentially
+>   never fire at monthly cadence** - which rules out the most intuitive form of
+>   "fundamental deterioration" and pushes question 2's answer toward Revisions
+>   and toward question 4's earnings dates.
+> - **Question 3 is answered in the shipped code**: the queue shows
+>   **everything**, annotated, never a filtered subset. §1 is unambiguous that
+>   the failure is a restricted consideration set, and the alternative reading
+>   would have automated the documented error. If the synthesis wants to revisit
+>   it, it needs an argument against Akepanidtaworn et al., not a UI preference.
+>
+> Questions **1 (band width), 4 (earnings dates) and 5 (implied turnover)** are
+> untouched and still open.
+
 The questions it should settle, in priority order:
 
 1. **Band width.** §4.3 gives a practice range of 1.5×–3×. §6.3 says 2× (25/50)

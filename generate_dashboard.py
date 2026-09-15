@@ -864,6 +864,38 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </section>
 
+        <!-- My Holdings -->
+        <!--
+            Priority 5 / north-star gap 2: the sell-side workflow. The shape of
+            this surface is set by research/2026-09-14-sell-discipline-and-hold-bands.md
+            and three of its properties are load-bearing rather than stylistic:
+            it lists every name every time, it is ordered by rank and never by
+            size of move, and it never asks for a cost basis. See the footnote
+            copy in renderHoldings() for the sources.
+        -->
+        <section class="section collapsible-section collapsed" id="sec-holdings">
+            <div class="section-header" onclick="toggleSection('sec-holdings')">
+                <h2 class="section-title" style="margin:0">My Holdings <span class="holdings-count" id="holdings-count"></span></h2>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body">
+                <p class="section-desc">Add the names you own or are following, and the screener will put what it knows about <em>all</em> of them in front of you each run &mdash; what moved, which category moved it, and what the score does and does not rest on. Stored in this browser only; nothing is sent anywhere, and no purchase price is asked for.</p>
+                <div class="holdings-add-bar">
+                    <div class="holdings-search-wrap">
+                        <input type="text" id="holdings-search-input"
+                               class="peer-search-input"
+                               placeholder="Add by ticker or company name..."
+                               autocomplete="off" />
+                        <div id="holdings-search-results" class="peer-search-results"></div>
+                    </div>
+                    <button class="holdings-clear-btn" id="holdings-clear-btn" onclick="clearHoldings()" style="display:none">Clear list</button>
+                </div>
+                <div class="holdings-fit" id="holdings-fit"></div>
+                <div id="holdings-body"></div>
+                <div class="holdings-footnote" id="holdings-footnote"></div>
+            </div>
+        </section>
+
         <!-- What Changed -->
         <section class="section collapsible-section collapsed" id="sec-changed" style="display:none">
             <div class="section-header" onclick="toggleSection('sec-changed')">
@@ -1783,6 +1815,330 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const d = H.delta && H.delta[ticker] && H.delta[ticker].prev;
         if (!d || d.new || d.dr == null) return null;
         return d.dr;
+    }}
+
+    // =====================================================================
+    // MY HOLDINGS  (priority 5 / north-star gap 2 - the sell-side workflow)
+    // =====================================================================
+    // Three properties of this panel come from
+    // research/2026-09-14-sell-discipline-and-hold-bands.md. They are not
+    // style choices and should not be "tidied up":
+    //
+    //  1. It renders EVERY saved name on every render, never a filtered
+    //     subset. Akepanidtaworn, Di Mascio, Imas & Schmidt (2023, JF 78(6))
+    //     trace an 80 bp/year institutional selling deficit to a restricted
+    //     consideration set: PMs sell positions that are extreme on prior
+    //     returns at rates >50% higher than middling ones. A queue that
+    //     surfaces only the big movers is that heuristic, implemented.
+    //  2. Rows are ordered by current rank, never by size of move - same
+    //     reason. The rank change is shown for context but is not the sort key
+    //     and is not a filter.
+    //  3. No cost basis, share count or profit-and-loss field exists anywhere
+    //     in this code or in what it stores. Gain/loss against purchase price
+    //     is the reference point that produces the disposition effect (Odean
+    //     1998, JF 53(5): PGR/PLR = 1.50, t = -32).
+    //
+    // There is deliberately no sell signal. The screener has one test - the
+    // top 25 - and the evidence says the hold test should be a different,
+    // wider test; its width has not been set here yet.
+    //
+    // Measured constraint behind all of this: the movers panel's 43-rank
+    // material threshold fires for a top-25 name 0.15% of the time (1 in 675
+    // holding-days over 32 comparable runs), so a holdings surface cannot be
+    // built on it.
+    const HOLDINGS_KEY = 'screener_holdings_v1';
+    const HOLDINGS_MAX = 60;
+    // Which baked summary facts belong on a review row. All four are built by
+    // stock_summary.py at build time and screened for advice language there,
+    // so this panel renders reviewed prose instead of composing its own.
+    const HOLDINGS_FACTS = ['change', 'change_driver', 'flags', 'confidence'];
+
+    let holdings = [];
+
+    function holdingsStorage() {{
+        // Safari private mode and some embedded browsers throw on access
+        // rather than returning null. A blocked store must degrade to an
+        // in-memory list for the session, not blank the section.
+        try {{ return window.localStorage; }} catch (e) {{ return null; }}
+    }}
+
+    function loadHoldings() {{
+        const store = holdingsStorage();
+        if (!store) return [];
+        let raw = null;
+        try {{ raw = store.getItem(HOLDINGS_KEY); }} catch (e) {{ return []; }}
+        if (!raw) return [];
+        let parsed;
+        try {{ parsed = JSON.parse(raw); }} catch (e) {{ return []; }}
+        if (!Array.isArray(parsed)) return [];
+        // Tickers only, and only tickers this run actually scored. Anything
+        // else in the key - from a hand edit, or a future build that tried to
+        // store more - is dropped on read and not written back, so a cost
+        // basis cannot survive in storage even if something put one there.
+        const seen = {{}};
+        const out = [];
+        parsed.forEach(function(item) {{
+            const t = (typeof item === 'string') ? item.trim().toUpperCase() : '';
+            if (!t || seen[t] || !D.stock_detail[t]) return;
+            seen[t] = true;
+            out.push(t);
+        }});
+        return out.slice(0, HOLDINGS_MAX);
+    }}
+
+    function saveHoldings() {{
+        const store = holdingsStorage();
+        if (!store) return;
+        try {{ store.setItem(HOLDINGS_KEY, JSON.stringify(holdings)); }} catch (e) {{ /* quota or blocked */ }}
+    }}
+
+    function addHolding(ticker) {{
+        const t = String(ticker || '').trim().toUpperCase();
+        if (!t || !D.stock_detail[t]) return;
+        if (holdings.indexOf(t) !== -1 || holdings.length >= HOLDINGS_MAX) return;
+        holdings.push(t);
+        saveHoldings();
+        const input = document.getElementById('holdings-search-input');
+        if (input) input.value = '';
+        const dd = document.getElementById('holdings-search-results');
+        if (dd) {{ dd.innerHTML = ''; dd.style.display = 'none'; }}
+        renderHoldings();
+    }}
+
+    function removeHolding(ticker) {{
+        holdings = holdings.filter(function(t) {{ return t !== ticker; }});
+        saveHoldings();
+        renderHoldings();
+    }}
+
+    function clearHoldings() {{
+        if (holdings.length && !window.confirm('Remove all ' + holdings.length + ' names from this list?')) return;
+        holdings = [];
+        saveHoldings();
+        renderHoldings();
+    }}
+
+    // The baseline a holdings row quotes. Same preference order as
+    // stock_summary._pick_comparison, so the chips and the sentences below
+    // them cannot end up describing different windows: the ~1-month window
+    // first, because every material one-day mover measured on 2026-08-25 was a
+    // round trip while 169 of 193 one-month moves were genuine trends.
+    function holdingDelta(ticker) {{
+        const d = H.delta && H.delta[ticker];
+        if (!d) return null;
+        const keys = ['m1', 'prev'];
+        for (let i = 0; i < keys.length; i++) {{
+            const e = d[keys[i]];
+            if (!e || e.new || e.dr === null || e.dr === undefined) continue;
+            const cmp = (H.compare && H.compare[keys[i]]) || {{}};
+            return {{ dr: e.dr, dc: e.dc, cat: e.cat || {{}},
+                     date: cmp.date, gap: cmp.gap_days }};
+        }}
+        return null;
+    }}
+
+    function renderHoldings() {{
+        const body = document.getElementById('holdings-body');
+        const fit = document.getElementById('holdings-fit');
+        const count = document.getElementById('holdings-count');
+        const clearBtn = document.getElementById('holdings-clear-btn');
+        if (!body || !fit || !count || !clearBtn) return;
+
+        count.textContent = holdings.length ? '(' + holdings.length + ')' : '';
+        clearBtn.style.display = holdings.length ? '' : 'none';
+        renderHoldingsFootnote();
+
+        if (!holdings.length) {{
+            fit.innerHTML = '';
+            body.innerHTML = '<div class="holdings-empty">'
+                + '<p>Nothing on the list yet. Add a ticker above and it appears here after every run, with what moved and which category moved it.</p>'
+                + '<p class="holdings-empty-sub">Works the same whether you own the name or are only watching it &mdash; nothing here assumes you hold a position.</p>'
+                + '</div>';
+            return;
+        }}
+
+        // Ordered by current rank, best first. Deliberately NOT by size of
+        // move - see property 2 in the block comment above HOLDINGS_KEY.
+        const rows = holdings
+            .map(function(t) {{ return {{ t: t, s: D.stock_detail[t] }}; }})
+            .filter(function(r) {{ return !!r.s; }})
+            .sort(function(a, b) {{
+                const ra = (a.s.rank === null || a.s.rank === undefined) ? 1e9 : a.s.rank;
+                const rb = (b.s.rank === null || b.s.rank === undefined) ? 1e9 : b.s.rank;
+                return ra - rb;
+            }});
+
+        fit.innerHTML = holdingsFitLine(rows);
+        body.innerHTML = rows.map(holdingCard).join('');
+    }}
+
+    // North-star question 4 - "how much / does it fit?" - as far as this tool
+    // can honestly answer it. It reports concentration, not position sizes:
+    // the list holds no weights, so any sizing number would be invented.
+    function holdingsFitLine(rows) {{
+        const n = rows.length;
+        const bySector = {{}};
+        rows.forEach(function(r) {{
+            const sec = r.s.sector || 'Unclassified';
+            bySector[sec] = (bySector[sec] || 0) + 1;
+        }});
+        const sectors = Object.keys(bySector);
+        let topSector = sectors[0], topCount = bySector[sectors[0]];
+        sectors.forEach(function(sec) {{
+            if (bySector[sec] > topCount) {{ topSector = sec; topCount = bySector[sec]; }}
+        }});
+        const universe = D.kpis.universe_size || D.table_data.length;
+        const inTop25 = rows.filter(function(r) {{ return r.s.rank <= 25; }}).length;
+        const inTop100 = rows.filter(function(r) {{ return r.s.rank <= 100; }}).length;
+        const flagged = rows.filter(function(r) {{ return r.s.vt || r.s.gt; }}).length;
+        const parts = [
+            '<strong>' + n + '</strong> name' + (n === 1 ? '' : 's')
+              + ' across <strong>' + sectors.length + '</strong> sector' + (sectors.length === 1 ? '' : 's'),
+            'largest concentration <strong>' + escapeHtml(topSector) + '</strong> ('
+              + topCount + ' of ' + n + ', ' + Math.round(topCount / n * 100) + '%)',
+            '<strong>' + inTop25 + '</strong> inside the top 25 of ' + universe
+              + ', <strong>' + inTop100 + '</strong> inside the top 100'
+        ];
+        if (flagged) {{
+            parts.push('<strong>' + flagged + '</strong> carrying a trap flag');
+        }}
+        return '<div class="holdings-fit-line">' + parts.join(' &bull; ') + '</div>';
+    }}
+
+    function holdingCard(r) {{
+        const t = r.t, s = r.s;
+        const d = holdingDelta(t);
+        const cats = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
+
+        let deltaChip = '<span class="holding-delta holding-delta-none">no comparable history</span>';
+        if (d) {{
+            const cls = d.dr > 0 ? 'up' : (d.dr < 0 ? 'down' : 'flat');
+            const arrow = d.dr > 0 ? '\\u25B2' : (d.dr < 0 ? '\\u25BC' : '\\u2013');
+            const label = d.dr === 0
+                ? 'rank unchanged'
+                : (Math.abs(d.dr) + ' rank' + (Math.abs(d.dr) === 1 ? '' : 's'));
+            const since = d.date ? (' since ' + escapeHtml(d.date)) : '';
+            deltaChip = '<span class="holding-delta holding-delta-' + cls + '" '
+                + 'title="Rank change since the comparison run. Shown for context - this list is not sorted or filtered by it.">'
+                + arrow + ' ' + label + since + '</span>';
+        }}
+
+        const strip = cats.map(function(c) {{
+            const v = (s.cat_scores || {{}})[c];
+            if (v === null || v === undefined) {{
+                return '<div class="holding-cat holding-cat-nodata" title="'
+                    + CAT_LABELS[c] + ' could not be scored for this stock, so the other categories were reweighted">'
+                    + '<span class="holding-cat-name">' + CAT_LABELS[c] + '</span>'
+                    + '<span class="holding-cat-val">no data</span></div>';
+            }}
+            const dv = (d && d.cat && d.cat[c] !== undefined && d.cat[c] !== null) ? d.cat[c] : null;
+            let move = '';
+            if (dv !== null) {{
+                move = '<span class="holding-cat-move holding-cat-move-' + (dv > 0 ? 'up' : 'down') + '">'
+                    + (dv > 0 ? '+' : '') + dv.toFixed(1) + '</span>';
+            }}
+            return '<div class="holding-cat" style="border-top-color:' + CAT_COLORS[c] + '">'
+                + '<span class="holding-cat-name">' + CAT_LABELS[c] + '</span>'
+                + '<span class="holding-cat-val">' + v.toFixed(0) + move + '</span></div>';
+        }}).join('');
+
+        const facts = Array.isArray(s.summary) ? s.summary : [];
+        const notes = facts
+            .filter(function(f) {{ return HOLDINGS_FACTS.indexOf(f.k) !== -1; }})
+            .map(function(f) {{
+                const kind = String(f.k || '').replace(/[^a-z_]/g, '');
+                return '<p class="holding-note holding-note-' + kind + '">'
+                    + escapeHtml(f.t || '') + '</p>';
+            }}).join('');
+
+        let trap = '';
+        if (s.vt) trap += '<span class="holding-flag">Value trap</span>';
+        if (s.gt) trap += '<span class="holding-flag">Growth trap</span>';
+
+        return '<div class="holding-card">'
+          + '<div class="holding-head">'
+          +   '<span class="holding-rank">#' + ((s.rank === null || s.rank === undefined) ? '--' : s.rank) + '</span>'
+          +   '<button class="holding-ticker" onclick="openStockDetail(&quot;' + escapeHtml(t) + '&quot;)" title="Open the full breakdown">' + escapeHtml(t) + '</button>'
+          +   '<span class="holding-company">' + escapeHtml(s.company || '') + '</span>'
+          +   '<span class="holding-sector">' + escapeHtml(s.sector || '') + '</span>'
+          +   trap
+          +   '<span class="holding-spacer"></span>'
+          +   deltaChip
+          +   '<span class="holding-composite" title="Composite score - a universe percentile">'
+          +     ((s.composite === null || s.composite === undefined) ? '--' : s.composite.toFixed(1)) + '</span>'
+          +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
+          + '</div>'
+          + '<div class="holding-cats">' + strip + '</div>'
+          + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
+          + '</div>';
+    }}
+
+    // The teaching half. Every claim on this panel that a reader might
+    // reasonably want to argue with is sourced here, because the constraints
+    // above look arbitrary without their evidence and the next person to touch
+    // this file will otherwise "fix" them.
+    function renderHoldingsFootnote() {{
+        const el = document.getElementById('holdings-footnote');
+        if (!el) return;
+        el.innerHTML = [
+            '<p><strong>Why this list shows everything, every time.</strong> It is never filtered or sorted by how much a name moved. Institutional managers dispose of the best and worst performers in a portfolio at rates more than 50% higher than middling positions, and that habit is the identified cause of an 80 basis-point-a-year shortfall in their disposal decisions against a random-disposal benchmark over 4.4 million trades (Akepanidtaworn, Di Mascio, Imas &amp; Schmidt, <em>Journal of Finance</em> 78(6), 2023). A queue that surfaces only the big movers automates that habit. Rows here are ordered by current rank; the rank change is shown for context only.</p>',
+            '<p><strong>Why it never asks what you paid.</strong> Measuring a position against its purchase price is the reference point behind the disposition effect: investors realise gains about 1.5&times; as readily as losses, and the winners they disposed of went on to beat the losers they kept by 3.4 percentage points over the following year (Odean, <em>Journal of Finance</em> 53(5), 1998). No cost basis, share count or profit-and-loss figure is stored or shown here, which is also why this works equally as a watchlist.</p>',
+            '<p><strong>Why there is no exit signal.</strong> This screener has one test &mdash; the top 25 &mdash; and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
+            '<p class="holdings-storage-note">Saved in this browser only, under the <code>' + HOLDINGS_KEY + '</code> key in <code>localStorage</code>. It is not an account and it is not backed up &mdash; clearing site data removes it, and it will not follow you to another device. Tickers only, up to ' + HOLDINGS_MAX + ' names. This is decision support, not investment advice.</p>'
+        ].join('');
+    }}
+
+    function setupHoldingsSearch() {{
+        const input = document.getElementById('holdings-search-input');
+        const dropdown = document.getElementById('holdings-search-results');
+        if (!input || !dropdown) return;
+
+        input.addEventListener('input', function() {{
+            const q = this.value.toLowerCase().trim();
+            if (q.length < 1) {{ dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }}
+            const held = {{}};
+            holdings.forEach(function(t) {{ held[t] = true; }});
+            const matches = D.table_data
+                .filter(function(r) {{
+                    return !held[r.Ticker] &&
+                        (r.Ticker.toLowerCase().includes(q) ||
+                         (r.Company || '').toLowerCase().includes(q));
+                }})
+                .slice(0, 8);
+            if (!matches.length) {{
+                dropdown.innerHTML = '<div class="peer-search-empty">No matches</div>';
+                dropdown.style.display = 'block';
+                return;
+            }}
+            dropdown.innerHTML = matches.map(function(r) {{
+                return '<div class="peer-search-item" onmousedown="addHolding(&quot;' + escapeHtml(r.Ticker) + '&quot;)">'
+                    + '<span class="peer-search-ticker">' + escapeHtml(r.Ticker) + '</span>'
+                    + '<span class="peer-search-company">' + escapeHtml(r.Company || '') + '</span>'
+                    + '<span class="peer-search-score">' + (r.Composite !== null ? r.Composite.toFixed(0) : '--') + '</span>'
+                    + '</div>';
+            }}).join('');
+            dropdown.style.display = 'block';
+        }});
+
+        input.addEventListener('blur', function() {{
+            setTimeout(function() {{ dropdown.style.display = 'none'; }}, 200);
+        }});
+        input.addEventListener('focus', function() {{
+            if (this.value.trim().length > 0) this.dispatchEvent(new Event('input'));
+        }});
+    }}
+
+    function initHoldings() {{
+        holdings = loadHoldings();
+        // A saved list means the panel is in use, so open it. The empty
+        // default stays collapsed: the owner's landing view is Top 5 plus the
+        // full table, with everything else one click away (2026-08-26).
+        if (holdings.length) {{
+            const sec = document.getElementById('sec-holdings');
+            if (sec) sec.classList.remove('collapsed');
+        }}
+        setupHoldingsSearch();
+        renderHoldings();
     }}
 
     // =====================================================================
@@ -2845,6 +3201,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (ut) ut.classList.add('no-history');
         }}
         renderTop5();
+        initHoldings();
         renderTrapChart();
         updateSectorDist();
         setupFilters();
@@ -3014,6 +3371,111 @@ def _css() -> str:
         .delta-cell { font-size: .8rem; white-space: nowrap; }
         #universe-table.no-history .delta-cell,
         #universe-table.no-history #th-rank-delta { display: none; }
+
+        /* ---- MY HOLDINGS ---- */
+        .holdings-count { color: var(--text-muted); font-weight: 400; font-size: .8em; }
+        .holdings-add-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .holdings-search-wrap { position: relative; flex: 1; max-width: 340px; }
+        .holdings-clear-btn {
+            background: none; border: 1px solid var(--border-bright); color: var(--text-secondary);
+            border-radius: 6px; padding: 7px 12px; font-size: 12px; cursor: pointer;
+            font-family: var(--font-body); transition: color .15s, border-color .15s;
+        }
+        .holdings-clear-btn:hover { color: var(--red); border-color: var(--red); }
+        .holdings-empty { padding: 18px 4px; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
+        .holdings-empty p { margin: 0 0 6px; }
+        .holdings-empty-sub { color: var(--text-muted); font-size: .78rem; }
+        .holdings-fit-line {
+            font-size: .8rem; color: var(--text-secondary); line-height: 1.7;
+            padding: 8px 10px; margin-bottom: 12px;
+            background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+        }
+        .holdings-fit-line strong { color: var(--text-primary); }
+        .holding-card {
+            border: 1px solid var(--border); border-radius: 10px;
+            background: var(--bg-card); padding: 10px 12px; margin-bottom: 10px;
+        }
+        .holding-card:hover { border-color: var(--border-bright); }
+        .holding-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+        .holding-rank {
+            font-family: var(--font-mono); font-size: .8rem; color: var(--text-muted);
+            min-width: 44px;
+        }
+        .holding-ticker {
+            background: none; border: none; padding: 0; cursor: pointer;
+            font-family: var(--font-heading); font-weight: 600; font-size: .95rem;
+            color: var(--accent);
+        }
+        .holding-ticker:hover { text-decoration: underline; }
+        .holding-company {
+            color: var(--text-secondary); font-size: .8rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;
+        }
+        .holding-sector { color: var(--text-muted); font-size: .72rem; }
+        .holding-flag {
+            font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--red); border: 1px solid rgba(248,81,73,.35);
+            border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+        }
+        .holding-spacer { flex: 1; }
+        .holding-delta { font-size: .74rem; white-space: nowrap; cursor: help; }
+        .holding-delta-up { color: var(--green); }
+        .holding-delta-down { color: var(--red); }
+        .holding-delta-flat, .holding-delta-none { color: var(--text-muted); }
+        .holding-composite {
+            font-family: var(--font-mono); font-size: .9rem; font-weight: 600;
+            color: var(--text-primary); cursor: help;
+        }
+        .holding-remove {
+            background: none; border: none; color: var(--text-muted);
+            font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 2px;
+        }
+        .holding-remove:hover { color: var(--red); }
+        .holding-cats {
+            display: grid; grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 6px; margin-top: 10px;
+        }
+        .holding-cat {
+            border-top: 2px solid var(--border-bright); border-radius: 0 0 5px 5px;
+            background: var(--bg-elevated); padding: 5px 6px; min-width: 0;
+        }
+        .holding-cat-name {
+            display: block; font-size: .64rem; text-transform: uppercase;
+            letter-spacing: .04em; color: var(--text-muted);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .holding-cat-val {
+            display: block; font-family: var(--font-mono); font-size: .82rem;
+            color: var(--text-primary); white-space: nowrap;
+        }
+        .holding-cat-nodata .holding-cat-val { font-size: .68rem; color: var(--text-muted); }
+        .holding-cat-move { font-size: .66rem; margin-left: 4px; }
+        .holding-cat-move-up { color: var(--green); }
+        .holding-cat-move-down { color: var(--red); }
+        .holding-notes { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+        .holding-note {
+            margin: 0 0 4px; font-size: .78rem; line-height: 1.55;
+            color: var(--text-secondary);
+        }
+        .holding-note:last-child { margin-bottom: 0; }
+        .holding-note-change_driver { color: var(--text-primary); }
+        .holdings-footnote {
+            margin-top: var(--gap); padding-top: 12px; border-top: 1px solid var(--border);
+            font-size: .76rem; color: var(--text-secondary); line-height: 1.65;
+        }
+        .holdings-footnote p { margin: 0 0 8px; }
+        .holdings-footnote p:last-child { margin-bottom: 0; }
+        .holdings-footnote strong { color: var(--amber); }
+        .holdings-storage-note { color: var(--text-muted); }
+        .holdings-storage-note code { font-family: var(--font-mono); font-size: .95em; }
+        @media (max-width: 900px) {
+            .holding-cats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .holding-company { max-width: 150px; }
+        }
+        @media (max-width: 560px) {
+            .holding-cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .holding-spacer { flex-basis: 100%; }
+        }
         .modal-history-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .modal-spark { flex-shrink: 0; }
         .modal-hist-block { margin-top: 14px; }
