@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 15 September 2026, 02:13
+# Morning Brief - Tuesday 15 September 2026, 06:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **failed** - last ran today |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-09-15T02:00:04.708829 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `6cedc64 docs: record the sell-side surface and what it deliberately left out`
+- `c9b870d dashboard: a sell-side surface - My Holdings`
+- `2ba6586 summary: say which category moved, not just how far`
+- `2934891 brief: data run 2026-09-15`
 - `3072180 data: screener run 2026-09-15 - 502 scored, top: EXPE HST VLO APA CAH`
 - `8a14103 brief: code session 2026-09-14`
 - `58cee59 docs: north-star plan corrected by today's research, plus the session log`
@@ -27,51 +31,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-14 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+> 2026-09-15 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes** - `logs/nightly-2026-09-11_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-11` |
-> | Data loop published? | **Yes** - `logs/datarun-2026-09-14_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
-> | Evidence base | **41 rows, newest 2026-09-07, 3 effective observations at `1m`** (11 raw) against a gate of 8 |
-> | Priority 0 | Fixed 2026-08-24, not weakened today. Research-only session; `_effective_observations()` and every scoring path untouched |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 40 days old.** Not built today, but this session is the research that unblocks it - see *Owner queue / rotation* |
+> | Last code session ran? | **Yes** - `logs/nightly-2026-09-14_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-14` |
+> | Data loop published? | **Yes** - `logs/datarun-2026-09-15_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
+> | Evidence base | **42 rows, newest 2026-09-08, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 41 rows yesterday - moving |
+> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call was touched today |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 41 days old. The list half shipped today.** The remaining half (a hold band) is blocked on measurement, not design - see below. Next unblocked item is **Priority 3, backtest v2**, whose plan file dates to 2026-08-25 - **21 days** |
 > 
-> **Tests:** before 1193/1193, after **1193/1193**. No production code changed;
-> the run is a no-new-failures check, not a claim of new coverage.
+> **Tests:** before **1193/1193**, after **1264/1264**. 71 new tests, zero
+> failures either side.
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Monday's focus taken as written.
+> deferred. Tuesday's product focus taken as written, and it pointed at the same
+> place the roadmap did: Priority 5 is a *product* gap and Tuesday is the product
+> day, so for once the rotation and the north star wanted the same thing.
 > 
-> **On priority 5, and why this counts as progress on it.** Its age has now been
-> written down for five consecutive sessions, each time as "still untouched".
-> Monday is research day and priority 5 is a build item, so the two do not compete
-> directly - but the topic was chosen so that they stop pulling against each
-> other. `plan/dashboard-north-star.md` parked "what sell disciplines have
-> evidence behind them?" as Monday research question 3, and priority 5 is the
-> build that question exists to inform. That question is now answered. Thursday
-> can build from a note instead of from intuition, which is the whole point of
-> having a research day ahead of a build day.
+> **On running ahead of Wednesday's synthesis.** Monday's note (2026-09-14) parked
+> five design questions for the 09-16 synthesis. I built anyway, and only the part
+> that none of those questions gate: the **list**, with no threshold of any kind.
+> Question 1 - band width - is untouched and still open, which is the point.
+> `CLAUDE.md` records nine consecutive sessions that produced real work and
+> shipped no north-star item because something smaller always looked more urgent;
+> deferring a 41-day-old product item on the product day, when the research it was
+> waiting for landed yesterday, would have been the tenth.
 > 
 > ### Did
 > 
-> **One research note, complete today:
-> `research/2026-09-14-sell-discipline-and-hold-bands.md`.** Five papers and three
-> index-provider methodologies, read from primary sources rather than summaries -
-> `pypdf` against the downloaded PDFs, because `WebFetch` cannot read a PDF and
-> returns a confident "I cannot extract this" that is easy to mistake for "the
-> source does not say".
+> **Shipped the sell-side workflow's list half: a "My Holdings" panel.** Between
+> Top 5 and What Changed. A `localStorage` list under `screener_holdings_v1`
+> holding **tickers and nothing else**, rendering every saved name each run as a
+> card: rank, composite, an eight-category score-and-delta strip, and the review
+> sentences already baked into `stock_detail[t]["summary"]`. Above it, a
+> concentration line - names, sectors, largest sector share, how many sit inside
+> the top 25 and the top 100, how many carry a trap flag.
 > 
-> **The headline finding is that selling is the part of the process where
-> documented professional skill disappears.** Akepanidtaworn, Di Mascio, Imas &
-> Schmidt (2023, *JF* 78(6)) track 783 institutional portfolios averaging $573M,
-> 2000-2016, 4.4M trades. Against counterfactuals built from the managers' own
-> holdings: buys beat a random-buy counterfactual by **over +100 bp/year**; sells
-> **underperform a factor-neutral random-sell counterfactual by -80 bp/year**.
-> That deficit is larger than the fee these managers charge.
-> 
+> **It costs nothing in payload.** It is a *view* over fields `stock_detail`
+> already carried. `plan/dashboard-inventory.md` warns that the likeliest failure
+> here is rebuilding what exists; the useful version of heeding that was noticing
+> that `stock_summary.py` already produces build-time, advice-screened sentences
+> covering what changed, what is flagged and what the score rests on. The panel
+> renders those rather than composing its own prose in the browser, which keeps
 > ...
 
 ---
