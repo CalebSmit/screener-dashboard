@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 16 September 2026, 02:13
+# Morning Brief - Wednesday 16 September 2026, 06:22
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `3a10f3c docs: correct the plans this session proved wrong, plus the session log`
+- `21bd821 synthesis: no hold band, and the rule for when one may be chosen`
+- `28cd94a research: make a note's own numbers re-runnable`
+- `e01ca25 brief: data run 2026-09-16`
 - `fdd85a4 data: screener run 2026-09-16 - 502 scored, top: EXPE HST VLO CAH BBY`
 - `cbeb38f brief: code session 2026-09-15`
 - `6cedc64 docs: record the sell-side surface and what it deliberately left out`
@@ -28,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-15 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+> 2026-09-16 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes** - `logs/nightly-2026-09-14_060001.log` ends "Run complete: shipped to main", tagged `good/2026-09-14` |
-> | Data loop published? | **Yes** - `logs/datarun-2026-09-15_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO APA CAH |
-> | Evidence base | **42 rows, newest 2026-09-08, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 41 rows yesterday - moving |
-> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call was touched today |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 41 days old. The list half shipped today.** The remaining half (a hold band) is blocked on measurement, not design - see below. Next unblocked item is **Priority 3, backtest v2**, whose plan file dates to 2026-08-25 - **21 days** |
+> | Last code session ran? | **Yes** - `logs/nightly-2026-09-15_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-15` |
+> | Data loop published? | **Yes** - `logs/datarun-2026-09-16_020000.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO CAH BBY |
+> | Evidence base | **43 rows, newest 2026-09-09, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 42 yesterday - moving |
+> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched. Today **extended its lesson** to a third place - see below |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 42 days old.** Its remaining half (the hold band) is now **settled as "not yet, until ~2027-04"** with a pre-registered rule rather than left vague. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **22 days** |
 > 
-> **Tests:** before **1193/1193**, after **1264/1264**. 71 new tests, zero
-> failures either side.
+> **Tests:** before **1264/1264**, after **1264/1264**. No production code changed;
+> this is a no-new-failures check, not a claim of new coverage.
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Tuesday's product focus taken as written, and it pointed at the same
-> place the roadmap did: Priority 5 is a *product* gap and Tuesday is the product
-> day, so for once the rotation and the north star wanted the same thing.
-> 
-> **On running ahead of Wednesday's synthesis.** Monday's note (2026-09-14) parked
-> five design questions for the 09-16 synthesis. I built anyway, and only the part
-> that none of those questions gate: the **list**, with no threshold of any kind.
-> Question 1 - band width - is untouched and still open, which is the point.
-> `CLAUDE.md` records nine consecutive sessions that produced real work and
-> shipped no north-star item because something smaller always looked more urgent;
-> deferring a 41-day-old product item on the product day, when the research it was
-> waiting for landed yesterday, would have been the tenth.
+> deferred. Wednesday's synthesis taken as written, working §8 of Monday's note.
 > 
 > ### Did
 > 
-> **Shipped the sell-side workflow's list half: a "My Holdings" panel.** Between
-> Top 5 and What Changed. A `localStorage` list under `screener_holdings_v1`
-> holding **tickers and nothing else**, rendering every saved name each run as a
-> card: rank, composite, an eight-category score-and-delta strip, and the review
-> sentences already baked into `stock_detail[t]["summary"]`. Above it, a
-> concentration line - names, sectors, largest sector share, how many sit inside
-> the top 25 and the top 100, how many carry a trap flag.
+> **Wrote §8, the design section Monday's note was left open for - and in doing so
+> found that two of that note's headline numbers were wrong.** The deliverable is
+> the design; the correction is the more important half.
 > 
-> **It costs nothing in payload.** It is a *view* over fields `stock_detail`
-> already carried. `plan/dashboard-inventory.md` warns that the likeliest failure
-> here is rebuilding what exists; the useful version of heeding that was noticing
-> that `stock_summary.py` already produces build-time, advice-screened sentences
-> covering what changed, what is flagged and what the score rests on. The panel
-> renders those rather than composing its own prose in the browser, which keeps
+> **1. §6.3's "a 25/50 band never fires" was an estimator artifact.** Monday walked
+> **one path** through 18 runs and got zero. Taking instead *every ordered pair* of
+> comparable runs at a given calendar spacing - 34 runs now - a 2x band fires at
+> **1.65%** of weekly holding-looks. It is rare, not dead.
+> 
+> **2. But the pairwise estimator has the project's own oldest defect, and this is
+> the finding of the day.** **34 runs yield 72 pairs at a fortnight's spacing**, so
+> each run feeds many pairs and the observations are nowhere near independent -
+> the identical trap `research/2026-08-10-ic-evidence-independence.md` found in the
+> IC series and `improvement_engine._effective_observations()` was built to guard
+> against. **Nobody had noticed it applies to rank statistics too.** Restricting to
+> non-overlapping pairs:
+> 
+> | spacing | pairs all → disjoint | B=50 breach all → disjoint |
+> |---|---|---|
+> | 5-9 days | 68 → **8** | 1.65% → **4.50%** |
+> | 12-18 days | 72 → **4** | 3.99% → **10.89%** |
+> | 25-35 days | 37 → **2** | 1.93% → **4.00%** |
+> 
+> The overlapping estimator **understates wide-band breach rates by 2-3x** - the
+> same order as the ~2.35x the IC note measured - and the honest sample is **8
 > ...
 
 ---
