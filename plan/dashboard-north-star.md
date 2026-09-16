@@ -79,18 +79,35 @@ sentences. Changelog 2026-09-15; `tests/test_holdings_panel.py`, 61 tests, 60
 of which fail against the pre-change generator.
 
 > **What is still open, and why it was not built.** There is **no exit rule and
-> no hold band**. `research/2026-09-14-...md` §6.3 measured a 25/50 band firing
-> zero times across 18 runs, and the strict top-25 rule producing sells that
-> round-trip 71% of the time; §9 asks for **60+ comparable runs** before a width
-> is committed to, and there are 32. A band that never fires is a dead feature,
-> not a conservative one - so the panel shows the evidence and sets no
-> threshold. **This is the remaining piece of gap 2**, and it accrues on its own
-> as the data loop runs. Two further inputs a future session should not
-> rediscover: measured on the live payload, the largest one-month category move
-> is Risk 34%, Revisions 29%, Momentum 26% and **Quality 0.2% (one stock in
-> 500)**, so a trigger keyed to the fundamentals categories would never fire at
-> monthly cadence; and earnings-date proximity (gap 4) is the one *information*
-> anchor the evidence positively endorses.
+> no hold band**, and after the 2026-09-16 synthesis that is a settled position
+> with a date on it rather than a loose end.
+>
+> **Corrected 2026-09-16 - the earlier reasoning here was wrong on both
+> numbers.** This block used to say a 25/50 band "fires zero times across 18
+> runs" and that §9 wanted "60+ comparable runs, and there are 32". Neither
+> survives. The zero was an artifact of walking **one path** through 18 runs;
+> over all comparable pairs a 2x band fires at 1.65-4.50% of holding-looks
+> depending on estimator. And run count is the **wrong unit** - pairs drawn from
+> a daily series overlap almost completely, so 34 runs are only **2 independent
+> monthly looks**. The replacement rule, pre-registered in
+> `METHODOLOGY_CHANGELOG.md` 2026-09-16: **do not commit to a width until there
+> are >= 8 disjoint windows at the review cadence the band will govern**
+> (~2027-04). Re-run
+> `research/measurements/2026-09-16-hold-band-and-input-churn.py` and read the
+> **DISJOINT** column. **Do not pick 50 because MSCI doubles.**
+>
+> What *is* established: the strict top-25 rule wastes **31-47%** of the trades
+> it implies, at every cadence measured. A band is warranted; its width is not
+> yet determinable.
+>
+> Three further inputs a future session should not rediscover: the largest
+> one-month category move is Risk 34%, Revisions 29%, Momentum 26% and
+> **Quality 0.2% (one stock in 500)**, so a trigger keyed to the fundamentals
+> categories would never fire at monthly cadence; **a rank band is therefore
+> mostly a band on price** (~90% of monthly rank movement comes from the three
+> price/estimate-fed categories), which is why `change_driver` is load-bearing
+> rather than decorative; and earnings-date proximity (gap 4) is the one
+> *information* anchor the evidence positively endorses.
 
 > **Amended 2026-09-14 by `research/2026-09-14-sell-discipline-and-hold-bands.md`;
 > acted on 2026-09-15.** The wording this note corrected - "a review queue of
@@ -108,10 +125,13 @@ of which fail against the pre-change generator.
 > shows **all** holdings with the deteriorating ones *annotated by why* -
 > `contrib` attribution, `fy1_revision_3m`, `Composite_Confidence`, trap flags -
 > over one that filters to the biggest fallers. Two further constraints: use an
-> **asymmetric hold band** rather than a top-N cut (buy 25 / hold ~50; see the
-> note's §4 for three independent practitioner precedents), and **do not lead
-> with gain/loss versus purchase price**, which installs the disposition
-> effect's reference point (Odean 1998). Per-stock stop-losses are unsupported.
+> **asymmetric hold band** rather than a top-N cut (see the note's §4 for three
+> independent practitioner precedents) — but ~~buy 25 / hold ~50~~ **no specific
+> width, see the corrected block above; the 50 was borrowed from a 500-name
+> quarterly index and 2026-09-16 pre-registered the condition for choosing one**
+> — and **do not lead with gain/loss versus purchase price**, which installs the
+> disposition effect's reference point (Odean 1998). Per-stock stop-losses are
+> unsupported.
 
 **3. Valuation is only cross-sectional.** `pct` says cheap *versus peers*. It
 never says cheap *versus its own history*. A stock in the 90th percentile on
@@ -121,6 +141,23 @@ the same historical spine as gap 1.
 
 **4. Nothing about timing or catalysts.** Earnings date proximity materially
 changes whether today is the day to act. Cheap to add, high decision value.
+
+> **Verified available 2026-09-16, and it really is free.** The `.info` dict
+> already fetched at `factor_engine.py:744` carries `earningsTimestampStart` /
+> `earningsTimestampEnd` (the *next* report), `earningsTimestamp` (the last one)
+> and **`isEarningsDateEstimate`** - checked live against AAPL, HST and EXPE.
+> Nothing in the repo reads any of them, so this is a zero-API-cost addition on
+> the same footing as the business descriptions (2026-08-26).
+>
+> Two constraints. **Display-only, never scored** - a proximity-to-earnings
+> number entering `raw`/`pct` is a new factor smuggled in as a UI feature. And
+> **show the estimate flag**: EXPE's next date is flagged estimated today, and
+> presenting it as confidently as a confirmed one is the false precision this
+> tool exists not to emit.
+>
+> This is the one selling behaviour the evidence positively endorses -
+> earnings-day sells beat non-announcement-day sells by **+150 bp/year** and are
+> the only sells in Akepanidtaworn et al. (2023) that beat their counterfactual.
 
 **5. Confidence is uneven and mostly invisible.** `metric_count/metric_total`
 and `num_analysts` exist per stock but a user cannot easily see "this score

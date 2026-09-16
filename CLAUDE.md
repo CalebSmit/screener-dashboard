@@ -780,15 +780,38 @@ reads them.
      **+3.41%** over the following year. A key hand-edited to hold a position
      dict is read for its ticker and written back clean.
 
-   **What is still open: the hold band.** The screener has one test
-   (`portfolio.num_stocks: 25`) where Novy-Marx & Velikov (2016), MSCI and
-   S&P DJI all use a wider, different test for continued membership. It was
-   **not** shipped because a 25/50 band fired **zero** times across the 18-run
-   measured window and the note's §9 asks for **60+ comparable runs** before a
-   width is committed to - there are 32. A band that never fires is a dead
-   feature, not a conservative one. This accrues on its own; do not guess a
-   width, and **do not reuse the movers panel's threshold** (measured: it fires
-   for a top-25 name **0.15%** of the time).
+   **What is still open: the hold band - settled 2026-09-16 as "not yet", with
+   a date.** The screener has one test (`portfolio.num_stocks: 25`) where
+   Novy-Marx & Velikov (2016), MSCI and S&P DJI all use a wider, different test
+   for continued membership.
+
+   **The 2026-09-15 reasoning quoted here was wrong on both numbers and is
+   corrected.** It said a 25/50 band "fired zero times" and that §9 wanted "60+
+   comparable runs, there are 32". The zero came from walking **one path**
+   through 18 runs; over all comparable pairs a 2x band fires at 1.65-4.50% of
+   holding-looks. And run count is the **wrong unit**: pairs from a daily series
+   overlap almost completely, so 34 runs are **2 independent monthly looks**.
+   Changelog 2026-09-16; §8 of the research note;
+   `research/measurements/2026-09-16-hold-band-and-input-churn.py` reproduces
+   every number and prints overlapping vs disjoint estimators side by side.
+
+   **What is established:** the strict top-25 rule wastes **31-47%** of the
+   trades it implies, at every cadence measured (9/7/3 disjoint triples). A band
+   is warranted. Its **width is not determinable** - at 1.4x the three cadences
+   report 0.0%, 31.2% and 5.9% wasted.
+
+   **The pre-registered rule, which binds:** do not commit to a width until
+   there are **>= 8 disjoint observation windows at the review cadence the band
+   will govern**. Today **2 monthly**; roughly **2027-04** at one a month. Then
+   take the **narrowest** band clearing half the strict rule's waste and NMV's
+   50% turnover bound. **Do not pick 50 because MSCI doubles** - that borrows a
+   parameter from a 500-name quarterly index. And **do not reuse the movers
+   panel's threshold** (measured: it fires for a top-25 name **0.15%** of the
+   time).
+
+   **The generalisable lesson:** rank-migration statistics need the same
+   non-overlapping treatment as ICs. This is the third place the project has hit
+   the independence trap - see `research/README.md` Standards.
 
    **One measurement to carry forward:** the largest one-month category move is
    Risk 34%, Revisions 29%, Momentum 26% and **Quality 0.2% - one stock in
