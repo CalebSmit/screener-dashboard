@@ -4965,3 +4965,215 @@ each source directly.
 3. Still open from 2026-09-11: **decide the `currentPrice` fallback** in
    `factor_engine.py` - make it real at all six sites or delete it and the
    comment at ~line 683 that promises it. Unchanged again today.
+
+---
+
+## 2026-09-16 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - `logs/nightly-2026-09-15_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-15` |
+| Data loop published? | **Yes** - `logs/datarun-2026-09-16_020000.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO CAH BBY |
+| Evidence base | **43 rows, newest 2026-09-09, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 42 yesterday - moving |
+| Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched. Today **extended its lesson** to a third place - see below |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 42 days old.** Its remaining half (the hold band) is now **settled as "not yet, until ~2027-04"** with a pre-registered rule rather than left vague. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **22 days** |
+
+**Tests:** before **1264/1264**, after **1264/1264**. No production code changed;
+this is a no-new-failures check, not a claim of new coverage.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Wednesday's synthesis taken as written, working §8 of Monday's note.
+
+### Did
+
+**Wrote §8, the design section Monday's note was left open for - and in doing so
+found that two of that note's headline numbers were wrong.** The deliverable is
+the design; the correction is the more important half.
+
+**1. §6.3's "a 25/50 band never fires" was an estimator artifact.** Monday walked
+**one path** through 18 runs and got zero. Taking instead *every ordered pair* of
+comparable runs at a given calendar spacing - 34 runs now - a 2x band fires at
+**1.65%** of weekly holding-looks. It is rare, not dead.
+
+**2. But the pairwise estimator has the project's own oldest defect, and this is
+the finding of the day.** **34 runs yield 72 pairs at a fortnight's spacing**, so
+each run feeds many pairs and the observations are nowhere near independent -
+the identical trap `research/2026-08-10-ic-evidence-independence.md` found in the
+IC series and `improvement_engine._effective_observations()` was built to guard
+against. **Nobody had noticed it applies to rank statistics too.** Restricting to
+non-overlapping pairs:
+
+| spacing | pairs all → disjoint | B=50 breach all → disjoint |
+|---|---|---|
+| 5-9 days | 68 → **8** | 1.65% → **4.50%** |
+| 12-18 days | 72 → **4** | 3.99% → **10.89%** |
+| 25-35 days | 37 → **2** | 1.93% → **4.00%** |
+
+The overlapping estimator **understates wide-band breach rates by 2-3x** - the
+same order as the ~2.35x the IC note measured - and the honest sample is **8
+weekly, 4 fortnightly, 2 monthly independent looks.** So the true position was
+never "a 2x band never fires"; it is **"we have two independent monthly looks"**,
+which is the same evidential state the improvement engine is in, reached
+independently, and it earns the same answer: do not act, and say so.
+
+**3. Settled the band as "not yet", with a date and a pre-registered rule.** A
+band *is* warranted - the strict top-25 rule wastes **31-47% of the trades it
+implies** (37.5% daily / 47.4% at 2-4 days / 31.0% weekly), and that replicates
+three times out of three. Its **width is not determinable**: at 1.4x the three
+cadences report 0.0%, 31.2% and 5.9% wasted, on 9/7/3 disjoint triples. §9's
+"60+ comparable runs" is the **wrong unit** - 60 runs of a daily series is still
+2-3 independent monthly looks. Replaced with: **>= 8 disjoint windows at the
+review cadence the band will govern**, ~**2027-04**, within a month of when the
+improvement engine hits its own gate, for the same reason. Plus an explicit
+"do not pick 50 because MSCI doubles".
+
+**4. Found a real coherence gap the evidence *does* settle, needing no
+threshold.** `config.yaml` line 221 records a **quarterly** rebalance cadence.
+The dashboard regenerates **every weekday and states no cadence anywhere**
+(grep confirms the only "quarterly" in `generate_dashboard.py` is an unrelated
+data-source label). Strict top-25 turnover is **121.8% monthly one-sided at
+daily review against 24.0% at monthly**, where Novy-Marx & Velikov find few
+anomalies survive costs above ~50%. **A surface that redraws a rank every
+morning invites daily action the methodology prices at 2.4x outside the
+survivable region.** That conclusion tolerates a 2.4x error before it changes.
+
+**5. Answered "what should the trigger key on" with a measurement, not a
+preference.** When a metric's availability changes, its category renormalises
+over a different metric set and the score moves because the *measurement*
+changed - the FCX case in priority 1.5, now counted over 24 run-pairs:
+
+| input churn | n | median &#124;rank change&#124; | share worsening |
+|---|---|---|---|
+| none | 11,450 | **6** | 44.6% |
+| 1 metric | 447 | 7 | 47.0% |
+| 2-3 metrics | 143 | **21** | 52.4% |
+
+One lost metric is indistinguishable from noise; **two or more triples the
+median rank move**, so a flag should arm at >=2. And it is **nearly
+direction-neutral** - it scatters ranks rather than pushing them down, which is
+exactly the signal a sell surface must not present as a reason to act. Among
+top-25 exits, **6 of 43 (14.0%) coincided with input churn against 3.8% of
+stayers**; that ratio is indicative only, for the independence reason above, and
+the note says so. The mechanism needs no significance test - renormalisation
+moving a score is arithmetic. `_sentence_confidence()` already states the
+coverage **level** and never the **change**; `history.py` carries no metric
+count. One missing quantity is the whole gap.
+
+**6. Verified rather than repeated Monday's earnings-date claim.** `.info` -
+already fetched at `factor_engine.py:744` - does carry `earningsTimestampStart`,
+`earningsTimestampEnd` and **`isEarningsDateEstimate`**, checked live against
+AAPL/HST/EXPE. Nothing in the repo reads any of them. So it is genuinely
+zero-API-cost, and the estimate flag must be **shown**: EXPE's next date is
+flagged estimated today.
+
+**7. Answered the day's actual question - what it implies for the other seven
+categories.** ~90% of one-month category movement comes from Risk, Revisions and
+Momentum, and priority 1.5 records that momentum and risk are 23% of composite
+weight from a single `Ticker.history()` call. **So a hold band on composite rank
+is, at monthly cadence, mostly a band on price wearing eight categories as a
+costume.** Not a stop-loss, but it shares the input Kaminski & Lo found
+unsupported at single-name frequency. Two consequences: `change_driver` is
+**load-bearing, not decorative** - it is the only thing distinguishing "the
+business changed" (essentially never, monthly) from "the price moved" (usually);
+and any future deterioration trigger must be **category-aware**, because a
+composite-rank band weights a rare Quality move identically to a routine
+Momentum one.
+
+**8. Made the numbers re-runnable, which they were not.**
+`research/measurements/2026-09-16-hold-band-and-input-churn.py` reproduces every
+figure above from `improvement/snapshots/` through the same comparability gate
+`history.py` uses, printing overlapping and disjoint estimators side by side so
+the difference cannot be overlooked again. Monday's note asked a later session to
+re-measure and left no script to re-run - which is precisely how two of its
+numbers survived as long as they did. New convention documented in
+`research/README.md`.
+
+### Evidence / research
+
+- **Novy-Marx & Velikov (2016)**, *RFS* 29(1) 104-147. Anomalies under ~**50%
+  monthly one-sided turnover** mostly survive trading costs; few above do. A
+  buy/hold spread is "the single most effective simple cost mitigation
+  strategy". → the turnover yardstick in §8.2 and the pre-registered rule.
+- **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023)**, *JF* 78(6) 3055-3098.
+  Sells underperform a factor-neutral counterfactual by **-80 bp/year**;
+  earnings-day sells beat non-announcement-day sells by **+150 bp/year** and are
+  the only sells that beat their counterfactual. → §8.4, why earnings dates are
+  the endorsed anchor.
+- **Kaminski & Lo (2014)**, *JFM* 18, 234-254. Stopping premium negative under a
+  random walk by proposition; positive result confined to asset-class overlays at
+  monthly frequency. → §8.6, the tension in a price-driven rank band.
+- **MSCI Momentum Indexes Methodology (July 2025)** §3.1.1-3.1.2; **S&P DJI
+  Select Industry Methodology**, "Turnover". → the 1.5x-3x practice range, and
+  the reason not to borrow 50 from a 500-name quarterly index.
+- **Measured here today**, all from the script above, descriptive statistics on
+  published scores - no forward returns, no IC, no backtest, so rules 4 and 5 do
+  not bite: the disjoint-vs-overlapping breach table; wasted-trade rates
+  31-47% at B=25 falling monotonically with width; 121.8% vs 24.0% monthly
+  one-sided turnover; the input-churn table and the 14.0%/3.8% exit contrast.
+- **Verified live today:** `.info` earnings fields on AAPL/HST/EXPE.
+
+### Methodology changed
+
+- **`METHODOLOGY_CHANGELOG.md` 2026-09-16 - "No hold band, and the rule for when
+  one may be chosen".** No weight, metric, threshold, formula or scoring path
+  changed; `portfolio.num_stocks: 25` and every category weight are
+  byte-identical. The entry exists because a **decision not to change** needs to
+  be as findable as a change, the changelog explicitly covers portfolio
+  construction rules, and the most likely future failure is a session picking 50
+  because MSCI doubles.
+- Rule 9 updates in the same session, all correcting things this session proved
+  wrong: `research/2026-09-14-...md` (§8 written, §9's stopping rule struck
+  through and restated in the right unit), `plan/dashboard-north-star.md` (gap
+  2's superseded numbers corrected, the "buy 25 / hold ~50" width struck, gap 4
+  marked verified), `CLAUDE.md` priority 5, and `research/README.md` (new
+  `measurements/` convention plus a Standards entry on counting independent
+  observations).
+
+### Tried and rejected
+
+- **Committing to a band width of 35**, which the weekly wasted-trade curve
+  (31.0 → 20.8 → 5.9 → 3.4 → 0.0%) makes look like a clean knee. It is not: the
+  2-4 day cadence puts B=35 at **31.2%** and daily puts it at 0.0% on **four
+  breach events**. Three cadences, three answers, 9/7/3 disjoint triples.
+  Picking 35 because one row looked tidy is the failure the project's evidence
+  rules exist to prevent, and §9 had pre-registered a stopping condition
+  precisely so this moment would not be a judgement call.
+- **Overriding §9's stopping rule because today's numbers came out
+  interesting.** Honouring a pre-registered threshold when the data looks
+  tempting is the whole point of pre-registering it. What I did instead was
+  correct its **unit**, which is a different act and is argued in §8.1.
+- **Quoting n=1,803 observations** for the fortnightly breach rate, which is what
+  the natural estimator hands you and what I would have written down had I not
+  checked. It is **4 independent looks**. The project has now hit this trap three
+  times; it is in `research/README.md` Standards so the fourth time is someone
+  ignoring a written warning rather than rediscovering it.
+- **Concluding that the band is redundant with the quarterly cadence**, which was
+  my working hypothesis for most of the session and is wrong. Cadence controls
+  *how often* you may trade; the band controls *whether the trade is worth
+  making*. Lengthening cadence barely moves the wasted-trade rate (37.5% daily →
+  31.0% weekly), so it does not substitute for a band. They are complementary,
+  not overlapping - the opposite of what I expected to find.
+- **Building any of it.** Wednesday is synthesis and Thursday is build; yesterday
+  already ran one day ahead, and the value of writing the design first is
+  precisely what §8.0 demonstrates - the obvious build would have shipped a band
+  width chosen from an artifact.
+
+### Next
+
+1. **Thursday 2026-09-17 builds §8.7, in order:** (a) **say what cadence the tool
+   is for** - no threshold, no new data, the gap the evidence most clearly
+   supports; (b) **flag input-availability change on the holdings surface**,
+   armed at >=2 metrics, worded as a caveat on the move rather than a reason to
+   act, which needs `history.py` to carry a per-ticker metric count - note the
+   pre-2026-03-09 snapshots have **no percentile columns at all** (15 columns),
+   so handle the absence rather than assuming the schema; (c) **earnings dates,
+   display-only, with the estimate flag shown**.
+2. **The band is on a timer, not a queue.** ~2027-04, at >=8 disjoint monthly
+   windows. Re-run the measurement script and read the **DISJOINT** column. No
+   work required before then; do not guess a width.
+3. Still open from 2026-09-11: **decide the `currentPrice` fallback** in
+   `factor_engine.py` - make it real at all six sites or delete it and the
+   comment at ~line 683 that promises it. Unchanged again today, third session
+   running.

@@ -1721,3 +1721,86 @@ read for its ticker and written back clean. Plus **13 tests** for
 
 **Rollback:** `good/2026-09-14`. Touches `generate_dashboard.py` and
 `stock_summary.py` only; no scoring code, no config, no data artifact.
+
+---
+
+## 2026-09-16 - No hold band, and the rule for when one may be chosen
+
+**Area:** portfolio construction rules (`config.yaml -> portfolio.num_stocks`)
+
+**Changed:** **nothing.** No weight, metric, threshold, formula or scoring path
+was touched. This entry exists because a *decision not to change* needs to be as
+findable as a change, and because it pre-registers a condition that binds future
+sessions.
+
+`portfolio.num_stocks: 25` remains the screener's single membership test. Three
+independent sources - Novy-Marx & Velikov (2016), MSCI Momentum, S&P DJI - say a
+screen should use a **wider test for continued membership than for entry**, at
+1.5x-3x the buy band. The 2026-09-14 research note recommended one. **It was not
+adopted, and this records why**, so the next session neither adopts it by default
+nor relitigates it from scratch.
+
+**Evidence that a band is warranted (accepted):** of the names breaching a strict
+top-25 boundary, the share back inside the top 25 at the very next review is
+**37.5% at daily cadence, 47.4% at 2-4 days, 31.0% weekly**. The only rule this
+screener has wastes between a third and a half of the trades it implies, and
+widening the band monotonically reduces that at every cadence measured.
+Directional, and it replicates three times out of three.
+
+**Evidence that fixes the width (absent):** at a 1.4x band the same three
+cadences report **0.0%, 31.2% and 5.9%** wasted - resting on **9, 7 and 3** fully
+disjoint triples. No width in the 1.5x-3x range is distinguishable from any other
+on this data.
+
+**The measurement correction that produced this, and it generalises.** The note's
+§6.3 reported that a 2x band "produced zero signals". That was an artifact of
+walking **one path** through 18 runs. Over all comparable pairs it fires at 1.65%
+of weekly holding-looks - but those pairs **overlap almost completely** (34 runs
+yield 72 pairs at a fortnight's spacing), which is the same independence trap
+`research/2026-08-10-ic-evidence-independence.md` found in the IC series and
+`improvement_engine._effective_observations()` guards against. Restricting to
+non-overlapping pairs raises wide-band breach rates by **2-3x** (weekly B=50:
+1.65% -> 4.50%) and reduces the honest sample to **8 weekly, 4 fortnightly and 2
+monthly** independent looks. Rank-migration statistics need the same treatment as
+ICs; nobody had noticed.
+
+**Pre-registered condition for revisiting - the part that binds:**
+
+> Do not commit to a hold-band width until there are **>= 8 disjoint observation
+> windows at the review cadence the band will govern**. Today there are **2
+> monthly**. The note's original "60+ comparable runs" is the wrong unit - 60
+> runs of a daily series is still 2-3 independent monthly looks. At one per month
+> of continuous running this is roughly **2027-04**, within a month of when the
+> improvement engine reaches its own 8-observation gate, for the same reason.
+>
+> At that point: choose the **narrowest** band whose wasted-trade rate is below
+> half the strict rule's and whose implied monthly one-sided turnover is under
+> Novy-Marx & Velikov's 50%. If two qualify, take the narrower - signal given up
+> is a real cost, and the practice range's 3x upper end comes from 500-name
+> quarterly indices, not 25-name screens.
+
+**Do not pick 50 because MSCI doubles.** That is borrowing a parameter from a
+different instrument, and it is the specific shortcut this entry exists to block.
+
+**What the evidence *did* endorse, deferred to the build day:** the screener
+records a **quarterly** rebalance cadence (`config.yaml` line 221) while the
+dashboard regenerates **every weekday and states no cadence anywhere**. Strict
+top-25 turnover is **121.8% monthly one-sided at daily review against 24.0% at
+monthly** - NMV find few anomalies survive costs above ~50%, so daily action on
+this surface sits 2.4x outside the survivable region, a conclusion that tolerates
+a 2.4x error in the estimate before it changes. That gap needs no threshold and
+no new data.
+
+**Expected effect:** none on any published score. `portfolio.num_stocks: 25` and
+every category weight are byte-identical.
+
+**Validated by:** `research/measurements/2026-09-16-hold-band-and-input-churn.py`,
+which reproduces every number above from `improvement/snapshots/` through the
+same comparability gate `history.py` uses, and prints the overlapping and
+disjoint estimators side by side so the difference cannot be overlooked again.
+Full suite **1264 -> 1264**, unchanged, as expected for a session that shipped no
+production code.
+
+**Applied by:** morning session (manual) - synthesis day.
+
+**Rollback:** not applicable; no code or config changed. Documentation only.
