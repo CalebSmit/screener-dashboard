@@ -249,6 +249,58 @@ def _run_date_for_history(meta: dict) -> str | None:
 CATEGORIES = ["valuation", "quality", "growth", "momentum",
               "risk", "revisions", "size", "investment"]
 
+# The cadence the methodology is built for, versus the cadence the site
+# refreshes at. Until 2026-09-17 the dashboard stated neither.
+#
+# `research/2026-09-14-sell-discipline-and-hold-bands.md` §8.2, measured on this
+# repo's own snapshots: acting on the strict top-25 rule at every run implies
+# **121.8%** monthly one-sided turnover, against **24.0%** reviewing the same
+# rule monthly. Novy-Marx & Velikov (2016, *RFS* 29(1) 104-147) find anomalies
+# under roughly 50% monthly one-sided turnover mostly survive trading costs and
+# few above it do - so daily action sits 2.4x outside the surviving region, a
+# gap that tolerates a large error in the estimate before it reverses.
+#
+# This is a product defect rather than a methodology one. `config.yaml` has
+# recorded a quarterly cadence since launch; the dashboard regenerated every
+# weekday and said nothing, which implicitly invites a reader to act on every
+# redraw. The fix is to say it, not to stop refreshing - fresh data is the point
+# of the data loop, and the evidence base depends on it.
+CADENCE_LABELS = {"monthly": "monthly", "quarterly": "quarterly"}
+CADENCE_TURNOVER = {
+    # cadence -> (monthly one-sided turnover %, the label used in the copy)
+    "every run": 121.8,
+    "monthly": 24.0,
+}
+# Novy-Marx & Velikov's survivability boundary, in monthly one-sided turnover %.
+NMV_TURNOVER_CEILING = 50.0
+
+
+def _cadence_block(cfg: dict) -> dict:
+    """What review cadence to tell the reader the tool is built for.
+
+    Read from the *run's* config snapshot rather than the working tree, so the
+    published page states what the run it describes was configured for. Falls
+    back to quarterly, which is what `config.yaml` has recorded since launch -
+    an unknown cadence must not render as "no cadence", because "no cadence" is
+    exactly the daily-action reading this block exists to correct.
+    """
+    portfolio = (cfg or {}).get("portfolio") or {}
+    raw = str(portfolio.get("review_cadence") or "").strip().lower()
+    cadence = raw if raw in CADENCE_LABELS else "quarterly"
+    num_stocks = portfolio.get("num_stocks")
+    return {
+        "review": cadence,
+        "label": CADENCE_LABELS[cadence],
+        # False when the run's config snapshot predates `review_cadence` or
+        # carries an unrecognised value, so the fallback is visible in the
+        # payload instead of being indistinguishable from a real setting.
+        "configured": raw in CADENCE_LABELS,
+        "num_stocks": int(num_stocks) if isinstance(num_stocks, (int, float)) else None,
+        "turnover_every_run": CADENCE_TURNOVER["every run"],
+        "turnover_monthly": CADENCE_TURNOVER["monthly"],
+        "turnover_ceiling": NMV_TURNOVER_CEILING,
+    }
+
 
 def _effective_weight_row(weights: dict, present: list) -> dict:
     """Per-stock weights after redistributing away categories with no score.
@@ -784,6 +836,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
 
     dashboard_json = {
         "kpis": kpis,
+        "cadence": _cadence_block(run_data.get("cfg") or {}),
         "history": history_block,
         "table_data": table_data,
         "stock_detail": stock_detail,
@@ -1802,6 +1855,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             notes.push(`Excluded as not comparable: ${{ex}}.`);
         }}
         notes.push('Rank changes are not a recommendation. A stock that fell may be cheaper, not worse &mdash; open it to see which categories moved and why.');
+        // The panel that shows the largest moves is exactly where a reader is
+        // most likely to read a daily redraw as a daily decision.
+        if (cadenceText(false)) notes.push(cadenceText(false));
         document.getElementById('changed-footnote').innerHTML = notes.join(' ');
     }}
 
@@ -1851,7 +1907,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // Which baked summary facts belong on a review row. All four are built by
     // stock_summary.py at build time and screened for advice language there,
     // so this panel renders reviewed prose instead of composing its own.
-    const HOLDINGS_FACTS = ['change', 'change_driver', 'flags', 'confidence'];
+    // `input_churn` sits immediately after the two sentences it qualifies.
+    // Without it a reader meets "moved down 63 places" with no way to tell that
+    // two of the inputs behind the score changed availability over the same
+    // window - which triples the median rank move and is not information about
+    // the company (research/2026-09-14-... section 8.3).
+    const HOLDINGS_FACTS = ['change', 'change_driver', 'input_churn', 'flags', 'confidence'];
 
     let holdings = [];
 
@@ -1937,6 +1998,48 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         return null;
     }}
 
+    // =====================================================================
+    // REVIEW CADENCE  (research/2026-09-14-... section 8.2)
+    // =====================================================================
+    // The site refreshes every weekday; the methodology is built for a
+    // quarterly review. Until 2026-09-17 it stated neither, so a reader met a
+    // freshly-redrawn ranking every morning with nothing to say how often
+    // acting on it was intended. Measured on this repo's snapshots, acting on
+    // the strict top-25 rule at every run implies 121.8% monthly one-sided
+    // turnover against 24.0% at monthly review, where Novy-Marx & Velikov
+    // (2016) find few anomalies survive costs above ~50%.
+    //
+    // It is a sentence, not a lock. The tool does not know what a reader is
+    // doing and must not pretend to; naming the cadence it was built for is
+    // decision support, refusing to show a number until a date would not be.
+    // Returns the sentence(s) only. Callers wrap it, because one surface wants
+    // a standalone note and the other wants it inside an existing paragraph.
+    function cadenceText(long) {{
+        const c = D.cadence;
+        if (!c) return '';
+        const refresh = 'This page is rebuilt every weekday, but the ranking is '
+            + 'built for <strong>' + escapeHtml(c.label) + '</strong> review.';
+        if (!long) {{
+            return refresh
+                + ' A rank that moved since yesterday is not by itself a reason to act.';
+        }}
+        return refresh
+            + ' Treating every refresh as a decision point has a measured cost: on this '
+            + 'screener\\u2019s own history, acting on the top '
+            + (c.num_stocks || 25) + ' at every run implies <strong>'
+            + c.turnover_every_run.toFixed(0) + '%</strong> monthly one-sided turnover '
+            + 'against <strong>' + c.turnover_monthly.toFixed(0) + '%</strong> reviewing '
+            + 'the same rule monthly. Novy-Marx &amp; Velikov (<em>Review of Financial '
+            + 'Studies</em> 29(1), 2016) find anomalies under roughly <strong>'
+            + c.turnover_ceiling.toFixed(0) + '%</strong> mostly survive trading costs, '
+            + 'and few above it do.';
+    }}
+
+    function cadenceLine(long) {{
+        const text = cadenceText(long);
+        return text ? '<p class="cadence-note">' + text + '</p>' : '';
+    }}
+
     function renderHoldings() {{
         const body = document.getElementById('holdings-body');
         const fit = document.getElementById('holdings-fit');
@@ -1949,7 +2052,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         renderHoldingsFootnote();
 
         if (!holdings.length) {{
-            fit.innerHTML = '';
+            fit.innerHTML = cadenceLine(false);
             body.innerHTML = '<div class="holdings-empty">'
                 + '<p>Nothing on the list yet. Add a ticker above and it appears here after every run, with what moved and which category moved it.</p>'
                 + '<p class="holdings-empty-sub">Works the same whether you own the name or are only watching it &mdash; nothing here assumes you hold a position.</p>'
@@ -1968,7 +2071,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 return ra - rb;
             }});
 
-        fit.innerHTML = holdingsFitLine(rows);
+        fit.innerHTML = cadenceLine(false) + holdingsFitLine(rows);
         body.innerHTML = rows.map(holdingCard).join('');
     }}
 
@@ -2081,6 +2184,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const el = document.getElementById('holdings-footnote');
         if (!el) return;
         el.innerHTML = [
+            '<p><strong>How often this is meant to be acted on.</strong> ' + cadenceText(true) + '</p>',
             '<p><strong>Why this list shows everything, every time.</strong> It is never filtered or sorted by how much a name moved. Institutional managers dispose of the best and worst performers in a portfolio at rates more than 50% higher than middling positions, and that habit is the identified cause of an 80 basis-point-a-year shortfall in their disposal decisions against a random-disposal benchmark over 4.4 million trades (Akepanidtaworn, Di Mascio, Imas &amp; Schmidt, <em>Journal of Finance</em> 78(6), 2023). A queue that surfaces only the big movers automates that habit. Rows here are ordered by current rank; the rank change is shown for context only.</p>',
             '<p><strong>Why it never asks what you paid.</strong> Measuring a position against its purchase price is the reference point behind the disposition effect: investors realise gains about 1.5&times; as readily as losses, and the winners they disposed of went on to beat the losers they kept by 3.4 percentage points over the following year (Odean, <em>Journal of Finance</em> 53(5), 1998). No cost basis, share count or profit-and-loss figure is stored or shown here, which is also why this works equally as a watchlist.</p>',
             '<p><strong>Why there is no exit signal.</strong> This screener has one test &mdash; the top 25 &mdash; and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
@@ -3459,6 +3563,22 @@ def _css() -> str:
         }
         .holding-note:last-child { margin-bottom: 0; }
         .holding-note-change_driver { color: var(--text-primary); }
+        /* A caveat on the comparison, not a warning about the company. Amber
+           rule and primary text so it is not skipped, but no badge, icon or red
+           - input churn scatters ranks roughly symmetrically (52.4% worse off
+           against a 44.6% base rate), so styling it as bad news would invent a
+           direction the measurement does not have. */
+        .holding-note-input_churn {
+            color: var(--text-primary); border-left: 2px solid var(--amber);
+            padding-left: 8px; margin-top: 6px;
+        }
+        /* Stated, not shouted. The cadence is a framing fact a reader should
+           meet before the rank changes, not an alert. */
+        .cadence-note {
+            margin: 0 0 8px; font-size: .78rem; line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        .cadence-note strong { color: var(--text-primary); }
         .holdings-footnote {
             margin-top: var(--gap); padding-top: 12px; border-top: 1px solid var(--border);
             font-size: .76rem; color: var(--text-secondary); line-height: 1.65;

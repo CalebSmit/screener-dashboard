@@ -218,7 +218,17 @@ portfolio:
   max_position_pct: 5.0
   # min_position_pct: not enforced — removed to avoid false confidence
   max_sector_concentration: 8  # Max 8 stocks per sector
-  # Rebalance cadence: quarterly (manual). No automated rebalancing is implemented.
+  # Review cadence the methodology is built for. Machine-readable as of
+  # 2026-09-17 (was a bare comment) because the dashboard now states it: the
+  # data loop regenerates the site every weekday, and a surface that redraws a
+  # rank every morning invites daily action the methodology does not support.
+  # Measured on this repo's own snapshots: acting on the strict top-25 rule at
+  # every run implies 121.8% monthly one-sided turnover against 24.0% at
+  # monthly review, where Novy-Marx & Velikov (2016, RFS 29(1)) find few
+  # anomalies survive costs above ~50%. No automated rebalancing is
+  # implemented; this is a statement of intent the dashboard quotes.
+  # See research/2026-09-14-sell-discipline-and-hold-bands.md section 8.2.
+  review_cadence: 'quarterly'  # Options: 'monthly', 'quarterly'
   min_avg_dollar_volume: 10e6  # $10M minimum 63-day avg daily dollar volume (0 to disable)
 
 # Fetch Settings (rate-limit resilience)
