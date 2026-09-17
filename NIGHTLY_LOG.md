@@ -5177,3 +5177,180 @@ numbers survived as long as they did. New convention documented in
    `factor_engine.py` - make it real at all six sites or delete it and the
    comment at ~line 683 that promises it. Unchanged again today, third session
    running.
+
+---
+
+## 2026-09-17 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes.** `logs/nightly-2026-09-16_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-16` |
+| Data loop published? | **Yes.** `logs/datarun-2026-09-17_020000.log` ends "Data loop complete", 502 scored, HEALTH: PASS, 0 fetch failures |
+| Evidence base | **44 rows, newest 2026-09-10, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 43 rows / 2026-09-09 yesterday - moving. Effective count unchanged at 3, as expected: 1-month observations accrue about one a month |
+| Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched today |
+| Top open roadmap item | **Priority 5, the sell-side workflow - 43 days old.** Two of its three remaining build items shipped today. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **23 days** |
+
+**Tests:** before **1264/1264**, after **1362/1362** (+98: 58 new in
+`test_input_churn.py`, 40 in `test_review_cadence.py`).
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
+deferred. Thursday's build taken as written, implementing §8.7 items 1 and 2 of
+the 2026-09-14 research note - the rotation's intended path, not a swap.
+
+### Did
+
+**Shipped the two §8.7 items that share a single argument: the tool now says how
+often it is meant to be acted on, and says when a move is the measurement
+changing rather than the company.** Both are about not inviting action the
+evidence cannot justify, which is why they went together rather than one per
+session.
+
+**1. The cadence the tool is built for is now stated on the surfaces that move.**
+`config.yaml` has recorded a quarterly rebalance cadence since launch - as a bare
+*comment*, which the generator could not read. The site regenerates every weekday
+and said nothing: a grep of `generate_dashboard.py` for "quarterly" returned one
+unrelated data-source label. A surface that redraws a rank every morning
+implicitly invites acting on it every morning.
+
+`portfolio.review_cadence` is now a real key, surfaced as `D.cadence` and
+rendered by `cadenceText(long)` in three places - the holdings panel (short form,
+both empty and populated states), the What Changed footnote (short form), and the
+holdings footnote (long form with the numbers). Read from the **run's own** config
+snapshot, not the working tree, so a republished old run states what it was
+configured for; `configured: false` marks the fallback so it cannot be mistaken
+for a real setting. Both paths are exercised today: the published 2026-09-17 run
+predates the key and falls back cleanly; tonight's data run will carry it.
+
+**It is a sentence, not a lock**, and that was a deliberate call. The tool does
+not know what a reader is doing. Naming the cadence is decision support;
+withholding a number until a date would not be, and would also defeat the data
+loop's reason for running daily.
+
+**2. A rank move that is really an input going missing now says so.** When a
+metric percentile flips between present and absent, its category renormalises
+over a different metric set and the score moves as **arithmetic** - no company
+event. This is priority 1.5's FCX case (growth 68.3 -> 42.5 -> 68.3), which was
+investigated as a suspected defect and turned out to be correct behaviour that
+nothing downstream could tell apart from a real collapse. `CLAUDE.md` priority
+1.5 has recorded it as an open product gap since 2026-08-26.
+
+`history.py` now carries per-ticker metric availability and emits
+`ch: [lost, gained]`; `stock_summary._sentence_input_churn` turns >= 2 into a
+caveat on the drilldown and on every holdings row. **Fires for 27 of 502 stocks**
+on today's run against the ~1-month baseline.
+
+**Three things I got from building it that the design did not anticipate:**
+
+- **A metric *count* is not enough.** A net count difference of zero hides one
+  metric dropping out as another returns - exactly the case the flag exists for.
+  The implementation compares availability **sets**.
+- **Only columns both runs carry can be compared.** The snapshot schema has grown
+  (`fy1_revision_3m_pct` appears part-way through the directory). Counting a
+  column that did not exist yet as a metric that went missing would flag the
+  entire universe on the day a metric was added. There is a test for this.
+- **27 of 502 is 5.4%, against §8.3's measured 1.22%, and that is expected
+  rather than a misfire.** §8.3 measured consecutive runs <= 7 days apart; the
+  drilldown's preferred baseline is ~28 days, over which more availability
+  changes accumulate. Written into the changelog so a future session does not
+  read it as the threshold being wrong.
+
+**3. Corrected `plan/dashboard-inventory.md`, which still carried both numbers
+the 2026-09-16 session disproved.** It read "32 comparable runs is short of the
+60+ the research asks for" and "a 25/50 band fired zero times". The 09-16 session
+corrected `plan/dashboard-north-star.md`, `CLAUDE.md` and the research note, and
+missed this one - so the file the Tuesday focus tells the next session to trust
+was the last place the superseded numbers survived. Rule 9 territory; found while
+updating the same file for today's work.
+
+### Evidence / research
+
+- **Novy-Marx & Velikov (2016)**, *RFS* 29(1) 104-147. Anomalies under roughly
+  **50% monthly one-sided turnover** mostly survive trading costs; few above it
+  do. → the cadence line. Measured against it on this repo's own snapshots:
+  **121.8%** at daily review vs **24.0%** monthly, so daily action sits **2.4x
+  outside** the survivable region - a conclusion that tolerates a 2.4x error in
+  the estimate before it reverses.
+- **Barber & Odean (2000)**, *JF* 55(2). Most active household quintile earned
+  **11.4%/yr against a 17.9% market return**. → already in the panel copy; the
+  household-level version of the same point.
+- **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023)**, *JF* 78(6) 3055-3098.
+  Institutional sells trail a factor-neutral counterfactual by **-80 bp/year**.
+  → why the churn caveat is worded as a caveat and never as deterioration.
+- **Measured (§8.3, 12,044 ticker-transitions over 24 run-pairs):** median
+  |rank change| **6** with no churn, **7** with one metric changed, **21** with
+  two or three; churn >= 2 leaves **52.4%** worse off against a **44.6%** base
+  rate. → the threshold of 2, and the near-symmetry that forbids calling it bad
+  news. All descriptive statistics on published scores - no forward returns, no
+  IC, no backtest, so rules 4 and 5 do not bite.
+- **Verified today:** 52 of 58 churn tests and 37 of 40 cadence tests **fail
+  against the pre-change code**, checked by stashing the four source files.
+
+### Methodology changed
+
+- **`METHODOLOGY_CHANGELOG.md` 2026-09-17** - "The tool states the cadence it is
+  built for, and flags when a rank move is the inputs changing". No weight,
+  metric, threshold, formula or scoring path changed; every category weight,
+  `portfolio.num_stocks: 25` and all 45 metric definitions are byte-identical and
+  no published score moves. The entry exists because `review_cadence` is a new
+  portfolio-construction key and because the two display rules (arm at 2; never
+  word it as deterioration) are research constraints a future session would
+  otherwise "tidy".
+- Rule 9 updates: `plan/dashboard-inventory.md` (two new sections, plus the
+  superseded hold-band numbers corrected) and §8.7 of
+  `research/2026-09-14-sell-discipline-and-hold-bands.md` marked built, with the
+  set-vs-count design point recorded.
+
+### Tried and rejected
+
+- **Storing the available metric set per ticker per run.** The obvious shape, and
+  it would make `history.py` the largest thing the payload builder holds -
+  ~45 names x ~500 tickers x ~60 kept runs, for a quantity two sentences consume.
+  Stores the **missing** set instead, which is empty for ~95% of tickers.
+- **Wording the churn caveat as a data-quality warning**, which is what it looks
+  like at first glance. Ruled out by the measurement: 52.4% worse off against a
+  44.6% base rate is near-symmetric, so churn *scatters* ranks rather than
+  pushing them down. A surface presenting it as deterioration would manufacture
+  the exact sell trigger Akepanidtaworn et al. find costs 80 bp/year. There is
+  now a test asserting the sentence contains none of "deteriorat", "worse",
+  "warning", "risk", "concern", "weaken", "decline", and that it reads
+  identically whether the stock rose or fell.
+- **Arming the flag at >= 1 metric.** Median rank move 7 against a baseline of 6
+  - indistinguishable from noise, and it would mark 4.93% of transitions instead
+  of 1.22%. A caveat that fires four times as often as it means anything trains a
+  reader to ignore it, which is how the permanent bank-only "High severity" alarm
+  became worthless (fixed 2026-09-01).
+- **Gating or hiding the daily refresh behind the quarterly cadence.** Considered
+  and rejected: the tool does not know what a reader is doing, and the data loop
+  running daily is what accrues the evidence base. Stating the cadence is
+  decision support; enforcing it would not be.
+- **Building §8.7 item 3 (earnings dates) as well.** Separable - it touches the
+  fetch layer rather than the history spine and needs a full refetch to populate
+  - and the weekly usage ceiling argues for one coherent thing done properly.
+  Left open on the merits of scope, not of evidence; §8.4 still endorses it.
+- **Committing `index.html` / `dashboard_data.js`.** Generated artifacts, only
+  ever committed by the 02:00 data run (rule 10). The generator change ships;
+  tonight's run publishes it.
+
+### Next
+
+1. **§8.7 item 3: earnings dates, display-only, with the estimate flag shown.**
+   `.info` already carries `earningsTimestampStart/End` and
+   `isEarningsDateEstimate` (verified live 2026-09-16 on AAPL/HST/EXPE) and
+   nothing in the repo reads any of them, so it is zero-API-cost. It is the one
+   place the literature positively endorses spending attention: earnings-day
+   sells beat non-announcement-day sells by **+150 bp/year** and are the only
+   sells in Akepanidtaworn et al. that beat their counterfactual. **Show the
+   estimate flag** - EXPE's next date is flagged estimated.
+2. **Then Priority 3, backtest v2** - 23 days old and the top unblocked
+   north-star item now that priority 5's buildable half is done.
+3. **The hold band is on a timer, not a queue.** ~2027-04, at >= 8 disjoint
+   monthly windows. Re-run
+   `research/measurements/2026-09-16-hold-band-and-input-churn.py` and read the
+   **DISJOINT** column. Do not guess a width.
+4. Still open from 2026-09-11, **fourth session running**: decide the
+   `currentPrice` fallback in `factor_engine.py` - make it real at all six sites
+   or delete it and the comment at ~line 683 that promises it. It is small; it
+   keeps losing to larger work. Worth doing next time it is the cheapest thing
+   available rather than carrying it a fifth time.
