@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 16 September 2026, 06:22
+# Morning Brief - Thursday 17 September 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,26 +9,22 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-16T02:00:02.876409 |
+| Dashboard data from | 2026-09-17T02:00:02.915870 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, VLO, CAH, BBY |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 43 rows across all horizons), newest 2026-09-09 |
+| Top 5 | HST, EXPE, CAH, BBY, JBHT |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 44 rows across all horizons), newest 2026-09-10 |
 
 ## What changed in the repo
 
+- `090abba data: screener run 2026-09-17 - 502 scored, top: HST EXPE CAH BBY JBHT`
+- `dd028f6 brief: code session 2026-09-16`
 - `3a10f3c docs: correct the plans this session proved wrong, plus the session log`
 - `21bd821 synthesis: no hold band, and the rule for when one may be chosen`
 - `28cd94a research: make a note's own numbers re-runnable`
 - `e01ca25 brief: data run 2026-09-16`
 - `fdd85a4 data: screener run 2026-09-16 - 502 scored, top: EXPE HST VLO CAH BBY`
-- `cbeb38f brief: code session 2026-09-15`
-- `6cedc64 docs: record the sell-side surface and what it deliberately left out`
-- `c9b870d dashboard: a sell-side surface - My Holdings`
-- `2ba6586 summary: say which category moved, not just how far`
-- `2934891 brief: data run 2026-09-15`
-- `3072180 data: screener run 2026-09-15 - 502 scored, top: EXPE HST VLO APA CAH`
 
 ## The session's own account
 
