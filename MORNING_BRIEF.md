@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 17 September 2026, 02:13
+# Morning Brief - Thursday 17 September 2026, 06:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `110583c docs: changelog, session log, and correct the inventory's superseded hold-band numbers`
+- `6f61ba8 feat: state the review cadence the tool is built for`
+- `1f097d6 feat: flag when a rank move is an input going missing, not the company`
+- `fad60bc brief: data run 2026-09-17`
 - `090abba data: screener run 2026-09-17 - 502 scored, top: HST EXPE CAH BBY JBHT`
 - `dd028f6 brief: code session 2026-09-16`
 - `3a10f3c docs: correct the plans this session proved wrong, plus the session log`
@@ -28,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-16 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+> 2026-09-17 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes** - `logs/nightly-2026-09-15_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-15` |
-> | Data loop published? | **Yes** - `logs/datarun-2026-09-16_020000.log` ends "Data loop complete", HEALTH: PASS, 502 scored, top EXPE HST VLO CAH BBY |
-> | Evidence base | **43 rows, newest 2026-09-09, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 42 yesterday - moving |
-> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched. Today **extended its lesson** to a third place - see below |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 42 days old.** Its remaining half (the hold band) is now **settled as "not yet, until ~2027-04"** with a pre-registered rule rather than left vague. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **22 days** |
+> | Last code session ran? | **Yes.** `logs/nightly-2026-09-16_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-16` |
+> | Data loop published? | **Yes.** `logs/datarun-2026-09-17_020000.log` ends "Data loop complete", 502 scored, HEALTH: PASS, 0 fetch failures |
+> | Evidence base | **44 rows, newest 2026-09-10, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 43 rows / 2026-09-09 yesterday - moving. Effective count unchanged at 3, as expected: 1-month observations accrue about one a month |
+> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched today |
+> | Top open roadmap item | **Priority 5, the sell-side workflow - 43 days old.** Two of its three remaining build items shipped today. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **23 days** |
 > 
-> **Tests:** before **1264/1264**, after **1264/1264**. No production code changed;
-> this is a no-new-failures check, not a claim of new coverage.
+> **Tests:** before **1264/1264**, after **1362/1362** (+98: 58 new in
+> `test_input_churn.py`, 40 in `test_review_cadence.py`).
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Wednesday's synthesis taken as written, working §8 of Monday's note.
+> deferred. Thursday's build taken as written, implementing §8.7 items 1 and 2 of
+> the 2026-09-14 research note - the rotation's intended path, not a swap.
 > 
 > ### Did
 > 
-> **Wrote §8, the design section Monday's note was left open for - and in doing so
-> found that two of that note's headline numbers were wrong.** The deliverable is
-> the design; the correction is the more important half.
+> **Shipped the two §8.7 items that share a single argument: the tool now says how
+> often it is meant to be acted on, and says when a move is the measurement
+> changing rather than the company.** Both are about not inviting action the
+> evidence cannot justify, which is why they went together rather than one per
+> session.
 > 
-> **1. §6.3's "a 25/50 band never fires" was an estimator artifact.** Monday walked
-> **one path** through 18 runs and got zero. Taking instead *every ordered pair* of
-> comparable runs at a given calendar spacing - 34 runs now - a 2x band fires at
-> **1.65%** of weekly holding-looks. It is rare, not dead.
+> **1. The cadence the tool is built for is now stated on the surfaces that move.**
+> `config.yaml` has recorded a quarterly rebalance cadence since launch - as a bare
+> *comment*, which the generator could not read. The site regenerates every weekday
+> and said nothing: a grep of `generate_dashboard.py` for "quarterly" returned one
+> unrelated data-source label. A surface that redraws a rank every morning
+> implicitly invites acting on it every morning.
 > 
-> **2. But the pairwise estimator has the project's own oldest defect, and this is
-> the finding of the day.** **34 runs yield 72 pairs at a fortnight's spacing**, so
-> each run feeds many pairs and the observations are nowhere near independent -
-> the identical trap `research/2026-08-10-ic-evidence-independence.md` found in the
-> IC series and `improvement_engine._effective_observations()` was built to guard
-> against. **Nobody had noticed it applies to rank statistics too.** Restricting to
-> non-overlapping pairs:
+> `portfolio.review_cadence` is now a real key, surfaced as `D.cadence` and
+> rendered by `cadenceText(long)` in three places - the holdings panel (short form,
+> both empty and populated states), the What Changed footnote (short form), and the
+> holdings footnote (long form with the numbers). Read from the **run's own** config
+> snapshot, not the working tree, so a republished old run states what it was
+> configured for; `configured: false` marks the fallback so it cannot be mistaken
+> for a real setting. Both paths are exercised today: the published 2026-09-17 run
+> predates the key and falls back cleanly; tonight's data run will carry it.
 > 
-> | spacing | pairs all → disjoint | B=50 breach all → disjoint |
-> |---|---|---|
-> | 5-9 days | 68 → **8** | 1.65% → **4.50%** |
-> | 12-18 days | 72 → **4** | 3.99% → **10.89%** |
-> | 25-35 days | 37 → **2** | 1.93% → **4.00%** |
-> 
-> The overlapping estimator **understates wide-band breach rates by 2-3x** - the
-> same order as the ~2.35x the IC note measured - and the honest sample is **8
+> **It is a sentence, not a lock**, and that was a deliberate call. The tool does
+> not know what a reader is doing. Naming the cadence is decision support;
 > ...
 
 ---
