@@ -733,12 +733,38 @@ and it deserves saying out loud rather than being discovered later.
 
 1. **Say what cadence the tool is for.** §8.2. No threshold, no new data, and
    it is the gap the evidence most clearly supports.
+   → **Built 2026-09-17.** `portfolio.review_cadence` is a config key rather
+   than a comment, surfaced as `D.cadence` and stated on the holdings panel,
+   the What Changed footnote and the holdings footnote (long form, with the
+   121.8% / 24.0% / ~50% turnover numbers and the NMV citation).
+   `tests/test_review_cadence.py`, 40 tests, 37 failing against the pre-change
+   generator.
 2. **Flag input-availability change on the holdings surface.** §8.3. Arm at
    ≥2 metrics, state it as a caveat on the move rather than a reason to act,
    and extend `history.py` to carry a per-ticker metric count so the sentence
    can be built. Note the pre-2026-03-09 snapshots carry no percentile columns —
    handle their absence rather than assuming the schema.
+   → **Built 2026-09-17.** `history.py` carries per-ticker metric *availability*
+   (the missing set, not a count) and emits `ch: [lost, gained]`;
+   `stock_summary._sentence_input_churn` arms at ≥2. Fires for **27 of 502**
+   stocks on the 2026-09-17 run against the ~1-month baseline — higher than
+   §8.3's 1.22% because that figure was measured on consecutive runs ≤7 days
+   apart and the drilldown's preferred baseline is ~28 days.
+   `tests/test_input_churn.py`, 58 tests, 52 failing against the pre-change code.
+
+   **One design point the plan did not anticipate.** A *count* is not enough: a
+   net count difference of zero can hide one metric dropping out as another
+   returns. The implementation compares the availability **sets**, over the
+   intersection of columns both runs carry — the snapshot schema has grown
+   (`fy1_revision_3m_pct` appears part-way through), and counting a column that
+   did not exist yet as a metric that went missing would flag the entire
+   universe on the day a metric was added.
 3. **Earnings dates, display-only, with the estimate flag.** §8.4.
+   → **Not built 2026-09-17.** Items 1 and 2 were taken together as one coherent
+   change — both are about not inviting action the tool cannot justify — and
+   this one is separable: it touches the fetch layer rather than the history
+   spine, and needs a full refetch to populate. Still endorsed by the evidence
+   (§8.4); it is the next session's item, not a deferral on the merits.
 
 **Explicitly not built:** the hold band. §8.1 — 2 independent monthly looks,
 and a pre-registered rule for when to revisit.

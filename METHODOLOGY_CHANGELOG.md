@@ -1804,3 +1804,127 @@ production code.
 **Applied by:** morning session (manual) - synthesis day.
 
 **Rollback:** not applicable; no code or config changed. Documentation only.
+
+---
+
+## 2026-09-17 - The tool states the cadence it is built for, and flags when a rank move is the inputs changing
+
+**Area:** portfolio construction rules (`config.yaml -> portfolio.review_cadence`,
+new key); dashboard decision surfaces (holdings panel, What Changed panel,
+per-stock summaries)
+
+**Changed:** no weight, metric, threshold, formula or scoring path. Every
+category weight, `portfolio.num_stocks: 25` and all 45 metric definitions are
+byte-identical, and no published score moves. Two things a reader sees changed:
+
+1. **`portfolio.review_cadence: 'quarterly'` is now a config key** rather than a
+   bare comment, and the dashboard states it on the two surfaces that show rank
+   movement. The value is unchanged - `config.yaml` has recorded a quarterly
+   rebalance cadence since launch. What changed is that the generator can now
+   read it, so the page can say it.
+2. **A per-stock caveat fires when >= 2 metric percentiles changed availability**
+   between the run being shown and its comparison baseline, on the drilldown and
+   on every holdings row. New `input_churn` fact in `stock_summary.py`; new
+   `ch: [lost, gained]` key in the `history.py` delta payload.
+
+Both were specified as items 1 and 2 of §8.7 of
+`research/2026-09-14-sell-discipline-and-hold-bands.md`, written 2026-09-16.
+
+**Evidence, change 1 - the cadence.** Novy-Marx & Velikov (2016, *Review of
+Financial Studies* 29(1) 104-147) find anomalies under roughly **50% monthly
+one-sided turnover** mostly survive trading costs and few above it do, and name a
+buy/hold spread "the single most effective simple cost mitigation strategy".
+Measured on this repo's own snapshots, acting on the strict top-25 rule at every
+run implies **121.8%** monthly one-sided turnover against **24.0%** reviewing the
+same rule monthly - so daily action sits **2.4x outside** the region NMV find
+survivable, and that conclusion tolerates a 2.4x error in the estimate before it
+reverses. Barber & Odean (2000, *JF* 55(2)) supply the household-level version
+already quoted in the panel: the most active quintile earned 11.4% a year against
+a 17.9% market return.
+
+The defect this corrects is a **product** one, not a methodology one. The
+methodology has always said quarterly; the dashboard regenerated every weekday
+and said nothing, which implicitly invites a reader to act on every redraw. A
+grep of `generate_dashboard.py` for "quarterly" before this change returned one
+unrelated data-source label.
+
+**It is a sentence, not a lock.** The tool does not know what a reader is doing
+and must not pretend to. Naming the cadence it was built for is decision support;
+withholding a number until a date would not be, and would also break the data
+loop's own reason for running daily.
+
+**Evidence, change 2 - input churn.** The mechanism is arithmetic and needs no
+significance test: when a metric percentile flips between present and absent, its
+category renormalises over a different metric set (`factor_engine`'s `has_data`
+mask, working as designed), so the score moves without the company moving. This
+is `CLAUDE.md` priority 1.5's FCX case - growth 68.3 -> 42.5 -> 68.3 across three
+runs - which was investigated as a suspected defect and turned out to be correct
+behaviour that nothing downstream could distinguish from a real collapse.
+
+Only the **size** was ever in question, and it was measured over 12,044
+ticker-transitions across 24 run-pairs:
+
+| input churn | n | median &#124;rank change&#124; | share worsening |
+|---|---|---|---|
+| none | 11,450 | **6** | 44.6% |
+| 1 metric | 447 | 7 | 47.0% |
+| 2-3 metrics | 143 | **21** | 52.4% |
+
+**The threshold is 2, and that is the finding.** One changed metric is
+indistinguishable from ordinary run-to-run noise (median 7 against 6) and firing
+on it would mark 4.93% of transitions in order to say nothing; two or more
+triples the median move and marks 1.22%. A caveat that fires four times as often
+as it means anything trains a reader to ignore it - the same failure mode that
+made the permanent bank-only "High severity" alarm worthless (fixed 2026-09-01).
+
+**It is worded as a caveat on the comparison, never as a reason to act**, and
+that is also measured rather than stylistic: churn >= 2 leaves **52.4%** of names
+worse off against a **44.6%** base rate. It scatters ranks; it does not push them
+down. A surface presenting "the measurement got noisier" as deterioration would
+manufacture exactly the kind of sell trigger Akepanidtaworn, Di Mascio, Imas &
+Schmidt (2023, *JF* 78(6) 3055-3098) find costs institutional managers **80
+bp/year**. A test asserts the sentence contains none of "deteriorat", "worse",
+"warning", "risk", "concern", "weaken" or "decline", and that it reads
+identically whether the stock rose or fell.
+
+**Expected effect:** no published score moves. On the 2026-09-17 run, **27 of 502
+stocks** carry the churn caveat against the ~1-month baseline (5.4%). That is
+higher than the 1.22% measured rate because the measurement used consecutive runs
+<= 7 days apart while the drilldown's preferred baseline is ~28 days, over which
+more availability changes accumulate - expected, and worth stating so a future
+session does not read it as the threshold misfiring. Payload cost is one optional
+two-integer key on ~5% of delta entries.
+
+**Two construction rules that must not be "tidied":**
+
+- **Only metric columns *both* runs carry are compared.** The snapshot schema has
+  grown over time (`fy1_revision_3m_pct` appears part-way through the directory).
+  Counting a column that did not exist yet as a metric that went missing would
+  flag the whole universe on the day a metric was added.
+- **"Cannot tell" must not render as "nothing changed."** Snapshots before
+  2026-03-09 carry 15 columns and no percentiles at all, so `input_churn()`
+  returns `None` rather than `(0, 0)` for them, and the caveat is simply absent.
+
+**Validated by:** `tests/test_input_churn.py` (58 tests, **52 of which fail**
+against the pre-change code) and `tests/test_review_cadence.py` (40 tests, **37
+of which fail** against the pre-change code), the latter driving the real emitted
+JavaScript under Node against a stubbed DOM rather than grepping the artifact.
+The churn wiring is additionally checked against the live snapshot directory: it
+must fire on a real minority of names, neither zero (dead wiring) nor most of the
+universe (wrong schema rule).
+
+The turnover and churn figures are reproduced by
+`research/measurements/2026-09-16-hold-band-and-input-churn.py`, and a test pins
+the two excluded non-metric `_pct` columns against that script so the shipped
+flag and its published justification cannot drift apart.
+
+**Not decision-grade, and not used:** no backtest number and no IC observation
+appears above (rules 4 and 5). Every measured figure is a descriptive statistic
+on published scores and ranks - no forward returns anywhere.
+
+**Applied by:** morning session (manual) - build day, implementing §8.7 items 1
+and 2 of the 2026-09-14 research note.
+
+**Rollback:** `good/2026-09-16`. Reverting restores a dashboard that states no
+cadence and cannot distinguish a rank move from an input going missing; it does
+not change any score.

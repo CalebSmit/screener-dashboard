@@ -43,6 +43,9 @@ the `change` / `change_driver` / `flags` / `confidence` sentences lifted from
 largest sector share, count inside the top 25 and top 100, trap-flag count) -
 the honest half of "how much / does it fit", since the list holds no weights.
 
+**Added 2026-09-17:** the `input_churn` sentence joined `HOLDINGS_FACTS`, and a
+cadence note now sits above the concentration line (see the two sections below).
+
 **Zero payload cost.** It is a *view* over fields the payload already carried;
 nothing was added to `stock_detail` for it.
 
@@ -60,15 +63,81 @@ and `METHODOLOGY_CHANGELOG.md` 2026-09-15:
    ticker and written back clean. This is also why the panel works equally as a
    watchlist.
 
-**There is no exit rule and no hold band, deliberately.** 32 comparable runs is
-short of the 60+ the research asks for before a width is committed to, and a
-25/50 band fired zero times in the measured window. Do not add one without that
-measurement. Equally: **do not reuse the movers panel's threshold** - measured,
-it fires for a top-25 name 0.15% of the time.
+**There is no exit rule and no hold band, deliberately - and the reason written
+here until 2026-09-17 was wrong on both numbers.** Corrected per
+`METHODOLOGY_CHANGELOG.md` 2026-09-16 and §8 of the research note, which is where
+the working is:
+
+- "A 25/50 band fired zero times" came from walking **one path** through 18 runs.
+  Over all comparable pairs a 2x band fires at **1.65-4.50%** of holding-looks.
+- "60+ comparable runs" is the **wrong unit**. Pairs from a daily series overlap
+  almost completely, so 34 runs are **2 independent monthly looks**, not 34
+  observations - the same independence trap as the IC series.
+
+**What is established:** a band *is* warranted (the strict top-25 rule wastes
+**31-47%** of the trades it implies, at every cadence measured), but its **width
+is not determinable** - at 1.4x the three cadences report 0.0%, 31.2% and 5.9%.
+**The pre-registered rule binds:** no width until **>= 8 disjoint observation
+windows at the review cadence the band will govern**; today **2 monthly**,
+roughly **2027-04**. Do not pick 50 because MSCI doubles, and **do not reuse the
+movers panel's threshold** - measured, it fires for a top-25 name 0.15% of the
+time.
 
 The empty panel ships **collapsed**; a saved list auto-expands it.
 `tests/test_holdings_panel.py`, 61 tests (60 fail against the pre-change
 generator); nine drive the emitted script under Node against a stubbed DOM.
+
+## Review cadence, stated on the surfaces that move (2026-09-17)
+
+`config.yaml -> portfolio.review_cadence` (a real key since 2026-09-17; it was a
+bare comment before, which is why the page could not state it). Surfaced as
+`D.cadence` and rendered by `cadenceText(long)` / `cadenceLine(long)` in three
+places: the holdings panel above the concentration line (short form, both empty
+and populated states), the What Changed footnote (short form), and the holdings
+footnote (long form, with the turnover numbers and the Novy-Marx & Velikov
+citation).
+
+**The gap it closes:** the site is rebuilt every weekday and, until this landed,
+said nothing about how often acting on it was intended. Acting on the strict
+top-25 rule at every run implies **121.8%** monthly one-sided turnover against
+**24.0%** at monthly review, where NMV (2016) find few anomalies survive costs
+above **~50%**.
+
+**It is a sentence, not a lock** - the tool does not know what a reader is doing.
+Read from the *run's own* config snapshot, not the working tree, so a republished
+old run states what it was configured for; `configured: false` marks the
+quarterly fallback so it is distinguishable from a real setting.
+`tests/test_review_cadence.py`, 40 tests (37 fail against the pre-change
+generator); eleven drive the emitted script under Node.
+
+## Input-availability churn - "is this move information?" (2026-09-17)
+
+`history.py` records per-ticker metric availability per run and emits
+`ch: [lost, gained]` on a delta entry when it changed; `stock_summary.py` turns
+`>= 2` into an `input_churn` sentence, shown on the drilldown and on every
+holdings row (amber left rule, `.holding-note-input_churn`).
+
+**Why it exists:** when a metric percentile flips between present and absent, its
+category renormalises over a different metric set and the score moves as
+arithmetic, with no company event. That is `CLAUDE.md` priority 1.5's FCX case,
+and it closes the product gap recorded there - the movers panel could not
+distinguish "moved on new information" from "moved because two inputs went
+missing".
+
+**Three things not to tidy**, all with tests in `tests/test_input_churn.py`
+(58 tests, 52 fail against the pre-change code):
+
+1. **Arms at 2, not 1.** One changed metric moves the median rank by 7 against a
+   baseline of 6 - noise. Two or more triples it to 21.
+2. **Worded as a caveat, never as deterioration.** Churn leaves 52.4% of names
+   worse off against a 44.6% base rate; it scatters ranks rather than pushing
+   them down, and the sentence reads identically whether the stock rose or fell.
+3. **Only columns both runs carry are compared**, and pre-2026-03-09 snapshots
+   (15 columns, no percentiles) yield `None` rather than `(0, 0)` - "cannot tell"
+   must not render as "nothing changed".
+
+On the 2026-09-17 run it fires for **27 of 502** stocks against the ~1-month
+baseline. Payload cost is one optional two-integer key on ~5% of delta entries.
 
 ## Why It Ranks Here - the deterministic summary (2026-09-08)
 

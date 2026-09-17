@@ -699,9 +699,27 @@ reads them.
    moved 68.3 -> 42.5 -> 68.3 because on 08-24 `forward_eps_growth` and
    `peg_ratio` were genuinely NaN and growth correctly renormalised over the
    remaining three metrics. Do not go looking for a defect there. What it does
-   expose is a *product* gap for a Tuesday: the movers panel cannot distinguish
-   "moved on new information" from "moved because two inputs went missing",
-   even though `Composite_Confidence` already carries that fact.
+   expose is a *product* gap: the movers panel could not distinguish "moved on
+   new information" from "moved because two inputs went missing".
+
+   **That gap is CLOSED 2026-09-17 - do not weaken these.** `history.py` carries
+   per-ticker metric availability and emits `ch: [lost, gained]`;
+   `stock_summary._sentence_input_churn` states it as a caveat on the drilldown
+   and on every holdings row. Fires for 27 of 502 on the 2026-09-17 run.
+   Changelog 2026-09-17; `tests/test_input_churn.py`, 58 tests, 52 of which fail
+   against the pre-change code.
+
+   - **Arms at >= 2 metrics.** One changed metric moves the median rank by 7
+     against a baseline of 6 - noise - and firing on it would mark 4.93% of
+     transitions instead of 1.22%.
+   - **Worded as a caveat, never as deterioration.** Churn leaves 52.4% of names
+     worse off against a 44.6% base rate, so it scatters ranks rather than
+     pushing them down. A test asserts the sentence reads identically whether the
+     stock rose or fell.
+   - **Compares availability *sets* over the columns both runs carry**, not a
+     metric count. A net count of zero hides one metric dropping out as another
+     returns, and counting a column the older schema never had would flag the
+     whole universe the day a metric is added.
 
 2. **Give the dashboard a time dimension.** **DONE 2026-08-25** - shipped as
    `history.py` plus three surfaces: a "What Changed" movers panel, a sortable
@@ -808,6 +826,24 @@ reads them.
    parameter from a 500-name quarterly index. And **do not reuse the movers
    panel's threshold** (measured: it fires for a top-25 name **0.15%** of the
    time).
+
+   **The cadence half shipped 2026-09-17, and it was the other open item.**
+   `config.yaml` had recorded a quarterly rebalance cadence since launch as a
+   bare *comment*, which the generator could not read, so the site regenerated
+   every weekday and stated no cadence anywhere. `portfolio.review_cadence` is
+   now a key, surfaced as `D.cadence` and stated on the holdings panel, the What
+   Changed footnote and the holdings footnote. Acting on the strict top-25 rule
+   at every run implies **121.8%** monthly one-sided turnover against **24.0%**
+   at monthly review, where NMV find few anomalies survive above ~50%.
+   Changelog 2026-09-17; `tests/test_review_cadence.py`, 40 tests, 37 failing
+   against the pre-change generator.
+
+   **It is a sentence, not a lock, and must stay one.** The tool does not know
+   what a reader is doing. Do not gate, hide or delay a number behind the
+   cadence - stating it is decision support, enforcing it would not be, and the
+   data loop running daily is what accrues the evidence base. It is read from
+   the **run's own** config snapshot, not the working tree, so a republished old
+   run states what it was configured for; `configured: false` marks the fallback.
 
    **The generalisable lesson:** rank-migration statistics need the same
    non-overlapping treatment as ICs. This is the third place the project has hit
