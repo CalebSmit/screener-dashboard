@@ -62,6 +62,18 @@ CAT_LABELS = {
 # as thin coverage territory; nothing here depends on the exact number.
 THIN_ANALYST_COUNT = 5
 
+# How many metric percentiles must change availability between two runs before
+# the change is worth telling a reader about. Arm at two, not one: measured over
+# 12,044 ticker-transitions across 24 run-pairs, the median |rank change| is 6
+# with no churn, **7** with one metric changed, and **21** with two or three
+# (`research/2026-09-14-sell-discipline-and-hold-bands.md` §8.3). One lost
+# metric is indistinguishable from ordinary run-to-run noise, and firing on it
+# would mark 4.93% of transitions in order to say nothing; two or more triples
+# the median move and marks 1.22%. A caveat that fires four times as often as it
+# means anything trains a reader to ignore it - the same failure `CLAUDE.md`
+# rule 7 names and the reason the bank-only "High severity" alarm was fixed.
+MIN_INPUT_CHURN = 2
+
 # Words that turn an explanation into a recommendation. Matched case-insensitively
 # on word boundaries by `advice_terms_in()`. This list is deliberately blunt: a
 # false positive costs one rephrased sentence, a false negative ships investment
@@ -412,6 +424,63 @@ def _sentence_change_driver(detail: dict, delta: dict | None,
     return sentence + "."
 
 
+def _sentence_input_churn(delta: dict | None, compare: dict | None) -> str | None:
+    """Whether part of the move is the inputs changing rather than the company.
+
+    ``_sentence_change`` says *how far* a stock moved and ``_sentence_change_driver``
+    says *which category* moved. Neither can say whether the move is
+    information. When a metric percentile flips between present and absent, its
+    category renormalises over a different metric set, so the score moves as a
+    matter of arithmetic - no company event required. That mechanism needs no
+    significance test; only its size was ever in question, and it was measured:
+    two or more changed inputs triples the median |rank change| from 6 to 21
+    (``research/2026-09-14-sell-discipline-and-hold-bands.md`` §8.3, over 12,044
+    ticker-transitions).
+
+    **It is worded as a caveat on the move, never as a reason to act**, and that
+    is the finding rather than a style preference. Churn of two or more leaves
+    52.4% of names worse off against a 44.6% base rate - near-symmetric. It
+    scatters ranks; it does not push them down. A surface that presented
+    "measurement got noisier" as deterioration would be manufacturing exactly
+    the kind of sell trigger Akepanidtaworn et al. (2023) find destroys value.
+
+    Reports against the same baseline as the other two change sentences, via
+    ``_pick_comparison`` - a caveat attached to a different window than the move
+    it qualifies would be worse than no caveat.
+    """
+    picked = _pick_comparison(delta)
+    if picked is None:
+        return None
+    key, entry = picked
+    if entry.get("new"):
+        return None
+    churn = entry.get("ch")
+    if not isinstance(churn, (list, tuple)) or len(churn) != 2:
+        return None
+    lost, gained = _num(churn[0]) or 0, _num(churn[1]) or 0
+    total = int(lost) + int(gained)
+    if total < MIN_INPUT_CHURN:
+        return None
+
+    when = _baseline_phrase(compare, key)
+    lost, gained = int(lost), int(gained)
+    if lost and gained:
+        head = (f"{lost} of the metrics behind this score could be computed for "
+                f"{when} and cannot be now, and {gained} went the other way")
+    elif lost:
+        head = (f"{lost} of the metrics behind this score could be computed for "
+                f"{when} and cannot be now")
+    else:
+        head = (f"{gained} of the metrics behind this score could not be "
+                f"computed for {when} and can be now")
+    return (
+        f"Caution on that comparison: {head}. The affected categories were "
+        f"reweighted over a different metric set on the two runs, so part of "
+        f"the move measures the change in inputs rather than a change in the "
+        f"company."
+    )
+
+
 def _sentence_target(detail: dict) -> str | None:
     price = _num(detail.get("price"))
     target = _num(detail.get("pt_mean"))
@@ -527,6 +596,9 @@ def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
         ("change", _sentence_change(history_delta, history_compare)),
         ("change_driver", _sentence_change_driver(detail, history_delta,
                                                   history_compare)),
+        # Immediately after the two sentences it qualifies, so a reader cannot
+        # meet the move without meeting the caveat on it.
+        ("input_churn", _sentence_input_churn(history_delta, history_compare)),
         ("target", _sentence_target(detail)),
         ("peers", _sentence_peers(detail)),
         ("flags", _sentence_flags(detail)),

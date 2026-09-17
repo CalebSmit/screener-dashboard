@@ -58,7 +58,7 @@ this module needs a scale break at that date.
 from __future__ import annotations
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
@@ -104,6 +104,61 @@ MAX_MOVERS_LISTED = 15
 # runs) without reaching so far back that a genuine reversal counts as noise.
 ROUND_TRIP_WINDOW = 5
 
+# --- Input-availability churn -------------------------------------------
+# `research/2026-09-14-sell-discipline-and-hold-bands.md` §8.3.
+#
+# When a metric percentile flips between present and absent from one run to the
+# next, its category renormalises over a different metric set and the score
+# moves because the *measurement* changed, not because the company did. This is
+# `CLAUDE.md` priority 1.5's FCX case - growth 68.3 -> 42.5 -> 68.3 while two of
+# its five growth metrics went NaN and came back - generalised and counted.
+#
+# Two columns end in `_pct` without being metric percentiles. Excluding them
+# matches `research/measurements/2026-09-16-hold-band-and-input-churn.py`, which
+# is where the numbers below come from; a mismatch here would silently mean the
+# shipped flag and its published justification measure different things.
+NON_METRIC_PCT_COLS = frozenset({"_beta_overlap_pct", "portfolio_turnover_pct"})
+
+# This module records *what changed*; how much change is worth reporting is the
+# consumer's call and lives in `stock_summary.MIN_INPUT_CHURN`.
+
+
+def metric_pct_columns(df: pd.DataFrame) -> list[str]:
+    """The per-metric percentile columns of a snapshot, in sorted order.
+
+    Empty for snapshots written before 2026-03-09, which carry 15 columns and no
+    percentiles at all. Callers must treat that as "cannot tell" rather than as
+    "nothing changed" - an absent schema is not an absent problem.
+    """
+    return sorted(c for c in df.columns
+                  if c.endswith("_pct") and c not in NON_METRIC_PCT_COLS)
+
+
+def _metric_availability(
+    df: pd.DataFrame,
+) -> tuple[frozenset[str], dict[str, frozenset[str]]]:
+    """``(metric columns present, per-ticker set of ones that are NaN)``.
+
+    The *missing* set is stored rather than the available one because it is
+    almost always empty or tiny. Holding 45 metric names for each of ~500
+    tickers across ~60 kept runs would make this the largest thing the history
+    carries, for a quantity two sentences consume.
+    """
+    cols = metric_pct_columns(df)
+    if not cols:
+        return frozenset(), {}
+    na = df[cols].isna()
+    has_gap = na.any(axis=1).to_numpy()
+    values = na.to_numpy()
+    tickers = df["Ticker"].astype(str).to_numpy()
+    missing: dict[str, frozenset[str]] = {}
+    for pos in range(len(df)):
+        if not has_gap[pos]:
+            continue
+        missing[tickers[pos]] = frozenset(
+            col for col, absent in zip(cols, values[pos]) if absent)
+    return frozenset(cols), missing
+
 
 @dataclass
 class RunSnapshot:
@@ -112,10 +167,39 @@ class RunSnapshot:
     ranks: dict[str, int]
     composites: dict[str, float]
     cat_scores: dict[str, dict[str, float]]
+    # Which metric percentiles this run's schema carried, and which of them were
+    # NaN per ticker. Both default empty so a hand-built RunSnapshot - the tests
+    # make many - stays valid and simply reports churn as unavailable.
+    metric_cols: frozenset[str] = frozenset()
+    missing_metrics: dict[str, frozenset[str]] = field(default_factory=dict)
 
     @property
     def tickers(self) -> set[str]:
         return set(self.ranks)
+
+
+def input_churn(current: RunSnapshot, baseline: RunSnapshot,
+                ticker: str) -> tuple[int, int] | None:
+    """``(lost, gained)`` metric percentiles for one ticker between two runs.
+
+    ``lost`` was computable in ``baseline`` and is not in ``current``; ``gained``
+    is the reverse. Returns ``None`` when the question cannot be answered -
+    either run predating the percentile schema, or the ticker being absent from
+    one of them - so that "cannot tell" never renders as "nothing changed".
+
+    Only columns **both** runs carry are compared. The schema has grown over
+    time (``fy1_revision_3m_pct`` appears part-way through the directory), and
+    counting a column that simply did not exist yet as a metric that went
+    missing would flag the whole universe on the day a metric was added.
+    """
+    shared = current.metric_cols & baseline.metric_cols
+    if not shared:
+        return None
+    if ticker not in current.ranks or ticker not in baseline.ranks:
+        return None
+    now = current.missing_metrics.get(ticker, frozenset()) & shared
+    before = baseline.missing_metrics.get(ticker, frozenset()) & shared
+    return len(now - before), len(before - now)
 
 
 def snapshot_index(snapshots_dir: Path | None = None) -> dict[str, Path]:
@@ -166,7 +250,10 @@ def _to_run_snapshot(date: str, df: pd.DataFrame) -> RunSnapshot:
             if pd.notna(value):
                 per_cat[cat] = round(float(value), 1)
         cats[ticker] = per_cat
-    return RunSnapshot(date=date, ranks=ranks, composites=composites, cat_scores=cats)
+    metric_cols, missing = _metric_availability(df)
+    return RunSnapshot(date=date, ranks=ranks, composites=composites,
+                       cat_scores=cats, metric_cols=metric_cols,
+                       missing_metrics=missing)
 
 
 def select_comparable_runs(
@@ -328,6 +415,14 @@ def _compare(current: RunSnapshot, baseline: RunSnapshot) -> dict[str, dict]:
                     cat_deltas[cat] = delta
         if cat_deltas:
             entry["cat"] = cat_deltas
+        # `ch` = [lost, gained] metric percentiles. Present only when something
+        # actually changed, so it costs nothing for the ~95% of tickers whose
+        # inputs are stable. The >=2 arming rule lives in the consumer, not
+        # here: the history records what happened, the summary decides what is
+        # worth saying about it.
+        churn = input_churn(current, baseline, ticker)
+        if churn is not None and any(churn):
+            entry["ch"] = [churn[0], churn[1]]
         out[ticker] = entry
     return out
 

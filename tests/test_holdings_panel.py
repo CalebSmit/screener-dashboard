@@ -425,7 +425,12 @@ def test_review_notes_are_the_baked_summary_facts(script, tmp_path):
             leaked_rank: html.includes('Ranks 3rd of 4'),
         }));
     """, tmp_path)
-    assert out["facts"] == ["change", "change_driver", "flags", "confidence"]
+    # `input_churn` joined the list 2026-09-17 - the caveat saying part of a
+    # move may be an input going missing rather than the company changing. It
+    # sits directly after the two sentences it qualifies, so a reader cannot
+    # meet the move without it. See tests/test_input_churn.py.
+    assert out["facts"] == ["change", "change_driver", "input_churn",
+                            "flags", "confidence"]
     assert out["has_change"] and out["has_driver"]
     assert out["has_flags"] and out["has_confidence"]
     assert out["leaked_peers"] is False
