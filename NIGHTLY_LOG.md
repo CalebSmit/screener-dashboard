@@ -5354,3 +5354,315 @@ updating the same file for today's work.
    or delete it and the comment at ~line 683 that promises it. It is small; it
    keeps losing to larger work. Worth doing next time it is the cheapest thing
    available rather than carrying it a fifth time.
+
+---
+
+## 2026-09-18 - RETROSPECTIVE. Evaluate whether this routine is producing value, and change the process where it is not.
+
+**Health (rule 8, all five):**
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes.** `logs/nightly-2026-09-17_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-17` |
+| Data loop published? | **Yes.** `logs/datarun-2026-09-18_020000.log` ends "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 |
+| Evidence base | **At `1m`: 11 rows, newest 2026-08-14, 3 effective observations** against a gate of 8. Read at `1m` for the first time today - see finding 1. Lag **35 days**, inside the new 40-day bound; it is the 08-15..08-19 outage still working through the pipe, and resumes 09-21 |
+| Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched |
+| Top open roadmap item | **Priority 3, backtest v2** - `plan/backtest-v2.md` dated 2026-08-25, **24 days**. Not taken: a retrospective does not work on the screener |
+
+**Tests:** before **1362/1362**, after **1378/1378** (+16, `tests/test_payload_parse_gate.py`; 11 of them fail against the pre-change runners).
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty; nothing deferred. ISO week 38, Friday, even week - retrospective, per the rotation.
+
+### Retrospective findings
+
+- **Sessions reviewed: 9 scheduled** (2026-09-07 to 2026-09-17). No owner-run
+  sessions this period - the first fortnight with none.
+- **Genuinely valuable: 9 | Churn: 0 | Failed gates: 0.**
+
+**1. What fraction produced something genuinely valuable? All nine, and there
+is a merge commit per session to check it against.** 09-07 found the Revisions
+category contains no revisions; 09-08 shipped priority 4, replacing the AI chat
+with deterministic per-stock summaries; 09-09 settled the design and caught two
+of Monday's own numbers being wrong; 09-10 built `fy1_revision_3m` and the
+reweight; 09-11 fixed a published percentile whose obvious reading was
+backwards on 13 of 37 metrics; 09-14 researched sell discipline from five
+papers and three index methodologies; 09-15 shipped My Holdings; 09-16 found
+the project's independence trap for the third time, in rank statistics, and
+settled the hold band as "not yet" with a date; 09-17 shipped the cadence
+statement and the input-churn flag. Sessions ran **13.0-22.2 API-minutes**
+against a 4-hour limit; none came close.
+
+**The quality signal worth naming: five of the nine corrected this project's
+own published claims** rather than defending them - 09-09 corrected Monday's
++0.346 to +0.401, 09-10 corrected three stale doc claims including a registry
+split wrong since 09-02 where two errors cancelled, 09-11 caught two false
+tooltips before shipping by checking `config.yaml` instead of recalling, 09-16
+corrected two of Monday's headline numbers, 09-17 corrected the inventory's
+superseded hold-band figures. That is the habit that makes the rest credible.
+
+**2. Which rotation day earns its place? All five, and the Mon-Wed-Thu chain
+is now demonstrably load-bearing rather than nominal.** 09-07 research →
+09-09 synthesis → 09-10 build shipped one coherent methodology change across
+three days, and the synthesis day paid for itself twice: it killed the
+price-denominator explanation for the momentum overlap by measuring five
+reconstructions, and it let Monday's pre-registered materiality bar fire
+instead of explaining it away. Same shape 09-14 → 09-16 → 09-17, where
+Wednesday's finding was that Monday's headline number was an estimator
+artifact. **A build day fed by a synthesis day catches things a build day fed
+by intuition cannot.** The 09-04 retrospective called Thursday "the weak one";
+on this fortnight it was not, and the fallback rule added then was never needed.
+
+**3. Is the evidence standard holding? Yes, and it tightened in a way I did
+not expect.** Every changelog entry carries its sources; none are thin - the
+five entries since 09-08 run 80-160 lines each. Three specific signs:
+**09-10's entry states in terms that it does not claim the ranking improves**,
+because the pre-registered materiality bar fired; **09-11 filed its own
+validation observation as underpowered** rather than as a pass, on the ground
+that baseline churn produces the same number; and **09-16 declined to pick a
+band width** the data made tempting, honouring a stopping rule set before the
+numbers were seen. The research notes are real - Martineau (2022) *CFR*
+11(3-4), Akepanidtaworn et al. (2023) *JF* 78(6), Odean (1998), Novy-Marx &
+Velikov (2016) *RFS* 29(1), Kaminski & Lo (2014) - read from primary PDFs, with
+effect sizes and the conditions they held under. No backtest figure and no IC
+number appears under **Evidence** anywhere in the period.
+
+**4. What keeps going wrong? Documentation drifts out of true faster than
+anyone corrects it, and the drift lands in the instructions themselves.** This
+is the same answer the 09-04 retrospective gave, and it has not improved. Found
+today, all shipped and all wrong: `CLAUDE.md` line 20 and `prompts/nightly.md`
+line 4 both still said **"You push to `main` yourself"** - the first thing a
+session reads, directly contradicting the change 09-04 made 190 lines later in
+the same prompt; `nightly-screener.ps1`'s own synopsis said "the session is
+autonomous and merges its own work"; and the repo-growth warning in `CLAUDE.md`
+was wrong by **8x** (finding 3). Rule 9 says keep process docs true, and
+sessions do update the docs they touch - but nobody re-reads the top of the
+file they are given.
+
+**5. Is the tool closer to the place you would look before buying or selling?
+Yes, and for the first time the answer is about surfaces rather than
+correctness.** Question 3 ("should I sell what I hold?") went from completely
+unanswerable to a working My Holdings panel (09-15) that renders every saved
+name with its category deltas and review sentences, plus a stated review
+cadence and a caveat when a rank move is the inputs changing rather than the
+company (09-17). Question 2 gained a deterministic "Why it ranks here" on all
+502 names (09-08). **The honest remaining blocker is question 4, "how much"**,
+which nothing addresses and no open item claims - position sizing was removed
+with the model portfolio in August and never replaced by anything that answers
+it. The hold band, the other half of question 3, is correctly parked on a
+measurement until ~2027-04.
+
+**6. What is the routine systematically blind to? The data loop's publish
+path - and that is where today's defect was.** The 09-04 retrospective added
+"read the runner scripts" to this prompt, and I did; but it framed them around
+`finally` and the brief, so I read `nightly-screener.ps1` first and found it
+sound. The hole was in the *other* runner, in the ordinary path, and it is
+structural rather than incidental: **the code loop's ship gates are the
+project's strongest check and run on the path that publishes a handful of times
+a week, while the data loop publishes the actual payload to GitHub Pages five
+mornings a week behind a `> 100000 bytes` size floor.** Nothing in the rotation
+compares the two. Fixed below, and the comparison is now an instruction.
+
+Second blind spot, smaller: **nobody had ever run `git count-objects`**, despite
+`CLAUDE.md` explicitly asking for repo growth to be raised in the log. Zero
+mentions in the whole of `NIGHTLY_LOG.md`.
+
+### Did - three process defects, found by reading rather than by an incident
+
+**1. The evidence-base tripwire had stopped being able to fire.** Rule 8 asks
+for "row count, newest date, and effective observations at `1m`". Sessions read
+that as the whole file, and logged "44 rows, newest 2026-09-10" - both numbers
+rising every weekday, because `1w` gains a row per run date as it ages. But
+`1m` is the optimization horizon and the only one the engine's gate reads, and
+**its newest `run_date` has been 2026-08-14 since 2026-09-07 - six consecutive
+sessions, each of which logged a newer date.**
+
+The freeze is legitimate: there are no snapshots for 08-15..08-19 (the
+documented outage), and 08-20 + 30 days is 09-19, so `1m` resumes on 09-21.
+That is the point. **The tripwire was written to catch a stall, and it was
+wired to a quantity that cannot stand still.** Rule 8's own text says "if those
+two numbers have not moved in three consecutive sessions, making them move is
+that session's work" - unfireable as instrumented, and it would have fired
+spuriously every month if it had been read at `1m` instead.
+
+So the condition is replaced rather than re-pointed: **the newest `1m`
+`run_date` must be within 40 days of today.** In steady state the lag is 30-33
+(the horizon plus a weekend), so 40 tolerates a week of missed runs and fires
+on anything worse. It reads **35** today. Rule 8, `prompts/nightly.md`
+sections 1 and 5, and `prompts/retrospective.md` section 1 all now say `1m`
+explicitly and carry the bound.
+
+**2. The data loop publishes the payload to the public site behind a weaker
+check than the code loop applies.** `data-run.ps1`'s pre-publish sanity block
+checked `index.html > 50000` and `dashboard_data.js > 100000` bytes. That is
+it. `nightly-screener.ps1`'s gate 3 added a first-line regex - also not a
+parse, which the 08-21 retrospective identified and deliberately declined to
+fix, correctly, because neither PowerShell nor node could be executed in that
+session and a gate that can only fail closed jams the loop.
+
+Both run now (node v24.19.0, PowerShell verified this session), so it is
+verified rather than deferred a third time. **Measured against the live 5 MB
+payload before writing anything:**
+
+| payload | `node --check` | passed the old checks |
+|---|---|---|
+| full (5,019,178 bytes) | 0 | yes |
+| truncated to 50% (2.5 MB) | **1** | **yes** |
+| truncated to 90% | **1** | **yes** |
+| header only | 1 | no |
+
+A half-written payload is 2.5 MB, opens with `window.SCREENER_DATA =`, clears
+every check both loops had - and renders a blank page. The parse costs
+**0.14s** on the full file.
+
+Both runners now run `node --check` before they commit or merge. Where node is
+absent both **fall back to the checks they already had and log a `WARN`** -
+strictly stricter than before, and still unable to jam an unattended loop,
+which is the property the 08-21 session was right to insist on.
+
+**Verified by execution, not by assertion.** The real gate-3 block was lifted
+verbatim out of `nightly-screener.ps1` and run against a truncated payload:
+`GATE 3: dashboard_data.js does not parse as JavaScript`, gate failed. Same for
+`data-run.ps1`'s block, in all four states - full/node → publishes;
+truncated/node → `Refusing to publish a dashboard payload the browser cannot
+read`, exit 2; full/no-node → publishes with the WARN; truncated/no-node →
+publishes with the WARN, i.e. exactly the old behaviour and no worse. Both
+runners re-parsed with `[Parser]::ParseFile` afterwards.
+
+**16 tests** in `tests/test_payload_parse_gate.py`, **11 failing against the
+pre-change scripts** (confirmed by swapping in `git show HEAD:` copies and
+restoring, both verified byte-identical by SHA-256). They pin the ordering -
+parse before commit, parse before merge - the skip-not-fail behaviour, the WARN,
+and that `CLAUDE.md` still claims the payload parses, so the promise and the
+implementation cannot drift apart again.
+
+**3. The repo-growth warning was wrong by 8x and nobody had checked it.**
+`CLAUDE.md` warned that the payload "adds roughly 60 MB/month of poorly
+delta-compressing JSON", and offered downsampling the payload or committing
+data less often as remedies. Measured: **40 versions of `dashboard_data.js`
+totalling 151 MB raw cost 14.26 MB in-pack - 0.36 MB per version**, roughly a
+10x delta ratio, and the whole repository packs to **34.55 MiB**. At 21 weekday
+runs that is **~7.6 MB/month.** Acting on the old number would have cut a
+payload readers depend on to save nothing.
+
+What was real: git had never repacked. **1,301 loose objects and 4 packs
+occupied 99.49 MiB against 34.55 MiB of content**, because loose objects carry
+no delta and git's own `gc.auto` threshold of 6,700 was most of a year away at
+~30 objects a run. Repacked by hand this session (rule 11), and `data-run.ps1`
+now runs a non-fatal `git gc --auto` at `gc.auto=200` after publishing, so it
+cannot recur and cannot cost a run.
+
+### Evidence / research
+
+- **A demonstrated failure with a reproduction**, the mandate's fourth
+  category, for finding 2: the truncation table above, produced by running
+  `node --check` and a reimplementation of the old checks against slices of the
+  live payload, and re-confirmed by executing both runners' real blocks.
+- **Measured, this session:** `1m` horizon frozen at 2026-08-14 for six
+  sessions, against a whole-file newest date of 2026-09-11, read straight off
+  `improvement/live_ic_history.csv`; 35-day current lag; 0.36 MB/version
+  in-pack via `git verify-pack -v` across all 4 packs, 34.55 MiB total via
+  `git count-objects -vH` before and after `git gc`; 9 of 9 merge commits, one
+  per session; session durations 13.0-22.2 API-minutes from `logs/*.json`.
+- **No backtest figure and no `live_ic_history.csv` number** is used to justify
+  anything here (rules 4 and 5). The `1m` count is quoted as a health reading,
+  which is what rule 8 asks for - not as support for a change. Nothing this
+  session touches scoring.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, formula or scoring path moved;
+  composites and ranks are untouched, and no run was regenerated. Runner and
+  process infrastructure, which by precedent (2026-09-04) lives in this log
+  rather than in `METHODOLOGY_CHANGELOG.md`.
+- Rule 9 updates in the same session: `CLAUDE.md` (rule 8's evidence-base line
+  and its tripwire, the mandate's stale self-push claim, the ship-gates table,
+  the repo-growth paragraph), `prompts/nightly.md` (opening paragraph, the
+  orientation bullet, the log template), `prompts/retrospective.md` (section 1),
+  and `nightly-screener.ps1`'s synopsis.
+
+### Process changes made
+
+1. **The evidence base is read at `1m` and bounded at 40 days.** Rule 8 and
+   both prompts. Replaces a "has it moved in three sessions" tripwire that was
+   wired to a number which cannot stand still - and would have false-alarmed
+   monthly had it been pointed at `1m` unchanged.
+2. **Gate 3 is a real parse, on both publish paths.** `node --check` in
+   `nightly-screener.ps1`'s gate 3 and in `data-run.ps1`'s pre-publish block,
+   falling back with a WARN where node is absent. Strictly stricter, which is
+   what section 4 of the retrospective prompt permits; 16 tests.
+3. **The retrospective now compares the two runners against each other**, not
+   just reads them. Section 1: "where one is stricter than the other about the
+   same artifact, the weaker one is usually the bug, and it is usually the one
+   that publishes more often." That framing is what today's defect needed and
+   what the 09-04 framing - built around `finally` and the brief - pointed away
+   from.
+4. **The data loop keeps its own object store packed**, non-fatally, after
+   publishing.
+
+**Deleted, per "prefer deleting to adding":** `prompts/nightly.md` loses two
+paragraphs on validation and the backtest that restated `CLAUDE.md` rules 4 and
+5 nearly verbatim while section 3 already covered both - eight lines replaced
+by three. `CLAUDE.md` loses the ten-line 2026-08-29 stagger narrative, which is
+fixed, verified, recorded in this log, and whose only durable lesson is already
+rule 11. `prompts/nightly.md` is net shorter, 214 -> 212 lines. **`CLAUDE.md`
+is not: 860 -> 897.** Most of that is the corrected repo-growth paragraph and
+the gate-3 note, both of which exist to stop a future session acting on a
+number that was wrong - but it is growth, and the next retrospective should
+look at priority -1 and the 1.5 entry for narrative that has outlived its use.
+
+### Tried and rejected
+
+- **Adding a trailing-terminator check** to catch truncation without node. It
+  would fire on a harmless condition: dropping the final `;` leaves valid
+  JavaScript with complete data, and `node --check` accepts it - correctly,
+  verified. A check that fires on healthy output is the failure shape fixed on
+  2026-09-01 (the permanent bank-metrics "High severity" alarm) and avoided
+  again on 2026-09-17 (arming input churn at 2 metrics, not 1). There is a test
+  asserting this stays a non-goal.
+- **Making a missing `node` fail the gate.** Tidier, and it would jam an
+  unattended loop on any machine without node - the precise objection the
+  08-21 retrospective raised to shipping this at all, which was right then and
+  is right now. Skip-with-WARN is strictly stricter than the old behaviour
+  without introducing a way to lose a day.
+- **Re-pointing rule 8's "has it moved in three sessions" tripwire at `1m`
+  unchanged.** The smallest edit, and wrong: independent 1-month observations
+  accrue about one a month, so a correctly-read `1m` horizon stands still for
+  three sessions routinely. It would have alarmed every month and been muted,
+  which `CLAUDE.md` priority -1 already identifies as worse than no watchdog.
+  A staleness bound fires on the condition that actually means something.
+- **Making the retrospective monthly.** Considered again, rejected again, and
+  more firmly than on 09-04: this is the second consecutive fortnight where
+  reading the runners found a live publish-path hole on the first pass. Two for
+  two is not a coincidence to thin out.
+- **Reserving a rotation day for the runners.** The cheaper intervention is the
+  one in change 3 - sharpen what the retrospective looks for - and a sixth day
+  would be consumed by whatever defect that day found, exactly as the 09-04
+  retrospective argued when rejecting a dedicated product day.
+- **Touching the four ship gates in any loosening direction.** Not attempted.
+  Gate 3 got stricter; gates 1, 2 and 4 are unchanged.
+
+### Flagged for the owner
+
+- **Nothing needs your decision, and the queue is empty.** One thing worth
+  knowing: of the four questions the dashboard exists to answer, three now have
+  a surface and **"how much" has none** - no position sizing has existed since
+  the model portfolio was removed on your instruction in August, and no open
+  priority claims it. Removing that surface was right (a fixed public 25-name
+  list is the closest this tool came to a recommendation), but nothing replaced
+  the sizing question it half-answered. If you want it back in a defensible
+  form, one line under **Open** is the lever - an owner item outranks the
+  rotation.
+
+### Next
+
+1. **Priority 3, backtest v2** - 24 days old and the top unblocked north-star
+   item. `plan/backtest-v2.md`; it is the last thing standing between this
+   project and being able to check its own methodology changes.
+2. **§8.7 item 3: earnings dates**, display-only with the estimate flag shown.
+   Zero API cost, verified live 2026-09-16, and the one place the literature
+   positively endorses spending attention (+150 bp/year).
+3. **The `1m` horizon resumes 2026-09-21.** If the newest `1m` `run_date` is
+   still 2026-08-14 after that run, the 40-day bound is about to break and that
+   is a real stall, not the outage - investigate before anything else.
+4. Still open from 2026-09-11, **fifth session running**: decide the
+   `currentPrice` fallback in `factor_engine.py` - make it real at all six
+   sites or delete it and the comment at ~line 683 that promises it.
