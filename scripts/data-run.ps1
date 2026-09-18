@@ -298,13 +298,39 @@ try {
     if (Test-Path $dash) { Copy-Item $dash $idx -Force; Write-Log "Copied dashboard.html -> index.html" }
 
     # --- Sanity-check before publishing --------------------------------------
-    foreach ($pair in @(@($idx, 50000), @((Join-Path $RepoPath 'dashboard_data.js'), 100000))) {
+    $dataPath = Join-Path $RepoPath 'dashboard_data.js'
+    foreach ($pair in @(@($idx, 50000), @($dataPath, 100000))) {
         $p = $pair[0]; $min = $pair[1]
         if (-not (Test-Path $p) -or (Get-Item $p).Length -lt $min) {
             Write-Log "Output $p looks wrong (missing or under $min bytes). Not publishing." 'ERROR'
             Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
             Stop-Run "Refusing to publish a broken dashboard." 2
         }
+    }
+
+    # This loop is what puts dashboard_data.js on the public site, five days a
+    # week. Until 2026-09-18 the size floor above was the *only* thing standing
+    # between a malformed 5 MB payload and GitHub Pages - strictly weaker than
+    # the code loop's gate 3, on the path that publishes far more often.
+    # Measured that day: a payload truncated to 50% is 2.5 MB, still starts with
+    # the expected assignment, and passes every check both loops had. It is also
+    # a blank dashboard, because the browser cannot parse it.
+    #
+    # `node --check` is a real parse and refuses it in 0.14s on the full file.
+    # Where node is absent the run continues on the size floor alone and says
+    # so: this loop publishing nothing would cost a day of evidence, and the
+    # check is strictly additional to what was here before, never a replacement.
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $parse = Invoke-Native 'node' @('--check', $dataPath)
+        if ($parse.ExitCode -ne 0) {
+            Write-Log "dashboard_data.js does not parse as JavaScript. Not publishing." 'ERROR'
+            Write-NativeOutput $parse 'ERROR'
+            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Stop-Run "Refusing to publish a dashboard payload the browser cannot read." 2
+        }
+        Write-Log "dashboard_data.js parses ($([int]((Get-Item $dataPath).Length / 1024)) KB)."
+    } else {
+        Write-Log "node not found - published on the size check alone, without a parse." 'WARN'
     }
 
     # --- Commit --------------------------------------------------------------
@@ -388,6 +414,19 @@ try {
     $push = Invoke-Native 'git' @('push', 'origin', 'main')
     if ($push.ExitCode -ne 0) { Stop-Run "Push to main failed. Local main is ahead." 2 }
     Write-Log "Published to main - live dashboard refreshed."
+
+    # Keep the object store packed. This loop commits a ~5 MB payload every
+    # weekday, and a loose object carries no delta - measured 2026-09-18, the
+    # repo held 99.5 MiB of loose objects plus 4 packs against 34.6 MiB of
+    # actual content. Git's own gc.auto threshold is 6700 loose objects, which
+    # at ~30 per run is most of a year away, so it had never fired. Packed, the
+    # same payload costs 0.36 MB per version rather than 3.8 MB.
+    #
+    # Non-fatal by construction: repacking is housekeeping, it runs after the
+    # publish that matters, and a failure here must never cost a day of
+    # evidence. `--auto` no-ops cheaply on the runs where there is nothing to do.
+    $gc = Invoke-Native 'git' @('-c', 'gc.auto=200', 'gc', '--auto', '--quiet')
+    if ($gc.ExitCode -ne 0) { Write-Log "git gc --auto returned $($gc.ExitCode) - housekeeping only, continuing." 'WARN' }
 
     # --- Report evidence accumulation ---------------------------------------
     # Report EFFECTIVE (non-overlapping) observations at the optimization
