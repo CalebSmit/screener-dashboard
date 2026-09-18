@@ -1,9 +1,11 @@
 Today is **{{DATE}}**. Today's focus: **{{FOCUS}}**
 You are on branch `{{BRANCH}}`.
 
-You are running unattended and nobody will review your work. You push to `main`
-yourself, and `main` is served live to the public. Act accordingly: the standard
-is not "plausible", it is "I can show why this is right."
+You are running unattended and nobody will review your work. You push a branch;
+`nightly-screener.ps1` re-runs all four ship gates and merges it to `main`,
+which is served live to the public. Nothing between you and that site reads
+what you wrote - only whether the gates pass. Act accordingly: the standard is
+not "plausible", it is "I can show why this is right."
 
 Read `CLAUDE.md` in full before anything else. Its rules override this prompt.
 
@@ -40,10 +42,13 @@ for the owner.
   `improvement/snapshots/`. **If the data loop is stalled or failing, fixing it
   is today's work regardless of the nominal focus.** Say so in the log and get
   on with it.
-- Sanity-check the evidence base. `live_ic_history.csv` gains a `1w` row per
-  weekday run date as it ages past the horizon, so its newest date trails today
-  by about a week and its row count should rise every session. If either has
-  stalled, something is broken - investigate before doing anything else.
+- Sanity-check the evidence base **at horizon `1m`**, filtering the file rather
+  than reading its totals. The whole-file row count and newest date rise every
+  weekday no matter what, because `1w` gains a row per run date - which is how
+  the `1m` horizon sat frozen at 2026-08-14 for six sessions that each logged a
+  newer number (fixed 2026-09-18). The `1m` newest `run_date` should trail
+  today by 30-33 days. **Past 40, something is broken - investigate before
+  doing anything else.**
 
 ## 2. Baseline
 
@@ -121,20 +126,13 @@ shipped, because every day found something smaller and more urgent first.
 investment-club experience. Would a finance student understand what they're
 looking at?
 
-**On validation.** You do *not* need a backtest number to make a well-sourced
-methodology change - the backtest is known-biased and independent IC
-observations accrue about monthly, so waiting for proof would freeze the
-project. Measurement confirms a change over time; it is not the gate it must
-pass to be made. When evidence does accumulate, go back and check, and record
-the result against the original changelog entry. If it turns out wrong, revert
-it and say so.
-
-**The backtest decides nothing until 2027-02-11** (`CLAUDE.md` rule 5). Run it
-and report it if it is interesting, but never use a number from it to justify,
-keep or revert a methodology change, and never file it under **Evidence** in
-`METHODOLOGY_CHANGELOG.md`. It carries survivorship and look-ahead bias, so its
-direction is unknown - that is worse than having no number at all, because it
-looks authoritative. Until that date, methodology rests on research.
+**On validation.** You do *not* need a number to make a well-sourced
+methodology change; waiting for proof would freeze the project. Measurement
+confirms a change over time. When evidence does accumulate, go back and check,
+and record the result against the original changelog entry - if it turns out
+wrong, revert it and say so. What you may not use as the justification is a
+backtest figure (rule 5, benched until 2027-02-11, and never under **Evidence**)
+or this system's own IC history (rule 4). Both look authoritative and are not.
 
 **Methodology changes** are allowed and expected. Every one gets an entry in
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected
@@ -171,8 +169,8 @@ Append to `NIGHTLY_LOG.md`:
 ## {{DATE}} - {{FOCUS}}
 
 **Health (rule 8, all five):** last code session ran? | data loop published? |
-evidence base = R rows, newest YYYY-MM-DD, E effective at `1m` | priority 0 |
-top open roadmap item + its age in days
+evidence base at `1m` = R rows, newest YYYY-MM-DD (N days ago, bound 40),
+E effective | priority 0 | top open roadmap item + its age in days
 **Tests:** before N/M, after N/M
 **Owner queue / rotation:** what you took, and anything deferred
 

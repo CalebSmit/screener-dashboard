@@ -17,7 +17,8 @@ It is **not investment advice**. Its credibility is the product.
 
 You have full authority to change anything in this repo: scoring, weights,
 metrics, tests, architecture, docs, the improvement engine, all of it. The
-owner is not reviewing PRs. You push to `main` yourself.
+owner is not reviewing PRs. Nobody reads your work before it is public - you
+push a branch and the runner merges it, gates permitting (see "Ship gates").
 
 The goal is simple: **the tool should be measurably better every morning than
 it was the night before.**
@@ -169,15 +170,31 @@ improving.
    |---|---|---|
    | Did the last code session actually run? | newest `logs/nightly-*.log` | ends "shipped to main" or "no changes" - **not** "SESSION DID NOT RUN" |
    | Did the data loop publish? | newest `logs/datarun-*.log` | ends "Data loop complete", HEALTH: PASS |
-   | Evidence base | `improvement/live_ic_history.csv` | **row count, newest date, and effective observations at `1m`, as three literal numbers** |
+   | Evidence base | `improvement/live_ic_history.csv` | **at horizon `1m` only: row count, newest `run_date`, and effective observations - three literal numbers** |
    | Priority 0 | below | fixed, or still top of the queue |
    | Top open roadmap item | "Current priorities" below | **name it and give its age in days, as a literal number** |
 
    The evidence-base line would have read "3 rows, newest 2026-02-22" on every
    session from February to 2026-08-21, while the data loop ran successfully
    every weekday. Nobody wrote it down, so nobody noticed it had stopped
-   moving. **If those two numbers have not moved in three consecutive sessions,
-   making them move is that session's work, whatever the rotation says.**
+   moving.
+
+   **Read it at `1m` and nowhere else** - corrected 2026-09-18, because the
+   tripwire had quietly stopped being able to fire. Sessions were reporting the
+   whole file: "44 rows, newest 2026-09-10". Both numbers rise every single
+   weekday, because the `1w` horizon gains a row per run date as it ages. But
+   `1m` is the optimization horizon and the one the engine's gate reads, and on
+   2026-09-18 its newest `run_date` was **2026-08-14** - unmoved for six
+   consecutive sessions, every one of which logged a newer date. A tripwire
+   wired to a number that cannot stand still is decoration.
+
+   **The condition that replaces "has it moved":** the newest `1m` `run_date`
+   must be **within 40 days of today**. In steady state the lag is 30-33 days -
+   the 30-day horizon plus a weekend - so 40 tolerates a week of missed runs
+   and fires on anything worse. It reads 35 days today, which is the
+   2026-08-15..08-19 outage still working through the pipe, not a fault.
+   **If it exceeds 40, finding out why is that session's work, whatever the
+   rotation says.**
 
    The roadmap line is there for the same reason, added 2026-09-04. Between
    2026-08-25 and 2026-09-03 nine sessions all produced real work and **not one
@@ -251,11 +268,25 @@ and a session that hands the runner a broken tree has wasted the day.
 |---|---|---|
 | 1 | Full suite passes, no new failures vs the baseline you took at session start | `python -m pytest tests/ test_screener.py -q` |
 | 2 | Pipeline wiring intact | `python run_screener.py --dry-run` |
-| 3 | Dashboard artifacts intact | `index.html` non-trivial and `dashboard_data.js` parses |
+| 3 | Dashboard artifacts intact | `index.html` non-trivial and `dashboard_data.js` parses (`node --check`) |
 | 4 | No stray uncommitted files | `git status --porcelain` |
 
 On success the runner tags the commit `good/YYYY-MM-DD`. That tag is the
 rollback point - see `ROLLBACK.md`.
+
+**Gate 3 became a real parse on 2026-09-18, on both publish paths.** It had
+claimed "`dashboard_data.js` parses" since launch while only regex-matching the
+first line against a 100 KB size floor. Measured: a payload truncated to 50% is
+2.5 MB, opens with the expected assignment, passes every check both loops had -
+and renders a blank page. **The data loop is where this mattered**, because it
+is what puts the payload on GitHub Pages five days a week, and its only
+pre-publish check was the size floor: the strongest gate guarded the path that
+publishes least often. Both runners now run `node --check` before
+committing/merging, and both **fall back to the old checks with a `WARN` where
+node is absent** - stricter than before, and still unable to jam an unattended
+loop. Verified by executing each runner's real block against a truncated
+payload, with and without node. `tests/test_payload_parse_gate.py`, 16 tests,
+11 of which fail against the pre-change scripts.
 
 ## The weekly cycle
 
@@ -354,12 +385,24 @@ was running the screener.
 **Data loop (2:00 AM, Mon-Fri)** - `scripts/data-run.ps1` runs the screener
 live, regenerates the dashboard, records an improvement-engine snapshot, and
 pushes. Daily on weekdays to accumulate evidence as fast as possible.
-**Watch repo growth:** `dashboard_data.js` is ~3 MB and changes every run, so
-this adds roughly 60 MB/month of poorly delta-compressing JSON to git history.
-If that becomes a problem, options are downsampling the payload, committing
-data less often than the dashboard refreshes, or squashing history
-periodically - raise it in the log rather than silently letting the repo bloat. This is what accumulates the evidence: forward returns, live ICs,
-dispersion history. Without it, methodology can never learn.
+**Repo growth was measured 2026-09-18 and is a non-issue - do not "fix" it.**
+This paragraph used to warn that a ~3 MB payload changing every run adds
+"roughly 60 MB/month of poorly delta-compressing JSON", and suggested
+downsampling the payload or committing data less often. Nobody had checked it
+in the six weeks it stood. Measured: 40 versions of `dashboard_data.js`
+totalling **151 MB raw** cost **14.3 MB in-pack** - **0.36 MB per version**,
+about a 10x delta ratio - and the entire repository packs to **34.6 MiB**. At
+21 weekday runs that is **~7.6 MB/month, not 60.** Acting on the old number
+would have cut the payload a reader depends on to save nothing.
+
+What *was* real: git had never repacked, so 1,301 loose objects and 4 packs
+occupied **99.5 MiB** on disk against 34.6 MiB of content. Loose objects carry
+no delta and git's own `gc.auto` threshold of 6,700 was most of a year away at
+~30 objects a run. `data-run.ps1` now runs a non-fatal `git gc --auto` at
+`gc.auto=200` after publishing. Re-measure with `git count-objects -vH` before
+believing any future claim here. This is what accumulates the evidence:
+forward returns, live ICs, dispersion history. Without it, methodology can
+never learn.
 
 **Code loop (6:00 AM, Mon-Fri)** - your session. Improves the system that
 produces and uses that evidence.
@@ -514,16 +557,10 @@ tests overall, up from 825.
 loser exit instead of wait. Each script's own single-instance lock stops it
 racing *itself*; only the shared lock stops the two racing *each other*.
 
-**The stagger went live 2026-08-29 (evening).** The morning session left
-`register-tasks.ps1` for the owner to run by hand, reasoning that the script
-unregisters both tasks before re-adding them and a failure partway through
-would leave the machine with neither. The owner's answer, verbatim: *"never
-have it leave things for me to do, it should figure it out on its own... it
-should be self improving."* That is now rule 11. Run the same evening and
-verified immediately after: both tasks re-registered `Ready`, `Get-ScheduledTask`
-confirms `Screener Data Run` at `delay=PT3M` and `Nightly Screener Improvement`
-at `delay=PT20M`. The caution about a partial failure was reasonable; the fix
-was to verify after running, not to decline to run it.
+The stagger went live and was verified the same evening: both tasks `Ready`,
+`Get-ScheduledTask` confirming `PT3M` and `PT20M`. The session that found it had
+left the command for the owner to run; rule 11 exists because of that, and
+carries the reasoning. `NIGHTLY_LOG.md` 2026-08-29 (evening) has the rest.
 
 Workspace trust (resolved 2026-08-13) regresses as: `python --version` works
 but everything else is denied. Fix in `scripts/fix-trust.ps1`; the runner now
