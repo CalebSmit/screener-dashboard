@@ -21,14 +21,20 @@ Do not rely on impressions. Go and look:
   evidenced, or are entries getting thin and formulaic?
 - **`research/`** - are the notes real research with citations, or
   plausible-sounding filler? Be harsh here; this is the easiest thing to fake.
-- **`improvement/live_ic_history.csv`** - is the evidence base growing? At
-  which horizons?
-- **`scripts/nightly-screener.ps1` and `scripts/data-run.ps1`** - read the paths
-  that touch `main`: what publishes, in what order, and what runs from
-  `finally`. Nothing else in the rotation ever points here, and the 2026-09-04
-  retrospective found the brief being published with `git push origin HEAD:main`
-  from a `finally` block - one gate failure away from putting refused work on
-  the live site.
+- **`improvement/live_ic_history.csv`** - **filter to horizon `1m`** and check
+  its newest `run_date` against rule 8's 40-day bound. The whole-file totals
+  rise every weekday whatever happens, which is how a frozen `1m` horizon went
+  six sessions unremarked before 2026-09-18.
+- **`scripts/nightly-screener.ps1` and `scripts/data-run.ps1`** - read every
+  path that touches `main`: what publishes, in what order, what it is checked
+  against first, and what runs from `finally`. Nothing else in the rotation
+  ever points here, and both retrospectives that have looked found a live hole
+  on the first read - 2026-09-04 the brief publishing with
+  `git push origin HEAD:main` from `finally`, 2026-09-18 the daily data loop
+  publishing the payload behind a weaker check than the code loop's gate 3.
+  **Compare the two runners against each other**: where one is stricter than
+  the other about the same artifact, the weaker one is usually the bug, and it
+  is usually the one that publishes more often.
 
 ## 2. Answer these honestly
 

@@ -6,10 +6,10 @@
     Cuts a branch, hands Claude Code the day's focus prompt, then independently
     verifies the result before allowing it onto main.
 
-    The session is autonomous and merges its own work. This script does not
-    trust it to have checked correctly: it re-runs every ship gate itself and
-    refuses the merge if any fails. On success it tags good/<date>, which is
-    the rollback point.
+    The session pushes a branch and stops (changed 2026-09-04). This script
+    does not trust it to have checked correctly: it re-runs every ship gate
+    itself and merges only if all four pass. On success it tags good/<date>,
+    which is the rollback point.
 
     NOTE: keep this file ASCII-only and saved as UTF-8 with BOM. Windows
     PowerShell 5.1 reads a BOM-less script as cp1252, and any multi-byte
@@ -519,13 +519,31 @@ try {
             $g3 = $false
         }
     }
-    # NOTE (2026-08-21 retrospective): CLAUDE.md and the nightly prompt both
-    # describe this gate as "dashboard_data.js parses", but the check above only
-    # regex-matches the first line - a truncated 3 MB payload sails through it.
-    # A node-based parse was written and then deliberately NOT shipped: neither
-    # PowerShell nor node could be executed in that session, and an unverified
-    # change here can only fail *closed*, refusing every future merge. Jamming
-    # the loop is worse than the weaker check. See NIGHTLY_LOG.md 2026-08-21.
+    # The parse the gate has always claimed to do. CLAUDE.md and the nightly
+    # prompt both describe gate 3 as "dashboard_data.js parses"; until
+    # 2026-09-18 it only regex-matched the first line, so a truncated payload
+    # sailed through. The 08-21 retrospective wrote a node check and correctly
+    # declined to ship it unverified - neither PowerShell nor node could be run
+    # in that session, and a gate that can only fail closed jams the loop.
+    #
+    # Both are runnable now (node v24.19.0), so it is verified instead of
+    # deferred. Demonstrated before writing this: a payload truncated to 50% is
+    # 2.5 MB, still opens with the expected assignment, passes the size floor
+    # and the regex - and `node --check` refuses it, in 0.14s on the full 5 MB
+    # file. Where node is absent the gate falls back to the checks above and
+    # warns, so it is strictly stricter than it was and still cannot jam.
+    if ($g3 -and (Test-Path $dataPath)) {
+        if (Get-Command node -ErrorAction SilentlyContinue) {
+            $parse = Invoke-Native 'node' @('--check', $dataPath)
+            if ($parse.ExitCode -ne 0) {
+                Write-Log "GATE 3: dashboard_data.js does not parse as JavaScript" 'ERROR'
+                Write-NativeOutput $parse 'ERROR'
+                $g3 = $false
+            }
+        } else {
+            Write-Log "GATE 3: node not found - checked size and header only, not parsed." 'WARN'
+        }
+    }
     if ($g3) { Write-Log "GATE 3 dashboard artifacts: PASS" } else { $gateFailures += 'dashboard' }
 
     # Gate 4: nothing stray left behind
