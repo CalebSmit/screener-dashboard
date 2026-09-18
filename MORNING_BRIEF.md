@@ -1,4 +1,4 @@
-# Morning Brief - Friday 18 September 2026, 02:14
+# Morning Brief - Friday 18 September 2026, 06:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `950de1e log: 2026-09-18 retrospective - 9 of 9 shipped; the daily publish path was the weak gate`
+- `b424eb3 process: read the evidence base at 1m, where the tripwire can actually fire`
+- `e15a76c gate: parse the payload before publishing it, on both loops`
+- `3acc633 brief: data run 2026-09-18`
 - `db3bdd5 data: screener run 2026-09-18 - 502 scored, top: EXPE HST CAH VLO BMY`
 - `72799b2 brief: code session 2026-09-17`
 - `110583c docs: changelog, session log, and correct the inventory's superseded hold-band numbers`
@@ -28,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-17 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-09-18 - RETROSPECTIVE. Evaluate whether this routine is producing value, and change the process where it is not.
 > 
 > **Health (rule 8, all five):**
 > 
 > | Check | Reading |
 > |---|---|
-> | Last code session ran? | **Yes.** `logs/nightly-2026-09-16_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-16` |
-> | Data loop published? | **Yes.** `logs/datarun-2026-09-17_020000.log` ends "Data loop complete", 502 scored, HEALTH: PASS, 0 fetch failures |
-> | Evidence base | **44 rows, newest 2026-09-10, 3 effective observations at `1m`** (11 raw) against a gate of 8. Up from 43 rows / 2026-09-09 yesterday - moving. Effective count unchanged at 3, as expected: 1-month observations accrue about one a month |
-> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched today |
-> | Top open roadmap item | **Priority 5, the sell-side workflow - 43 days old.** Two of its three remaining build items shipped today. Next unblocked item is **Priority 3, backtest v2**, plan file dated 2026-08-25 - **23 days** |
+> | Last code session ran? | **Yes.** `logs/nightly-2026-09-17_060000.log` ends "Run complete: shipped to main", tagged `good/2026-09-17` |
+> | Data loop published? | **Yes.** `logs/datarun-2026-09-18_020000.log` ends "Data loop complete", HEALTH: PASS, 502 scored, 0 fetch failures, price coverage 502/502 |
+> | Evidence base | **At `1m`: 11 rows, newest 2026-08-14, 3 effective observations** against a gate of 8. Read at `1m` for the first time today - see finding 1. Lag **35 days**, inside the new 40-day bound; it is the 08-15..08-19 outage still working through the pipe, and resumes 09-21 |
+> | Priority 0 | Fixed 2026-08-24, not weakened. No scoring path, weight, threshold or `_effective_observations()` call touched |
+> | Top open roadmap item | **Priority 3, backtest v2** - `plan/backtest-v2.md` dated 2026-08-25, **24 days**. Not taken: a retrospective does not work on the screener |
 > 
-> **Tests:** before **1264/1264**, after **1362/1362** (+98: 58 new in
-> `test_input_churn.py`, 40 in `test_review_cadence.py`).
+> **Tests:** before **1362/1362**, after **1378/1378** (+16, `tests/test_payload_parse_gate.py`; 11 of them fail against the pre-change runners).
+> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty; nothing deferred. ISO week 38, Friday, even week - retrospective, per the rotation.
 > 
-> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open** is empty, so nothing was
-> deferred. Thursday's build taken as written, implementing §8.7 items 1 and 2 of
-> the 2026-09-14 research note - the rotation's intended path, not a swap.
+> ### Retrospective findings
 > 
-> ### Did
+> - **Sessions reviewed: 9 scheduled** (2026-09-07 to 2026-09-17). No owner-run
+>   sessions this period - the first fortnight with none.
+> - **Genuinely valuable: 9 | Churn: 0 | Failed gates: 0.**
 > 
-> **Shipped the two §8.7 items that share a single argument: the tool now says how
-> often it is meant to be acted on, and says when a move is the measurement
-> changing rather than the company.** Both are about not inviting action the
-> evidence cannot justify, which is why they went together rather than one per
-> session.
+> **1. What fraction produced something genuinely valuable? All nine, and there
+> is a merge commit per session to check it against.** 09-07 found the Revisions
+> category contains no revisions; 09-08 shipped priority 4, replacing the AI chat
+> with deterministic per-stock summaries; 09-09 settled the design and caught two
+> of Monday's own numbers being wrong; 09-10 built `fy1_revision_3m` and the
+> reweight; 09-11 fixed a published percentile whose obvious reading was
+> backwards on 13 of 37 metrics; 09-14 researched sell discipline from five
+> papers and three index methodologies; 09-15 shipped My Holdings; 09-16 found
+> the project's independence trap for the third time, in rank statistics, and
+> settled the hold band as "not yet" with a date; 09-17 shipped the cadence
+> statement and the input-churn flag. Sessions ran **13.0-22.2 API-minutes**
+> against a 4-hour limit; none came close.
 > 
-> **1. The cadence the tool is built for is now stated on the surfaces that move.**
-> `config.yaml` has recorded a quarterly rebalance cadence since launch - as a bare
-> *comment*, which the generator could not read. The site regenerates every weekday
-> and said nothing: a grep of `generate_dashboard.py` for "quarterly" returned one
-> unrelated data-source label. A surface that redraws a rank every morning
-> implicitly invites acting on it every morning.
+> **The quality signal worth naming: five of the nine corrected this project's
+> own published claims** rather than defending them - 09-09 corrected Monday's
+> +0.346 to +0.401, 09-10 corrected three stale doc claims including a registry
+> split wrong since 09-02 where two errors cancelled, 09-11 caught two false
+> tooltips before shipping by checking `config.yaml` instead of recalling, 09-16
+> corrected two of Monday's headline numbers, 09-17 corrected the inventory's
+> superseded hold-band figures. That is the habit that makes the rest credible.
 > 
-> `portfolio.review_cadence` is now a real key, surfaced as `D.cadence` and
-> rendered by `cadenceText(long)` in three places - the holdings panel (short form,
-> both empty and populated states), the What Changed footnote (short form), and the
-> holdings footnote (long form with the numbers). Read from the **run's own** config
-> snapshot, not the working tree, so a republished old run states what it was
-> configured for; `configured: false` marks the fallback so it cannot be mistaken
-> for a real setting. Both paths are exercised today: the published 2026-09-17 run
-> predates the key and falls back cleanly; tonight's data run will carry it.
-> 
-> **It is a sentence, not a lock**, and that was a deliberate call. The tool does
-> not know what a reader is doing. Naming the cadence is decision support;
+> **2. Which rotation day earns its place? All five, and the Mon-Wed-Thu chain
+> is now demonstrably load-bearing rather than nominal.** 09-07 research →
+> 09-09 synthesis → 09-10 build shipped one coherent methodology change across
 > ...
 
 ---
