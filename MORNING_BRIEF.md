@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 17 September 2026, 06:26
+# Morning Brief - Friday 18 September 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,26 +9,22 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-17T02:00:02.915870 |
+| Dashboard data from | 2026-09-18T02:00:08.064952 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | HST, EXPE, CAH, BBY, JBHT |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 44 rows across all horizons), newest 2026-09-10 |
+| Top 5 | EXPE, HST, CAH, VLO, BMY |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 45 rows across all horizons), newest 2026-09-11 |
 
 ## What changed in the repo
 
+- `db3bdd5 data: screener run 2026-09-18 - 502 scored, top: EXPE HST CAH VLO BMY`
+- `72799b2 brief: code session 2026-09-17`
 - `110583c docs: changelog, session log, and correct the inventory's superseded hold-band numbers`
 - `6f61ba8 feat: state the review cadence the tool is built for`
 - `1f097d6 feat: flag when a rank move is an input going missing, not the company`
 - `fad60bc brief: data run 2026-09-17`
 - `090abba data: screener run 2026-09-17 - 502 scored, top: HST EXPE CAH BBY JBHT`
-- `dd028f6 brief: code session 2026-09-16`
-- `3a10f3c docs: correct the plans this session proved wrong, plus the session log`
-- `21bd821 synthesis: no hold band, and the rule for when one may be chosen`
-- `28cd94a research: make a note's own numbers re-runnable`
-- `e01ca25 brief: data run 2026-09-16`
-- `fdd85a4 data: screener run 2026-09-16 - 502 scored, top: EXPE HST VLO CAH BBY`
 
 ## The session's own account
 
