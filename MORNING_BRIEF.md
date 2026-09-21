@@ -1,34 +1,34 @@
-# Morning Brief - Friday 18 September 2026, 06:25
+# Morning Brief - Monday 21 September 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-18T02:00:08.064952 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-09-21T02:00:03.202880 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, CAH, VLO, BMY |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (11 rows, but overlapping windows are not independent; 45 rows across all horizons), newest 2026-09-11 |
+| Top 5 | EXPE, HST, BBY, VLO, CAH |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (13 rows, but overlapping windows are not independent; 48 rows across all horizons), newest 2026-09-14 |
 
 ## What changed in the repo
 
-- `950de1e log: 2026-09-18 retrospective - 9 of 9 shipped; the daily publish path was the weak gate`
-- `b424eb3 process: read the evidence base at 1m, where the tripwire can actually fire`
-- `e15a76c gate: parse the payload before publishing it, on both loops`
-- `3acc633 brief: data run 2026-09-18`
-- `db3bdd5 data: screener run 2026-09-18 - 502 scored, top: EXPE HST CAH VLO BMY`
-- `72799b2 brief: code session 2026-09-17`
-- `110583c docs: changelog, session log, and correct the inventory's superseded hold-band numbers`
-- `6f61ba8 feat: state the review cadence the tool is built for`
-- `1f097d6 feat: flag when a rank move is an input going missing, not the company`
-- `fad60bc brief: data run 2026-09-17`
-- `090abba data: screener run 2026-09-17 - 502 scored, top: HST EXPE CAH BBY JBHT`
+- `120daba data: screener run 2026-09-21 - 502 scored, top: EXPE HST BBY VLO CAH`
 
 ## The session's own account
 
