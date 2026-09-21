@@ -335,6 +335,11 @@
     "Sector": "Financials"
   },
   {
+    "Ticker": "BE",
+    "Company": "Bloom Energy",
+    "Sector": "Industrials"
+  },
+  {
     "Ticker": "BNY",
     "Company": "BNY Mellon",
     "Sector": "Financials"
@@ -378,11 +383,6 @@
     "Ticker": "BF-B",
     "Company": "Brown\u2013Forman",
     "Sector": "Consumer Staples"
-  },
-  {
-    "Ticker": "BLDR",
-    "Company": "Builders FirstSource",
-    "Sector": "Industrials"
   },
   {
     "Ticker": "BG",
@@ -895,6 +895,11 @@
     "Sector": "Utilities"
   },
   {
+    "Ticker": "P",
+    "Company": "Everpure",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "ES",
     "Company": "Eversource Energy",
     "Sector": "Utilities"
@@ -1233,6 +1238,11 @@
     "Ticker": "ITW",
     "Company": "Illinois Tool Works",
     "Sector": "Industrials"
+  },
+  {
+    "Ticker": "ILMN",
+    "Company": "Illumina, Inc.",
+    "Sector": "Health Care"
   },
   {
     "Ticker": "INCY",
@@ -1583,11 +1593,6 @@
     "Ticker": "MRNA",
     "Company": "Moderna",
     "Sector": "Health Care"
-  },
-  {
-    "Ticker": "TAP",
-    "Company": "Molson Coors Beverage Company",
-    "Sector": "Consumer Staples"
   },
   {
     "Ticker": "MDLZ",
@@ -2217,11 +2222,6 @@
   {
     "Ticker": "TKO",
     "Company": "TKO Group Holdings",
-    "Sector": "Communication Services"
-  },
-  {
-    "Ticker": "TTD",
-    "Company": "Trade Desk (The)",
     "Sector": "Communication Services"
   },
   {
