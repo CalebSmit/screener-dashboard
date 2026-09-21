@@ -5666,3 +5666,165 @@ look at priority -1 and the 1.5 entry for narrative that has outlived its use.
 4. Still open from 2026-09-11, **fifth session running**: decide the
    `currentPrice` fallback in `factor_engine.py` - make it real at all six
    sites or delete it and the comment at ~line 683 that promises it.
+
+---
+
+## 2026-09-21 - RESEARCH. One specific thing, learned properly from the literature AND documented practice, in one session. A dated note in research/, complete today. No production code.
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-09-18_060001.log`
+ends "Run complete: shipped to main", tagged `good/2026-09-18` | data loop published?
+**yes** - `logs/datarun-2026-09-21_020000.log` ends "Data loop complete" | evidence base
+at `1m` = **13 rows, newest 2026-08-21 (31 days ago, bound 40), 3 effective** - the
+horizon moved (it read 2026-08-14 for six sessions) and the 08-15..08-19 outage has
+cleared the pipe | priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
+**priority 3, backtest v2, 27 days old**
+**Tests:** before 1378/1378, after 1378/1378
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation governed.
+Took Monday research. Nothing deferred.
+
+### Did
+
+One research note, complete in the session, on **position sizing - the "how much"
+question**: `research/2026-09-21-position-sizing-and-how-much.md`, with its numbers as a
+re-runnable script at `research/measurements/2026-09-21-position-sizing-dispersion.py`.
+
+Why this topic: of the four questions `plan/dashboard-north-star.md` says the dashboard
+exists to answer, **"how much / does it fit?" is the only one with no surface at all**,
+and has had none since the Model Portfolio was removed on 2026-08-26. The 09-18 session
+flagged exactly that to the owner. Research is the right first step because the obvious
+implementation - print a recommended weight - is the thing that got the Model Portfolio
+deleted.
+
+**The note found a live defect in what this repo already does.** `config.yaml` has set
+`portfolio.weighting: 'score'` since launch - composite-score-proportional position
+sizing. Measured across **39 run dates (2026-02-20 .. 2026-09-21)**, one snapshot per
+date, two degraded 3-row February files excluded:
+
+| | |
+|---|---|
+| Equal weight, 25 names | 4.00% |
+| Score weight, full span | **3.77% .. 4.56%** |
+| Max deviation from equal weight | **0.57 pp** (median 0.42) |
+| Active share vs equal weight, same names | median **1.31%** |
+| Heaviest/lightest ratio | **1.21x** |
+| Positions ever hitting the 5% cap | **0** |
+
+So **`weighting: 'score'` is equal weight with noise**, and it cannot be anything else:
+composite scores are level-bounded 0-100 and the top 25 of 502 sit in a narrow band
+(today 64.75-73.48), so a 13% spread in level becomes a 13% spread in weight around 4%.
+**`max_position_pct: 5.0` is inert** for the same reason - it would need a composite 25%
+above the selected mean, which has never happened and cannot under this construction.
+That is the same failure shape as the always-firing bank-metrics alarm fixed 2026-09-01,
+inverted: a control that reads as a safety mechanism and can never fire.
+
+This is a property of the construction arithmetic - "what weights does this rule emit
+given these scores" - not a backtest and not a return measurement, so it is not gated by
+rules 4 or 5. The note says so explicitly.
+
+### Evidence / research
+
+- **DeMiguel, Garlappi & Uppal (2009), *RFS* 22(5), 1915-1953.** 14 optimisation models
+  (incl. Bayes-Stein and shrinkage) across 7 datasets; **none consistently beat 1/N** on
+  Sharpe, CEQ or turnover. For sample mean-variance to beat 1/N reliably needs an
+  estimation window of **~3,000 months for 25 assets, ~6,000 for 50**. Conditions: US
+  equity calibration, monthly rebalance, comparison over the *same* asset set - i.e.
+  exactly our question, since selection already happened.
+- **Chopra & Ziemba (1993)**, read from **Ziemba & MacLean (2011), ch.1,
+  *Stochastic Optimization Methods in Finance and Energy*, Springer ISOR 163**: errors
+  in the **means matter ~20x** errors in covariances, with variance errors ~2x
+  covariance errors - and **~100:3:1 for near-zero risk aversion**. "So log investors
+  must estimate means well if they are to survive." This is the core finding: **score
+  weighting sizes by a mean-return estimate**, the single most error-sensitive input,
+  using a score whose accuracy this system has **3 effective observations** on.
+- **Statman (1987) *JFQA*** 30-40 names; **Campbell, Lettau, Malkiel & Xu (2001) *JF***
+  ~50 as idiosyncratic vol rose; **Domian, Louton & Racine (2007) *Financial Review*
+  42(4)** - on **shortfall risk** over 20 years, **63 names for 10%, 93 for 5%, 164 for
+  1%**. All assume random selection, so they overstate the need for a pre-screened
+  large-cap 25 - but `num_stocks: 25` is below every one of them and the tool says so
+  nowhere.
+- **Plyakha, Uppal & Vilkov.** EW beats VW by **2.71%/yr**, **58% systematic / 42%
+  alpha** - and the alpha "depends only on the monthly rebalancing and not on the choice
+  of initial weights." The edge is the *rebalancing discipline*, not the weights.
+- **Grinold (1989); Clarke, de Silva & Thorley (2002) *FAJ* 58(5).** IR ~ TC x IC x
+  sqrt(Breadth). 25 of 502 keeps sqrt(25/502) ~ **0.22** of available IR before any TC
+  penalty - but the law assumes *independent* bets, and
+  `research/2026-09-02-category-independence-synthesis.md` already shows ours are not.
+  Nominal breadth overstates real breadth, the same trap as raw IC row counts.
+- **Goetzmann & Kumar (2008), *Review of Finance* 12(3).** US individual investors are
+  materially under-diversified, worse among **younger, lower-income, less-educated,
+  less-sophisticated** investors, correlated with overconfidence and with overweighting
+  high-volatility/high-skew stocks. That is the investment-club demographic exactly: the
+  audience's failure mode is too few and too correlated, **not** mis-weighting.
+- **Practice (first-class evidence, and strikingly uniform):** RIC Subchapter M
+  **25/5/50**; UCITS **5/10/40**; S&P DJI Select Sector **4.8% / 50% / 24%** thresholds,
+  with the capping *mechanism* changed 2024-09-23 from clipping the smallest breacher to
+  4.5% to reducing all breachers proportionately; S&P 500 Equal Weight resets every name
+  to a fixed **0.2% quarterly**, historically +**1.05%/yr** through 2023 (over half of it
+  a size tilt) and negative since. Quant shops run constrained optimisers against Barra
+  or Axioma. **Nobody sizes long-only equity in proportion to a bounded composite score.
+  In every documented scheme the alpha signal drives *selection* and weighting is a
+  separate, risk-driven decision.**
+
+### Methodology changed
+
+**None - correctly.** Today is research; the rotation says no production code and the
+note's recommendation (`weighting: 'score'` -> `'equal'`) is written up for Wednesday's
+synthesis and Thursday's build, with the changelog entry it will need already drafted in
+section 9. Shipping it today would have been a methodology change on a research day with
+no synthesis pass.
+
+### Tried and rejected
+
+- **Inverse-vol as the new default.** The sophisticated-looking choice, and the evidence
+  will not carry it. **Moreira & Muir (2017) *JF* 72(4)** find large alphas from scaling
+  by inverse prior realised variance, but **Cederburg, O'Doherty, Wang & Yan (2020)
+  *JFE* 138(1)** test **103 strategies** and find vol-managed portfolios do **not**
+  systematically outperform; implementable out-of-sample versions **earn lower CEQ and
+  Sharpe than the unmanaged originals**, from structural instability in the spanning
+  regressions. It helps momentum, profitability and BAB, and nothing else. The only
+  claim that survives both papers is descriptive - inverse-vol equalises *risk*
+  contribution rather than dollar contribution - so that is all the note claims.
+- **Kelly / fractional Kelly sizing.** Ruled out by its own literature: it needs a
+  calibrated probability distribution, and this screener emits a cross-sectional rank
+  with no probability attached and no calibrated score-to-return mapping. Building it
+  means inventing the input. Ziemba & MacLean also note growth *and* security both fall
+  beyond full Kelly, and **2x Kelly drives the growth rate to zero** - the overbetting
+  penalty is asymmetric and severe.
+- **Quoting the "half Kelly keeps ~75% of growth at ~50% of volatility" figure.** It is
+  everywhere in secondary sources; I could not find it in the primary chapter and did
+  not use it. `research/README.md`: a blog summarising a paper is a pointer, not a
+  citation.
+- **Justifying equal weight by its historical outperformance.** Over half of the S&P 500
+  Equal Weight excess return is a size tilt, and this screener already runs an explicit
+  `size` category. That would be betting the same way twice and calling it two things.
+  The note justifies equal weight on **estimation-error and explainability** grounds
+  instead.
+- **Raising `num_stocks` to 30-50 to satisfy Statman/Campbell.** Those thresholds assume
+  *randomly* selected portfolios; a pre-screened large-cap 25 carries less residual
+  idiosyncratic risk, and the breadth argument cuts the other way. The defensible move is
+  to *state* where 25 sits against the literature, not to move it on a number derived
+  from a different portfolio.
+- **Building a "how much" surface that prints a target weight.** That is the Model
+  Portfolio again. The note's product recommendation is to answer the question with
+  **inputs** - the reader's own concentration, name count against the literature,
+  volatility percentiles, and published external caps - and never a per-stock weight.
+
+### Next
+
+1. **Wednesday (synthesis): take section 9 of the note.** Flip `portfolio.weighting` to
+   `'equal'` with the changelog entry citing DeMiguel et al. and Chopra & Ziemba, and
+   record that `max_position_pct` is currently **inert** so a later session does not
+   mistake it for an active control. Do not delete it - it becomes live if `num_stocks`
+   falls. Measured portfolio effect is ~0.5 pp per position; the gain is that the tool
+   would do what it says.
+2. **Then the Concentration block on My Holdings** - name count vs the 30/40/50/63
+   thresholds, sector spread, per-holding volatility percentile. Zero payload cost; every
+   field is already in `stock_detail`. The 2026-09-14 constraints still bind: no cost
+   basis, no share count, no P&L, and no target weight.
+3. **Priority 3, backtest v2 - now 27 days old** and still the top unblocked north-star
+   item. It has now been deferred by three consecutive sessions, each for a defensible
+   reason. That is the pattern the 2026-09-04 retrospective added the roadmap-age line to
+   make visible.
+4. Still open from 2026-09-11, **sixth session running**: decide the `currentPrice`
+   fallback in `factor_engine.py` - make it real at all six sites or delete it and the
+   comment at ~line 683 that promises it.
