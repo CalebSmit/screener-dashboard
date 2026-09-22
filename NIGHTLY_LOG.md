@@ -5828,3 +5828,139 @@ no synthesis pass.
 4. Still open from 2026-09-11, **sixth session running**: decide the `currentPrice`
    fallback in `factor_engine.py` - make it real at all six sites or delete it and the
    comment at ~line 683 that promises it.
+
+---
+
+## 2026-09-22 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-21_060000.log` ends "Run complete: shipped to main", tagged
+`good/2026-09-21` | data loop published? **yes** -
+`logs/datarun-2026-09-22_020001.log` ends "Data loop complete", 502 scored |
+evidence base at `1m` = **13 rows, newest 2026-08-21 (32 days ago, bound 40), 3
+effective** - inside the band and still clearing the 08-15..08-19 outage |
+priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item: **priority 3,
+backtest v2, 28 days old**
+**Tests:** before 1378/1378, after **1411/1411** (+33 new, no pre-existing failures)
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
+governed. Took Tuesday product, and specifically item 2 of yesterday's "Next"
+list. Nothing deferred.
+
+### Did
+
+Shipped the **Concentration block** on My Holdings - `holdingsConcentration(rows)`
+in `generate_dashboard.py`, rendered below the existing fit line. This is
+north-star **question 4, "how much / does it fit?", which had no surface at all**
+between the Model Portfolio's removal on 2026-08-26 and today.
+
+**I checked the inventory first and it changed the scope, which is the point of
+the rule.** `plan/dashboard-inventory.md` records a concentration *line* already
+shipped 2026-09-15: names, sectors, largest sector share, top-25/100 counts, trap
+flags. Sector spread - one of the four things §8.4 of the research note asked for
+- was therefore already built. The block adds only what was genuinely missing:
+
+1. **The name count against the published counts** - 30-40 (Statman 1987), ~50
+   (Campbell et al. 2001), 63 for a 10% shortfall risk over 20 years (Domian et
+   al. 2007), with a computed "below all three / above N of the three", and the
+   *randomly-selected* condition stated every time.
+2. **The equal-split slice** (100/N) against the published caps on a single
+   holding: UCITS 5% (10%/40%), RIC 25/5/50, S&P DJI's 24% Select Sector re-cap.
+3. **The widest risk gap on the list**, in raw annualised volatility, with the
+   equal-dollar arithmetic spelled out.
+
+Plus two sourced footnote paragraphs: why it emits no weight, and why the risk
+line uses a raw number rather than a percentile.
+
+**Zero payload cost, verified rather than asserted:** regenerating left
+`dashboard_data.js` **byte-identical** (git reports it unmodified). The block is a
+view over `raw.volatility`, which `stock_detail` already carried, plus literature
+constants in the emitted script.
+
+**Checked against the live payload as a user would see it**, for a 1-, 3- and
+6-name list: the mixed six reads "NVDA at 37% annualised volatility against JNJ
+at 19%, a 2.0x spread". The one-name case was rewritten after that check - "An
+equal split across 1 name" was broken English, and a single saved ticker is the
+normal starting state.
+
+### Evidence / research
+
+- **The measurement that changed the design.** §8.4 of the 2026-09-21 note
+  proposed showing "the volatility percentile of each holding". **It cannot carry
+  that claim, and I have corrected the note.** Percentiles here are
+  *sector-relative* (`compute_sector_percentiles` groups by `Sector`) **and**
+  direction-inverted (`METRIC_DIR['volatility']` is `False`), so a high value
+  means "calm *for its sector*" - useless for ranking risk across a mixed-sector
+  list, which is exactly what "twice as volatile at equal dollars" compares.
+  Measured over all **111,417** cross-sector pairs of the 501 names carrying both
+  figures: the percentile orders the pair **backwards 26,581 times (23.9%)**;
+  worst case **LITE** reads as the safer holding than **ARE** while carrying
+  **2.00x** the volatility. Raw volatility runs **2.55x** from p10 (0.205) to p90
+  (0.524), so the comparison is worth making - just not with that input.
+  `research/measurements/2026-09-22-holdings-risk-comparability.py`.
+- **DeMiguel, Garlappi & Uppal (2009), *RFS* 22(5).** 14 optimisation models, 7
+  datasets, none consistently beating 1/N; ~**3,000 months** of estimation window
+  needed for 25 assets. Conditions match this question exactly - same asset set,
+  selection already done.
+- **Chopra & Ziemba (1993)** via **Ziemba & MacLean (2011)**, Springer ISOR 163
+  ch.1: mean errors do **~20x** the damage of covariance errors, **~100:3:1** near
+  zero risk aversion. A conviction weight *is* a mean estimate, so it is the worst
+  possible place to spend this system's accuracy - which stands at 3 effective
+  observations.
+- **Statman (1987) *JFQA*** 30/40; **Campbell, Lettau, Malkiel & Xu (2001) *JF***
+  ~50; **Domian, Louton & Racine (2007) *Financial Review* 42(4)** 63/93/164 on
+  shortfall risk. All on randomly-selected portfolios - stated on the page.
+- **Practice:** RIC **25/5/50**; UCITS **5/10/40** (Art. 52); S&P DJI Select
+  Sector **24%** / 4.8%-group. All **caps, not targets** - they constrain the top
+  end and say nothing about distribution below it. In every documented scheme the
+  alpha signal drives *selection* and weighting is a separate, risk-driven call.
+
+### Methodology changed
+
+`METHODOLOGY_CHANGELOG.md` **2026-09-22** - dashboard surface, **no scoring
+change**; no weight, metric, threshold, formula or scoring path was touched.
+Also corrected §8.4 and §9 of `research/2026-09-21-position-sizing-and-how-much.md`
+in place (dated correction blocks, not a silent edit), and updated
+`plan/dashboard-inventory.md` with a section for the block - rule 9.
+
+`tests/test_holdings_concentration.py`, **33 tests, all 33 verified failing
+against the pre-change generator**; **17** drive the real emitted script under
+Node against a stubbed DOM. (The commit message for `f69f056` says "20" - it was
+written before I counted; 17 is the number.)
+
+### Tried and rejected
+
+- **Showing a per-stock volatility percentile on each holding row**, as §8.4
+  literally specified. Ruled out by the 23.9% measurement above - it would have
+  looked more precise than the raw number and been wrong for roughly a quarter of
+  cross-sector pairs. A test now pins the inversion so the "improvement" cannot be
+  made back.
+- **Reusing S&P's 24% / 4.8% as a *sector* concentration anchor.** They are caps
+  on a single **company** inside a sector index, not on a portfolio's sector
+  weight. Quoting them against the existing "largest sector share" figure would
+  have been a misapplied regulatory number on a public page - the kind of error
+  that costs the tool its credibility. They are quoted against the single-position
+  slice, which is what they actually govern.
+- **Printing a recommended position weight.** The Model Portfolio was deleted on
+  2026-08-26 for less. The equal-split line stays legitimate by being arithmetic
+  on the *length* of the list, identical for every name on it; a test asserts two
+  different three-name lists produce the identical figure.
+- **Rebuilding sector spread.** Already on the 2026-09-15 fit line. Checking the
+  inventory first is what caught it.
+
+### Next
+
+1. **Wednesday (synthesis): §9 of the 2026-09-21 note is still unshipped** - flip
+   `portfolio.weighting` from `'score'` to `'equal'`, with the changelog entry
+   citing DeMiguel et al. and Chopra & Ziemba, and record that `max_position_pct`
+   is currently **inert** (it would need a composite 25% above the selected mean,
+   which cannot happen under this construction) so a later session does not
+   mistake it for a live control. Do not delete it - it becomes live if
+   `num_stocks` falls. Measured portfolio effect ~0.5 pp per position; the gain is
+   that the tool would do what it says. **Today's block deliberately did not touch
+   it** - that is a methodology change and belongs on a synthesis or build day.
+2. **Priority 3, backtest v2 - now 28 days old**, deferred by four consecutive
+   sessions, each defensibly. It is the top unblocked north-star item and the
+   roadmap-age line exists to make exactly this visible.
+3. Still open from 2026-09-11, **seventh session running**: the `currentPrice`
+   fallback in `factor_engine.py` - make it real at all six sites or delete it and
+   the comment at ~line 683 that promises it.
