@@ -18,7 +18,7 @@ leaving it wrong.
 | Section | Contents |
 |---|---|
 | **Top 5 Stocks** | Highest-composite names, card layout. Reads `table_data` directly, excluding trap-flagged names |
-| **My Holdings** | The sell-side surface, added 2026-09-15. Client-side list, one card per saved name |
+| **My Holdings** | The sell-side surface, added 2026-09-15. Client-side list, one card per saved name, plus the cadence note, the fit line and the Concentration block (2026-09-22) |
 | **Factor Analytics** | `Factor Scores by Sector`, `Trap Rate by Sector` |
 | **Defensibility & Diagnostics** | `How Stable Is the Ranking?` (weight sensitivity), `Are the Factors Independent?` (factor correlation) |
 | **Full Universe Rankings** | The 501-row sortable table - the workhorse view |
@@ -45,6 +45,11 @@ the honest half of "how much / does it fit", since the list holds no weights.
 
 **Added 2026-09-17:** the `input_churn` sentence joined `HOLDINGS_FACTS`, and a
 cadence note now sits above the concentration line (see the two sections below).
+
+**Added 2026-09-22:** a **Concentration block** below that line - see its own
+section further down. The fit line and the block are different things and both
+are needed: the line reports what the list *contains*, the block interprets the
+count against published thresholds and reports the risk spread.
 
 **Zero payload cost.** It is a *view* over fields the payload already carried;
 nothing was added to `stock_detail` for it.
@@ -86,6 +91,52 @@ time.
 The empty panel ships **collapsed**; a saved list auto-expands it.
 `tests/test_holdings_panel.py`, 61 tests (60 fail against the pre-change
 generator); nine drive the emitted script under Node against a stubbed DOM.
+
+## Concentration - "how much / does it fit?" (2026-09-22)
+
+North-star question 4, which had **no surface at all** between the Model
+Portfolio's removal on 2026-08-26 and this. `holdingsConcentration(rows)`,
+rendered below the fit line inside `#holdings-fit`. Sources and design:
+`research/2026-09-21-position-sizing-and-how-much.md` §8.4. Zero payload cost -
+`raw.volatility` was already in `stock_detail`, and the thresholds are literature
+constants in a `NAME_MARKS` array in the emitted script. Verified: regenerating
+left `dashboard_data.js` byte-identical.
+
+Three lines:
+
+1. **Name count against the published counts** - 30-40 (Statman 1987), ~50
+   (Campbell et al. 2001), 63 for a 10% shortfall risk over 20 years (Domian et
+   al. 2007), with a computed "below all three / above N of the three".
+2. **The equal-split slice**, with the published single-position caps for scale:
+   UCITS 5% (10%/40%), RIC 25/5/50, S&P Select Sector's 24% re-cap.
+3. **The widest risk gap on the list**, in raw annualised volatility.
+
+**Four things not to tidy**, all with tests in
+`tests/test_holdings_concentration.py` (33 tests, all 33 fail against the
+pre-change generator):
+
+- **No target weight for any stock, ever.** The equal-split figure is arithmetic
+  on the *length* of the list - identical for every name on it. Printing a
+  per-stock weight is what got the Model Portfolio deleted, and sizing by a
+  conviction score is the single most error-sensitive thing the estimation
+  literature identifies (Chopra & Ziemba 1993 via Ziemba & MacLean 2011: mean
+  errors ~20x covariance errors, ~100x near zero risk aversion; DeMiguel,
+  Garlappi & Uppal 2009: none of 14 models consistently beat 1/N).
+- **The risk line uses RAW annualised volatility, never the volatility
+  percentile.** That percentile is sector-relative *and* direction-inverted, so a
+  high value means "calm for its sector". Measured by
+  `research/measurements/2026-09-22-holdings-risk-comparability.py`: it orders
+  the pair **backwards for 23.9%** of the 111,417 cross-sector pairs, worst case
+  a name reading as the safer holding while carrying **2.00x** the volatility.
+  A test encodes exactly that inversion.
+- **The three counts are always quoted with their condition** - all measure
+  *randomly selected* portfolios, so they bound the question for a pre-screened
+  large-cap list rather than settle it.
+- **The caps are described as caps, not targets.** They constrain the top end
+  and say nothing about distribution below it.
+
+The risk line is omitted below two holdings with volatility (coverage is 501 of
+502, so the absent case is real); the rest of the block still renders.
 
 ## Review cadence, stated on the surfaces that move (2026-09-17)
 

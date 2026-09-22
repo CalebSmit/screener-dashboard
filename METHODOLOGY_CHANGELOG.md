@@ -1928,3 +1928,106 @@ and 2 of the 2026-09-14 research note.
 **Rollback:** `good/2026-09-16`. Reverting restores a dashboard that states no
 cadence and cannot distinguish a rank move from an input going missing; it does
 not change any score.
+
+---
+
+## 2026-09-22 - The dashboard answers "how much?" with inputs, and never with a weight
+
+**Area:** dashboard surfaces (no scoring change)
+
+**Changed:** one new block, `holdingsConcentration(rows)` in
+`generate_dashboard.py`, rendered on My Holdings below the existing fit line.
+North-star question 4 - *how much / does it fit?* - had **no surface at all**
+between the Model Portfolio's removal on 2026-08-26 and today. Three lines:
+
+1. **The name count against the published counts for a diversified portfolio**,
+   with a computed "below all three / above N of the three".
+2. **The equal-split slice** (100/N), with the published caps on a single
+   holding quoted for scale.
+3. **The widest risk gap on the list**, in raw annualised volatility, with the
+   equal-dollar arithmetic stated.
+
+Two footnote paragraphs source the refusal to emit a weight, and the choice of
+raw volatility over the percentile.
+
+**No weight, metric, threshold, formula or scoring path was touched.** It is a
+*view* over fields `stock_detail` already carried: regenerating the dashboard
+left `dashboard_data.js` **byte-identical**, so the payload cost is zero.
+
+**Evidence:**
+
+- **DeMiguel, Garlappi & Uppal (2009), *RFS* 22(5), 1915-1953.** 14 optimisation
+  models across 7 datasets; **none consistently beat 1/N** on Sharpe, CEQ or
+  turnover. Reliably beating 1/N for 25 assets would need an estimation window
+  of roughly **3,000 months**. Conditions: US equity, monthly rebalance,
+  comparison over the same asset set - i.e. exactly this question, since
+  selection has already happened.
+- **Chopra & Ziemba (1993)**, via **Ziemba & MacLean (2011)**, *Stochastic
+  Optimization Methods in Finance and Energy*, Springer ISOR 163, ch.1: errors
+  in the **means do ~20x** the damage of covariance errors (~2x for variances),
+  worsening to **~100:3:1** near zero risk aversion. A conviction-proportional
+  weight is a mean-return estimate, which is the worst place to put estimation
+  error. This is why the block reports facts and leaves the number to the reader.
+- **Statman (1987) *JFQA*** (30 borrowing / 40 lending); **Campbell, Lettau,
+  Malkiel & Xu (2001) *JF*** (~50, as idiosyncratic volatility rose over
+  1962-1997); **Domian, Louton & Racine (2007) *Financial Review* 42(4),
+  557-570** (on **shortfall risk** over 20 years: **63** names for 10%, 93 for
+  5%, 164 for 1%). **Condition, and it is stated on the page:** all three
+  measure *randomly selected* portfolios, so for a pre-screened large-cap list
+  they bound the question rather than settle it.
+- **Documented practice - caps, not targets.** US RIC Subchapter M **25/5/50**;
+  UCITS **5/10/40** (ESMA, UCITS Directive Art. 52); S&P Dow Jones Select Sector
+  indices re-cap a constituent above **24%** (and the >4.8% group above 50% of
+  index weight). In every documented institutional scheme - equal, cap,
+  inverse-volatility or optimiser weight - **the alpha signal drives selection
+  and weighting is a separate, risk-driven decision.** Nobody sizes long-only
+  equity in proportion to a bounded composite score.
+
+Full sourcing in `research/2026-09-21-position-sizing-and-how-much.md`, §3.4,
+§4.1, §4.2, §4.4 and §8.4.
+
+**The measurement that decided the risk line's input.** §8.4 of the research
+note proposed showing "the volatility percentile of each holding". That
+percentile **cannot carry the claim**, and this is the substantive correction
+made today. Percentiles here are **sector-relative**
+(`factor_engine.compute_sector_percentiles` groups by `Sector`) and
+**direction-inverted** (`METRIC_DIR['volatility']` is `False`), so a high value
+means "calm *for its sector*". Measured on the 2026-09-22 run by
+`research/measurements/2026-09-22-holdings-risk-comparability.py` over all
+**111,417** cross-sector pairs of the 501 names carrying both figures:
+
+| | |
+|---|---|
+| Pairs the percentile orders **backwards** vs raw volatility | **26,581 (23.9%)** |
+| Worst case | LITE (IT) pct 1.4, raw 0.947 vs ARE (Real Estate) pct 0.0, raw 0.472 |
+| | LITE reads as the safer holding at **2.00x** the volatility |
+| Raw volatility p10 -> p90 | 0.205 -> 0.524, a **2.55x** spread |
+
+So the block uses **raw annualised volatility**, which is directly comparable
+between any two names, and the footnote explains why. These are descriptive
+statistics on published percentiles and realised price volatility - no forward
+returns anywhere, so rules 4 and 5 do not bite.
+
+**Expected effect:** no score, rank or portfolio moves. A reader holding six
+names now sees where six sits against 30/50/63, what an equal split of their own
+list is against published caps, and which holding carries the most price
+variability - none of which the page previously said.
+
+**Validated by:** `tests/test_holdings_concentration.py`, **33 tests, all 33
+failing against the pre-change generator**; twenty drive the real emitted script
+under Node against a stubbed DOM. The load-bearing one is
+`test_risk_line_follows_raw_volatility_not_the_sector_percentile`, which builds
+a holding pair whose percentile and raw volatility disagree and asserts the
+block follows the raw number - the 23.9% finding as a regression. Rendering was
+also checked against the live payload for a 1-, 3- and 6-name list: a
+tech-heavy three (NVDA 37% vs AAPL 25%, 1.5x) and a mixed six (NVDA 37% vs JNJ
+19%, 2.0x).
+
+**Not decision-grade, and not used:** no backtest number and no IC observation
+appears above (rules 4 and 5).
+
+**Applied by:** morning session (manual) - product day, implementing §8.4 of the
+2026-09-21 research note.
+
+**Rollback:** `good/2026-09-21`. Reverting restores a holdings panel with no
+concentration block; it does not change any score.

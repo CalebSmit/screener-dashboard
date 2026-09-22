@@ -512,6 +512,22 @@ answer without advising:
    their percentiles are already in `stock_detail`. A position twice as volatile
    as another contributes twice the risk at equal dollars. That is arithmetic, and
    it is the single most decision-relevant sizing fact available.
+
+   > **Corrected 2026-09-22, on implementation: use the RAW volatility, not the
+   > percentile.** This item originally said "volatility percentile", and the
+   > percentile cannot carry the claim. Percentiles on this site are
+   > *sector-relative* (`compute_sector_percentiles` groups by `Sector`) **and**
+   > direction-inverted (`METRIC_DIR['volatility']` is `False`), so a high value
+   > means "calm *for its sector*" - which is not comparable across a
+   > mixed-sector list, and the "twice as volatile" arithmetic above is
+   > explicitly a cross-holding comparison. Measured over all **111,417**
+   > cross-sector pairs of the 501 names carrying both figures, the percentile
+   > orders the pair **backwards 23.9%** of the time; worst case LITE reads as
+   > the safer holding than ARE while carrying **2.00x** the volatility. Raw
+   > annualised volatility spans **2.55x** from p10 to p90, so the comparison is
+   > worth making - just not with that input.
+   > `research/measurements/2026-09-22-holdings-risk-comparability.py`
+   > reproduces every number; changelog 2026-09-22.
 3. **What does an equal-weight slice look like?** For a reader holding N names,
    1/N is a statement, not a recommendation — and it is the benchmark the
    literature says is hard to beat.
@@ -552,6 +568,16 @@ demographic's actual failure mode.
   holding. Read entirely from `stock_detail` and the saved ticker list. No cost
   basis, no share count, no P&L (the 2026-09-14 constraints still bind), and no
   target weight.
+
+  > **Shipped 2026-09-22**, with one change: the risk line reports the **raw**
+  > annualised volatility of the widest-apart pair on the list, not a
+  > percentile — see the correction in §8.4 item 2, which measures the
+  > percentile ordering risk backwards for 23.9% of cross-sector pairs. Sector
+  > spread was already on the 2026-09-15 fit line, so the block adds the name
+  > count against the published thresholds, the equal-split slice against the
+  > published caps, and the risk gap. Changelog 2026-09-22;
+  > `tests/test_holdings_concentration.py`, 33 tests, all 33 failing against the
+  > pre-change generator.
 
 **How this fits the rest of the screener (the coherence question).** Sizing is
 the one place where the eight categories do *not* apply, and that is the point:
