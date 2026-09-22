@@ -113,7 +113,7 @@ Three lines:
 
 **Four things not to tidy**, all with tests in
 `tests/test_holdings_concentration.py` (33 tests, all 33 fail against the
-pre-change generator):
+pre-change generator; 17 drive the emitted script under Node):
 
 - **No target weight for any stock, ever.** The equal-split figure is arithmetic
   on the *length* of the list - identical for every name on it. Printing a

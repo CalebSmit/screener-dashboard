@@ -2014,7 +2014,7 @@ list is against published caps, and which holding carries the most price
 variability - none of which the page previously said.
 
 **Validated by:** `tests/test_holdings_concentration.py`, **33 tests, all 33
-failing against the pre-change generator**; twenty drive the real emitted script
+failing against the pre-change generator**; **17** drive the real emitted script
 under Node against a stubbed DOM. The load-bearing one is
 `test_risk_line_follows_raw_volatility_not_the_sector_percentile`, which builds
 a holding pair whose percentile and raw volatility disagree and asserts the

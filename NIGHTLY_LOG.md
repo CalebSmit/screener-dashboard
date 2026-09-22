@@ -5923,8 +5923,9 @@ in place (dated correction blocks, not a silent edit), and updated
 `plan/dashboard-inventory.md` with a section for the block - rule 9.
 
 `tests/test_holdings_concentration.py`, **33 tests, all 33 verified failing
-against the pre-change generator**; twenty drive the real emitted script under
-Node against a stubbed DOM.
+against the pre-change generator**; **17** drive the real emitted script under
+Node against a stubbed DOM. (The commit message for `f69f056` says "20" - it was
+written before I counted; 17 is the number.)
 
 ### Tried and rejected
 
