@@ -1,4 +1,4 @@
-# Morning Brief - Monday 21 September 2026, 06:14
+# Morning Brief - Tuesday 22 September 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-21T02:00:03.202880 |
+| Dashboard data from | 2026-09-22T02:00:03.386380 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, VLO, CAH |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (13 rows, but overlapping windows are not independent; 48 rows across all horizons), newest 2026-09-14 |
+| Top 5 | EXPE, HST, BBY, VLO, APA |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (13 rows, but overlapping windows are not independent; 49 rows across all horizons), newest 2026-09-15 |
 
 ## What changed in the repo
 
+- `e6fa846 data: screener run 2026-09-22 - 502 scored, top: EXPE HST BBY VLO APA`
+- `efccf2e brief: code session 2026-09-21`
 - `b853d40 log: 2026-09-21 research session - position sizing note`
 - `fe2d862 research: position sizing and the "how much" question`
 - `d8efe45 brief: data run 2026-09-21`
