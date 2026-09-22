@@ -117,6 +117,19 @@
             background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
         }
         .holdings-fit-line strong { color: var(--text-primary); }
+        .holdings-concentration {
+            font-size: .78rem; color: var(--text-secondary); line-height: 1.65;
+            padding: 10px 12px; margin-bottom: 12px;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            border-left: 3px solid var(--accent); border-radius: 8px;
+        }
+        .holdings-conc-title {
+            margin: 0 0 6px; font-size: .72rem; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-muted); font-weight: 600;
+        }
+        .holdings-concentration p { margin: 0 0 7px; }
+        .holdings-concentration p:last-child { margin-bottom: 0; }
+        .holdings-concentration strong { color: var(--text-primary); }
         .holding-card {
             border: 1px solid var(--border); border-radius: 10px;
             background: var(--bg-card); padding: 10px 12px; margin-bottom: 10px;
@@ -4089,7 +4102,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 return ra - rb;
             });
 
-        fit.innerHTML = cadenceLine(false) + holdingsFitLine(rows);
+        fit.innerHTML = cadenceLine(false) + holdingsFitLine(rows) + holdingsConcentration(rows);
         body.innerHTML = rows.map(holdingCard).join('');
     }
 
@@ -4124,6 +4137,96 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             parts.push('<strong>' + flagged + '</strong> carrying a trap flag');
         }
         return '<div class="holdings-fit-line">' + parts.join(' &bull; ') + '</div>';
+    }
+
+    // Published counts for a diversified portfolio. Every one is measured on
+    // RANDOMLY selected portfolios - see section 3.4 of
+    // research/2026-09-21-position-sizing-and-how-much.md. They are literature
+    // constants rather than run output, so they live here and cost the payload
+    // nothing.
+    const NAME_MARKS = [
+        {n: 30, label: '30&ndash;40 (Statman, <em>JFQA</em> 1987)'},
+        {n: 50, label: 'about 50 (Campbell, Lettau, Malkiel &amp; Xu, <em>JF</em> 2001)'},
+        {n: 63, label: '63 for a 10% shortfall risk over 20 years (Domian, Louton &amp; Racine, <em>Financial Review</em> 2007)'}
+    ];
+
+    // The second half of north-star question 4 - "how much / does it fit?".
+    // The fit line above reports what the list contains; this reports the two
+    // things a reader needs to size it, and neither is a position weight:
+    // where the name count sits against the published thresholds, and how far
+    // apart the holdings are on risk.
+    //
+    // It never emits a target weight for a stock. That is the distinction that
+    // got the Model Portfolio deleted on 2026-08-26, and the equal-split line
+    // stays on the right side of it by being arithmetic on the LENGTH of the
+    // list - identical for every name on it - rather than a per-stock number.
+    function holdingsConcentration(rows) {
+        const n = rows.length;
+        if (!n) return '';
+        const parts = [];
+
+        const cleared = NAME_MARKS.filter(function(m) { return n >= m.n; }).length;
+        const standing = cleared === 0
+            ? 'below all three'
+            : (cleared === NAME_MARKS.length
+                ? 'at or above all three'
+                : 'above ' + cleared + ' of the three');
+        parts.push(
+            '<p><strong>' + n + '</strong> name' + (n === 1 ? '' : 's') + ' &mdash; <strong>'
+            + standing + '</strong> of the published counts for a diversified portfolio: '
+            + NAME_MARKS.map(function(m) { return m.label; }).join('; ')
+            + '. All three measure <em>randomly chosen</em> portfolios, so a pre-screened '
+            + 'large-cap list carries less single-stock risk than the raw numbers imply. '
+            + 'They bound the question rather than settle it.</p>'
+        );
+
+        const split = n === 1
+            ? 'A single name is the whole of the list &mdash; <strong>100%</strong> in one position.'
+            : 'An equal split across ' + n + ' names is <strong>' + (100 / n).toFixed(1)
+              + '%</strong> a position.';
+        parts.push(
+            '<p>' + split + ' Published caps on a single holding, '
+            + 'for scale: <strong>5%</strong> of net assets under UCITS (10% provided everything '
+            + 'above 5% stays under 40%); <strong>25%</strong> under the US RIC 25/5/50 rule; '
+            + 'S&amp;P Dow Jones re-caps a Select Sector constituent above <strong>24%</strong>. '
+            + 'Those are limits on the top end, not targets &mdash; and this line is arithmetic '
+            + 'on the length of the list, not a weight for any stock on it.</p>'
+        );
+
+        // Raw annualised volatility, deliberately NOT the volatility percentile
+        // the payload also carries. That percentile is sector-relative
+        // (factor_engine.compute_sector_percentiles groups by Sector) and
+        // direction-inverted (METRIC_DIR['volatility'] is False, so a HIGH
+        // percentile is a LOW-volatility stock), which makes it unable to rank
+        // risk across a mixed-sector list.
+        //
+        // Measured on the live run by
+        // research/measurements/2026-09-22-holdings-risk-comparability.py:
+        // the percentile ranks risk backwards for 23.9% of the 111,417
+        // cross-sector pairs, worst case a name reading as the safer holding
+        // while carrying 2.00x the volatility. The raw number is directly
+        // comparable and is what the "equal dollars" arithmetic needs.
+        const withVol = rows
+            .map(function(r) { return {t: r.t, v: (r.s.raw || {}).volatility}; })
+            .filter(function(x) { return typeof x.v === 'number' && isFinite(x.v) && x.v > 0; })
+            .sort(function(a, b) { return b.v - a.v; });
+        if (withVol.length >= 2) {
+            const hi = withVol[0], lo = withVol[withVol.length - 1];
+            const ratio = hi.v / lo.v;
+            parts.push(
+                '<p>Widest risk gap on the list: <strong>' + escapeHtml(hi.t) + '</strong> at <strong>'
+                + (hi.v * 100).toFixed(0) + '%</strong> annualised volatility against <strong>'
+                + escapeHtml(lo.t) + '</strong> at <strong>' + (lo.v * 100).toFixed(0)
+                + '%</strong>, a <strong>' + ratio.toFixed(1) + '&times;</strong> spread. Held in '
+                + 'equal dollar amounts, ' + escapeHtml(hi.t) + ' moves the value of the list about '
+                + ratio.toFixed(1) + '&times; as much as ' + escapeHtml(lo.t)
+                + '. This is the past year measured, not a forecast.</p>'
+            );
+        }
+
+        return '<div class="holdings-concentration">'
+            + '<h4 class="holdings-conc-title">Concentration</h4>'
+            + parts.join('') + '</div>';
     }
 
     function holdingCard(r) {
@@ -4206,6 +4309,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<p><strong>Why this list shows everything, every time.</strong> It is never filtered or sorted by how much a name moved. Institutional managers dispose of the best and worst performers in a portfolio at rates more than 50% higher than middling positions, and that habit is the identified cause of an 80 basis-point-a-year shortfall in their disposal decisions against a random-disposal benchmark over 4.4 million trades (Akepanidtaworn, Di Mascio, Imas &amp; Schmidt, <em>Journal of Finance</em> 78(6), 2023). A queue that surfaces only the big movers automates that habit. Rows here are ordered by current rank; the rank change is shown for context only.</p>',
             '<p><strong>Why it never asks what you paid.</strong> Measuring a position against its purchase price is the reference point behind the disposition effect: investors realise gains about 1.5&times; as readily as losses, and the winners they disposed of went on to beat the losers they kept by 3.4 percentage points over the following year (Odean, <em>Journal of Finance</em> 53(5), 1998). No cost basis, share count or profit-and-loss figure is stored or shown here, which is also why this works equally as a watchlist.</p>',
             '<p><strong>Why there is no exit signal.</strong> This screener has one test &mdash; the top 25 &mdash; and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
+            '<p><strong>Why the Concentration block gives you no position size.</strong> Sizing by conviction is the one thing the estimation-error literature singles out as dangerous: errors in expected returns do roughly <strong>20&times;</strong> the damage of errors in covariances, and about <strong>100&times;</strong> for an investor near zero risk aversion (Chopra &amp; Ziemba, 1993, via Ziemba &amp; MacLean, <em>Stochastic Optimization Methods in Finance and Energy</em>, Springer, 2011). Across 14 optimisation models and 7 datasets, none consistently beat a plain equal split out of sample, which would need an estimation window of roughly <strong>3,000 months</strong> for 25 assets to do reliably (DeMiguel, Garlappi &amp; Uppal, <em>Review of Financial Studies</em> 22(5), 2009). In every documented institutional scheme &mdash; equal, cap, inverse-volatility or optimiser weight &mdash; the alpha signal drives <em>selection</em> and weighting is a separate, risk-driven decision. So this panel reports the facts about your list and the published external limits, and leaves the number to you.</p>',
+            '<p><strong>Why the risk line quotes raw volatility and not a percentile.</strong> Every metric percentile on this site is <em>sector</em>-relative and direction-adjusted, so on volatility a high percentile means a stock is calm <em>for its sector</em>. That cannot rank risk across a list spanning several sectors: measured on this run, the percentile orders the pair backwards for <strong>23.9%</strong> of all cross-sector pairs, in the worst case making a name read as the safer holding while carrying <strong>2.00&times;</strong> the volatility. The annualised figure above is the raw one-year number and is directly comparable between any two names.</p>',
             '<p class="holdings-storage-note">Saved in this browser only, under the <code>' + HOLDINGS_KEY + '</code> key in <code>localStorage</code>. It is not an account and it is not backed up &mdash; clearing site data removes it, and it will not follow you to another device. Tickers only, up to ' + HOLDINGS_MAX + ' names. This is decision support, not investment advice.</p>'
         ].join('');
     }
