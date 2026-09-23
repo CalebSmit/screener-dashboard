@@ -3021,9 +3021,9 @@ research use by the owner.</p>
 <p>After scoring and ranking, the screener builds a <strong>model portfolio</strong> from the top-ranked stocks:</p>
 <ul>
 <li><strong>Number of holdings:</strong> Top 25 stocks (configurable)</li>
-<li><strong>Weighting:</strong> Risk-parity (inverse-volatility weighting — lower-volatility stocks get more weight)</li>
+<li><strong>Weighting:</strong> Equal weight (each stock gets ~4%)</li>
 <li><strong>Sector cap:</strong> Maximum 8 stocks from any single sector, to avoid overconcentration</li>
-<li><strong>Position limits:</strong> No single stock above 5.0%</li>
+<li><strong>Position limits:</strong> No single stock above 5.0% — not binding under equal weighting, where every position is 4.00%. It would bind only below 20 holdings.</li>
 <li><strong>Liquidity filter:</strong> Stocks with less than $10M average daily dollar volume (63-day average) are excluded from the portfolio. Stocks with missing volume data are also excluded (conservative default).</li>
 <li><strong>Trap exclusions:</strong> Value-trap and growth-trap flagged stocks are excluded (unless configured as flag-only)</li>
 </ul>
@@ -3208,7 +3208,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>Rebalance frequency:</strong> The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.</p>
 </li>
 <li>
-<p><strong>No covariance / correlation portfolio risk model:</strong> The default weighting uses single-name volatility only (<code>inverse_vol</code> / <code>score</code>); it does NOT account for cross-holding correlations. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.</p>
+<p><strong>No covariance / correlation portfolio risk model:</strong> None of the default weighting schemes uses cross-holding correlation. <code>equal</code> uses no risk input at all, <code>score</code> uses the composite only, and <code>inverse_vol</code> uses single-name volatility; none of them accounts for how the holdings move together. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.</p>
 </li>
 <li>
 <p><strong>Composite is cardinal; percentile is separate:</strong> The <code>Composite</code> column is the cardinal weighted-average of the 0-100 category scores (the ranking key, preserving magnitude/conviction). The <code>Composite_Pct</code> column is the universe percentile ("better than X% of stocks"). Do not read the cardinal Composite as a percentile.</p>

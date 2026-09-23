@@ -480,6 +480,25 @@ screener *more* teachable, which is the trade `CLAUDE.md` asks for explicitly.
 This needs a `METHODOLOGY_CHANGELOG.md` entry. **It is Wednesday's or Thursday's
 work, not today's** — today is research and the rotation says no production code.
 
+> **Shipped 2026-09-23** (synthesis day). `portfolio.weighting` is `'equal'`.
+> The measurement was re-run first and holds over **41** run dates: span
+> 3.771–4.569%, max deviation 0.569 pp, median active share 1.30%, zero cap
+> breaches. Changelog 2026-09-23; `tests/test_weighting_disclosure.py`, 28
+> tests, 5 of which fail against the pre-change config and artifacts.
+>
+> **The same session found a defect this note did not look for, in the same
+> three lines of config.** `SCREENER_OVERVIEW.md` — embedded verbatim into
+> `index.html` — described the weighting with a **two-branch ternary over a
+> four-option setting**: `'equal'`, else "Risk-parity (inverse-volatility
+> weighting — lower-volatility stocks get more weight)". With `'score'`
+> configured it took the `else` on **every run the tool has ever made**, so the
+> public site stated the portfolio was inverse-volatility weighted while it was
+> score weighted, which tilts the *opposite* way. Limitation 7 misdescribed the
+> same thing, listing `score` as using "single-name volatility only". §2.1 said
+> score weighting "is not doing what it claims" and measured the weights; the
+> claim itself was wronger than that — it was published as a different scheme
+> entirely. Both sites are now a per-scheme mapping pinned to the live config.
+
 Keep `score` and `inverse_vol` as selectable options; the Excel sheet already
 shows all four columns side by side, which is good teaching material.
 
@@ -560,9 +579,27 @@ demographic's actual failure mode.
   citing §3.1, §3.2 and §4.4. Note in the entry that the measured portfolio
   effect is ~0.5 pp per position and that the change is made for estimation-error
   and explainability reasons, not performance.
+
+  > **Shipped 2026-09-23.** See the block in §8.1 for what else the change
+  > turned up. One addition to the coherence argument below, worth keeping:
+  > score weighting was the one place where the **category-overlap problem
+  > propagated into position size**. Whatever double-counting exists among the
+  > eight categories entered the composite, and the composite then set the
+  > weight — in the input Chopra & Ziemba identify as ~20x the most damaging.
+  > Separating selection from sizing does not fix the overlap, but it stops it
+  > compounding.
 - **`max_position_pct`:** leave the value alone but state in the changelog that
   it is currently inert, so a later session does not mistake it for an active
   control. Do not delete it — it becomes live if `num_stocks` ever falls.
+
+  > **Shipped 2026-09-23, and stated on the page rather than only in the
+  > changelog.** A changelog entry is read by whoever goes looking; the reader
+  > of the methodology page is the one being told a 5% cap protects them. Under
+  > equal weighting of 25 names every position is exactly 4.00%, so the cap
+  > binds only **below 20 holdings** — arithmetic, not an observation — and
+  > `SCREENER_OVERVIEW.md` now says so next to the cap itself. `_max_pos_note()`
+  > stays silent for the dispersed schemes, where the cap genuinely can fire,
+  > and for the infeasible case `portfolio_constructor` already warns about.
 - **Dashboard:** a **Concentration** block on the My Holdings panel — name count
   vs the §3.4 thresholds, sector spread, and the volatility percentile of each
   holding. Read entirely from `stock_detail` and the saved ticker list. No cost

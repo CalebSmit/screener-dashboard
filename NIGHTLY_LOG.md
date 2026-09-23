@@ -5964,3 +5964,185 @@ written before I counted; 17 is the number.)
 3. Still open from 2026-09-11, **seventh session running**: the `currentPrice`
    fallback in `factor_engine.py` - make it real at all six sites or delete it and
    the comment at ~line 683 that promises it.
+
+---
+
+## 2026-09-23 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-22_060000.log` ends "Run complete: shipped to main",
+tagged `good/2026-09-22` | data loop published? **yes** -
+`logs/datarun-2026-09-23_020001.log` ends "Data loop complete", 502 scored |
+evidence base at `1m` = **14 rows, newest 2026-08-24 (30 days ago, bound 40),
+3 effective** - back to the steady-state 30-33 day lag; the 08-15..08-19 outage
+has fully cleared | priority 0 **fixed** (2026-08-24, untouched) | top open
+roadmap item: **priority 3, backtest v2, 29 days old**
+**Tests:** before 1411/1411, after **1439/1439** (+28 new, no pre-existing
+failures)
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
+governed. Took Wednesday synthesis, and specifically item 1 of the last two
+sessions' "Next" lists - §8.1/§9 of the 2026-09-21 note. Nothing deferred.
+
+### Did
+
+**Shipped the weighting change the week's research justified, and found a
+second, worse defect in the same three lines of config while doing it.**
+
+**1. `portfolio.weighting`: `'score'` -> `'equal'`.** Sizing in proportion to a
+composite score is sizing by an expected-return estimate - the most
+error-sensitive input in the problem - using a composite this system has **3
+effective observations** of accuracy on. **I re-ran the measurement before
+changing anything** rather than trusting Monday's numbers: over **41** run
+dates (two more than the note had), score weights span **3.771-4.569%** against
+an equal **4.000%**, max deviation **0.569 pp**, median active share **1.30%**,
+heaviest/lightest **1.206x**, **zero** cap breaches. So the behavioural effect
+is near zero and the change buys honesty, which is the trade `CLAUDE.md` asks
+for explicitly.
+
+**2. The public methodology described a weighting scheme the tool has never
+used.** This is the part the research note did not look for. The sentence in
+`SCREENER_OVERVIEW.md` came from a **two-branch ternary over a four-option
+setting**:
+
+```
+{'Equal weight (...)' if weighting == 'equal' else 'Risk-parity
+ (inverse-volatility weighting - lower-volatility stocks get more weight)'}
+```
+
+`config.yaml` has shipped `'score'` since launch, so that ternary took its
+`else` on **every run the tool has ever made**. `generate_dashboard.py` embeds
+the overview verbatim into `index.html`, so the live public site said the
+portfolio was inverse-volatility weighted. It was score weighted, which tilts
+the **opposite** way - toward the highest-scoring names rather than the calmest
+ones. Limitation 7 misdescribed the same thing, listing `score` under "the
+default weighting uses single-name volatility only"; score weighting takes no
+volatility input at all.
+
+Fixed as a **per-scheme mapping** (`weighting_description()`), not by editing
+the string: every scheme `schemas.PortfolioConfig.validate_weighting` accepts
+now has its own branch, an unrecognised one names itself instead of borrowing
+another's description, and a test reads the accepted set out of `schemas.py` so
+adding a fifth scheme without a branch fails. The artifact tests compare
+`SCREENER_OVERVIEW.md` **and** `index.html` against the **live config**, not
+against a hard-coded string, so they follow the setting if it changes and fail
+if the artifacts fall behind it.
+
+**3. `max_position_pct` is now labelled as non-binding, and kept.** 25
+equal-weighted names are 4.00% each against a 5% cap, so it binds only **below
+20 holdings** - arithmetic, not an observation - and it never bound in 41 run
+dates under `'score'` either. A parameter that reads as a live safety control
+and cannot fire is the same failure shape as the always-firing bank-metric
+alarm fixed 2026-09-01: it trains a reader to stop looking. §9 of the note
+asked for this to be stated *in the changelog*; I put it **on the page too**,
+because the reader being told a 5% cap protects them is not the one who reads
+the changelog. `_max_pos_note()` stays silent for the dispersed schemes, where
+the cap genuinely can fire, and for the infeasible case
+`portfolio_constructor` already warns about. The value is unchanged and was
+deliberately not deleted - it becomes live the moment `num_stocks` falls.
+
+**Regenerated and published** `SCREENER_OVERVIEW.md`, `dashboard.html` and
+`index.html`. The `index.html` diff is **exactly the three corrected sentences**
+and nothing else; `dashboard_data.js` came back **byte-identical**, so zero
+payload cost.
+
+### Evidence / research
+
+- **Chopra, V.K. & Ziemba, W.T. (1993)**, via **Ziemba & MacLean (2011)**,
+  Springer ISOR 163 ch.1: errors in **expected returns** do ~**20x** the damage
+  of covariance errors (variance ~2x covariance), worsening to ~**100:3:1**
+  near zero risk aversion. Conditions: mean-variance investor,
+  cash-equivalent-loss metric, ratio rising with risk tolerance. Score
+  weighting *is* a mean estimate, so it spends this system's least reliable
+  quantity in its most damaging slot.
+- **DeMiguel, Garlappi & Uppal (2009), *RFS* 22(5), 1915-1953.** 14
+  optimisation models across 7 datasets; **none consistently beat 1/N** on
+  Sharpe, CEQ or turnover. Reliable outperformance needs ~**3,000 months** of
+  estimation window for 25 assets, ~6,000 for 50. Conditions match this
+  decision exactly - same asset set, US equity, monthly rebalance, selection
+  already done.
+- **Documented practice, uniform:** RIC Subchapter M 25/5/50; UCITS Art. 52
+  5/10/40; S&P DJI Select Sector 4.8%/24% (capping mechanism revised
+  2024-09-23 to reduce all breachers proportionately rather than clip the
+  smallest); S&P 500 Equal Weight resetting to a fixed 0.2% quarterly; quant
+  shops optimising against Barra/Axioma. **No documented institutional scheme
+  sizes long-only equity by a bounded composite score.** Selection and
+  weighting are separate decisions everywhere.
+- **Where they disagree, and why academia wins here:** practitioners optimise
+  against commercial covariance models with far more structure than a sample
+  covariance matrix, under mandates requiring explicit risk control.
+  DeMiguel's critique targets *sample-based* estimation - exactly this repo's
+  setup, and not something it is going to replace.
+- **The measurement, re-run this session** (construction arithmetic, not a
+  backtest, so rules 4 and 5 do not reach it):
+  `research/measurements/2026-09-21-position-sizing-dispersion.py`, 41 run
+  dates, numbers above.
+
+### Methodology changed
+
+`METHODOLOGY_CHANGELOG.md` **2026-09-23** - portfolio construction. One
+methodology change (`weighting` `'score'` -> `'equal'`) and two disclosure
+corrections, with the coherence argument recorded: **sizing is the one place
+the eight categories deliberately do not apply**, and score weighting was the
+route by which the category-overlap problem in
+`research/2026-09-02-category-independence-synthesis.md` propagated into
+position size. Separating selection from sizing does not fix the overlap; it
+stops it compounding in the input Chopra & Ziemba identify as 20x the most
+damaging.
+
+`tests/test_weighting_disclosure.py`, **28 tests**. Verified against the
+pre-change tree: **5 fail**, including the three that pin the published defect
+(`test_overview_states_the_configured_scheme`,
+`test_live_page_states_the_configured_scheme`,
+`test_limitations_section_does_not_call_score_a_volatility_scheme`).
+
+Also updated §8.1 and §9 of
+`research/2026-09-21-position-sizing-and-how-much.md` in place with dated
+shipped-blocks (rule 9), including the note that §2.1's "not doing what it
+claims" was an understatement - the claim was not merely imprecise, it named a
+different scheme.
+
+### Tried and rejected
+
+- **Justifying equal weight by its historical outperformance of cap weight.**
+  Over half of S&P 500 Equal Weight's excess return is a size tilt, and this
+  screener already runs an explicit `size` category at 5% of composite. Using
+  it would be betting the same way twice and calling it two things. The
+  changelog justifies the change on estimation-error and explainability
+  grounds and says so explicitly.
+- **Promoting `inverse_vol` as the default**, the more sophisticated-looking
+  choice. **Moreira & Muir (2017) *JF* 72(4)** find large alphas from inverse
+  prior-variance scaling; **Cederburg, O'Doherty, Wang & Yan (2020) *JFE*
+  138(1)** test **103 strategies** and find implementable out-of-sample
+  versions earn **lower** CEQ and Sharpe than the unmanaged originals. The
+  gains concentrate in momentum, profitability and BAB. It stays selectable
+  and is now described for what it is.
+- **Deleting `max_position_pct` because it cannot fire.** It becomes live the
+  moment `num_stocks` drops below 20 or a dispersed scheme is selected, and
+  all three weight columns in the Excel sheet are still capped regardless of
+  the active scheme. Labelling it is the fix; removing it would trade a
+  mislabelled control for a missing one.
+- **Editing the overview string in place.** That fixes today's sentence and
+  leaves the mechanism - a binary branch on a four-valued setting - to
+  misdescribe the next scheme anyone selects. The mapping plus a
+  schema-derived test is what stops it recurring.
+- **Claiming anything measured about whether the cap binds under
+  `inverse_vol`.** The snapshots carry `volatility_pct`, not raw volatility,
+  so inverse-vol weights cannot be reconstructed from them. The inertness
+  claim is scoped to the configured scheme, where it is arithmetic.
+
+### Next
+
+1. **Priority 3, backtest v2 - now 29 days old** and deferred by five
+   consecutive sessions, each defensibly. It is the top unblocked north-star
+   item, and the position-sizing week is now closed, so the usual "the week's
+   research justified something else" reason has expired. `plan/backtest-v2.md`.
+2. Still open from 2026-09-11, **eighth session running**: the `currentPrice`
+   fallback in `factor_engine.py` - make it real at all six sites or delete it
+   and the comment at ~line 683 that promises it.
+3. **Housekeeping, outside this session's reach:** a `git worktree add` used to
+   verify the new tests against the pre-change tree left
+   `.git/worktrees/pre-change` behind. `git worktree prune` deregistered it
+   (`git worktree list` shows only the main worktree) and `git status` is
+   clean, so no gate sees it, but the directory itself could not be deleted -
+   the harness blocks writes under `.git/`. Harmless; remove with
+   `rm -rf .git/worktrees/pre-change` if it ever matters.
