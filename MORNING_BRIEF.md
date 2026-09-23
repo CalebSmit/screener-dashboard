@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 22 September 2026, 06:19
+# Morning Brief - Wednesday 23 September 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,26 +9,23 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-22T02:00:03.386380 |
+| Dashboard data from | 2026-09-23T02:00:04.289151 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, VLO, APA |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (13 rows, but overlapping windows are not independent; 49 rows across all horizons), newest 2026-09-15 |
+| Top 5 | EXPE, HST, VLO, APA, ALL |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (14 rows, but overlapping windows are not independent; 51 rows across all horizons), newest 2026-09-16 |
 
 ## What changed in the repo
 
+- `bbb288d data: screener run 2026-09-23 - 502 scored, top: EXPE HST VLO APA ALL`
+- `279441a brief: code session 2026-09-22`
 - `2415428 docs: correct the Node-driven test count to 17`
 - `fb5eed1 docs: changelog, inventory and the corrected research note`
 - `aea0946 build: regenerate dashboard artifacts with the Concentration block`
 - `f69f056 feat(dashboard): Concentration block answers "how much" without a weight`
 - `b017dc8 brief: data run 2026-09-22`
 - `e6fa846 data: screener run 2026-09-22 - 502 scored, top: EXPE HST BBY VLO APA`
-- `efccf2e brief: code session 2026-09-21`
-- `b853d40 log: 2026-09-21 research session - position sizing note`
-- `fe2d862 research: position sizing and the "how much" question`
-- `d8efe45 brief: data run 2026-09-21`
-- `120daba data: screener run 2026-09-21 - 502 scored, top: EXPE HST BBY VLO CAH`
 
 ## The session's own account
 
