@@ -214,7 +214,23 @@ growth_trap_filters:
 # Portfolio Construction
 portfolio:
   num_stocks: 25
-  weighting: 'score'  # Options: 'equal', 'inverse_vol', 'score', 'markowitz' (experimental — requires scipy)
+  # 'equal' since 2026-09-23 (was 'score' from launch). Sizing in proportion to
+  # a composite score is sizing by an expected-return estimate, which Chopra &
+  # Ziemba (1993, via Ziemba & MacLean 2011) show is ~20x more error-sensitive
+  # than covariance error (~100:3:1 near zero risk aversion), on a score this
+  # system has 3 effective observations of accuracy on; DeMiguel, Garlappi &
+  # Uppal (2009, RFS 22(5)) find no optimised scheme consistently beats 1/N out
+  # of sample. Measured effect on this repo's 41 run dates: score weights spanned
+  # 3.771-4.569% against an equal 4.00%, median active share 1.30% — so the
+  # change is near-inert in behaviour and made for explainability.
+  # research/2026-09-21-position-sizing-and-how-much.md; changelog 2026-09-23.
+  weighting: 'equal'  # Options: 'equal', 'inverse_vol', 'score', 'markowitz' (experimental — requires scipy)
+  # INERT under the current configuration and kept deliberately. Equal weighting
+  # of 25 names is 4.00% per position, so this cap binds only below 20 holdings;
+  # it never bound in 41 run dates under 'score' either. Do not read it as an
+  # active safety control, and do not delete it — it becomes live if num_stocks
+  # falls or a dispersed weighting scheme is selected. SCREENER_OVERVIEW.md now
+  # states when it cannot bind (see _max_pos_note in run_screener.py).
   max_position_pct: 5.0
   # min_position_pct: not enforced — removed to avoid false confidence
   max_sector_concentration: 8  # Max 8 stocks per sector

@@ -2031,3 +2031,172 @@ appears above (rules 4 and 5).
 
 **Rollback:** `good/2026-09-21`. Reverting restores a holdings panel with no
 concentration block; it does not change any score.
+
+---
+
+## 2026-09-23 - Position weighting moves to equal, and the published methodology stops describing a scheme the tool does not use
+
+**Area:** portfolio construction (`portfolio.weighting`), and the public
+disclosure of it in `SCREENER_OVERVIEW.md` / the embedded methodology panel
+
+**Changed:** three things - one methodology, two disclosure.
+
+1. **`config.yaml` `portfolio.weighting`: `'score'` -> `'equal'`.** Position
+   weights are now `100 / num_stocks` rather than composite-score proportional.
+2. **`run_screener.py` now maps every weighting scheme to its own description**
+   (`weighting_description()`), replacing a two-branch ternary that read
+   "equal, else risk-parity" over a **four**-option setting.
+3. **`max_position_pct` is disclosed as non-binding where arithmetic forbids it
+   from firing** (`_max_pos_note()`). The value is unchanged at 5.0 and was
+   deliberately not removed.
+
+**The disclosure defect, which is the more serious half.** Because the ternary
+had no `score` branch, it took its `else` on every run the tool has ever made,
+and `SCREENER_OVERVIEW.md` - the canonical public methodology reference, which
+`generate_dashboard.py` embeds verbatim into `index.html` - stated:
+
+> **Weighting:** Risk-parity (inverse-volatility weighting - lower-volatility
+> stocks get more weight)
+
+The portfolio was composite-score weighted, which tilts the **opposite** way:
+toward the highest-scoring names, not the calmest ones. That sentence was live
+on the public site on 2026-09-23 and in every published overview before it. A
+second site misdescribed the same thing: limitation 7 listed `score` under "the
+default weighting uses single-name volatility only", and score weighting takes
+no volatility input at all. Both are corrected, and the correction is pinned to
+the *live config* rather than to a string, so the artifacts cannot drift from
+the setting again without failing a test.
+
+**Evidence** (research and documented practice; per rules 4 and 5, no backtest
+number and no IC observation is used here):
+
+- **Chopra, V.K. & Ziemba, W.T. (1993)**, read via **Ziemba, W.T. & MacLean,
+  L.C. (2011)**, "Using the Kelly Criterion for Investing", ch.1 of *Stochastic
+  Optimization Methods in Finance and Energy*, Springer ISOR 163: errors in
+  **expected returns** do roughly **20x** the damage of errors in covariances
+  (variance errors ~2x covariance errors), worsening to about **100:3:1** for
+  an investor near zero risk aversion. Conditions: a mean-variance investor,
+  cash-equivalent-loss metric, with the ratio rising as risk tolerance rises.
+  **Score-proportional weighting is sizing by an expected-return estimate** -
+  the single most error-sensitive input in the problem - using a composite
+  whose predictive accuracy this system has measured at **3 effective
+  (non-overlapping) observations** at the `1m` horizon.
+- **DeMiguel, V., Garlappi, L. & Uppal, R. (2009), *Review of Financial
+  Studies* 22(5), 1915-1953.** Across **14 optimisation models** (sample
+  mean-variance, Bayes-Stein, minimum-variance and shrinkage variants) and
+  **7 datasets**, none consistently beat **1/N** on Sharpe ratio, certainty
+  equivalent or turnover. For sample-based mean-variance to beat 1/N reliably
+  requires an estimation window of roughly **3,000 months for 25 assets** and
+  **6,000 for 50**. Conditions: US equity calibration, monthly rebalancing,
+  comparison over the *same* asset set - which is exactly this decision, since
+  selection has already happened by the time weights are assigned.
+- **Documented practice.** RIC Subchapter M diversification (25/5/50); UCITS
+  Art. 52 (5/10/40); S&P DJI Select Sector capping (4.8% group / 24% single
+  name, with the capping mechanism revised 2024-09-23 from clipping the
+  smallest breacher to reducing all breachers proportionately); S&P 500 Equal
+  Weight resetting every constituent to a fixed 0.2% quarterly; quant managers
+  running constrained optimisers against Barra or Axioma risk models. **No
+  documented institutional scheme sizes long-only equity in proportion to a
+  bounded composite score.** In every one of them the alpha signal drives
+  *selection* and weighting is a separate, risk-driven decision.
+- **The disagreement, and why it resolves against us.** Practitioners optimise
+  anyway, against commercial covariance models with far more structure than a
+  sample covariance matrix, and under mandates that require explicit risk
+  control. DeMiguel's critique targets *sample-based* estimation, which is
+  precisely the setup this repo has and is not going to replace. See
+  `research/2026-09-21-position-sizing-and-how-much.md` section 5.
+
+**Measured, on this repo's own construction arithmetic** - "what weights does
+this rule emit given these scores", not a backtest and not a return
+measurement, so rules 4 and 5 do not reach it. Re-run this session over **41
+run dates** (2026-02-20 .. 2026-09-23, one snapshot per date, two degraded
+3-row February files excluded) with
+`research/measurements/2026-09-21-position-sizing-dispersion.py`:
+
+| | |
+|---|---|
+| Equal weight, 25 names | 4.000% |
+| Score weight, observed span | **3.771% .. 4.569%** |
+| Max deviation from equal weight | **0.569 pp** (median 0.412) |
+| Active share vs equal weight, same names | median **1.30%**, max 1.98% |
+| Heaviest/lightest ratio | **1.206x** |
+| Positions ever hitting the 5% cap | **0** |
+
+Composite scores are level-bounded 0-100 and the selected top 25 of 502 sit in
+a narrow band (2026-09-23: 64.94-73.67), so a ~13% spread in level becomes a
+~13% spread in weight around 4%. **`weighting: 'score'` was equal weight with
+noise**, and could not be anything else under this construction.
+
+**Expected effect:** **near zero on the portfolio, by the measurement above** -
+at most 0.57 pp per position, median active share 1.30%, and no change to which
+stocks are selected, since `weighting` is applied after selection and no
+scoring path reads it. The gain is that **the tool now does what it says**,
+which is the trade `CLAUDE.md` asks for explicitly: a change that improves a
+number but makes the tool harder to explain is a bad trade, and this is its
+mirror image.
+
+**Why not inverse-vol, which would look more sophisticated.** **Moreira, A. &
+Muir, T. (2017), *JF* 72(4)** report large alphas from scaling exposure by
+inverse prior realised variance, but **Cederburg, S., O'Doherty, M.S., Wang, F.
+& Yan, X.S. (2020), *JFE* 138(1)** test **103 strategies** and find
+vol-managed portfolios do not systematically outperform; implementable
+out-of-sample versions earn **lower** certainty equivalent and Sharpe than the
+unmanaged originals, from structural instability in the spanning regressions.
+The gains concentrate in momentum, profitability and BAB. `inverse_vol` stays
+selectable and is now described for what it is - equalising risk contribution,
+not improving expected return.
+
+**Why not Kelly or fractional Kelly.** It requires a calibrated probability
+distribution; this screener emits a cross-sectional rank with no probability
+attached and no calibrated score-to-return mapping, so building it would mean
+inventing the input. The overbetting penalty is also asymmetric and severe -
+Ziemba & MacLean note 2x Kelly drives the long-run growth rate to zero.
+
+**On `max_position_pct`, which is inert and stays.** It never bound in 41 run
+dates under `'score'`, and under equal weighting of 25 names every position is
+exactly 4.00%, so it binds only **below 20 holdings**. A parameter that reads
+as a live safety control and cannot fire is the same failure shape as the
+always-firing bank-metric alarm fixed 2026-09-01 - it trains a reader to stop
+looking. The fix is to **label** it, not to delete it: it becomes live the
+moment `num_stocks` falls or a dispersed scheme is selected, and the overview
+now states both the current 4.00% slice and the threshold at which the cap
+starts to matter. All three weight columns are still capped in
+`portfolio_constructor.py` regardless of the active scheme, so the Excel
+sheet's `InvVol` and `Score` columns are unaffected.
+
+**How this fits the rest of the screener (the coherence question).** Sizing is
+the one place where the eight categories deliberately do **not** apply, and
+separating them is what every documented practitioner scheme does. It also
+insulates the sizing decision from the category-overlap problem in
+`research/2026-09-02-category-independence-synthesis.md`: score weighting
+propagated whatever double-counting exists among the categories straight into
+position size, where Chopra & Ziemba say the damage is 20x. Note also that
+equal weight's historical excess return over cap weight is **more than half a
+size tilt**, and this screener already runs an explicit `size` category - so
+the change is justified on **estimation-error and explainability** grounds and
+explicitly **not** on equal weight's return history, which would be betting the
+same way twice and calling it two things.
+
+**Validated by:** `tests/test_weighting_disclosure.py`, **28 tests**. Verified
+against the pre-change tree: `test_live_page_states_the_configured_scheme`
+fails on the shipped `index.html` with exactly the assertion this entry
+describes. The suite pins the mapping (every scheme the schema accepts has its
+own branch; only the inverse-vol branch may say "inverse-volatility"; an
+unrecognised scheme names itself rather than borrowing another's description),
+the artifact-vs-config agreement for both `SCREENER_OVERVIEW.md` and
+`index.html`, and the cap note's threshold arithmetic. One test reads the
+accepted set out of `schemas.py`, so adding a fifth scheme without a
+description branch fails. Full suite **1411 -> 1439, no failures**.
+`dashboard_data.js` regenerated **byte-identical**: zero payload cost.
+
+**Not decision-grade, and not used:** no backtest number and no IC observation
+appears above (rules 4 and 5). The "3 effective observations" figure is quoted
+as a statement about *how little is known* about the composite's accuracy - the
+argument against sizing by it - not as evidence for any weight.
+
+**Applied by:** morning session (manual) - synthesis day, implementing sections
+8.1 and 9 of `research/2026-09-21-position-sizing-and-how-much.md`.
+
+**Rollback:** `good/2026-09-22`. Reverting restores `weighting: 'score'` and
+the false risk-parity sentence on the public site; the portfolio would move by
+at most 0.57 pp per position.

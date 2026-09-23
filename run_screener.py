@@ -15,6 +15,7 @@ import argparse
 import copy
 import csv
 import logging
+import math
 import shutil
 import sys
 import time
@@ -151,6 +152,70 @@ def load_config_safe():
     except Exception as e:
         print(f"\n  ERROR: Failed to parse config.yaml: {e}")
         sys.exit(1)
+
+
+def weighting_description(scheme: str, num_stocks: int) -> str:
+    """Describe the configured position-weighting scheme for the public docs.
+
+    Extracted 2026-09-23 from an inline two-branch ternary in
+    ``generate_screener_overview()``.  That ternary read "equal, else
+    risk-parity" over a *four*-option setting, so with the shipped
+    ``portfolio.weighting: 'score'`` the published SCREENER_OVERVIEW.md --
+    and the methodology panel embedded in the live site -- told every reader
+    the portfolio was inverse-volatility weighted.  It was composite-score
+    weighted, which tilts the opposite way: toward the *highest-scoring*
+    names rather than the calmest ones.  See METHODOLOGY_CHANGELOG.md
+    2026-09-23 and ``tests/test_weighting_disclosure.py``.
+
+    Every scheme ``schemas.PortfolioConfig.validate_weighting`` accepts must
+    have its own branch here, and an unrecognised one names itself rather
+    than borrowing another scheme's description.
+    """
+    scheme = (scheme or "equal").strip().lower()
+    if scheme == "equal":
+        return f"Equal weight (each stock gets ~{round(100 / num_stocks)}%)"
+    if scheme == "score":
+        return (
+            "Composite-score proportional (each stock's weight is its composite "
+            "score divided by the sum of the selected stocks' scores, so "
+            "higher-ranked stocks get more weight)"
+        )
+    if scheme in ("inverse_vol", "risk_parity"):
+        return (
+            "Risk-parity (inverse-volatility weighting — lower-volatility "
+            "stocks get more weight)"
+        )
+    if scheme == "markowitz":
+        return (
+            "Minimum-variance (experimental; requires scipy and a price-return "
+            "history, and falls back to composite-score proportional when "
+            "either is unavailable)"
+        )
+    return f"`{scheme}` (unrecognised scheme — see config.yaml `portfolio.weighting`)"
+
+
+def _max_pos_note(scheme: str, num_stocks: int, max_pos: float) -> str:
+    """Say so when `max_position_pct` cannot bind, instead of implying it can.
+
+    Under equal weighting every position is exactly ``100 / num_stocks``, so
+    the cap binds only if the portfolio holds fewer than ``100 / max_pos``
+    names -- 20 at the shipped 5%.  Reporting a cap that arithmetic forbids
+    from ever firing is the same failure shape as the always-firing bank-metric
+    alarm fixed 2026-09-01: it reads as a live safety control and is not one.
+    The cap is kept rather than deleted because it becomes live the moment
+    ``num_stocks`` falls.  Changelog 2026-09-23.
+    """
+    scheme = (scheme or "equal").strip().lower()
+    if scheme != "equal" or num_stocks <= 0 or max_pos <= 0:
+        return ""
+    equal_wt = 100.0 / num_stocks
+    if equal_wt > max_pos:
+        return ""  # the cap is infeasible here; portfolio_constructor warns
+    threshold = math.ceil(100.0 / max_pos)
+    return (
+        f" — not binding under equal weighting, where every position is "
+        f"{equal_wt:.2f}%. It would bind only below {threshold} holdings."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -642,9 +707,9 @@ research use by the owner.
 After scoring and ranking, the screener builds a **model portfolio** from the top-ranked stocks:
 
 - **Number of holdings:** Top {num_stocks} stocks (configurable)
-- **Weighting:** {'Equal weight (each stock gets ~' + str(round(100/num_stocks)) + '%)' if weighting == 'equal' else 'Risk-parity (inverse-volatility weighting — lower-volatility stocks get more weight)'}
+- **Weighting:** {weighting_description(weighting, num_stocks)}
 - **Sector cap:** Maximum {max_sector} stocks from any single sector, to avoid overconcentration
-- **Position limits:** No single stock above {max_pos}%
+- **Position limits:** No single stock above {max_pos}%{_max_pos_note(weighting, num_stocks, max_pos)}
 - **Liquidity filter:** Stocks with less than ${min_adv_m:.0f}M average daily dollar volume (63-day average) are excluded from the portfolio. Stocks with missing volume data are also excluded (conservative default).
 - **Trap exclusions:** Value-trap and growth-trap flagged stocks are excluded (unless configured as flag-only)
 
@@ -779,7 +844,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 6. **Rebalance frequency:** The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.
 
-7. **No covariance / correlation portfolio risk model:** The default weighting uses single-name volatility only (`inverse_vol` / `score`); it does NOT account for cross-holding correlations. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.
+7. **No covariance / correlation portfolio risk model:** None of the default weighting schemes uses cross-holding correlation. `equal` uses no risk input at all, `score` uses the composite only, and `inverse_vol` uses single-name volatility; none of them accounts for how the holdings move together. Portfolio-level risk may be understated for correlated holdings. An ex-ante covariance-aware risk report (Ledoit-Wolf-shrunk daily-return covariance: portfolio vol, diversification ratio, top pairwise correlations) is now printed in the run summary for transparency, and an experimental minimum-variance weighting exists, but correlation is not neutralized in the default portfolio.
 
 8. **Composite is cardinal; percentile is separate:** The `Composite` column is the cardinal weighted-average of the 0-100 category scores (the ranking key, preserving magnitude/conviction). The `Composite_Pct` column is the universe percentile ("better than X% of stocks"). Do not read the cardinal Composite as a percentile.
 
