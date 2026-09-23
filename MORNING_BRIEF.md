@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 23 September 2026, 02:14
+# Morning Brief - Wednesday 23 September 2026, 06:18
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,9 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `379843c docs: nightly log 2026-09-23; record what shipped on the position-sizing note`
+- `5eddc36 methodology: equal position weighting, and say which scheme is actually used`
+- `b6a87eb brief: data run 2026-09-23`
 - `bbb288d data: screener run 2026-09-23 - 502 scored, top: EXPE HST VLO APA ALL`
 - `279441a brief: code session 2026-09-22`
 - `2415428 docs: correct the Node-driven test count to 17`
@@ -29,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-22 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+> 2026-09-23 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-21_060000.log` ends "Run complete: shipped to main", tagged
-> `good/2026-09-21` | data loop published? **yes** -
-> `logs/datarun-2026-09-22_020001.log` ends "Data loop complete", 502 scored |
-> evidence base at `1m` = **13 rows, newest 2026-08-21 (32 days ago, bound 40), 3
-> effective** - inside the band and still clearing the 08-15..08-19 outage |
-> priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item: **priority 3,
-> backtest v2, 28 days old**
-> **Tests:** before 1378/1378, after **1411/1411** (+33 new, no pre-existing failures)
+> `logs/nightly-2026-09-22_060000.log` ends "Run complete: shipped to main",
+> tagged `good/2026-09-22` | data loop published? **yes** -
+> `logs/datarun-2026-09-23_020001.log` ends "Data loop complete", 502 scored |
+> evidence base at `1m` = **14 rows, newest 2026-08-24 (30 days ago, bound 40),
+> 3 effective** - back to the steady-state 30-33 day lag; the 08-15..08-19 outage
+> has fully cleared | priority 0 **fixed** (2026-08-24, untouched) | top open
+> roadmap item: **priority 3, backtest v2, 29 days old**
+> **Tests:** before 1411/1411, after **1439/1439** (+28 new, no pre-existing
+> failures)
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
-> governed. Took Tuesday product, and specifically item 2 of yesterday's "Next"
-> list. Nothing deferred.
+> governed. Took Wednesday synthesis, and specifically item 1 of the last two
+> sessions' "Next" lists - §8.1/§9 of the 2026-09-21 note. Nothing deferred.
 > 
 > ### Did
 > 
-> Shipped the **Concentration block** on My Holdings - `holdingsConcentration(rows)`
-> in `generate_dashboard.py`, rendered below the existing fit line. This is
-> north-star **question 4, "how much / does it fit?", which had no surface at all**
-> between the Model Portfolio's removal on 2026-08-26 and today.
+> **Shipped the weighting change the week's research justified, and found a
+> second, worse defect in the same three lines of config while doing it.**
 > 
-> **I checked the inventory first and it changed the scope, which is the point of
-> the rule.** `plan/dashboard-inventory.md` records a concentration *line* already
-> shipped 2026-09-15: names, sectors, largest sector share, top-25/100 counts, trap
-> flags. Sector spread - one of the four things §8.4 of the research note asked for
-> - was therefore already built. The block adds only what was genuinely missing:
+> **1. `portfolio.weighting`: `'score'` -> `'equal'`.** Sizing in proportion to a
+> composite score is sizing by an expected-return estimate - the most
+> error-sensitive input in the problem - using a composite this system has **3
+> effective observations** of accuracy on. **I re-ran the measurement before
+> changing anything** rather than trusting Monday's numbers: over **41** run
+> dates (two more than the note had), score weights span **3.771-4.569%** against
+> an equal **4.000%**, max deviation **0.569 pp**, median active share **1.30%**,
+> heaviest/lightest **1.206x**, **zero** cap breaches. So the behavioural effect
+> is near zero and the change buys honesty, which is the trade `CLAUDE.md` asks
+> for explicitly.
 > 
-> 1. **The name count against the published counts** - 30-40 (Statman 1987), ~50
->    (Campbell et al. 2001), 63 for a 10% shortfall risk over 20 years (Domian et
->    al. 2007), with a computed "below all three / above N of the three", and the
->    *randomly-selected* condition stated every time.
-> 2. **The equal-split slice** (100/N) against the published caps on a single
->    holding: UCITS 5% (10%/40%), RIC 25/5/50, S&P DJI's 24% Select Sector re-cap.
-> 3. **The widest risk gap on the list**, in raw annualised volatility, with the
->    equal-dollar arithmetic spelled out.
+> **2. The public methodology described a weighting scheme the tool has never
+> used.** This is the part the research note did not look for. The sentence in
+> `SCREENER_OVERVIEW.md` came from a **two-branch ternary over a four-option
+> setting**:
 > 
-> Plus two sourced footnote paragraphs: why it emits no weight, and why the risk
-> line uses a raw number rather than a percentile.
+> ```
+> {'Equal weight (...)' if weighting == 'equal' else 'Risk-parity
+>  (inverse-volatility weighting - lower-volatility stocks get more weight)'}
+> ```
 > 
-> **Zero payload cost, verified rather than asserted:** regenerating left
-> `dashboard_data.js` **byte-identical** (git reports it unmodified). The block is a
-> view over `raw.volatility`, which `stock_detail` already carried, plus literature
-> constants in the emitted script.
-> 
+> `config.yaml` has shipped `'score'` since launch, so that ternary took its
+> `else` on **every run the tool has ever made**. `generate_dashboard.py` embeds
+> the overview verbatim into `index.html`, so the live public site said the
 > ...
 
 ---
