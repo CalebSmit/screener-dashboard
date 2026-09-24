@@ -780,6 +780,37 @@ reads them.
    fundamentals constant (look-ahead). It cannot honestly validate a
    methodology change, and now that the system validates *itself*, that bias
    steers the learning loop. `plan/backtest-v2.md`.
+
+   **Step 1 is DONE for the survivorship half, 2026-09-24 - and the answer
+   settles the plan's own decision rule against v1.** The plan said 0.5%/yr
+   means "usable with a caveat" and 4%/yr means "every existing validation
+   claim needs retracting". Measured: **4.3%/yr**. Of the 2020-01-31 universe,
+   **98 of 505 names (19.4%) are absent from every v1 backtest**, and across
+   the window the index held **643 distinct names against the 503** v1 ever
+   sees. Shipped: `universe_history.py`, an 80-month committed cache, and
+   `research/measurements/2026-09-24-survivorship-gap.py`, which reproduces
+   every figure. `tests/test_universe_history.py`, 59 tests.
+
+   **Three things not to undo.**
+   - **Renames are separated from exits by SEC CIK, not by ticker or name.**
+     ANTM->ELV, FB->META, BK->BNY change symbol *and* company name together,
+     so only the registrant id links them. 18 of the 116 gross "deletions"
+     were renames; reporting the gross 23.0% as survivorship overstates it.
+   - **`validate_membership` refuses a universe outside 495-515.** A short
+     parse looks exactly like a real index contraction. The band is measured
+     (501-505 across all 80 months), and the failure it guards is concrete:
+     the same page carried a 269-row "selected changes" table.
+   - **`backtest.py` is deliberately NOT wired to it.** Only **40%** of exited
+     names have downloadable prices, and the missing 60% are the acquisitions
+     and buyouts - the terminal outcomes survivorship bias is actually made
+     of. A point-in-time universe that restores names but not their returns is
+     differently wrong, not fixed.
+
+   **Next on this item:** cost a price source for delisted tickers (that
+   decision gates steps 2-4), and size the **look-ahead** half, which has not
+   been measured at all. **Nothing needed retracting** in
+   `METHODOLOGY_CHANGELOG.md` - checked: no entry cites a backtest under
+   **Evidence**, because the 2026-08-11 bench rule landed first.
 4. **DONE 2026-09-08 - the AI chat is gone, replaced by deterministic per-stock
    summaries.** Owner directive 2026-08-10, open 29 days. Changelog 2026-09-08;
    `stock_summary.py`; `tests/test_stock_summary.py` (77) and

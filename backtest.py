@@ -21,6 +21,18 @@ IMPORTANT DISCLAIMERS:
     metrics are recomputed from trailing prices.
   * These results are for MODEL VALIDATION ONLY and do NOT represent
     achievable live trading performance.
+
+SURVIVORSHIP BIAS IS NOW MEASURED, NOT JUST DECLARED (2026-09-24).
+  `universe_history.py` reconstructs point-in-time S&P 500 membership, and
+  `research/measurements/2026-09-24-survivorship-gap.py` counts what this
+  module's universe leaves out. See `plan/backtest-v2.md` for the numbers.
+
+  This module is deliberately NOT wired to it yet. A point-in-time universe
+  without point-in-time fundamentals (and without prices for the delisted
+  names) is differently wrong rather than fixed, and the plan is explicit that
+  a half-fixed backtest should not ship — shipping one invites exactly the
+  false confidence the bench period exists to prevent. The component is built
+  and tested so the fix can be done properly, in one piece.
 """
 
 import copy
