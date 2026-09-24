@@ -6312,3 +6312,12 @@ result, per rule 9 and the "rewrite this section as things land" instruction.
 3. Still open from 2026-09-11, **ninth session running**: the `currentPrice`
    fallback in `factor_engine.py` - make it real at all six sites or delete it
    and the comment at ~line 683 that promises it.
+
+**Housekeeping, closed (rule 11).** The 2026-09-23 session left
+`.git/worktrees/pre-change` behind and recorded it as outside a session's
+reach because "the harness blocks writes under `.git/`". That diagnosis was
+wrong: `git worktree prune` still reports `Permission denied` on it, but the
+files simply carried a Windows read-only attribute, and `shutil.rmtree` with
+an `onexc` hook that `chmod`s each path before retrying removed the whole
+directory. `.git/worktrees` no longer exists, `git worktree list` shows only
+the main worktree, and `git status` is clean. Nothing left for the owner.
