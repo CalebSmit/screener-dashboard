@@ -6146,3 +6146,169 @@ different scheme.
    clean, so no gate sees it, but the directory itself could not be deleted -
    the harness blocks writes under `.git/`. Harmless; remove with
    `rm -rf .git/worktrees/pre-change` if it ever matters.
+
+---
+
+## 2026-09-24 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-23_060001.log` ends "Run complete: shipped to main" |
+data loop published? **yes** - `logs/datarun-2026-09-24_020001.log` ends
+"Data loop complete" | evidence base at `1m` = **15 rows, newest 2026-08-25
+(30 days ago, bound 40), 3 effective** - steady-state lag, healthy |
+priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
+**priority 3, backtest v2, 30 days old - taken today**
+**Tests:** before **1439/1439**, after **1498/1498** (+59 new, no pre-existing
+failures)
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
+governed. The week's research (position sizing) shipped Wednesday, so per the
+Thursday rule I took the **top open item in Current priorities** rather than
+inventing a methodology change: priority 3, deferred by six consecutive
+sessions. Nothing deferred.
+
+### Did
+
+**Sized the survivorship bias in `backtest.py` - step 1 of
+`plan/backtest-v2.md` - and the answer settles that plan's own decision rule
+against v1.**
+
+The plan set the rule in advance: *"If it's 0.5% a year, v1 is usable with a
+caveat. If it's 4%, every existing validation claim needs retracting."*
+**Measured: 4.3% a year.**
+
+**1. `universe_history.py` - point-in-time S&P 500 membership.** Reconstructs
+who was in the index on a given date from the Wikipedia revision current on
+that date, via the MediaWiki revisions API. This is a genuine contemporaneous
+record rather than a backward projection. An 80-month cache
+(2020-01..2026-08, 500 KB) is committed at
+`data/universe_history/sp500_membership.json` with per-snapshot provenance -
+revision id, revision timestamp, staleness - so the reconstruction is
+reproducible offline and every number can be checked against the exact
+revision it came from.
+
+**2. The measurement.**
+`research/measurements/2026-09-24-survivorship-gap.py` reproduces all of it:
+
+| | |
+|---|---|
+| 2020-01-31 constituents absent from today's list | **116 of 505 (23.0%)** |
+| ...of which are ticker renames, not exits | 18 |
+| **Survivorship bias, net of renames** | **98 of 505 (19.4%)** |
+| Index removals over the window | 141 in 79 months = **21.4/yr = 4.3%/yr** |
+| Distinct names ever in the index, 2020-01..2026-08 | **643** |
+| Names in any single v1 run | **503** - v1 tests 78% of the true universe |
+| Gap by month | decays monotonically **23.0% -> 0.6%** |
+
+The monotone decay *is* the survivorship signature: the further back v1
+reaches, the more of the real universe is missing, so its early years are its
+most biased and its recent years nearly clean.
+
+**3. Renames had to be separated, and only CIK can do it.** A ticker absent
+from today's list has not necessarily left the index. ANTM became ELV, FB
+became META, BK became BNY - corporate renames change the symbol **and the
+company name together**, so neither symbol nor name matching can tell a rename
+from an exit. The SEC registrant id survives both. 18 of the 116 gross
+"deletions" were renames; reporting 23.0% as survivorship would have
+overstated it. This is why the module parses CIKs at all.
+
+**4. The feasibility finding, which is the one that changes the plan.** Of the
+98 genuine exits, a 30-name sample found **12 (40%) still have downloadable
+price history**. Verified as genuine absence rather than yfinance throttling:
+the missing ones return `possibly delisted; no timezone found` and zero rows
+while contemporaneous controls (AAPL, AAL, BWA) return full series.
+
+**The split is not random and it is the bad half.** Companies dropped from the
+index but still trading keep a complete series; companies **acquired, taken
+private or wound up return nothing**. So the names free data cannot restore
+are exactly the terminal outcomes - precisely the returns survivorship bias is
+made of. A free-data v2 therefore gets ~40% of the way, and the plan's stated
+fallback (*measure and report the survivorship premium rather than pretend it
+is zero*) is not a fallback but the likely destination.
+
+**5. Checked rather than assumed: nothing needs retracting.** The plan's "4%"
+branch says every existing validation claim needs pulling. Grepped
+`METHODOLOGY_CHANGELOG.md`: **no entry cites a backtest figure under
+Evidence.** The 2026-08-11 bench rule landed before any entry could. The rule
+worked, and saying so is more useful than a retraction that isn't needed.
+
+**Deliberately not done: `backtest.py` was not wired to the new module.** A
+point-in-time universe without point-in-time fundamentals, and without prices
+for 60% of the restored names, is *differently* wrong rather than fixed - and
+`plan/backtest-v2.md` is explicit that shipping a half-fixed backtest invites
+exactly the false confidence the bench period exists to prevent. A pointer was
+added to `backtest.py`'s docstring so the component is findable. Behaviour of
+the live screener, the dashboard and the data loop is untouched.
+
+### Evidence / research
+
+- **The primary evidence is the measurement itself**, and it is a *count*, not
+  a return: how many companies the harness silently deletes from each
+  historical month. Rule 5 benches backtest *output*; there is no backtest
+  number here to bench, and nothing in this session justifies a methodology
+  change. It sizes a known defect in the tool that would eventually validate
+  one. Reproduce with
+  `python research/measurements/2026-09-24-survivorship-gap.py --probe-prices 30`.
+- **Two claims were checked and one was cut.** I wrote that a parser keyed on
+  column position "would have read company names as tickers across half the
+  backtest window", then checked: the symbol column sits at **position 0 in
+  every revision sampled**, so that would not have happened. The docstring and
+  the test now say what is true - the *surrounding* layout moved (the "SEC
+  filings" column was dropped in 2023, shifting GICS Sector from position 3 to
+  2), which makes positional assumptions unsafe without a demonstrated bug
+  having occurred.
+- **The "today" baseline was cross-checked before the 23% was believed.**
+  Several deleted names (BK, AVB, CAG, DFS) looked like current members. The
+  repo's `sp500_tickers.json` and a live Wikipedia fetch **independently agree
+  at 503 names and both exclude them**; BK turned out to be the BK->BNY rename,
+  which is what prompted building the CIK decomposition.
+- **A test found a real bug in the CIK parser before it shipped.** One
+  unparseable cell makes pandas read the whole CIK column as float, so every
+  id arrives as `"66740.0"`; `int()` on that raises and the effect was to drop
+  **every** row because one was bad. Caught by
+  `test_unparseable_cik_rows_are_skipped_not_guessed`, fixed by parsing via
+  `float`. Silent total loss of the rename decomposition would have restored
+  the overstated 23.0% figure with nothing to indicate it.
+
+### Methodology changed
+
+**None, and none was warranted.** No scoring, weight, threshold or
+construction rule changed, so there is no `METHODOLOGY_CHANGELOG.md` entry -
+this is validation infrastructure and a measurement of an existing defect.
+`plan/backtest-v2.md` and `CLAUDE.md` priority 3 were rewritten with the
+result, per rule 9 and the "rewrite this section as things land" instruction.
+
+### Tried and rejected
+
+- **Reconstructing membership backwards from a change log.** The "selected
+  changes" table has been **removed** from the live Wikipedia page (checked:
+  the current page has 2 tables and no `Selected changes` anchor). Reverse-
+  walking also accumulates error, whereas reading the revision current on a
+  date is a direct contemporaneous record with no accumulation at all.
+- **Wiring the point-in-time universe into `backtest.py` today.** Rejected on
+  the plan's own instruction and on the 40% price-availability finding. It
+  would have produced a backtest that *looks* survivorship-corrected while
+  still dropping every acquisition - a worse failure than the honest one it
+  has now, because the disclaimer would have been removed.
+- **Reporting the gross 23.0% as the survivorship figure.** 18 of those names
+  are the same registrant under a new ticker. The headline is 19.4%.
+- **Decomposing renames across the whole window.** Names that both joined and
+  left mid-window appear in neither endpoint revision, so their CIKs are
+  unknown without re-fetching all 80 revisions. Scoped to the oldest month,
+  where all 116 CIKs resolve and the split is exact (0 unknown), and said so.
+- **A tighter staleness bound than 30 days.** Measured median is 3 days, but
+  6 of 80 months exceed 14 and two hit 27. Setting the guard at 14 would fire
+  on real, usable data; 30 catches a revision from a genuinely different index
+  composition. The limitation is written down rather than tuned away.
+
+### Next
+
+1. **Cost a price source for delisted tickers.** This one decision gates steps
+   2-4 of `plan/backtest-v2.md`, because it determines whether v2 can *remove*
+   survivorship bias or only *report* it. Do this before building anything
+   further on that plan.
+2. **Size the look-ahead half.** It is the other of the two biases named in
+   `backtest.py`'s own docstring and has never been measured. Step 1 is only
+   half done without it.
+3. Still open from 2026-09-11, **ninth session running**: the `currentPrice`
+   fallback in `factor_engine.py` - make it real at all six sites or delete it
+   and the comment at ~line 683 that promises it.
