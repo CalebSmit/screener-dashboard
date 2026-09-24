@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 24 September 2026, 02:14
+# Morning Brief - Thursday 24 September 2026, 06:28
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,12 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `8c13217 log: close the stale worktree left by 2026-09-23`
+- `7a08281 log: nightly 2026-09-24 - backtest v2 step 1, survivorship sized`
+- `f099c4a docs: record the survivorship result where it is acted on`
+- `b822a01 measure: survivorship bias in backtest.py is 4.3%/yr`
+- `6206bdc backtest-v2: point-in-time S&P 500 membership`
+- `b05b9fd brief: data run 2026-09-24`
 - `4ca65a5 data: screener run 2026-09-24 - 502 scored, top: EXPE HST VLO BBY BMY`
 - `701426b brief: code session 2026-09-23`
 - `379843c docs: nightly log 2026-09-23; record what shipped on the position-sizing note`
@@ -27,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-23 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+> 2026-09-24 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-22_060000.log` ends "Run complete: shipped to main",
-> tagged `good/2026-09-22` | data loop published? **yes** -
-> `logs/datarun-2026-09-23_020001.log` ends "Data loop complete", 502 scored |
-> evidence base at `1m` = **14 rows, newest 2026-08-24 (30 days ago, bound 40),
-> 3 effective** - back to the steady-state 30-33 day lag; the 08-15..08-19 outage
-> has fully cleared | priority 0 **fixed** (2026-08-24, untouched) | top open
-> roadmap item: **priority 3, backtest v2, 29 days old**
-> **Tests:** before 1411/1411, after **1439/1439** (+28 new, no pre-existing
+> `logs/nightly-2026-09-23_060001.log` ends "Run complete: shipped to main" |
+> data loop published? **yes** - `logs/datarun-2026-09-24_020001.log` ends
+> "Data loop complete" | evidence base at `1m` = **15 rows, newest 2026-08-25
+> (30 days ago, bound 40), 3 effective** - steady-state lag, healthy |
+> priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
+> **priority 3, backtest v2, 30 days old - taken today**
+> **Tests:** before **1439/1439**, after **1498/1498** (+59 new, no pre-existing
 > failures)
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
-> governed. Took Wednesday synthesis, and specifically item 1 of the last two
-> sessions' "Next" lists - §8.1/§9 of the 2026-09-21 note. Nothing deferred.
+> governed. The week's research (position sizing) shipped Wednesday, so per the
+> Thursday rule I took the **top open item in Current priorities** rather than
+> inventing a methodology change: priority 3, deferred by six consecutive
+> sessions. Nothing deferred.
 > 
 > ### Did
 > 
-> **Shipped the weighting change the week's research justified, and found a
-> second, worse defect in the same three lines of config while doing it.**
+> **Sized the survivorship bias in `backtest.py` - step 1 of
+> `plan/backtest-v2.md` - and the answer settles that plan's own decision rule
+> against v1.**
 > 
-> **1. `portfolio.weighting`: `'score'` -> `'equal'`.** Sizing in proportion to a
-> composite score is sizing by an expected-return estimate - the most
-> error-sensitive input in the problem - using a composite this system has **3
-> effective observations** of accuracy on. **I re-ran the measurement before
-> changing anything** rather than trusting Monday's numbers: over **41** run
-> dates (two more than the note had), score weights span **3.771-4.569%** against
-> an equal **4.000%**, max deviation **0.569 pp**, median active share **1.30%**,
-> heaviest/lightest **1.206x**, **zero** cap breaches. So the behavioural effect
-> is near zero and the change buys honesty, which is the trade `CLAUDE.md` asks
-> for explicitly.
+> The plan set the rule in advance: *"If it's 0.5% a year, v1 is usable with a
+> caveat. If it's 4%, every existing validation claim needs retracting."*
+> **Measured: 4.3% a year.**
 > 
-> **2. The public methodology described a weighting scheme the tool has never
-> used.** This is the part the research note did not look for. The sentence in
-> `SCREENER_OVERVIEW.md` came from a **two-branch ternary over a four-option
-> setting**:
+> **1. `universe_history.py` - point-in-time S&P 500 membership.** Reconstructs
+> who was in the index on a given date from the Wikipedia revision current on
+> that date, via the MediaWiki revisions API. This is a genuine contemporaneous
+> record rather than a backward projection. An 80-month cache
+> (2020-01..2026-08, 500 KB) is committed at
+> `data/universe_history/sp500_membership.json` with per-snapshot provenance -
+> revision id, revision timestamp, staleness - so the reconstruction is
+> reproducible offline and every number can be checked against the exact
+> revision it came from.
 > 
-> ```
-> {'Equal weight (...)' if weighting == 'equal' else 'Risk-parity
->  (inverse-volatility weighting - lower-volatility stocks get more weight)'}
-> ```
+> **2. The measurement.**
+> `research/measurements/2026-09-24-survivorship-gap.py` reproduces all of it:
 > 
-> `config.yaml` has shipped `'score'` since launch, so that ternary took its
-> `else` on **every run the tool has ever made**. `generate_dashboard.py` embeds
-> the overview verbatim into `index.html`, so the live public site said the
+> | | |
+> |---|---|
+> | 2020-01-31 constituents absent from today's list | **116 of 505 (23.0%)** |
+> | ...of which are ticker renames, not exits | 18 |
+> | **Survivorship bias, net of renames** | **98 of 505 (19.4%)** |
 > ...
 
 ---
