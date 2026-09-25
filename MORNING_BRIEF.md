@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 24 September 2026, 06:28
+# Morning Brief - Friday 25 September 2026, 02:15
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-24T02:00:05.938141 |
+| Dashboard data from | 2026-09-25T02:00:03.515421 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, VLO, BBY, BMY |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (15 rows, but overlapping windows are not independent; 53 rows across all horizons), newest 2026-09-17 |
+| Top 5 | EXPE, HST, VLO, MPC, EIX |
+| Evidence for weight changes | 3 of 8 needed at the 1m horizon (16 rows, but overlapping windows are not independent; 55 rows across all horizons), newest 2026-09-18 |
 
 ## What changed in the repo
 
+- `aad81aa data: screener run 2026-09-25 - 502 scored, top: EXPE HST VLO MPC EIX`
+- `d2e231c brief: code session 2026-09-24`
 - `8c13217 log: close the stale worktree left by 2026-09-23`
 - `7a08281 log: nightly 2026-09-24 - backtest v2 step 1, survivorship sized`
 - `f099c4a docs: record the survivorship result where it is acted on`
@@ -25,11 +27,6 @@ history is in `NIGHTLY_LOG.md`.
 - `6206bdc backtest-v2: point-in-time S&P 500 membership`
 - `b05b9fd brief: data run 2026-09-24`
 - `4ca65a5 data: screener run 2026-09-24 - 502 scored, top: EXPE HST VLO BBY BMY`
-- `701426b brief: code session 2026-09-23`
-- `379843c docs: nightly log 2026-09-23; record what shipped on the position-sizing note`
-- `5eddc36 methodology: equal position weighting, and say which scheme is actually used`
-- `b6a87eb brief: data run 2026-09-23`
-- `bbb288d data: screener run 2026-09-23 - 502 scored, top: EXPE HST VLO APA ALL`
 
 ## The session's own account
 
