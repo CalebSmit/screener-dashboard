@@ -6321,3 +6321,219 @@ files simply carried a Windows read-only attribute, and `shutil.rmtree` with
 an `onexc` hook that `chmod`s each path before retrying removed the whole
 directory. `.git/worktrees` no longer exists, `git worktree list` shows only
 the main worktree, and `git status` is clean. Nothing left for the owner.
+
+---
+
+## 2026-09-25 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-24_060001.log` ends "Run complete: shipped to main",
+tagged `good/2026-09-24` | data loop published? **yes** -
+`logs/datarun-2026-09-25_020001.log` ends "Data loop complete", HEALTH: PASS,
+502 scored, top EXPE HST VLO MPC EIX | evidence base at `1m` = **16 rows,
+newest 2026-08-26 (30 days ago, bound 40), 3 effective** - steady-state lag,
+healthy | priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
+**priority 3, backtest v2, 31 days old** - advanced but not closed on
+2026-09-24; **deferred today**, see below
+**Tests:** before **1498/1498**, after **1549/1549** (+51 new, no pre-existing
+failures)
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
+governed; nothing to move to Done. Took Friday's harden-and-teach focus.
+**Deferred priority 3** - its named next step is "cost a price source for
+delisted tickers", a procurement decision rather than a hardening task, and
+today's focus had a nine-session-old error-handling item sitting inside it.
+
+### Did
+
+**Closed the `currentPrice` fallback decision, open since 2026-09-11 and carried
+by nine sessions - and found the item had been scoped to the harmless half of
+its own root cause.**
+
+**1. The root cause is one idiom, used nine times.** `compute_metrics()` reads
+nine numeric inputs that have two possible sources, every one written as the
+nested form `d.get(A, d.get(B, np.nan))`. That reaches `B` only when key `A` is
+**absent**. `_fetch_single_ticker_inner()` writes all nine keys unconditionally -
+`_safe()` and `_stmt_val()` both return NaN rather than omitting the key - so the
+fallback can only fire on an exception path, never on the missing-data path it
+was written for. Replaced with one `_coalesce()` helper that skips a
+present-but-NaN or `None` value.
+
+**2. The inherited framing was that incidence is zero. It is zero only for
+price.** The 2026-09-11 session checked `currentPrice` on the live payload, found
+all 502 names carried a price, and concluded this was "a safety net that does not
+exist rather than a bug that is firing". That was right about `currentPrice` and
+wrong about the four lines immediately above it, which share the defect. Measured
+on the four retained raw fetches (`runs/*/00_raw_fetch.parquet`, 503 names each,
+identical on all four):
+
+| first source NaN, backup usable | names |
+|---|---|
+| `totalDebt` -> `totalDebt_bs` | 1 (FISV) |
+| `totalDebt_bs` -> `.info totalDebt` | 3 (ANET, ERIE, ISRG) |
+| `totalCash` -> `cash_bs` | 1 (FISV) |
+| `cash_bs`, `ebit_annual`, `currentPrice` | **0** |
+
+**3. The cost, as an exact A/B of the whole universe** against the pre-change
+module with one fixed market series on both sides - **metrics gained, none
+lost**, and no other numeric column moves except `_metric_count`:
+
+| name | regains | weight restored |
+|---|---|---|
+| ANET | `roic`, `net_debt_to_ebitda` | **45 of 100 quality** |
+| ISRG | `roic`, `net_debt_to_ebitda` | **45 of 100 quality** |
+| FISV | `fcf_yield`, `ev_ebitda`, `ev_sales` | **80 of 100 valuation** |
+
+ANET and ISRG report `.info` total debt of exactly **0.0** with no "Total Debt"
+line on the quarterly balance sheet - the correct reading for a debt-free
+company, which `dict.get` discarded as a miss. FISV is the mirror image: `.info`
+returned nothing usable while the balance sheet carried 28.034B debt and 245M
+cash, both filed 2026-06-30. **I over-counted at first:** the incidence table
+says 3 names on the debt input but only 2 regain anything - ERIE's EBIT is
+missing too, so its ROIC stays NaN for an unrelated reason. Reported as 2.
+
+**4. One site loses its fallback rather than gaining one.** `return_12m` was the
+only price site whose order ran the other way (`price_latest` first). Both
+conclusions about it are provable rather than stylistic: it **could never fire**,
+because `price_latest` and `price_12m_ago` are written by the same
+`len(hist) >= 10` block, so the far endpoint is missing whenever the near one is;
+and **if it ever did fire it would be wrong**, dividing an unadjusted `.info`
+price by an adjusted `price_12m_ago` - the exact cross-scale division that
+published MNST at momentum 71.5 against a true 3rd-percentile 12-1 return (fixed
+2026-08-26). Deleted, with the reason at the site and a test that fails if a
+future edit reintroduces it. **This is why "make it real at all six sites" would
+have been the wrong answer as posed.**
+
+**5. Two in-code claims the change falsified, both corrected.** The note above
+`PRICE_SERIES_DERIVED_FIELDS` justified keeping `price_latest` on the grounds
+that `info["currentPrice"]` "takes precedence over it everywhere it is used" -
+false at one of the seven sites, now replaced with the real reason (the
+conclusion survives; the argument did not). ROIC's comment claimed all three
+invested-capital components come from one filing "for temporal consistency";
+with the fallback live, debt may come from `.info`, so the caveat is stated
+beside it with the error bounded and measured - **<= 1.2% of invested capital**
+on the affected names, against losing 45% of the quality category outright.
+
+**6. Then the public page, which is the other half of Friday.** I went looking
+for whether the ROIC temporal-consistency claim was also made publicly. It was
+not - but four other statements were wrong, three of them created by the
+2026-09-10 session changing the Revisions weights and leaving every piece of
+prose behind:
+
+- **`fy1_revision_3m`, the heaviest metric in its category at 35%, had an empty
+  "What It Measures" cell** - and was the only row in the document still
+  labelled with a raw snake_case key. A student reading the category found its
+  largest input unnamed and unexplained.
+- **"Analyst Surprise gets the highest weight"** - 15% against 35%, contradicted
+  by the table two lines above the sentence.
+- **Limitation 5 and a trailing note both said the metric was "not feasible with
+  yfinance"** and proposed it as a future FactSet/Refinitiv enhancement, 15 days
+  after it shipped as the category's heaviest.
+- **"Approximately 10-25% of tickers may fail to fetch on a given run"** -
+  unrelated and older. `CLAUDE.md` priority 1 flagged this as stale on
+  2026-09-01 and asked for periodic re-verification; this is it, extended from 15
+  logs to **18: 0 fetch failures across 9,036 ticker-fetches**, 2026-09-02 to
+  2026-09-25.
+
+Regenerated and republished. `dashboard_data.js` came back **byte-identical**
+(sha256 checked against the published run), so **zero payload cost**;
+`index.html` grows 287,316 -> 290,383 bytes for the corrected text.
+
+### Evidence / research
+
+- **The primary evidence is a measured defect, not a citation**, which is what a
+  data-availability bug warrants. Reproduce all of it with
+  `python research/measurements/2026-09-25-dead-two-source-fallbacks.py`: part 1
+  counts incidence per fallback pair, part 2 is the metric-level A/B, part 3 the
+  composite/rank effect.
+- **Rank effect, so the changelog's expected effect is checkable rather than
+  decorative** - the thing the 2026-09-11 session wished for. Against the
+  2026-09-25 raw fetch: **ANET rank -79** (composite +4.12), **ISRG -22**
+  (+2.98), **FISV +4 (-0.75)**. Gaining three metrics made FISV score slightly
+  *worse*; that is the honest outcome and it is in the entry. 183 of 503 names
+  shift by a **median of 1** rank from the percentile-cohort ripple, and
+  **top-50 membership does not change at all** (0 in, 0 out).
+- **Stated limit on that measurement:** `_daily_returns` is a dict column and
+  does not survive the parquet round-trip, so beta, sortino, max_drawdown and
+  jensens_alpha are absent on **both** sides. The deltas are valid; the absolute
+  ranks are **not** live ranks, and the script prints that warning itself.
+- **Citations, for the public page** - added because the reweight's sources were
+  nowhere on it: **Chan, Jegadeesh & Lakonishok (1996), *JF* 51(5)**, the
+  analyst-revision leg strongest of three earnings-momentum measures, **+7.7%
+  six-month decile spread**, IBES 1977-93; **Martineau (2022), *Critical Finance
+  Review* 11(4)**, PEAD **absent in large caps since 2006**, coefficient
+  significantly negative 2016-19 - which is why the backward-looking surprise
+  family went from 78% of the category to 45%.
+- **No backtest number and no IC figure** justifies anything here (rules 4, 5).
+  The `1m` horizon holds **3 effective** observations against a gate of 8.
+
+### Methodology changed
+
+Two `METHODOLOGY_CHANGELOG.md` entries, both dated 2026-09-25:
+
+1. **"Two-source metric inputs can now actually use their second source"** -
+   metric definitions. `tests/test_nan_source_fallback.py`, **37 tests**, of
+   which **28 fail against the pre-change tree** (verified by checking
+   `factor_engine.py` out at `HEAD` and re-running). Includes a source-level
+   guard barring the nested-`get` idiom from `factor_engine.py` so this cannot
+   recur silently, plus `0.0`-is-a-value and both-sources-NaN cases so the fix
+   cannot become fabrication.
+2. **"The public methodology page stops describing a Revisions category from
+   before 2026-09-10..."** - public disclosure, no score change.
+   `tests/test_overview_claims.py`, **14 tests**, **12 failing against the
+   pre-change `SCREENER_OVERVIEW.md` and `index.html`**. Derived from
+   `config.yaml`, not pinned to today's numbers: the table's weight multiset
+   must equal the configured non-zero weights, the metric named highest-weighted
+   must be the one that is, and a metric with non-zero weight may not be called
+   infeasible. Two are general guards that would have caught the blank cell on
+   the day it shipped - **no table cell may be empty** and **no metric row may be
+   labelled with a raw config key**. Four assert `index.html` carries the
+   corrections, because editing the markdown without regenerating is how all four
+   defects stayed visible.
+
+### Tried and rejected
+
+- **"Make it real at all six sites", the inherited instruction.** Rejected as
+  posed: six is the wrong count (nine share the root cause) and uniformity is
+  wrong at one of them - `return_12m` must stay single-source or it reintroduces
+  the 2026-08-26 split-scale defect. Doing what the note said would have shipped
+  a latent bug in the name of consistency.
+- **"Delete the fallback and stop implying coverage", the other option left
+  open.** Defensible while incidence was believed to be zero. It is not zero:
+  deleting would have made ANET's and ISRG's lost ROIC permanent and documented.
+- **Falling back to `longTermDebt` / the annual filing's debt line instead of
+  `.info`.** More accurate for ANET (43.96M vs `.info`'s 0.0) but it introduces a
+  third source with a different definition - LTD excludes current debt - where
+  the author had already written which fallback they wanted. The measured error
+  from honouring the written one is <= 1.2% of invested capital. Scope discipline
+  beat marginal precision.
+- **Fixing the `shortName` -> `Ticker` fallback for correctness.** Same idiom,
+  but `_safe()` already defaults `shortName` to the ticker, so both branches
+  return the same string. Converted for the recurrence guard's sake and
+  explicitly not claimed as a fix.
+- **A general "every category's table weights match config" test.** Tried it
+  across all eight: growth, momentum, revisions, size and investment match
+  exactly, but valuation and quality over-collect rows from the bank-metric
+  tables that follow them, and risk uses non-integer weights. Scoped the
+  assertion to Revisions, where it is exact, rather than shipping a test whose
+  failures would be section-splitting artifacts. A test that cries wolf gets
+  muted - rule 7's own argument.
+- **Claiming fetches never fail.** The measured rate is 0 of 9,036, but it is a
+  free unofficial API. Rate limiting stays listed and the sentence now points at
+  `check_run_health.py` as the actual reason a published number can be trusted.
+  Replacing an overstated risk with an understated one is the same failure
+  mirrored.
+
+### Next
+
+1. **Confirm this against tomorrow's 02:00 data run.** ANET should appear in the
+   What Changed movers panel with a large upward move (predicted -79 ranks) and
+   ISRG a smaller one. If it does not, the *Expected effect* line in the
+   changelog entry is wrong and the correction belongs recorded against it.
+2. **Priority 3, backtest v2 - 31 days old, deferred today and by six of the last
+   eight sessions.** Its gating step is a decision, not code: cost a price source
+   for delisted tickers, because that determines whether v2 can *remove*
+   survivorship bias or only *report* it. Nothing else on the plan should be
+   built first.
+3. **Priority 4's residual: the run-level overview.** One or two sentences on
+   what moved across the whole run - narrow, and the last open piece of the
+   2026-08-10 owner directive.
