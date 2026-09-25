@@ -292,6 +292,38 @@ def _safe(d: dict, key: str, default=np.nan):
         return default
 
 
+def _coalesce(d: dict, *keys):
+    """First value in `d` that is present and not NaN/None, else NaN.
+
+    This exists because the nested form - `d.get(A, d.get(B, np.nan))` - does
+    NOT fall back when key A is present with a NaN value: `dict.get` returns
+    the NaN and never evaluates the default.  A test bars that form from this
+    module outright (`tests/test_nan_source_fallback.py`), which is why it is
+    spelled with placeholders here.  Every field the fetcher reads is written
+    unconditionally (`_safe()` and `_stmt_val()` both return NaN rather than
+    omitting the key), so the key is always there and the nested-get form can
+    only fire on an exception path, never on the missing-data path it was
+    written for.  Measured cost of that: 4 of 502 names lost roic,
+    net_debt_to_ebitda, ev_ebitda or ev_sales on every run
+    (`research/measurements/2026-09-25-dead-two-source-fallbacks.py`).
+
+    `0.0` is a value, not a miss - `.info` reports exactly 0.0 total debt for
+    debt-free companies and that reading must reach invested capital.  `inf`
+    is not special-cased, because no call site treats it specially today.
+    """
+    for k in keys:
+        v = d.get(k, np.nan)
+        if v is None:
+            continue
+        try:
+            if pd.isna(v):
+                continue
+        except (TypeError, ValueError):
+            pass  # non-scalar: treat as present
+        return v
+    return np.nan
+
+
 _STMT_VAL_STRICT = False  # Set True to track all statement lookup misses
 _STMT_VAL_MISSES: list = []  # Collected when _STMT_VAL_STRICT is True
 
@@ -680,9 +712,18 @@ def check_price_series_integrity(closes, splits=None) -> str | None:
 # existing missing-data path (`na_option="keep"` plus the `has_data` mask in
 # compute_category_scores) renormalises the surviving weights.  `price_latest`
 # is deliberately NOT in this list: it is a single point from the most recent
-# bar, `info["currentPrice"]` takes precedence over it everywhere it is used,
-# and the defect is in relationships *between* prices at different dates -
-# which is exactly what the withheld metrics measure.
+# bar, and the defect is in relationships *between* prices at different dates -
+# which is exactly what the withheld metrics measure.  A single bar cannot
+# mix two scales with itself.
+#
+# This note used to add that `info["currentPrice"]` "takes precedence over it
+# everywhere it is used".  That was false at one of the seven sites and the
+# claim is gone (2026-09-25): `return_12m` prefers `price_latest`, because it
+# is the one price site that divides two dates and so must not cross sources.
+# The other six prefer `info["currentPrice"]` and fall back to `price_latest`
+# via `_coalesce`.  Withholding `price_latest` would therefore also cost
+# `return_12m`, whose far endpoint is withheld anyway - so the conclusion
+# stands, for a different reason than the one written here before.
 PRICE_SERIES_DERIVED_FIELDS = (
     "price_1m_ago", "price_6m_ago", "price_12m_ago",
     "volatility_1y", "_daily_returns", "avg_daily_dollar_volume",
@@ -1460,7 +1501,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
     for d in raw_data:
         rec = {
             "Ticker": d.get("Ticker"),
-            "Company": d.get("shortName", d.get("Ticker")),
+            "Company": _coalesce(d, "shortName", "Ticker"),
             "Sector": d.get("sector", "Unknown"),
         }
 
@@ -1477,14 +1518,14 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         #   and D/E ratio (matches yfinance's own EV definition).
         # _debt_bs: from balance sheet. Used for ROIC invested capital
         #   (consistent source with equity and cash, which are also from BS).
-        _debt_info = d.get("totalDebt", d.get("totalDebt_bs", np.nan))
-        _debt_bs = d.get("totalDebt_bs", d.get("totalDebt", np.nan))
+        _debt_info = _coalesce(d, "totalDebt", "totalDebt_bs")
+        _debt_bs = _coalesce(d, "totalDebt_bs", "totalDebt")
         # Cash: use info totalCash for EV (matches yfinance's own EV
         # definition which includes short-term investments), but use
         # balance sheet Cash & Cash Equivalents for ROIC (stricter
         # definition of invested capital).
-        _cash_ev = d.get("totalCash", d.get("cash_bs", np.nan))
-        _cash_bs = d.get("cash_bs", d.get("totalCash", np.nan))
+        _cash_ev = _coalesce(d, "totalCash", "cash_bs")
+        _cash_bs = _coalesce(d, "cash_bs", "totalCash")
         if pd.isna(ev) or ev == 0:
             # Only compute fallback EV when all components are available
             if pd.notna(mc) and pd.notna(_debt_info) and pd.notna(_cash_ev):
@@ -1572,8 +1613,21 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         try:
             # 5. ROIC (Invested Capital = Equity + Total Debt - Excess Cash)
             # Use balance-sheet debt and cash for IC — all three IC
-            # components (equity, debt, cash) come from the same balance
-            # sheet filing for temporal consistency.
+            # components (equity, debt, cash) then come from the same balance
+            # sheet filing, for temporal consistency.
+            #
+            # Caveat, made live 2026-09-25: `_debt_bs`/`_cash_bs` fall back to
+            # the `.info` figure when the filing carries no Total Debt / Cash
+            # line, so the debt component may come from a different vintage.
+            # The alternative is losing ROIC (weight 27) and
+            # net_debt_to_ebitda (18) outright - 45 of 100 quality weight -
+            # which is what happened to ANET and ISRG on every run until then
+            # (ERIE is also rescuable here but stays NaN, its EBIT is missing
+            # too).  The mixing error is bounded by construction: a filing that
+            # omits Total Debt is a filing with little or no debt, and on those
+            # names `.info` debt differs from the annual filing's long-term
+            # debt by <= 1.2% of invested capital.
+            #
             # Excess cash = max(0, cash - 2% of revenue). Deducting ALL
             # cash inflates ROIC for cash-rich companies (e.g. AAPL, GOOG).
             ebit_v = d.get("ebit", np.nan)
@@ -1659,7 +1713,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # and abs(prev) in the denominator otherwise produces a sign-scrambled
             # magnitude dominated by how close prior EBIT was to zero.
             if not _is_bank:
-                _ebit_curr = d.get("ebit_annual", d.get("ebit", np.nan))
+                _ebit_curr = _coalesce(d, "ebit_annual", "ebit")
                 _ebit_prev = d.get("ebit_prior", np.nan)
                 _rev_curr = d.get("totalRevenue_annual", rev_c)
                 _rev_prev = d.get("totalRevenue_annual_prior", rev_p)
@@ -1795,7 +1849,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # NaN when growth <= 0 or P/E <= 0: negative/zero growth makes
             # PEG meaningless (not a growth stock). NaN lets the per-row
             # weight redistribution handle it rather than injecting a false signal.
-            _price = d.get("currentPrice", d.get("price_latest", np.nan))
+            _price = _coalesce(d, "currentPrice", "price_latest")
             _pe = (_price / trail) if (pd.notna(_price) and pd.notna(trail) and trail > 0.01) else np.nan
             _fwd_growth = rec.get("forward_eps_growth", np.nan)
             if pd.notna(_pe) and pd.notna(_fwd_growth) and _fwd_growth > 0:
@@ -1902,7 +1956,20 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Ratio and Jensen's Alpha, which measure realized return, not
             # the momentum signal.  The skip-month convention is appropriate
             # for momentum ranking but distorts risk-adjusted return metrics.
-            _p_now = d.get("price_latest", d.get("currentPrice", np.nan))
+            #
+            # DELIBERATELY single-source, and the only price site that is.
+            # Both endpoints must come from the same `t.history(
+            # auto_adjust=True)` series: `info["currentPrice"]` is not
+            # split-adjusted against `price_12m_ago`, and dividing an
+            # unadjusted price by an adjusted one across a split is exactly
+            # the defect that published MNST at momentum 71.5 when its true
+            # 12-1 return was the 3rd percentile (fixed 2026-08-26, see
+            # check_price_series_integrity).  A `currentPrice` fallback stood
+            # here until 2026-09-25 and was deleted rather than repaired: it
+            # could never fire anyway, because `price_latest` and
+            # `price_12m_ago` are written by the same `len(hist) >= 10` block,
+            # so whenever the near endpoint is missing the far one is too.
+            _p_now = _coalesce(d, "price_latest")
             rec["return_12m"] = ((_p_now - p12) / p12) if (pd.notna(p12) and pd.notna(_p_now) and p12 > 0) else np.nan
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: momentum metrics failed: {type(e).__name__}: {e}")
@@ -2039,13 +2106,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # "fix" it with a cleverer denominator without re-running SS8.3.
             _fy1_now = d.get("_fy1_eps_current", np.nan)
             _fy1_then = d.get("_fy1_eps_90d_ago", np.nan)
-            # Fall back on a PRESENT-but-NaN currentPrice, not just an absent
-            # key.  dict.get() returns the NaN in that case and never reaches
-            # the default, so a name that has the key but no value would lose
-            # the metric despite price_latest being available.
-            _rev_price = d.get("currentPrice", np.nan)
-            if pd.isna(_rev_price):
-                _rev_price = d.get("price_latest", np.nan)
+            # `_coalesce`, not `d.get(a, d.get(b))` - see its docstring.  This
+            # site was guarded by hand on 2026-09-10; the helper generalised
+            # that fix to the other eight two-source inputs on 2026-09-25.
+            _rev_price = _coalesce(d, "currentPrice", "price_latest")
             if (pd.notna(_fy1_now) and pd.notna(_fy1_then)
                     and pd.notna(_rev_price) and _rev_price > 0):
                 rec["fy1_revision_3m"] = float(
@@ -2057,7 +2121,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Require >= 3 covering analysts for a meaningful consensus.
             # Clamped to [-50%, +100%] to guard against extreme targets.
             _target = d.get("targetMeanPrice", np.nan)
-            _cur_price = d.get("currentPrice", d.get("price_latest", np.nan))
+            _cur_price = _coalesce(d, "currentPrice", "price_latest")
             _n_analysts = d.get("numberOfAnalystOpinions", np.nan)
             if (pd.notna(_target) and pd.notna(_cur_price) and _cur_price > 0
                     and pd.notna(_n_analysts) and _n_analysts >= 3):
@@ -2083,7 +2147,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # George & Hwang (2004): nearness to 52W high is one of the
             # strongest momentum signals. Ratio in [0, 1]; higher = nearer peak.
             _52w_high = d.get("fiftyTwoWeekHigh", np.nan)
-            _cur_price_c = d.get("currentPrice", d.get("price_latest", np.nan))
+            _cur_price_c = _coalesce(d, "currentPrice", "price_latest")
             rec["proximity_52w_high"] = (
                 (_cur_price_c / _52w_high)
                 if (pd.notna(_cur_price_c) and pd.notna(_52w_high) and _52w_high > 0)
@@ -2163,7 +2227,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             warnings.warn(f"{ticker}: candidate metrics failed: {type(e).__name__}: {e}")
 
         # -- Passthrough: analyst price targets for dashboard display --
-        rec["_current_price"]     = d.get("currentPrice", d.get("price_latest", np.nan))
+        rec["_current_price"]     = _coalesce(d, "currentPrice", "price_latest")
         rec["_target_mean"]       = d.get("targetMeanPrice", np.nan)
         rec["_target_high"]       = d.get("targetHighPrice", np.nan)
         rec["_target_low"]        = d.get("targetLowPrice", np.nan)
@@ -2181,7 +2245,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     rec["pb_ratio"] = ptb
                 else:
                     bv = d.get("bookValue", np.nan)
-                    price = d.get("currentPrice", d.get("price_latest", np.nan))
+                    price = _coalesce(d, "currentPrice", "price_latest")
                     rec["pb_ratio"] = (price / bv) if (pd.notna(price) and pd.notna(bv) and bv > 0) else np.nan
 
                 # Bank Quality: ROE
