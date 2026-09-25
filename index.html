@@ -2838,9 +2838,9 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>fy1_revision_3m</strong></td>
+<td><strong>FY1 EPS Revision (3-month)</strong></td>
 <td>35%</td>
-<td></td>
+<td>Change in the consensus current-fiscal-year EPS estimate over the last 90 days, divided by the share price — so it reads in <strong>basis points of price</strong> and is comparable across a $20 stock and a $400 one. Positive = analysts have raised their forecast. This is the category's only true <em>revision</em> metric: it measures analysts changing their minds, not companies beating a past estimate.</td>
 </tr>
 <tr>
 <td><strong>Analyst Surprise</strong></td>
@@ -2869,8 +2869,10 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Why these?</strong> Estimate revisions and analyst targets are among the most powerful short-term return predictors. When a company consistently beats earnings estimates, the stock price usually follows — but with a lag, which creates an opportunity. Analyst Surprise gets the highest weight because it's a harder, backward-looking signal with less optimism bias than forward price targets. Earnings Acceleration (a continuous delta, not binary) and Beat Score (recency-weighted, not a simple streak counter) capture the <em>trajectory</em> and <em>consistency</em> of earnings beats — a company whose surprise % is improving quarter-over-quarter, and which has beaten in recent quarters with higher recency weight, signals genuine fundamental momentum. This category is weighted at only 10% because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.</p>
-<p><em>Note: EPS forecast revision (change in consensus forward EPS over 3-6 months) would be ideal as a fifth metric here but is not feasible with yfinance, which does not provide historical consensus data. Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.</em></p>
+<p><strong>Why these?</strong> Estimate revisions and analyst targets are among the most powerful short-term return predictors. <strong>FY1 EPS Revision gets the highest weight</strong> because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh &amp; Lakonishok (1996, <em>Journal of Finance</em> 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a <strong>+7.7% six-month decile spread</strong> on IBES data 1977–93.</p>
+<p>The surprise family — Analyst Surprise, Earnings Acceleration, Beat Score — is <em>backward</em>-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, <em>Critical Finance Review</em> 11(4)) finds it has been <strong>absent in large caps since 2006</strong>, with a significantly <em>negative</em> coefficient over 2016–19. Since this is an S&amp;P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10 and why the revision metric now outweighs any single member of it.</p>
+<p>This category is weighted at only 10% of the composite because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.</p>
+<p><em>Note on the limits of this data: yfinance's estimate history reaches back only </em><em>90 days</em><em>, so the screener can see a one-quarter revision but not whether a revision trend has </em><em>persisted</em><em>. Chan, Jegadeesh &amp; Lakonishok's strongest result used a six-month window, which remains out of reach without a paid consensus feed (FactSet, Refinitiv I/B/E/S). The metric itself is not out of reach and has been live since 2026-09-10 — an earlier version of this page said otherwise.</em></p>
 <hr />
 <h3>7. Size (5% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>Does this stock benefit from the small-cap premium?</em></p>
@@ -2930,7 +2932,8 @@
 <h2>How the Score Is Calculated</h2>
 <p>The scoring pipeline has six steps:</p>
 <h3>Step 1: Collect Raw Data</h3>
-<p>For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use <strong>LTM</strong> (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use <strong>MRQ</strong> (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies &gt; 10% (25% for Financials) trigger automatic correction. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.</p>
+<p>For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use <strong>LTM</strong> (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use <strong>MRQ</strong> (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies &gt; 10% (25% for Financials) trigger automatic correction.</p>
+<p>Several inputs arrive from <strong>two places</strong> — Yahoo's summary fields and the filed statements — and the screener prefers one but uses the other when the first is missing: total debt and cash for Enterprise Value prefer the summary figure (it matches Yahoo's own EV definition), while invested capital for ROIC prefers the balance sheet (so equity, debt and cash come from one filing). Since 2026-09-25 those fallbacks actually fire; before that a bug meant they never did, and three S&amp;P 500 companies lost a metric on every run despite the data being present. See <code>METHODOLOGY_CHANGELOG.md</code> 2026-09-25. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.</p>
 <h3>Step 2: Flag Outliers (but do not change them)</h3>
 <p>Every metric below is scored by its <strong>rank</strong> within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does <strong>not</strong> clip extreme values: it records them in the data-quality log (the tails beyond the 1st and 99th percentiles) and scores the number it actually fetched.</p>
 <p>Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.</p>
@@ -3189,9 +3192,10 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <hr />
 <h2>Limitations to Be Aware Of</h2>
 <ol>
-<li>
-<p><strong>Data source:</strong> All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade. Approximately 10-25% of tickers may fail to fetch on a given run due to Yahoo Finance rate limiting (HTTP 429).</p>
-</li>
+<li><strong>Data source:</strong> All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade — individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.</li>
+</ol>
+<p><strong>Fetch reliability, measured:</strong> the 18 scheduled runs from 2026-09-02 to 2026-09-25 report <strong>0 fetch failures across 9,036 ticker-fetches</strong>. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; <em>corrected 2026-09-25</em>. Rate limiting remains possible on a free API, which is why a run that fetches badly is <strong>discarded before publication</strong> rather than shipped: <code>scripts/check_run_health.py</code> refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median. A number on this site has passed that gate.</p>
+<ol>
 <li>
 <p><strong>GAAP vs. normalized EPS:</strong> Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (&gt;2x or &lt;0.3x — the signature of this contamination), <code>forward_eps_growth</code> is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.</p>
 </li>
@@ -3202,7 +3206,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>Analyst coverage:</strong> The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.</p>
 </li>
 <li>
-<p><strong>No EPS revision data:</strong> yfinance does not provide historical consensus EPS estimates, so the Revisions category cannot include the single most powerful revisions signal (change in forward EPS consensus over time). This would require a paid data source like FactSet or Refinitiv I/B/E/S.</p>
+<p><strong>EPS revisions reach back only 90 days:</strong> the Revisions category <em>does</em> include a forward-EPS-consensus-change metric — FY1 EPS Revision (3-month), its heaviest at 35%, live since 2026-09-10. What is still missing is <strong>depth</strong>: yfinance's estimate history covers about 90 days, so the screener can see a recent revision but not whether the trend has persisted over the six-month window in which Chan, Jegadeesh &amp; Lakonishok (1996) measured the effect most strongly. That longer window would require a paid consensus feed (FactSet, Refinitiv I/B/E/S). <em>Corrected 2026-09-25: this limitation previously said the metric was not possible at all, which stopped being true on 2026-09-10.</em></p>
 </li>
 <li>
 <p><strong>Rebalance frequency:</strong> The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.</p>
