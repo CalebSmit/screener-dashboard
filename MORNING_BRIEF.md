@@ -1,4 +1,4 @@
-# Morning Brief - Friday 25 September 2026, 02:15
+# Morning Brief - Friday 25 September 2026, 07:33
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `841c45d log: changelog entries and nightly log for 2026-09-25`
+- `7d4a6c5 docs: public methodology page stops describing the pre-2026-09-10 Revisions category`
+- `1e97e1b fix: two-source metric fallbacks can now actually use their second source`
+- `a1b878c brief: data run 2026-09-25`
 - `aad81aa data: screener run 2026-09-25 - 502 scored, top: EXPE HST VLO MPC EIX`
 - `d2e231c brief: code session 2026-09-24`
 - `8c13217 log: close the stale worktree left by 2026-09-23`
@@ -30,51 +34,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-24 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-09-25 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-23_060001.log` ends "Run complete: shipped to main" |
-> data loop published? **yes** - `logs/datarun-2026-09-24_020001.log` ends
-> "Data loop complete" | evidence base at `1m` = **15 rows, newest 2026-08-25
-> (30 days ago, bound 40), 3 effective** - steady-state lag, healthy |
-> priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
-> **priority 3, backtest v2, 30 days old - taken today**
-> **Tests:** before **1439/1439**, after **1498/1498** (+59 new, no pre-existing
+> `logs/nightly-2026-09-24_060001.log` ends "Run complete: shipped to main",
+> tagged `good/2026-09-24` | data loop published? **yes** -
+> `logs/datarun-2026-09-25_020001.log` ends "Data loop complete", HEALTH: PASS,
+> 502 scored, top EXPE HST VLO MPC EIX | evidence base at `1m` = **16 rows,
+> newest 2026-08-26 (30 days ago, bound 40), 3 effective** - steady-state lag,
+> healthy | priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
+> **priority 3, backtest v2, 31 days old** - advanced but not closed on
+> 2026-09-24; **deferred today**, see below
+> **Tests:** before **1498/1498**, after **1549/1549** (+51 new, no pre-existing
 > failures)
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
-> governed. The week's research (position sizing) shipped Wednesday, so per the
-> Thursday rule I took the **top open item in Current priorities** rather than
-> inventing a methodology change: priority 3, deferred by six consecutive
-> sessions. Nothing deferred.
+> governed; nothing to move to Done. Took Friday's harden-and-teach focus.
+> **Deferred priority 3** - its named next step is "cost a price source for
+> delisted tickers", a procurement decision rather than a hardening task, and
+> today's focus had a nine-session-old error-handling item sitting inside it.
 > 
 > ### Did
 > 
-> **Sized the survivorship bias in `backtest.py` - step 1 of
-> `plan/backtest-v2.md` - and the answer settles that plan's own decision rule
-> against v1.**
+> **Closed the `currentPrice` fallback decision, open since 2026-09-11 and carried
+> by nine sessions - and found the item had been scoped to the harmless half of
+> its own root cause.**
 > 
-> The plan set the rule in advance: *"If it's 0.5% a year, v1 is usable with a
-> caveat. If it's 4%, every existing validation claim needs retracting."*
-> **Measured: 4.3% a year.**
+> **1. The root cause is one idiom, used nine times.** `compute_metrics()` reads
+> nine numeric inputs that have two possible sources, every one written as the
+> nested form `d.get(A, d.get(B, np.nan))`. That reaches `B` only when key `A` is
+> **absent**. `_fetch_single_ticker_inner()` writes all nine keys unconditionally -
+> `_safe()` and `_stmt_val()` both return NaN rather than omitting the key - so the
+> fallback can only fire on an exception path, never on the missing-data path it
+> was written for. Replaced with one `_coalesce()` helper that skips a
+> present-but-NaN or `None` value.
 > 
-> **1. `universe_history.py` - point-in-time S&P 500 membership.** Reconstructs
-> who was in the index on a given date from the Wikipedia revision current on
-> that date, via the MediaWiki revisions API. This is a genuine contemporaneous
-> record rather than a backward projection. An 80-month cache
-> (2020-01..2026-08, 500 KB) is committed at
-> `data/universe_history/sp500_membership.json` with per-snapshot provenance -
-> revision id, revision timestamp, staleness - so the reconstruction is
-> reproducible offline and every number can be checked against the exact
-> revision it came from.
+> **2. The inherited framing was that incidence is zero. It is zero only for
+> price.** The 2026-09-11 session checked `currentPrice` on the live payload, found
+> all 502 names carried a price, and concluded this was "a safety net that does not
+> exist rather than a bug that is firing". That was right about `currentPrice` and
+> wrong about the four lines immediately above it, which share the defect. Measured
+> on the four retained raw fetches (`runs/*/00_raw_fetch.parquet`, 503 names each,
+> identical on all four):
 > 
-> **2. The measurement.**
-> `research/measurements/2026-09-24-survivorship-gap.py` reproduces all of it:
-> 
-> | | |
+> | first source NaN, backup usable | names |
 > |---|---|
-> | 2020-01-31 constituents absent from today's list | **116 of 505 (23.0%)** |
-> | ...of which are ticker renames, not exits | 18 |
-> | **Survivorship bias, net of renames** | **98 of 505 (19.4%)** |
+> | `totalDebt` -> `totalDebt_bs` | 1 (FISV) |
 > ...
 
 ---
