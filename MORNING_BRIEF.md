@@ -1,36 +1,34 @@
-# Morning Brief - Friday 25 September 2026, 07:33
+# Morning Brief - Monday 28 September 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-25T02:00:03.515421 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-09-28T02:00:04.753730 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, VLO, MPC, EIX |
-| Evidence for weight changes | 3 of 8 needed at the 1m horizon (16 rows, but overlapping windows are not independent; 55 rows across all horizons), newest 2026-09-18 |
+| Top 5 | EXPE, HST, BBY, EIX, MPC |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (18 rows, but overlapping windows are not independent; 58 rows across all horizons), newest 2026-09-21 |
 
 ## What changed in the repo
 
-- `841c45d log: changelog entries and nightly log for 2026-09-25`
-- `7d4a6c5 docs: public methodology page stops describing the pre-2026-09-10 Revisions category`
-- `1e97e1b fix: two-source metric fallbacks can now actually use their second source`
-- `a1b878c brief: data run 2026-09-25`
-- `aad81aa data: screener run 2026-09-25 - 502 scored, top: EXPE HST VLO MPC EIX`
-- `d2e231c brief: code session 2026-09-24`
-- `8c13217 log: close the stale worktree left by 2026-09-23`
-- `7a08281 log: nightly 2026-09-24 - backtest v2 step 1, survivorship sized`
-- `f099c4a docs: record the survivorship result where it is acted on`
-- `b822a01 measure: survivorship bias in backtest.py is 4.3%/yr`
-- `6206bdc backtest-v2: point-in-time S&P 500 membership`
-- `b05b9fd brief: data run 2026-09-24`
-- `4ca65a5 data: screener run 2026-09-24 - 502 scored, top: EXPE HST VLO BBY BMY`
+- `2e08f62 data: screener run 2026-09-28 - 502 scored, top: EXPE HST BBY EIX MPC`
 
 ## The session's own account
 
