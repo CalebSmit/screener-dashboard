@@ -1,24 +1,14 @@
-# Morning Brief - Monday 28 September 2026, 02:14
+# Morning Brief - Monday 28 September 2026, 06:24
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## THE ROUTINE IS NOT RUNNING
-
-- **Code session** has not run since 2 days ago
-
-Nothing below is current. A loop that stops firing writes no log, so
-the rest of this page describes the last run that *did* happen, not
-today. Most likely cause: the PC rebooted and nobody logged back in -
-the tasks only run while a user is signed in. See NIGHTLY_LOG.md
-2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-09-28T02:00:04.753730 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -28,55 +18,59 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 
 ## What changed in the repo
 
+- `9a83f3b log: changelog, nightly log, and CLAUDE.md rule 10 now names the generated doc`
+- `b4b24e1 docs: regenerate the methodology page and republish the corrected live site`
+- `0d298f4 fix: the public methodology page is generated, so correct it in the generator`
+- `6f3d25d brief: data run 2026-09-28`
 - `2e08f62 data: screener run 2026-09-28 - 502 scored, top: EXPE HST BBY EIX MPC`
 
 ## The session's own account
 
-> 2026-09-25 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+> 2026-09-28 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-24_060001.log` ends "Run complete: shipped to main",
-> tagged `good/2026-09-24` | data loop published? **yes** -
-> `logs/datarun-2026-09-25_020001.log` ends "Data loop complete", HEALTH: PASS,
-> 502 scored, top EXPE HST VLO MPC EIX | evidence base at `1m` = **16 rows,
-> newest 2026-08-26 (30 days ago, bound 40), 3 effective** - steady-state lag,
-> healthy | priority 0 **fixed** (2026-08-24, untouched) | top open roadmap item:
-> **priority 3, backtest v2, 31 days old** - advanced but not closed on
-> 2026-09-24; **deferred today**, see below
-> **Tests:** before **1498/1498**, after **1549/1549** (+51 new, no pre-existing
-> failures)
-> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so the rotation
-> governed; nothing to move to Done. Took Friday's harden-and-teach focus.
-> **Deferred priority 3** - its named next step is "cost a price source for
-> delisted tickers", a procurement decision rather than a hardening task, and
-> today's focus had a nine-session-old error-handling item sitting inside it.
+> `logs/nightly-2026-09-25_060001.log` ends "Run complete: shipped to main",
+> tagged `good/2026-09-25` | data loop published? **yes** -
+> `logs/datarun-2026-09-28_020001.log` ends "Data loop complete", 502 scored, top
+> EXPE HST BBY EIX MPC | evidence base at `1m` = **18 rows, newest 2026-08-28 (31
+> days ago, bound 40), 4 effective** - steady-state lag, healthy | priority 0
+> **fixed** (2026-08-24, untouched) | top open roadmap item: **priority 3,
+> backtest v2, 34 days old** - **deferred again today**, see below
+> **Tests:** before **1537/1549 (12 pre-existing failures)**, after
+> **1561/1561** (+12 new tests, all 12 baseline failures fixed)
+> **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+> move to Done. **The nominal research focus was displaced by a failing ship
+> gate**, which outranks both it and the owner queue: the full suite had **12
+> failures at baseline** before I touched anything, meaning the runner would have
+> merged nothing today. **No research note was produced and no production-code
+> ban applied, because the session was a gate repair, not a research session.**
+> Priority 3 deferred for the seventh time in nine sessions; its gating step is
+> still a procurement decision (cost a price source for delisted tickers).
 > 
 > ### Did
 > 
-> **Closed the `currentPrice` fallback decision, open since 2026-09-11 and carried
-> by nine sessions - and found the item had been scoped to the harmless half of
-> its own root cause.**
+> **Found that the public methodology page is a generated file, that nobody knew
+> it, and that the 02:00 data run had silently reverted the previous session's
+> four corrections and republished them to the live site.**
 > 
-> **1. The root cause is one idiom, used nine times.** `compute_metrics()` reads
-> nine numeric inputs that have two possible sources, every one written as the
-> nested form `d.get(A, d.get(B, np.nan))`. That reaches `B` only when key `A` is
-> **absent**. `_fetch_single_ticker_inner()` writes all nine keys unconditionally -
-> `_safe()` and `_stmt_val()` both return NaN rather than omitting the key - so the
-> fallback can only fire on an exception path, never on the missing-data path it
-> was written for. Replaced with one `_coalesce()` helper that skips a
-> present-but-NaN or `None` value.
+> **1. The baseline was red, which is the whole reason this became the session.**
+> `python -m pytest tests/ test_screener.py -q` reported **12 failed, 1537
+> passed** on an untouched tree. Every failure was in
+> `tests/test_overview_claims.py`, the module the **2026-09-25** session shipped
+> green three days earlier. Both halves failed - the ones reading
+> `SCREENER_OVERVIEW.md` and the ones reading `index.html`.
 > 
-> **2. The inherited framing was that incidence is zero. It is zero only for
-> price.** The 2026-09-11 session checked `currentPrice` on the live payload, found
-> all 502 names carried a price, and concluded this was "a safety net that does not
-> exist rather than a bug that is firing". That was right about `currentPrice` and
-> wrong about the four lines immediately above it, which share the defect. Measured
-> on the four retained raw fetches (`runs/*/00_raw_fetch.parquet`, 503 names each,
-> identical on all four):
-> 
-> | first source NaN, backup usable | names |
-> |---|---|
-> | `totalDebt` -> `totalDebt_bs` | 1 (FISV) |
+> **2. The cause is that `SCREENER_OVERVIEW.md` is generated, and `CLAUDE.md` did
+> not say so.** `run_screener.py` step 11 calls `generate_screener_overview()`,
+> which templates the whole document from `config.yaml` and **overwrites the file
+> on every full run**. Rule 10 listed `dashboard.html`, `index.html` and
+> `dashboard_data.js` as generated; it did not list this one, and "Where things
+> live" filed it under hand-maintained public docs. So the 09-25 session corrected
+> the markdown in good faith, its 14 tests read the markdown and passed, and the
+> **2026-09-28 02:00 data run** (`2e08f62`) regenerated the file, reverted all
+> four corrections, and carried the matching 26-line change into `index.html` and
+> `dashboard.html`. `git log -- SCREENER_OVERVIEW.md` shows this is the **second**
+> time a data-run commit has landed in that file's history (`88b4b46`, 09-11).
 > ...
 
 ---
