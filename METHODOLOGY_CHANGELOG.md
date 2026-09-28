@@ -2408,3 +2408,86 @@ code was also made on the public page. It was not; these were.
 **Rollback:** `good/2026-09-24`. Reverting restores the undescribed 35% metric,
 the contradicted "highest weight" sentence, the claim that the live metric is
 impossible, and the 10-25% fetch-failure figure.
+
+---
+
+## 2026-09-28 - The public methodology page is generated, so the 2026-09-25 corrections are now made where they survive a data run
+
+**Area:** public disclosure / documentation generation. **No score, weight or
+metric definition changes. No stock's composite or rank moves.**
+
+**Changed:** the four prose corrections shipped on 2026-09-25 were written into
+`SCREENER_OVERVIEW.md`. That file is **generated** - `run_screener.py` step 11
+calls `generate_screener_overview()`, which overwrites it from a template on
+every full run. All four were therefore reverted by the **2026-09-28 02:00 data
+run** (commit `2e08f62`) and republished to the live site, three days after they
+shipped. They are now made in the generator:
+
+| # | What the live site said again on 2026-09-28 | Now |
+|---|---|---|
+| 1 | Revisions' heaviest metric (35%) labelled **`fy1_revision_3m`** with an **empty** "What It Measures" cell | Labelled "FY1 EPS Revision (3-month)" and described. `_METRIC_LABELS` / `_REV_DESCRIPTIONS` entries added - neither had ever existed, so the generator had emitted a blank cell since the 2026-09-10 reweight |
+| 2 | "**Analyst Surprise** gets the highest weight" - 15% against 35% | Derived from `config.yaml` by a new `_heaviest()` helper, so the sentence cannot contradict the table above it again |
+| 3 | Limitation 5 + a category note: the forward-EPS-revision metric is "not feasible with yfinance", a future FactSet/Refinitiv enhancement | The real residual limit - 90 days of estimate history against the six-month window Chan, Jegadeesh & Lakonishok measured |
+| 4 | "Approximately **10-25% of tickers may fail to fetch** on a given run" | The measured figure: **0 fetch failures across 9,036 ticker-fetches**, 18 runs, 2026-09-02..25, plus why a bad run cannot publish (`check_run_health.py`) |
+
+The 2026-09-25 session's own two-source-fallback paragraph (Step 1) was reverted
+by the same commit and is restored the same way.
+
+**Evidence:** a documented failure, reproducible from git. `git show 2e08f62 --
+SCREENER_OVERVIEW.md` is the data run deleting all four corrections; the commit
+also carries the matching 26-line change to `index.html` and `dashboard.html`,
+which is how it reached the public site. Confirmed the generator is the source
+rather than a merge artifact: calling `generate_screener_overview()` against the
+live config reproduced the reverted file **byte-identically** (sha256 unchanged),
+and `git log -- SCREENER_OVERVIEW.md` shows a second data-run commit
+(`88b4b46`, 2026-09-11) in the file's history.
+
+Item 1's underlying cause, measured across the whole config: of the **29 metrics
+carrying non-zero weight, exactly one** - `fy1_revision_3m` - had neither a label
+nor a description. The blank cell was not a typo but a missing registration, and
+it had been live for 18 days.
+
+**Root cause, and the part that generalises:** `CLAUDE.md` rule 10 listed
+`dashboard.html`, `index.html` and `dashboard_data.js` as generated and did
+**not** list `SCREENER_OVERVIEW.md`; "Where things live" filed it under
+hand-maintained public docs. The 09-25 session followed the instructions it had.
+Rule 10 and that entry now both name the file and point at the generator. The
+deeper lesson is about the tests: **all 14 of the 09-25 tests read the committed
+artifact**, so they passed on a hand-edit and were structurally blind to what the
+next run would publish. Claims about generated output must be asserted against
+the generator.
+
+**Expected effect:** no ranking effect of any kind. `dashboard_data.js` is
+**byte-identical** to the version the 02:00 run published (sha256 verified), so
+**zero payload cost**; `index.html` moves 290,383 -> 290,393 bytes for the
+corrected text. The durable effect is that the next data run no longer reverts
+any of it.
+
+**Validated by:** `tests/test_overview_is_generated.py`, **12 tests**, **all 12
+failing against the pre-change tree** - 3 as assertion failures on the
+generator's metric dictionaries, 9 as errors because `build_screener_overview()`
+did not exist (verified by stashing `run_screener.py` and re-running). Three
+properties carry the weight:
+
+- **Every non-zero-weight metric in `config.yaml` has a label and a
+  description.** This fails on the 2026-09-10 tree, the day the blank cell was
+  created, rather than 18 days later when a human read the page.
+- **The claims are asserted against freshly generated text**, so a regeneration
+  cannot reintroduce a corrected falsehood.
+- **The committed file must equal the generator's output.** This is the tripwire
+  that fires on a hand-edit and names the generator in its failure message, so
+  the next session cannot repeat the 09-25 mistake.
+
+`build_screener_overview(cfg)` was split out of `generate_screener_overview()`
+purely to make this testable without writing to the protected artifact; verified
+behaviour-preserving (output identical to the file on disk).
+
+The 14 tests from 2026-09-25 are **kept, not replaced**: they assert the
+committed markdown and `index.html` carry the corrections, which is the
+published-state half.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-09-25`. Reverting restores a generator that blanks the
+description of its heaviest Revisions metric and republishes all four false
+statements on the next data run.

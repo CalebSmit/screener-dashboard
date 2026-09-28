@@ -221,12 +221,16 @@ def _max_pos_note(scheme: str, num_stocks: int, max_pos: float) -> str:
 # ---------------------------------------------------------------------------
 # Factor Engine integration (with resilience)
 # ---------------------------------------------------------------------------
-def generate_screener_overview(cfg: dict) -> None:
-    """Auto-generate SCREENER_OVERVIEW.md from the live config.
+def build_screener_overview(cfg: dict) -> str:
+    """Build the text of SCREENER_OVERVIEW.md from the live config.
 
-    Reads metric weights, factor weights, thresholds, and filter settings
-    from cfg and templates them into a human-readable methodology document.
-    This ensures the overview always matches the actual screener configuration.
+    Split out from :func:`generate_screener_overview` on 2026-09-28 so the
+    document's claims can be asserted against what the generator *produces*
+    rather than against the committed file. The distinction is not academic:
+    on 2026-09-25 a session corrected four false statements by editing the
+    committed markdown, every test passed, and the 2026-09-28 02:00 data run
+    regenerated the file and published the false statements back to the live
+    site. Tests that read only the artifact cannot see that coming.
     """
     fw = cfg.get("factor_weights", {})
     mw = cfg.get("metric_weights", {})
@@ -275,6 +279,20 @@ def generate_screener_overview(cfg: dict) -> None:
     rev_w = mw.get("revisions", {})
     size_w = mw.get("size", {})
     inv_w = mw.get("investment", {})
+
+    # The heaviest metric in a category is named in that category's prose. Derive
+    # it rather than writing it down: the 2026-09-10 reweight left the Revisions
+    # paragraph asserting "Analyst Surprise gets the highest weight" when it had
+    # dropped to 15% against FY1 EPS Revision's 35%, and the sentence sat two
+    # lines under a table that contradicted it until 2026-09-25.
+    def _heaviest(weights: dict) -> str:
+        live = {m: w for m, w in weights.items() if w}
+        if not live:
+            return "no metric"
+        metric = max(live, key=lambda m: live[m])
+        return _METRIC_LABELS.get(metric, metric)
+
+    rev_heaviest = _heaviest(rev_w)
 
     # Build composite formula
     factor_order = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
@@ -522,9 +540,13 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(rev_w, _REV_DESCRIPTIONS)}
 
-**Why these?** Estimate revisions and analyst targets are among the most powerful short-term return predictors. When a company consistently beats earnings estimates, the stock price usually follows — but with a lag, which creates an opportunity. Analyst Surprise gets the highest weight because it's a harder, backward-looking signal with less optimism bias than forward price targets. Earnings Acceleration (a continuous delta, not binary) and Beat Score (recency-weighted, not a simple streak counter) capture the *trajectory* and *consistency* of earnings beats — a company whose surprise % is improving quarter-over-quarter, and which has beaten in recent quarters with higher recency weight, signals genuine fundamental momentum. This category is weighted at only {fw.get('revisions', 0)}% because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.
+**Why these?** Estimate revisions and analyst targets are among the most powerful short-term return predictors. **{rev_heaviest} gets the highest weight** because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh & Lakonishok (1996, *Journal of Finance* 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a **+7.7% six-month decile spread** on IBES data 1977–93.
 
-*Note: EPS forecast revision (change in consensus forward EPS over 3-6 months) would be ideal as a fifth metric here but is not feasible with yfinance, which does not provide historical consensus data. Future enhancement: integrate I/B/E/S data from FactSet or Refinitiv.*
+The surprise family — Analyst Surprise, Earnings Acceleration, Beat Score — is *backward*-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, *Critical Finance Review* 11(4)) finds it has been **absent in large caps since 2006**, with a significantly *negative* coefficient over 2016–19. Since this is an S&P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10 and why the revision metric now outweighs any single member of it.
+
+This category is weighted at only {fw.get('revisions', 0)}% of the composite because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.
+
+*Note on the limits of this data: yfinance's estimate history reaches back only **90 days**, so the screener can see a one-quarter revision but not whether a revision trend has **persisted**. Chan, Jegadeesh & Lakonishok's strongest result used a six-month window, which remains out of reach without a paid consensus feed (FactSet, Refinitiv I/B/E/S). The metric itself is not out of reach and has been live since 2026-09-10 — an earlier version of this page said otherwise.*
 
 ---
 
@@ -581,7 +603,9 @@ All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the outp
 The scoring pipeline has six steps:
 
 ### Step 1: Collect Raw Data
-For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
+For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction.
+
+Several inputs arrive from **two places** — Yahoo's summary fields and the filed statements — and the screener prefers one but uses the other when the first is missing: total debt and cash for Enterprise Value prefer the summary figure (it matches Yahoo's own EV definition), while invested capital for ROIC prefers the balance sheet (so equity, debt and cash come from one filing). Since 2026-09-25 those fallbacks actually fire; before that a bug meant they never did, and three S&P 500 companies lost a metric on every run despite the data being present. See `METHODOLOGY_CHANGELOG.md` 2026-09-25. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
 
 ### Step 2: Flag Outliers (but do not change them)
 Every metric below is scored by its **rank** within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does **not** clip extreme values: it records them in the data-quality log (the tails beyond the {out_lo}st and {out_hi}th percentiles) and scores the number it actually fetched.
@@ -832,7 +856,9 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 ## Limitations to Be Aware Of
 
-1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade. Approximately 10-25% of tickers may fail to fetch on a given run due to Yahoo Finance rate limiting (HTTP 429).
+1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade — individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.
+
+   **Fetch reliability, measured:** the 18 scheduled runs from 2026-09-02 to 2026-09-25 report **0 fetch failures across 9,036 ticker-fetches**. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; *corrected 2026-09-25*. Rate limiting remains possible on a free API, which is why a run that fetches badly is **discarded before publication** rather than shipped: `scripts/check_run_health.py` refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median. A number on this site has passed that gate.
 
 2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
@@ -840,7 +866,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 4. **Analyst coverage:** The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.
 
-5. **No EPS revision data:** yfinance does not provide historical consensus EPS estimates, so the Revisions category cannot include the single most powerful revisions signal (change in forward EPS consensus over time). This would require a paid data source like FactSet or Refinitiv I/B/E/S.
+5. **EPS revisions reach back only 90 days:** the Revisions category *does* include a forward-EPS-consensus-change metric — FY1 EPS Revision (3-month), its heaviest at {rev_w.get('fy1_revision_3m', 0)}%, live since 2026-09-10. What is still missing is **depth**: yfinance's estimate history covers about 90 days, so the screener can see a recent revision but not whether the trend has persisted over the six-month window in which Chan, Jegadeesh & Lakonishok (1996) measured the effect most strongly. That longer window would require a paid consensus feed (FactSet, Refinitiv I/B/E/S). *Corrected 2026-09-25: this limitation previously said the metric was not possible at all, which stopped being true on 2026-09-10.*
 
 6. **Rebalance frequency:** The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.
 
@@ -892,8 +918,20 @@ It does this by:
 
 The result is a disciplined, repeatable, multi-dimensional ranking that avoids the tunnel vision of looking at any single metric in isolation.
 """
+    return md
+
+
+def generate_screener_overview(cfg: dict) -> None:
+    """Write SCREENER_OVERVIEW.md from the live config.
+
+    The file is **generated**, not hand-maintained: every full
+    ``run_screener.py`` run overwrites it (step 11), so a correction made to
+    the markdown survives only until the next 02:00 data run. Edit
+    :func:`build_screener_overview` instead. ``CLAUDE.md`` rule 10 lists this
+    file for the same reason.
+    """
     overview_path = ROOT / "SCREENER_OVERVIEW.md"
-    overview_path.write_text(md, encoding="utf-8")
+    overview_path.write_text(build_screener_overview(cfg), encoding="utf-8")
 
 
 # Metric label lookups for the overview generator
@@ -909,6 +947,7 @@ _METRIC_LABELS = {
     "volatility": "Volatility", "beta": "Beta",
     "sharpe_ratio": "Sharpe Ratio", "sortino_ratio": "Sortino Ratio",
     "max_drawdown_1y": "Max Drawdown (1Y)",
+    "fy1_revision_3m": "FY1 EPS Revision (3-month)",
     "analyst_surprise": "Analyst Surprise", "price_target_upside": "Price Target Upside",
     "earnings_acceleration": "Earnings Acceleration", "consecutive_beat_streak": "Beat Score",
     "short_interest_ratio": "Short Interest Ratio",
@@ -965,6 +1004,7 @@ _RISK_DESCRIPTIONS = {
 }
 
 _REV_DESCRIPTIONS = {
+    "fy1_revision_3m": "Change in the consensus current-fiscal-year EPS estimate over the last 90 days, divided by the share price — so it reads in **basis points of price** and is comparable across a $20 stock and a $400 one. Positive = analysts have raised their forecast. This is the category's only true *revision* metric: it measures analysts changing their minds, not companies beating a past estimate.",
     "analyst_surprise": "Median of (Actual - Estimated EPS) / max(|Estimated|, $0.10) over last 4 quarters. Positive = beat expectations.",
     "price_target_upside": "(Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism.",
     "earnings_acceleration": "Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched.",
