@@ -6537,3 +6537,196 @@ Two `METHODOLOGY_CHANGELOG.md` entries, both dated 2026-09-25:
 3. **Priority 4's residual: the run-level overview.** One or two sentences on
    what moved across the whole run - narrow, and the last open piece of the
    2026-08-10 owner directive.
+
+---
+
+## 2026-09-28 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-25_060001.log` ends "Run complete: shipped to main",
+tagged `good/2026-09-25` | data loop published? **yes** -
+`logs/datarun-2026-09-28_020001.log` ends "Data loop complete", 502 scored, top
+EXPE HST BBY EIX MPC | evidence base at `1m` = **18 rows, newest 2026-08-28 (31
+days ago, bound 40), 4 effective** - steady-state lag, healthy | priority 0
+**fixed** (2026-08-24, untouched) | top open roadmap item: **priority 3,
+backtest v2, 34 days old** - **deferred again today**, see below
+**Tests:** before **1537/1549 (12 pre-existing failures)**, after
+**1561/1561** (+12 new tests, all 12 baseline failures fixed)
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+move to Done. **The nominal research focus was displaced by a failing ship
+gate**, which outranks both it and the owner queue: the full suite had **12
+failures at baseline** before I touched anything, meaning the runner would have
+merged nothing today. **No research note was produced and no production-code
+ban applied, because the session was a gate repair, not a research session.**
+Priority 3 deferred for the seventh time in nine sessions; its gating step is
+still a procurement decision (cost a price source for delisted tickers).
+
+### Did
+
+**Found that the public methodology page is a generated file, that nobody knew
+it, and that the 02:00 data run had silently reverted the previous session's
+four corrections and republished them to the live site.**
+
+**1. The baseline was red, which is the whole reason this became the session.**
+`python -m pytest tests/ test_screener.py -q` reported **12 failed, 1537
+passed** on an untouched tree. Every failure was in
+`tests/test_overview_claims.py`, the module the **2026-09-25** session shipped
+green three days earlier. Both halves failed - the ones reading
+`SCREENER_OVERVIEW.md` and the ones reading `index.html`.
+
+**2. The cause is that `SCREENER_OVERVIEW.md` is generated, and `CLAUDE.md` did
+not say so.** `run_screener.py` step 11 calls `generate_screener_overview()`,
+which templates the whole document from `config.yaml` and **overwrites the file
+on every full run**. Rule 10 listed `dashboard.html`, `index.html` and
+`dashboard_data.js` as generated; it did not list this one, and "Where things
+live" filed it under hand-maintained public docs. So the 09-25 session corrected
+the markdown in good faith, its 14 tests read the markdown and passed, and the
+**2026-09-28 02:00 data run** (`2e08f62`) regenerated the file, reverted all
+four corrections, and carried the matching 26-line change into `index.html` and
+`dashboard.html`. `git log -- SCREENER_OVERVIEW.md` shows this is the **second**
+time a data-run commit has landed in that file's history (`88b4b46`, 09-11).
+
+**What went back onto the live site for three days**, and the worst of it is #4:
+
+| # | Republished | Truth |
+|---|---|---|
+| 1 | Revisions' heaviest metric (35%) labelled **`fy1_revision_3m`**, "What It Measures" cell **empty** | The only raw config key and the only blank cell in the document |
+| 2 | "**Analyst Surprise** gets the highest weight" | 15% against 35%, contradicted by the table two lines above |
+| 3 | The forward-revision metric is "not feasible with yfinance", a future FactSet/Refinitiv enhancement | Live and top-weighted since 2026-09-10 |
+| 4 | "Approximately **10-25% of tickers may fail to fetch** on a given run" | The same session had measured **0 failures across 9,036 ticker-fetches** |
+
+**3. Confirmed the generator was the source rather than a merge accident**
+before changing anything: calling `generate_screener_overview()` against the
+live config reproduced the reverted file **byte-identically** (sha256 unchanged,
+`git status` clean afterwards).
+
+**4. Item 1 was a generator defect, not a typo, and I measured its extent.** Of
+the **29 metrics carrying non-zero weight in `config.yaml`, exactly one** had
+neither a `_METRIC_LABELS` entry nor a description: `fy1_revision_3m`.
+`_metric_table()` falls back to `descriptions.get(metric, "")` and
+`_METRIC_LABELS.get(metric, metric)`, so an unregistered metric prints its raw
+key against an empty cell - silently. It had done so for **18 days**, since the
+2026-09-10 reweight made it the category's heaviest input.
+
+**5. Fixed in the generator, with the stale-able claim derived rather than
+written.** Added the label and description; ported the other three corrections
+and the 09-25 two-source-fallback paragraph into the template; and replaced the
+hardcoded "Analyst Surprise gets the highest weight" with a `_heaviest(rev_w)`
+helper that reads `config.yaml`, so that sentence cannot contradict its own
+table again. Regenerated: the output now differs from the 09-25 hand-edited
+version by **one line**, where the derived label reads "FY1 EPS Revision
+(3-month)" against the hand-written "FY1 EPS Revision" - the derived form is the
+more precise one and matches the table row exactly.
+
+**6. The test-level lesson, which is the durable part.** All 14 of the 09-25
+tests read the **committed artifact**, so they passed on a hand-edit and were
+structurally incapable of seeing what the next run would publish. Split
+`build_screener_overview(cfg) -> str` out of `generate_screener_overview()`
+(verified behaviour-preserving: output identical to the file on disk) so claims
+can be asserted against the generator without writing to the protected artifact.
+`tests/test_overview_is_generated.py` adds three properties the artifact tests
+cannot express: every weighted metric has a label and a description (**this fails
+on the 2026-09-10 tree**, the day the blank cell was created); the claims hold in
+freshly generated text; and **the committed file must equal the generator's
+output**, a tripwire whose failure message names the generator. The 14 old tests
+are **kept** - they assert the published state, which is the other half.
+
+**7. Fixed the root cause in `CLAUDE.md`** (rule 9 - keep your own instructions
+true). Rule 10 and "Where things live" now both name `SCREENER_OVERVIEW.md` as
+generated, point at `build_screener_overview()`, and carry the general rule:
+assert claims against generator output, not the committed file.
+
+**8. Also closed the 09-25 session's open prediction** (its "Next" item 1),
+since today's run was the first data run after that ship. Predicted ANET **-79
+ranks**, ISRG **-22**, FISV **+4**. Actual, from `history.delta`: ANET **-93**
+(composite +3.78, **quality +17.4**), ISRG **-22** (+2.74, quality +13.1), FISV
+**+12** (-1.71, valuation -10.0). Direction and mechanism correct on all three;
+ANET and FISV larger than predicted, which is expected - the pre-ship A/B ran
+against a parquet round-trip that drops `_daily_returns`, so risk metrics were
+absent on both sides, and the session said so. **Metric churn confirms the
+mechanism exactly:** diffing availability sets between the 09-25 and 09-28
+snapshots, ANET and ISRG each gained `roic_pct`, `net_debt_to_ebitda_pct` and
+`debt_equity_pct`; FISV gained `ev_ebitda_pct`, `ev_sales_pct`, `fcf_yield_pct`.
+**The A/B reported 2 metrics for ANET/ISRG, not 3** - the third, `debt_equity`,
+carries **weight 0** in config, so it moves the availability set and no score.
+The *Expected effect* line needs no correction.
+
+### Evidence / research
+
+- **The primary evidence is a documented failure, reproducible from git**, which
+  is what a regression warrants and is first-class under the mandate.
+  `git show 2e08f62 -- SCREENER_OVERVIEW.md` is the data run deleting the four
+  corrections; the same commit's `index.html` diff is how they reached the
+  public site. Generator-as-source confirmed by sha256, not by inference.
+- **Coverage audit, reproducible:** 29 non-zero-weight metrics in `config.yaml`,
+  **1** missing both a label and a description. That single number is what
+  turned "a blank cell" into "a missing registration the generator cannot warn
+  about", and it is what the new test asserts.
+- **The citations on the page are the 09-25 session's and are unchanged**, now
+  written where they survive: **Chan, Jegadeesh & Lakonishok (1996,
+  *JF* 51(5))**, analyst-revision leg strongest of three earnings-momentum
+  measures, **+7.7% six-month decile spread**, IBES 1977-93; **Martineau (2022,
+  *Critical Finance Review* 11(4))**, PEAD **absent in large caps since 2006**,
+  coefficient significantly negative 2016-19.
+- **No backtest number and no IC figure justifies anything here** (rules 4, 5).
+  The `1m` horizon holds **4 effective** observations against a gate of 8.
+- **No methodology, weight, metric definition or score changed.** No stock's
+  composite or rank moves from today's work.
+
+### Methodology changed
+
+One `METHODOLOGY_CHANGELOG.md` entry, 2026-09-28: **"The public methodology page
+is generated, so the 2026-09-25 corrections are now made where they survive a
+data run"** - public disclosure and documentation generation, **no score
+change**. `tests/test_overview_is_generated.py`, **12 tests, all 12 failing
+against the pre-change tree** (3 as assertion failures on the generator's metric
+dictionaries, 9 as errors because `build_screener_overview()` did not exist;
+verified by stashing `run_screener.py` and re-running). Cost: `dashboard_data.js`
+**byte-identical** to the version the 02:00 run published, so **zero payload
+cost**; `index.html` 290,383 -> 290,393 bytes.
+
+### Tried and rejected
+
+- **Re-applying the corrections to `SCREENER_OVERVIEW.md`.** The obvious fix and
+  the wrong one - it is exactly what the 09-25 session did, and the 09-29 02:00
+  data run would have reverted it again. Confirmed by regenerating and watching
+  the file come back byte-identical to the reverted version.
+- **Making `generate_screener_overview()` raise on an unregistered metric.** The
+  call site wraps it in `try/except` and only prints `WARNING: Overview
+  generation failed`, so a raise would skip generation and leave whatever stale
+  file was on disk - quieter *and* worse. The check belongs in a test, where it
+  blocks the ship gate instead of degrading an unattended run.
+- **Emitting a visible placeholder for a missing description** (e.g. "*no
+  description*"). That is a prettier version of the defect: it still publishes a
+  content-free cell for a 35%-weighted metric, and it trains a reader to skim
+  past gaps. The metric gets described or the tests fail.
+- **Deleting the 14 artifact-reading tests from 2026-09-25 as superseded.** They
+  are not - asserting the generator says nothing about whether anyone
+  regenerated and committed. The two layers answer different questions and the
+  new tripwire test only works because the committed file is checked too.
+- **Hardcoding "FY1 EPS Revision" in the "highest weight" sentence**, matching
+  the 09-25 text exactly. That is the defect that created item 2 in the first
+  place: the 2026-09-10 reweight left a hardcoded metric name behind. Derived
+  from config instead, which is why the output differs from 09-25 by one line.
+- **Doing the nominal research focus as well.** A gate was red on arrival; the
+  honest report is one thing fixed properly, not a rushed note beside it.
+
+### Next
+
+1. **Audit the other public docs for the same shape.** `SCREENER_OVERVIEW.md`
+   was believed hand-maintained and was generated. The converse is now worth
+   ten minutes: `README.md`, `SCREENER_DEFENSIBILITY_SPEC.md` and
+   `Multi-Factor-Screener-Blueprint.md` are all listed as hand-maintained
+   public docs, and nothing has checked whether any of them contain claims
+   derived from a config value that has since moved - the 2026-09-10 failure
+   mode, one directory over.
+2. **Priority 3, backtest v2 - 34 days old, deferred by seven of the last nine
+   sessions.** Unchanged and still gated on a decision, not code: cost a price
+   source for delisted tickers, because that determines whether v2 can *remove*
+   survivorship bias or only *report* it. Nothing else on that plan should be
+   built first. This is now the clearest case in the log of defect-work crowding
+   out roadmap work, which is exactly what rule 8's roadmap line exists to make
+   visible.
+3. **The research rotation lost its Monday.** Next Monday's session should take a
+   factor/threshold/construction-rule note as normal; nothing is half-finished
+   and no topic is owed.

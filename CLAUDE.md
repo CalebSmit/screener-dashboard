@@ -223,6 +223,25 @@ improving.
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
    generator. `index.html` is what Pages serves.
 
+   **`SCREENER_OVERVIEW.md` is also generated** - added 2026-09-28, because
+   this list not naming it cost the project a live regression. It is written by
+   `build_screener_overview()` in `run_screener.py` (step 11) on **every full
+   run**, so the 02:00 data loop overwrites it five mornings a week. On
+   2026-09-25 a session corrected four false statements on the public
+   methodology page by editing the markdown, shipped 14 passing tests that read
+   the markdown, and the 2026-09-28 data run reverted all four and published
+   them - including a fetch-failure rate the same session had measured at **0 of
+   9,036** and the page put at "10-25% of tickers". Edit the generator, then
+   regenerate.
+
+   **Assert claims against the generator's output, not the committed file.**
+   That is the general lesson and it is what made the 09-25 tests unable to see
+   this: a test reading a generated artifact passes on a hand-edit and says
+   nothing about what the next run will publish.
+   `tests/test_overview_is_generated.py` does it the other way round and
+   includes a tripwire that fails if the committed file drifts from the
+   generator at all.
+
 11. **Finish what you find - apply the fix and verify it, don't leave a
     command for the owner to run.** Owner direction, 2026-08-29: the routine
     is supposed to be self-improving, which means machine-state changes are
@@ -361,7 +380,9 @@ outcome.
   `plan/dashboard-inventory.md` before building anything "new".
 
 ### Docs (public-facing - keep truthful)
-- `SCREENER_OVERVIEW.md` - canonical methodology reference
+- `SCREENER_OVERVIEW.md` - canonical methodology reference. **Generated** by
+  `build_screener_overview()` in `run_screener.py`, rewritten every full run -
+  edit the generator, never this file (rule 10)
 - `METHODOLOGY_CHANGELOG.md` - every methodology change, with evidence
 - `Multi-Factor-Screener-Blueprint.md`, `SCREENER_DEFENSIBILITY_SPEC.md`, `README.md`
 
