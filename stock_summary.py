@@ -45,6 +45,7 @@ computed in the browser - so what shipped is what a reader can diff.
 from __future__ import annotations
 
 import re
+from datetime import date
 
 CATEGORIES = [
     "valuation", "quality", "growth", "momentum",
@@ -539,6 +540,76 @@ def _sentence_flags(detail: dict) -> str | None:
     return f"Flagged as {_join(parts)}."
 
 
+def _sentence_earnings(detail: dict, run_date: str | None) -> str | None:
+    """When the company next reports, and whether that date is confirmed.
+
+    North-star gap 4, and the one selling behaviour the evidence positively
+    endorses: in Akepanidtaworn, Di Mascio, Imas & Schmidt (2023, *Journal of
+    Finance* 78(6)), sells executed on a holding's earnings-announcement day
+    beat non-announcement-day sells by **more than +150 bp/year** and are the
+    only sells in the sample that beat a random-sell counterfactual. The paper
+    reads that as attention: the announcement is an exogenous, pre-scheduled
+    shock that puts the position in front of the manager. A screener cannot
+    supply attention, but it can supply the schedule.
+
+    Three wording decisions, all with tests:
+
+    * **The horizon is anchored to the run, not to the reader's clock.** The
+      summary is baked into the payload at build time and must read identically
+      for everyone (that property is why the chat was removed), so "36 days
+      after this run" is the only phrasing that cannot silently go stale into a
+      falsehood the way a bare "in 36 days" would over a weekend.
+    * **An estimated date is labelled every time.** Measured across all 503
+      tickers on 2026-09-29, 209 of the 492 forthcoming dates (42.5%) were
+      provider estimates rather than company-announced schedules.
+    * **A date at or before the run date is dropped, never relabelled.** It
+      cannot be shown as "next" and there is no evidence for what it is. That
+      guard is not hypothetical: 11 of 503 names that day carried a date
+      already in the past, the provider not having scheduled the next one.
+    """
+    earn = detail.get("earn") or {}
+    day = earn.get("d")
+    if not day or not run_date:
+        return None
+    try:
+        anchor = date.fromisoformat(str(run_date)[:10])
+        when = date.fromisoformat(str(day)[:10])
+    except (TypeError, ValueError):
+        return None
+    days = (when - anchor).days
+    if days < 0:
+        return None
+
+    end_raw = earn.get("end")
+    end = None
+    if end_raw:
+        try:
+            end = date.fromisoformat(str(end_raw)[:10])
+        except (TypeError, ValueError):
+            end = None
+    if end and end > when:
+        window = f"between {_fmt_day(when)} and {_fmt_day(end)}"
+    else:
+        window = f"on {_fmt_day(when)}"
+
+    if days == 0:
+        horizon = "the day of this run"
+    elif days == 1:
+        horizon = "the day after this run"
+    else:
+        horizon = f"{days} days after this run"
+
+    tail = (" - a provider estimate rather than a confirmed date"
+            if earn.get("est") else "")
+    return f"It is scheduled to report earnings {window}, {horizon}{tail}."
+
+
+def _fmt_day(value: date) -> str:
+    """``4 Nov 2026``. Spelled out rather than strftime('%-d') - that directive
+    is not portable to Windows, where this runs."""
+    return f"{value.day} {value.strftime('%b')} {value.year}"
+
+
 def _sentence_confidence(detail: dict) -> str | None:
     """How much of the score is actually supported by data."""
     count = _num(detail.get("metric_count"))
@@ -576,7 +647,8 @@ def _sentence_confidence(detail: dict) -> str | None:
 
 def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
                   metric_weights: dict, history_delta: dict | None = None,
-                  history_compare: dict | None = None) -> list[dict]:
+                  history_compare: dict | None = None,
+                  run_date: str | None = None) -> list[dict]:
     """Build the ordered fact list for one stock.
 
     Returns ``[{"k": kind, "t": sentence}, ...]``. ``kind`` lets the front end
@@ -603,6 +675,14 @@ def build_summary(detail: dict, *, universe_size: int, metric_meta: dict,
         ("peers", _sentence_peers(detail)),
         ("flags", _sentence_flags(detail)),
         ("confidence", _sentence_confidence(detail)),
+        # Last, and immediately after `confidence`, because it is the same kind
+        # of statement: how far the score in front of you can be trusted to
+        # stand. `confidence` says what the score rests on; this says when those
+        # inputs are next replaced. Measured 2026-09-17 across the live payload,
+        # the fundamentals categories move for essentially nobody between
+        # filings (largest one-month Quality move: one stock in 500), so the
+        # report date is when they move at all.
+        ("earnings", _sentence_earnings(detail, run_date)),
     ]
     return [{"k": k, "t": t} for k, t in facts if t]
 

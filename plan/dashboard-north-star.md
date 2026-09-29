@@ -139,8 +139,26 @@ EV/EBITDA across the S&P may still be at the top of its own 5-year range.
 Time-series percentiles would be a genuine analytical addition - and they need
 the same historical spine as gap 1.
 
-**4. Nothing about timing or catalysts.** Earnings date proximity materially
-changes whether today is the day to act. Cheap to add, high decision value.
+**4. ~~Nothing about timing or catalysts.~~ SHIPPED 2026-09-29 - the per-stock
+half.** Changelog 2026-09-29; `plan/dashboard-inventory.md` "Next earnings
+date"; `tests/test_earnings_date.py`, 54 tests, 49 failing against the
+pre-change tree. Both constraints below were honoured and both have tests:
+display-only, and the estimate flag shown. The 2026-09-16 note that it was free
+held up exactly - zero extra API calls, **+7.4 KB gzipped (+0.62%)**.
+
+> **What the build measured that this plan could not.** Across all 503 tickers:
+> **503** carry a date, **209 of the 492** forthcoming ones (**42.5%**) are
+> provider *estimates*, **11** are already in the past and are dropped rather
+> than relabelled, and the start/end window was degenerate **503 times out of
+> 503**. The estimate flag is therefore not a nicety - it is four dates in ten.
+> `research/measurements/2026-09-29-earnings-date-coverage.py` reproduces all of
+> it and prints the 2026-09-29 baseline for drift comparison.
+>
+> **What is still open on this axis** is the *run-level* view: nothing answers
+> "which of my candidates report this week" without opening names one at a time.
+> 8 of 503 were inside seven days on the ship date. The data is already in the
+> payload, so this is a surface question, not a data one - and it is the same
+> shape as the other still-open item, the run-level overview below.
 
 > **Verified available 2026-09-16, and it really is free.** The `.info` dict
 > already fetched at `factor_engine.py:744` carries `earningsTimestampStart` /

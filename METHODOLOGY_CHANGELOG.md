@@ -2491,3 +2491,126 @@ published-state half.
 **Rollback:** `good/2026-09-25`. Reverting restores a generator that blanks the
 description of its heaviest Revisions metric and republishes all four false
 statements on the next data run.
+
+---
+
+## 2026-09-29 - The dashboard gains the one timing fact the evidence endorses: when each company next reports
+
+**Area:** dashboard surface / public disclosure. **No score, weight, metric
+definition, percentile or rank changes.** Nothing added here is scored.
+
+**Changed:** three `.info` fields are now captured at fetch
+(`earningsTimestampStart`, `earningsTimestampEnd`, `isEarningsDateEstimate`),
+carried into `stock_detail[t]["earn"]` as `{"d", "end"?, "est"}`, and rendered
+as a new `earnings` sentence in the baked per-stock summary - so it appears
+both on the drilldown and on every My Holdings row. Zero additional API calls:
+the fields ride the same `.info` dict the fetch already pulls, on the same
+footing as the business descriptions (2026-08-26).
+
+This closes `plan/dashboard-north-star.md` **gap 4**, open since 2026-08-10 and
+confirmed available 2026-09-16. It was the last of that plan's
+cheap-and-high-value items, and the only one resting on a positive result rather
+than on a constraint.
+
+**Evidence:**
+
+1. **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023), "Selling Fast and Buying
+   Slow: Heuristics and Trading Performance of Institutional Investors",
+   *Journal of Finance* 78(6).** 783 portfolios, 4.4 million trades. Sells
+   executed on a holding's earnings-announcement day **beat non-announcement-day
+   sells by more than +150 bp/year**, and are the **only** sells in the sample
+   that beat a random-disposal counterfactual - against a **-80 bp/year**
+   deficit for sells overall. The authors read this as attention rather than
+   skill: an announcement is an exogenous, pre-scheduled shock that puts a
+   position in front of a manager who would otherwise not re-examine it. Buying
+   performance is unchanged on those days, as the attention account predicts.
+
+   This tool cannot supply attention, but it can supply the schedule. Note the
+   symmetry: the *same paper* is already why the holdings panel refuses to rank
+   by size of move (changelog 2026-09-15). This ships its positive half.
+
+2. **This screener's own measured mechanics.** Its Valuation, Quality and Growth
+   inputs come from filings and barely move between them: measured 2026-09-17
+   across a month of this repo's snapshots, the largest one-month category move
+   was Risk 34%, Revisions 29%, Momentum 26% and **Quality 0.2% - one stock in
+   500**. A report is when those numbers are actually replaced. That makes the
+   report date a statement about the shelf life of the score on screen, which is
+   why the sentence sits immediately after `confidence` and nowhere else.
+
+3. **Provider behaviour, measured across all 503 tickers on 2026-09-29.**
+   Reproducible with `research/measurements/2026-09-29-earnings-date-coverage.py`
+   (`--quick` for an 80-name sample):
+
+   | Property | Measured | What it decided |
+   |---|---|---|
+   | Coverage | **503 of 503** carry a start date | the surface is worth building |
+   | Estimated dates | **209 of 492 future dates (42.5%)**, flag never absent | `est` is load-bearing, not decorative |
+   | Stale "next" dates | **11 of 503** already in the past | the drop-never-relabel guard is real, not theoretical |
+   | Windows (`end` != `start`) | **0 of 503** | `end` is emitted only when it differs; no duplicate date on 500 stocks |
+   | UTC vs US/Eastern date | **0 of 503 disagree** (stamps are 12:30 / 20:00 UTC only) | reading the UTC date is safe |
+   | Horizon | min 0 / median 30 / max 86 days; 8 within a week | the surface is live, not dormant |
+
+**Four constraints, each with tests:**
+
+- **Display-only, permanently.** A proximity-to-earnings number reaching
+  `raw`/`pct` would be a new factor smuggled in as a UI feature. Tests assert
+  the fields are absent from `METRIC_COLS`, `METRIC_DIR`, every weight block in
+  `config.yaml`, and from `raw`/`pct` in the published payload.
+- **An estimated date is labelled every time.** At 42.5%, a missing flag reading
+  as "confirmed" would present four dates in ten as a schedule when they are the
+  provider's guess. The confirmed and estimated sentences are asserted to differ
+  **only** by the appended caveat, so the uncertainty is isolable.
+- **The wording and the styling do not change with proximity.** No countdown, no
+  colour ramp, no badge. The evidence says announcement days are when attention
+  is well spent; it does **not** say a near report is good or bad news, and an
+  escalating treatment would assert the second. Two tests pin this, one on the
+  prose and one on the CSS rule.
+- **`earningsTimestamp` is deliberately not captured.** Measured on the same
+  run: it equals the *next* date for 27 tickers and is a *past* date for 56. No
+  label is true of every row. A test greps the fetcher to keep the
+  obvious-looking field unread.
+
+**One wording decision worth recording:** the horizon reads "36 days after this
+run", not "in 36 days". The summary is baked into the payload at build time -
+that property is why the AI chat was removed (changelog 2026-09-08) - and the
+site is rebuilt on weekdays only, so a reader-relative phrasing would silently
+decay into a falsehood across a weekend while still reading as current. Naming
+the anchor makes a stale page obviously stale.
+
+**Expected effect:** no stock's composite, category score, percentile or rank
+moves. 491 of 502 stocks gain one sentence on the drilldown and on their
+holdings row; the 11 with no scheduled next date gain nothing, rather than a
+date that has already passed.
+
+**Validated by:** `tests/test_earnings_date.py`, **54 tests, 49 of which fail
+against the pre-change tree** - the 5 that pass are the display-only guards,
+vacuously true while the fields did not exist. One drives the emitted script
+under Node against a stubbed DOM and reads the rendered holdings row.
+`tests/test_holdings_panel.py`'s exact-membership pin on `HOLDINGS_FACTS` was
+updated deliberately, with the citation, exactly as it was for `input_churn`.
+
+Verified end to end against **real provider data** before shipping, by injecting
+the three columns the next live fetch will write into a scratch copy of the
+2026-09-29 run directory and regenerating: 502 of 502 details carry `earn`, 208
+flagged estimate, 0 windows, **491 sentences emitted and 0 of the 11 past-dated
+names produced one**, and 0 advice-term breaches across all 491. Spot-checked
+against hand-fetched values: AAPL 29 Oct, JPM 13 Oct, NVDA 17 Nov, HST 4 Nov,
+EXPE 5 Nov (estimated) - all exact.
+
+**Cost, measured on that full-data build:** payload **1,204.9 -> 1,212.3 KB
+gzipped, +7.4 KB (+0.62%)**; `index.html` 67.5 -> 68.3 KB gzipped. For scale,
+the 2026-09-08 summaries cost +101 KB gzipped.
+
+**Not on the live site yet, and that is expected.** Today's published payload is
+**byte-identical**: the 2026-09-29 02:00 fetch predates the new columns, so
+`earn` is absent and no sentence renders. Every data run does a cold fetch
+(verified - `00_raw_fetch.parquet` is rewritten each run and there is no `.info`
+cache), so the **2026-09-30 02:00 run picks the fields up with no forced refetch
+and no manual step**. Until then the footnote paragraph describes a line that is
+not visible yet, under a panel that ships collapsed when empty.
+
+**Applied by:** morning session (manual).
+
+**Rollback:** `good/2026-09-29`. Reverting removes the surface and the three
+captured fields; nothing downstream reads them, so no score is affected either
+way.

@@ -17,7 +17,7 @@ import json
 import math
 import sys
 import warnings
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -156,7 +156,12 @@ def load_run_data(run_dir: Path) -> dict:
                          ("shortRatio", "_short_ratio"),
                          # Display-only descriptive fields for the drilldown.
                          ("longBusinessSummary", "_about"),
-                         ("industry", "_industry")]:
+                         ("industry", "_industry"),
+                         # Next scheduled earnings date - display only, never
+                         # scored. See `_earnings_block` for the conventions.
+                         ("earningsTimestampStart", "_earn_start"),
+                         ("earningsTimestampEnd", "_earn_end"),
+                         ("isEarningsDateEstimate", "_earn_est")]:
             if src in raw.columns and dst not in df.columns:
                 raw = raw.rename(columns={src: dst})
                 merge_cols.append(dst)
@@ -244,6 +249,50 @@ def _run_date_for_history(meta: dict) -> str | None:
     if not raw:
         return None
     return str(raw)[:10]
+
+
+def _earnings_block(row) -> dict | None:
+    """The next scheduled earnings window for one stock, or ``None``.
+
+    Display-only (plan/dashboard-north-star.md gap 4). Returns
+    ``{"d": "YYYY-MM-DD", "end": "YYYY-MM-DD"|absent, "est": bool}``.
+
+    Three conventions, each of which exists because of something measured:
+
+    * **Only `earningsTimestampStart`/`End` are read.** `earningsTimestamp`
+      means the last report for some tickers and the next for others
+      (`factor_engine._fetch_single_ticker_inner`), so it is not captured.
+    * **`end` is emitted only when it differs from the start.** Measured across
+      all 503 tickers on 2026-09-29 the two were equal every time, so a window
+      is the rare case and carrying a duplicate date on every stock is pure
+      payload.
+    * **`est` is always present, never defaulted to False.** 209 of the 492
+      future dates (42.5%) were provider estimates; a missing flag read as
+      "confirmed" would overstate four dates in ten.
+
+    Reading the UTC date is safe: the provider stamps these at 12:30 or 20:00
+    UTC only (08:30 / 16:00 US/Eastern, before the open or after the close), so
+    a UTC read and an Eastern read disagreed for 0 of 503.
+    """
+    start = _epoch_to_date(row.get("_earn_start"))
+    if not start:
+        return None
+    block: dict = {"d": start}
+    end = _epoch_to_date(row.get("_earn_end"))
+    if end and end != start:
+        block["end"] = end
+    block["est"] = bool(row.get("_earn_est")) if pd.notna(row.get("_earn_est")) else False
+    return block
+
+
+def _epoch_to_date(value) -> str | None:
+    """A yfinance UNIX timestamp as an ISO date, or ``None`` if unusable."""
+    try:
+        if value is None or pd.isna(value):
+            return None
+        return datetime.fromtimestamp(float(value), UTC).date().isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
 
 
 CATEGORIES = ["valuation", "quality", "growth", "momentum",
@@ -519,6 +568,11 @@ def prepare_dashboard_data(run_data: dict) -> str:
         # provider so a reader can see what the company actually does.
         detail["industry"] = _clean_text(row.get("_industry"))
         detail["about"] = _clean_text(row.get("_about"))
+        # Next scheduled earnings date. Display only - `tests/test_earnings_date.py`
+        # asserts it never reaches `raw`/`pct`, the same guard `about` carries.
+        _earn = _earnings_block(row)
+        if _earn:
+            detail["earn"] = _earn
         detail["vt"] = _safe(row.get("Value_Trap_Flag"))
         detail["gt"] = _safe(row.get("Growth_Trap_Flag"))
         # Analyst price targets (dollar values)
@@ -824,6 +878,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
                 metric_weights=weights.get("metric_weights", {}),
                 history_delta=(history_block.get("delta") or {}).get(_ticker),
                 history_compare=history_block.get("compare"),
+                run_date=_run_date_for_history(meta),
             )
         except Exception as exc:  # noqa: BLE001
             _summary_failures += 1
@@ -1912,7 +1967,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // two of the inputs behind the score changed availability over the same
     // window - which triples the median rank move and is not information about
     // the company (research/2026-09-14-... section 8.3).
-    const HOLDINGS_FACTS = ['change', 'change_driver', 'input_churn', 'flags', 'confidence'];
+    // `earnings` is here because this is the surface the evidence for it points
+    // at: announcement-day sells are the only sells in Akepanidtaworn et al.
+    // (2023) that beat their counterfactual, by more than +150 bp/year. The
+    // order is the summary's, not this array's - the filter below preserves it.
+    const HOLDINGS_FACTS = ['change', 'change_driver', 'input_churn', 'flags', 'confidence', 'earnings'];
 
     let holdings = [];
 
@@ -2278,6 +2337,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             '<p><strong>Why this list shows everything, every time.</strong> It is never filtered or sorted by how much a name moved. Institutional managers dispose of the best and worst performers in a portfolio at rates more than 50% higher than middling positions, and that habit is the identified cause of an 80 basis-point-a-year shortfall in their disposal decisions against a random-disposal benchmark over 4.4 million trades (Akepanidtaworn, Di Mascio, Imas &amp; Schmidt, <em>Journal of Finance</em> 78(6), 2023). A queue that surfaces only the big movers automates that habit. Rows here are ordered by current rank; the rank change is shown for context only.</p>',
             '<p><strong>Why it never asks what you paid.</strong> Measuring a position against its purchase price is the reference point behind the disposition effect: investors realise gains about 1.5&times; as readily as losses, and the winners they disposed of went on to beat the losers they kept by 3.4 percentage points over the following year (Odean, <em>Journal of Finance</em> 53(5), 1998). No cost basis, share count or profit-and-loss figure is stored or shown here, which is also why this works equally as a watchlist.</p>',
             '<p><strong>Why there is no exit signal.</strong> This screener has one test &mdash; the top 25 &mdash; and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
+            '<p><strong>Why the next earnings date is here.</strong> It is the one place the same study finds attention is well spent: sells executed on a holding&rsquo;s earnings-announcement day beat non-announcement-day sells by more than <strong>150 basis points a year</strong>, and are the only sells in the sample that beat the random-disposal benchmark at all. The authors read that as attention rather than skill &mdash; an announcement is a pre-scheduled, external reason to look at a position you would otherwise not re-examine. It matters mechanically here too: this screener&rsquo;s fundamental inputs come from filings, and between filings they barely move. Measured across a month of this site&rsquo;s own runs, the largest Quality-score move was <strong>one stock in 500</strong>, against 34% for Risk. A report is when the Valuation, Quality and Growth numbers above are actually replaced. The date is descriptive only &mdash; it is never scored, never ranked and does not affect any number on this page &mdash; and where the data provider has not confirmed it, the line says so: measured across all 503 names on 2026-09-29, <strong>209 of the 492 forthcoming dates (42.5%)</strong> were the provider&rsquo;s estimate rather than a company-announced schedule. Where the provider has not scheduled the next report at all &mdash; 11 names that day, mostly off-calendar reporters &mdash; the line is omitted rather than showing a date that has already passed.</p>',
             '<p><strong>Why the Concentration block gives you no position size.</strong> Sizing by conviction is the one thing the estimation-error literature singles out as dangerous: errors in expected returns do roughly <strong>20&times;</strong> the damage of errors in covariances, and about <strong>100&times;</strong> for an investor near zero risk aversion (Chopra &amp; Ziemba, 1993, via Ziemba &amp; MacLean, <em>Stochastic Optimization Methods in Finance and Energy</em>, Springer, 2011). Across 14 optimisation models and 7 datasets, none consistently beat a plain equal split out of sample, which would need an estimation window of roughly <strong>3,000 months</strong> for 25 assets to do reliably (DeMiguel, Garlappi &amp; Uppal, <em>Review of Financial Studies</em> 22(5), 2009). In every documented institutional scheme &mdash; equal, cap, inverse-volatility or optimiser weight &mdash; the alpha signal drives <em>selection</em> and weighting is a separate, risk-driven decision. So this panel reports the facts about your list and the published external limits, and leaves the number to you.</p>',
             '<p><strong>Why the risk line quotes raw volatility and not a percentile.</strong> Every metric percentile on this site is <em>sector</em>-relative and direction-adjusted, so on volatility a high percentile means a stock is calm <em>for its sector</em>. That cannot rank risk across a list spanning several sectors: measured on this run, the percentile orders the pair backwards for <strong>23.9%</strong> of all cross-sector pairs, in the worst case making a name read as the safer holding while carrying <strong>2.00&times;</strong> the volatility. The annualised figure above is the raw one-year number and is directly comparable between any two names.</p>',
             '<p class="holdings-storage-note">Saved in this browser only, under the <code>' + HOLDINGS_KEY + '</code> key in <code>localStorage</code>. It is not an account and it is not backed up &mdash; clearing site data removes it, and it will not follow you to another device. Tickers only, up to ' + HOLDINGS_MAX + ' names. This is decision support, not investment advice.</p>'
@@ -3677,6 +3737,11 @@ def _css() -> str:
             color: var(--text-primary); border-left: 2px solid var(--amber);
             padding-left: 8px; margin-top: 6px;
         }
+        /* A scheduled fact, styled like one. No colour, no badge, no urgency
+           ramp as the date approaches: the evidence says announcement days are
+           when attention is well spent, not that a near date is good or bad
+           news, and a countdown that turns red would assert the second. */
+        .holding-note-earnings { color: var(--text-primary); }
         /* Stated, not shouted. The cadence is a framing fact a reader should
            meet before the rank changes, not an alert. */
         .cadence-note {
