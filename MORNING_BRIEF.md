@@ -1,4 +1,4 @@
-# Morning Brief - Monday 28 September 2026, 06:24
+# Morning Brief - Tuesday 29 September 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,17 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-28T02:00:04.753730 |
+| Dashboard data from | 2026-09-29T02:00:04.389921 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, EIX, MPC |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (18 rows, but overlapping windows are not independent; 58 rows across all horizons), newest 2026-09-21 |
+| Top 5 | EXPE, HST, MPC, CAH, VLO |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (18 rows, but overlapping windows are not independent; 59 rows across all horizons), newest 2026-09-22 |
 
 ## What changed in the repo
 
+- `826afad data: screener run 2026-09-29 - 502 scored, top: EXPE HST MPC CAH VLO`
+- `e88c695 brief: code session 2026-09-28`
 - `9a83f3b log: changelog, nightly log, and CLAUDE.md rule 10 now names the generated doc`
 - `b4b24e1 docs: regenerate the methodology page and republish the corrected live site`
 - `0d298f4 fix: the public methodology page is generated, so correct it in the generator`
