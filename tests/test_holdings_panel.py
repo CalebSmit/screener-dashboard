@@ -425,12 +425,22 @@ def test_review_notes_are_the_baked_summary_facts(script, tmp_path):
             leaked_rank: html.includes('Ranks 3rd of 4'),
         }));
     """, tmp_path)
-    # `input_churn` joined the list 2026-09-17 - the caveat saying part of a
-    # move may be an input going missing rather than the company changing. It
-    # sits directly after the two sentences it qualifies, so a reader cannot
-    # meet the move without it. See tests/test_input_churn.py.
+    # This list is exact on purpose: it is the gate that keeps the drilldown's
+    # other sentences off a review row. Two additions have earned their place,
+    # and each cites a source rather than a preference.
+    #
+    # `input_churn`, 2026-09-17 - the caveat saying part of a move may be an
+    # input going missing rather than the company changing. It sits directly
+    # after the two sentences it qualifies, so a reader cannot meet the move
+    # without it. See tests/test_input_churn.py.
+    #
+    # `earnings`, 2026-09-29 - the next scheduled report date. Announcement-day
+    # sells are the only sells in Akepanidtaworn et al. (2023, *JF* 78(6)) that
+    # beat their counterfactual, by more than +150 bp/year, which makes a
+    # holdings row the surface that result actually points at. See
+    # tests/test_earnings_date.py.
     assert out["facts"] == ["change", "change_driver", "input_churn",
-                            "flags", "confidence"]
+                            "flags", "confidence", "earnings"]
     assert out["has_change"] and out["has_driver"]
     assert out["has_flags"] and out["has_confidence"]
     assert out["leaked_peers"] is False

@@ -809,6 +809,28 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # Zero additional API cost - same .info dict fetched above. Display
         # only: never scored, never ranked, never fed to a metric.
         rec["longBusinessSummary"] = _safe(info, "longBusinessSummary", "")
+        # Next scheduled earnings date. Zero additional API cost - same .info
+        # dict fetched above. Display only: never scored, never ranked, never
+        # fed to a metric (plan/dashboard-north-star.md gap 4).
+        #
+        # `earningsTimestamp` is deliberately NOT captured. Measured live
+        # 2026-09-29: it holds the *last* report for some tickers (AAPL
+        # 2026-07-30, EXPE 2026-08-05) and the *next* for others (HST, JPM and
+        # NVDA all returned their forthcoming date), so there is no label that
+        # is true of every row. Start/End are unambiguously the next window.
+        #
+        # Measured over all 503 tickers 2026-09-29: 503 carry a start date,
+        # start and end were equal every time, and the timestamp is only ever
+        # 12:30 or 20:00 UTC - 08:30 and 16:00 US/Eastern, before the open or
+        # after the close. Nothing sits near a date boundary, so reading the
+        # UTC date and reading the Eastern date disagree for 0 of 503.
+        rec["earningsTimestampStart"] = _safe(info, "earningsTimestampStart")
+        rec["earningsTimestampEnd"]   = _safe(info, "earningsTimestampEnd")
+        # 209 of the 492 future dates (42.5%) are the provider's estimate
+        # rather than a confirmed schedule, and the flag was present on every
+        # one. This is what keeps the dashboard from presenting a guess with
+        # the same confidence as a company-announced date.
+        rec["isEarningsDateEstimate"] = _safe(info, "isEarningsDateEstimate", None)
         # Analyst price target fields (zero additional API cost — same .info dict)
         rec["targetMeanPrice"]         = _safe(info, "targetMeanPrice")
         rec["targetHighPrice"]         = _safe(info, "targetHighPrice")
