@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 29 September 2026, 02:13
+# Morning Brief - Tuesday 29 September 2026, 06:26
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,10 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `8334521 log: changelog, nightly log, and both dashboard plans updated for gap 4`
+- `5c49739 build: regenerate dashboard artifacts for the earnings surface`
+- `733e168 feat: surface each stock's next earnings date (north-star gap 4)`
+- `859ec29 brief: data run 2026-09-29`
 - `826afad data: screener run 2026-09-29 - 502 scored, top: EXPE HST MPC CAH VLO`
 - `e88c695 brief: code session 2026-09-28`
 - `9a83f3b log: changelog, nightly log, and CLAUDE.md rule 10 now names the generated doc`
@@ -28,51 +32,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-28 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+> 2026-09-29 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-25_060001.log` ends "Run complete: shipped to main",
-> tagged `good/2026-09-25` | data loop published? **yes** -
-> `logs/datarun-2026-09-28_020001.log` ends "Data loop complete", 502 scored, top
-> EXPE HST BBY EIX MPC | evidence base at `1m` = **18 rows, newest 2026-08-28 (31
-> days ago, bound 40), 4 effective** - steady-state lag, healthy | priority 0
-> **fixed** (2026-08-24, untouched) | top open roadmap item: **priority 3,
-> backtest v2, 34 days old** - **deferred again today**, see below
-> **Tests:** before **1537/1549 (12 pre-existing failures)**, after
-> **1561/1561** (+12 new tests, all 12 baseline failures fixed)
+> `logs/nightly-2026-09-28_060001.log` ends "Run complete: shipped to main" |
+> data loop published? **yes** - `logs/datarun-2026-09-29_020001.log` ends "Data
+> loop complete", HEALTH: PASS, 0 fetch failures, 502 scored |
+> evidence base at `1m` = **18 rows, newest 2026-08-28 (32 days ago, bound 40),
+> 4 effective** - inside the tripwire, and the lag is the normal 30-33-day
+> steady state |
+> priority 0 **fixed 2026-08-24, not weakened** (`_effective_observations()`
+> still gates; `allow_auto_apply` still false; 4 effective against a gate of 8) |
+> top open roadmap item: **priority 3, backtest v2 - 35 days old**, deferred
+> again today, see below.
+> 
+> **Tests:** before **1561/1561**, after **1615/1615** (+54)
+> 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
-> move to Done. **The nominal research focus was displaced by a failing ship
-> gate**, which outranks both it and the owner queue: the full suite had **12
-> failures at baseline** before I touched anything, meaning the runner would have
-> merged nothing today. **No research note was produced and no production-code
-> ban applied, because the session was a gate repair, not a research session.**
-> Priority 3 deferred for the seventh time in nine sessions; its gating step is
-> still a procurement decision (cost a price source for delisted tickers).
+> claim or move to Done. Took the nominal **Tuesday product** focus. Nothing was
+> deferred for a stalled loop or a failing gate - both loops are healthy and the
+> baseline was clean. **Priority 3 deferred for the eighth time in ten sessions**;
+> its gating step is still a procurement decision, not code (cost a price source
+> for delisted tickers), and today's item closed a standing owner-directive gap
+> instead - see "Tried and rejected".
 > 
 > ### Did
 > 
-> **Found that the public methodology page is a generated file, that nobody knew
-> it, and that the 02:00 data run had silently reverted the previous session's
-> four corrections and republished them to the live site.**
+> **Shipped north-star gap 4 - earnings-date proximity - which had been open 50
+> days and was the last of the plan's cheap-and-high-value items.**
+> `METHODOLOGY_CHANGELOG.md` 2026-09-29; `tests/test_earnings_date.py`, **54
+> tests, 49 of which fail against the pre-change tree**.
 > 
-> **1. The baseline was red, which is the whole reason this became the session.**
-> `python -m pytest tests/ test_screener.py -q` reported **12 failed, 1537
-> passed** on an untouched tree. Every failure was in
-> `tests/test_overview_claims.py`, the module the **2026-09-25** session shipped
-> green three days earlier. Both halves failed - the ones reading
-> `SCREENER_OVERVIEW.md` and the ones reading `index.html`.
+> **1. What the dashboard could not answer.** Opening it as a user, it can tell
+> you 44 metrics about a company and cannot tell you **when that company next
+> reports**. That matters twice over here. Behaviourally, it is the one selling
+> behaviour the evidence positively endorses. Mechanically, this screener's
+> Valuation, Quality and Growth inputs come from filings and barely move between
+> them - measured 2026-09-17, the largest one-month Quality move was **one stock
+> in 500** - so the report date is when those numbers are actually replaced. The
+> score on screen has a shelf life and the page never said when it expires.
 > 
-> **2. The cause is that `SCREENER_OVERVIEW.md` is generated, and `CLAUDE.md` did
-> not say so.** `run_screener.py` step 11 calls `generate_screener_overview()`,
-> which templates the whole document from `config.yaml` and **overwrites the file
-> on every full run**. Rule 10 listed `dashboard.html`, `index.html` and
-> `dashboard_data.js` as generated; it did not list this one, and "Where things
-> live" filed it under hand-maintained public docs. So the 09-25 session corrected
-> the markdown in good faith, its 14 tests read the markdown and passed, and the
-> **2026-09-28 02:00 data run** (`2e08f62`) regenerated the file, reverted all
-> four corrections, and carried the matching 26-line change into `index.html` and
-> `dashboard.html`. `git log -- SCREENER_OVERVIEW.md` shows this is the **second**
-> time a data-run commit has landed in that file's history (`88b4b46`, 09-11).
+> **2. What shipped.** Three `.info` fields captured at fetch
+> (`earningsTimestampStart`, `earningsTimestampEnd`, `isEarningsDateEstimate`),
+> carried as `stock_detail[t]["earn"]`, rendered as a new `earnings` sentence in
+> the baked summary. **One implementation, two surfaces** - the drilldown and
+> every My Holdings row - because `HOLDINGS_FACTS` lifts kinds out of the same
 > ...
 
 ---
