@@ -6730,3 +6730,197 @@ cost**; `index.html` 290,383 -> 290,393 bytes.
 3. **The research rotation lost its Monday.** Next Monday's session should take a
    factor/threshold/construction-rule note as normal; nothing is half-finished
    and no topic is owed.
+
+---
+
+## 2026-09-29 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-28_060001.log` ends "Run complete: shipped to main" |
+data loop published? **yes** - `logs/datarun-2026-09-29_020001.log` ends "Data
+loop complete", HEALTH: PASS, 0 fetch failures, 502 scored |
+evidence base at `1m` = **18 rows, newest 2026-08-28 (32 days ago, bound 40),
+4 effective** - inside the tripwire, and the lag is the normal 30-33-day
+steady state |
+priority 0 **fixed 2026-08-24, not weakened** (`_effective_observations()`
+still gates; `allow_auto_apply` still false; 4 effective against a gate of 8) |
+top open roadmap item: **priority 3, backtest v2 - 35 days old**, deferred
+again today, see below.
+
+**Tests:** before **1561/1561**, after **1615/1615** (+54)
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+claim or move to Done. Took the nominal **Tuesday product** focus. Nothing was
+deferred for a stalled loop or a failing gate - both loops are healthy and the
+baseline was clean. **Priority 3 deferred for the eighth time in ten sessions**;
+its gating step is still a procurement decision, not code (cost a price source
+for delisted tickers), and today's item closed a standing owner-directive gap
+instead - see "Tried and rejected".
+
+### Did
+
+**Shipped north-star gap 4 - earnings-date proximity - which had been open 50
+days and was the last of the plan's cheap-and-high-value items.**
+`METHODOLOGY_CHANGELOG.md` 2026-09-29; `tests/test_earnings_date.py`, **54
+tests, 49 of which fail against the pre-change tree**.
+
+**1. What the dashboard could not answer.** Opening it as a user, it can tell
+you 44 metrics about a company and cannot tell you **when that company next
+reports**. That matters twice over here. Behaviourally, it is the one selling
+behaviour the evidence positively endorses. Mechanically, this screener's
+Valuation, Quality and Growth inputs come from filings and barely move between
+them - measured 2026-09-17, the largest one-month Quality move was **one stock
+in 500** - so the report date is when those numbers are actually replaced. The
+score on screen has a shelf life and the page never said when it expires.
+
+**2. What shipped.** Three `.info` fields captured at fetch
+(`earningsTimestampStart`, `earningsTimestampEnd`, `isEarningsDateEstimate`),
+carried as `stock_detail[t]["earn"]`, rendered as a new `earnings` sentence in
+the baked summary. **One implementation, two surfaces** - the drilldown and
+every My Holdings row - because `HOLDINGS_FACTS` lifts kinds out of the same
+summary. Zero API calls: the fields ride the `.info` dict the fetch already
+pulls, exactly like the business descriptions (2026-08-26).
+
+> It is scheduled to report earnings on 5 Nov 2026, 37 days after this run - a
+> provider estimate rather than a confirmed date.
+
+**3. I measured the provider before designing against it, and the numbers
+changed the design.** All 503 tickers, 2026-09-29, reproducible with
+`research/measurements/2026-09-29-earnings-date-coverage.py`:
+
+| Property | Measured | What it decided |
+|---|---|---|
+| Coverage | **503 of 503** carry a date | worth a surface at all |
+| **Estimated dates** | **209 of 492 (42.5%)**, flag never absent | `est` is the load-bearing part, not a footnote |
+| Stale "next" dates | **11 of 503** already past | the drop-never-relabel guard is real |
+| Windows (`end` != `start`) | **0 of 503** | emit `end` only when it differs - no duplicate date on 500 stocks |
+| UTC vs US/Eastern date | **0 of 503 disagree** | reading the UTC date is safe |
+| Horizon | min 0 / median 30 / max 86 days, **8 inside a week** | the surface is live, not dormant |
+
+The 42.5% is the finding that mattered. The plan (2026-09-16) said "show the
+estimate flag" as a caution; it is not a caution, it is **four dates in ten**.
+Presenting them uniformly would have published a provider guess as a schedule
+for nearly half the universe.
+
+**4. `earningsTimestamp` is deliberately not captured, and that is measured
+too.** It is the obvious-looking third field. On the same run it equals the
+**next** date for 27 tickers and is a **past** date for 56 - no label is true of
+every row. A test greps the fetcher so the next person reaching for it fails
+loudly.
+
+**5. Verified end to end against real provider data before shipping**, not just
+in unit tests. Injected the three columns the next live fetch will write into a
+scratch copy of the 2026-09-29 run directory and regenerated: **502 of 502**
+details carry `earn`, 208 flagged estimate, 0 windows, **491 sentences emitted
+and 0 of the 11 past-dated names produced one**, **0 advice-term breaches across
+all 491**. Spot-checked against hand-fetched values - AAPL 29 Oct, JPM 13 Oct,
+NVDA 17 Nov, HST 4 Nov, EXPE 5 Nov (estimated) - all exact.
+
+**6. Cost, measured on that full-data build:** payload **1,204.9 -> 1,212.3 KB
+gzipped, +7.4 KB (+0.62%)**; `index.html` 67.5 -> 68.3 KB gzipped. For scale the
+2026-09-08 summaries cost +101 KB.
+
+**7. Today's published payload is byte-identical, deliberately.** The 02:00
+fetch predates the new columns, so `earn` is absent and no sentence renders yet.
+Verified that every data run does a **cold** fetch - `00_raw_fetch.parquet` is
+rewritten each run and there is no `.info` cache - so the **2026-09-30 02:00 run
+picks the fields up with no forced refetch and no manual step**. This is not the
+2026-08-26 `about` situation, which needed one. `git status` confirms
+`dashboard_data.js` unmodified.
+
+**8. Updated three process docs in the same session (rule 9).**
+`plan/dashboard-inventory.md` (header date, a new "Next earnings date" section,
+the summary-kind count 11 -> 13, the holdings-panel additions list, and gap 4
+struck through), `plan/dashboard-north-star.md` gap 4, and the changelog.
+
+**9. I also changed an existing test on purpose, and want that on the record.**
+`tests/test_holdings_panel.py::test_review_notes_are_the_baked_summary_facts`
+exact-matches `HOLDINGS_FACTS` - it is the gate stopping drilldown sentences
+leaking onto a review row. Adding `earnings` made it fail, correctly. I updated
+the expected list **and the comment above it with the citation**, exactly as the
+2026-09-17 session did for `input_churn`. The test is still an exact-equality
+pin; nothing was loosened.
+
+### Evidence / research
+
+- **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023), "Selling Fast and Buying
+  Slow", *Journal of Finance* 78(6).** 783 portfolios, 4.4 million trades. Sells
+  on a holding's earnings-announcement day beat non-announcement-day sells by
+  **more than +150 bp/year** and are the **only** sells in the sample that beat
+  a random-disposal counterfactual, against **-80 bp/year** for sells overall.
+  Attributed to attention, not skill: buying performance is unchanged on those
+  days, as that account predicts. **The symmetry is the point** - this is the
+  same paper that is already why the holdings panel refuses to rank by size of
+  move (2026-09-15). Today ships its positive half, so the panel now rests on
+  both halves of one source rather than only its prohibition.
+- **This repo's own 2026-09-17 measurement** of one-month category movement:
+  Risk 34%, Revisions 29%, Momentum 26%, **Quality 0.2%**. This is what makes
+  the report date a statement about the score's shelf life rather than a piece
+  of trivia, and it is why the sentence sits immediately after `confidence`.
+- **Live provider measurement, 2026-09-29, all 503 tickers** - the table above.
+  Every design decision traces to one of those numbers.
+- **No backtest number and no IC figure justifies anything here** (rules 4, 5).
+  The `1m` horizon holds **4 effective** observations against a gate of 8.
+- **No methodology, weight, metric definition, percentile or score changed.**
+  No stock's composite or rank moves from today's work.
+
+### Methodology changed
+
+One `METHODOLOGY_CHANGELOG.md` entry, 2026-09-29 - dashboard surface and public
+disclosure, **no score change**. Validation figures as above.
+
+### Tried and rejected
+
+- **A countdown that escalates as the date nears** - colour ramp, badge, "reports
+  in 3 days!" The evidence says announcement days are when attention is *well
+  spent*; it says nothing about a near report being good or bad news, and an
+  escalating treatment asserts the second. Two tests now block it, one on the
+  prose (near and far sentences must be identical bar the day count) and one on
+  the CSS rule (no red, amber, bold or uppercase).
+- **Scoring proximity to earnings**, or adding it as a tiebreak. That is a new
+  factor smuggled in as a UI feature, and the north star names it explicitly.
+  Tests assert the fields are absent from `METRIC_COLS`, `METRIC_DIR`, every
+  weight block in `config.yaml`, and from `raw`/`pct` in the published payload.
+- **Using `earningsTimestamp`.** The obvious field, and wrong - 27 next-dates
+  against 56 past-dates on one run. Ruled out by measurement, not by taste.
+- **Relabelling the 11 stale dates as "last reported".** Tempting, since the
+  provider clearly means the previous report for those names. But the field does
+  not say so, and inferring it would publish a claim the data does not support
+  for the one group where the data is already unreliable. They get silence.
+- **Phrasing the horizon as "in 36 days".** Reads better and decays into a
+  falsehood. The summary is baked at build time and the site rebuilds on
+  weekdays only, so across a weekend a reader-relative phrase is wrong while
+  still looking current. "36 days after this run" names its own anchor.
+- **A "reporting this week" column or filter on the universe table.** Genuinely
+  useful - 8 names qualified - but it is a second, separate surface with sorting
+  and a threshold to defend, and this session had one thing to do properly. Left
+  as the top "Next" item with the data already in the payload.
+- **Priority 3, backtest v2.** Deferred again, and I want the trade stated
+  rather than implied: today was the product day, the owner queue was empty, and
+  gap 4 was a standing directive open 50 days with a positive result behind it.
+  Priority 3's next step is still **not code** - it is costing a price source for
+  delisted tickers, since only 40% of exited names have downloadable prices.
+
+### Next
+
+1. **The run-level view of earnings, and the run-level overview, are the same
+   shape - build them together.** Nothing answers "which of my candidates report
+   this week" without opening names one at a time (8 of 503 qualified today),
+   and priority 4's one genuinely open remnant is a sentence or two on what moved
+   across the whole run. Both are surfaces over data already in the payload, both
+   sit at the top of the page, and both answer *what should I look at*. Doing
+   them as one Tuesday is better than two halves.
+2. **`tests/test_loop_mutual_exclusion.py::test_exactly_one_of_several_simultaneous_starts_wins`
+   flaked once today and needs a look.** It failed in a full-suite run while a
+   502-ticker fetch was competing for the machine, then passed in isolation
+   (15/15) and passed in a clean full run (1615/1615). It touches nothing I
+   changed - it drives `scripts/repo-lock.ps1` with simultaneous starts. A
+   load-sensitive flake in a **ship-gate** test is a real hazard: it can block a
+   merge for no reason, and worse, it trains a reader to re-run until green.
+   Not weakened, not skipped, and recorded here rather than left as folklore.
+3. **Priority 3, backtest v2 - 35 days old, deferred by eight of the last ten
+   sessions.** Unchanged and still gated on a decision rather than code. This
+   remains the clearest standing case of other work crowding out roadmap work,
+   which is exactly what rule 8's roadmap line exists to make visible. The next
+   session that is not carrying an owner item or a broken loop should price that
+   data source and write the answer down, even if the answer is "too expensive".

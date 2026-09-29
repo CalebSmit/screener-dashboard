@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-09-15)
+# Dashboard inventory (as of 2026-09-29)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -45,6 +45,11 @@ the honest half of "how much / does it fit", since the list holds no weights.
 
 **Added 2026-09-17:** the `input_churn` sentence joined `HOLDINGS_FACTS`, and a
 cadence note now sits above the concentration line (see the two sections below).
+
+**Added 2026-09-29:** the `earnings` sentence joined `HOLDINGS_FACTS` - the next
+scheduled report date, on the row of every name you own. See its own section
+below; the membership list is exact and pinned by a test, so adding to it needs
+a citation, not a preference.
 
 **Added 2026-09-22:** a **Concentration block** below that line - see its own
 section further down. The fit line and the block are different things and both
@@ -138,6 +143,50 @@ pre-change generator; 17 drive the emitted script under Node):
 The risk line is omitted below two holdings with volatility (coverage is 501 of
 502, so the absent case is real); the rest of the block still renders.
 
+## Next earnings date - "is today the day to look?" (2026-09-29)
+
+North-star gap 4, open since 2026-08-10. Three `.info` fields captured at fetch
+(`earningsTimestampStart`, `earningsTimestampEnd`, `isEarningsDateEstimate`),
+carried as `stock_detail[t]["earn"]` = `{"d", "end"?, "est"}`, and rendered as
+an `earnings` sentence in the baked summary - so it lands on **both** the
+drilldown and every My Holdings row from one implementation. Zero API cost: the
+fields ride the `.info` dict the fetch already pulls. Changelog 2026-09-29;
+`tests/test_earnings_date.py`, 54 tests, 49 failing against the pre-change tree.
+
+**Why this fact.** Announcement-day sells are the **only** sells in
+Akepanidtaworn et al. (2023, *JF* 78(6)) that beat their counterfactual, by
+more than **+150 bp/year**, against a -80 bp/year deficit for sells overall.
+The same paper is already why this panel refuses to rank by size of move; this
+is its positive half. It also matters mechanically: the fundamentals categories
+barely move between filings (largest one-month Quality move: **one stock in
+500**), so a report is when Valuation, Quality and Growth are actually replaced.
+That is why the sentence sits immediately after `confidence`.
+
+**Five things not to tidy**, all measured across all 503 tickers on 2026-09-29
+and reproducible with `research/measurements/2026-09-29-earnings-date-coverage.py`:
+
+- **Never scored.** Tests assert the fields are absent from `METRIC_COLS`,
+  `METRIC_DIR`, every weight block in `config.yaml`, and from `raw`/`pct`.
+- **`est` is always emitted and never defaults to true-looking.** **209 of the
+  492 future dates (42.5%)** are provider estimates, not company-announced
+  schedules. This is the load-bearing part of the feature, not a footnote.
+- **No countdown, no colour ramp, no badge** - the evidence says announcement
+  days are when attention is well spent, not that a near report is good or bad
+  news. A test asserts the prose is identical bar the day count, and another
+  asserts the CSS rule carries no red, amber, bold or uppercase.
+- **A past date is dropped, never relabelled.** **11 of 503** carried one.
+- **`earningsTimestamp` stays uncaptured.** It equals the *next* date for 27
+  tickers and is a *past* date for 56 - no label is true of every row. A test
+  greps the fetcher to keep the obvious-looking field unread.
+
+The horizon reads "36 days after this run", not "in 36 days": the summary is
+baked at build time and the site rebuilds on weekdays only, so a reader-relative
+phrasing would decay into a falsehood over a weekend while reading as current.
+
+Cost: **+7.4 KB gzipped (+0.62%)** on the payload, +0.8 KB on `index.html`.
+`end` is omitted when it equals the start - which it did for all 503 - so the
+common case carries one date, not two.
+
 ## Review cadence, stated on the surfaces that move (2026-09-17)
 
 `config.yaml -> portfolio.review_cadence` (a real key since 2026-09-17; it was a
@@ -194,9 +243,10 @@ baseline. Payload cost is one optional two-integer key on ~5% of delta entries.
 
 Built by `stock_summary.py` **at run time**, stored per stock as
 `stock_detail[t]["summary"]` = `[{"k": kind, "t": sentence}, ...]`, rendered by
-`renderSummary()` as the first block of the drilldown. **Eleven kinds**: `rank`,
-`drivers`, `weakest`, `best_inputs`, `worst_input`, `change`, `change_driver`,
-`target`, `peers`, `flags`, `confidence`. A kind is omitted when it cannot be
+`renderSummary()` as the first block of the drilldown. **Thirteen kinds**:
+`rank`, `drivers`, `weakest`, `best_inputs`, `worst_input`, `change`,
+`change_driver`, `input_churn`, `target`, `peers`, `flags`, `confidence`,
+`earnings`. A kind is omitted when it cannot be
 stated exactly, so a thin stock gets a shorter summary rather than a hedged one.
 
 **`change_driver` was added 2026-09-15** and says *why* a stock moved, not how
@@ -412,7 +462,12 @@ Confirmed against the above, not guessed:
    holding should use different, asymmetric tests. Blocked on measurement, not
    on design - re-measure the band at 60+ comparable runs (32 today).
 3. **Time-series valuation context.** `pct` is cross-sectional only.
-4. **Catalyst/earnings-date proximity.**
+4. ~~Catalyst/earnings-date proximity.~~ **SHIPPED 2026-09-29** - see the
+   "Next earnings date" section above. What is *still* missing on this axis is
+   a **run-level** view of it: nothing answers "which of my candidates report
+   this week" without opening names one at a time. 8 of 503 were inside seven
+   days on the ship date, so the set is small enough to be useful and the data
+   is already in the payload.
 5. ~~Per-stock confidence surfaced.~~ **MOSTLY SHIPPED 2026-09-08.** The
    summary's `confidence` and `target` sentences state metric coverage ("rests
    on 12 of 18 metrics"), name any withheld category and the reweighting it
