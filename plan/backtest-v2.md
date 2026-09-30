@@ -1,7 +1,10 @@
 # Backtest v2 - an honest validation harness
 
 **Priority:** 3 in `CLAUDE.md`
-**Status:** Step 1 done for survivorship (2026-09-24). Steps 2-5 open.
+**Status:** Step 1 done for survivorship (2026-09-24); the price-source
+procurement question that gated steps 2-4 is **answered and decided**
+(2026-09-30). Steps 2-5 open, and the next step is now a **free measurement**,
+not a purchase - see "The procurement decision" below.
 **Deadline that matters:** 2027-02-11
 
 ---
@@ -43,6 +46,11 @@ overstated it by 18 names.
 
 ### The feasibility finding that shapes step 2
 
+**Superseded 2026-09-30 by a census of all 123 exits. Two of the numbers below
+were wrong; read "The procurement decision" further down instead.** Kept because
+the *qualitative* claim - the split is not random and it is the bad half - was
+right, and the census sharpened it from an impression into 100% vs 10%.
+
 Of the 98 genuine exits, a 30-name sample found **12 (40%) still have
 downloadable price history** and 18 do not. Verified as genuine absence, not
 throttling: yfinance returns `possibly delisted; no timezone found` and zero
@@ -61,6 +69,101 @@ zero* — is therefore not a fallback but the likely destination, unless a paid
 or archival price source for delisted tickers is found. Costing that source is
 the next decision, and it should be made before building steps 2-4, because it
 changes what they can honestly claim.
+
+---
+
+## The procurement decision, 2026-09-30: answered, and deliberately deferred
+
+Full reasoning, citations and licence quotes:
+`research/2026-09-30-delisted-price-source-cost.md`. Every number below is
+reproduced by `research/measurements/2026-09-30-delisted-price-requirement.py`
+and `research/measurements/2026-09-30-exit-reasons.py`.
+
+**The answer: Sharadar Prices (10-year history), $19 to download and $199/yr to
+keep.** Cost is not the blocker and must not be cited as one again. Norgate
+Platinum ($630/yr) also bundles historical index constituents, which
+`universe_history.py` already provides for free. CRSP is the only surveyed source
+carrying a true delisting return (`dlret`/`dlstcd`) and has no list price at all
+— institutional annual contracts only.
+
+**The decision: do not buy yet. Size the look-ahead half first, because it is
+free and it is the missing half of step 1.** This document's own rule is that a
+v2 fixing survivorship but not look-ahead is not decision-grade; survivorship is
+now measured twice over and look-ahead has never been measured at all; and
+Sharadar's licence requires deleting the data within 30 days of the subscription
+ending, so subscribing before a consumer exists pays for a panel nothing reads.
+
+### The census that replaces the 30-name sample
+
+All 123 genuine exits, coverage scored **month by month against each name's own
+membership months** rather than by row count:
+
+| Measurement | 2026-09-24 sample | **2026-09-30 census** |
+|---|---|---|
+| Rename/exit decomposition | oldest month only | **all 80 months by CIK: 142 absent = 19 renames + 123 exits + 0 unresolved** |
+| Exited names with usable history | 40% (30-name sample) | **54% of names, 57.2% of name-months** |
+| Survivorship as a share of the panel | not computed | **11.4%** — 4,526 exited of 39,603 name-months |
+| Residual after a free-data v2 | not computed | **4.89% of the panel** — 1,938 name-months |
+
+**So "roughly 40% of the way" was pessimistic.** Free data gets **57%** of the
+way by name-months, and a paid source closes essentially all of the rest.
+**11.4% is also the cleanest single statement of this backtest's survivorship
+bias** — the 4.3%/yr above is a turnover rate; this is the share of the panel
+that is simply absent.
+
+### Where the free gap sits, and why a cheap feed is therefore sufficient
+
+Exits classified by S&P DJI removal reason (116 of 123 matched):
+
+| Removal reason | Names | Name-months needed | Free source misses |
+|---|---|---|---|
+| Market-cap / representation | 72 (62%) | 2,755 | 276 (**10%**) |
+| Acquired / merged / taken private | 35 (30%) | 1,339 | 1,339 (**100%**) |
+| Other / unparsed | 4 | 136 | 93 (68%) |
+| **Bankruptcy / receivership** | **3** | 93 | 93 (100%) |
+| Spin-off / restructuring | 2 | 24 | 0 |
+| (unmatched) | 7 | 179 | 137 (77%) |
+
+**The free gap is the acquisitions** — 69% of all missing name-months, none of
+them supplied — while demotions, which keep trading, are 90% covered.
+
+**And acquisitions are the easy case, per the index's own methodology.** A
+company delisted by merger or acquisition is *"removed at a time announced by
+S&P Dow Jones Indices, normally at the close of the last day of trading or
+expiration of a tender offer"*, and where there is *"no achievable market
+price"* it is removed *"at a zero or minimal price"*. So for an acquisition the
+last traded close is not an estimate of the exit value — **it is the exit value
+the index used**, and that is precisely what a $199/yr feed sells. Performance
+delistings, the only case Shumway's missing-delisting-return corrections apply to
+(−30% NYSE/AMEX, 1997; −55% Nasdaq, Shumway & Warther 1999), are **3 of 116** and
+all three are the 2023 FDIC receiverships.
+
+**Two conventions to adopt when wiring this, citing S&P DJI rather than CRSP:**
+exit an acquisition at the last traded close, and a no-achievable-price deletion
+at zero.
+
+### Do not test price availability by row count
+
+Three exits — **INFO, LB and SBNY** — return more than 200 rows and cover
+**none** of their membership months. `INFO` (IHS Markit, absorbed by S&P Global
+in March 2022) now returns a series beginning October 2024. Joining that to a
+2020-2022 backtest would not leave a hole; it would insert **a different
+company's prices under a former constituent's symbol**. Three more (AVB, EA,
+LEG) return one to four days in August 2026.
+
+**An availability check must assert coverage of the span the caller will read,
+not the volume of what came back.**
+
+### The licence, which is the real constraint
+
+Sharadar's personal-use licence expressly permits publishing *"research outputs,
+backtest results, models, summary statistics"* derived from the data, and
+expressly forbids making the data itself available to others. So **v2 could run
+and publish its results; the price cache could not be committed.** That is the
+first input this project would be contractually unable to publish, in a
+repository whose standard is that its numbers are checkable. Two questions for
+the owner before any purchase: whether a personal-use grant covers a site aimed
+at investment clubs, and whether a derived return series may be committed.
 
 ### What was deliberately not done
 
@@ -140,6 +243,12 @@ dataset, or reconstructing from index-change announcements. If genuinely
 unavailable for free, the fallback is to *measure and report* the survivorship
 premium rather than pretend it's zero - run the same test on a
 delisted-inclusive proxy universe and quote the gap.
+**Membership itself is DONE and free** (`universe_history.py`, 2026-09-24).
+**The price half is costed** (2026-09-30): $199/yr closes it, and the fallback
+above is better-founded than this paragraph assumed - a point-in-time S&P 500
+panel that exits acquisitions at the last traded close and no-price deletions at
+zero is close to correct rather than a consolation prize, because those are the
+index's own conventions.
 
 **Point-in-time fundamentals.** Scores at each rebalance must use only data
 published by that date. This means respecting reporting lags (a fiscal quarter
@@ -164,12 +273,25 @@ system talks itself into noise.
    a year, v1 is usable with a caveat. If it's 4%, every existing validation
    claim needs retracting. This is a research task and it is the right first
    step - it tells you how hard to work on the rest.
-   **DONE for survivorship 2026-09-24 - it is 4.3%/yr, the retract end.** See
-   the step 1 section at the top. **Still open: the look-ahead half**, which
-   is the other of the two biases and has not been sized at all.
+   **DONE for survivorship 2026-09-24 - it is 4.3%/yr, the retract end**, and
+   restated 2026-09-30 as **11.4% of the name-month panel**, which is the figure
+   a look-ahead measurement should be made comparable to. See the step 1 section
+   at the top.
+
+   **>>> THE NEXT STEP ON THIS PLAN IS THE LOOK-AHEAD HALF, AND IT IS FREE. <<<**
+   It has not been sized at all. Nothing else here should be built first, and as
+   of 2026-09-30 nothing else is blocked on anything but this. Method sketch: for
+   each rebalance month, compare a score built only from data published by that
+   date against the score `backtest.py` actually uses (one Phase-1 snapshot held
+   constant across the whole window), and express the gap as a share of the panel
+   so the two biases are directly comparable. Same shape as the 2026-09-24
+   survivorship measurement; no vendor, no purchase, no permission needed.
 2. Point-in-time universe (bigger bias, usually).
-   **Component built 2026-09-24** (`universe_history.py`); not wired in, and
-   blocked on a price source for delisted names - only 40% of exits have one.
+   **Component built 2026-09-24** (`universe_history.py`); not wired in.
+   **No longer blocked on procurement as of 2026-09-30** - the price source is
+   costed and chosen ($199/yr, Sharadar), and the decision is to buy it *after*
+   step 1's look-ahead half and step 3, not before. Free data covers 57% of the
+   needed name-months, not the 40% previously recorded.
 3. Point-in-time fundamentals with reporting lags.
 4. A/B regression harness with confidence intervals.
 5. Wire it into the improvement engine as the validation gate.

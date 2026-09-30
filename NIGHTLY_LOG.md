@@ -6924,3 +6924,255 @@ disclosure, **no score change**. Validation figures as above.
    which is exactly what rule 8's roadmap line exists to make visible. The next
    session that is not carrying an owner item or a broken loop should price that
    data source and write the answer down, even if the answer is "too expensive".
+
+---
+
+## 2026-09-30 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-29_060001.log` ends "Run complete: shipped to main",
+tagged `good/2026-09-29` | data loop published? **yes** -
+`logs/datarun-2026-09-30_020001.log` ends "Data loop complete", HEALTH: PASS,
+502 scored, top EXPE HST TRV ALL BBY | evidence base at `1m` = **19 rows, newest
+2026-08-31 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
+(`_effective_observations()` still gates, `allow_auto_apply` still false, 4
+effective against a gate of 8) | top open roadmap item: **priority 3, backtest
+v2 - 36 days old**, and **today I took it** rather than deferring it a ninth
+time.
+
+**Tests:** before **1615/1615**, after **1615/1615** - no production code
+changed, by design.
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+claim or move to Done. **I swapped the nominal focus, and this is the record of
+it.** Wednesday synthesises Monday's research note; the 2026-09-28 Monday was
+consumed by a red ship gate and produced no note, and it said so - "the research
+rotation lost its Monday ... nothing is half-finished and no topic is owed."
+There was therefore nothing to synthesise. Rather than manufacture a synthesis,
+I took the thing the last two sessions both nominated in writing: *"the next
+session that is not carrying an owner item or a broken loop should price that
+data source and write the answer down, even if the answer is 'too expensive'."*
+Owner queue empty, both loops healthy, baseline green - that was today. Nothing
+was deferred for a stalled loop or a failing gate.
+
+### Did
+
+**Answered the procurement decision that has gated backtest v2 steps 2-4 since
+2026-09-24, and the answer is that it was never the blocker.**
+`research/2026-09-30-delisted-price-source-cost.md`, plus two measurement
+scripts that reproduce every number.
+
+**1. Why this and not the rotation.** Priority 3 had been deferred by **eight of
+the ten sessions** before today. Every deferral was defensible on the day and
+every log entry said so, which is precisely the pattern rule 8's roadmap line
+exists to expose: the item is a *decision*, not code, so it lost every fair
+fight against work that could be finished. It cannot be un-deferred by finding a
+better day. It had to be decided.
+
+**2. The answer: $19 to download, $199/yr to keep.** Sharadar Prices, 10-year
+history, covers 2020-2026 - the flagship full-history tier is not needed. Priced
+against six sources with live pages (all accessed today, all URLs in the note):
+EODHD Historian $19.99/mo, Norgate Platinum $630/yr, Massive (ex-Polygon)
+Developer $79/mo, Alpha Vantage from $49.99/mo, and CRSP, which is the only one
+carrying a real delisting return (`dlret`/`dlstcd`) and has **no list price at
+all** - institutional annual contracts, sales contact only. Norgate's extra $431
+buys historical index constituents, which `universe_history.py` already
+reconstructs free.
+
+**3. The decision: do not buy yet, and the reason is sequencing, not doubt.**
+The plan's own rule is that a v2 fixing survivorship but not look-ahead is not
+decision-grade. Survivorship is now measured twice over; **look-ahead has never
+been measured at all.** And Sharadar's licence requires deleting the data within
+30 days of the subscription ending, so subscribing before a consumer exists pays
+for a panel nothing reads. **The next step on priority 3 is now a free
+measurement that needs no vendor and nobody's permission**, which is a better
+place for the item to sit than behind a purchase order.
+
+**4. I could not cost the source without knowing what had to be bought, and the
+existing numbers were not good enough.** The 2026-09-24 measurement decomposed
+renames from exits **for one month only** (a mid-window joiner-and-leaver appears
+in neither endpoint revision, so it has no CIK to match on) and probed price
+availability on a **30-name sample** using `len(hist) > 200`. Redone as a census:
+
+| | 2026-09-24 | **2026-09-30** |
+|---|---|---|
+| Rename/exit split | oldest month only | **all 80 revisions by CIK: 142 absent = 19 renames + 123 exits + 0 unresolved** |
+| Free price coverage | 40% of a 30-name sample | **54% of names, 57.2% of name-months**, all 123 censused |
+| Survivorship as a share of the panel | not computed | **11.4%** - 4,526 exited of 39,603 name-months |
+| Residual after a free-data v2 | not computed | **4.89% of the panel** - 1,938 name-months |
+
+**So the plan's "roughly 40% of the way" was pessimistic** and is corrected. All
+19 renames resolve to a ticker in today's list, which is the check that the
+decomposition is not quietly deleting live companies.
+
+**5. The row-count test admits three names a backtest must not use, and this is
+the finding I would keep if I could keep only one.** Six exits return a
+**non-empty** series covering **zero** of their membership months, and **INFO, LB
+and SBNY each clear 200 rows**. `INFO` is IHS Markit, absorbed by S&P Global in
+March 2022; the series that symbol returns today **begins in October 2024**.
+Joining it to a 2020-2022 backtest would not leave a hole - it would insert **a
+different company's prices under a former constituent's symbol**. This is the
+fourth time this project has met a series that is present, plausible and wrong
+(2026-08-13 stale cache, 2026-08-26 split scale, 2026-09-17 metric counts hiding
+a swap). The rule it earns, written into the note, the plan and `CLAUDE.md`: **an
+availability check must assert coverage of the span the caller will read, not the
+volume of what came back.**
+
+**6. The free gap is not spread across the exits - it *is* the acquisitions, and
+that is what makes a $199/yr feed sufficient.** Classifying all 123 exits against
+the S&P DJI removal reasons (116 matched):
+
+| Removal reason | Names | Name-months needed | Free source misses |
+|---|---|---|---|
+| Market-cap / representation | 72 (62%) | 2,755 | 276 (**10%**) |
+| Acquired / merged / taken private | 35 (30%) | 1,339 | 1,339 (**100%**) |
+| Other / unparsed | 4 | 136 | 93 (68%) |
+| **Bankruptcy / receivership** | **3** | 93 | 93 (100%) |
+| Spin-off / restructuring | 2 | 24 | 0 (0%) |
+| (unmatched) | 7 | 179 | 137 (77%) |
+
+**100% versus 10%.** The 2026-09-24 session called the split "not random ... the
+bad half" from an impression; that is the figure. 69% of all missing name-months
+are the 35 acquired names.
+
+**7. And the acquisitions are the easy case - which is the load-bearing
+synthesis.** S&P DJI's own methodology removes an acquired constituent *"at the
+close of the last day of trading or expiration of a tender offer"*, and a
+no-achievable-price deletion *"at a zero or minimal price"*. So the last traded
+close is not an approximation of the exit value, **it is the exit value the index
+used** - exactly what every cheap vendor sells. Shumway's
+missing-delisting-return problem applies only to **performance** delistings,
+which are **3 of 116** here and all three are the 2023 FDIC receiverships. A paid
+source is therefore both *necessary* (free data supplies 0% of the acquisition
+months) and *sufficient* (nothing is left to estimate).
+
+**8. The real constraint is the licence, not the money.** Sharadar's personal-use
+terms **expressly permit** publishing *"research outputs, backtest results,
+models, summary statistics"* derived from the data - no attribution required -
+and **expressly forbid** making the data available to others. So v2 could run and
+publish; **the price cache could not be committed.** That would be the first
+input in this repository that nobody outside can check, in a project whose
+standard is that its numbers are checkable. Two questions are the owner's, and
+neither is the price: whether a personal-use grant covers a site aimed at
+investment clubs, and whether a derived return series may be committed (doubtful
+- a return series plus one observed price reconstructs the price path).
+
+**9. Kept the docs true in the same session (rule 9).** `plan/backtest-v2.md` -
+the superseded sample figures marked as superseded rather than deleted, a new
+"procurement decision" section, the sequencing rewritten so step 1's look-ahead
+half is the flagged next action, and the "What v2 needs" fallback corrected as
+better-founded than it claimed. `CLAUDE.md` priority 3 - the three corrected
+measurements, the row-count warning, and the new next step.
+
+### Evidence / research
+
+- **Shumway, T. (1997), "The Delisting Bias in CRSP Data", *Journal of Finance*
+  52(1), 327-340.** Verbatim: *"correct delisting returns are not available for
+  most of the stocks that have been delisted for negative reasons since 1962 ...
+  the omitted delisting returns are large."* The literature's convention from it
+  is **-30%** for missing performance-related NYSE/AMEX delisting returns.
+- **Shumway, T. & Warther, V. A. (1999), *JF* 54(6), 2361-2379.** Verbatim: *"a
+  corrected return of -55 percent ... corrects the bias ... After correcting for
+  the delisting bias, there is no evidence that there ever was a size effect on
+  Nasdaq."* **That is the effect size that justifies caring:** a
+  delisting-return correction did not shade a published factor finding, it
+  erased one. Abstracts quoted from RePEc, URLs in the note.
+- **S&P Dow Jones Indices, *S&P U.S. Indices Methodology*, "Deletions" and
+  "Other Adjustments".** The two verbatim rules in item 7, pulled from the PDF
+  with `pypdf` (spglobal.com returns HTTP 403 to non-browser clients; quoted
+  from a public mirror, flagged in the note as a mirrored revision to re-check
+  before it goes into any public doc). **This is where academia and practice
+  disagree and practice wins** - Shumway corrects a *database* that kept a
+  security after the index would have dropped it, while this screener's universe
+  is *defined* as index membership, so the index's own convention is the right
+  one. Worth writing down because the reverse is usually true.
+- **Vendor pricing and licence terms**, eight sources, all accessed 2026-09-30,
+  all URLs in the note. Sharadar's licence text is quoted verbatim because the
+  decision turns on it.
+- **This repo's own census**, reproducible:
+  `research/measurements/2026-09-30-delisted-price-requirement.py` (80-revision
+  CIK map, cached at `data/universe_history/ticker_ciks.json`; month-by-month
+  coverage over all 123 exits) and `-exit-reasons.py` (reason classification and
+  the coverage cross-tab). Both write their JSON output alongside.
+- **No backtest number and no IC figure justifies anything here** (rules 4, 5).
+  The `1m` horizon holds **4 effective** observations against a gate of 8. The
+  survivorship and coverage figures are **counts of a property of the harness**,
+  not returns - there is no backtest output in this session at all.
+- **No methodology, weight, metric definition, percentile or score changed.** No
+  stock's composite or rank moves. `dashboard_data.js` and `index.html`
+  untouched.
+
+### Methodology changed
+
+**None, and deliberately.** Nothing in `config.yaml`, `factor_engine.py` or the
+published payload moved, so there is no `METHODOLOGY_CHANGELOG.md` entry to
+make - the changelog records changes to how stocks are scored, and this session
+changed how a *decision* about the validation harness is made. Recording a
+no-op there would dilute a file whose value is that every entry moved a number.
+The decision itself is recorded where it binds: `plan/backtest-v2.md` and
+`CLAUDE.md` priority 3.
+
+Checked again, as the 2026-09-24 session did: **no changelog entry cites a
+backtest under Evidence.** Every entry since 2026-08-11 carries an explicit
+"Backtest observation: none". Nothing needs retracting.
+
+### Tried and rejected
+
+- **Manufacturing a synthesis out of an older note.** The three most recent notes
+  (2026-09-21 position sizing, 09-14 sell discipline, 09-07 revisions) all
+  already have design sections and shipped work behind them. Re-synthesising one
+  to satisfy the rotation would have been churn, and the prompt says to swap and
+  record it instead.
+- **Buying the data today.** Tempting at $19, and wrong. The licence requires
+  deletion 30 days after the subscription lapses, so a pull-and-cancel leaves
+  nothing v2 may legitimately use - the honest figure is $199/yr recurring, which
+  is a standing commitment and the owner's call. And buying before look-ahead is
+  sized pays for a panel that nothing reads.
+- **Wiring `universe_history.py` into `backtest.py` while I was in here.** The
+  plan is explicit that a half-fixed backtest invites the false confidence the
+  bench period exists to prevent, and item 5 found a concrete way it would go
+  wrong - three names that pass an availability check and would import another
+  company's prices.
+- **Reporting Stooq as having no delisted coverage.** Its CSV endpoint returned a
+  JavaScript browser-verification page for all 20 delisted tickers probed - **and
+  for the AAPL and MSFT controls**, byte-identical 795-byte challenges. That is a
+  block on this host, not an absence of data. It is recorded as **untested**. The
+  2026-09-24 session established yfinance's gaps were genuine absence by exactly
+  this kind of control; the same discipline forbids a claim here.
+- **Trusting the 40% figure and going straight to vendors.** It came from 30 of
+  123 names in one month. The census moved it to 57% of name-months and, more
+  importantly, found the row-count defect in item 5, which no amount of vendor
+  research would have surfaced.
+- **Treating the removal-reason table as authoritative.** 116 of 123 exits
+  matched and one matched row is visibly wrong - `MXIM`'s reason reads *"delisted
+  from NASDAQ"* dated **2007**, fourteen years before Analog Devices acquired it.
+  The unmatched 7 and that defect are both stated in the note, and §8 lists an
+  audit against S&P DJI's own announcements as one of the things that would
+  change the conclusion.
+- **Recording a `METHODOLOGY_CHANGELOG.md` entry anyway** so the session had one.
+  See above.
+
+### Next
+
+1. **Size the look-ahead bias. It is free, needs no vendor and no permission, it
+   is the missing half of `plan/backtest-v2.md` step 1, and it is now the only
+   thing standing between this project and a decision about whether v2 can ever
+   be decision-grade.** Method sketch, in the plan: for each rebalance month,
+   compare a score built only from data published by that date against the score
+   `backtest.py` actually uses (one Phase-1 snapshot held constant across the
+   whole window), and express the gap as a share of the panel so it is directly
+   comparable to today's **11.4%** survivorship figure. Same shape as the
+   2026-09-24 measurement. **If a session is not carrying an owner item or a
+   broken loop, this is the work** - and unlike the procurement question it
+   deferred nine times, nobody's authorisation is needed.
+2. **The two licence questions in item 8 are the owner's**, because they are
+   about his money and his site. My reading is that a personal-use grant covers
+   this and that a derived return series is probably *not* committable. Nothing
+   is blocked on the answers until step 1 above is done, which is the right order.
+3. **`tests/test_loop_mutual_exclusion.py::test_exactly_one_of_several_simultaneous_starts_wins`
+   still needs a look** - carried forward unexamined from 2026-09-29, where it
+   flaked once under load and then passed 15/15 in isolation and in two clean
+   full runs (including both of today's). It did not flake today. A
+   load-sensitive flake in a ship-gate test can block a merge for no reason, and
+   worse, trains a reader to re-run until green.

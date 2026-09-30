@@ -827,11 +827,55 @@ reads them.
      of. A point-in-time universe that restores names but not their returns is
      differently wrong, not fixed.
 
-   **Next on this item:** cost a price source for delisted tickers (that
-   decision gates steps 2-4), and size the **look-ahead** half, which has not
-   been measured at all. **Nothing needed retracting** in
-   `METHODOLOGY_CHANGELOG.md` - checked: no entry cites a backtest under
-   **Evidence**, because the 2026-08-11 bench rule landed first.
+   **The procurement half is DONE 2026-09-30, and the answer is that it was
+   never the blocker.** `research/2026-09-30-delisted-price-source-cost.md`;
+   `research/measurements/2026-09-30-delisted-price-requirement.py` and
+   `-exit-reasons.py` reproduce every number. The item had been deferred by
+   **eight of the ten sessions** before that date, every time for defensible
+   smaller work, because it was a decision rather than code and so always lost to
+   work that was.
+
+   **Priced: $19 to download, $199/yr to keep** (Sharadar Prices, 10-year
+   history). CRSP is the only surveyed source carrying a real delisting return
+   and has no list price - institutional contracts only. **Decision: do not buy
+   yet**, because this plan's own rule is that a v2 fixing survivorship but not
+   look-ahead is not decision-grade, and the licence requires deleting the data
+   30 days after the subscription ends - so buying before a consumer exists pays
+   for a panel nothing reads.
+
+   **Three measurements that supersede what this section said before.** The
+   2026-09-24 figures came from a 30-name sample of one month's exits; these are
+   a census of all 123.
+
+   | | Was | Now |
+   |---|---|---|
+   | Rename/exit split | oldest month only | all 80 months by CIK: **142 absent = 19 renames + 123 exits + 0 unresolved** |
+   | Free price coverage | "only 40% of exited names" | **54% of names, 57.2% of name-months** |
+   | Survivorship, as a share of the panel | not computed | **11.4%**; **4.89%** would remain after a free-data v2 |
+
+   **The free gap is the acquisitions, and that is why a cheap feed suffices.**
+   Of 1,938 missing name-months, **69% belong to the 35 acquired names and free
+   data supplies none of them**, while market-cap demotions - 62% of exits, which
+   keep trading - are **90% covered free**. Per S&P DJI's own methodology an
+   acquisition is removed *"at the close of the last day of trading or expiration
+   of a tender offer"*, so the last traded close **is** the index's exit value,
+   not an estimate of it. Performance delistings, the only case Shumway's
+   -30%/-55% corrections apply to, are **3 of 116** exits.
+
+   **Do not test price availability by row count.** INFO, LB and SBNY each clear
+   200 rows and cover **none** of their membership months - `INFO`'s series now
+   begins in **October 2024**, two years after IHS Markit was absorbed. Wiring on
+   row count would insert a different company's prices under a former
+   constituent's symbol. An availability check must assert coverage of the span
+   the caller will read.
+
+   **Next on this item: size the look-ahead half. It is free, needs no vendor and
+   no permission, and is the missing half of step 1.** It has never been measured.
+   Nothing else on the plan should be built first.
+
+   **Nothing needed retracting** in `METHODOLOGY_CHANGELOG.md` - checked again
+   2026-09-30: no entry cites a backtest under **Evidence**, because the
+   2026-08-11 bench rule landed first.
 4. **DONE 2026-09-08 - the AI chat is gone, replaced by deterministic per-stock
    summaries.** Owner directive 2026-08-10, open 29 days. Changelog 2026-09-08;
    `stock_summary.py`; `tests/test_stock_summary.py` (77) and

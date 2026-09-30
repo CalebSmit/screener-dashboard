@@ -1,0 +1,605 @@
+{
+ "n_exits": 123,
+ "n_matched": 116,
+ "unmatched": [
+  "COG",
+  "CTL",
+  "LB",
+  "MYL",
+  "PARA",
+  "VIAC",
+  "WRK"
+ ],
+ "buckets": {
+  "market-cap / representation": [
+   [
+    "AAL",
+    "September 23, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "ADS",
+    "June 22, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "ALK",
+    "December 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "AMTM",
+    "December 23, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "BBWI",
+    "October 1, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "BIO",
+    "September 23, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "BLDR",
+    "September 21, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "BWA",
+    "March 24, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "CAG",
+    "June 30, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "CE",
+    "March 24, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "CMA",
+    "June 24, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "COTY",
+    "September 21, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "CPB",
+    "June 22, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "CPRI",
+    "May 12, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "CZR",
+    "September 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "DISH",
+    "June 20, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "DXC",
+    "October 3, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "EMN",
+    "November 4, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "ENPH",
+    "September 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "EPAM",
+    "June 2, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "ETSY",
+    "September 23, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "FBHS",
+    "December 19, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "FLS",
+    "March 22, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "FMC",
+    "March 24, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "GPS",
+    "February 3, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "HBI",
+    "December 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "HFC",
+    "June 4, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "HOG",
+    "June 22, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "HP",
+    "May 22, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "HRB",
+    "September 21, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "IPGP",
+    "June 21, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "JWN",
+    "June 22, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "KMX",
+    "October 31, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "KSS",
+    "September 21, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "LEG",
+    "December 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "LKQ",
+    "December 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "LNC",
+    "September 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "LUMN",
+    "March 20, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "LW",
+    "March 23, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "M",
+    "April 6, 2020",
+    "Market capitalization changes."
+   ],
+   [
+    "MHK",
+    "December 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "MKTX",
+    "September 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "MOH",
+    "March 23, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "MTCH",
+    "March 23, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "NOV",
+    "September 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "NWL",
+    "September 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "OGN",
+    "October 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "PAYC",
+    "March 23, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "PENN",
+    "September 19, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "POOL",
+    "June 22, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "PRGO",
+    "September 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "PVH",
+    "September 19, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "QRVO",
+    "December 23, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "RHI",
+    "June 24, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "SEDG",
+    "December 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "SEE",
+    "December 18, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "SLG",
+    "March 22, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "SOLS",
+    "December 22, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "TAP",
+    "September 21, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "TFX",
+    "March 24, 2025",
+    "Market capitalization changes."
+   ],
+   [
+    "TTD",
+    "September 21, 2026",
+    "Market capitalization changes."
+   ],
+   [
+    "UA",
+    "June 21, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "UAA",
+    "June 21, 2022",
+    "Market capitalization changes."
+   ],
+   [
+    "UNM",
+    "September 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "VFC",
+    "April 3, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "VNO",
+    "January 5, 2023",
+    "Market capitalization changes."
+   ],
+   [
+    "VNT",
+    "March 22, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "WHR",
+    "March 18, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "WU",
+    "December 20, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "XRAY",
+    "April 3, 2024",
+    "Market capitalization changes."
+   ],
+   [
+    "XRX",
+    "March 22, 2021",
+    "Market capitalization changes."
+   ],
+   [
+    "ZION",
+    "March 18, 2024",
+    "Market capitalization changes."
+   ]
+  ],
+  "other / unparsed": [
+   [
+    "AAP",
+    "August 25, 2023",
+    "Johnson & Johnson offered to exchange the shares of Kenvue held for shares of Johnson & Johnson in a split-off exchange offer."
+   ],
+   [
+    "ATVI",
+    "October 18, 2023",
+    "Acquisition of Activision Blizzard by Microsoft."
+   ],
+   [
+    "CDAY",
+    "February 1, 2024",
+    "Ceridian changed its ticker symbol from CDAY to DAY."
+   ],
+   [
+    "MXIM",
+    "September 27, 2007",
+    "MXIM was delisted from NASDAQ exchange."
+   ]
+  ],
+  "acquired / merged / taken private": [
+   [
+    "ABMD",
+    "December 22, 2022",
+    "Johnson & Johnson acquired Abiomed."
+   ],
+   [
+    "AGN",
+    "May 12, 2020",
+    "Allergan was acquired by AbbVie."
+   ],
+   [
+    "ALXN",
+    "July 21, 2021",
+    "AstraZeneca acquired Alexion Pharmaceuticals."
+   ],
+   [
+    "ANSS",
+    "July 18, 2025",
+    "Synopsys acquired Ansys."
+   ],
+   [
+    "AVB",
+    "August 18, 2026",
+    "Equity Residential (now Vivmark Residential) acquired AvalonBay Communities."
+   ],
+   [
+    "CERN",
+    "June 8, 2022",
+    "Oracle acquired Cerner."
+   ],
+   [
+    "CTLT",
+    "December 23, 2024",
+    "Novo Holdings A/S acquired Catalent."
+   ],
+   [
+    "CTRA",
+    "May 7, 2026",
+    "Devon Energy acquired Coterra Energy."
+   ],
+   [
+    "CTXS",
+    "October 3, 2022",
+    "Vista Equity Partners acquired Citrix Systems."
+   ],
+   [
+    "CXO",
+    "January 21, 2021",
+    "ConocoPhillips acquired Concho Resources."
+   ],
+   [
+    "DAY",
+    "February 9, 2026",
+    "Thoma Bravo L.P. acquired Dayforce."
+   ],
+   [
+    "DFS",
+    "May 19, 2025",
+    "Capital One acquired Discover Financial."
+   ],
+   [
+    "DRE",
+    "October 3, 2022",
+    "Prologis acquired Duke Realty."
+   ],
+   [
+    "EA",
+    "August 5, 2026",
+    "An investor consortium comprising Saudi Arabia's Public Investment Fund (PIF), Silver Lake, and Affinity Partners acquired Electronic Arts."
+   ],
+   [
+    "ETFC",
+    "October 7, 2020",
+    "Morgan Stanley acquired E*Trade."
+   ],
+   [
+    "FLIR",
+    "May 14, 2021",
+    "Teledyne Technologies acquired FLIR Systems."
+   ],
+   [
+    "HES",
+    "July 23, 2025",
+    "Chevron acquired Hess."
+   ],
+   [
+    "HOLX",
+    "April 9, 2026",
+    "Blackstone Inc. and TPG Inc. acquired Hologic."
+   ],
+   [
+    "INFO",
+    "March 2, 2022",
+    "S&P Global acquired IHS Markit."
+   ],
+   [
+    "IPG",
+    "November 28, 2025",
+    "Omnicom Group acquired (The) Interpublic Group."
+   ],
+   [
+    "JNPR",
+    "July 9, 2025",
+    "Hewlett Packard Enterprise acquired Juniper Networks."
+   ],
+   [
+    "K",
+    "December 11, 2025",
+    "Mars Inc. acquired Kellanova."
+   ],
+   [
+    "KSU",
+    "December 14, 2021",
+    "Canadian Pacific acquired Kansas City Southern."
+   ],
+   [
+    "MRO",
+    "November 26, 2024",
+    "ConocoPhillips acquired Marathon Oil."
+   ],
+   [
+    "NBL",
+    "October 12, 2020",
+    "Chevron acquired Noble Energy."
+   ],
+   [
+    "NLSN",
+    "October 12, 2022",
+    "Elliott Investment Management acquired Nielsen Holdings."
+   ],
+   [
+    "PBCT",
+    "April 4, 2022",
+    "M&T Bank acquired People's United Financial."
+   ],
+   [
+    "PXD",
+    "May 8, 2024",
+    "ExxonMobil acquired Pioneer Natural Resources."
+   ],
+   [
+    "RTN",
+    "April 6, 2020",
+    "United Technologies corporate spin-off of Otis and Carrier and acquired Raytheon Company."
+   ],
+   [
+    "TIF",
+    "January 7, 2021",
+    "LVMH Moet Hennessy-Louis Vuitton SE acquired Tiffany & Co."
+   ],
+   [
+    "TWTR",
+    "November 1, 2022",
+    "Elon Musk acquired Twitter."
+   ],
+   [
+    "VAR",
+    "April 20, 2021",
+    "Siemens Healthineers acquired Varian Medical Systems."
+   ],
+   [
+    "WBA",
+    "August 28, 2025",
+    "Sycamore Partners acquired Walgreen Boots Alliance."
+   ],
+   [
+    "XEC",
+    "March 2, 2020",
+    "Gardner Denver acquired Ingersoll Rand's industrial businesses then changed its name to the \"new\" Ingersoll Rand Inc."
+   ],
+   [
+    "XLNX",
+    "February 15, 2022",
+    "Advanced Micro Devices acquired Xilinx."
+   ]
+  ],
+  "spin-off / restructuring": [
+   [
+    "AIV",
+    "December 21, 2020",
+    "Aimco completed the corporate spin-off of Apartment Income REIT."
+   ],
+   [
+    "FTI",
+    "February 12, 2021",
+    "Corporate spin-off of Technip Energies."
+   ]
+  ],
+  "bankruptcy/receivership": [
+   [
+    "FRC",
+    "May 4, 2023",
+    "The Federal Deposit Insurance Corporation (FDIC) placed First Republic Bank into receivership."
+   ],
+   [
+    "SBNY",
+    "March 15, 2023",
+    "The FDIC placed Signature Bank into FDIC Receivership."
+   ],
+   [
+    "SIVB",
+    "March 15, 2023",
+    "The FDIC placed SVB's main subsidiary, Silicon Valley Bank, into receivership."
+   ]
+  ]
+ }
+}
