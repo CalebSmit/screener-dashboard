@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 30 September 2026, 02:16
+# Morning Brief - Wednesday 30 September 2026, 06:34
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `2c6c2d6 log: 2026-09-30 - priority 3 procurement decision, rotation swap recorded`
+- `e447cdd plan: record the procurement decision and make look-ahead the next step`
+- `948fb7b research: the delisted-price source is $199/yr, and cost was never the blocker`
+- `b37ea07 measure: census the delisted-price requirement for backtest v2`
+- `ebb1068 brief: data run 2026-09-30`
 - `114da5c data: screener run 2026-09-30 - 502 scored, top: EXPE HST TRV ALL BBY`
 - `056fa4e brief: code session 2026-09-29`
 - `8334521 log: changelog, nightly log, and both dashboard plans updated for gap 4`
@@ -28,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-29 - PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.
+> 2026-09-30 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-28_060001.log` ends "Run complete: shipped to main" |
-> data loop published? **yes** - `logs/datarun-2026-09-29_020001.log` ends "Data
-> loop complete", HEALTH: PASS, 0 fetch failures, 502 scored |
-> evidence base at `1m` = **18 rows, newest 2026-08-28 (32 days ago, bound 40),
-> 4 effective** - inside the tripwire, and the lag is the normal 30-33-day
-> steady state |
-> priority 0 **fixed 2026-08-24, not weakened** (`_effective_observations()`
-> still gates; `allow_auto_apply` still false; 4 effective against a gate of 8) |
-> top open roadmap item: **priority 3, backtest v2 - 35 days old**, deferred
-> again today, see below.
+> `logs/nightly-2026-09-29_060001.log` ends "Run complete: shipped to main",
+> tagged `good/2026-09-29` | data loop published? **yes** -
+> `logs/datarun-2026-09-30_020001.log` ends "Data loop complete", HEALTH: PASS,
+> 502 scored, top EXPE HST TRV ALL BBY | evidence base at `1m` = **19 rows, newest
+> 2026-08-31 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+> steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
+> (`_effective_observations()` still gates, `allow_auto_apply` still false, 4
+> effective against a gate of 8) | top open roadmap item: **priority 3, backtest
+> v2 - 36 days old**, and **today I took it** rather than deferring it a ninth
+> time.
 > 
-> **Tests:** before **1561/1561**, after **1615/1615** (+54)
+> **Tests:** before **1615/1615**, after **1615/1615** - no production code
+> changed, by design.
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
-> claim or move to Done. Took the nominal **Tuesday product** focus. Nothing was
-> deferred for a stalled loop or a failing gate - both loops are healthy and the
-> baseline was clean. **Priority 3 deferred for the eighth time in ten sessions**;
-> its gating step is still a procurement decision, not code (cost a price source
-> for delisted tickers), and today's item closed a standing owner-directive gap
-> instead - see "Tried and rejected".
+> claim or move to Done. **I swapped the nominal focus, and this is the record of
+> it.** Wednesday synthesises Monday's research note; the 2026-09-28 Monday was
+> consumed by a red ship gate and produced no note, and it said so - "the research
+> rotation lost its Monday ... nothing is half-finished and no topic is owed."
+> There was therefore nothing to synthesise. Rather than manufacture a synthesis,
+> I took the thing the last two sessions both nominated in writing: *"the next
+> session that is not carrying an owner item or a broken loop should price that
+> data source and write the answer down, even if the answer is 'too expensive'."*
+> Owner queue empty, both loops healthy, baseline green - that was today. Nothing
+> was deferred for a stalled loop or a failing gate.
 > 
 > ### Did
 > 
-> **Shipped north-star gap 4 - earnings-date proximity - which had been open 50
-> days and was the last of the plan's cheap-and-high-value items.**
-> `METHODOLOGY_CHANGELOG.md` 2026-09-29; `tests/test_earnings_date.py`, **54
-> tests, 49 of which fail against the pre-change tree**.
+> **Answered the procurement decision that has gated backtest v2 steps 2-4 since
+> 2026-09-24, and the answer is that it was never the blocker.**
+> `research/2026-09-30-delisted-price-source-cost.md`, plus two measurement
+> scripts that reproduce every number.
 > 
-> **1. What the dashboard could not answer.** Opening it as a user, it can tell
-> you 44 metrics about a company and cannot tell you **when that company next
-> reports**. That matters twice over here. Behaviourally, it is the one selling
-> behaviour the evidence positively endorses. Mechanically, this screener's
-> Valuation, Quality and Growth inputs come from filings and barely move between
-> them - measured 2026-09-17, the largest one-month Quality move was **one stock
-> in 500** - so the report date is when those numbers are actually replaced. The
-> score on screen has a shelf life and the page never said when it expires.
+> **1. Why this and not the rotation.** Priority 3 had been deferred by **eight of
+> the ten sessions** before today. Every deferral was defensible on the day and
+> every log entry said so, which is precisely the pattern rule 8's roadmap line
+> exists to expose: the item is a *decision*, not code, so it lost every fair
+> fight against work that could be finished. It cannot be un-deferred by finding a
+> better day. It had to be decided.
 > 
-> **2. What shipped.** Three `.info` fields captured at fetch
-> (`earningsTimestampStart`, `earningsTimestampEnd`, `isEarningsDateEstimate`),
-> carried as `stock_detail[t]["earn"]`, rendered as a new `earnings` sentence in
-> the baked summary. **One implementation, two surfaces** - the drilldown and
-> every My Holdings row - because `HOLDINGS_FACTS` lifts kinds out of the same
+> **2. The answer: $19 to download, $199/yr to keep.** Sharadar Prices, 10-year
+> history, covers 2020-2026 - the flagship full-history tier is not needed. Priced
 > ...
 
 ---
