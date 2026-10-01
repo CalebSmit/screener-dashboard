@@ -15,10 +15,14 @@ Reference: Multi-Factor-Screener-Blueprint.md §5
 IMPORTANT DISCLAIMERS:
   * Survivorship bias: Uses current S&P 500 constituents throughout the
     backtest period. Stocks that were removed or went bankrupt are excluded.
-  * Look-ahead bias: Fundamental scores (Valuation, Quality, Growth,
-    Revisions) are held constant from the Phase 1 snapshot. They were NOT
-    available at each historical rebalance date. Only Momentum and Risk
-    metrics are recomputed from trailing prices.
+  * Look-ahead bias: 83.1% of composite weight is held constant from the Phase 1
+    snapshot and applied backwards through history. Only four metrics —
+    return_12_1, return_6m, volatility, beta, 16.9% of weight — are recomputed at
+    each rebalance; see `dynamic_cols` in simulate_monthly_scores().
+    THIS DOCSTRING USED TO SAY "Only Momentum and Risk metrics are recomputed",
+    WHICH WAS WRONG: jensens_alpha (25% of momentum) and max_drawdown_1y (28.57%
+    of risk) are held constant too, and both are pure functions of a price
+    history. Corrected 2026-10-01.
   * These results are for MODEL VALIDATION ONLY and do NOT represent
     achievable live trading performance.
 
@@ -33,6 +37,30 @@ SURVIVORSHIP BIAS IS NOW MEASURED, NOT JUST DECLARED (2026-09-24).
   a half-fixed backtest should not ship — shipping one invites exactly the
   false confidence the bench period exists to prevent. The component is built
   and tested so the fix can be done properly, in one piece.
+
+LOOK-AHEAD BIAS IS NOW MEASURED TOO, AND IT IS THE BIGGER HALF (2026-10-01).
+  `lookahead.py` classifies every weighted metric by what it would take to make
+  it point-in-time, and
+  `research/measurements/2026-10-01-lookahead-price-component.py` measures how
+  differently this module would rank the universe if it restated the metrics it
+  already has the data to restate. Answer: **>= 63.2% of name-months change
+  decile**, against 11.4% of the panel missing to survivorship.
+  `research/2026-10-01-lookahead-bias-size.md` has the decomposition.
+
+  `lookahead` is a DIAGNOSTIC and this module must not import it — restating a
+  valuation ratio at a historical price while leaving its fundamental at today's
+  value is still look-ahead, just less of it, which is the half-fix the plan
+  forbids. `tests/test_lookahead.py` fails if the import appears.
+
+  Two defects that measurement found here, recorded rather than patched for the
+  same reason:
+    1. The docstring overstatement corrected above.
+    2. run_screener.py calls factor_engine.adjust_momentum_weight() between the
+       category scores and the composite; simulate_monthly_scores() does not. So
+       this module backtests a weighting the live site does not publish (on the
+       2026-10-01 run: momentum 13 -> 14.95, valuation 22 -> 20.05). v2 must
+       apply it per rebalance month from that month's own volatility regime —
+       reading the current run's regime would be a third look-ahead vector.
 """
 
 import copy

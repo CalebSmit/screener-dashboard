@@ -365,6 +365,11 @@ outcome.
 - `portfolio_constructor.py` - sector-constrained portfolio construction
 - `improvement_engine.py` - **the methodology learning loop** (see below)
 - `backtest.py` - decile backtest + IC validation. Known-weak; see `plan/backtest-v2.md`
+- `universe_history.py` - point-in-time S&P 500 membership (2026-09-24). Built, **not wired into `backtest.py`** on purpose
+- `lookahead.py` - **diagnostic**: classifies every weighted metric by what making
+  it point-in-time would cost, and restates the price-dependent ones at a
+  historical price. Measures `backtest.py`'s look-ahead bias; **must never be
+  imported by production code** (2026-10-01, tests enforce it)
 - `presets.py` - weighting presets (balanced/value/growth/momentum)
 - `config.yaml` - all tuneable parameters
 - `schemas.py`, `cli.py`, `run_context.py`, `instrumentation.py`
@@ -869,9 +874,69 @@ reads them.
    constituent's symbol. An availability check must assert coverage of the span
    the caller will read.
 
-   **Next on this item: size the look-ahead half. It is free, needs no vendor and
-   no permission, and is the missing half of step 1.** It has never been measured.
-   Nothing else on the plan should be built first.
+   **Step 1 is now DONE on both halves, 2026-10-01, and the answer reverses the
+   plan's own sequencing.** `research/2026-10-01-lookahead-bias-size.md`;
+   `research/measurements/2026-10-01-lookahead-price-component.py` reproduces every
+   figure from the committed `dashboard_data.js`; `lookahead.py` plus 43 tests in
+   `tests/test_lookahead.py`.
+
+   **Look-ahead is >= 63.2% of the name-month panel against survivorship's 11.4%
+   - 5.5x bigger on the same unit.** 30.3% of name-months move two or more
+   deciles and only **59.5%** of v1's top decile belongs there. It is a *lower
+   bound*: 49.0 points of composite weight stay frozen in both arms of the
+   experiment. Like survivorship it decays monotonically toward the present
+   (73.9% in 2020-01 to 2.0% in 2026-09, age-vs-error rank correlation 0.86),
+   which is the signature that says the measurement is structural and not noise.
+
+   **The decomposition is the usable part, and `lookahead.weight_buckets()`
+   derives it from `config.yaml` so it cannot go stale:** 16.9% of composite
+   weight is honestly recomputed per rebalance, **28.0% is held constant although
+   one month-end price restates it exactly**, 6.1% is held constant although it is
+   a pure function of a price history, and 49.0% genuinely needs point-in-time
+   filings and estimates. **So 34.1 of the 83.1 held-constant points are free to
+   fix** - no vendor, no licence, no permission.
+
+   **Three things not to undo.**
+   - **`lookahead.py` is a diagnostic and must not be wired in.** Restating a
+     valuation ratio at a historical price while leaving its fundamental at
+     today's value removes some look-ahead and leaves the rest, which is the
+     half-fixed backtest `plan/backtest-v2.md` forbids. Four tests assert that
+     `backtest.py`, `run_screener.py`, `factor_engine.py` and
+     `generate_dashboard.py` do not import it.
+   - **`price_target_upside` is rebuilt from `pt_mean`, never by inverting the
+     metric.** The metric is clamped to `metric_clamps`, so dividing it by the
+     price ratio invents an analyst target for every name on the bound. A test
+     drives the clamped case and pins the honest answer against the inverted one.
+   - **Enterprise value is restated as `ev + mc*(r-1)`, not `ev*r`.** Debt and
+     cash do not move with the share price. Scaling EV wholesale would make a
+     leveraged name a third cheaper than it was, and a test pins both numbers.
+
+   **Two defects in `backtest.py` found while measuring, recorded and
+   deliberately not patched** (same reason: no half-fixed backtest):
+   - Its docstring claims *"Only Momentum and Risk metrics are recomputed from
+     trailing prices"*. `simulate_monthly_scores`'s `dynamic_cols` holds **four**
+     names and those two categories carry **six** weighted metrics -
+     `jensens_alpha` and `max_drawdown_1y` are frozen.
+     `test_recomputed_matches_backtests_dynamic_cols` parses that literal, so the
+     classification fails loudly if the list moves.
+   - **v1 backtests a weighting the site does not publish.** `run_screener.py`
+     calls `adjust_momentum_weight()` between the category scores and the
+     composite; `backtest.py` does not. On the 2026-10-01 run it moves momentum
+     **13 -> 14.95** and valuation **22 -> 20.05**. Adding that one call to the
+     reconstruction closed its gap against the published ranking from a median of
+     8 rank places to 2 - which is how arm A was shown faithful to the thing being
+     measured. v2 must apply it **per rebalance month from that month's regime**;
+     reading the current run's regime is a third look-ahead vector, inside the
+     weights rather than the metrics.
+
+   **Next on this item: step 3 (point-in-time fundamentals), which now outranks
+   step 2.** Within it, the 34.1 free points first. Then size the 49.0pp
+   fundamentals half with SEC EDGAR's XBRL `companyconcept` endpoint, which is
+   free and carries a `filed` date per fact; the 9.0pp of analyst-estimate metrics
+   has no free retrospective source and may only be reportable as permanently
+   unmeasurable. **Do not buy the delisted-price feed before that** - spending
+   $199/yr to cut an 11.4% bias while a >= 63.2% one is untouched buys nothing a
+   reader can use.
 
    **Nothing needed retracting** in `METHODOLOGY_CHANGELOG.md` - checked again
    2026-09-30: no entry cites a backtest under **Evidence**, because the
