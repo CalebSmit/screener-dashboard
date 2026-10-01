@@ -73,3 +73,14 @@ coverage. They must still run from a clean checkout.
   at the question it really represents - and remember that ~500 tickers within
   one run move together, so the independent unit is usually the *run*, not the
   row.
+- **A measurement of a harness needs a null and a fidelity check**, or it is a
+  measurement of something else. Added 2026-10-01 after sizing look-ahead
+  (`2026-10-01-lookahead-bias-size.md`). Two checks earned their place: the
+  *null* - the two arms must be identical when the thing being varied is held at
+  its baseline, which came out at exactly 0.0 and is what makes the migration
+  attributable to the restatement rather than to payload rounding; and the
+  *fidelity* check - reconstructing the harness's own chain must reproduce what it
+  publishes. The second one failed at first, by a median of 8 rank places, and the
+  cause turned out to be a real missing call in `backtest.py` rather than noise in
+  the reconstruction. Without it the session would have published a number for the
+  wrong harness and never known.
