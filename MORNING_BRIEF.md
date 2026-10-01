@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 01 October 2026, 02:13
+# Morning Brief - Thursday 01 October 2026, 06:34
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `3624b73 log: 2026-10-01 - look-ahead sized, backtest-v2 step 1 closed`
+- `2f80627 docs: correct backtest.py's look-ahead claim, reverse the plan's sequencing`
+- `1de3975 research: look-ahead is >= 63.2% of the panel, 5.5x survivorship`
+- `17c67a8 lookahead: diagnostic to size backtest.py's look-ahead bias`
+- `358af76 brief: data run 2026-10-01`
 - `7d24629 data: screener run 2026-10-01 - 502 scored, top: EXPE HST CAH MPC TRV`
 - `ee852b3 brief: code session 2026-09-30`
 - `2c6c2d6 log: 2026-09-30 - priority 3 procurement decision, rotation swap recorded`
@@ -29,51 +34,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-09-30 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+> 2026-10-01 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-29_060001.log` ends "Run complete: shipped to main",
-> tagged `good/2026-09-29` | data loop published? **yes** -
-> `logs/datarun-2026-09-30_020001.log` ends "Data loop complete", HEALTH: PASS,
-> 502 scored, top EXPE HST TRV ALL BBY | evidence base at `1m` = **19 rows, newest
-> 2026-08-31 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+> `logs/nightly-2026-09-30_060001.log` ends "Run complete: shipped to main",
+> tagged `good/2026-09-30` | data loop published? **yes** -
+> `logs/datarun-2026-10-01_020001.log` ends "Data loop complete", HEALTH: PASS,
+> 502 scored, top EXPE HST CAH MPC TRV | evidence base at `1m` = **20 rows, newest
+> 2026-09-01 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
 > steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
 > (`_effective_observations()` still gates, `allow_auto_apply` still false, 4
 > effective against a gate of 8) | top open roadmap item: **priority 3, backtest
-> v2 - 36 days old**, and **today I took it** rather than deferring it a ninth
-> time.
+> v2 - 37 days old**, and **today closed step 1**, the measurement the last two
+> sessions both nominated in writing.
 > 
-> **Tests:** before **1615/1615**, after **1615/1615** - no production code
-> changed, by design.
+> **Tests:** before **1615/1615**, after **1650/1650** (+35)
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
-> claim or move to Done. **I swapped the nominal focus, and this is the record of
-> it.** Wednesday synthesises Monday's research note; the 2026-09-28 Monday was
-> consumed by a red ship gate and produced no note, and it said so - "the research
-> rotation lost its Monday ... nothing is half-finished and no topic is owed."
-> There was therefore nothing to synthesise. Rather than manufacture a synthesis,
-> I took the thing the last two sessions both nominated in writing: *"the next
-> session that is not carrying an owner item or a broken loop should price that
-> data source and write the answer down, even if the answer is 'too expensive'."*
-> Owner queue empty, both loops healthy, baseline green - that was today. Nothing
-> was deferred for a stalled loop or a failing gate.
+> claim or move to Done. Took the nominal **Thursday build** focus by the route the
+> prompt specifies for it: the week produced no methodology change to implement
+> (Monday 09-28 was consumed by a red ship gate and produced no note; Wednesday
+> 09-30 swapped to priority 3 and said so), and in that case the instruction is to
+> take the top open item in "Current priorities" rather than invent a change. That
+> item nominated its own next step. Nothing was deferred for a stalled loop or a
+> failing gate - both loops are healthy and the baseline was green at 1615/1615.
 > 
 > ### Did
 > 
-> **Answered the procurement decision that has gated backtest v2 steps 2-4 since
-> 2026-09-24, and the answer is that it was never the blocker.**
-> `research/2026-09-30-delisted-price-source-cost.md`, plus two measurement
-> scripts that reproduce every number.
+> **Sized the look-ahead bias in `backtest.py`. It is >= 63.2% of the name-month
+> panel against survivorship's 11.4% - 5.5x bigger on the same unit - and that
+> closes `plan/backtest-v2.md` step 1, both halves.**
+> `research/2026-10-01-lookahead-bias-size.md`; `lookahead.py`;
+> `research/measurements/2026-10-01-lookahead-price-component.py` (committed JSON
+> output beside it); `tests/test_lookahead.py`, **43 tests**.
 > 
-> **1. Why this and not the rotation.** Priority 3 had been deferred by **eight of
-> the ten sessions** before today. Every deferral was defensible on the day and
-> every log entry said so, which is precisely the pattern rule 8's roadmap line
-> exists to expose: the item is a *decision*, not code, so it lost every fair
-> fight against work that could be finished. It cannot be un-deferred by finding a
-> better day. It had to be decided.
+> **1. Why this and not something else.** The 2026-09-30 session priced the
+> delisted-price feed, decided not to buy, and nominated this as the next step in
+> writing: *"free, needs no vendor and no permission ... the missing half of step 1
+> ... nothing else on the plan should be built first."* The 09-28 session nominated
+> the same item. Owner queue empty, both loops healthy, baseline green - so there
+> was no competing claim, and priority 3 had been deferred by eight of the ten
+> sessions before 09-30 precisely because something always looked more urgent.
 > 
-> **2. The answer: $19 to download, $199/yr to keep.** Sharadar Prices, 10-year
-> history, covers 2020-2026 - the flagship full-history tier is not needed. Priced
+> **2. The headline, on the same unit as survivorship.** Two arms of the real
+> scoring chain, 81 rebalance months x 502 names = **40,662 name-months**. Arm A is
+> v1: static metrics at snapshot values, momentum/risk recomputed per month exactly
 > ...
 
 ---
