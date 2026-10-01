@@ -7176,3 +7176,254 @@ backtest under Evidence.** Every entry since 2026-08-11 carries an explicit
    full runs (including both of today's). It did not flake today. A
    load-sensitive flake in a ship-gate test can block a merge for no reason, and
    worse, trains a reader to re-run until green.
+
+---
+
+## 2026-10-01 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-09-30_060001.log` ends "Run complete: shipped to main",
+tagged `good/2026-09-30` | data loop published? **yes** -
+`logs/datarun-2026-10-01_020001.log` ends "Data loop complete", HEALTH: PASS,
+502 scored, top EXPE HST CAH MPC TRV | evidence base at `1m` = **20 rows, newest
+2026-09-01 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
+(`_effective_observations()` still gates, `allow_auto_apply` still false, 4
+effective against a gate of 8) | top open roadmap item: **priority 3, backtest
+v2 - 37 days old**, and **today closed step 1**, the measurement the last two
+sessions both nominated in writing.
+
+**Tests:** before **1615/1615**, after **1650/1650** (+35)
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+claim or move to Done. Took the nominal **Thursday build** focus by the route the
+prompt specifies for it: the week produced no methodology change to implement
+(Monday 09-28 was consumed by a red ship gate and produced no note; Wednesday
+09-30 swapped to priority 3 and said so), and in that case the instruction is to
+take the top open item in "Current priorities" rather than invent a change. That
+item nominated its own next step. Nothing was deferred for a stalled loop or a
+failing gate - both loops are healthy and the baseline was green at 1615/1615.
+
+### Did
+
+**Sized the look-ahead bias in `backtest.py`. It is >= 63.2% of the name-month
+panel against survivorship's 11.4% - 5.5x bigger on the same unit - and that
+closes `plan/backtest-v2.md` step 1, both halves.**
+`research/2026-10-01-lookahead-bias-size.md`; `lookahead.py`;
+`research/measurements/2026-10-01-lookahead-price-component.py` (committed JSON
+output beside it); `tests/test_lookahead.py`, **43 tests**.
+
+**1. Why this and not something else.** The 2026-09-30 session priced the
+delisted-price feed, decided not to buy, and nominated this as the next step in
+writing: *"free, needs no vendor and no permission ... the missing half of step 1
+... nothing else on the plan should be built first."* The 09-28 session nominated
+the same item. Owner queue empty, both loops healthy, baseline green - so there
+was no competing claim, and priority 3 had been deferred by eight of the ten
+sessions before 09-30 precisely because something always looked more urgent.
+
+**2. The headline, on the same unit as survivorship.** Two arms of the real
+scoring chain, 81 rebalance months x 502 names = **40,662 name-months**. Arm A is
+v1: static metrics at snapshot values, momentum/risk recomputed per month exactly
+as `simulate_monthly_scores` does. Arm B restates the six price-restatable metrics
+at that month's own price.
+
+| Measure | Panel | 2020 | 2026 |
+|---|---|---|---|
+| Decile assignment differs | **63.2%** | 71.2% | 35.4% |
+| Differs by >= 2 deciles | **30.3%** | 39.9% | 7.0% |
+| v1's top decile retained | **59.5%** | 43.3% | 85.6% |
+| Spearman of the two rankings | **0.77** median | 0.72 | 0.97 |
+| Median \|rank change\| of 502 | **45.5** | 53.3 | 14.1 |
+
+Worst month **2020-01**: 73.9% change decile, median rank change 56.5 places, p90
+**195.8**, and **43.1%** of v1's top decile survives. So v1's decile sort is not a
+noisy version of the right answer; at the start of the window it is close to a
+different answer. **And it is a lower bound** - 49.0 points of composite weight
+are frozen in *both* arms.
+
+**3. The decomposition is the part that makes the remaining work concrete.**
+`lookahead.weight_buckets()` derives it from `config.yaml`, so a reweight cannot
+leave it stale (the 2026-09-10 failure mode):
+
+| Bucket | Weight | |
+|---|---|---|
+| Recomputed per rebalance | **16.9%** | honestly point-in-time |
+| Price-restatable, held constant | **28.0%** | one month-end price restates it **exactly** |
+| Price-derived, held constant | **6.1%** | `jensens_alpha`, `max_drawdown_1y` |
+| Needs point-in-time filings/estimates | **49.0%** | the expensive half |
+| **Held constant, total** | **83.1%** | |
+
+**34.1 of those 83.1 points are free to fix** - no vendor, no licence, no
+permission. The harness is holding the price panel it needs in memory at the
+moment it decides not to use it.
+
+**4. The monotone signature, which is how I know it is structural.** The error
+decays from 73.9% (2020-01) to 2.0% (2026-09), rank correlation **0.86** between a
+month's age and its decile-change rate - the same shape survivorship showed
+(23.0% -> 0.6%) and for the same reason. At the snapshot month the two arms are
+**identical to machine precision** (max abs diff **0.0**), which is the null that
+makes the migration attributable to the restatement and nothing else.
+
+**5. I checked that arm A is really v1 before publishing a number about v1, and
+the check failed first.** Reconstructing `simulate_monthly_scores`'s chain gave a
+composite differing from the published site by a median of **8 rank places**. That
+was **not** payload rounding - repeating from the full-precision run cache moved
+it only to 7. It is one missing call: `run_screener.py` inserts
+**`adjust_momentum_weight()`** between the category scores and the composite and
+`backtest.py` does not. Adding it collapsed the gap to a median absolute composite
+difference of **0.00** and **2** rank places (0 against the full-precision cache).
+
+**6. So two defects in `backtest.py`, found by measuring it, recorded and
+deliberately not patched.**
+- Its docstring says *"Only Momentum and Risk metrics are recomputed from trailing
+  prices"*. `dynamic_cols` holds **four** names; those two categories carry
+  **six** weighted metrics. `jensens_alpha` (25% of momentum) and
+  `max_drawdown_1y` (28.57% of risk) are frozen, and both are pure functions of a
+  price history. **The docstring is corrected** - that is a false public claim, not
+  a behaviour change - and
+  `test_recomputed_matches_backtests_dynamic_cols` now parses that literal so the
+  classification cannot drift from it silently.
+- **v1 backtests a weighting the live site does not publish.** On today's run the
+  regime step moves momentum **13 -> 14.95** and valuation **22 -> 20.05**. Worse
+  for v2: it reads the *current* run's volatility regime, so a historical
+  rebalance needs its own month's - a third look-ahead vector, living in the
+  weights rather than the metrics. Recorded in the note, the plan, `CLAUDE.md` and
+  the module docstring. Not fixed, because a half-fixed backtest is what the plan
+  forbids.
+
+**7. The measurement contaminated a tracked state file, and I caught it at gate
+4.** `adjust_momentum_weight` **appends a row to `factor_vol_history.csv`** on
+every call, and that file is tracked and feeds the live regime decision. Passing
+`ROOT` duplicated today's row twice - the same evidence-inflation shape as priority
+0.6, arriving from a measurement instead of a run. Reverted; the script now seeds a
+`mkdtemp` scratch copy so the regime it computes is the real one and the tracked
+file cannot move;
+`test_measurement_does_not_append_to_the_tracked_vol_history` fails if the root
+path comes back.
+
+**8. Kept the docs true in the same session (rule 9).**
+`plan/backtest-v2.md` - step 1 marked done on both halves, a new result section,
+**and the sequencing reversed**: its step 2 heading read "Point-in-time universe
+(bigger bias, usually)" and for this screener it is not, so step 3 now outranks it.
+`CLAUDE.md` priority 3 - the decomposition, the three things not to undo, the two
+defects, and the new next step; plus `lookahead.py` and `universe_history.py` added
+to "Where things live", which had never listed either. `research/README.md` - a new
+Standards entry on why a harness measurement needs a null **and** a fidelity check.
+
+### Evidence / research
+
+- **Banz, R. W. & Breen, W. J. (1986), "Sample-Dependent Results Using Accounting
+  and Market Data: Some Evidence", *Journal of Finance* 41(4), 779-793**
+  (September 1986). The paper that **named** both *look-ahead bias* and
+  *ex-post-selection bias*. Method: the same tests on standard Compustat and on a
+  bias-free database. Result: rates of return on portfolios chosen from accounting
+  data **differed significantly between the two**, implying different conclusions;
+  they criticised the existing size and P/E literature on exactly these grounds.
+  **The publication record carries no abstract** (confirmed on RePEc), so the
+  finding is quoted from secondary citations and the note says so rather than
+  implying I read the original.
+- **Documented professional practice: a reporting lag, not a snapshot.** Fama &
+  French (1992, *JF* 47(2), 427-465) match accounting data for fiscal years ending
+  in calendar year *t-1* to returns from **July of year *t***, a deliberate
+  **six-month minimum gap** so every filing used was already public. **v1 applies
+  a negative lag of up to 80 months.**
+- **The practitioner answer is a product you buy.** S&P Global sells point-in-time
+  Compustat snapshots - *"a consistent view of historical financial data, both
+  reported data and subsequent restatements, the way it appeared at the end of any
+  month"*, snapshots from **1987**, marketed explicitly to *"avoid look ahead
+  bias"*. A paid dataset existing for this one purpose is the professional
+  statement that the ordinary file cannot answer the question, and it is why the
+  49.0pp fundamentals half is the expensive half. All URLs in the note, accessed
+  today.
+- **This repo's own measurement, reproducible from committed inputs.** The
+  snapshot is the committed `dashboard_data.js` from the 02:00 run, so a reader can
+  re-derive every figure; the price panel is fetched once and cached under
+  `cache/`. The output JSON is committed beside the script.
+- **No backtest number and no IC figure justifies anything here** (rules 4, 5). The
+  `1m` horizon holds **4 effective** observations against a gate of 8. And the
+  measurement computes **no return, no Sharpe, no IC and no decile spread at all** -
+  every figure is a property of the scoring harness: a weight share, a rank, a
+  decile assignment, a correlation between two rankings. There is no backtest
+  output in this session to bench.
+- **No methodology, weight, metric definition, percentile or score changed.** No
+  stock's composite or rank moves. `dashboard_data.js` and `index.html` untouched,
+  byte-identical to what the 02:00 run published.
+
+### Methodology changed
+
+**None, and deliberately** - the same call the 2026-09-30 session made and for the
+same reason. Nothing in `config.yaml`, `factor_engine.py` or the published payload
+moved, so there is no `METHODOLOGY_CHANGELOG.md` entry to make: that file records
+changes to how stocks are scored, and an entry that moved no number would dilute a
+file whose value is that every entry did. The finding is recorded where it binds -
+the research note, `plan/backtest-v2.md`, `CLAUDE.md` priority 3, and
+`backtest.py`'s own docstring.
+
+Checked again, as the last two sessions did: **no changelog entry cites a backtest
+under Evidence.** Nothing needs retracting - and note that today's result is the
+strongest justification yet for the 2026-08-11 bench rule, because it says v1's
+decile sort was never close to decision-grade.
+
+### Tried and rejected
+
+- **Wiring the restatement into `backtest.py` as a partial fix.** It is 34.1
+  points of free improvement and it is still wrong: restating a valuation ratio at
+  a historical price while leaving its fundamental at today's value removes some
+  look-ahead and leaves the rest, which is the half-fix `plan/backtest-v2.md`
+  forbids by name. Four tests assert `backtest.py`, `run_screener.py`,
+  `factor_engine.py` and `generate_dashboard.py` do not import `lookahead`.
+- **Restating `price_target_upside` by dividing the metric by the price ratio.**
+  The obvious implementation and it fabricates data: the metric is clamped to
+  `metric_clamps`, so every name sitting on the +/-bound has an unknown true
+  target and the inversion invents one. Rebuilt from `pt_mean` and `price`
+  instead, and a test drives the clamped case and pins the honest answer (-37.5%)
+  against the inverted one (+12.5%).
+- **Scaling enterprise value wholesale as `ev * r`.** Debt and cash do not move
+  with the share price. At half price it would make a leveraged name's EV/EBITDA
+  **7.5 against the correct 10.0** - a third cheaper, from an assumption its debt
+  halved. A test pins both numbers so the shortcut cannot come back unnoticed.
+- **Inverting `net_debt_to_ebitda` and `ev_ebitda` to recover EBITDA and EV.**
+  Considered before finding that the payload already carries `market_cap`,
+  `enterprise_value` and `net_debt` directly. The inversion would have been wrong
+  for every net-cash name - the metric is **floored at 0.0** for them - and the two
+  metrics use subtly different EBITDA definitions. Using the vendor's own two
+  numbers needs no assumption.
+- **Testing price availability or data quality by row count.** Not repeated: the
+  09-30 session's INFO/LB/SBNY finding is why the fidelity check asserts the
+  *published ranking* is reproduced rather than that the reconstruction "looks
+  reasonable".
+- **Using the full-precision run cache as the measurement's input.** It
+  reconstructs marginally better (median 7 rank places against 8) and `cache/` is
+  gitignored, so the published numbers would not be checkable from the repository.
+  The payload's 4dp rounding cannot bias an arm-A-vs-arm-B comparison anyway -
+  both arms read the same rounded snapshot and the `r = 1` null is exactly zero.
+- **Pinning the four bucket shares as constants in the module.** They are derived
+  from `config.yaml` on every call. A test pins the live values *and* names the two
+  documents to update if a legitimate reweight changes them, which is the 09-28
+  lesson applied one directory over.
+- **Buying the Sharadar feed now that step 1 is done.** It argues the same way as
+  on 09-30, with more force: $199/yr to cut an 11.4% bias while a >= 63.2% one is
+  untouched buys a panel nothing can honestly read.
+
+### Next
+
+1. **Step 3 of `plan/backtest-v2.md`, and within it the 34.1 free weight points
+   first.** Point-in-time fundamentals now outranks the point-in-time universe -
+   today's measurement reversed the plan's own guess. The cheapest honest
+   improvement v2 can make is to restate, at each rebalance, the 28.0pp of
+   price-restatable metrics and recompute the 6.1pp of price-derived ones
+   (`jensens_alpha`, `max_drawdown_1y`) from the panel it already holds. That needs
+   no data source and it is **not** a partial patch to v1 - it is a piece of v2.
+2. **Then size the 49.0pp fundamentals half, which is the last unknown in step 1.**
+   SEC EDGAR's XBRL `companyconcept` endpoint is free and carries a `filed` date
+   per fact, so both the reporting lag and the drift are measurable for the
+   Quality, Growth and Investment inputs without a vendor. Expect the **9.0pp of
+   analyst-estimate metrics** (`forward_eps_growth`, `fy1_revision_3m`,
+   `analyst_surprise`) to have no free retrospective source - they may only be
+   reportable as permanently unmeasurable, which is still a better answer than
+   silence.
+3. **`tests/test_loop_mutual_exclusion.py::test_exactly_one_of_several_simultaneous_starts_wins`
+   is closed, not carried forward again.** Carried unexamined from 09-29 and
+   09-30; run in isolation today it passed 15/15, and it passed in both full-suite
+   runs. Two clean sessions since the single flake under load. If it flakes again,
+   the fix is to make the test's contention deterministic rather than to re-run it.
