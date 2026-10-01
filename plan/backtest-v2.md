@@ -1,11 +1,74 @@
 # Backtest v2 - an honest validation harness
 
 **Priority:** 3 in `CLAUDE.md`
-**Status:** Step 1 done for survivorship (2026-09-24); the price-source
-procurement question that gated steps 2-4 is **answered and decided**
-(2026-09-30). Steps 2-5 open, and the next step is now a **free measurement**,
-not a purchase - see "The procurement decision" below.
+**Status:** **Step 1 is DONE, both halves.** Survivorship measured 2026-09-24 and
+restated 2026-09-30 (**11.4% of the panel**); look-ahead measured 2026-10-01
+(**>= 63.2% of the panel**). The price-source procurement question that gated
+steps 2-4 is answered and decided (2026-09-30). Steps 2-5 open, **and the
+sequencing below is now wrong: look-ahead is the bigger bias, so step 3 outranks
+step 2** - see "Step 1 result, 2026-10-01" below.
 **Deadline that matters:** 2027-02-11
+
+---
+
+## Step 1 result, 2026-10-01: look-ahead measured, and it is the bigger half
+
+Full note: `research/2026-10-01-lookahead-bias-size.md`. Every number is
+reproduced by
+`research/measurements/2026-10-01-lookahead-price-component.py` (committed JSON
+output beside it). Component shipped: `lookahead.py`, 43 tests in
+`tests/test_lookahead.py`.
+
+**63.2% of name-months are assigned to a different decile** once the
+price-dependent metrics are restated at the rebalance month's own price; **30.3%**
+move by two deciles or more; only **59.5%** of v1's top decile belongs there.
+Against survivorship's **11.4% of the panel**, look-ahead is **5.5x larger on the
+same unit** - and it is a **lower bound**, because 49.0 points of composite weight
+are frozen in both arms of the experiment.
+
+### The decomposition that makes the remaining work concrete
+
+`lookahead.weight_buckets()` derives this from `config.yaml`, so a reweight cannot
+leave it stale:
+
+| Bucket | Weight | Status |
+|---|---|---|
+| Recomputed per rebalance | **16.9%** | honestly point-in-time |
+| **Price-restatable, held constant** | **28.0%** | free to fix - the harness already holds the price panel |
+| **Price-derived, held constant** | **6.1%** | free to fix - `jensens_alpha`, `max_drawdown_1y` |
+| Needs point-in-time filings/estimates | **49.0%** | the expensive half; 9.0pp of it is analyst estimates with no free retrospective source |
+| **Held constant, total** | **83.1%** | |
+
+**34.1 of those 83.1 points need no vendor, no licence and no permission.** That
+is the cheapest honest improvement available to v2 and it should come first.
+
+### Two things this corrected about the module's own description
+
+* **`backtest.py`'s docstring says "Only Momentum and Risk metrics are recomputed
+  from trailing prices".** Its `dynamic_cols` list holds four names and those two
+  categories carry six weighted metrics, so **6.1 of the 23 points** are frozen -
+  both of them pure functions of a price history.
+  `tests/test_lookahead.py::test_recomputed_matches_backtests_dynamic_cols` parses
+  that literal and fails if it moves.
+* **v1 backtests a weighting the site does not publish.** `run_screener.py` calls
+  `adjust_momentum_weight()` between the category scores and the composite;
+  `backtest.py` does not. On the 2026-10-01 run that step moves momentum
+  **13 -> 14.95** and valuation **22 -> 20.05**. Adding the one call to the
+  reconstruction closed its gap against the published ranking from a median of 8
+  rank places to **2** (to **0** against the full-precision run cache rather than
+  the 4dp payload), which is how the measurement's arm A was shown faithful.
+  **v2 must apply it per rebalance month, from that month's own volatility
+  regime** - the current call reads the current run's regime, which is a third
+  look-ahead vector, living in the weights rather than the metrics.
+
+### The one thing in step 1 still unmeasured
+
+The **49.0pp fundamentals half**. SEC EDGAR's XBRL `companyconcept` endpoint is
+free and carries a `filed` date per fact, so both the reporting lag and the drift
+can be measured without a vendor for the Quality, Growth and Investment inputs.
+Analyst estimates (`forward_eps_growth`, `fy1_revision_3m`, `analyst_surprise` -
+9.0pp) have no free retrospective source and may have to be *reported as
+permanently unmeasurable* rather than fixed.
 
 ---
 
@@ -217,7 +280,10 @@ load-bearing in a way it never was before: a biased backtest doesn't merely
 mislead a reader, it actively steers the self-improvement loop toward whatever
 the bias favours.
 
-`backtest.py` states its own limitations honestly in its docstring:
+`backtest.py` states its own limitations in its docstring. **Honestly on
+survivorship, and not quite honestly on look-ahead** - measured 2026-10-01, item
+2 below understates what the code does, because `simulate_monthly_scores`'s
+`dynamic_cols` list recomputes four metrics and Momentum plus Risk carry six:
 
 1. **Survivorship bias** - it uses today's S&P 500 constituents across the whole
    2020-present window. Companies that were removed, acquired, or went bankrupt
@@ -230,10 +296,17 @@ the bias favours.
    held constant from a single Phase-1 snapshot and applied backwards through
    history. Those numbers were not knowable at the historical rebalance dates.
    Only Momentum and Risk are honestly recomputed from trailing prices.
+   **Corrected 2026-10-01: that last sentence is wrong.** `jensens_alpha` (25% of
+   momentum) and `max_drawdown_1y` (28.57% of risk) are also held constant, and
+   both are pure functions of a price history. **83.1% of composite weight is
+   held constant, and 34.1 points of it depend on nothing but price.**
 
 Together these mean: **a v1 backtest result cannot distinguish a genuinely
 better methodology from one that better exploits hindsight.** Any changelog
 entry claiming "validated by backtest" against v1 should be read sceptically.
+**Measured 2026-10-01: at least 63.2% of name-months sit in the wrong decile**,
+so this is not a caveat about precision - the sort itself is largely a different
+sort.
 
 ## What v2 needs
 
@@ -278,21 +351,30 @@ system talks itself into noise.
    a look-ahead measurement should be made comparable to. See the step 1 section
    at the top.
 
-   **>>> THE NEXT STEP ON THIS PLAN IS THE LOOK-AHEAD HALF, AND IT IS FREE. <<<**
-   It has not been sized at all. Nothing else here should be built first, and as
-   of 2026-09-30 nothing else is blocked on anything but this. Method sketch: for
-   each rebalance month, compare a score built only from data published by that
-   date against the score `backtest.py` actually uses (one Phase-1 snapshot held
-   constant across the whole window), and express the gap as a share of the panel
-   so the two biases are directly comparable. Same shape as the 2026-09-24
-   survivorship measurement; no vendor, no purchase, no permission needed.
-2. Point-in-time universe (bigger bias, usually).
+   **DONE for look-ahead 2026-10-01 - it is >= 63.2% of the panel**, 5.5x
+   survivorship on the same unit. See the step 1 section at the top. The method
+   used was the price half of the comparison, which is exact and free; the
+   fundamentals half of step 1 remains, and is the only part of step 1 open.
+
+   **>>> THE NEXT STEP ON THIS PLAN IS STEP 3, NOT STEP 2. <<<**
+   Look-ahead is the bigger bias here, so point-in-time fundamentals outrank the
+   point-in-time universe. And **34.1 of the 83.1 held-constant weight points are
+   free to fix** - the 28.0pp of price-restatable metrics plus the 6.1pp of
+   price-derived ones - which makes that the cheapest honest improvement available
+   and the thing to build first within step 3.
+2. Point-in-time universe. **Not the bigger bias here** - the heading used to say
+   "bigger bias, usually" and the 2026-10-01 measurement reversed it for this
+   screener: 11.4% of the panel against >= 63.2%.
    **Component built 2026-09-24** (`universe_history.py`); not wired in.
    **No longer blocked on procurement as of 2026-09-30** - the price source is
    costed and chosen ($199/yr, Sharadar), and the decision is to buy it *after*
-   step 1's look-ahead half and step 3, not before. Free data covers 57% of the
-   needed name-months, not the 40% previously recorded.
-3. Point-in-time fundamentals with reporting lags.
+   step 3, not before. Free data covers 57% of the needed name-months, not the 40%
+   previously recorded.
+3. Point-in-time fundamentals with reporting lags. **Now ahead of step 2.** Start
+   with the 34.1pp that needs no data source; then size the 49.0pp fundamentals
+   half via SEC EDGAR XBRL `companyconcept` (free, carries a `filed` date per
+   fact); expect the 9.0pp of analyst-estimate metrics to be reportable only as
+   permanently unmeasurable.
 4. A/B regression harness with confidence intervals.
 5. Wire it into the improvement engine as the validation gate.
 
