@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 30 September 2026, 06:34
+# Morning Brief - Thursday 01 October 2026, 02:13
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,27 +9,23 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-09-30T02:00:04.133596 |
+| Dashboard data from | 2026-10-01T02:00:03.852116 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, TRV, ALL, BBY |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (19 rows, but overlapping windows are not independent; 61 rows across all horizons), newest 2026-09-23 |
+| Top 5 | EXPE, HST, CAH, MPC, TRV |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (20 rows, but overlapping windows are not independent; 63 rows across all horizons), newest 2026-09-24 |
 
 ## What changed in the repo
 
+- `7d24629 data: screener run 2026-10-01 - 502 scored, top: EXPE HST CAH MPC TRV`
+- `ee852b3 brief: code session 2026-09-30`
 - `2c6c2d6 log: 2026-09-30 - priority 3 procurement decision, rotation swap recorded`
 - `e447cdd plan: record the procurement decision and make look-ahead the next step`
 - `948fb7b research: the delisted-price source is $199/yr, and cost was never the blocker`
 - `b37ea07 measure: census the delisted-price requirement for backtest v2`
 - `ebb1068 brief: data run 2026-09-30`
 - `114da5c data: screener run 2026-09-30 - 502 scored, top: EXPE HST TRV ALL BBY`
-- `056fa4e brief: code session 2026-09-29`
-- `8334521 log: changelog, nightly log, and both dashboard plans updated for gap 4`
-- `5c49739 build: regenerate dashboard artifacts for the earnings surface`
-- `733e168 feat: surface each stock's next earnings date (north-star gap 4)`
-- `859ec29 brief: data run 2026-09-29`
-- `826afad data: screener run 2026-09-29 - 502 scored, top: EXPE HST MPC CAH VLO`
 
 ## The session's own account
 
