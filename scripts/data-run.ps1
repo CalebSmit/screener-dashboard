@@ -333,6 +333,48 @@ try {
         Write-Log "node not found - published on the size check alone, without a parse." 'WARN'
     }
 
+    # The code loop's gate 3 has always also checked that the payload is the
+    # payload - a correctly-sized, validly-parsing file that is not
+    # window.SCREENER_DATA is still a blank dashboard. This loop did not, for no
+    # reason beyond nobody having compared the two. Added 2026-10-02.
+    $firstChars = (Get-Content $dataPath -TotalCount 1) -replace '\s', ''
+    if ($firstChars -notmatch '^window\.SCREENER_DATA=') {
+        Write-Log "dashboard_data.js no longer starts with the expected assignment. Not publishing." 'ERROR'
+        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Stop-Run "Refusing to publish a payload the dashboard will not recognise." 2
+    }
+
+    # --- Published-claims gate ------------------------------------------------
+    # Ship gate 1 (the full test suite) had no counterpart here, on the path
+    # that publishes to the public site five mornings a week. Found by the
+    # 2026-10-02 retrospective; demonstrated by 2026-09-28, when this loop
+    # regenerated SCREENER_OVERVIEW.md, reverted four corrections shipped three
+    # days earlier, and pushed them live - while the tests that say those claims
+    # are false sat in the repository, unread, failing in 0.36s.
+    #
+    # Narrow on purpose: the modules that speak for the artifacts THIS run
+    # rewrote, ~15s against the full suite's 124s. Running everything would mean
+    # one unrelated red test stops the evidence loop as well as the code loop.
+    # See scripts/check_published_claims.py for the membership rule.
+    #
+    # A failure discards the run exactly like every other gate above: the live
+    # site keeps the last good version, which is the whole point. Where pytest
+    # cannot run at all (exit 3) the run continues with a WARN - the node
+    # fallback precedent from 2026-09-18, so this cannot jam an unattended loop.
+    Write-Log "Checking the claims in the regenerated artifacts..."
+    $claims = Invoke-Native 'python' @('scripts/check_published_claims.py')
+    Write-NativeOutput $claims
+    if ($claims.ExitCode -eq 3) {
+        Write-Log "Published claims NOT verified (pytest unavailable) - publishing on the earlier checks alone." 'WARN'
+    }
+    elseif ($claims.ExitCode -ne 0) {
+        Write-Log "The regenerated artifacts contradict claims this project asserts about them." 'ERROR'
+        Write-Log "Refusing to publish. The live site keeps the last good version." 'ERROR'
+        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+        Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
+        Stop-Run "Run discarded: published-claims check failed - fix the generator, not the file." 2
+    }
+
     # --- Commit --------------------------------------------------------------
     $changed = Invoke-Native 'git' @('status', '--porcelain')
     if (-not $changed.Text.Trim()) {

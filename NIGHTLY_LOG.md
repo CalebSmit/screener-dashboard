@@ -7427,3 +7427,338 @@ decile sort was never close to decision-grade.
    09-30; run in isolation today it passed 15/15, and it passed in both full-suite
    runs. Two clean sessions since the single flake under load. If it flakes again,
    the fix is to make the test's contention deterministic rather than to re-run it.
+
+---
+
+## 2026-10-02 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-10-01_060001.log` ends "Run complete: shipped to main", tagged
+`good/2026-10-01` | data loop published? **yes** -
+`logs/datarun-2026-10-02_020001.log` ends "Data loop complete", HEALTH: PASS, 502
+scored, top EXPE HST BBY CAH VLO | evidence base at `1m` = **21 rows, newest
+2026-09-02 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
+(`_effective_observations()` still gates, `allow_auto_apply` still false, 4
+effective against a gate of 8) | top open roadmap item: **priority 3, backtest v2
+- 38 days old.** Not taken: a retrospective does not work on the screener.
+
+**Tests:** before **1658/1658**, after **1680/1680** (+22,
+`tests/test_published_claims_gate.py`; **9 of them fail against the pre-change
+tree**)
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+claim or move to Done. ISO week 40, Friday, even week - retrospective, per the
+rotation. Both loops healthy and the baseline green at 1658/1658, so nothing was
+deferred for either.
+
+### Retrospective findings
+
+- **Sessions reviewed: 9 scheduled** (2026-09-21 to 2026-10-01). No owner-run
+  sessions - the second consecutive fortnight with none.
+- **Genuinely valuable: 9 | Churn: 0 | Failed gates at merge: 0** (one red
+  *baseline*, 09-28, caused by the data loop - finding 1).
+
+**1. What fraction produced something genuinely valuable? All nine, with a merge
+commit each.** 09-21 researched position sizing and found `weighting: 'score'` is
+equal weight with noise (max deviation 0.57 pp over 39 run dates) and
+`max_position_pct` inert; 09-22 shipped the Concentration block at zero payload
+cost; 09-23 shipped the weighting change *and* found the public page had claimed
+inverse-volatility weighting on **every run the tool has ever made**; 09-24 sized
+survivorship bias at 4.3%/yr and built point-in-time membership; 09-25 closed the
+nine-session `currentPrice` item and found four false statements on the
+methodology page; 09-28 repaired a red gate and discovered
+`SCREENER_OVERVIEW.md` is generated; 09-29 shipped earnings dates, measuring
+42.5% of them to be provider estimates before designing; 09-30 priced the
+delisted-price feed at $199/yr and decided against it; 10-01 sized look-ahead at
+**>= 63.2%** of the panel, 5.5x survivorship, and closed backtest-v2 step 1.
+
+**The habit that makes the rest credible held again: six of the nine corrected
+this project's own published claims rather than defending them** - and two of
+them corrected *their own week's* headline numbers mid-flight (09-22 cut §8.4's
+volatility-percentile proposal after measuring it orders 23.9% of cross-sector
+pairs backwards; 10-01 found its arm-A reconstruction was 8 rank places off the
+published site and traced it to a missing `adjust_momentum_weight()` call).
+
+**2. Which rotation day earns its place? All five, but the Mon-Wed-Thu chain
+carried the week only once in two.** Week 1 ran it properly: 09-21 research ->
+09-23 synthesis shipped the change. Week 2 lost Monday to a red gate, so
+Wednesday and Thursday both went to the roadmap under the Thursday fallback - and
+that was the right call, because it is what finally closed backtest-v2 step 1
+after **eight of ten sessions had deferred it.** The fallback rule added
+2026-09-04 has now been load-bearing twice. No day is churning; **the weak point
+is not a day, it is the handoff when Monday is lost**, and the honest answer is
+that the fallback already handles it.
+
+**3. Is the evidence standard holding? Yes.** Citations are real, primary and
+checkable - DeMiguel, Garlappi & Uppal (2009) *RFS* 22(5) 1915-1953; Chopra &
+Ziemba (1993) via Ziemba & MacLean (2011) Springer ISOR 163 ch.1; Banz & Breen
+(1986) *JF* 41(4) 779-793; Fama & French (1992) *JF* 47(2) 427-465; Akepanidtaworn
+et al. (2023) *JF* 78(6) - with effect sizes and the conditions they held under.
+Three signs the standard is self-policing rather than decorative: **09-21 declined
+to quote the "half Kelly keeps ~75% of growth" figure** because it could not find
+it in the primary chapter and said so; **10-01 stated that Banz & Breen's record
+carries no abstract** and that it was quoting secondary citations rather than
+implying it had read the original; and **every one of the nine entries states
+explicitly that no backtest number and no IC figure justifies anything in it**
+(rules 4 and 5). Checked again this session: no `METHODOLOGY_CHANGELOG.md` entry
+cites a backtest under **Evidence**.
+
+**4. What keeps going wrong? The same answer for the third retrospective
+running - generated artifacts and the documents describing them drift apart - but
+the shape has sharpened into something fixable.** 09-23: the page named a
+weighting scheme the tool had never used, from a two-branch ternary over a
+four-valued setting. 09-25: four false statements on the methodology page, three
+created by the 09-10 reweight leaving prose behind. 09-28: the 09-25 corrections
+reverted and republished, because nobody knew the page was generated. Every one
+was a *published claim* going stale, and in every case the evidence that it was
+false already existed in the repository. That is finding 6 and it is now a gate.
+
+**5. Is the tool closer to the place you would look before buying or selling?
+Yes, and all four north-star questions now have a surface.** "How much" was the
+standing gap flagged to the owner on 09-18; 09-22 closed it with the
+Concentration block, answering it with *inputs* - name count against the
+published thresholds, the equal-split slice against UCITS/RIC/S&P caps, the widest
+risk gap - and never a weight. 09-29 added when each company next reports, with
+42.5% labelled as estimates. **The honest remaining blockers are both parked on
+measurements with dates, not on missing work:** the hold band needs 8 disjoint
+monthly windows (today 2, roughly 2027-04), and the backtest cannot validate
+anything until the >= 63.2% look-ahead bias is fixed.
+
+**6. What is the routine systematically blind to? The data loop's gates - and
+that is where today's hole was, for the third retrospective in a row.** The
+2026-09-18 session added "compare the two runners against each other" to this
+prompt precisely because it had found the daily publish path guarded more weakly
+than the code loop's gate 3. That instruction worked: it found today's hole on the
+first read, one gate over. **Ship gate 1 - the full test suite - had no
+counterpart at all on the path that publishes to the public site five mornings a
+week.** Three holes, three retrospectives, one shape: *the strongest checks guard
+the path that publishes least often.* The prompt now keeps score so the next
+session asks which gate is still unmatched rather than re-finding these.
+
+Second blind spot, and it is about this file's neighbour: **nobody was reading
+`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 lines across three retrospectives,
+all of the growth in "Current priorities", in the one document every session must
+read in full before it starts.
+
+### Did - two process defects, both found by reading rather than by an incident
+
+**1. The data loop published regenerated public documents having run no tests,
+and the cost is documented rather than hypothetical.**
+
+`data-run.ps1` stages and pushes `SCREENER_OVERVIEW.md` and `README.md` - the
+public methodology page among them, which `run_screener.py` step 11 rewrites on
+every full run - plus the payload and `index.html`. Its pre-publish checks were:
+no synthetic data, fetch-failure rate under 40%, `check_run_health`, generation
+exit code, a size floor, and (since 09-18) `node --check`. **No test, of any
+kind.** `nightly-screener.ps1` will not merge without the full suite.
+
+On **2026-09-28** that gap fired. The 02:00 run (`2e08f62`) regenerated the
+overview, reverted the four corrections the 09-25 session had shipped, and pushed
+them live - including a fetch-failure rate the same session had measured at **0 of
+9,036** and the page put at "10-25% of tickers". It also left the tree red, so the
+09-28 session's gate 1 failed at baseline and its research day went on repair.
+
+**Measured at that exact commit, in an isolated worktree:**
+
+```
+pytest tests/test_overview_claims.py   ->  12 failed, 2 passed in 0.36s
+```
+
+The evidence to refuse that publish was already committed, in tests written three
+days earlier. The loop doing the publishing never asked for it.
+
+**Shipped:** `scripts/check_published_claims.py`, invoked by `data-run.ps1` after
+regeneration and before the commit. 237 tests across 8 modules, **~15s** against
+the full suite's 124s.
+
+- **Narrow on purpose, and the reason is not speed.** A red `main` already stops
+  the code loop from merging. Running the whole suite here would mean one
+  unrelated red test stops the *evidence* loop as well, which is the resource
+  `CLAUDE.md` says matters most. The gate is scoped to failures that mean *this
+  publish* is unsafe: the modules that speak for the artifacts this run rewrote.
+  The membership rule is in the script's docstring, and a tripwire test fails if a
+  module asserting on `SCREENER_OVERVIEW.md` is added to `tests/` without being
+  added to the gate - the exact class of the 09-28 regression.
+- **A failure discards the run**, the same shape as every gate above it, so the
+  live site keeps the last good version. Warning and publishing anyway would
+  reproduce 09-28 with a log line attached.
+- **A missing pytest warns and publishes** (exit 3, distinguished from a real
+  failure), the `node --check` fallback precedent. A gate that can only fail
+  closed jams an unattended loop, and a jammed loop costs days of evidence.
+  pytest exits 4 and 5 are treated as **failures**, not passes: "zero tests ran"
+  must never read as "safe to publish".
+
+**Verified by execution, not by assertion**, in a throwaway worktree so nothing
+could touch the live tree:
+
+| case | exit | what fired |
+|---|---|---|
+| untouched artifacts | **0** | 237 passed in 10.7s |
+| the 09-28 false claim put back | **1** | the stale-fetch assertion **and** the generator-divergence tripwire |
+| any hand-edit of the overview | **1** | the generator-divergence tripwire |
+
+**2. The same comparison found a second, smaller asymmetry.** The code loop's
+gate 3 checks that the payload *is* the payload - a correctly sized, validly
+parsing file that is not `window.SCREENER_DATA` is still a blank page, and
+`node --check` cannot see that. The data loop never checked it, for no reason
+beyond nobody having compared the two. It does now, and refuses to publish.
+
+`tests/test_published_claims_gate.py`, **22 tests, 9 failing against the
+pre-change tree** (verified by swapping in `git show HEAD:` copies of
+`data-run.ps1` and `CLAUDE.md` and restoring them, both confirmed byte-identical
+by SHA-256). They pin the ordering - regenerate, check, commit, push - the
+discard-on-failure, the exit-3 branch coming *before* the failure branch, the
+WARN, the membership tripwire, and that `CLAUDE.md` describes the gate.
+
+**3. `CLAUDE.md` is 1058 -> 672 lines, and nothing was deleted.** The 09-18
+retrospective asked the next one to look at this; it had got worse, not better.
+"Current priorities" was **551 lines, 52% of the file**, and most of it narrative
+about finished work sitting in front of the few items actually open.
+
+The whole section moved **verbatim, by script rather than by hand**, into a new
+`DECISIONS.md` (578 lines). What replaces it is a **Settled - do not weaken**
+table: one row per constraint, stating the constraint itself and naming the test
+module that enforces it, plus the genuinely open items. Checked after the move:
+**18 test modules were named in the old section, 17 are still named in the new
+one** (the eighteenth, `test_review_cadence.py`, was added to the priority-5 row),
+and every module named in either file exists.
+
+The division of labour, now written into `prompts/retrospective.md` so it holds:
+**a closed item's reasoning belongs in `DECISIONS.md`, its constraint in
+`CLAUDE.md`, its discovery in `NIGHTLY_LOG.md`.** When all three say the same
+thing, the copy in `CLAUDE.md` is the one to go - it is the file every session
+must read before it starts.
+
+Also corrected while there (rule 9): "Where things live" said `tests/` held **24
+modules**. It holds **64**.
+
+### Evidence / research
+
+- **A documented failure with a reproduction**, the mandate's fourth category:
+  the 12-failures-in-0.36s result is a real pytest run against commit `2e08f62`
+  in an isolated worktree, and the three-case table is the new gate executed
+  against genuinely contradicted artifacts. Neither number is an estimate.
+- **Measured this session:** 9 of 9 sessions produced a merge commit; 0 gate
+  failures at merge and 1 red baseline, from `logs/nightly-*.log`; full suite
+  **124.03s / 1658 tests**, published-claims subset **9.27-10.68s / 237 tests**;
+  `1m` horizon 21 rows, newest 2026-09-02, **4 effective** via
+  `analyze_ic_trends()`; `CLAUDE.md` 1058 -> 672 lines and `DECISIONS.md` 578.
+- **No backtest figure and no `live_ic_history.csv` number justifies anything
+  here** (rules 4 and 5). The `1m` count is quoted as the health reading rule 8
+  asks for. Nothing this session touches scoring.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, formula or scoring path moved; no
+  composite or rank changes; no run was regenerated; `dashboard_data.js` and
+  `index.html` are untouched. Runner and process infrastructure, which by
+  precedent (2026-09-04, 2026-09-18) lives in this log rather than in
+  `METHODOLOGY_CHANGELOG.md` - that file records how stocks are scored, and an
+  entry that moved no number would dilute a file whose value is that every entry
+  did.
+
+### Process changes made
+
+1. **The data loop checks the claims in what it is about to publish**
+   (`scripts/check_published_claims.py`, wired into `data-run.ps1`), and checks
+   the payload's opening assignment. Strictly stricter, which is what section 4
+   permits; gates 1-4 are untouched in the loosening direction.
+2. **The retrospective keeps score on the two runners.** Section 1 now carries a
+   table of the three asymmetries found and what closed each, and asks **which
+   gate is still unmatched** - gates 2 and 4 have no data-loop equivalent. Three
+   retrospectives have found a hole of this shape on the first read; the next one
+   should not have to rediscover the pattern to find the fourth.
+3. **The deferral-streak rule**, `prompts/nightly.md` section 1. If the top open
+   roadmap item has been deferred by **three consecutive sessions**, the next
+   session carrying no owner item and no broken loop must *resolve* it - advance
+   it, or demote it with the argument for what outranks it. Either is a result; a
+   fourth "deferred, defensibly" is not. Priority 3 was deferred by **eight of
+   ten** sessions and moved only once two sessions in a row had nominated it in
+   writing. The roadmap-age line makes the trade visible; this closes it. Note
+   the rule cannot force useless work: writing down *why* an item cannot be
+   advanced is an accepted outcome, and is exactly what unblocked 09-30.
+4. **`CLAUDE.md` loses the archaeology, keeps the constraints** - 1058 -> 672
+   lines, with `DECISIONS.md` as the archive and the three-way division of labour
+   written into the retrospective prompt so it is maintained rather than
+   re-discovered.
+
+**Deleted, per "prefer deleting to adding":** `prompts/nightly.md` loses the
+Tuesday day's historical justification (the day is established and has shipped
+on five consecutive Tuesdays), the Thursday rule's 2026-09-04 narrative (the new
+deferral rule carries the same argument more forcefully), and three sentences of
+the 2026-09-02 merge-order story - **net zero, 212 lines before and after, with a
+new rule added.** `prompts/retrospective.md` loses the session-duration check
+(measured three times: 14-35 minutes against a 4-hour limit, worst ever 93 - it
+has never once been the problem) and a redundant bullet; it is **113 -> 132
+lines**, and that growth is the runner scoreboard, which is the part that found
+today's defect. `CLAUDE.md` is **down 386 lines.**
+
+### Tried and rejected
+
+- **Running the full suite in the data loop.** Simplest and strictest, 124s on a
+  12-16 minute run, so cost is not the objection. The objection is coupling: a
+  red `main` already blocks the code loop from merging, and this would stop the
+  data loop too - so one unrelated failing test would halt evidence accrual, the
+  thing `CLAUDE.md` says is most precious. The narrow subset stops exactly the
+  publishes that are unsafe and nothing else.
+- **Making a failed published-claims check a WARN that publishes anyway.** That
+  is 2026-09-28 with a log line attached. The live site carrying claims the
+  project's own tests call false is the credibility failure this tool cannot
+  afford, and one lost evidence day is cheap against it. Every other gate in
+  `data-run.ps1` discards; this one is consistent with them.
+- **Making a missing pytest fail the gate.** Tidier, and it would jam an
+  unattended loop on a machine without pytest - the objection the 2026-08-21
+  retrospective raised to the node check, which was right then and is right now.
+- **Auto-discovering the gate's module list by scanning `tests/` for artifact
+  names.** Self-maintaining and too blunt: it pulls in `test_payload_parse_gate`
+  (drives PowerShell), `test_brief_publish_safety` (git sandboxes) and
+  `test_gate_ordering` - slow, concurrency-sensitive modules about the *runners*
+  rather than about published claims. An explicit list plus a narrow tripwire on
+  the one file that actually went wrong is the honest version.
+- **Treating a pytest exit of 5 as a pass.** It means zero tests ran. A test
+  pins it as a failure, because that is how a gate stops gating without anyone
+  noticing - the same shape as gate 3 claiming for months to parse a file it only
+  regex-matched.
+- **Deleting anything from `CLAUDE.md` rather than moving it.** Every "do not
+  undo" line is there because the failure already shipped publicly. The move was
+  done by script, verbatim, and the test-module count checked on both sides.
+- **Alarming the external watchdog on a session that ran but shipped nothing.**
+  See "Flagged for the owner" - it is a real blind spot and a new alarm, and
+  `CLAUDE.md` priority -1 is emphatic that a watchdog which cries wolf gets
+  muted. Not a change to make unilaterally in the same session that found it.
+- **Making the retrospective monthly.** Rejected for the third time and with more
+  force: three for three on finding a live publish-path hole on the first read.
+- **Touching the four ship gates in any loosening direction.** Not attempted.
+
+### Flagged for the owner
+
+- **One real blind spot I chose not to close myself.** The GitHub Actions
+  watchdog answers *"did the task fire"* and deliberately not *"did it do
+  anything useful"* - it reads the `brief:` heartbeat, which lands from `finally`
+  whether the gates passed or failed. So **a session whose ship gates fail is
+  externally invisible**: no merge commit, a normal heartbeat, no alarm. It has
+  happened once (2026-09-02) and the next morning's session caught it, which is
+  why this is a gap rather than a wound. Closing it means adding an alarm on
+  "no `nightly ...` merge commit for N consecutive weekdays", and `CLAUDE.md`
+  priority -1 is emphatic that an over-eager watchdog gets muted and a muted
+  watchdog is worse than none. Your call on whether that trade is worth making;
+  one line under **Open** in `OWNER_FOCUS.md` is the lever.
+- **Nothing else needs a decision, and the queue is empty.** All four north-star
+  questions now have a surface - "how much" was the gap flagged on 09-18 and the
+  09-22 Concentration block closed it with inputs rather than a weight.
+
+### Next
+
+1. **Priority 3 step 3: the 34.1 free weight points.** Restate the 28.0pp of
+   price-restatable metrics at each rebalance month's own price and recompute the
+   6.1pp of price-derived ones from the panel the harness already holds. No
+   vendor, no licence, and it is a piece of v2 rather than a patch to v1 - but
+   note the deferral-streak rule now applies to it.
+2. **The run-level overview and a "reporting this week" view, built together.**
+   Both are surfaces over data already in the payload, both answer *what should I
+   look at*, and one is the last open remnant of the 2026-08-10 owner directive.
+3. **Close priority 0.6 on its own terms.** The scheduled path is covered by
+   `check_run_health` discarding a non-fetching run, but **nothing asserts it**
+   and a direct `python run_screener.py` still writes a snapshot. It is the one
+   item in the queue with a constraint and no test.
