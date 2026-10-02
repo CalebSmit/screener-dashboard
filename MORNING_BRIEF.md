@@ -1,4 +1,4 @@
-# Morning Brief - Friday 02 October 2026, 02:15
+# Morning Brief - Friday 02 October 2026, 06:27
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,11 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `6b787f0 log: 2026-10-02 retrospective - 9 of 9 shipped; gate 1 had no daily counterpart`
+- `677dd33 process: the deferral-streak rule, and a scoreboard for the runner comparison`
+- `f7e37db docs: archive settled decisions - CLAUDE.md 1058 -> 672 lines`
+- `ef03dae gate: the data loop verifies the claims in what it publishes`
+- `501c254 brief: data run 2026-10-02`
 - `f1de3c1 data: screener run 2026-10-02 - 502 scored, top: EXPE HST BBY CAH VLO`
 - `220e8fb brief: code session 2026-10-01`
 - `3624b73 log: 2026-10-01 - look-ahead sized, backtest-v2 step 1 closed`
@@ -29,51 +34,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-10-01 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+> 2026-10-02 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-09-30_060001.log` ends "Run complete: shipped to main",
-> tagged `good/2026-09-30` | data loop published? **yes** -
-> `logs/datarun-2026-10-01_020001.log` ends "Data loop complete", HEALTH: PASS,
-> 502 scored, top EXPE HST CAH MPC TRV | evidence base at `1m` = **20 rows, newest
-> 2026-09-01 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
+> `logs/nightly-2026-10-01_060001.log` ends "Run complete: shipped to main", tagged
+> `good/2026-10-01` | data loop published? **yes** -
+> `logs/datarun-2026-10-02_020001.log` ends "Data loop complete", HEALTH: PASS, 502
+> scored, top EXPE HST BBY CAH VLO | evidence base at `1m` = **21 rows, newest
+> 2026-09-02 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
 > steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
 > (`_effective_observations()` still gates, `allow_auto_apply` still false, 4
-> effective against a gate of 8) | top open roadmap item: **priority 3, backtest
-> v2 - 37 days old**, and **today closed step 1**, the measurement the last two
-> sessions both nominated in writing.
+> effective against a gate of 8) | top open roadmap item: **priority 3, backtest v2
+> - 38 days old.** Not taken: a retrospective does not work on the screener.
 > 
-> **Tests:** before **1615/1615**, after **1650/1650** (+35)
+> **Tests:** before **1658/1658**, after **1680/1680** (+22,
+> `tests/test_published_claims_gate.py`; **9 of them fail against the pre-change
+> tree**)
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
-> claim or move to Done. Took the nominal **Thursday build** focus by the route the
-> prompt specifies for it: the week produced no methodology change to implement
-> (Monday 09-28 was consumed by a red ship gate and produced no note; Wednesday
-> 09-30 swapped to priority 3 and said so), and in that case the instruction is to
-> take the top open item in "Current priorities" rather than invent a change. That
-> item nominated its own next step. Nothing was deferred for a stalled loop or a
-> failing gate - both loops are healthy and the baseline was green at 1615/1615.
+> claim or move to Done. ISO week 40, Friday, even week - retrospective, per the
+> rotation. Both loops healthy and the baseline green at 1658/1658, so nothing was
+> deferred for either.
 > 
-> ### Did
+> ### Retrospective findings
 > 
-> **Sized the look-ahead bias in `backtest.py`. It is >= 63.2% of the name-month
-> panel against survivorship's 11.4% - 5.5x bigger on the same unit - and that
-> closes `plan/backtest-v2.md` step 1, both halves.**
-> `research/2026-10-01-lookahead-bias-size.md`; `lookahead.py`;
-> `research/measurements/2026-10-01-lookahead-price-component.py` (committed JSON
-> output beside it); `tests/test_lookahead.py`, **43 tests**.
+> - **Sessions reviewed: 9 scheduled** (2026-09-21 to 2026-10-01). No owner-run
+>   sessions - the second consecutive fortnight with none.
+> - **Genuinely valuable: 9 | Churn: 0 | Failed gates at merge: 0** (one red
+>   *baseline*, 09-28, caused by the data loop - finding 1).
 > 
-> **1. Why this and not something else.** The 2026-09-30 session priced the
-> delisted-price feed, decided not to buy, and nominated this as the next step in
-> writing: *"free, needs no vendor and no permission ... the missing half of step 1
-> ... nothing else on the plan should be built first."* The 09-28 session nominated
-> the same item. Owner queue empty, both loops healthy, baseline green - so there
-> was no competing claim, and priority 3 had been deferred by eight of the ten
-> sessions before 09-30 precisely because something always looked more urgent.
+> **1. What fraction produced something genuinely valuable? All nine, with a merge
+> commit each.** 09-21 researched position sizing and found `weighting: 'score'` is
+> equal weight with noise (max deviation 0.57 pp over 39 run dates) and
+> `max_position_pct` inert; 09-22 shipped the Concentration block at zero payload
+> cost; 09-23 shipped the weighting change *and* found the public page had claimed
+> inverse-volatility weighting on **every run the tool has ever made**; 09-24 sized
+> survivorship bias at 4.3%/yr and built point-in-time membership; 09-25 closed the
+> nine-session `currentPrice` item and found four false statements on the
+> methodology page; 09-28 repaired a red gate and discovered
+> `SCREENER_OVERVIEW.md` is generated; 09-29 shipped earnings dates, measuring
+> 42.5% of them to be provider estimates before designing; 09-30 priced the
+> delisted-price feed at $199/yr and decided against it; 10-01 sized look-ahead at
+> **>= 63.2%** of the panel, 5.5x survivorship, and closed backtest-v2 step 1.
 > 
-> **2. The headline, on the same unit as survivorship.** Two arms of the real
-> scoring chain, 81 rebalance months x 502 names = **40,662 name-months**. Arm A is
-> v1: static metrics at snapshot values, momentum/risk recomputed per month exactly
+> **The habit that makes the rest credible held again: six of the nine corrected
+> this project's own published claims rather than defending them** - and two of
 > ...
 
 ---
