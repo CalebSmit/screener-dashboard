@@ -15,8 +15,9 @@ Do not rely on impressions. Go and look:
   each: did it produce something real, or was it churn?
 - **`git log --oneline --since="4 weeks ago"`** - what actually shipped? How
   many merges, and how substantial?
-- **`logs/*.log`** - how many runs failed their ship gates, and which gate?
-  How long do sessions take? Any that hit the 4-hour limit?
+- **`logs/*.log`** - how many runs failed their ship gates, and which gate? Not
+  session duration: measured three times now, the range is 14-35 minutes against
+  a 4-hour limit and the worst ever was 93. Stop checking it.
 - **`METHODOLOGY_CHANGELOG.md`** - are methodology changes actually being
   evidenced, or are entries getting thin and formulaic?
 - **`research/`** - are the notes real research with citations, or
@@ -27,14 +28,32 @@ Do not rely on impressions. Go and look:
   six sessions unremarked before 2026-09-18.
 - **`scripts/nightly-screener.ps1` and `scripts/data-run.ps1`** - read every
   path that touches `main`: what publishes, in what order, what it is checked
-  against first, and what runs from `finally`. Nothing else in the rotation
-  ever points here, and both retrospectives that have looked found a live hole
-  on the first read - 2026-09-04 the brief publishing with
-  `git push origin HEAD:main` from `finally`, 2026-09-18 the daily data loop
-  publishing the payload behind a weaker check than the code loop's gate 3.
-  **Compare the two runners against each other**: where one is stricter than
-  the other about the same artifact, the weaker one is usually the bug, and it
-  is usually the one that publishes more often.
+  against first, and what runs from `finally`. Nothing else in the rotation ever
+  points here, and **all three retrospectives that have looked found a live hole
+  on the first read.**
+
+  **Compare the two runners against each other.** Where one is stricter than the
+  other about the same artifact, the weaker one is usually the bug, and it is
+  usually the one that publishes more often. Each of the three holes was that
+  shape, so keep score rather than re-finding them:
+
+  | Found | The asymmetry | Closed by |
+  |---|---|---|
+  | 2026-09-04 | the brief published with `git push origin HEAD:main` from `finally`, so a gate failure published the refused branch | `scripts/publish-brief.ps1` |
+  | 2026-09-18 | the data loop published the payload behind a size floor where the code loop had gate 3 | `node --check` on both paths |
+  | 2026-10-02 | the data loop published regenerated public docs having run **no tests**, where the code loop had gate 1 | `scripts/check_published_claims.py` |
+
+  So gates 1, 3 and the brief now have counterparts on both paths. **Ask which
+  gate still does not** - gates 2 and 4 have no data-loop equivalent, and work
+  out whether that is a hole or correct before concluding either.
+
+- **`CLAUDE.md`'s own length.** It went 860 -> 897 -> 1058 lines across three
+  retrospectives, and the growth was "Current priorities" turning into narrative
+  about finished work - in the one file every session must read before it starts.
+  If it is longer than at the last retrospective, find what has become
+  archaeology and move it to `DECISIONS.md`, leaving the **constraint** and the
+  test that enforces it behind. A closed item's reasoning belongs in
+  `DECISIONS.md`, its constraint in `CLAUDE.md`, its discovery in `NIGHTLY_LOG.md`.
 
 ## 2. Answer these honestly
 
@@ -61,8 +80,8 @@ You may edit any of these:
 - `CLAUDE.md` - rules, priorities, the rotation itself
 - `prompts/nightly.md` - the daily instructions
 - `prompts/retrospective.md` - this file, including these questions
-- `scripts/nightly-screener.ps1` and `scripts/data-run.ps1` - the runners
-- The rotation table and the focus strings in the runner
+- `scripts/nightly-screener.ps1` and `scripts/data-run.ps1` - the runners, and
+  the rotation table and focus strings inside them
 - Retrospective frequency, if fortnightly is wrong
 
 Make the changes concrete. "Be more rigorous" is not a process change. "Monday

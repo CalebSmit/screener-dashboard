@@ -34,9 +34,17 @@ for the owner.
 
 - Read the last 3 entries of `NIGHTLY_LOG.md`. What was in progress? What did
   the last session say to do next? What did it flag as broken?
-- **Check the priorities section in `CLAUDE.md`.** The forward-return horizon
-  bug that used to sit at priority 0 shipped 2026-08-24; do not go looking for
-  it. Read what is at the top of the queue *now*.
+- **Check the priorities section in `CLAUDE.md`.** Read what is at the top of
+  the **Open** queue *now*. The **Settled** table above it is constraints, not
+  work - if you are about to weaken a row, read its `DECISIONS.md` entry first.
+- **The deferral-streak rule.** If the top open roadmap item has been deferred by
+  **three consecutive sessions**, the next session carrying no owner item and no
+  broken loop must **resolve** it: advance it, or demote it in "Current
+  priorities" with the argument for what outranks it. Either is a result; a
+  fourth "deferred, defensibly" is not. Measured 2026-10-02: priority 3 was
+  deferred by **eight of ten** sessions, each time for defensible smaller work,
+  and moved only once two sessions in a row had nominated it in writing. The
+  roadmap-age line makes the trade visible; this is what closes it.
 - Check the data loop: has `scripts/data-run.ps1` run recently? Look at
   `logs/`, `improvement/live_ic_history.csv`, and the newest files in
   `improvement/snapshots/`. **If the data loop is stalled or failing, fixing it
@@ -101,11 +109,6 @@ hold / how much*. **Read `plan/dashboard-inventory.md` first** - the
 most likely failure here is rebuilding something that already exists. Ship a
 dashboard change, or write down precisely what it cannot answer and why.
 
-This day exists because the dashboard had a standing owner directive and 23
-days of zero progress: every session that could run was spent on data-pipeline
-defects, correctly, and nothing in the rotation protected product work from
-firefighting. Firefighting will always win that fight unless a day is reserved.
-
 **Wednesday - synthesis.** How does Monday's research fit the *rest* of the
 screener? What does it overlap with or make redundant? What does it imply for
 the other seven categories? Is the screener coherent after the change, or just
@@ -118,9 +121,7 @@ after.
 If the week's research concluded *no change warranted* - a successful research
 outcome, not a failed one - do **not** invent a methodology change so there is
 something to build. Take the top open item in `CLAUDE.md`'s "Current
-priorities" instead, and say in the log which of the two this was. Added
-2026-09-04: nine consecutive sessions produced real work and no north-star item
-shipped, because every day found something smaller and more urgent first.
+priorities" instead, and say in the log which of the two this was.
 
 **Friday - harden and teach.** Tests, docs, error handling, and the
 investment-club experience. Would a finance student understand what they're
@@ -196,10 +197,9 @@ Then: commit in small scoped commits and **push the branch. Stop there.**
 gates yourself - they tell you whether the work is fit to ship, and a session
 that ignores them wastes the day - but `nightly-screener.ps1` re-runs all four
 independently and merges only if they pass. Publishing yourself puts your push
-*before* that check: on 2026-09-02 a session merged at 06:24:22, the
-independent run failed a test two minutes later, and the recovery path had to
-revert a commit already live on the public site. Leave the merge to the runner
-and the gates become a precondition instead of an audit.
+*before* that check, which is how a failing commit reached the public site on
+2026-09-02. Leave the merge to the runner and the gates become a precondition
+instead of an audit.
 
 Nothing is lost if a gate fails: your branch is on origin, and the next session
 picks it up.
