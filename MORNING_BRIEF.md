@@ -1,24 +1,14 @@
-# Morning Brief - Monday 05 October 2026, 02:14
+# Morning Brief - Monday 05 October 2026, 06:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## THE ROUTINE IS NOT RUNNING
-
-- **Code session** has not run since 2 days ago
-
-Nothing below is current. A loop that stops firing writes no log, so
-the rest of this page describes the last run that *did* happen, not
-today. Most likely cause: the PC rebooted and nobody logged back in -
-the tasks only run while a user is signed in. See NIGHTLY_LOG.md
-2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-10-05T02:00:06.261856 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -28,55 +18,58 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 
 ## What changed in the repo
 
+- `46c92bf log: 2026-10-05 research session`
+- `f2db1f0 research: fundamental reporting lag - filed-date alignment rule for backtest v2 step 3`
+- `56e3738 brief: data run 2026-10-05`
 - `5a4bb9e data: screener run 2026-10-05 - 502 scored, top: EXPE HST BBY VLO CAH`
 
 ## The session's own account
 
-> 2026-10-02 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+> 2026-10-05 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
 > 
 > **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-10-01_060001.log` ends "Run complete: shipped to main", tagged
-> `good/2026-10-01` | data loop published? **yes** -
-> `logs/datarun-2026-10-02_020001.log` ends "Data loop complete", HEALTH: PASS, 502
-> scored, top EXPE HST BBY CAH VLO | evidence base at `1m` = **21 rows, newest
-> 2026-09-02 (30 days ago, bound 40), 4 effective** - the middle of the 30-33-day
-> steady state, healthy | priority 0 **fixed 2026-08-24, not weakened**
-> (`_effective_observations()` still gates, `allow_auto_apply` still false, 4
-> effective against a gate of 8) | top open roadmap item: **priority 3, backtest v2
-> - 38 days old.** Not taken: a retrospective does not work on the screener.
+> `logs/nightly-2026-10-02_060001.log` ends "Run complete: shipped to main",
+> tagged `good/2026-10-02` | data loop published? **yes** -
+> `logs/datarun-2026-10-05_020001.log` "HEALTH: PASS - safe to publish", ends
+> "Data loop complete", 502 scored, top EXPE HST BBY VLO CAH | evidence base at
+> `1m` = **23 rows, newest 2026-09-04 (31 days ago, bound 40), 4 effective** -
+> the middle of the 30-33-day steady state, healthy | priority 0 **fixed
+> 2026-08-24, not weakened** (`_effective_observations()` still gates,
+> `allow_auto_apply` still false, 4 effective against a gate of 8) | top open
+> roadmap item: **priority 3, backtest v2 - 41 days old**, and today produced
+> the alignment rule its step 3 needs, so it advanced rather than aged.
 > 
-> **Tests:** before **1658/1658**, after **1680/1680** (+22,
-> `tests/test_published_claims_gate.py`; **9 of them fail against the pre-change
-> tree**)
+> **Tests:** before **1680/1680**, after **1680/1680** (unchanged - no
+> production code, per the Monday rule; the session adds three research files)
 > 
 > **Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
-> claim or move to Done. ISO week 40, Friday, even week - retrospective, per the
-> rotation. Both loops healthy and the baseline green at 1658/1658, so nothing was
-> deferred for either.
+> claim or move to Done. Took the nominal **Monday research** focus and pointed
+> it at the top roadmap item: backtest v2 step 3 needs a rule for aligning
+> fundamentals with prices, and no note in `research/` covered it. Nothing was
+> deferred - both loops healthy, baseline green at 1680/1680.
 > 
-> ### Retrospective findings
+> ### Did
 > 
-> - **Sessions reviewed: 9 scheduled** (2026-09-21 to 2026-10-01). No owner-run
->   sessions - the second consecutive fortnight with none.
-> - **Genuinely valuable: 9 | Churn: 0 | Failed gates at merge: 0** (one red
->   *baseline*, 09-28, caused by the data loop - finding 1).
+> **Researched the fundamental reporting lag - the construction rule for *when*
+> accounting data becomes usable to a screen - from the literature, documented
+> practice, and a live measurement of this exact universe.**
+> `research/2026-10-05-fundamental-reporting-lag.md`;
+> `research/measurements/2026-10-05-edgar-reporting-lag.py` (+ committed JSON).
 > 
-> **1. What fraction produced something genuinely valuable? All nine, with a merge
-> commit each.** 09-21 researched position sizing and found `weighting: 'score'` is
-> equal weight with noise (max deviation 0.57 pp over 39 run dates) and
-> `max_position_pct` inert; 09-22 shipped the Concentration block at zero payload
-> cost; 09-23 shipped the weighting change *and* found the public page had claimed
-> inverse-volatility weighting on **every run the tool has ever made**; 09-24 sized
-> survivorship bias at 4.3%/yr and built point-in-time membership; 09-25 closed the
-> nine-session `currentPrice` item and found four false statements on the
-> methodology page; 09-28 repaired a red gate and discovered
-> `SCREENER_OVERVIEW.md` is generated; 09-29 shipped earnings dates, measuring
-> 42.5% of them to be provider estimates before designing; 09-30 priced the
-> delisted-price feed at $199/yr and decided against it; 10-01 sized look-ahead at
-> **>= 63.2%** of the panel, 5.5x survivorship, and closed backtest-v2 step 1.
-> 
-> **The habit that makes the rest credible held again: six of the nine corrected
-> this project's own published claims rather than defending them** - and two of
+> - **The literature is already two-tier.** Fama & French (1992) impose a
+>   six-month minimum gap - a deliberately conservative guess from an era
+>   without machine-readable filing dates. Hou, Xue & Zhang (2020) refine it:
+>   earnings usable from the announcement date (RDQ), everything else lagged 4
+>   months, because the economy-wide median reporting lag in their sample was
+>   46-52 days and only ~37% of earnings announcements carry a balance sheet.
+>   Asness & Frazzini (2013) add the other half of the ratio: lag the
+>   fundamental because you must, **never lag the price** - their timely-price
+>   value construction earns 305-378 bps/yr of alpha vs five-factor models.
+> - **Practice buys dates, not conventions.** Compustat Point-in-Time is the
+>   paid product; SEC deadlines (60-day 10-K / 40-day 10-Q for large
+>   accelerated filers, i.e. the whole S&P 500) are the legal bound; and SEC
+>   EDGAR's XBRL `companyconcept` API gives every fact with its own `filed`
+>   date free - **verified by a live call this session**: 146 USD facts for
 > ...
 
 ---
