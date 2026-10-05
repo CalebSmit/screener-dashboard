@@ -1,36 +1,34 @@
-# Morning Brief - Friday 02 October 2026, 06:27
+# Morning Brief - Monday 05 October 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-10-02T02:00:03.760075 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-10-05T02:00:06.261856 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, CAH, VLO |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (21 rows, but overlapping windows are not independent; 65 rows across all horizons), newest 2026-09-25 |
+| Top 5 | EXPE, HST, BBY, VLO, CAH |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (23 rows, but overlapping windows are not independent; 68 rows across all horizons), newest 2026-09-28 |
 
 ## What changed in the repo
 
-- `6b787f0 log: 2026-10-02 retrospective - 9 of 9 shipped; gate 1 had no daily counterpart`
-- `677dd33 process: the deferral-streak rule, and a scoreboard for the runner comparison`
-- `f7e37db docs: archive settled decisions - CLAUDE.md 1058 -> 672 lines`
-- `ef03dae gate: the data loop verifies the claims in what it publishes`
-- `501c254 brief: data run 2026-10-02`
-- `f1de3c1 data: screener run 2026-10-02 - 502 scored, top: EXPE HST BBY CAH VLO`
-- `220e8fb brief: code session 2026-10-01`
-- `3624b73 log: 2026-10-01 - look-ahead sized, backtest-v2 step 1 closed`
-- `2f80627 docs: correct backtest.py's look-ahead claim, reverse the plan's sequencing`
-- `1de3975 research: look-ahead is >= 63.2% of the panel, 5.5x survivorship`
-- `17c67a8 lookahead: diagnostic to size backtest.py's look-ahead bias`
-- `358af76 brief: data run 2026-10-01`
-- `7d24629 data: screener run 2026-10-01 - 502 scored, top: EXPE HST CAH MPC TRV`
+- `5a4bb9e data: screener run 2026-10-05 - 502 scored, top: EXPE HST BBY VLO CAH`
 
 ## The session's own account
 
