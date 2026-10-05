@@ -7762,3 +7762,135 @@ today's defect. `CLAUDE.md` is **down 386 lines.**
    `check_run_health` discarding a non-fetching run, but **nothing asserts it**
    and a direct `python run_screener.py` still writes a snapshot. It is the one
    item in the queue with a constraint and no test.
+
+## 2026-10-05 - RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-10-02_060001.log` ends "Run complete: shipped to main",
+tagged `good/2026-10-02` | data loop published? **yes** -
+`logs/datarun-2026-10-05_020001.log` "HEALTH: PASS - safe to publish", ends
+"Data loop complete", 502 scored, top EXPE HST BBY VLO CAH | evidence base at
+`1m` = **23 rows, newest 2026-09-04 (31 days ago, bound 40), 4 effective** -
+the middle of the 30-33-day steady state, healthy | priority 0 **fixed
+2026-08-24, not weakened** (`_effective_observations()` still gates,
+`allow_auto_apply` still false, 4 effective against a gate of 8) | top open
+roadmap item: **priority 3, backtest v2 - 41 days old**, and today produced
+the alignment rule its step 3 needs, so it advanced rather than aged.
+
+**Tests:** before **1680/1680**, after **1680/1680** (unchanged - no
+production code, per the Monday rule; the session adds three research files)
+
+**Owner queue / rotation:** `OWNER_FOCUS.md` **Open is empty**, so nothing to
+claim or move to Done. Took the nominal **Monday research** focus and pointed
+it at the top roadmap item: backtest v2 step 3 needs a rule for aligning
+fundamentals with prices, and no note in `research/` covered it. Nothing was
+deferred - both loops healthy, baseline green at 1680/1680.
+
+### Did
+
+**Researched the fundamental reporting lag - the construction rule for *when*
+accounting data becomes usable to a screen - from the literature, documented
+practice, and a live measurement of this exact universe.**
+`research/2026-10-05-fundamental-reporting-lag.md`;
+`research/measurements/2026-10-05-edgar-reporting-lag.py` (+ committed JSON).
+
+- **The literature is already two-tier.** Fama & French (1992) impose a
+  six-month minimum gap - a deliberately conservative guess from an era
+  without machine-readable filing dates. Hou, Xue & Zhang (2020) refine it:
+  earnings usable from the announcement date (RDQ), everything else lagged 4
+  months, because the economy-wide median reporting lag in their sample was
+  46-52 days and only ~37% of earnings announcements carry a balance sheet.
+  Asness & Frazzini (2013) add the other half of the ratio: lag the
+  fundamental because you must, **never lag the price** - their timely-price
+  value construction earns 305-378 bps/yr of alpha vs five-factor models.
+- **Practice buys dates, not conventions.** Compustat Point-in-Time is the
+  paid product; SEC deadlines (60-day 10-K / 40-day 10-Q for large
+  accelerated filers, i.e. the whole S&P 500) are the legal bound; and SEC
+  EDGAR's XBRL `companyconcept` API gives every fact with its own `filed`
+  date free - **verified by a live call this session**: 146 USD facts for
+  AAPL `Assets`, every one carrying `filed` and `end`.
+- **Measured the actual lag for this universe** (deterministic 63-name
+  sample, every 8th sorted ticker, 1,587 filings with period end >=
+  2019-06-30): 10-K becomes public at a **median 48 days** (p90 58, 1.6%
+  past deadline), 10-Q at a **median 32 days** (p90 39, 1.0% past).
+  Counted at the honest unit per the research README - the company, not the
+  filing: median-of-company-medians 47.5 / 33.0 days, slowest company 59 /
+  42. **The S&P 500 files its complete 10-Q faster than the old economy-wide
+  median earnings announcement** - the 4- and 6-month academic conventions
+  would discard a month-plus of genuinely public data here.
+- **Recommendation for v2 step 3:** align filings-fed fundamentals by
+  per-fact `filed` dates (a fact is usable at rebalance month m iff filed <=
+  month-end), fall back to the 60/40-day deadline where a date is missing
+  (~98.5% honest coverage, measured), accept the mild conservatism on
+  income-statement items, and plan to report the 9.0pp analyst-estimate
+  bucket as permanently unmeasurable - Ljungqvist, Malloy & Marston (2009)
+  found 1.6-21.7% of I/B/E/S history *changed between downloads*, so even a
+  paid estimates archive is suspect without its own point-in-time audit.
+- **Corrected my own draft before shipping it:** the note originally said
+  "the 11 filings-fed metrics"; checking `lookahead.NEEDS_POINT_IN_TIME`
+  found **27 metrics**, and not all filings-fed (3 estimate metrics plus
+  `analyst_rating`, two short-interest metrics, `insider_ownership`). The
+  note now says the honest split by source is the sizing step's first task.
+
+### Evidence / research
+
+- **Fama & French (1992), *JF* 47(2), 427-465** - the six-month convention,
+  NYSE/Amex/NASDAQ 1962-1989. **Hou, Xue & Zhang (2020), *RFS* 33(5),
+  2019-2133** + q-factor technical doc (global-q.org, Feb 2024) - RDQ for
+  earnings, 4-month lag otherwise, median lag 46/52 days, US 1967-2016.
+  **Asness & Frazzini (2013), *JPM* 39(4), 49-68** - 305-378 bps/yr alpha
+  for timely-price value vs five-factor models, US + 19 markets. **Ljungqvist,
+  Malloy & Marston (2009), *JF* 64(4), 1935-1960** - 1.6-21.7% of matched
+  I/B/E/S observations differ across seven downloads, 2000-2007. All
+  verified against publisher/author pages today; URLs in the note.
+- **Measured this session, reproducible from the committed script:** the
+  filing-lag table above, from EDGAR's submissions API, rate-limited and
+  with a declared User-Agent per EDGAR policy; plus the `companyconcept`
+  fact-field check. Sample rule is deterministic (sorted, stride 8), so a
+  re-run is comparable as the universe drifts.
+- **No backtest number and no IC figure justifies anything here** (rules 4
+  and 5). The `1m` horizon holds **4 effective** observations against a gate
+  of 8. The note states this explicitly.
+
+### Methodology changed
+
+- **None.** No production code (the Monday rule), no weight, threshold or
+  scoring path moved; `dashboard_data.js` and `index.html` byte-untouched.
+  The note is design input for a future v2 build, which is diagnostic
+  tooling, not scoring methodology.
+
+### Tried and rejected
+
+- **Adopting FF's 6-month or HXZ's 4-month fixed lag for v2.** The measured
+  medians for this universe are 32-48 days; both conventions were built for
+  broad universes and eras without filing dates, and here they would discard
+  a month-plus of public data per fact - avoidable staleness, and a backtest
+  of a construction the live site does not run.
+- **Quoting n=1,587.** Filings from one company share its filing habits; the
+  README's independence standard applies, so the note leads with 62/63
+  company medians and their spread.
+- **Measuring the press-release (RDQ-equivalent) gap from 8-Ks.** EDGAR has
+  no item-level API for 8-K earnings exhibits - that is a scrape, not a
+  measurement. Bounded the error direction instead: filed-date alignment is
+  conservative for income-statement items by the press-release-to-filing gap
+  (~2-4 weeks), and the direction is safe (staleness, never look-ahead).
+- **Running all 503 names.** Stride-8 is deterministic, resolves 63/63 CIKs,
+  and a median over 62 company medians with p10-p90 of 36-57 days does not
+  need 8x the requests. The script notes the full run as the re-measure path
+  if the sample ever looks unrepresentative.
+
+### Next
+
+1. **Wednesday synthesis: fold the note's design section into
+   `plan/backtest-v2.md` step 3.** The hard part is concept mapping (metric
+   -> us-gaap tags; EBITDA must be composed, vendor definitions will not all
+   match), not dates. Thursday build remains the 34.1 free price points
+   first - unchanged, and now carrying a second justification (the
+   Asness-Frazzini construction), with the filed-date join as the follow-on.
+2. **The run-level overview and "reporting this week" view** (carried from
+   10-02; both are surfaces over data already in the payload).
+3. **Priority 0.6** (carried): the one open item with a constraint and no
+   test - a direct `python run_screener.py` still writes a snapshot on a
+   warm start.
+
+---
