@@ -535,6 +535,18 @@ what it sold. They ride the `.info` dict the fetch already pulls, so they cost
 no API calls, and a test asserts they never enter `raw`/`pct`. Prose is never
 scored.
 
+**How it looks and feels is part of whether it is correct** - owner direction,
+2026-10-05: *"It looks like AI slop... make it look premium and expensive... it
+doesn't feel good to move around in it either."* Measured that day: GitHub's dark
+palette verbatim, a hue per category, ~2,560 elements set in monospace, 12px as the
+dominant size, 502 table rows in a nested scroll box, ~9,900 DOM nodes. The full
+brief is the open item in `OWNER_FOCUS.md`. The standing rules that outlive it:
+**look at the live page at desktop and 375px before and after any dashboard change
+and say what you saw** (judging from the CSS is how it got here); colour is for
+meaning, not decoration; every figure uses tabular numerals; and presentation work
+must leave every number, rank and sentence byte-identical, which you verify by
+diffing the rebuilt payload against the live one.
+
 ## Current priorities (rewrite this section as things land)
 
 **Restructured 2026-10-02.** This section had reached **551 lines - 52% of this

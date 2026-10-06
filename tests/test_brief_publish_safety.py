@@ -106,7 +106,12 @@ def publish(work: Path, label: str = "code session 2026-09-04") -> subprocess.Co
         "if (-not $ok) { exit 3 }"
     )
     return subprocess.run(
-        [POWERSHELL, "-NoProfile", "-NonInteractive", "-Command", cmd],
+        # Bypass because the command dot-sources a .ps1: without it the test
+        # passes under the scheduled task (which launches with Bypass and hands
+        # it down) and fails in any ordinary terminal ("running scripts is
+        # disabled on this system"). Found 2026-10-05, 7 of 14 tests red.
+        [POWERSHELL, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+         "-Command", cmd],
         capture_output=True,
         text=True,
         timeout=300,
