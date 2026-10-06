@@ -1,4 +1,4 @@
-# Morning Brief - Monday 05 October 2026, 06:12
+# Morning Brief - Tuesday 06 October 2026, 02:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,18 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-10-05T02:00:06.261856 |
+| Dashboard data from | 2026-10-06T02:00:03.627268 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, VLO, CAH |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (23 rows, but overlapping windows are not independent; 68 rows across all horizons), newest 2026-09-28 |
+| Top 5 | EXPE, HST, BBY, DLTR, CAH |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (23 rows, but overlapping windows are not independent; 69 rows across all horizons), newest 2026-09-29 |
 
 ## What changed in the repo
 
+- `2913fac data: screener run 2026-10-06 - 502 scored, top: EXPE HST BBY DLTR CAH`
+- `a46eb1a owner: make the dashboard look and feel premium - queue it, brief it, standing rule`
+- `113d5f8 brief: code session 2026-10-05`
 - `46c92bf log: 2026-10-05 research session`
 - `f2db1f0 research: fundamental reporting lag - filed-date alignment rule for backtest v2 step 3`
 - `56e3738 brief: data run 2026-10-05`
