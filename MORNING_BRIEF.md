@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 06 October 2026, 02:14
+# Morning Brief - Tuesday 06 October 2026, 06:21
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
+| Code session (6 AM) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-10-06T02:00:03.627268 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -16,8 +16,26 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | EXPE, HST, BBY, DLTR, CAH |
 | Evidence for weight changes | 4 of 8 needed at the 1m horizon (23 rows, but overlapping windows are not independent; 69 rows across all horizons), newest 2026-09-29 |
 
+## Things that needed attention
+
+- SESSION DID NOT RUN: API error 429 - You've hit your session limit ┬╖ resets 11am (America/Chicago)
+- Treating this as a failure, not as 'nothing to do'. No success marker will be written,
+- so the catch-up trigger will retry rather than skipping the day.
+- GATE 4 clean tree: FAIL - uncommitted changes remain
+- M generate_dashboard.py
+- ?? plan/dashboard-design-system.md
+- ?? scripts/_mono_sweep.py
+- ?? scripts/_shape_sweep.py
+- ?? scripts/_token_sweep.py
+- ?? scripts/check_contrast.py
+- ?? scripts/shot_dashboard.py
+- SHIP GATES FAILED: clean-tree. Not merging.
+- Work pushed to nightly/2026-10-06 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `df40d95 brief: data run 2026-10-06`
 - `2913fac data: screener run 2026-10-06 - 502 scored, top: EXPE HST BBY DLTR CAH`
 - `a46eb1a owner: make the dashboard look and feel premium - queue it, brief it, standing rule`
 - `113d5f8 brief: code session 2026-10-05`
