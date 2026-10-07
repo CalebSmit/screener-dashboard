@@ -568,6 +568,30 @@ try {
             Invoke-Native 'git' @('branch', '-f', $Branch, 'HEAD') | Out-Null
             Invoke-Native 'git' @('reset', '--hard', $BaseSha) | Out-Null
         }
+
+        # 2026-10-06: a session cut off by a usage limit has work in the tree and
+        # no commits. Gate 4 then fails, and this block pushed an EMPTY branch and
+        # left the work uncommitted on it - where the 02:00 data loop, which does
+        # git checkout main and then regenerates the live dashboard from
+        # generate_dashboard.py, would have published a half-finished redesign
+        # unreviewed. Commit whatever is there onto the branch so it is pushed
+        # and safe, then go back to main so nothing downstream runs from it.
+        # Branch only: this never merges, and the gates still decide that.
+        if ($workBranch -ne 'main') {
+            $dirty = Invoke-Native 'git' @('status', '--porcelain')
+            if ($dirty.Text.Trim()) {
+                Invoke-Native 'git' @('add', '-A') | Out-Null
+                $salvage = Invoke-Native 'git' @('commit', '-q', '-m',
+                    "wip: salvaged from an interrupted session $Date - uncommitted when the gates ran")
+                Write-NativeOutput $salvage 'WARN'
+                if ($salvage.ExitCode -eq 0) {
+                    Write-Log "Committed the uncommitted work onto $Branch so it is not lost. Recover it from there." 'WARN'
+                } else {
+                    Write-Log "Could not commit the leftover work. It stays in the working tree." 'ERROR'
+                }
+            }
+        }
+
         $push = Invoke-Native 'git' @('push', '-u', 'origin', $Branch)
         Write-NativeOutput $push
 
@@ -591,6 +615,15 @@ try {
             Write-Log "Work pushed to $Branch for inspection. origin/main verified clean (reverted if the earlier push had reached it)." 'WARN'
         } else {
             Write-Log "origin/main may still carry the failing commits and the automatic revert could not verify a clean fix - this needs a human right now." 'ERROR'
+        }
+
+        # Leave the folder on main with a clean tree, never on the failed branch.
+        $left = Invoke-Native 'git' @('status', '--porcelain')
+        if (-not $left.Text.Trim()) {
+            $back = Invoke-Native 'git' @('checkout', 'main')
+            if ($back.ExitCode -ne 0) { Write-Log "Could not return to main after the failed run." 'WARN' }
+        } else {
+            Write-Log "Tree is still dirty, so not switching branches. The data loop will stash it." 'WARN'
         }
         Stop-Run "Run finished with failing gates - see above." 2
     }

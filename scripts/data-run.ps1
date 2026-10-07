@@ -185,6 +185,24 @@ try {
     # does. Reproduced 2026-08-29: with the lock file present, `git checkout
     # main` on an otherwise clean repo exits 128, "Unable to create
     # '.git/index.lock': File exists".
+    # 2026-10-06: this loop regenerates the live dashboard from whatever
+    # generate_dashboard.py is in the tree and publishes it, and it used to start
+    # with no look at the tree at all. A code session cut off by a usage limit
+    # left a half-finished redesign uncommitted in the working tree, and the next
+    # 02:00 run would have carried it across git checkout main and published it
+    # unreviewed. Stash anything dirty first - the same rescue the code loop has
+    # always done, and nothing is lost: git stash list shows it.
+    $dirty = Invoke-Native 'git' @('status', '--porcelain')
+    if ($dirty.Text.Trim()) {
+        Write-Log "Working tree is dirty before the run, so it is being stashed and not published:" 'WARN'
+        Write-NativeOutput $dirty 'WARN'
+        $stash = Invoke-Native 'git' @('stash', 'push', '-u', '-m', "auto-rescue data-run $Date")
+        Write-NativeOutput $stash 'WARN'
+        if ($stash.ExitCode -ne 0) {
+            Stop-Run "Could not stash a dirty tree. Not publishing from it." 2
+        }
+    }
+
     $co = $null
     for ($attempt = 1; $attempt -le 5; $attempt++) {
         $co = Invoke-Native 'git' @('checkout', 'main')

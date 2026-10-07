@@ -7894,3 +7894,144 @@ practice, and a live measurement of this exact universe.**
    warm start.
 
 ---
+
+## 2026-10-06 - PRODUCT, cut off by a usage limit; stage 1 of the premium redesign salvaged and shipped by an owner-run session
+
+The 06:00 session did not complete. It was killed at 06:18:47 by
+`API error 429 - You've hit your session limit, resets 11am`, after about eighteen
+minutes of real work and before committing any of it or writing this entry. This
+entry was written that evening by an interactive session, from the logs, the
+branch and the work itself.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **No - SESSION DID NOT RUN to completion.** `logs/nightly-2026-10-06_060001.log`: "API error 429 ... resets 11am". The previous one, 10-05, shipped (`good/2026-10-05`) |
+| Data loop published? | **Yes** - `logs/datarun-2026-10-06_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored |
+| Evidence base | at `1m`: **23 rows, newest 2026-09-04, 4 effective observations**; lag 32 days, inside the 40-day bound |
+| Priority 0 | Fixed 2026-08-24, not touched |
+| Top open roadmap item | **Priority 3, backtest v2** - `plan/backtest-v2.md` dated 2026-08-25, **42 days**. Not taken: the owner's design directive outranks the rotation, and the day was spent on it |
+
+**Tests:** before 1680/1680 (gate 1 also passed on the cut-off session's dirty
+tree), after **1692/1692** (+12, no failures). Two older tests in
+`test_revert_bad_merge.py` needed their 2,500-character search window widened
+because the salvage step now sits ahead of the revert call; the assertions are
+unchanged.
+**Owner queue:** the 2026-10-05 "premium and expensive" item is **open and was
+worked** - this is its first build session.
+
+### What the 06:00 session did, reconstructed
+
+It started the owner's redesign and finished its first stage: **a design-system
+pass in `generate_dashboard.py`** (238 insertions, 286 deletions) with its written
+argument in `plan/dashboard-design-system.md` - every token, why that value, the
+source - plus `scripts/check_contrast.py` (WCAG ratios for every text/surface pair)
+and `scripts/shot_dashboard.py` (a playwright harness that measures the page).
+
+What it changed, in the doc's own words: neutral ramp and **one** accent in place
+of GitHub's dark palette; Inter for UI and figures with `tabular-nums`, JetBrains
+Mono reserved for literal code; 14px base (it measured **5,680 of ~9,900
+elements at 12px**); one radius; entrance animation, glows, the rainbow header
+rule, the per-category hue map and the eleven-hue sector pills **deleted rather than
+restyled**; transitions limited to named properties at 120-160ms; and
+`prefers-reduced-motion` honoured. Measured "before" on the committed page: 9,928
+DOM nodes, 662 elements with transitions, monospace on **6,415 elements**.
+
+It deliberately left the table's nested scroll box and 502-row DOM (stage 2), the
+drilldown hierarchy (stage 3) and mobile (stage 4) for later, per the owner's
+ordering.
+
+### What went wrong after the cut-off, and what it nearly cost
+
+1. **Nothing was committed**, so gate 4 (clean tree) failed - the only gate that
+   did; gates 1-3 passed. The runner pushed `nightly/2026-10-06` with **0 new
+   commits** and left the work uncommitted in the working tree **on that branch**.
+   The pushed branch contained none of it.
+2. **That would have reached the live site.** `data-run.ps1` begins with
+   `git checkout main` and never looked at the tree. An uncommitted *tracked*
+   modification survives a checkout, so the 02:00 run would have regenerated
+   `index.html` from the half-finished generator and pushed it. Its gates parse the
+   payload and run the claim tests; they check a page is not broken, not that it
+   is finished. Found at 19:05 on 10-06, seven hours before it would have fired.
+3. **The code loop's own rescue was silent.** Its preflight stashes a dirty tree
+   (nothing lost), but nothing told the next session to look in the stash, so
+   tomorrow's session would have started from `main` unaware.
+
+### Did
+
+**Secured the work first.** Committed the four real files to `nightly/2026-10-06`
+(`54bec97`, labelled as a salvage) and pushed, copied the three one-off codemod
+scripts (`_token_sweep.py`, `_mono_sweep.py`, `_shape_sweep.py` - their output is
+already in the generator diff) out of the repo rather than adding them to
+`scripts/`, and left the folder on a clean tree.
+
+**Then judged it by the standard the brief set, not by the CSS.** Rebuilt the
+page and diffed the payload against the live one: **`dashboard_data.js`
+byte-identical, 5,150,209 bytes, same SHA-256** - no number, rank or sentence
+changed. Opened the result at desktop and 375px. Real improvement: the rainbow, the
+gradient card headers and the per-category colours are gone, one accent carries
+interactivity, the type is calmer and larger.
+
+**Two defects in it, fixed, both against its own rules.** (a) The Top 5
+composites were bright green, but the design doc reserves green for direction of
+change and a composite is a level - now ink. (b) A stark **white native
+scrollbar** sat under the Top 5 row on a near-black page - `color-scheme: dark`
+on `:root` makes native scrollbars and controls render dark.
+
+**Closed the hole, not just the instance** (rule 11):
+- `nightly-screener.ps1`: on a failed gate, any uncommitted work is **committed
+  onto the nightly branch before it is pushed**, and the folder is returned to a
+  **clean `main`** - and only if the tree is clean, since switching branches with a
+  dirty tree is exactly the leak. Branch commit only; it cannot merge.
+- `data-run.ps1`: a dirty tree is **stashed before `git checkout main`**, the same
+  rescue the code loop always had, and the run refuses to publish if it cannot.
+- `prompts/nightly.md`: sessions are told to **commit as they go** (a usage limit
+  can end a session at any moment) and to **run `git stash list`** for an
+  `auto-rescue` entry before starting something new.
+
+`tests/test_interrupted_session_recovery.py`: 12 tests - static source-order
+assertions on both scripts and the prompt, plus three sandbox tests that run the
+exact git sequences, including one that **demonstrates the defect** (a tracked
+edit crossing `git checkout main` intact). All five new behaviours are absent from
+the pre-change scripts, confirmed against `git show HEAD:`.
+
+### Evidence
+
+A demonstrated failure with a reproduction (the 02:00 data loop's checkout
+behaviour is the test above), and the owner's own words as the documented user
+problem for the redesign: *"It looks like AI slop... make it look premium and
+expensive."* The design choices carry their sources in
+`plan/dashboard-design-system.md` (Carbon, Material, Primer, Apple HIG, WCAG,
+the dataviz palette validator). No backtest or IC number was used (rules 4, 5).
+
+### Methodology changed
+
+None. Presentation only; the payload is byte-identical.
+
+### Tried and rejected
+
+- **Merging the branch as the 06:00 session left it.** It had no log entry, no
+  inventory update, and two visible defects against its own doc. Salvage first,
+  then judge.
+- **Discarding the dirty tree.** It was eighteen minutes of coherent work.
+- **Committing the three codemod scripts.** One-off refactors whose output is
+  already in the diff; they would rot in `scripts/`.
+- **Guessing why the limit was hit.** The log says only "session limit, resets
+  11am". The owner was in a long interactive session the evening before, which
+  draws on the same allowance, but nothing here proves that was the cause.
+
+### Next
+
+1. **Stage 2 of the redesign: the rankings table.** Remove the nested scroll box,
+   stop rendering 502 rows' worth of DOM before first paint, designed filter
+   controls in place of native `<select>`s, restrained visual encoding for scores.
+   Re-measure DOM nodes and a click/scroll responsiveness number against the
+   9,928-node baseline in `plan/dashboard-design-system.md`.
+2. **Commit early.** Design work is the most token-hungry work this routine does -
+   screenshots, rebuilds, measurement - so a cut-off is likelier now. The prompt
+   says so; follow it.
+3. Everything from 10-05's Next still stands (Wednesday synthesis into backtest v2
+   step 3; the run-level overview; priority 0.6).
+
+---

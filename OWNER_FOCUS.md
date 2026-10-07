@@ -112,6 +112,16 @@ Add items below. Anything under this heading is unclaimed work.
     them deliberately, subset them, and make the fallback stack look right.
   - Update `plan/dashboard-inventory.md` in the same session (rule 9).
 
+  **Progress (update this line each session):**
+  - **2026-10-06 - stage 1 shipped:** design-system tokens in the generator, with the
+    written argument in `plan/dashboard-design-system.md` - one neutral ramp and one
+    accent, Inter with tabular figures, 14px base, rainbow/glow/entrance-animation
+    removed, `color-scheme: dark`. Payload byte-identical. **Next: stage 2, the
+    rankings table** (nested scroll box, 502-row DOM, native selects, score
+    encoding). Baseline to beat: 9,928 DOM nodes, 662 transitioned elements.
+  - **Commit after every stage** - the 2026-10-06 session was cut off by a usage
+    limit with nothing committed (see `NIGHTLY_LOG.md` 2026-10-06).
+
   **The test:** the owner opens it and it *feels* like a product someone paid for -
   calm, confident, fast, and obvious where to look. If you would be
   embarrassed to screenshot it next to Linear or Stripe, it is not done.
