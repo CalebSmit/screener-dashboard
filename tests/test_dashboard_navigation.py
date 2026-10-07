@@ -291,3 +291,35 @@ def test_the_guide_dismisses_and_stays_dismissed(browser):
         assert not page.is_visible("#guide")
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_the_workings_csv_redoes_the_arithmetic_on_its_own(browser, tmp_path):
+    """The download is only worth having if a student can rebuild the score from the file alone:
+    category points add to the composite, and each category's metric points add to its score."""
+    import csv
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("openStockDetail('JPM')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        with page.expect_download() as dl:
+            page.click("#modal-categories .wk-download")
+        path = tmp_path / "w.csv"
+        dl.value.save_as(path)
+        rows = list(csv.reader(path.read_text(encoding="utf-8-sig").splitlines()))
+        composite = float(next(r for r in rows if r[:1] == ["Composite"] and len(r) == 2)[1])
+        start = next(i for i, r in enumerate(rows) if r[:1] == ["Category"] and "Points" in r) + 1
+        cat_points = []
+        for r in rows[start:start + 8]:
+            cat_points.append(float(r[3]))
+        assert abs(sum(cat_points) - composite) < 0.06, (cat_points, composite)
+        metric_rows = [r for r in rows if len(r) == 7 and r[0] == "Valuation" and r[1] != "Metric"]
+        score_row = next(r for r in metric_rows if r[1] == "Category score")
+        pts = [float(r[5]) for r in metric_rows if r[1] != "Category score" and r[5]]
+        assert abs(sum(pts) - float(score_row[5])) < 1e-3
+        jpm = page.evaluate("D.stock_detail.JPM.cat_scores.valuation")
+        assert abs(float(score_row[5]) - jpm) < 0.06
+        assert any(r[:1] == ["Field"] for r in rows), "the reported inputs section is missing"
+        assert errors == []
+    finally:
+        ctx.close()
