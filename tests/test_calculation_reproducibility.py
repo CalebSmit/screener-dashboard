@@ -314,3 +314,57 @@ def test_weight_choice_and_coverage_never_enter_scored_fields(live):
         assert key not in s["raw"] and key not in s["pct"]
     src = (ROOT / "factor_engine.py").read_text(encoding="utf-8")
     assert "_wp_" not in src.split("METRIC_COLS = ")[1].split("]")[0]
+
+
+# ---------------------------------------------------------------------------
+# the side-by-side view's gap arithmetic (claims.py: compare.composite_gap)
+# The compare view (2026-10-07, owner-run UI pass 2) takes the composite gap between two
+# stocks apart into category points. These hold the payload to that account.
+# ---------------------------------------------------------------------------
+
+_GAP_CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
+
+
+def _points(s):
+    return sum(s["contrib"].get(c) or 0.0 for c in _GAP_CATS)
+
+
+def test_points_add_up_to_the_composite_for_every_undiscounted_stock(live):
+    """The gap view shows one line per category and, only for a discounted pair, a discount line.
+    That is a complete account of the gap only if every undiscounted stock's points add up to
+    its composite within the rounding the view admits (and never show as a phantom discount)."""
+    bad = []
+    for t, s in live["stock_detail"].items():
+        if s.get("composite") is None or (s.get("cov") or {}).get("disc"):
+            continue
+        if abs(_points(s) - s["composite"]) >= 0.05:
+            bad.append((t, s["composite"], round(_points(s), 3)))
+    assert not bad, bad[:5]
+
+
+def test_a_discounted_stocks_residual_is_its_coverage_discount(live):
+    n = 0
+    for t, s in live["stock_detail"].items():
+        disc = (s.get("cov") or {}).get("disc")
+        if not disc or s.get("composite") is None:
+            continue
+        expected = _points(s) * (1 - disc)
+        assert abs(expected - s["composite"]) < 0.05, (t, s["composite"], expected)
+        n += 1
+    if n == 0:
+        pytest.skip("no discounted stock in this payload")
+
+
+def test_the_gap_lines_reconcile_for_every_pair_with_the_top_stock(live):
+    """What the page prints: per-category point differences, plus a discount line where one of
+    the two is discounted, sum to the composite gap."""
+    stocks = {t: s for t, s in live["stock_detail"].items() if s.get("composite") is not None}
+    top = min(stocks, key=lambda t: stocks[t]["rank"])
+    a = stocks[top]
+    for t, b in stocks.items():
+        gap = a["composite"] - b["composite"]
+        lines = sum((a["contrib"].get(c) or 0) - (b["contrib"].get(c) or 0) for c in _GAP_CATS)
+        resid = gap - lines
+        discounted = bool((a.get("cov") or {}).get("disc") or (b.get("cov") or {}).get("disc"))
+        if not discounted:
+            assert abs(resid) < 0.1, (t, gap, lines)

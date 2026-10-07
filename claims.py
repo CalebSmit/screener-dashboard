@@ -431,6 +431,24 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="compare.composite_gap",
+        surface=DRILLDOWN,
+        asserts=(
+            "In the side-by-side view, the per-category differences in points - plus a "
+            "coverage-discount line where one of the two stocks is discounted - add up to "
+            "the gap in composite between the two, rounding aside."
+        ),
+        made_true_by="factor_engine:compute_composite",
+        checked_by=(
+            "tests/test_calculation_reproducibility.py::test_points_add_up_to_the_composite_for_every_undiscounted_stock",
+            "tests/test_calculation_reproducibility.py::test_a_discounted_stocks_residual_is_its_coverage_discount",
+            "tests/test_calculation_reproducibility.py::test_the_gap_lines_reconcile_for_every_pair_with_the_top_stock",
+            "tests/test_dashboard_navigation.py::test_compare_lines_up_scores_and_reconciles_the_gap",
+        ),
+        # "Rounding aside" is part of the claim, not a caveat on it: points are published to
+        # 2dp, so eight lines can differ from the gap by up to ~0.09 for an undiscounted pair.
+    ),
+    Claim(
         id="drilldown.inputs_rebuild",
         surface=DRILLDOWN,
         asserts=(

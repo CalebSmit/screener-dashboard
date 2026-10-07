@@ -1159,6 +1159,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <style>
 {_css()}
     </style>
+    <style>
+{_css_ux()}
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -1177,9 +1180,27 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <a href="#sec-defensibility" onclick="goToSection('sec-defensibility');return false">Diagnostics</a>
             </nav>
             <div class="header-right">
+                <button class="cmdk-btn" type="button" onclick="openPalette()" aria-label="Search stocks and sections" aria-keyshortcuts="Control+K Meta+K">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                    <span class="cmdk-btn-text">Search stocks</span><kbd class="cmdk-kbd" id="cmdk-kbd">Ctrl K</kbd>
+                </button>
                 <button class="methodology-btn" onclick="openMethodology()">Methodology</button>
             </div>
         </header>
+
+        <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
+             per browser; reopened from the search palette. -->
+        <section class="guide" id="guide" hidden aria-label="How to read this screener">
+            <ol class="guide-steps">
+                <li><span class="guide-n">1</span><div><strong>Eight scores per stock.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
+                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The rank is just the composite in order &mdash; a description of the numbers, not a verdict on the company.</div></li>
+                <li><span class="guide-n">3</span><div><strong>Every number is checkable.</strong> Open any stock to see the inputs, formulas and peers behind each score, and the arithmetic that adds them up.</div></li>
+            </ol>
+            <div class="guide-foot">
+                <span>A screening tool for research and teaching. Not investment advice.</span>
+                <button type="button" class="guide-close" onclick="dismissGuide()">Got it</button>
+            </div>
+        </section>
 
         <!-- KPI Row -->
         <section class="kpi-row" id="kpi-row"></section>
@@ -1207,6 +1228,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="section collapsible-section collapsed" id="sec-holdings">
             <div class="section-header" onclick="toggleSection('sec-holdings')">
                 <h2 class="section-title" style="margin:0">My Holdings <span class="holdings-count" id="holdings-count"></span></h2>
+                <span class="sec-meta" id="meta-holdings"></span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1233,6 +1255,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="section collapsible-section collapsed" id="sec-changed" style="display:none">
             <div class="section-header" onclick="toggleSection('sec-changed')">
                 <h2 class="section-title" style="margin:0">What Changed</h2>
+                <span class="sec-meta" id="meta-changed"></span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1260,6 +1283,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="section collapsible-section collapsed" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor Analytics</h2>
+                <span class="sec-meta">Sector &times; factor scores &middot; trap rates by sector</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1283,7 +1307,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                                 <button class="toggle-btn" id="btn-trap-gt" onclick="setTrapType('gt')">Growth</button>
                             </div>
                         </div>
-                        <canvas id="vt-chart"></canvas>
+                        <p class="chart-note" id="trap-note"></p>
+                        <div id="trap-bars" class="trap-bars" role="list" aria-label="Share of each sector carrying a trap flag"></div>
                     </div>
                 </div>
             </div>
@@ -1400,6 +1425,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         <span class="modal-sector" id="modal-sector"></span>
                     </div>
                     <div class="modal-headline" id="modal-headline"></div>
+                    <div class="modal-tools" role="toolbar" aria-label="Stock tools">
+                        <button type="button" class="mt-btn mt-step" id="mt-prev" onclick="stepStock(-1)" aria-label="Previous stock" title="Previous stock in the list (K)"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+                        <span class="mt-pos" id="mt-pos" aria-live="polite"></span>
+                        <button type="button" class="mt-btn mt-step" id="mt-next" onclick="stepStock(1)" aria-label="Next stock" title="Next stock in the list (J)"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+                        <button type="button" class="mt-btn mt-text" id="mt-hold" onclick="toggleHoldingCurrent()" aria-pressed="false" title="Keep this stock on My Holdings, saved in this browser (H)"><span class="mt-lg">Add to </span>Holdings</button>
+                        <button type="button" class="mt-btn mt-text" id="mt-compare" onclick="toggleCompareCurrent()" aria-pressed="false" title="Add to the side-by-side comparison (C)">Compare</button>
+                        <button type="button" class="mt-btn mt-text" id="mt-link" onclick="copyStockLink()" title="Copy a link that opens this stock"><span class="mt-lg">Copy </span>Link</button>
+                    </div>
                     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
                 </div>
                 <nav class="modal-nav" aria-label="In this stock">
@@ -1407,6 +1440,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
                     <a href="#section-contribution" onclick="goToModal('section-contribution');return false">How it adds up</a>
                     <a href="#section-categories" onclick="goToModal('section-categories');return false">The workings</a>
+                    <a href="#section-history" onclick="goToModal('section-history');return false" id="mnav-history">History</a>
                     <a href="#section-price-targets" onclick="goToModal('section-price-targets');return false">Price targets</a>
                     <a href="#section-peers" onclick="goToModal('section-peers');return false">Peers</a>
                     <a href="#section-provenance" onclick="goToModal('section-provenance');return false">Data</a>
@@ -1423,9 +1457,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         <div class="summary-source">Assembled from this run's numbers by a fixed template &mdash; every figure appears somewhere below and is identical for every reader. It explains <em>where the stock ranks and why</em>. It is not investment advice and never says whether to buy, sell or hold.</div>
                     </div>
 
-                    <!-- Score summary row -->
-                    <div class="modal-score-row" id="modal-score-row"></div>
-
                     <!-- What the company does (provider description, display only) -->
                     <div class="about-block" id="modal-about" style="display:none">
                         <div class="about-head">
@@ -1436,6 +1467,31 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         <button class="about-toggle" id="modal-about-toggle"
                                 onclick="toggleAbout()">Show more</button>
                         <div class="about-source">Business description supplied by Yahoo Finance. Descriptive only &mdash; it is not scored and does not affect the ranking.</div>
+                    </div>
+
+                    <!-- Score summary row -->
+                    <div class="modal-score-row" id="modal-score-row"></div>
+
+                    <!-- Contribution breakdown -->
+                    <div class="collapsible" id="section-contribution">
+                        <div class="collapsible-header" onclick="toggleSection('section-contribution')">
+                            <span>How it adds up</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body">
+                            <div class="modal-chart-section">
+                                <p class="modal-chart-desc">Each category score (0&ndash;100) times the weight it was <strong>actually multiplied by</strong> for this stock gives its points, and the points add up to the composite. The weights can differ from the defaults in Methodology; any gap is explained underneath. Select a row to see how that score is built.</p>
+                                <div id="contrib-visual"></div>
+                                <div class="contrib-total-row" id="contrib-total"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category detail sections -->
+                    <div class="collapsible" id="section-categories">
+                        <div class="collapsible-header" onclick="toggleSection('section-categories')">
+                            <span>The workings</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-categories"></div>
                     </div>
 
                     <!-- Rank history -->
@@ -1477,28 +1533,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         </div>
                         <div class="collapsible-body" id="modal-provenance"></div>
                     </div>
-
-                    <!-- Contribution breakdown -->
-                    <div class="collapsible" id="section-contribution">
-                        <div class="collapsible-header" onclick="toggleSection('section-contribution')">
-                            <span>Score Contribution Breakdown</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
-                        <div class="collapsible-body">
-                            <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each factor is scored 0–100, then multiplied by its weight to produce contribution points. The contributions add up to the cardinal Composite score (the ranking key). The separate Composite&nbsp;Percentile shows how the stock ranks against the universe. <strong>The weights below are the ones this stock's scores were actually multiplied by</strong> — they can differ from the defaults in Methodology, and any gap is explained underneath.</p>
-                                <div id="contrib-visual"></div>
-                                <div class="contrib-total-row" id="contrib-total"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Category detail sections -->
-                    <div class="collapsible" id="section-categories">
-                        <div class="collapsible-header" onclick="toggleSection('section-categories')">
-                            <span>Category Details</span><span class="collapsible-chevron">&#9660;</span>
-                        </div>
-                        <div class="collapsible-body" id="modal-categories"></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1518,6 +1552,58 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 </div>
             </div>
         </div>
+
+        <!-- Search palette (Ctrl/Cmd+K): any stock, any section, from anywhere -->
+        <div class="pal-overlay" id="palette" hidden onclick="if(event.target===this)closePalette()">
+            <div class="pal" role="dialog" aria-modal="true" aria-label="Search stocks and sections">
+                <div class="pal-input-row">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                    <input id="pal-input" type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Search a ticker, company or sector">
+                    <kbd>Esc</kbd>
+                </div>
+                <div class="pal-list" id="pal-list" role="listbox" aria-label="Results"></div>
+                <div class="pal-foot" aria-hidden="true"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>?</kbd> all shortcuts</span></div>
+            </div>
+        </div>
+
+        <!-- Side-by-side comparison -->
+        <div class="cmp-tray" id="cmp-tray" hidden role="region" aria-label="Comparison tray">
+            <span class="cmp-tray-label">Compare</span>
+            <div class="cmp-chips" id="cmp-chips"></div>
+            <button type="button" class="cmp-open" id="cmp-open" onclick="openCompare()">Side by side</button>
+            <button type="button" class="cmp-clear" onclick="clearCompare()" aria-label="Clear the comparison">Clear</button>
+        </div>
+        <div class="modal-overlay cmp-overlay" id="compare-modal" style="display:none" onclick="if(event.target===this)closeCompare()">
+            <div class="modal-content cmp-content" role="dialog" aria-modal="true" aria-labelledby="cmp-title">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-ticker" id="cmp-title">Side by side</h2>
+                        <span class="modal-company">The same numbers as each stock's drilldown, lined up. The highest score in each row is marked.</span>
+                    </div>
+                    <button class="modal-close" onclick="closeCompare()" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body cmp-body" id="cmp-body"></div>
+            </div>
+        </div>
+
+        <!-- Keyboard shortcuts -->
+        <div class="pal-overlay" id="shortcuts" hidden onclick="if(event.target===this)closeShortcuts()">
+            <div class="pal kb-sheet" role="dialog" aria-modal="true" aria-labelledby="kb-title">
+                <h2 id="kb-title">Keyboard shortcuts</h2>
+                <dl class="kb-list">
+                    <dt><kbd id="kb-mod">Ctrl</kbd><kbd>K</kbd></dt><dd>Search any stock or section</dd>
+                    <dt><kbd>/</kbd></dt><dd>Filter the rankings table</dd>
+                    <dt><kbd>J</kbd> <kbd>K</kbd></dt><dd>Next / previous stock, in the table's current order</dd>
+                    <dt><kbd>C</kbd></dt><dd>Add the open stock to the comparison</dd>
+                    <dt><kbd>H</kbd></dt><dd>Add the open stock to My Holdings</dd>
+                    <dt><kbd>Esc</kbd></dt><dd>Close whatever is open</dd>
+                    <dt><kbd>?</kbd></dt><dd>This list</dd>
+                </dl>
+                <p class="kb-note">Links to a stock open its drilldown directly: the address bar updates as you browse, so you can share or bookmark it.</p>
+            </div>
+        </div>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
         <footer class="dashboard-footer">
             Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">{data_timestamp}</span><br>
@@ -1713,51 +1799,31 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     // VALUE TRAP BAR CHART
     // =====================================================================
-    let trapChart = null;
     let currentTrapType = 'vt';
 
+    // Trap rates as HTML bars rather than a canvas chart: the canvas clipped long
+    // sector names ("onsumer Discretionary") at the widths this panel actually gets,
+    // could not be read by a screen reader, and needed a hover to show the counts
+    // the rate is made of. Each row now prints the rate and the count together.
     function renderTrapChart() {{
-        if (!HAS_CHART) {{
-            const target = document.getElementById('vt-chart');
-            if (target && target.parentElement) {{
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#898781">Chart.js failed to load. Trap rates are unavailable in chart form.</div>';
-            }}
-            return;
-        }}
-        const dataSource = currentTrapType === 'gt' ? D.gt_by_sector : D.vt_by_sector;
-        const labelText = currentTrapType === 'gt' ? 'Growth Trap Rate %' : 'Value Trap Rate %';
-        const barColor = null; // one severity ramp for both trap types
-
-        const sectors = Object.keys(dataSource).sort((a,b) => dataSource[b].rate - dataSource[a].rate);
-        const rates = sectors.map(s => dataSource[s].rate);
-        const labels = sectors;
-
-        if (trapChart) trapChart.destroy();
-
-        trapChart = new Chart(document.getElementById('vt-chart'), {{
-            type: 'bar',
-            data: {{
-                labels: labels,
-                datasets: [{{
-                    label: labelText,
-                    data: rates,
-                    // One hue: the length of the bar is the whole message. Red/amber/green
-                    // thresholds were status colour used as a ramp.
-                    backgroundColor: ACCENT + 'B3',
-                    borderRadius: 3,
-                }}]
-            }},
-            options: {{
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {{ legend: {{ display: false }}, valueLabels: {{ suffix: '%' }},
-                    tooltip: {{ callbacks: {{ label: ctx => {{ const d = dataSource[sectors[ctx.dataIndex]]; return d.flagged + ' of ' + d.total + ' stocks flagged (' + d.rate + '%)'; }} }} }} }},
-                scales: {{
-                    x: {{ beginAtZero: true, max: 40, title: {{ display: true, text: 'Flag Rate %', color: '#898781' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#898781' }} }},
-                    y: {{ ticks: {{ font: {{ size: 11 }}, color: '#898781' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
-                }}
-            }}
-        }});
+        const host = document.getElementById('trap-bars');
+        if (!host) return;
+        const src = currentTrapType === 'gt' ? D.gt_by_sector : D.vt_by_sector;
+        const sectors = Object.keys(src || {{}}).sort((a, b) => src[b].rate - src[a].rate || a.localeCompare(b));
+        const max = Math.max(1, ...sectors.map(s => src[s].rate));
+        const flagged = sectors.reduce((n, s) => n + (src[s].flagged || 0), 0);
+        const total = sectors.reduce((n, s) => n + (src[s].total || 0), 0);
+        const kind = currentTrapType === 'gt' ? 'growth-trap' : 'value-trap';
+        const note = document.getElementById('trap-note');
+        if (note) note.textContent = 'Share of each sector carrying a ' + kind + ' flag. ' + flagged + ' of ' + total +
+            ' stocks overall. A flag is a caveat shown beside the score; see Methodology for the rules.';
+        host.innerHTML = sectors.map(s => {{
+            const d = src[s];
+            return '<div class="trap-row" role="listitem">' +
+                '<span class="trap-name" title="' + escapeHtml(s) + '">' + escapeHtml(s) + '</span>' +
+                '<span class="trap-track"><i style="width:' + (d.rate / max * 100).toFixed(1) + '%"></i></span>' +
+                '<span class="trap-val"><strong>' + Number(d.rate).toFixed(1) + '%</strong><span>' + d.flagged + ' of ' + d.total + '</span></span></div>';
+        }}).join('') || '<div class="mover-none">No trap flags in this run.</div>';
     }}
 
     function setTrapType(type) {{
@@ -2726,7 +2792,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const contrib = s.contrib[c];
             const weight = (score === null || score === undefined) ? null : ew[c];
             const wtText = weight === null ? 'no data' : fmtWeight(weight) + ' wt';
-            scoreHtml += `<div class="modal-score-card">
+            const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
+            scoreHtml += `<div class="modal-score-card" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
                 <div class="modal-score-val">${{fmt(score,'score')}}</div>
                 <div class="modal-score-sub">${{fmt(contrib,'score')}} pts (${{wtText}})</div>
@@ -3296,6 +3363,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
 {_js_workings()}
+{_js_ux()}
 
     function fmtMetric(v, type) {{
         if (v === null || v === undefined) return '—';
@@ -3636,6 +3704,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         setupFilters();
         applyFilters();
         renderDefensibility();
+        initUX();
     }}
 
     </script>
@@ -6650,6 +6719,864 @@ def _css() -> str:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+def _js_ux() -> str:
+    """JS for the navigation layer: search palette, deep links, stepping, compare.
+
+    A plain string, so braces are not doubled. It wraps ``openStockDetail`` and
+    ``closeModal`` rather than editing them, so everything that already opens the
+    drilldown (table rows, Top 5 cards, movers, holdings, peers) gets deep links and
+    stepping for free.
+    """
+    return r"""
+    // =====================================================================
+    // NAVIGATION LAYER (owner-run UI pass 2, 2026-10-07)
+    //
+    // Four things a reader of a 502-stock tool expects and this page lacked:
+    //   - reach any stock from anywhere without scrolling to the table (Ctrl/Cmd+K);
+    //   - a link that opens a given stock, so a club can say "look at this one";
+    //   - step to the next stock without closing the drilldown (J / K);
+    //   - put two to four stocks side by side, with the composite gap between them
+    //     taken apart into the categories that make it.
+    // None of it computes a score. It moves between, and lines up, the numbers the
+    // payload already publishes.
+    // =====================================================================
+    const UX = { current: null, recent: [], compare: [], pal: { items: [], sel: 0 } };
+    const BASE_TITLE = document.title || 'Multi-Factor Screener';
+    const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+    const COMPARE_MAX = 4;
+    const UX_CATS = ['valuation', 'quality', 'growth', 'momentum', 'risk', 'revisions', 'size', 'investment'];
+
+    // Per-viewer conveniences only (recent stocks, the comparison, a dismissed guide):
+    // every read and write is guarded, and the page works the same without storage.
+    const uxStore = {
+        get(k, d) { try { const v = window.localStorage.getItem('screener_ux_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+        set(k, v) { try { window.localStorage.setItem('screener_ux_' + k, JSON.stringify(v)); } catch (e) { /* blocked */ } },
+    };
+
+    function byRank() {
+        if (!byRank.cache) byRank.cache = D.table_data.slice().sort((a, b) => (a.Rank || 1e9) - (b.Rank || 1e9));
+        return byRank.cache;
+    }
+
+    function sheetOpen() {
+        const m = document.getElementById('stock-modal');
+        return !!m && m.style.display !== 'none';
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+    }
+
+    // ---- deep links --------------------------------------------------------
+    // #stock=TICKER opens that stock. Opening from a closed sheet pushes one history
+    // entry, so the phone's back gesture closes the sheet instead of leaving the site;
+    // stepping between stocks replaces it, so back never walks through every stock.
+    function stockFromHash() {
+        const m = /^#stock=([A-Za-z0-9.\-]{1,12})$/.exec(location.hash || '');
+        if (!m) return null;
+        const t = decodeURIComponent(m[1]).toUpperCase();
+        return D.stock_detail[t] ? t : null;
+    }
+    function baseUrl() { return location.pathname + location.search; }
+
+    const _baseOpenStockDetail = openStockDetail;
+    openStockDetail = function(ticker, opts) {
+        opts = opts || {};
+        if (!D.stock_detail[ticker]) return;
+        const wasOpen = sheetOpen();
+        const keepFocus = modalReturnFocus;
+        _baseOpenStockDetail(ticker);
+        if (wasOpen) modalReturnFocus = keepFocus;  // still return to the row that opened the first one
+        UX.current = ticker;
+        if (!opts.fromHistory) {
+            try {
+                const url = baseUrl() + '#stock=' + encodeURIComponent(ticker);
+                if (wasOpen || opts.replace) history.replaceState({ sheet: ticker }, '', url);
+                else history.pushState({ sheet: ticker }, '', url);
+            } catch (e) { /* file:// in some browsers */ }
+        }
+        UX.recent = [ticker].concat(UX.recent.filter(t => t !== ticker)).slice(0, 6);
+        uxStore.set('recent', UX.recent);
+        document.title = ticker + ' · ' + BASE_TITLE;
+        if (typeof activeTicker !== 'undefined') activeTicker = ticker;
+        document.querySelectorAll('#universe-tbody tr.row-active').forEach(r => r.classList.toggle('row-active', r.dataset.t === ticker));
+        const nh = document.getElementById('mnav-history');
+        const sh = document.getElementById('section-history');
+        if (nh && sh) nh.hidden = sh.style.display === 'none';
+        updateSheetTools();
+        modalSpy();
+    };
+
+    const _baseCloseModal = closeModal;
+    closeModal = function(opts) {
+        opts = opts || {};
+        if (!sheetOpen()) return;
+        _baseCloseModal();
+        UX.current = null;
+        document.title = BASE_TITLE;
+        if (!opts.fromHistory && stockFromHash()) {
+            try { history.replaceState(null, '', baseUrl()); } catch (e) { /* ignore */ }
+        }
+    };
+
+    if (window.addEventListener) window.addEventListener('popstate', () => {
+        const t = stockFromHash();
+        if (t) openStockDetail(t, { fromHistory: true });
+        else if (sheetOpen()) closeModal({ fromHistory: true });
+    });
+
+    function copyStockLink() {
+        if (!UX.current) return;
+        const url = location.href.split('#')[0] + '#stock=' + encodeURIComponent(UX.current);
+        const done = () => toast('Link to ' + UX.current + ' copied');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done, () => window.prompt('Copy this link', url));
+        } else {
+            window.prompt('Copy this link', url);
+        }
+    }
+
+    // ---- stepping ------------------------------------------------------------
+    // Next and previous follow whatever the table currently shows - its filters and
+    // its sort - so "the next Health Care name by momentum" is one key away. A stock
+    // opened from outside that list (a mover, a peer) steps through the full ranking.
+    function stepList() {
+        const f = (typeof tableState !== 'undefined' && tableState.filtered) ? tableState.filtered : [];
+        if (UX.current && f.some(r => r.Ticker === UX.current)) return f;
+        return byRank();
+    }
+    function stepStock(dir) {
+        if (!UX.current) return;
+        const list = stepList();
+        const i = list.findIndex(r => r.Ticker === UX.current);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= list.length) return;
+        openStockDetail(list[j].Ticker);
+    }
+
+    function updateSheetTools() {
+        const t = UX.current;
+        if (!t) return;
+        const list = stepList();
+        const i = list.findIndex(r => r.Ticker === t);
+        const pos = document.getElementById('mt-pos');
+        const whole = list.length === D.table_data.length;
+        if (pos) pos.textContent = i < 0 ? '' : (i + 1) + ' of ' + list.length + (whole ? '' : ' shown');
+        const prev = document.getElementById('mt-prev'), next = document.getElementById('mt-next');
+        if (prev) prev.disabled = i <= 0;
+        if (next) next.disabled = i < 0 || i >= list.length - 1;
+        const cb = document.getElementById('mt-compare');
+        if (cb) {
+            const on = UX.compare.indexOf(t) !== -1;
+            cb.setAttribute('aria-pressed', on ? 'true' : 'false');
+            cb.textContent = on ? 'Comparing' : 'Compare';
+        }
+        const hb = document.getElementById('mt-hold');
+        if (hb && typeof holdings !== 'undefined') {
+            const on = holdings.indexOf(t) !== -1;
+            hb.setAttribute('aria-pressed', on ? 'true' : 'false');
+            hb.innerHTML = on ? '<span class="mt-lg">In </span>Holdings' : '<span class="mt-lg">Add to </span>Holdings';
+        }
+    }
+
+    function toggleHoldingCurrent() {
+        const t = UX.current;
+        if (!t || typeof holdings === 'undefined') return;
+        if (holdings.indexOf(t) !== -1) { removeHolding(t); toast(t + ' removed from My Holdings'); }
+        else if (holdings.length >= HOLDINGS_MAX) { toast('My Holdings is full (' + HOLDINGS_MAX + ' names)'); }
+        else { addHolding(t); toast(t + ' added to My Holdings'); }
+        updateSheetTools();
+        updateSectionMeta();
+    }
+
+    // ---- search palette ------------------------------------------------------
+    const PAL_ACTIONS = [
+        { label: 'Top 5 stocks', hint: 'Section', run: () => goToSection('sec-top5') },
+        { label: 'Full rankings table', hint: 'Section', run: () => goToSection('sec-universe') },
+        { label: 'My Holdings', hint: 'Section', run: () => goToSection('sec-holdings') },
+        { label: 'What changed', hint: 'Section', run: () => goToSection('sec-changed'), when: () => !!(H && H.available) },
+        { label: 'Factor analytics', hint: 'Section', run: () => goToSection('sec-analytics') },
+        { label: 'Defensibility and diagnostics', hint: 'Section', run: () => goToSection('sec-defensibility') },
+        { label: 'Methodology', hint: 'How it works', run: () => openMethodology() },
+        { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
+        { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
+        { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
+    ];
+
+    function hl(text, q) {
+        const s = String(text || '');
+        if (!q) return escapeHtml(s);
+        const i = s.toLowerCase().indexOf(q);
+        if (i < 0) return escapeHtml(s);
+        return escapeHtml(s.slice(0, i)) + '<mark>' + escapeHtml(s.slice(i, i + q.length)) + '</mark>' + escapeHtml(s.slice(i + q.length));
+    }
+
+    function stockItem(row, q, group) {
+        return { kind: 'stock', group: group, t: row.Ticker, row: row, q: q };
+    }
+
+    function paletteResults(raw) {
+        const q = raw.trim().toLowerCase();
+        const items = [];
+        const rows = D.table_data;
+        if (!q) {
+            const rec = UX.recent.map(t => rows.find(r => r.Ticker === t)).filter(Boolean);
+            rec.forEach(r => items.push(stockItem(r, '', 'Recent')));
+            if (!rec.length) byRank().slice(0, 5).forEach(r => items.push(stockItem(r, '', 'Highest ranked')));
+            PAL_ACTIONS.filter(a => !a.when || a.when()).forEach(a => items.push({ kind: 'action', group: 'Go to', a: a, q: '' }));
+            return items;
+        }
+        const scored = [];
+        rows.forEach(r => {
+            const t = r.Ticker.toLowerCase();
+            const c = (r.Company || '').toLowerCase();
+            const sec = (r.Sector || '').toLowerCase();
+            let sc = 0;
+            if (t === q) sc = 1000;
+            else if (t.startsWith(q)) sc = 800 - t.length;
+            else if (c.startsWith(q)) sc = 600;
+            else if ((' ' + c).includes(' ' + q)) sc = 500;
+            else if (c.includes(q)) sc = 300;
+            else if (q.length >= 3 && sec.includes(q)) sc = 100;
+            if (sc) scored.push([sc - (r.Rank || 999) / 1000, r]);
+        });
+        scored.sort((a, b) => b[0] - a[0]);
+        scored.slice(0, 8).forEach(([, r]) => items.push(stockItem(r, q, 'Stocks')));
+        PAL_ACTIONS.filter(a => (!a.when || a.when()) && a.label.toLowerCase().includes(q))
+            .forEach(a => items.push({ kind: 'action', group: 'Go to', a: a, q: q }));
+        return items;
+    }
+
+    function renderPalette() {
+        const list = document.getElementById('pal-list');
+        const items = UX.pal.items;
+        if (!items.length) {
+            list.innerHTML = '<div class="pal-empty">No stock or section matches. Try a ticker (AAPL) or part of a name.</div>';
+            return;
+        }
+        let html = '', group = null;
+        items.forEach((it, i) => {
+            if (it.group !== group) { group = it.group; html += '<div class="pal-group" role="presentation">' + escapeHtml(group) + '</div>'; }
+            const sel = i === UX.pal.sel;
+            html += '<div class="pal-item' + (sel ? ' sel' : '') + '" role="option" id="pal-o-' + i + '" aria-selected="' + sel + '" data-i="' + i + '">';
+            if (it.kind === 'stock') {
+                const r = it.row;
+                const inCmp = UX.compare.indexOf(r.Ticker) !== -1;
+                html += '<span class="pal-t">' + hl(r.Ticker, it.q) + '</span>' +
+                    '<span class="pal-c">' + hl(r.Company, it.q) + '<span class="pal-s">' + escapeHtml(r.Sector || '') + '</span></span>' +
+                    (inCmp ? '<span class="pal-tag">comparing</span>' : '') +
+                    '<span class="pal-r"><span>#' + r.Rank + '</span><strong>' + fmt(r.Composite, 'score') + '</strong></span>';
+            } else {
+                html += '<span class="pal-a">' + hl(it.a.label, it.q) + '</span><span class="pal-h">' + escapeHtml(it.a.hint) + '</span>';
+            }
+            html += '</div>';
+        });
+        list.innerHTML = html;
+        const input = document.getElementById('pal-input');
+        input.setAttribute('aria-activedescendant', 'pal-o-' + UX.pal.sel);
+        const selEl = document.getElementById('pal-o-' + UX.pal.sel);
+        if (selEl) selEl.scrollIntoView({ block: 'nearest' });
+    }
+
+    function paletteQuery() {
+        UX.pal.items = paletteResults(document.getElementById('pal-input').value);
+        UX.pal.sel = 0;
+        renderPalette();
+    }
+
+    function runPaletteItem(i) {
+        const it = UX.pal.items[i];
+        if (!it) return;
+        closePalette(true);
+        if (it.kind === 'stock') {
+            if (document.getElementById('compare-modal').style.display !== 'none') closeCompare();
+            openStockDetail(it.t);
+        } else {
+            it.a.run();
+        }
+    }
+
+    let palReturnFocus = null;
+    function openPalette() {
+        const p = document.getElementById('palette');
+        if (!p.hidden) return;
+        palReturnFocus = document.activeElement;
+        p.hidden = false;
+        const input = document.getElementById('pal-input');
+        input.value = '';
+        input.placeholder = 'Search ' + D.table_data.length + ' stocks, a sector, or a section';
+        paletteQuery();
+        input.focus();
+    }
+    function closePalette(keepFocus) {
+        const p = document.getElementById('palette');
+        if (p.hidden) return;
+        p.hidden = true;
+        if (!keepFocus && palReturnFocus && palReturnFocus.focus && document.contains(palReturnFocus)) palReturnFocus.focus({ preventScroll: true });
+    }
+
+    function initPalette() {
+        const input = document.getElementById('pal-input');
+        input.addEventListener('input', paletteQuery);
+        input.addEventListener('keydown', e => {
+            const n = UX.pal.items.length;
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (n) { UX.pal.sel = (UX.pal.sel + 1) % n; renderPalette(); } }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); if (n) { UX.pal.sel = (UX.pal.sel - 1 + n) % n; renderPalette(); } }
+            else if (e.key === 'Enter') { e.preventDefault(); runPaletteItem(UX.pal.sel); }
+            else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePalette(); }
+            else if (e.key === 'Tab') { e.preventDefault(); }  // the palette is the whole dialog: keep focus in it
+        });
+        const list = document.getElementById('pal-list');
+        list.addEventListener('mousemove', e => {
+            const o = e.target.closest('.pal-item');
+            if (!o) return;
+            const i = +o.dataset.i;
+            if (i !== UX.pal.sel) {
+                UX.pal.sel = i;
+                list.querySelectorAll('.pal-item').forEach(x => { const on = +x.dataset.i === i; x.classList.toggle('sel', on); x.setAttribute('aria-selected', on); });
+                input.setAttribute('aria-activedescendant', 'pal-o-' + i);
+            }
+        });
+        list.addEventListener('click', e => {
+            const o = e.target.closest('.pal-item');
+            if (o) runPaletteItem(+o.dataset.i);
+        });
+        const k = document.getElementById('cmdk-kbd');
+        if (k) k.textContent = IS_MAC ? '⌘K' : 'Ctrl K';
+        const km = document.getElementById('kb-mod');
+        if (km) km.textContent = IS_MAC ? '⌘' : 'Ctrl';
+    }
+
+    // ---- compare ---------------------------------------------------------------
+    function saveCompare() { uxStore.set('compare', UX.compare); renderCompareTray(); updateSheetTools(); }
+    function toggleCompare(t) {
+        const i = UX.compare.indexOf(t);
+        if (i !== -1) { UX.compare.splice(i, 1); saveCompare(); toast(t + ' removed from the comparison'); return; }
+        if (UX.compare.length >= COMPARE_MAX) { toast('Compare holds ' + COMPARE_MAX + ' stocks. Remove one first.'); return; }
+        UX.compare.push(t);
+        saveCompare();
+        toast(UX.compare.length === 1 ? t + ' added. Add another to compare.' : t + ' added to the comparison');
+    }
+    function toggleCompareCurrent() { if (UX.current) toggleCompare(UX.current); }
+    function clearCompare() { UX.compare = []; saveCompare(); closeCompare(); }
+
+    function renderCompareTray() {
+        const tray = document.getElementById('cmp-tray');
+        if (!tray) return;
+        tray.hidden = UX.compare.length === 0;
+        document.body.classList.toggle('has-tray', UX.compare.length > 0);
+        document.getElementById('cmp-chips').innerHTML = UX.compare.map(t =>
+            '<span class="cmp-chip"><button type="button" class="cmp-chip-t" onclick="openStockDetail(\'' + t + '\')">' + escapeHtml(t) + '</button>' +
+            '<button type="button" class="cmp-chip-x" onclick="toggleCompare(\'' + t + '\')" aria-label="Remove ' + escapeHtml(t) + '">&times;</button></span>'
+        ).join('');
+        const open = document.getElementById('cmp-open');
+        open.disabled = UX.compare.length < 2;
+        open.textContent = UX.compare.length < 2 ? 'Add one more' : 'Side by side';
+    }
+
+    function gapSentence(a, b) {
+        // The composite gap between two stocks, taken apart into category points.
+        // Each stock's points add up to its composite before any coverage discount
+        // (calc_trace checks that for every stock at build time), so the difference
+        // in points per category, plus any difference in discount, is the whole gap.
+        const sa = D.stock_detail[a], sb = D.stock_detail[b];
+        const gap = sa.composite - sb.composite;
+        const parts = UX_CATS.map(c => [c, (sa.contrib[c] || 0) - (sb.contrib[c] || 0)]);
+        const sumParts = parts.reduce((n, p) => n + p[1], 0);
+        const resid = gap - sumParts;
+        parts.sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]));
+        const pts = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
+        const rows = parts.map(([c, v]) =>
+            '<div class="gap-row"><span>' + CAT_LABELS[c] + '</span>' +
+            '<span class="gap-track"><i class="' + (v >= 0 ? 'up' : 'dn') + '" style="--w:' + Math.min(50, Math.abs(v) / Math.max(1, ...parts.map(p => Math.abs(p[1]))) * 50).toFixed(1) + '%"></i></span>' +
+            '<span class="num">' + pts(v) + '</span></div>').join('');
+        const discounted = !!((sa.cov && sa.cov.disc) || (sb.cov && sb.cov.disc));
+        const discRow = discounted && Math.abs(resid) >= 0.05
+            ? '<div class="gap-row"><span>Coverage discount</span><span class="gap-track"></span><span class="num">' + pts(resid) + '</span></div>' : '';
+        const lead = parts.filter(p => Math.abs(p[1]) >= 0.05).slice(0, 2).map(p => CAT_LABELS[p[0]] + ' (' + pts(p[1]) + ')');
+        return '<div class="gap-block"><p class="gap-lede"><strong>' + escapeHtml(a) + '</strong> scores ' +
+            Math.abs(gap).toFixed(1) + ' composite points ' + (gap >= 0 ? 'above' : 'below') + ' <strong>' + escapeHtml(b) + '</strong>' +
+            (lead.length ? '. The largest differences: ' + lead.join(' and ') + '.' : '.') + '</p>' +
+            '<div class="gap-rows">' + rows + discRow +
+            '<div class="gap-row gap-total"><span>Composite gap</span><span class="gap-track"></span><span class="num">' + pts(gap) + '</span></div></div></div>';
+    }
+
+    function openCompare() {
+        if (UX.compare.length < 2) { toast('Add at least two stocks to compare'); return; }
+        closePalette(true);
+        const ts = UX.compare.slice().sort((a, b) => D.stock_detail[a].rank - D.stock_detail[b].rank);
+        const S = ts.map(t => D.stock_detail[t]);
+        const best = vals => { const v = vals.filter(x => x !== null && x !== undefined); return v.length > 1 ? Math.max(...v) : null; };
+        const head = '<tr><th></th>' + ts.map((t, i) =>
+            '<th><button type="button" class="cmp-head" onclick="closeCompare();openStockDetail(\'' + t + '\')">' +
+            '<span class="cmp-t">' + escapeHtml(t) + '</span><span class="cmp-n">' + escapeHtml(S[i].company) + '</span>' +
+            '<span class="cmp-sec">' + escapeHtml(S[i].sector) + '</span></button></th>').join('') + '</tr>';
+        const compBest = best(S.map(s => s.composite));
+        let body = '<tr class="cmp-comp"><th>Composite</th>' + S.map(s =>
+            '<td class="' + (s.composite === compBest ? 'best' : '') + '"><strong>' + fmt(s.composite, 'score') + '</strong><span>#' + s.rank + ' of ' + D.table_data.length + '</span></td>').join('') + '</tr>';
+        UX_CATS.forEach(c => {
+            const vals = S.map(s => s.cat_scores[c]);
+            const b = best(vals);
+            body += '<tr><th>' + CAT_LABELS[c] + '</th>' + S.map((s, i) => {
+                const v = vals[i];
+                if (v === null || v === undefined) return '<td class="na">no data</td>';
+                return '<td class="' + (v === b ? 'best' : '') + '"><div class="cmp-cell"><span class="cmp-v">' + fmt(v, 'score') + '</span>' +
+                    '<span class="cmp-bar"><i style="width:' + Math.max(0, Math.min(100, v)).toFixed(1) + '%"></i></span>' +
+                    '<span class="cmp-pts">' + fmt(s.contrib[c], 'score') + ' pts</span></div></td>';
+            }).join('') + '</tr>';
+        });
+        body += '<tr class="cmp-meta"><th>Metrics with data</th>' + S.map(s => '<td>' + (s.cov ? s.cov.n + ' of ' + s.cov.of : '&mdash;') + '</td>').join('') + '</tr>';
+        body += '<tr class="cmp-meta"><th>Trap flags</th>' + S.map(s => '<td>' + ([s.vt ? 'Value' : '', s.gt ? 'Growth' : ''].filter(Boolean).join(', ') || 'None') + '</td>').join('') + '</tr>';
+        body += '<tr class="cmp-meta"><th>Price vs mean analyst target</th>' + S.map(s => {
+            if (!s.price || !s.pt_mean) return '<td>&mdash;</td>';
+            const u = (s.pt_mean / s.price - 1) * 100;
+            return '<td>' + (u >= 0 ? '+' : '−') + Math.abs(u).toFixed(1) + '%<span class="cmp-sub">' + (s.num_analysts || 0) + ' analysts</span></td>';
+        }).join('') + '</tr>';
+        let gaps = '';
+        for (let i = 1; i < ts.length; i++) gaps += gapSentence(ts[0], ts[i]);
+        document.getElementById('cmp-body').innerHTML =
+            '<div class="cmp-scroll"><table class="cmp-table" style="--n:' + ts.length + '"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+            '<h3 class="cmp-h3">Where the composite gap comes from</h3>' +
+            '<p class="modal-note">Each line is the difference in category points, so the lines add up to the gap in composite (rounding aside). It says which categories separate the two in this run, not which is the better company.</p>' +
+            gaps;
+        const m = document.getElementById('compare-modal');
+        m.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('compare-showing');
+        const c = m.querySelector('.modal-close');
+        if (c) c.focus({ preventScroll: true });
+    }
+    function closeCompare() {
+        const m = document.getElementById('compare-modal');
+        if (!m || m.style.display === 'none') return;
+        m.style.display = 'none';
+        document.body.classList.remove('compare-showing');
+        if (!sheetOpen()) document.body.style.overflow = '';
+    }
+
+    // ---- guide and shortcuts -------------------------------------------------
+    function showGuide() {
+        const g = document.getElementById('guide');
+        if (!g) return;
+        g.hidden = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function dismissGuide() {
+        const g = document.getElementById('guide');
+        if (g) g.hidden = true;
+        uxStore.set('guide_done', true);
+    }
+    function openShortcuts() { closePalette(true); document.getElementById('shortcuts').hidden = false; }
+    function closeShortcuts() { document.getElementById('shortcuts').hidden = true; }
+
+    // ---- section previews and scroll-spy ------------------------------------
+    // A collapsed section says what is inside it, so the page reads as a contents
+    // list rather than a column of bare headers.
+    function updateSectionMeta() {
+        const mh = document.getElementById('meta-holdings');
+        if (mh && typeof holdings !== 'undefined') {
+            mh.textContent = holdings.length
+                ? holdings.slice(0, 4).join(', ') + (holdings.length > 4 ? ' and ' + (holdings.length - 4) + ' more' : '')
+                : 'Track the names you own or watch';
+        }
+        const mc = document.getElementById('meta-changed');
+        if (mc && H && H.available && H.movers) {
+            const k = H.movers.m1 ? 'm1' : 'prev';
+            const mv = H.movers[k], cmp = (H.compare || {})[k];
+            if (mv && cmp) mc.textContent = mv.n_up + ' up, ' + mv.n_down + ' down materially since ' + cmp.date;
+        }
+    }
+
+    function initScrollSpy() {
+        const links = [...document.querySelectorAll('.header-nav a')];
+        const targets = links.map(a => document.getElementById(a.getAttribute('href').slice(1)));
+        let queued = false;
+        const update = () => {
+            queued = false;
+            const line = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')) || 52) + 80;
+            // The section whose top has most recently passed the reading line. Compared by
+            // position, because the rankings table sits last on the page but second in the nav.
+            let best = null, bestTop = -Infinity;
+            targets.forEach((el, i) => {
+                if (!el || el.offsetParent === null) return;
+                const t = el.getBoundingClientRect().top;
+                if (t <= line && t > bestTop) { bestTop = t; best = i; }
+            });
+            links.forEach((a, i) => a.classList.toggle('active', i === best));
+        };
+        window.addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+        update();
+    }
+
+    // Which part of the drilldown you are reading, lit in its nav.
+    let modalSpyBound = false;
+    function modalSpy() {
+        const body = document.querySelector('#stock-modal .modal-body');
+        const links = [...document.querySelectorAll('#stock-modal .modal-nav a')];
+        if (!body || !links.length) return;
+        const update = () => {
+            const top = body.getBoundingClientRect().top + 24;
+            let cur = links[0];
+            links.forEach(a => {
+                const el = document.getElementById(a.getAttribute('href').slice(1));
+                if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= top) cur = a;
+            });
+            links.forEach(a => a.classList.toggle('active', a === cur));
+        };
+        if (!modalSpyBound) { body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); modalSpyBound = true; }
+        update();
+    }
+
+    // ---- keyboard --------------------------------------------------------------
+    document.addEventListener('keydown', e => {
+        const tag = (e.target && e.target.tagName) || '';
+        const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && e.target.isContentEditable);
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            const p = document.getElementById('palette');
+            if (p.hidden) openPalette(); else closePalette();
+            return;
+        }
+        if (e.key === 'Escape') {
+            if (!document.getElementById('palette').hidden) { closePalette(); e.stopImmediatePropagation(); return; }
+            if (!document.getElementById('shortcuts').hidden) { closeShortcuts(); e.stopImmediatePropagation(); return; }
+            if (document.getElementById('compare-modal').style.display !== 'none') { closeCompare(); e.stopImmediatePropagation(); return; }
+            return;
+        }
+        if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === '?') { e.preventDefault(); openShortcuts(); return; }
+        if (!sheetOpen() || !document.getElementById('palette').hidden) return;
+        const k = e.key.toLowerCase();
+        if (k === 'j') { e.preventDefault(); stepStock(1); }
+        else if (k === 'k') { e.preventDefault(); stepStock(-1); }
+        else if (k === 'c') { e.preventDefault(); toggleCompareCurrent(); }
+        else if (k === 'h') { e.preventDefault(); toggleHoldingCurrent(); }
+    }, true);
+
+    function initUX() {
+        UX.recent = (uxStore.get('recent', []) || []).filter(t => D.stock_detail[t]).slice(0, 6);
+        UX.compare = (uxStore.get('compare', []) || []).filter(t => D.stock_detail[t]).slice(0, COMPARE_MAX);
+        initPalette();
+        renderCompareTray();
+        updateSectionMeta();
+        initScrollSpy();
+        if (!uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = false; }
+        // Keep the holdings preview current whichever way the list changes.
+        if (typeof renderHoldings === 'function') {
+            const _rh = renderHoldings;
+            renderHoldings = function() { _rh.apply(this, arguments); updateSectionMeta(); if (UX.current) updateSheetTools(); };
+        }
+        const t = stockFromHash();
+        if (t) openStockDetail(t, { replace: true });
+    }
+"""
+
+
+def _css_ux() -> str:
+    """CSS for the navigation layer and the second design pass.
+
+    Emitted as its own <style> block after ``_css()``, so at equal specificity it
+    wins the cascade: the first pass lost two fights that way (the phone score grid
+    and the contribution rows), and appending is cheaper to reason about than
+    finding every earlier rule. Plain string: no backslash escapes, literal glyphs.
+    """
+    return """
+        /* ---- HEADER: search button, active section ---- */
+        .cmdk-btn {
+            display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px;
+            background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: var(--radius);
+            color: var(--text-muted); font: 500 13px var(--font-body); cursor: pointer;
+            transition: border-color var(--t-fast) ease-out, color var(--t-fast) ease-out;
+        }
+        .cmdk-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+        .cmdk-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .cmdk-btn svg { width: 14px; height: 14px; }
+        .cmdk-btn-text { min-width: 92px; text-align: left; }
+        .cmdk-kbd, .pal kbd, .kb-list kbd, .pal-foot kbd {
+            font: 500 11px var(--font-body); color: var(--text-muted); border: 1px solid var(--border-bright);
+            border-radius: 4px; padding: 0 5px; line-height: 17px; background: var(--bg-primary); white-space: nowrap;
+        }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        .header-nav a.active { color: var(--text-primary); background: var(--bg-elevated); }
+
+        /* ---- FIRST-VISIT GUIDE ---- */
+        .guide {
+            margin: 0 0 var(--gap); padding: 18px 20px 14px; border: 1px solid var(--border-bright);
+            border-radius: var(--radius); background: var(--bg-card);
+        }
+        .guide[hidden] { display: none; }
+        .guide-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+        .guide-steps li { display: flex; gap: 12px; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+        .guide-steps strong { color: var(--text-primary); font-weight: 600; display: block; margin-bottom: 2px; }
+        .guide-n {
+            flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+            font-size: 12px; font-weight: 600; color: var(--accent-text); background: var(--accent-glow);
+            font-variant-numeric: tabular-nums;
+        }
+        .guide-foot {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);
+        }
+        .guide-close {
+            height: 30px; padding: 0 14px; border-radius: var(--radius); border: 1px solid var(--border-bright);
+            background: var(--bg-elevated); color: var(--text-primary); font: 500 13px var(--font-body); cursor: pointer;
+        }
+        .guide-close:hover { border-color: var(--text-muted); }
+
+        /* ---- SECTION PREVIEWS ---- */
+        .collapsible-section .section-header { gap: 12px; }
+        .sec-meta {
+            flex: 1; min-width: 0; font-size: 13px; color: var(--text-muted); white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+        }
+        .section-header .section-chevron { margin-left: auto; flex: none; }
+
+        /* ---- TRAP RATE BARS (replaces the canvas chart) ---- */
+        .trap-bars { display: flex; flex-direction: column; gap: 2px; }
+        .trap-row {
+            display: grid; grid-template-columns: minmax(0, 160px) minmax(40px, 1fr) 104px; gap: 10px;
+            align-items: center; min-height: 26px; font-size: 12.5px;
+        }
+        .trap-name { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .trap-track { height: 8px; border-radius: 4px; background: var(--bg-elevated); overflow: hidden; }
+        .trap-track i { display: block; height: 100%; background: var(--accent); opacity: .75; border-radius: 4px; }
+        .trap-val { display: flex; justify-content: flex-end; align-items: baseline; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .trap-val strong { font-weight: 600; color: var(--text-primary); }
+        .trap-val span { font-size: 11px; color: var(--text-muted); }
+
+        /* ---- DRILLDOWN TOOLBAR ---- */
+        .modal-tools { display: flex; align-items: center; gap: 4px; flex: none; }
+        .mt-btn {
+            height: 30px; min-width: 30px; padding: 0 10px; display: inline-grid; place-items: center;
+            background: none; border: 1px solid var(--border-bright); border-radius: var(--radius);
+            color: var(--text-secondary); font: 500 12.5px var(--font-body); cursor: pointer; white-space: nowrap;
+            transition: color var(--t-fast) ease-out, border-color var(--t-fast) ease-out, background var(--t-fast) ease-out;
+        }
+        .mt-btn:hover:not(:disabled) { color: var(--text-primary); border-color: var(--text-muted); }
+        .mt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .mt-btn:disabled { opacity: .35; cursor: default; }
+        .mt-step { padding: 0; }
+        .mt-step svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .mt-btn[aria-pressed="true"] { color: var(--accent-text); border-color: var(--accent); background: var(--accent-glow); }
+        .mt-pos { min-width: 72px; text-align: center; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .mt-text { margin-left: 4px; }
+        #stock-modal .modal-header { flex-wrap: wrap; row-gap: 12px; }
+        #stock-modal .modal-tools { order: 4; flex: 1 1 100%; }
+        .modal-nav a.active { color: var(--text-primary); background: var(--bg-elevated); }
+        .modal-nav a[hidden] { display: none; }
+
+        /* ---- DRILLDOWN SCORES: each card carries its own bar, and opens its workings ---- */
+        #stock-modal .modal-score-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .modal-score-card { position: relative; padding-bottom: 18px; cursor: pointer; }
+        .modal-score-card::after {
+            content: ''; position: absolute; left: 12px; right: 12px; bottom: 9px; height: 3px; border-radius: 2px;
+            background: linear-gradient(to right, var(--accent) calc(var(--v, 0) * 100%), var(--bg-elevated) 0);
+        }
+        .modal-score-card.composite { cursor: default; padding-bottom: 14px; }
+        .modal-score-card.composite::after { display: none; }
+        .modal-score-card:not(.composite):hover { border-color: var(--text-muted); }
+
+        /* ---- HOW IT ADDS UP: a quiet ledger, not a wall of saturated bars ---- */
+        #contrib-visual .contrib-row {
+            display: grid; grid-template-columns: 150px minmax(0, 1fr) 84px; gap: 4px 16px; align-items: center;
+            padding: 10px 6px; margin: 0 -6px; border-radius: 6px;
+        }
+        #contrib-visual .contrib-row-link { cursor: pointer; }
+        #contrib-visual .contrib-row-link:hover { background: var(--bg-card-hover); }
+        #contrib-visual .contrib-bar-track { height: 8px; border: 0; border-radius: 4px; background: var(--bg-elevated); }
+        #contrib-visual .contrib-bar-fill { background: var(--accent) !important; opacity: .8; border-radius: 4px; padding: 0; transition: none; }
+        #contrib-visual .contrib-bar-inner-label, #contrib-visual .contrib-bar-outer-label { display: none; }
+        #contrib-visual .contrib-bar-max-marker { top: -3px; bottom: -3px; width: 1px; background: var(--border-bright); }
+        #contrib-visual .contrib-bar-annotation { margin-top: 6px; font-variant-numeric: tabular-nums; }
+        #contrib-visual .contrib-pts { text-align: right; font-variant-numeric: tabular-nums; }
+
+        /* ---- SEARCH PALETTE ---- */
+        .pal-overlay {
+            position: fixed; inset: 0; z-index: 1200; background: rgba(0,0,0,.55);
+            display: flex; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px;
+        }
+        .pal-overlay[hidden] { display: none; }
+        .pal {
+            width: 100%; max-width: 620px; max-height: 70vh; display: flex; flex-direction: column;
+            background: var(--bg-primary); border: 1px solid var(--border-bright); border-radius: 12px;
+            box-shadow: var(--shadow-overlay); overflow: hidden; animation: palIn var(--t-base) ease-out;
+        }
+        @keyframes palIn { from { opacity: 0; transform: translateY(-6px) scale(.99); } to { opacity: 1; transform: none; } }
+        .pal-input-row { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--border); }
+        .pal-input-row svg { width: 17px; height: 17px; color: var(--text-muted); flex: none; }
+        .pal-input-row input {
+            flex: 1; min-width: 0; height: 52px; background: none; border: 0; outline: none;
+            color: var(--text-primary); font: 400 16px var(--font-body);
+        }
+        .pal-input-row input::placeholder { color: var(--text-muted); }
+        .pal-list { overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
+        .pal-group { padding: 10px 10px 4px; font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+        .pal-item {
+            display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: var(--radius);
+            cursor: pointer; min-height: 44px;
+        }
+        .pal-item.sel { background: var(--bg-elevated); }
+        .pal-t { flex: none; width: 62px; font-weight: 600; color: var(--text-primary); font-size: 13.5px; }
+        .pal-c { flex: 1; min-width: 0; color: var(--text-secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pal-s { color: var(--text-muted); font-size: 12px; margin-left: 8px; }
+        .pal-r { flex: none; display: flex; gap: 10px; align-items: baseline; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-muted); }
+        .pal-r strong { color: var(--text-primary); font-size: 13px; font-weight: 600; min-width: 34px; text-align: right; }
+        .pal-tag { flex: none; font-size: 11px; color: var(--accent-text); }
+        .pal-a { flex: 1; color: var(--text-primary); font-size: 13.5px; }
+        .pal-h { flex: none; color: var(--text-muted); font-size: 12px; }
+        .pal mark { background: none; color: var(--accent-text); font-weight: 600; }
+        .pal-empty { padding: 28px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+        .pal-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-muted); }
+        .pal-foot kbd { margin-right: 3px; }
+
+        /* ---- KEYBOARD SHORTCUTS ---- */
+        .kb-sheet { padding: 20px 22px; max-width: 460px; }
+        .kb-sheet h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+        .kb-list { display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; margin: 0; font-size: 13px; }
+        .kb-list dt { display: flex; gap: 4px; align-items: center; }
+        .kb-list dd { margin: 0; color: var(--text-secondary); }
+        .kb-note { margin: 16px 0 0; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+        /* ---- TOAST ---- */
+        .toast {
+            position: fixed; left: 50%; bottom: 24px; z-index: 1300; transform: translate(-50%, 12px);
+            padding: 9px 14px; border-radius: var(--radius); background: var(--bg-elevated); border: 1px solid var(--border-bright);
+            color: var(--text-primary); font-size: 13px; box-shadow: var(--shadow-overlay);
+            opacity: 0; pointer-events: none; transition: opacity var(--t-base) ease-out, transform var(--t-base) ease-out;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        body.has-tray .toast { bottom: 84px; }
+
+        /* ---- COMPARE: tray and side-by-side ---- */
+        .cmp-tray {
+            position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 1100;
+            display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; max-width: calc(100vw - 32px);
+            background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 12px; box-shadow: var(--shadow-overlay);
+        }
+        .cmp-tray[hidden] { display: none; }
+        body.has-tray { padding-bottom: 72px; }
+        .cmp-tray-label { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+        .cmp-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+        .cmp-chip { display: inline-flex; align-items: center; border: 1px solid var(--border-bright); border-radius: var(--radius-pill); background: var(--bg-card); }
+        .cmp-chip button { background: none; border: 0; color: var(--text-primary); font: 600 12.5px var(--font-body); cursor: pointer; }
+        .cmp-chip-t { padding: 4px 4px 4px 10px; }
+        .cmp-chip-x { padding: 4px 9px 4px 4px; color: var(--text-muted) !important; font-weight: 400 !important; font-size: 15px !important; line-height: 1; }
+        .cmp-chip-x:hover { color: var(--text-primary) !important; }
+        .cmp-open {
+            height: 32px; padding: 0 14px; border-radius: var(--radius); border: 0; background: var(--accent); color: #fff;
+            font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap;
+        }
+        .cmp-open:disabled { background: var(--bg-card); color: var(--text-muted); cursor: default; border: 1px solid var(--border-bright); }
+        .cmp-clear { height: 32px; padding: 0 10px; background: none; border: 0; color: var(--text-muted); font: 500 12.5px var(--font-body); cursor: pointer; }
+        .cmp-clear:hover { color: var(--text-primary); }
+        .cmp-overlay { z-index: 1050; }
+        .modal-ticker { color: var(--text-primary); letter-spacing: -.01em; }
+        #compare-modal .modal-ticker { font-size: 20px; font-weight: 600; }
+        .cmp-content { max-width: 1040px; width: 100%; min-width: 0; max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+        .cmp-content .modal-header { flex: none; }
+        .cmp-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+        body.compare-showing .cmp-tray { display: none; }
+        .cmp-table tbody th, .cmp-table thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--bg-primary); }
+        .cmp-scroll { overflow-x: auto; margin: 0 -4px; }
+        .cmp-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: calc(150px + var(--n) * 150px); }
+        .cmp-table th, .cmp-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+        .cmp-table tbody th { font-size: 13px; font-weight: 500; color: var(--text-secondary); width: 170px; }
+        .cmp-table thead th { vertical-align: bottom; border-bottom-color: var(--border-bright); }
+        .cmp-head { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; font-family: var(--font-body); }
+        .cmp-head:hover .cmp-t { color: var(--accent-text); }
+        .cmp-t { font-size: 18px; font-weight: 600; color: var(--text-primary); letter-spacing: -.01em; }
+        .cmp-n { font-size: 12.5px; color: var(--text-secondary); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cmp-sec { font-size: 11.5px; color: var(--text-muted); }
+        .cmp-comp td strong { font-size: 22px; font-weight: 600; letter-spacing: -.02em; display: block; }
+        .cmp-comp td span { font-size: 12px; color: var(--text-muted); }
+        .cmp-cell { display: grid; grid-template-columns: 40px minmax(40px, 1fr); grid-template-rows: auto auto; gap: 2px 10px; align-items: center; }
+        .cmp-v { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        .cmp-bar { height: 6px; border-radius: 3px; background: var(--bg-elevated); overflow: hidden; }
+        .cmp-bar i { display: block; height: 100%; background: var(--text-muted); border-radius: 3px; }
+        .cmp-pts { grid-column: 2; font-size: 11px; color: var(--text-muted); }
+        .cmp-table td.best .cmp-v, .cmp-table td.best strong { color: var(--text-primary); font-weight: 700; }
+        .cmp-table td.best .cmp-bar i { background: var(--accent); }
+        .cmp-table td.best { box-shadow: inset 2px 0 0 var(--accent); }
+        .cmp-table td.na { color: var(--text-muted); font-size: 12.5px; }
+        .cmp-meta td { font-size: 13px; color: var(--text-secondary); }
+        .cmp-sub { display: block; font-size: 11px; color: var(--text-muted); }
+        .cmp-h3 { font-size: 14px; font-weight: 600; margin: 28px 0 6px; }
+        .gap-block { padding: 14px 0; border-top: 1px solid var(--border); }
+        .gap-lede { font-size: 13.5px; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.55; }
+        .gap-lede strong { color: var(--text-primary); }
+        .gap-rows { display: flex; flex-direction: column; gap: 2px; max-width: 560px; }
+        .gap-row { display: grid; grid-template-columns: 150px 1fr 56px; gap: 12px; align-items: center; font-size: 12.5px; color: var(--text-secondary); min-height: 22px; }
+        .gap-row .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+        .gap-track { position: relative; height: 8px; }
+        .gap-track::before { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--border-bright); }
+        .gap-track i { position: absolute; top: 0; height: 100%; width: var(--w); border-radius: 3px; background: var(--text-muted); }
+        .gap-track i.up { left: 50%; background: var(--accent); opacity: .8; }
+        .gap-track i.dn { right: 50%; }
+        .gap-total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 6px; font-weight: 600; color: var(--text-primary); }
+
+        /* ---- PHONE ---- */
+        @media (max-width: 760px) {
+            .cmdk-btn { padding: 0 9px; }
+            .cmdk-btn-text, .cmdk-kbd { display: none; }
+            .guide-steps { grid-template-columns: 1fr; gap: 12px; }
+            .sec-meta { display: none; }
+            .filters-bar { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 10px 12px; flex-direction: initial; }
+            .filters-bar .filter-search { grid-column: 1 / -1; max-width: none; }
+            .filters-bar .filter-group select, .filters-bar .filter-group input { width: 100%; }
+            .filters-bar .result-count { grid-column: 1 / -1; margin: 0; }
+            .filters-bar .filter-clear { grid-column: 1 / -1; }
+            #stock-modal .modal-header { padding: 12px 14px 8px; gap: 8px 10px; }
+            #stock-modal .modal-ticker { font-size: 21px; }
+            .modal-headline { order: 2; flex: none; gap: 14px; }
+            .mh-item { align-items: flex-end; }
+            .mh-item strong { font-size: 16px; }
+            .mh-of { display: none; }
+            #stock-modal .modal-header > div:first-child { flex: 1 1 0; }
+            .modal-headline { order: 2; }
+            #stock-modal .modal-close { order: 3; }
+            #stock-modal .modal-tools { order: 4; gap: 4px; }
+            .mt-pos { min-width: 0; padding: 0 2px; white-space: nowrap; font-size: 11.5px; }
+            .mt-lg { display: none; }
+            .mt-text { margin-left: 0; padding: 0 9px; }
+            #mt-hold { margin-left: auto; }
+            .dashboard-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+            .dashboard-header .header-nav { grid-column: 1 / -1; }
+            .dashboard-header .header-right { grid-column: 2; grid-row: 1; }
+            .guide { padding: 14px 14px 12px; }
+            .guide-steps li { font-size: 12.5px; }
+            #stock-modal .modal-score-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #contrib-visual .contrib-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label pts" "bar bar"; }
+            #contrib-visual .contrib-label { grid-area: label; flex-direction: row; align-items: baseline; gap: 8px; }
+            #contrib-visual .contrib-bar-area { grid-area: bar; }
+            #contrib-visual .contrib-pts { grid-area: pts; }
+            .pal-overlay { padding: 8px; align-items: flex-start; }
+            .pal { max-height: 80vh; }
+            .pal-s, .pal-foot { display: none; }
+            .cmp-tray { left: 8px; right: 8px; transform: none; max-width: none; bottom: 8px; }
+            .cmp-tray-label { display: none; }
+            .gap-row { grid-template-columns: 110px 1fr 48px; }
+            .cmp-table { min-width: calc(96px + var(--n) * 132px); }
+            .cmp-table tbody th { width: 96px; font-size: 12px; padding: 10px 8px; }
+            .cmp-table th, .cmp-table td { padding: 10px 8px; }
+            .cmp-content { max-height: calc(100vh - 16px); }
+            .cmp-overlay { padding: 8px; }
+            .trap-row { grid-template-columns: minmax(0, 1fr) 64px 100px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+        }
+        @media print {
+            .cmp-tray, .toast, .pal-overlay, .guide, .cmdk-btn, .modal-tools { display: none !important; }
+        }
+"""
+
 
 def _load_methodology_html() -> str:
     """Read SCREENER_OVERVIEW.md and convert to HTML for embedding."""
