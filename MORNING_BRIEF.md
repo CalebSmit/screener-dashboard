@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 07 October 2026, 02:14
+# Morning Brief - Wednesday 07 October 2026, 06:38
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **stopped deliberately** - last ran today |
+| Code session (6 AM) | **completed** - last ran today |
 | Dashboard data from | 2026-10-07T02:00:04.100170 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
@@ -16,25 +16,12 @@ history is in `NIGHTLY_LOG.md`.
 | Top 5 | EXPE, HST, BBY, DLTR, BMY |
 | Evidence for weight changes | 4 of 8 needed at the 1m horizon (24 rows, but overlapping windows are not independent; 71 rows across all horizons), newest 2026-09-30 |
 
-## Things that needed attention
-
-- SESSION DID NOT RUN: API error 429 - You've hit your session limit ┬╖ resets 11am (America/Chicago)
-- Treating this as a failure, not as 'nothing to do'. No success marker will be written,
-- so the catch-up trigger will retry rather than skipping the day.
-- GATE 4 clean tree: FAIL - uncommitted changes remain
-- M generate_dashboard.py
-- ?? plan/dashboard-design-system.md
-- ?? scripts/_mono_sweep.py
-- ?? scripts/_shape_sweep.py
-- ?? scripts/_token_sweep.py
-- ?? scripts/check_contrast.py
-- ?? scripts/shot_dashboard.py
-- SHIP GATES FAILED: clean-tree. Not merging.
-- Work pushed to nightly/2026-10-06 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
-
 ## What changed in the repo
 
+- `7fc45a7 T0a: record the change, the fourth defect, and what T0b inherits`
+- `f847801 T0a: the claims register, and a payload differ the later stages need`
+- `6986248 wip(T0a): stop calling the cardinal composite a percentile, in all six places`
+- `9ca5bdc brief: data run 2026-10-07`
 - `99c2431 data: screener run 2026-10-07 - 502 scored, top: EXPE HST BBY DLTR BMY`
 - `770bb9e plan: full dashboard redesign plan and calculation-transparency plan, with three live defects found while writing them`
 - `d5f67ff dashboard: ship design-system stage 1, and stop an interrupted session from stranding or leaking its work`
@@ -46,51 +33,51 @@ history is in `NIGHTLY_LOG.md`.
 
 ## The session's own account
 
-> 2026-10-06 (evening) - PLANNING, owner-run session: a surface-by-surface redesign plan and a calculation-transparency plan; three live defects found, none fixed yet
+> 2026-10-07 - SYNTHESIS, spent on the owner queue: T0a of calculation transparency. The composite is not a percentile, in all six places it said it was, and a claims register so an unchecked claim fails the build
 > 
-> Written by an interactive session at the owner's request. **No product code
-> changed.** Two plans, three research measurements, and queue/prompt edits.
+> **Health (rule 8, all five):** last code session ran? **No - 2026-10-06 was cut
+> off by a 429 at 06:18 and its gate 4 failed on the dirty tree it left; recovered
+> the same evening by an owner-run session, and the tree was clean and green at
+> 1692 this morning.** | data loop published? **yes** -
+> `logs/datarun-2026-10-07_020001.log` ends "Data loop complete", HEALTH: PASS, 502
+> scored, top EXPE HST BBY DLTR BMY | evidence base at `1m` = **24 rows, newest
+> 2026-09-07 (30 days ago, bound 40), 4 effective** - dead centre of the 30-33 day
+> steady state | priority 0 **fixed 2026-08-24, not touched** (`allow_auto_apply`
+> still false, 4 effective against a gate of 8) | top open roadmap item:
+> **0.8, calculation transparency - 1 day old**, and it was today's work. Below it
+> priority 3 (backtest v2) is **43 days** and was not taken: an owner item outranks
+> the rotation and the roadmap both.
 > 
-> ### Health numbers (rule 8, all five)
+> **Tests:** before **1692/1692**, after **1716/1716** (+24, no failures)
+> **Owner queue / rotation:** took the top `OWNER_FOCUS.md` item (2026-10-06,
+> calculation transparency), stage **T0a**, which `plan/calculation-transparency.md`
+> names as next. Wednesday's nominal synthesis focus was **not** worked separately -
+> the owner item outranks it, and T0a's output is a `METHODOLOGY_CHANGELOG.md`
+> entry anyway, which is what synthesis day is meant to produce. Nothing deferred
+> for a broken loop; both loops healthy.
 > 
-> | Check | Reading |
-> |---|---|
-> | Last code session ran? | **No** - the 06:00 session was cut off by a 429; see the entry above. Nothing new has run since |
-> | Data loop published? | **Yes** - `logs/datarun-2026-10-06_020001.log` ends "Data loop complete", HEALTH: PASS |
-> | Evidence base | at `1m`: **23 rows, newest 2026-09-04, 4 effective observations** (re-read with `scripts/report_evidence.py`); lag 32 days, inside the 40-day bound |
-> | Priority 0 | Fixed 2026-08-24, not touched |
-> | Top open roadmap item | **0.8, calculation transparency and the false claims** - opened today, **0 days**. Below it, priority 3 (backtest v2) is **42 days** old and was not taken |
+> ### Did
 > 
-> **Tests:** only docs, prompt and two read-only research scripts changed;
-> `tests/test_owner_focus.py`, `test_governance.py` and `test_scripts_static.py`
-> pass (76). The full suite was not re-run; nothing it covers changed.
+> **Fixed defect 3 - the false composite sentence - everywhere, and built the
+> machinery that stops its class of defect returning.** Stage T0a, committed in
+> two parts.
 > 
-> ### What the owner asked for
+> **Re-measured before fixing, as the prompt requires. Two of the plan's numbers
+> had moved:**
 > 
-> *"Get it set up with a full blown plan to make it look better, every single place
-> on the dashboard. Also, I want it to have more data integrity, or calculation
-> integrity - we can see how things score, but we don't actually see the numbers going
-> into any calculations in the breakout details for each company."*
+> | Defect | Plan said (2026-10-06) | Measured today | Note |
+> |---|---|---|---|
+> | 1, metric weights | 334 of 4,012 pairs, 276 stocks | **333 of 4,010, 275 stocks** | T0b |
+> | 2, composite line | **2** stocks (FDXF, L) | **3** - PSKY joined | T0b |
+> | 3, rank sentence | median 19.6pt, 75.1% >10pt | **identical** | fixed today |
 > 
-> ### What was written
+> **The sentence.** `_sentence_rank` said *"Its composite of 73.8 is a percentile:
+> it scores above 74% of the universe"* - for the stock ranked **1st of 502**. It
+> now says *"Ranks 1st of 502 - ahead of 100% of the other 501 stocks. Its
+> composite of 73.8 is a 0-100 score computed from its 8 category scores and their
+> weights, not a percentile."* The share is `(N - rank) / (N - 1)`: exact
+> arithmetic on two numbers printed in the same sentence, verified for all 502.
 > 
-> - `plan/dashboard-redesign-master.md` - 18 surfaces, each with what was seen on the
->   live page at 1440 and 375px and the target; stages D2-D8; measured budgets; the
->   order of work against the other plan.
-> - `plan/calculation-transparency.md` - the goal, eight design principles, stages
->   T0a, T0b, T1-T6, a verification protocol, sources, and what it deliberately does
->   not do.
-> - `OWNER_FOCUS.md` - a new top item for transparency; the premium item now points at
->   the master plan. `CLAUDE.md` - a standing rule and priority 0.8. `prompts/nightly.md`
->   - a paragraph saying a named plan is the brief and one stage is one session.
-> - `research/measurements/2026-10-06-calculation-reproducibility.py` and
->   `...-rank-sentence-claim.py` - the two measurements below, runnable from the repo.
-> 
-> ### Three defects found while auditing - all on the live site, none fixed
-> 
-> Each was measured against the live payload; re-run the two scripts to reproduce.
-> 
-> 1. **The per-metric weights in the drilldown are not the weights used, for 276 of 502
 > ...
 
 ---
