@@ -279,6 +279,32 @@ windows. Measured across the live payload it names Risk 34%, Revisions 29%,
 Momentum 26%, Quality 0.2% - the fundamentals categories barely move between
 quarterly filings. Cost: **+10.5 KB gzipped (+0.89%)**.
 
+**Every sentence here is now registered in `claims.py` (2026-10-07, stage T0a).**
+Each of the thirteen kinds has an entry naming what it asserts about how a number
+is computed, the code that makes it true, and the test that checks it. **Adding a
+`_sentence_*` function fails the suite until it is registered**
+(`tests/test_claims_register.py`, 24 tests, also in the data loop's publish gate).
+
+**The `rank` sentence was false until 2026-10-07** and is the reason the register
+exists. It read *"Its composite of 73.7 is a percentile: it scores above 74% of the
+universe"* - for the stock ranked **1st of 502** - wrong for 493 of 502 stocks by a
+median of 19.6 points. `Composite` has been cardinal since Phase 13 (F1);
+`Composite_Pct` is the percentile. It now reads *"Ranks 1st of 502 - ahead of 100%
+of the other 501 stocks. Its composite of 73.8 is a 0-100 score computed from its 8
+category scores and their weights, not a percentile"*: the share is
+`(N - rank) / (N - 1)`, and the category count is the stock's own (two stocks do not
+have eight). It survived for months because **a test asserted it** - when correcting
+a published claim here, grep the tests as well as the prose.
+
+It stops short of claiming `composite == sum of contributions`, deliberately: the
+coverage discount reduces it for 3 of 502 stocks and the payload does not yet carry
+the coverage figure that discount reads. **T0b** adds that.
+
+**Known defect, T0b:** `confidence`'s "The score rests on N of 18 metrics" and the
+provenance badge's 60/80% colours use `factor_engine`'s hard-coded 18-metric list,
+**not** the applicable-metric coverage the discount uses (35 for a bank-like stock,
+41 otherwise). 62 stocks read under 80%; 3 were discounted.
+
 **Do not move this into the browser.** Building it here is what makes it
 diffable and identical for every reader, which is the entire reason it replaced
 the chat.

@@ -88,6 +88,27 @@ Add items below. Anything under this heading is unclaimed work.
 
   **Progress (update this line each session):**
   - **2026-10-06 - plan written, nothing built yet.** Next: **T0a**.
+  - **2026-10-07 - T0a shipped.** Defect 3 is fixed everywhere and can no longer
+    come back. The drilldown's first sentence now reads *"Ranks 1st of 502 -
+    ahead of 100% of the other 501 stocks. Its composite of 73.8 is a 0-100
+    score computed from its 8 category scores and their weights, not a
+    percentile"* - the share is `(N-rank)/(N-1)`, exact for all 502. The plan
+    named four places saying the composite was a percentile; there were **six**
+    (also `FORENSIC_AUDIT_REPORT.md`, and **a test that asserted the false
+    claim**, which is why it survived). `claims.py` + 24 tests now make an
+    unregistered or unchecked claim fail the build, and the data loop's publish
+    gate runs them. Every number, rank and other sentence byte-identical:
+    181,446 payload leaves, **502 changed (all this sentence), 0 added, 0
+    removed**; **+309 bytes gzipped** against a 150 KB budget. Dashboard and
+    methodology page regenerated, so it is live now rather than at 02:00.
+    **A fourth defect was found and recorded, not fixed:** "rests on N of 18
+    metrics" and the provenance badge's 60/80% colours use a hard-coded
+    18-metric list, not the applicable-metric coverage the discount reads (35
+    for a bank, 41 otherwise) - 62 stocks read under 80%, 3 were discounted.
+    **Next: T0b** (true per-stock metric weights from the engine, the
+    reproducibility test, the build-time refusal to publish) - which now also
+    owns that fourth defect. `scripts/diff_payload.py`, which the plan assigned
+    to T0b, is already built.
   - **Commit after every stage.**
 
   **The test:** a student picks any stock, opens it, and can answer *"where did this

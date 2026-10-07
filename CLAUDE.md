@@ -604,15 +604,31 @@ properly over three done shallowly.
 
 ### Open
 
-**0.8. Calculation transparency and the false claims - opened 2026-10-06, age 0
-days; two owner items run together** (`OWNER_FOCUS.md`). `plan/calculation-transparency.md`
+**0.8. Calculation transparency and the false claims - opened 2026-10-06, age 1
+day; two owner items run together** (`OWNER_FOCUS.md`). `plan/calculation-transparency.md`
 (stages T0a, T0b, T1-T6) and `plan/dashboard-redesign-master.md` (surfaces and stages
-D2-D8) govern. **Order:** T0a (fix the false composite sentences everywhere, build the
-claims register) -> T0b (true per-stock metric weights from the engine, a payload-only
-reproducibility test that fails today for 334 of 4,012 pairs and 2 of 502 composites,
+D2-D8) govern. **T0a is DONE (2026-10-07).** Remaining order: **T0b** (true per-stock
+metric weights from the engine, a payload-only reproducibility test that fails today
+for **333 of 4,010** pairs across **275 of 502** stocks and **3 of 502** composites,
 a build-time refusal to publish) -> D2 (rankings table: 81% of the page's DOM nodes)
 -> T1 -> T2/T3 -> D3+T4 together -> D4-D6 -> D7, D8, T5, T6. Reproduce the defects
-with `research/measurements/2026-10-06-*.py`. No scoring change; explanation only.
+with `research/measurements/2026-10-06-*.py` - **re-run them, the counts move with
+each data run.** No scoring change; explanation only.
+
+**T0a's standing constraint:** `claims.py` registers every sentence that says how a
+number is computed, with the code that makes it true and the test that checks it.
+**A new `_sentence_*` in `stock_summary.py` fails the suite until it is registered**,
+and `FORBIDDEN` keeps the four false statements fixed that day from being republished.
+Defect 3 survived for months because **a test asserted it** - when you correct a
+published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
+24 tests, in the data loop's publish gate.
+
+**T0b also inherits a fourth defect, found 2026-10-07:** the drilldown's "rests on N
+of 18 metrics" and its provenance badge's 60/80% colours read `factor_engine`'s
+hard-coded 18-metric list, **not** the applicable-metric coverage the composite's
+coverage discount uses (35 for a bank-like stock, 41 otherwise, out of `METRIC_COLS`).
+62 stocks read under 80% on that badge; **3** were actually discounted. The engine must
+emit applicable coverage - which is also what the composite line needs for defect 2.
 
 **0.6. Do not record an improvement-engine snapshot when the run did not fetch.**
 Found 2026-08-11 and never closed on its own terms: a warm-started run still

@@ -79,6 +79,9 @@ PUBLISHED_ARTIFACTS = (
 # added to tests/ without being added here - that is the exact class of the
 # 2026-09-28 regression.
 MODULES: tuple[tuple[str, str], ...] = (
+    ("tests/test_claims_register.py",
+     "every computational claim on the site is registered, checked, and not "
+     "one of the false statements fixed on 2026-10-07"),
     ("tests/test_overview_claims.py",
      "the published overview and index.html state the configured weights"),
     ("tests/test_overview_is_generated.py",

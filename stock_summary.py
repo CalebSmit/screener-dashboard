@@ -177,14 +177,57 @@ def _scored_categories(detail: dict) -> list[str]:
 
 
 def _sentence_rank(detail: dict, universe_size: int) -> str | None:
+    """Rank, the share of the universe it beats, and what the composite is.
+
+    The share is derived from the **rank**, never from the composite. Until
+    2026-10-07 the second sentence read *"Its composite of 73.7 is a percentile:
+    it scores above 74% of the universe"*, which is false for almost every
+    stock: ``Composite`` has been the **cardinal** weighted average of the
+    category scores since Phase 13 (F1) - ``compute_composite`` keeps magnitude
+    as the ranking key - and the percentile is the separate ``Composite_Pct``
+    column. Measured over all 502 baked summaries on 2026-10-06 and again on
+    2026-10-07 (``research/measurements/2026-10-06-rank-sentence-claim.py``) the
+    claimed share was wrong by a **median of 19.6 points**, by more than 10
+    points for **74.9%** of stocks, and by **31.2** at worst - and it told the
+    stock ranked **1st of 502** that it scored above 74% of the universe.
+
+    Two things keep the replacement true for every stock rather than for most:
+
+    * the share comes from ``(N - rank) / (N - 1)``, so it is exact arithmetic on
+      two numbers printed in the same sentence; and
+    * the count of category scores is the number this stock actually has, not a
+      hard-coded eight. Measured 2026-10-07: 500 stocks have eight, one has six
+      and one has five, so "its eight category scores" would itself have been a
+      new false claim for two of them.
+
+    It deliberately does **not** claim the composite *equals* the weighted
+    average: a coverage discount is applied afterwards for stocks below 80%
+    metric coverage (3 of 502 on the 2026-10-07 payload - FDXF, PSKY, L), and
+    the payload does not yet carry the coverage figure that discount reads, so
+    the exact chain cannot be shown here honestly. Principle 5 of
+    ``plan/calculation-transparency.md``: say what cannot be shown rather than
+    print an equation that does not reproduce. Stage T0b adds that step to the
+    drilldown's composite line, where the numbers for it will exist.
+    """
     rank = _num(detail.get("rank"))
     composite = _num(detail.get("composite"))
     if rank is None or composite is None or not universe_size:
         return None
+    n = int(universe_size)
+    sentence = f"Ranks {_ordinal(rank)} of {n}"
+    if n > 1:
+        # Ahead of this share of the *other* stocks: rank 1 beats all n-1 of
+        # them, the last beats none. Both operands are on screen, so a reader
+        # can check the division.
+        share = (n - rank) / (n - 1) * 100
+        sentence += f" - ahead of {share:.0f}% of the other {n - 1} stocks"
+    n_cats = len(_scored_categories(detail))
+    cat_phrase = (
+        f"its {n_cats} category scores" if n_cats else "its category scores"
+    )
     return (
-        f"Ranks {_ordinal(rank)} of {int(universe_size)}. Its composite of "
-        f"{composite:.1f} is a percentile: it scores above {composite:.0f}% of "
-        f"the universe."
+        f"{sentence}. Its composite of {composite:.1f} is a 0-100 score "
+        f"computed from {cat_phrase} and their weights, not a percentile."
     )
 
 
