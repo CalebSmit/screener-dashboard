@@ -936,7 +936,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <title>Multi-Factor Screener Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script src="./dashboard_data.js?v={version}"></script>
     <style>
@@ -1310,16 +1310,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     // COLOUR PALETTE
     // =====================================================================
-    const COLORS = ['#58a6ff','#f0883e','#3fb950','#f85149','#bc8cff',
-                    '#d2a8ff','#ff7b72','#79c0ff','#d29922','#56d4dd',
-                    '#a5d6ff'];
-    const POS = '#3fb950', NEG = '#f85149';
+    // Design tokens, JS side - keep in sync with :root (design-system doc).
+    const ACCENT = '#3987e5';
+    const COLORS = [ACCENT];
+    const POS = '#0ca30c', NEG = '#e66767';
 
     // ---- Chart.js global dark-theme defaults ----
     if (HAS_CHART) {{
-        Chart.defaults.color = '#7d8590';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-        Chart.defaults.font.family = "'DM Sans', sans-serif";
+        Chart.defaults.color = '#898781';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+        Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
     }}
 
     // =====================================================================
@@ -1406,25 +1406,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             }});
         const catKeys = ['valuation','quality','growth','momentum','risk','revisions','size','investment'];
         const catLabels = {{ valuation:'Val', quality:'Qual', growth:'Grow', momentum:'Mom', risk:'Risk', revisions:'Rev', size:'Size', investment:'Inv' }};
+        // One hue for all categories: the bars encode magnitude, the labels
+        // carry identity. A hue per category was decoration - see
+        // plan/dashboard-design-system.md.
         const catColors = {{
-            valuation: '#58a6ff', quality: '#3fb950', growth: '#f0883e',
-            momentum: '#f85149', risk: '#bc8cff', revisions: '#d29922',
-            size: '#56d4dd', investment: '#d2a8ff'
-        }};
-
-        // Sector color mapping for badges
-        const sectorColors = {{
-            'Information Technology': '#58a6ff',
-            'Health Care': '#3fb950',
-            'Financials': '#d29922',
-            'Consumer Discretionary': '#f0883e',
-            'Communication Services': '#bc8cff',
-            'Industrials': '#79c0ff',
-            'Consumer Staples': '#56d4dd',
-            'Energy': '#f85149',
-            'Utilities': '#a5d6ff',
-            'Real Estate': '#d2a8ff',
-            'Materials': '#ff7b72'
+            valuation: ACCENT, quality: ACCENT, growth: ACCENT,
+            momentum: ACCENT, risk: ACCENT, revisions: ACCENT,
+            size: ACCENT, investment: ACCENT
         }};
 
         document.getElementById('top5-row').innerHTML = top5.map((h, i) => {{
@@ -1438,17 +1426,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 </div>`;
             }}).join('');
 
-            const sc = sectorColors[h.sector] || '#7d8590';
-
             return `<div class="top5-card" onclick="openStockDetail('${{escapeHtml(h.ticker)}}')">
                 <div class="top5-rank-bar">#${{h.rank}}</div>
                 <div class="top5-header">
                     <span class="top5-ticker">${{escapeHtml(h.ticker)}}</span>
                 </div>
                 <div class="top5-company">${{escapeHtml(h.company)}}</div>
-                <div class="top5-sector" style="--sector-color:${{sc}}">
-                    <span class="top5-sector-dot" style="background:${{sc}}"></span>${{escapeHtml(h.sector)}}
-                </div>
+                <div class="top5-sector">${{escapeHtml(h.sector)}}</div>
                 <div class="top5-composite-row">
                     <span class="top5-composite-label">Composite</span>
                     <span class="top5-composite">${{fmt(h.composite,'score')}}</span>
@@ -1471,13 +1455,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (!HAS_CHART) {{
             const target = document.getElementById('vt-chart');
             if (target && target.parentElement) {{
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Trap rates are unavailable in chart form.</div>';
+                target.parentElement.innerHTML = '<div style="padding:12px;color:#898781">Chart.js failed to load. Trap rates are unavailable in chart form.</div>';
             }}
             return;
         }}
         const dataSource = currentTrapType === 'gt' ? D.gt_by_sector : D.vt_by_sector;
         const labelText = currentTrapType === 'gt' ? 'Growth Trap Rate %' : 'Value Trap Rate %';
-        const barColor = currentTrapType === 'gt' ? '#f0883e' : null;
+        const barColor = null; // one severity ramp for both trap types
 
         const sectors = Object.keys(dataSource).sort((a,b) => dataSource[b].rate - dataSource[a].rate);
         const rates = sectors.map(s => dataSource[s].rate);
@@ -1493,8 +1477,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     label: labelText,
                     data: rates,
                     backgroundColor: barColor
-                        ? rates.map(r => r > 25 ? barColor + 'CC' : r > 15 ? '#d29922CC' : POS + 'CC')
-                        : rates.map(r => r > 25 ? NEG + 'CC' : r > 15 ? '#d29922CC' : POS + 'CC'),
+                        ? rates.map(r => r > 25 ? barColor + 'CC' : r > 15 ? '#fab219CC' : POS + 'CC')
+                        : rates.map(r => r > 25 ? NEG + 'CC' : r > 15 ? '#fab219CC' : POS + 'CC'),
                     borderRadius: 3,
                 }}]
             }},
@@ -1503,8 +1487,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 indexAxis: 'y',
                 plugins: {{ legend: {{ display: false }} }},
                 scales: {{
-                    x: {{ beginAtZero: true, max: 40, title: {{ display: true, text: 'Flag Rate %', color: '#7d8590' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#7d8590' }} }},
-                    y: {{ ticks: {{ font: {{ size: 11 }}, color: '#7d8590' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
+                    x: {{ beginAtZero: true, max: 40, title: {{ display: true, text: 'Flag Rate %', color: '#898781' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#898781' }} }},
+                    y: {{ ticks: {{ font: {{ size: 11 }}, color: '#898781' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
                 }}
             }}
         }});
@@ -1524,18 +1508,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     let currentSectorStat = 'median';
 
     const FACTOR_COLOR_MAP = {{
-        'Composite': '#58a6ff',
-        'valuation_score': '#58a6ff', 'quality_score': '#3fb950',
-        'growth_score': '#f0883e', 'momentum_score': '#f85149',
-        'risk_score': '#bc8cff', 'revisions_score': '#d29922',
-        'size_score': '#56d4dd', 'investment_score': '#d2a8ff'
+        'Composite': ACCENT,
+        'valuation_score': ACCENT, 'quality_score': ACCENT,
+        'growth_score': ACCENT, 'momentum_score': ACCENT,
+        'risk_score': ACCENT, 'revisions_score': ACCENT,
+        'size_score': ACCENT, 'investment_score': ACCENT
     }};
 
     function updateSectorDist() {{
         if (!HAS_CHART) {{
             const target = document.getElementById('sector-dist-chart');
             if (target && target.parentElement) {{
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#7d8590">Chart.js failed to load. Sector distribution chart is unavailable.</div>';
+                target.parentElement.innerHTML = '<div style="padding:12px;color:#898781">Chart.js failed to load. Sector distribution chart is unavailable.</div>';
             }}
             return;
         }}
@@ -1571,8 +1555,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     indexAxis: 'y',
                     plugins: {{ legend: {{ display: false }} }},
                     scales: {{
-                        x: {{ beginAtZero: true, max: 70, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#7d8590' }} }},
-                        y: {{ ticks: {{ font: {{ size: 11 }}, color: '#7d8590' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
+                        x: {{ beginAtZero: true, max: 70, grid: {{ color: 'rgba(255,255,255,0.04)' }}, ticks: {{ color: '#898781' }} }},
+                        y: {{ ticks: {{ font: {{ size: 11 }}, color: '#898781' }}, grid: {{ color: 'rgba(255,255,255,0.04)' }} }}
                     }}
                 }}
             }});
@@ -2400,10 +2384,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     // STOCK DETAIL MODAL
     // =====================================================================
+    // One hue for all categories (see plan/dashboard-design-system.md):
+    // identity rides the labels, color marks magnitude fills only.
     const CAT_COLORS = {{
-        valuation: '#58a6ff', quality: '#3fb950', growth: '#f0883e',
-        momentum: '#f85149', risk: '#bc8cff', revisions: '#d29922',
-        size: '#56d4dd', investment: '#d2a8ff'
+        valuation: ACCENT, quality: ACCENT, growth: ACCENT,
+        momentum: ACCENT, risk: ACCENT, revisions: ACCENT,
+        size: ACCENT, investment: ACCENT
     }};
     const CAT_LABELS = {{
         valuation: 'Valuation', quality: 'Quality', growth: 'Growth',
@@ -2716,14 +2702,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         const groups = [
-            {{ label: 'Size & Valuation', color: '#58a6ff', items: [
+            {{ label: 'Size & Valuation', color: '#898781', items: [
                 {{ label: 'Market Cap',      value: fmtBig(f.market_cap) }},
                 {{ label: 'Enterprise Value', value: fmtBig(f.enterprise_value) }},
                 {{ label: 'EPS (TTM / Fwd)', value:
                     (f.trailing_eps !== null ? '$' + f.trailing_eps.toFixed(2) : '\u2014') + ' / ' +
                     (f.forward_eps !== null ? '$' + f.forward_eps.toFixed(2) : '\u2014') }},
             ]}},
-            {{ label: 'Profitability', color: '#3fb950', items: [
+            {{ label: 'Profitability', color: '#898781', items: [
                 {{ label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
                    sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' }},
                 {{ label: 'Net Income',      value: fmtBig(f.net_income),
@@ -2732,13 +2718,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 {{ label: 'Gross Margin',    value: fmtPct2(f.gross_margin) }},
                 {{ label: 'Net Margin',      value: fmtPct2(f.net_margin) }},
             ]}},
-            {{ label: 'Cash Flow & Leverage', color: '#f0883e', items: [
+            {{ label: 'Cash Flow & Leverage', color: '#898781', items: [
                 {{ label: 'Free Cash Flow',  value: fmtBig(f.fcf) }},
                 {{ label: 'Total Debt',      value: fmtBig(f.total_debt) }},
                 {{ label: 'Cash & Equiv.',   value: fmtBig(f.total_cash) }},
                 {{ label: 'Net Debt',        value: fmtBig(f.net_debt) }},
             ]}},
-            {{ label: 'Shareholder', color: '#bc8cff', items: [
+            {{ label: 'Shareholder', color: '#898781', items: [
                 {{ label: 'Dividend Yield',  value: f.dividend_yield !== null ? fmtPct2(f.dividend_yield) : 'None' }},
                 {{ label: 'Payout Ratio',    value: f.payout_ratio !== null ? fmtPct2(f.payout_ratio) : '\u2014' }},
                 {{ label: 'Shares Out',      value: fmtShares(f.shares_outstanding) }},
@@ -2749,7 +2735,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const tradingItems = [];
         if (f.avg_daily_dollar_vol !== null) tradingItems.push({{ label: 'Avg Daily $ Vol', value: fmtBig(f.avg_daily_dollar_vol) }});
         if (f.short_ratio !== null) tradingItems.push({{ label: 'Short Interest', value: f.short_ratio.toFixed(1) + ' days to cover' }});
-        if (tradingItems.length > 0) groups.push({{ label: 'Trading', color: '#d29922', items: tradingItems }});
+        if (tradingItems.length > 0) groups.push({{ label: 'Trading', color: '#898781', items: tradingItems }});
 
         let html = '<div class="snapshot-section">';
         html += '<div class="snapshot-header">';
@@ -2800,12 +2786,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // Higher is better (green >= self, red < 80% of self)
         const higherBetter = (v, selfV) => {{
             if (v === null || v === undefined || selfV === null || selfV === undefined) return '';
-            return v >= selfV ? 'color:#3fb950' : v < selfV * 0.8 ? 'color:#f85149' : '';
+            return v >= selfV ? 'color:#0ca30c' : v < selfV * 0.8 ? 'color:#e66767' : '';
         }};
         // Lower is better (green <= self, red > 120% of self)
         const lowerBetter = (v, selfV) => {{
             if (v === null || v === undefined || selfV === null || selfV === undefined) return '';
-            return v <= selfV ? 'color:#3fb950' : v > selfV * 1.2 ? 'color:#f85149' : '';
+            return v <= selfV ? 'color:#0ca30c' : v > selfV * 1.2 ? 'color:#e66767' : '';
         }};
 
         // Build rows dynamically from peerState
@@ -3173,8 +3159,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
     function pctBarColor(pct, cat) {{
-        if (pct === null) return '#ccc';
-        return CAT_COLORS[cat] || '#4C72B0';
+        if (pct === null) return '#898781';
+        return CAT_COLORS[cat] || ACCENT;
     }}
 
     // =====================================================================
@@ -3222,18 +3208,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const vals = sens.filter(function(s) {{ return s.avg_jaccard !== null; }}).map(function(s) {{ return s.avg_jaccard; }});
             const avgJ = vals.length > 0 ? (vals.reduce(function(a,b) {{ return a+b; }}, 0) / vals.length) : null;
             if (avgJ !== null) {{
-                const jColor = avgJ >= 0.85 ? '#3fb950' : avgJ >= 0.70 ? '#d29922' : '#f85149';
+                const jColor = avgJ >= 0.85 ? '#0ca30c' : avgJ >= 0.70 ? '#fab219' : '#e66767';
                 const jLabel = avgJ >= 0.85 ? 'Robust' : avgJ >= 0.70 ? 'Moderate' : 'Sensitive';
                 summaryHtml += '<span class="def-badge" style="color:' + jColor + '">Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
             }}
         }}
         if (dq.eps_mismatch_count !== undefined) {{
-            const mColor = dq.eps_mismatch_count === 0 ? '#3fb950' : '#d29922';
+            const mColor = dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219';
             summaryHtml += '<span class="def-badge" style="color:' + mColor + '">EPS Flags: ' + dq.eps_mismatch_count + '</span>';
         }}
         if (dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined) {{
             const cov = (dq.avg_metric_coverage * 100).toFixed(0);
-            const cColor = dq.avg_metric_coverage >= 0.80 ? '#3fb950' : dq.avg_metric_coverage >= 0.60 ? '#d29922' : '#f85149';
+            const cColor = dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : dq.avg_metric_coverage >= 0.60 ? '#fab219' : '#e66767';
             summaryHtml += '<span class="def-badge" style="color:' + cColor + '">Data: ' + cov + '% complete</span>';
         }}
         document.getElementById('defensibility-summary').innerHTML = summaryHtml;
@@ -3245,10 +3231,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         kpiHtml += dqKpi('Data Freshness', freshStr, 'when the data was last fetched from Yahoo Finance', null);
         kpiHtml += dqKpi('Metric Coverage',
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '\u2014',
-            'of the 21 core metrics have valid data, on average per stock', dq.avg_metric_coverage >= 0.80 ? '#3fb950' : '#d29922');
+            'of the 21 core metrics have valid data, on average per stock', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '\u2014',
             'stocks have a GAAP vs. non-GAAP EPS discrepancy that may distort growth metrics',
-            dq.eps_mismatch_count === 0 ? '#3fb950' : '#d29922');
+            dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219');
         document.getElementById('defensibility-kpis').innerHTML = kpiHtml;
 
         // --- Sensitivity table with visual bars ---
@@ -3261,7 +3247,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const jClass = aj !== null ? (aj >= 0.85 ? 'sens-cell-high' : aj >= 0.70 ? 'sens-cell-med' : 'sens-cell-low') : '';
                 const verdict = aj !== null ? (aj >= 0.85 ? 'Robust' : aj >= 0.70 ? 'Moderate' : 'Sensitive') : '\u2014';
                 const barPct = aj !== null ? Math.round(aj * 100) : 0;
-                const barColor = aj !== null ? (aj >= 0.85 ? '#3fb950' : aj >= 0.70 ? '#d29922' : '#f85149') : '#484f58';
+                const barColor = aj !== null ? (aj >= 0.85 ? '#0ca30c' : aj >= 0.70 ? '#fab219' : '#e66767') : '#4a4a48';
                 const pj = s.plus_jaccard !== null ? (s.plus_jaccard * 100).toFixed(0) + '%' : '\u2014';
                 const mj = s.minus_jaccard !== null ? (s.minus_jaccard * 100).toFixed(0) + '%' : '\u2014';
                 tHtml += '<tr>';
@@ -3542,34 +3528,50 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 def _css() -> str:
     return """
         /* ====================================================================
-           DARK EDITORIAL AESTHETIC — "The Terminal"
-           Space Grotesk headings · DM Sans body · JetBrains Mono numbers
+           DESIGN TOKENS — see plan/dashboard-design-system.md for the
+           argument and sources behind every value. Change them there and
+           here together, or not at all.
+           Inter for UI, body and figures (tabular-nums) · JetBrains Mono
+           for literal code only. Neutrals carry the UI; one accent; color
+           only where it means something.
            ==================================================================== */
 
         :root {
-            --bg-deep: #0a0e17;
-            --bg-primary: #0d1117;
-            --bg-card: #161b22;
-            --bg-card-hover: #1c2333;
-            --bg-elevated: #21262d;
-            --border: rgba(255,255,255,.06);
-            --border-bright: rgba(255,255,255,.12);
-            --text-primary: #e6edf3;
-            --text-secondary: #7d8590;
-            --text-muted: #484f58;
-            --accent: #58a6ff;
-            --accent-glow: rgba(88,166,255,.15);
-            --green: #3fb950;
-            --green-dim: rgba(63,185,80,.15);
-            --red: #f85149;
-            --red-dim: rgba(248,81,73,.15);
-            --amber: #d29922;
-            --amber-dim: rgba(210,153,34,.15);
+            /* surfaces */
+            --bg-deep: #0d0d0d;
+            --bg-primary: #141413;
+            --bg-card: #1a1a19;
+            --bg-card-hover: #202020;
+            --bg-elevated: #222221;
+            --border: #262625;
+            --border-bright: #343433;
+            /* ink */
+            --text-primary: #ffffff;
+            --text-secondary: #c3c2b7;
+            --text-muted: #898781;
+            /* one accent: fills vs text (text step passes 4.5:1 on every surface) */
+            --accent: #3987e5;
+            --accent-text: #5598e7;
+            --accent-glow: rgba(57,135,229,.12); /* focus ring / selected wash only */
+            /* meaning colors: direction of change, caveats. Never decoration. */
+            --green: #0ca30c;
+            --green-dim: rgba(12,163,12,.12);
+            --red: #e66767;
+            --red-strong: #d03b3b;
+            --red-dim: rgba(208,59,59,.12);
+            --amber: #fab219;
+            --amber-dim: rgba(250,178,25,.12);
+            /* space, shape, elevation, motion */
             --gap: 16px;
-            --radius: 10px;
-            --font-heading: 'Space Grotesk', sans-serif;
-            --font-body: 'DM Sans', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+            --radius: 8px;
+            --radius-pill: 999px;
+            --shadow-overlay: 0 16px 48px rgba(0,0,0,.5);
+            --t-fast: 120ms;
+            --t-base: 160ms;
+            /* type */
+            --font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
         }
 
         /* ---- WHAT CHANGED (time dimension) ---- */
@@ -3585,7 +3587,7 @@ def _css() -> str:
         }
         .seg-btn + .seg-btn { border-left: 1px solid var(--border-bright); }
         .seg-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-        .seg-btn.active { background: var(--accent-glow); color: var(--accent); }
+        .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
@@ -3598,12 +3600,12 @@ def _css() -> str:
         }
         .mover-row:hover { background: var(--bg-card-hover); border-color: var(--border-bright); }
         .mover-id { grid-area: id; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-        .mover-ticker { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); font-size: .88rem; }
+        .mover-ticker { font-family: var(--font-body); font-weight: 600; color: var(--text-primary); font-size: .88rem; }
         .mover-name { color: var(--text-secondary); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .spark { grid-area: spark; display: block; }
         .spark-empty { grid-area: spark; color: var(--text-muted); font-size: .78rem; }
         .mover-delta {
-            grid-area: delta; text-align: right; font-family: var(--font-mono);
+            grid-area: delta; text-align: right; font-family: var(--font-body);
             font-size: .88rem; font-weight: 600; white-space: nowrap;
         }
         .mover-arrow { font-size: .7rem; margin-right: 2px; }
@@ -3667,7 +3669,7 @@ def _css() -> str:
         .holding-card:hover { border-color: var(--border-bright); }
         .holding-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .holding-rank {
-            font-family: var(--font-mono); font-size: .8rem; color: var(--text-muted);
+            font-family: var(--font-body); font-size: .8rem; color: var(--text-muted);
             min-width: 44px;
         }
         .holding-ticker {
@@ -3692,7 +3694,7 @@ def _css() -> str:
         .holding-delta-down { color: var(--red); }
         .holding-delta-flat, .holding-delta-none { color: var(--text-muted); }
         .holding-composite {
-            font-family: var(--font-mono); font-size: .9rem; font-weight: 600;
+            font-family: var(--font-body); font-size: .9rem; font-weight: 600;
             color: var(--text-primary); cursor: help;
         }
         .holding-remove {
@@ -3714,7 +3716,7 @@ def _css() -> str:
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .holding-cat-val {
-            display: block; font-family: var(--font-mono); font-size: .82rem;
+            display: block; font-family: var(--font-body); font-size: .82rem;
             color: var(--text-primary); white-space: nowrap;
         }
         .holding-cat-nodata .holding-cat-val { font-size: .68rem; color: var(--text-muted); }
@@ -3774,7 +3776,7 @@ def _css() -> str:
         .modal-hist-head .neg { color: var(--red); }
         .mini-table { width: 100%; max-width: 320px; border-collapse: collapse; font-size: .8rem; }
         .mini-table td { padding: 3px 8px 3px 0; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
-        .mini-table td.num { text-align: right; font-family: var(--font-mono); }
+        .mini-table td.num { text-align: right; font-family: var(--font-body); }
         .mini-table td.pos { color: var(--green); }
         .mini-table td.neg { color: var(--red); }
         .modal-note { margin-top: 12px; font-size: .74rem; color: var(--text-muted); line-height: 1.5; }
@@ -3783,44 +3785,40 @@ def _css() -> str:
             .movers-grid { grid-template-columns: 1fr; }
         }
 
-        /* ---- ANIMATIONS ---- */
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(18px); }
+        /* ---- MOTION ----
+           One animation on the whole page: the modal, because opening it is
+           a state change the user caused. Entrance staggers, bar-grow and
+           glow pulses are deleted, not restyled - a page assembling itself
+           on load is decoration that costs perceived speed. */
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
-        }
-        @keyframes slideRight {
-            from { opacity: 0; transform: translateX(-12px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes glowPulse {
-            0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
-            50%      { box-shadow: 0 0 20px 4px var(--accent-glow); }
-        }
-        @keyframes barGrow {
-            from { width: 0; }
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: translateY(-24px) scale(.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+            }
         }
 
         /* ---- RESET & BASE ---- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--font-body);
+            font-size: 14px;
             background: var(--bg-deep);
             color: var(--text-primary);
             line-height: 1.55;
             -webkit-font-smoothing: antialiased;
-            /* Subtle noise texture via inline SVG */
-            background-image:
-                radial-gradient(ellipse at 20% 0%, rgba(88,166,255,.06) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 100%, rgba(63,185,80,.04) 0%, transparent 50%);
-            background-attachment: fixed;
+            text-rendering: optimizeLegibility;
+        }
+        /* Figures align vertically wherever they appear. */
+        .num, .kpi-value, .metric-raw, .metric-pct-label, .metric-weight,
+        .mover-delta, .holding-rank, .holding-composite, .holding-cat-val,
+        .top5-composite, .top5-factor-val, .contrib-pts, .modal-score-val,
+        .pt-card-value, .snapshot-value, .snapshot-sub, .result-count,
+        .sens-table td, .corr-cell, .peer-table tbody td, .delta-cell {
+            font-variant-numeric: tabular-nums;
         }
 
         .dashboard-container {
@@ -3831,10 +3829,10 @@ def _css() -> str:
 
         /* ---- HEADER ---- */
         .dashboard-header {
-            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
-            border: 1px solid var(--border-bright);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             color: var(--text-primary);
-            padding: 22px 28px;
+            padding: 20px 24px;
             border-radius: var(--radius);
             margin-bottom: var(--gap);
             display: flex;
@@ -3842,27 +3840,17 @@ def _css() -> str:
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
-            animation: fadeUp .5s ease-out;
-            position: relative;
-            overflow: hidden;
-        }
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--green), var(--amber), var(--red));
         }
         .dashboard-header h1 {
             font-family: var(--font-heading);
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -.3px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -.2px;
         }
         .run-info {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--text-secondary);
+            font-size: 12.5px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
         }
         .badge {
             display: inline-block;
@@ -3870,7 +3858,7 @@ def _css() -> str:
             border: 1px solid var(--border-bright);
             padding: 4px 14px;
             border-radius: 20px;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             font-weight: 500;
             color: var(--text-secondary);
@@ -3893,16 +3881,10 @@ def _css() -> str:
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 18px 22px;
-            animation: fadeUp .5s ease-out both;
-            transition: border-color .2s, box-shadow .2s;
+            transition: border-color var(--t-base) ease-out;
         }
-        .kpi-card:nth-child(1) { animation-delay: .05s; }
-        .kpi-card:nth-child(2) { animation-delay: .1s; }
-        .kpi-card:nth-child(3) { animation-delay: .15s; }
-        .kpi-card:nth-child(4) { animation-delay: .2s; }
         .kpi-card:hover {
             border-color: var(--border-bright);
-            box-shadow: 0 4px 24px rgba(0,0,0,.3);
         }
         .kpi-label {
             font-family: var(--font-heading);
@@ -3913,7 +3895,7 @@ def _css() -> str:
             margin-bottom: 4px;
         }
         .kpi-value {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 28px;
             font-weight: 700;
             color: var(--text-primary);
@@ -3940,28 +3922,20 @@ def _css() -> str:
             border-radius: var(--radius);
             padding: 0 0 14px;
             cursor: pointer;
-            transition: all .25s ease;
+            transition: border-color var(--t-base) ease-out, background var(--t-base) ease-out;
             overflow: hidden;
-            animation: fadeUp .5s ease-out both;
         }
-        .top5-card:nth-child(1) { animation-delay: .1s; }
-        .top5-card:nth-child(2) { animation-delay: .15s; }
-        .top5-card:nth-child(3) { animation-delay: .2s; }
-        .top5-card:nth-child(4) { animation-delay: .25s; }
-        .top5-card:nth-child(5) { animation-delay: .3s; }
         .top5-card:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 30px var(--accent-glow), 0 8px 32px rgba(0,0,0,.4);
-            transform: translateY(-3px);
+            border-color: var(--border-bright);
+            background: var(--bg-card-hover);
         }
         .top5-rank-bar {
-            background: linear-gradient(90deg, var(--accent) 0%, rgba(88,166,255,.3) 100%);
-            color: #fff;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 700;
-            padding: 6px 18px;
-            letter-spacing: .5px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            padding: 10px 18px 0;
+            letter-spacing: .05em;
         }
         .top5-header { padding: 12px 18px 2px; }
         .top5-ticker {
@@ -3989,7 +3963,7 @@ def _css() -> str:
             font-weight: 600;
         }
         .top5-composite {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 22px;
             font-weight: 700;
             color: var(--green);
@@ -4003,25 +3977,20 @@ def _css() -> str:
             padding: 0 18px;
             margin-bottom: 4px;
         }
+        /* Sector is a fact, not a brand: neutral chip, identity rides the
+           label. The 11-hue sector map was decoration (design-system doc). */
         .top5-sector {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
             font-size: 11px;
             font-weight: 500;
-            background: color-mix(in srgb, var(--sector-color, #7d8590) 10%, transparent);
-            border: 1px solid color-mix(in srgb, var(--sector-color, #7d8590) 25%, transparent);
-            color: var(--sector-color, var(--text-secondary));
-            padding: 3px 12px 3px 8px;
-            border-radius: 6px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
             margin-left: 18px;
-            letter-spacing: .2px;
-        }
-        .top5-sector-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            box-shadow: 0 0 6px color-mix(in srgb, var(--sector-color, #7d8590) 50%, transparent);
+            letter-spacing: .02em;
         }
         .top5-factors {
             display: flex;
@@ -4038,7 +4007,7 @@ def _css() -> str:
         .top5-factor-label {
             flex: 0 0 32px;
             color: var(--text-secondary);
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-weight: 500;
             font-size: 10px;
         }
@@ -4052,13 +4021,11 @@ def _css() -> str:
         .top5-factor-fill {
             height: 100%;
             border-radius: 3px;
-            transition: width .6s cubic-bezier(.25,.46,.45,.94);
-            animation: barGrow .8s ease-out;
         }
         .top5-factor-val {
             flex: 0 0 30px;
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-weight: 600;
             font-size: 11px;
             color: var(--text-secondary);
@@ -4078,10 +4045,7 @@ def _css() -> str:
         /* ---- SECTIONS ---- */
         .section {
             margin-bottom: calc(var(--gap) * 1.5);
-            animation: fadeIn .6s ease-out both;
         }
-        .section:nth-of-type(2) { animation-delay: .2s; }
-        .section:nth-of-type(3) { animation-delay: .35s; }
         .section-title {
             font-family: var(--font-heading);
             font-size: 17px;
@@ -4273,12 +4237,12 @@ def _css() -> str:
         .data-table tbody tr:hover { background: var(--bg-card-hover); }
         .data-table .num {
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-variant-numeric: tabular-nums;
             font-size: 12px;
         }
         .data-table .ticker {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-weight: 600;
             color: var(--accent);
         }
@@ -4324,7 +4288,7 @@ def _css() -> str:
         .filter-group input[type="text"] { width: 180px; }
         .filter-group input::placeholder { color: var(--text-muted); }
         .result-count {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 12px;
             color: var(--text-secondary);
             padding: 7px 0;
@@ -4337,7 +4301,7 @@ def _css() -> str:
             padding: 24px 16px;
             color: var(--text-muted);
             font-size: 12px;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             border-top: 1px solid var(--border);
             margin-top: 8px;
         }
@@ -4349,7 +4313,7 @@ def _css() -> str:
             max-width: 900px;
             line-height: 1.5;
         }
-        .footer-disclaimer a { color: var(--accent, #4a9eff); }
+        .footer-disclaimer a { color: var(--accent, #3987e5); }
 
         /* ---- MODAL ---- */
         .modal-overlay {
@@ -4371,16 +4335,16 @@ def _css() -> str:
             border-radius: 14px;
             width: 100%;
             max-width: 920px;
-            box-shadow: 0 24px 80px rgba(0,0,0,.6);
-            animation: modalIn .3s ease-out;
+            box-shadow: var(--shadow-overlay);
+            animation: modalIn var(--t-base) ease-out;
         }
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             padding: 22px 26px 18px;
-            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
-            border-radius: 14px 14px 0 0;
+            background: var(--bg-card);
+            border-radius: var(--radius) var(--radius) 0 0;
             border-bottom: 1px solid var(--border);
         }
         /* "Why it ranks here" - the deterministic summary block. Given a
@@ -4389,7 +4353,7 @@ def _css() -> str:
         .summary-block {
             background: var(--bg-elevated, rgba(255,255,255,0.03));
             border: 1px solid var(--border, rgba(255,255,255,0.08));
-            border-left: 3px solid var(--accent, #58a6ff);
+            border-left: 3px solid var(--accent, #3987e5);
             border-radius: 8px;
             padding: 14px 18px;
             margin-bottom: var(--gap, 16px);
@@ -4407,21 +4371,21 @@ def _css() -> str:
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: var(--text-secondary, #7d8590);
+            color: var(--text-secondary, #c3c2b7);
         }
         .summary-body { margin: 0; }
         .summary-fact {
             margin: 0 0 6px 0;
             font-size: 13.5px;
             line-height: 1.6;
-            color: var(--text-primary, #e6edf3);
+            color: var(--text-primary, #ffffff);
         }
         .summary-fact:last-child { margin-bottom: 0; }
         /* The opening rank line carries the headline; the closing coverage
            and flag lines are caveats and are deliberately quieter. */
         .summary-rank { font-size: 14.5px; font-weight: 600; }
         .summary-confidence, .summary-flags {
-            color: var(--text-secondary, #7d8590);
+            color: var(--text-secondary, #c3c2b7);
             font-size: 12.5px;
         }
         .summary-source {
@@ -4430,7 +4394,7 @@ def _css() -> str:
             border-top: 1px solid var(--border, rgba(255,255,255,0.08));
             font-size: 11.5px;
             line-height: 1.5;
-            color: var(--text-muted, #6e7681);
+            color: var(--text-muted, #898781);
         }
         @media print {
             .summary-block { break-inside: avoid; }
@@ -4455,17 +4419,17 @@ def _css() -> str:
             font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: var(--text-secondary, #7d8590);
+            color: var(--text-secondary, #c3c2b7);
         }
         .about-industry {
             font-size: 12px;
-            color: var(--accent, #58a6ff);
+            color: var(--accent, #3987e5);
         }
         .about-text {
             margin: 0;
             font-size: 13.5px;
             line-height: 1.62;
-            color: var(--text-primary, #e6edf3);
+            color: var(--text-primary, #ffffff);
             white-space: pre-wrap;
         }
         .about-text.clamped {
@@ -4481,14 +4445,14 @@ def _css() -> str:
             padding: 0;
             font: inherit;
             font-size: 12.5px;
-            color: var(--accent, #58a6ff);
+            color: var(--accent, #3987e5);
             cursor: pointer;
         }
         .about-toggle:hover { text-decoration: underline; }
         .about-source {
             margin-top: 10px;
             font-size: 11px;
-            color: var(--text-secondary, #7d8590);
+            color: var(--text-secondary, #c3c2b7);
             opacity: 0.85;
         }
         .modal-ticker {
@@ -4591,7 +4555,6 @@ def _css() -> str:
         .modal-score-card:hover { border-color: var(--border-bright); }
         .modal-score-card.composite {
             border-color: var(--accent);
-            box-shadow: 0 0 20px var(--accent-glow);
         }
         .modal-score-label {
             font-family: var(--font-heading);
@@ -4602,12 +4565,12 @@ def _css() -> str:
             margin-bottom: 3px;
         }
         .modal-score-val {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 24px;
             font-weight: 700;
         }
         .modal-score-sub {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--text-muted);
             margin-top: 2px;
@@ -4649,7 +4612,7 @@ def _css() -> str:
         .refresh-btn:hover {{ background: var(--surface-2); border-color: var(--accent); color: var(--accent); }}
         .refresh-btn:disabled {{ opacity: .5; cursor: not-allowed; }}
         .refresh-status {{
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--accent);
             margin-right: 10px;
@@ -4661,21 +4624,20 @@ def _css() -> str:
 
         /* ---- METHODOLOGY BUTTON & MODAL ---- */
         .methodology-btn {
-            background: linear-gradient(135deg, var(--accent), #79c0ff);
-            color: #0d1117;
-            border: none;
-            padding: 6px 18px;
-            border-radius: 20px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-bright);
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
             font-family: var(--font-heading);
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 12.5px;
+            font-weight: 500;
             cursor: pointer;
-            letter-spacing: .3px;
-            transition: all .2s;
+            transition: border-color var(--t-base) ease-out, color var(--t-base) ease-out;
         }
         .methodology-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent-text);
         }
         .methodology-content {
             max-width: 880px;
@@ -4772,7 +4734,6 @@ def _css() -> str:
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,.15);
         }
         .methodology-body thead th {
             background: var(--bg-elevated);
@@ -4833,7 +4794,7 @@ def _css() -> str:
         .methodology-body hr {
             border: none;
             height: 1px;
-            background: linear-gradient(to right, var(--border), var(--border-bright), var(--border));
+            background: var(--border);
             margin: 32px 0;
         }
 
@@ -4893,7 +4854,6 @@ def _css() -> str:
         }
         .pt-card-accent {
             border-color: var(--accent);
-            box-shadow: 0 0 12px var(--accent-glow);
         }
         .pt-card-label {
             font-family: var(--font-heading);
@@ -4904,7 +4864,7 @@ def _css() -> str:
             margin-bottom: 4px;
         }
         .pt-card-value {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 18px;
             font-weight: 700;
         }
@@ -4936,9 +4896,9 @@ def _css() -> str:
         .pt-range-fill {
             position: absolute;
             top: 0; bottom: 0;
-            background: linear-gradient(90deg, var(--amber), var(--green));
+            background: var(--accent);
             border-radius: 4px;
-            opacity: 0.4;
+            opacity: 0.35;
         }
         .pt-marker {
             position: absolute;
@@ -4955,7 +4915,7 @@ def _css() -> str:
         .pt-marker-price .pt-marker-line { background: var(--text-primary); }
         .pt-marker-mean .pt-marker-line { background: var(--accent); }
         .pt-marker-label {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 9px;
             font-weight: 600;
             text-align: center;
@@ -4971,7 +4931,7 @@ def _css() -> str:
         .pt-range-labels span {
             position: absolute;
             transform: translateX(-50%);
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 10px;
             color: var(--text-muted);
             white-space: nowrap;
@@ -4984,14 +4944,7 @@ def _css() -> str:
             gap: 12px;
             padding: 12px 0;
             border-bottom: 1px solid var(--border);
-            animation: slideRight .4s ease-out both;
         }
-        .contrib-row:nth-child(1) { animation-delay: .05s; }
-        .contrib-row:nth-child(2) { animation-delay: .1s; }
-        .contrib-row:nth-child(3) { animation-delay: .15s; }
-        .contrib-row:nth-child(4) { animation-delay: .2s; }
-        .contrib-row:nth-child(5) { animation-delay: .25s; }
-        .contrib-row:nth-child(6) { animation-delay: .3s; }
         .contrib-row:last-child { border-bottom: none; }
         .contrib-label {
             flex: 0 0 150px;
@@ -5005,7 +4958,6 @@ def _css() -> str:
             border-radius: 50%;
             margin-right: 6px;
             vertical-align: middle;
-            box-shadow: 0 0 6px currentColor;
         }
         .contrib-cat-name {
             font-family: var(--font-heading);
@@ -5013,7 +4965,7 @@ def _css() -> str:
             font-weight: 600;
         }
         .contrib-cat-weight {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 10px;
             color: var(--text-muted);
             margin-left: 16px;
@@ -5038,7 +4990,7 @@ def _css() -> str:
             min-width: 2px;
         }
         .contrib-bar-inner-label {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             font-weight: 700;
             color: #fff;
@@ -5049,7 +5001,7 @@ def _css() -> str:
             left: calc(2px);
             top: 50%;
             transform: translateY(-50%);
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             font-weight: 700;
             color: var(--text-secondary);
@@ -5072,11 +5024,11 @@ def _css() -> str:
             flex-wrap: wrap;
         }
         .contrib-score-val {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-variant-numeric: tabular-nums;
         }
         .contrib-math {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-variant-numeric: tabular-nums;
         }
         .contrib-qual {
@@ -5095,7 +5047,7 @@ def _css() -> str:
         .contrib-pts {
             flex: 0 0 60px;
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 18px;
             font-weight: 700;
             font-variant-numeric: tabular-nums;
@@ -5121,11 +5073,11 @@ def _css() -> str:
         .contrib-total-fill {
             height: 100%;
             border-radius: 4px;
-            background: linear-gradient(90deg, var(--accent), var(--green), var(--amber), var(--red));
-            transition: width .6s ease;
+            background: var(--accent);
+            transition: width var(--t-base) ease-out;
         }
         .contrib-total-label {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 14px;
             color: var(--text-secondary);
             text-align: right;
@@ -5183,7 +5135,7 @@ def _css() -> str:
             margin: 0;
         }
         .cat-detail-header .cat-score-badge {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             background: var(--bg-elevated);
             padding: 4px 12px;
             border-radius: 12px;
@@ -5193,7 +5145,7 @@ def _css() -> str:
             border: 1px solid var(--border);
         }
         .cat-detail-header .cat-weight-badge {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--text-muted);
             margin-left: 8px;
@@ -5223,7 +5175,7 @@ def _css() -> str:
            read off the raw value. */
         .metric-dir {
             font-size: 10px;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             letter-spacing: .3px;
             padding: 1px 5px;
             border-radius: 8px;
@@ -5232,7 +5184,7 @@ def _css() -> str:
             background: var(--bg-elevated);
             border: 1px solid var(--border);
         }
-        .metric-dir-lower  { color: #d29922; }
+        .metric-dir-lower  { color: var(--amber); }
         .metric-dir-higher { color: var(--text-muted); }
         .pctile-convention-note {
             font-size: 11px;
@@ -5243,7 +5195,7 @@ def _css() -> str:
         .metric-raw {
             flex: 0 0 100px;
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-variant-numeric: tabular-nums;
             font-size: 12px;
             color: var(--text-primary);
@@ -5270,7 +5222,7 @@ def _css() -> str:
         .metric-pct-label {
             flex: 0 0 50px;
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-weight: 600;
             font-size: 11px;
             color: var(--text-secondary);
@@ -5278,7 +5230,7 @@ def _css() -> str:
         .metric-weight {
             flex: 0 0 50px;
             text-align: right;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--text-muted);
         }
@@ -5317,7 +5269,7 @@ def _css() -> str:
         .defensibility-summary .def-badge {
             display: inline-flex; align-items: center; gap: 4px;
             padding: 4px 12px; border-radius: 12px; font-size: 11px;
-            font-family: var(--font-mono); font-weight: 500;
+            font-family: var(--font-body); font-weight: 500;
             background: var(--bg-elevated); border: 1px solid var(--border);
         }
         .defensibility-section .section-body { padding-top: 20px; }
@@ -5339,7 +5291,7 @@ def _css() -> str:
             letter-spacing: .5px; margin-bottom: 4px;
         }
         .dq-kpi-card .kpi-value {
-            font-size: 24px; font-weight: 700; font-family: var(--font-mono);
+            font-size: 24px; font-weight: 700; font-family: var(--font-body);
             margin: 6px 0;
         }
         .dq-kpi-card .kpi-sub {
@@ -5354,12 +5306,12 @@ def _css() -> str:
             font-family: var(--font-heading);
         }
         .sens-table td {
-            padding: 10px 10px; font-family: var(--font-mono);
+            padding: 10px 10px; font-family: var(--font-body);
             border-bottom: 1px solid var(--border); vertical-align: middle;
         }
-        .sens-cell-high { background: rgba(63,185,80,.12); color: #3fb950; border-radius: 4px; padding: 4px 10px; }
-        .sens-cell-med  { background: rgba(210,153,34,.12); color: #d29922; border-radius: 4px; padding: 4px 10px; }
-        .sens-cell-low  { background: rgba(248,81,73,.12); color: #f85149; border-radius: 4px; padding: 4px 10px; }
+        .sens-cell-high { background: var(--green-dim); color: var(--green); border-radius: 4px; padding: 4px 10px; }
+        .sens-cell-med  { background: var(--amber-dim); color: var(--amber); border-radius: 4px; padding: 4px 10px; }
+        .sens-cell-low  { background: var(--red-dim); color: var(--red); border-radius: 4px; padding: 4px 10px; }
         .sens-bar-track {
             height: 10px; background: var(--bg-card); border-radius: 5px;
             overflow: hidden; margin-bottom: 6px; border: 1px solid var(--border);
@@ -5377,7 +5329,7 @@ def _css() -> str:
         }
         .corr-cell {
             aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-mono); font-size: 11px;
+            font-family: var(--font-body); font-size: 11px;
             border-radius: 5px; cursor: default; color: var(--text-primary);
             min-width: 0; min-height: 36px;
         }
@@ -5411,11 +5363,11 @@ def _css() -> str:
         .provenance-badge {
             display: inline-flex; align-items: center; gap: 4px;
             padding: 3px 10px; border-radius: 12px; font-size: 11px;
-            font-family: var(--font-mono); font-weight: 500;
+            font-family: var(--font-body); font-weight: 500;
         }
-        .provenance-ok    { background: rgba(63,185,80,.12); color: #3fb950; }
-        .provenance-warn  { background: rgba(210,153,34,.12); color: #d29922; }
-        .provenance-alert { background: rgba(248,81,73,.12); color: #f85149; }
+        .provenance-ok    { background: var(--green-dim); color: var(--green); }
+        .provenance-warn  { background: var(--amber-dim); color: var(--amber); }
+        .provenance-alert { background: var(--red-dim); color: var(--red); }
 
         /* ---- COMPANY SNAPSHOT (grouped) ---- */
         .snapshot-section {
@@ -5479,19 +5431,19 @@ def _css() -> str:
             margin-bottom: 2px;
         }
         .snapshot-value {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 14px;
             font-weight: 600;
             color: var(--text-primary);
         }
         .snapshot-sub {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--text-muted);
             margin-top: 1px;
         }
-        .snap-up { color: #3fb950; }
-        .snap-down { color: #f85149; }
+        .snap-up { color: var(--green); }
+        .snap-down { color: var(--red); }
 
         /* ---- SECTOR PEER COMPARISON ---- */
         .peer-section {
@@ -5540,7 +5492,7 @@ def _css() -> str:
         .peer-th-ticker { text-align: left !important; }
         .peer-table tbody td {
             padding: 8px 10px;
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             border-bottom: 1px solid var(--border);
             vertical-align: middle;
         }
@@ -5641,7 +5593,7 @@ def _css() -> str:
             text-overflow: ellipsis;
         }
         .peer-search-score {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 11px;
             color: var(--text-secondary);
             min-width: 24px;
@@ -5687,8 +5639,8 @@ def _css() -> str:
             transition: color .15s, background .15s;
         }
         .peer-remove-btn:hover {
-            color: #f85149;
-            background: rgba(248,81,73,.1);
+            color: var(--red);
+            background: var(--red-dim);
         }
 
         /* ---- FLAGS & WARNINGS ---- */
@@ -5720,34 +5672,34 @@ def _css() -> str:
         }
         .flag-icon { font-size: 13px; }
         .flag-sev {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-weight: 700;
             margin-left: 2px;
         }
         .flag-detail {
-            font-family: var(--font-mono);
+            font-family: var(--font-body);
             font-size: 10px;
             opacity: 0.8;
         }
         .flag-severe {
-            background: rgba(248,81,73,.15);
-            color: #f85149;
-            border: 1px solid rgba(248,81,73,.3);
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(208,59,59,.35);
         }
         .flag-warn {
-            background: rgba(210,153,34,.12);
-            color: #d29922;
-            border: 1px solid rgba(210,153,34,.25);
+            background: var(--amber-dim);
+            color: var(--amber);
+            border: 1px solid rgba(250,178,25,.3);
         }
         .flag-mild {
-            background: rgba(88,166,255,.1);
-            color: #58a6ff;
-            border: 1px solid rgba(88,166,255,.2);
+            background: var(--accent-glow);
+            color: var(--accent-text);
+            border: 1px solid rgba(57,135,229,.3);
         }
         .flag-info {
-            background: rgba(125,133,144,.1);
-            color: #7d8590;
-            border: 1px solid rgba(125,133,144,.2);
+            background: rgba(137,135,129,.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(137,135,129,.2);
         }
 
         @media print {
