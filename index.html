@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=fd41b6449f09"></script>
+    <script src="./dashboard_data.js?v=042f3408003f"></script>
     <style>
 
         /* ====================================================================
@@ -2939,7 +2939,7 @@
 <li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
 </ol>
 <p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
-<p>The raw composite is then converted to a cross-sectional percentile rank (0-100), so a score of 95 means "better than 95% of stocks in the universe."</p>
+<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 45 weighted metrics less the ones its type does not use, so 35 for a bank-like stock and 41 for every other. It is <strong>not</strong> the "Metrics: n/18" figure on the drilldown's provenance badge, which counts a fixed 18-metric list and therefore reads low for banks whose applicable set is complete. Measured on the 2026-10-07 payload: 62 stocks show under 80% on that badge and 3 actually received a discount. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
 <h3>Step 6: Apply Trap Filters &amp; Rank</h3>
 <p>After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.</p>
 <hr />

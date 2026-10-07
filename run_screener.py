@@ -254,12 +254,25 @@ def build_screener_overview(cfg: dict) -> str:
     # same document's Limitation 8 already contradicted.
     _cov_thr = int(cov_disc.get("threshold", 0.80) * 100)
     _cov_rate = int(cov_disc.get("penalty_rate", 0.15) * 100)
+    # Counted from the engine's own lists so the page cannot drift from them.
+    from factor_engine import (METRIC_COLS, _BANK_ONLY_METRICS,
+                               _NONBANK_ONLY_METRICS)
     cov_step = (
         f" One adjustment is applied after that weighted average: a stock below "
         f"{_cov_thr}% metric coverage has its composite multiplied by "
         f"`1 - (({_cov_thr}% - coverage) x {_cov_rate}%)` - the coverage discount "
         f"described under Data Quality Safeguards below - so for those stocks the "
-        f"composite sits slightly below the sum of the category contributions."
+        f"composite sits slightly below the sum of the category contributions. "
+        f"**\"Coverage\" here means the share of the metrics that apply to that "
+        f"stock** - all {len(METRIC_COLS)} weighted metrics less the ones its type "
+        f"does not use, so {len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])} "
+        f"for a bank-like stock and "
+        f"{len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])} for every "
+        f"other. It is **not** the \"Metrics: n/18\" figure on the drilldown's "
+        f"provenance badge, which counts a fixed 18-metric list and therefore reads "
+        f"low for banks whose applicable set is complete. Measured on the 2026-10-07 "
+        f"payload: 62 stocks show under {_cov_thr}% on that badge and 3 actually "
+        f"received a discount."
         if cov_disc.get("enabled", False) else ""
     )
 
