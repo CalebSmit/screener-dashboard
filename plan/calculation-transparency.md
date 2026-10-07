@@ -149,6 +149,31 @@ with nothing committed.
 
 ### T0a - Fix the false sentences and build the claims register  *(defect; first)*
 
+> **DONE 2026-10-07.** `claims.py`, `tests/test_claims_register.py` (24 tests),
+> `scripts/diff_payload.py` (brought forward from T0b - every later stage needs
+> it). Four corrections from this stage that the rest of the plan should carry:
+>
+> 1. **There were six sites, not four** - also `FORENSIC_AUDIT_REPORT.md` and
+>    `tests/test_stock_summary.py`, which *asserted* the false claim. Expect the
+>    same when fixing defects 1 and 2: grep the tests, not just the prose.
+> 2. **Defect 2 is 3 stocks, not 2** (FDXF -0.90, PSKY -0.24, L -0.23) and
+>    defect 1 re-measures to **333 of 4,010 pairs across 275 of 502 stocks**,
+>    not 334/4,012/276. Re-run the scripts; the numbers move with each data run.
+> 3. **A fourth defect, now T0b's:** the drilldown's "rests on N of 18 metrics"
+>    and its provenance badge's 60/80% colours use `factor_engine`'s hard-coded
+>    `_metric_keys` list, **not** the applicable-metric coverage the composite's
+>    coverage discount reads (`METRIC_COLS` less the stock type's exclusions -
+>    35 for a bank-like stock, 41 otherwise). 62 stocks read under 80% on that
+>    badge; 3 were discounted. T0b must emit applicable coverage from the engine,
+>    which is also what the composite line needs for defect 2.
+> 4. **The rank sentence does not claim `composite == sum of contributions`**,
+>    on purpose - the payload cannot yet show that chain honestly. When T0b adds
+>    applicable coverage, revisit `claims.claim("summary.rank").caveat` and
+>    `summary.drivers`'s caveat; both name T0b and a test enforces that.
+>
+> Verified: 181,446 payload leaves, 502 changed (all `summary[0].t`), 0 added,
+> 0 removed; +309 bytes gzipped; suite 1716 passed (baseline 1692).
+
 Defect 3, and the general fix for its cause. Small, text-level, no scoring change.
 
 - **Fix the four places** that call the composite a percentile: replace

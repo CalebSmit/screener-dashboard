@@ -2614,3 +2614,151 @@ not visible yet, under a panel that ships collapsed when empty.
 **Rollback:** `good/2026-09-29`. Reverting removes the surface and the three
 captured fields; nothing downstream reads them, so no score is affected either
 way.
+
+## 2026-10-07 - The site stops calling the cardinal composite a percentile, and a claims register makes an unchecked claim fail the build
+
+**Area:** description and documentation - **not scoring.** No weight, metric,
+threshold, percentile rule or score changed. Verified by walking the whole
+payload: of 181,446 leaves, **180,944 unchanged, 502 changed, 0 added, 0
+removed**, and all 502 changes are `stock_detail.*.summary[0].t` - the one
+sentence this entry is about. Every score, rank, raw value, percentile and
+other sentence is byte-identical (`scripts/diff_payload.py`, written today).
+
+**Changed:** the first sentence of every stock drilldown, Step 5 of the
+generated methodology page, `README.md`, `plan/investor-profiles.md`,
+`FORENSIC_AUDIT_REPORT.md`, and one test that was pinning the error. Plus
+`claims.py` and `tests/test_claims_register.py`.
+
+### What was false
+
+`stock_summary._sentence_rank` told every reader:
+
+> Ranks 1st of 502. Its composite of 73.8 is a percentile: it scores above 74%
+> of the universe.
+
+For the stock ranked **first of 502**, which is ahead of all of it. `Composite`
+has been the **cardinal** weighted average of the category scores since Phase 13
+(F1) - `compute_composite` keeps magnitude as the ranking key precisely so that
+conviction reaches portfolio construction - and the percentile is the separate
+`Composite_Pct` column.
+
+**Evidence - the documented failure, re-measured on the live payload today**
+(`research/measurements/2026-10-06-rank-sentence-claim.py`; re-run it, do not
+trust this line):
+
+| Measure | Value |
+|---|---|
+| Stocks whose printed share was wrong at all | **493 of 502** |
+| Median error | **19.6 percentage points** |
+| Wrong by more than 10 points | **74.9%** of stocks |
+| Worst | **31.2 points** (BMY, NTAP, CRL) |
+| Rank 1 (EXPE) | claimed "above 74%", is ahead of 100% |
+| Rank 494 (BA) | claimed "above 31%", is ahead of 2% |
+
+This is the same class as the 2026-08-28 weight-transparency bug: the score was
+right, the explanation printed beside it was false.
+
+### Why it survived, which is the part worth fixing
+
+`tests/test_stock_summary.py::test_composite_is_described_as_a_universe_percentile`
+**asserted the false claim**, and cited `SCREENER_OVERVIEW.md` as its authority -
+while that same page's Limitation 8 said the opposite ("Do not read the cardinal
+Composite as a percentile"). The page contradicted itself, a test pinned the
+wrong half, and correcting the sentence would have read as a regression.
+
+`scripts/check_published_claims.py` could not see it either: it checks specific
+claims someone thought to write down, not "every sentence that says how a number
+is computed". Nothing enumerated the *set* of claims, so an unchecked one was
+invisible.
+
+### What changed
+
+**The sentence**, now true for all 502 stocks:
+
+> Ranks 1st of 502 - ahead of 100% of the other 501 stocks. Its composite of
+> 73.8 is a 0-100 score computed from its 8 category scores and their weights,
+> not a percentile.
+
+The share is `(N - rank) / (N - 1)` - exact arithmetic on two numbers printed in
+the same sentence. The category count is the stock's own: measured today, 500
+stocks have eight scored categories, one has six and one has five, so a
+hard-coded "eight" would have been a **new** false claim for two of them.
+
+It deliberately says the composite is *computed from* the category scores rather
+than *equals* their weighted average, because a coverage discount is applied
+afterwards (3 of 502 today: FDXF -0.90, PSKY -0.24, L -0.23) and the payload does
+not carry the coverage figure that discount reads. Principle 5 of
+`plan/calculation-transparency.md`: say what cannot be shown rather than print an
+equation that does not reproduce. Stage T0b adds that step where the numbers for
+it will exist.
+
+**Step 5 of the generated methodology page** now states the cardinal composite,
+adds the coverage discount with its threshold and rate read from `config.yaml`,
+and names the denominator the discount uses. Edited in
+`run_screener.build_screener_overview` and regenerated (rule 10).
+
+**Six sites, not the four the plan listed.** The two extra were
+`FORENSIC_AUDIT_REPORT.md`, whose own correction note had gone stale, and the
+test above. `plan/investor-profiles.md` was the most dangerous: it instructed a
+future session to add a client-side `rank(pct=True)*100` step "or the Balanced
+profile would not reproduce the server's own published numbers" - exactly
+backwards.
+
+### A fourth defect, found today, recorded and not yet fixed
+
+The drilldown says "The score rests on N of 18 metrics" and colours its
+provenance badge at 60%/80% - the coverage discount's thresholds. But the 18 is
+`factor_engine`'s hard-coded `_metric_keys` list, while the discount measures
+coverage over the metrics **applicable to that stock**: `METRIC_COLS` (45) less
+the ones its type does not use, so **35** for a bank-like stock and **41**
+otherwise. A bank reads 12/18 = 67% and is not discounted at all. Measured on
+today's payload: **62 stocks read under 80% on that badge; 3 were discounted.**
+
+Adding the coverage rule to Step 5 without saying this would have invited the
+wrong inference, so Step 5 now distinguishes the two figures explicitly. The
+badge itself needs the engine to emit applicable coverage - **T0b**.
+`tests/test_claims_register.py::test_confidence_metric_count_is_not_the_discount_coverage`
+pins the mismatch so it cannot be quietly tidied away in either direction.
+
+### The claims register
+
+`claims.py` lists every sentence-template that states how a number is computed -
+13 summary builders and 4 methodology-page claims - each with what it asserts,
+the code that makes it true, and the test that checks it; plus `FORBIDDEN`, the
+four false statements that were live until today, checked against every
+published artifact. `tests/test_claims_register.py` (24 tests) makes a new
+`_sentence_*` function fail the suite until it is registered, requires every
+`checked_by` to name a test that exists, and requires every `detect` pattern to
+still match its surface.
+
+It earned its keep immediately: **11 of its 26 `checked_by` references were
+plausible-sounding test names that did not exist.**
+
+**Evidence that the tripwires can actually fire** - run as a negative control
+before committing, and the four shipped false sentences are now parametrised
+tests so the guard cannot decay into a no-op: each check rejects the input it
+must (the pre-fix payload, all four false sentences, an unregistered builder, an
+invented test name, a stale pattern) and none false-positives on the corrected
+text. CLAUDE.md rule 8's own lesson - a tripwire wired to something that cannot
+move is decoration.
+
+**Expected effect:** none on any score, rank or ordering - by construction, and
+verified by the payload walk above. The effect is on whether a reader can trust
+what the page says about its own arithmetic. Payload cost **+309 bytes gzipped**
+(1,278,576 -> 1,278,885; raw +37.6 KB, but the sentence is repetitive so gzip
+barely moves), against a budget of +150 KB.
+
+**Validated by:** full suite **1716 passed, 0 failed** (baseline 1692, +24);
+`scripts/check_published_claims.py` PASS; `node --check` on the regenerated
+payload; the payload diff above; and the page opened at 1440px and 375px for
+EXPE (rank 1), JPM (bank) and FDXF (thin coverage) - the corrected sentence
+renders as the lead in all three. At 375px it wraps to seven lines, which is a
+real cost of saying it accurately and is the drilldown-hierarchy problem design
+stage D3 exists to solve.
+
+**Applied by:** morning session (manual), stage T0a of
+`plan/calculation-transparency.md`.
+
+**Rollback:** `good/2026-10-06`. Reverting restores a false sentence on 502
+drilldowns and a self-contradicting methodology page; there is no scoring
+consequence either way.

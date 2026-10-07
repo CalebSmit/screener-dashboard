@@ -576,3 +576,60 @@ reads them.
 7. **Investment-club readiness** - can a student open this on a phone and
    understand what they're looking at?
 8. **Test isolation** - remove the need for the `conftest.py` guard.
+
+---
+
+## 0.8a. A claim with no registered check fails the build (settled 2026-10-07)
+
+**The constraint:** every sentence on the site that states *how a number is
+computed* has an entry in `claims.py` naming what it asserts, the code that makes
+it true, and the test that checks it. Adding a `_sentence_*` function to
+`stock_summary.py` fails the suite until it is registered.
+`tests/test_claims_register.py` (24 tests), and in `scripts/check_published_claims.py`
+so the 02:00 data loop cannot republish a false claim.
+
+**Why, and read this before you weaken it.** On 2026-10-06 the first sentence of
+all 502 drilldowns read *"Its composite of 73.7 is a percentile: it scores above
+74% of the universe"* - for the stock ranked **1st of 502**. `Composite` has been
+the cardinal weighted average since Phase 13 (F1) and `Composite_Pct` is the
+percentile. Measured: wrong for **493 of 502** stocks, median error **19.6
+percentage points**, more than 10 points for **74.9%**, worst **31.2**.
+
+It had been live for months, and the mechanism is the part that matters:
+
+1. **A test asserted it.** `test_composite_is_described_as_a_universe_percentile`
+   pinned the false sentence and cited `SCREENER_OVERVIEW.md` as its authority -
+   while the *same page's* Limitation 8 said the opposite. The page contradicted
+   itself and the test pinned the wrong half, so correcting the sentence would
+   have read as a regression.
+2. **Nothing enumerated the set of claims.** `check_published_claims.py` checks
+   specific claims someone thought to write down. An *unchecked* claim was
+   therefore invisible - there was no list it could be missing from.
+
+The register exists for (2), and `FORBIDDEN` for (1): the four false statements
+are pinned as parametrised tests, so the guard cannot decay into a no-op while the
+suite stays green.
+
+**Evidence it is not decoration.** The register caught **11 of its own 26
+`checked_by` references** as test names that did not exist, the first time it ran.
+A negative control before shipping confirmed every tripwire fires on input it must
+reject - the pre-fix payload, all four shipped false sentences, an unregistered
+builder, an invented test name, a stale `detect` pattern - and none false-positives
+on the corrected text. That control is the lesson of rule 8's `1m`-horizon
+tripwire: a check wired to something that cannot move is decoration.
+
+**Two generalisations worth keeping:**
+
+- **When you correct a published claim, grep the tests, not just the prose.** The
+  plan for this work named four sites; there were six. The two it missed were a
+  stale correction note in `FORENSIC_AUDIT_REPORT.md` and the test above.
+- **Say what cannot be shown rather than print an equation that does not
+  reproduce.** The corrected sentence says the composite is *computed from* the
+  category scores and weights, not that it *equals* their weighted average,
+  because the coverage discount reduces it for 3 of 502 stocks and the payload
+  does not carry the coverage figure that discount reads. The caveat is recorded
+  on the claim and a test requires it to name the stage that closes it (T0b).
+
+**Do not** re-implement any of this in the generator or in JS. Principle 1 of
+`plan/calculation-transparency.md`: the page shows the engine's numbers, never its
+own re-derivation. A second copy is how the metric-weight defect happened.

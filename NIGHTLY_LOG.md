@@ -8137,3 +8137,196 @@ None. Nothing here alters a score, weight, rank or metric.
    after each stage.
 
 ---
+
+## 2026-10-07 - SYNTHESIS, spent on the owner queue: T0a of calculation transparency. The composite is not a percentile, in all six places it said it was, and a claims register so an unchecked claim fails the build
+
+**Health (rule 8, all five):** last code session ran? **No - 2026-10-06 was cut
+off by a 429 at 06:18 and its gate 4 failed on the dirty tree it left; recovered
+the same evening by an owner-run session, and the tree was clean and green at
+1692 this morning.** | data loop published? **yes** -
+`logs/datarun-2026-10-07_020001.log` ends "Data loop complete", HEALTH: PASS, 502
+scored, top EXPE HST BBY DLTR BMY | evidence base at `1m` = **24 rows, newest
+2026-09-07 (30 days ago, bound 40), 4 effective** - dead centre of the 30-33 day
+steady state | priority 0 **fixed 2026-08-24, not touched** (`allow_auto_apply`
+still false, 4 effective against a gate of 8) | top open roadmap item:
+**0.8, calculation transparency - 1 day old**, and it was today's work. Below it
+priority 3 (backtest v2) is **43 days** and was not taken: an owner item outranks
+the rotation and the roadmap both.
+
+**Tests:** before **1692/1692**, after **1716/1716** (+24, no failures)
+**Owner queue / rotation:** took the top `OWNER_FOCUS.md` item (2026-10-06,
+calculation transparency), stage **T0a**, which `plan/calculation-transparency.md`
+names as next. Wednesday's nominal synthesis focus was **not** worked separately -
+the owner item outranks it, and T0a's output is a `METHODOLOGY_CHANGELOG.md`
+entry anyway, which is what synthesis day is meant to produce. Nothing deferred
+for a broken loop; both loops healthy.
+
+### Did
+
+**Fixed defect 3 - the false composite sentence - everywhere, and built the
+machinery that stops its class of defect returning.** Stage T0a, committed in
+two parts.
+
+**Re-measured before fixing, as the prompt requires. Two of the plan's numbers
+had moved:**
+
+| Defect | Plan said (2026-10-06) | Measured today | Note |
+|---|---|---|---|
+| 1, metric weights | 334 of 4,012 pairs, 276 stocks | **333 of 4,010, 275 stocks** | T0b |
+| 2, composite line | **2** stocks (FDXF, L) | **3** - PSKY joined | T0b |
+| 3, rank sentence | median 19.6pt, 75.1% >10pt | **identical** | fixed today |
+
+**The sentence.** `_sentence_rank` said *"Its composite of 73.8 is a percentile:
+it scores above 74% of the universe"* - for the stock ranked **1st of 502**. It
+now says *"Ranks 1st of 502 - ahead of 100% of the other 501 stocks. Its
+composite of 73.8 is a 0-100 score computed from its 8 category scores and their
+weights, not a percentile."* The share is `(N - rank) / (N - 1)`: exact
+arithmetic on two numbers printed in the same sentence, verified for all 502.
+
+Two details that stopped the fix introducing new falsehoods:
+
+- **The category count is the stock's own, not "eight".** Measured today: 500
+  stocks have eight scored categories, **one has six and one has five** (PSKY,
+  FDXF). A hard-coded "eight" would have been a new false claim for two stocks -
+  the exact mistake being fixed, one layer down.
+- **It does not claim `composite == sum of contributions`.** The coverage
+  discount reduces the composite for 3 of 502 and the payload does not carry the
+  coverage figure that discount reads, so the chain cannot be shown honestly yet.
+  Principle 5: say what cannot be shown rather than print an equation that does
+  not reproduce. Recorded as a caveat on the claim; T0b closes it.
+
+**Six sites, not the four the plan named.** The two extra are the interesting
+ones:
+
+- `FORENSIC_AUDIT_REPORT.md` carried a *correction note* that had itself gone
+  stale - it "corrected" min-max scaling to a percentile transform, in the
+  present tense, and neither describes `Composite`.
+- **`tests/test_stock_summary.py` asserted the false claim**, citing
+  `SCREENER_OVERVIEW.md` as its authority - while that same page's Limitation 8
+  said the opposite. That is *why* it survived: the page contradicted itself, the
+  test pinned the wrong half, and correcting the sentence would have read as a
+  regression.
+
+`plan/investor-profiles.md` was the most dangerous of the four: it told a future
+session to add a client-side `rank(pct=True)*100` step *"or the Balanced profile
+would not reproduce the server's own published numbers"* - exactly backwards.
+Priority 6 would have acted on it.
+
+**The claims register (`claims.py`).** Every sentence that states how a number is
+computed - 13 summary builders, 4 methodology-page claims - with what it asserts,
+the code that makes it true, and the test that checks it, plus `FORBIDDEN`, the
+four false statements, checked against every published artifact.
+`tests/test_claims_register.py` (24 tests) makes a new `_sentence_*` fail the
+suite until registered, requires every `checked_by` to name a real test and every
+`detect` pattern to still match. Added to `scripts/check_published_claims.py`, so
+the 02:00 loop cannot republish a false claim.
+
+**It earned its keep immediately: 11 of its own 26 `checked_by` references were
+plausible-sounding test names that did not exist.** I had written them from
+memory. A register pointing at imaginary tests reads as coverage and is worse
+than none.
+
+**Negative control, because rule 8's own lesson is that a tripwire wired to
+something that cannot move is decoration.** Every check was run against input it
+must reject: the pre-fix payload (fires), all four shipped false sentences
+(fire), an unregistered builder (fires), an invented test name (fires), a stale
+`detect` pattern (fires) - and none false-positive on the corrected text. The
+pre-fix rank shares were wrong for **493 of 502** stocks. The four sentences are
+now parametrised tests, so the guard cannot decay into a no-op while green.
+
+**`scripts/diff_payload.py`**, which the plan assigns to T0b, built today because
+T0a changes a sentence baked into all 502 `stock_detail` entries and walking both
+payloads is the only honest way to show nothing else moved. Every later stage
+needs it.
+
+### Evidence / research
+
+- **The documented failure, re-measured on the live payload today**
+  (`research/measurements/2026-10-06-rank-sentence-claim.py`): the claimed share
+  was wrong for **493 of 502** stocks, median **19.6 percentage points**, more
+  than 10 points for **74.9%**, worst **31.2** (BMY, NTAP, CRL). EXPE at rank 1
+  claimed "above 74%"; BA at rank 494 claimed "above 31%" and is ahead of 2%.
+- **The code that makes the correction true:** `compute_composite`
+  (`factor_engine.py:2927-2952`) - Phase 13 (F1) deliberately stopped overwriting
+  the cardinal composite with its own percentile, because that mapped "#1 by 20
+  points" and "#1 by 0.1 points" both to 100.0 and conviction never reached
+  portfolio construction. `Composite_Pct` is the percentile.
+- **The page already contained the correct statement**, in Limitation 8, which
+  is what made this a contradiction rather than merely an error.
+- No backtest number and no IC figure was used or needed (rules 4 and 5). This is
+  a description fix with a measured user-facing failure behind it.
+
+### Verification
+
+- **Payload diff against what the live site was serving:** 181,446 leaves -
+  **180,944 unchanged, 502 changed, 0 added, 0 removed**, and all 502 are
+  `stock_detail.*.summary[0].t`. Every score, rank, raw value, percentile and
+  other sentence byte-identical.
+- **Payload cost: +309 bytes gzipped** (1,278,576 -> 1,278,885), against the
+  plan's +150 KB budget. Raw grew 37.6 KB; the sentence is repetitive so gzip
+  barely moves.
+- **Looked at the page** at 1440px and 375px, for EXPE (rank 1 - the worst case),
+  JPM (bank) and FDXF (thin coverage, five categories). The corrected sentence is
+  the bolded lead in all three and FDXF correctly says "its 5 category scores".
+  **At 375px it wraps to seven lines** - a real cost of saying it accurately, and
+  a good argument for design stage D3's "give the summary a headline and a
+  hierarchy". Page metrics unchanged: 9,930 DOM nodes, 622 transitioned elements.
+  `scripts/shot_drilldown.py` added, because the existing harness only shoots the
+  top-ranked name and the plan's verification asks for named ones.
+- Dashboard and `SCREENER_OVERVIEW.md` regenerated (rule 10), so the fix is live
+  now rather than waiting on the 02:00 run; `node --check` passes.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md`, 2026-10-07 - **description change, explicitly not a
+  scoring change**, with the payload walk as the proof that nothing scored moved.
+- `DECISIONS.md` 0.8a - the constraint and why, for the next session that is
+  tempted to delete a register entry to get green.
+
+### Found and recorded, not fixed - a fourth defect
+
+**The drilldown's "The score rests on N of 18 metrics", and the provenance
+badge's 60%/80% colour thresholds, use the wrong denominator.** The 18 is
+`factor_engine`'s hard-coded `_metric_keys` list; the coverage discount those
+thresholds come from measures coverage over the metrics **applicable to that
+stock** - `METRIC_COLS` (45) less its type's exclusions, so **35** for a
+bank-like stock and **41** otherwise. JPM reads 12/18 = 67%, is coloured as a
+warning, and receives no discount at all. Measured today: **62 stocks read under
+80% on that badge; 3 were actually discounted.**
+
+This surfaced *because* I was adding the coverage discount to Step 5 - the new
+sentence would have invited exactly the wrong inference. So Step 5 now names
+which figure the discount reads and distinguishes it from the badge, which is the
+only part T0a could honestly fix; the badge needs the engine to emit applicable
+coverage, which is **T0b's** work and is the same number defect 2's composite
+line needs. Pinned by
+`test_confidence_metric_count_is_not_the_discount_coverage` so it cannot be
+tidied away in either direction without being dealt with.
+
+### Tried and rejected
+
+- **Writing "its eight category scores" into the rank sentence.** Rejected on a
+  measurement, not a hunch: two stocks have fewer than eight scored categories.
+- **Claiming the composite equals the weighted average of the category scores.**
+  Rejected for 3 of 502 stocks (coverage discount), and the payload cannot
+  currently show the discount step - so the sentence describes the construction
+  without asserting an equality that does not hold. Deferred to T0b rather than
+  approximated.
+- **Requiring a register entry for every claim-shaped sentence on the
+  methodology page.** "percentile", "weighted", "median" and friends appear in
+  hundreds of sentences across 55 KB; that register would not be maintained.
+  Scoped instead to the surfaces that state the arithmetic of a published
+  number, with `FORBIDDEN` applying everywhere as the complement.
+
+### Next
+
+**T0b** - the single most valuable thing, and now carrying four items rather than
+three: refactor `compute_category_scores` so per-stock effective metric-weight
+resolution is **one** function used by both scoring and export (scores must come
+out bit-identical); carry the weights into the payload; add the coverage-discount
+step to the composite line; **and emit applicable-metric coverage from the
+engine**, which fixes the fourth defect above and is the same number the
+composite line needs. `tests/test_calculation_reproducibility.py` must fail
+against today's tree for **333 of 4,010 pairs and 3 of 502 composites** - re-run
+`research/measurements/2026-10-06-calculation-reproducibility.py` first, those
+counts move with each data run. `scripts/diff_payload.py` already exists.
