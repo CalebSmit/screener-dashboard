@@ -2762,3 +2762,82 @@ stage D3 exists to solve.
 **Rollback:** `good/2026-10-06`. Reverting restores a false sentence on 502
 drilldowns and a self-contradicting methodology page; there is no scoring
 consequence either way.
+
+
+## 2026-10-07 (owner-run) - The drilldown shows the weights that were used and the numbers behind every metric, and the data run refuses to publish arithmetic that does not add up
+
+**Area:** display and explanation. **No score, rank, weight, percentile or metric
+changed.** Verified, not asserted: the committed engine and the new one were run
+side by side on the latest run's percentile table (all 502 rows) and
+`compute_category_scores` (all ten score columns), `Composite`, `Composite_Pct` and
+`Composite_Confidence` came out **bit-identical** - rerun it with
+`python research/measurements/2026-10-07-scoring-refactor-identity.py`.
+
+**Changed:**
+- `factor_engine.metric_weight_profiles()` is now the single place metric weights are
+  resolved (generic / bank / Piotroski-conditional low-valuation / Piotroski growth-trap).
+  `compute_category_scores` scores from its tables and records which table each stock
+  used (`_wp_<category>`); the dashboard publishes the same tables
+  (`weights.profiles`) and each stock's choice (`wp`). `applicable_coverage()` is the
+  single source of the coverage figure the composite discount reads; it is recorded
+  (`_cov_*`) and published as `cov`. The "N of 18 metrics" badge and sentence now read
+  that same figure (35 for a bank-like stock, 41 otherwise).
+- The engine now also records, additively, the figures behind the scores for display:
+  the nine Piotroski signals (`_pio_signals`), the eight Beneish indices
+  (`_beneish_idx`), and the EV, EBITDA and free cash flow the scorer actually used
+  (`_ev_used`, `_ebitda_used`, `_fcf_used`, `_ebitda_nd_used`). `SECTOR_MIN_PEERS` names the
+  "fewer than 10 sector values -> rank against the universe" rule the scorer already applied.
+- `metric_lineage.py` is the registry: formula, named inputs, caveat and, for 24 metrics,
+  a function that rebuilds the value from the published inputs. `calc_trace.py` recomputes
+  any stock's category scores and composite from the payload alone with no engine import.
+- `generate_dashboard.py` refuses to build a payload whose scores do not rebuild from its
+  own weights (`CalculationMismatch`); the data loop's publish gate now also runs
+  `tests/test_calculation_reproducibility.py` and `tests/test_metric_lineage.py`.
+- `run_context.config_hash` includes `scoring_schema: 2`. The scored-data cache is keyed
+  by config alone; a warm start after an engine change served a table without the new
+  columns on 2026-10-07 and the build guard (correctly) refused it.
+- Payload: `peers` is now tickers only (the browser rebuilds every other peer column from
+  `stock_detail`; the full rows were read only at build time by the summary sentence).
+  Net payload: **1,268,733 bytes gzipped against 1,278,885 before** - flat, with the new
+  per-metric inputs (+142 KB) paid for by the peer slimming (-170 KB).
+
+**Evidence (a documented failure, three of them, each reproducible):**
+1. The drilldown printed the generic metric weight for every stock; the scorer used bank,
+   Piotroski-conditional and renormalised weights - **333 of 4,010 stock-category pairs,
+   275 of 502 stocks** did not reproduce from what was on screen
+   (`research/measurements/2026-10-06-calculation-reproducibility.py`). JPM's Valuation panel
+   showed three heavily weighted metrics as N/A, labelled P/B "Inactive", and printed a score
+   nothing on screen produced.
+2. The composite line omitted the coverage discount (3 stocks: FDXF, L, PSKY).
+3. The "N of 18 metrics" count was a fixed list, not the coverage the discount reads: 62
+   stocks read under 80% on the badge while 3 were discounted.
+(The fourth, the composite called a percentile, was fixed on 2026-10-07 morning - see above.)
+
+**Expected effect:** none on any score or rank. A reader can now follow any number to its
+inputs and rebuild it.
+
+**Validated by:** after the change **4,010 of 4,010** category scores and **502 of 502**
+composites rebuild from the payload; `scripts/audit_stock.py --all` independently
+reproduces **502 of 502** stocks, including every percentile from its sector peers and
+every metric equation from its inputs; the 24 recomputable metrics rebuild at 99.5%-100%
+(lowest: ROIC 441/443, net debt/EBITDA 437/439); full suite **1,806 passed**.
+
+**Backtest observation (not decision-grade, rule 5):** none used.
+
+**Found and recorded, deliberately not changed** (each is a methodology question and rule 4
+requires research, not a patch). From the lineage audit, verified against the live payload:
+- `operating_leverage` is scored lower-is-better with no handling of negative values: **95 of
+  393** values are negative and average the **84th** sector percentile against the **37th** for
+  the rest - earnings falling faster than revenue ranks best. 8% of non-bank Quality.
+- "Year-over-year" growth (`revenue_growth`, Piotroski signals 3/8/9, the Company Snapshot's
+  YoY figures) compares the trailing-twelve-month figure with the fiscal year *before the latest
+  completed one*, so the window is roughly 12-21 months (AAPL: TTM to June 2026 against
+  FY2024). 
+- `ev_ebitda` and `net_debt_to_ebitda` use two different EBITDA definitions, neither equal to
+  the EBITDA in Company Snapshot; `return_6m` is a 6-1 month return despite its label; the
+  Sortino denominator is the deviation of shortfalls about their own mean.
+These are tracked as open item 0.9 in `CLAUDE.md` and `OWNER_FOCUS.md`; the drilldown states
+each one in plain words next to the metric.
+
+**Applied by:** owner-run interactive session (2026-10-07), at the owner's request.
+**Rollback:** tag `good/2026-10-07` (the 06:38 nightly merge, immediately before this change).

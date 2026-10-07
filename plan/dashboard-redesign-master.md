@@ -26,6 +26,33 @@ and everything that is not helping a reader decide is removed rather than restyl
   `plan/dashboard-inventory.md` in the same session (rule 9).
 - If a stage proves unnecessary, record why and move on - do not manufacture work.
 
+## Status, 2026-10-07 evening - first version of every stage is built; the deeper pass is next
+
+Built in one owner-run session, verified in a real browser at 1440 and 375px, and held by
+`tests/test_dashboard_browser.py`. **Measured against the budgets below:**
+
+| Budget | Baseline | Now | |
+|---|---|---|---|
+| DOM nodes at first paint | 9,928 | **2,779** | met |
+| Elements with a CSS transition | 662 | **99** | met (barely) |
+| Click to paint, row -> drilldown | not measured | **70 ms** | met |
+| Sort to paint | not measured | **21 ms** | met |
+| Layout shift | not measured | **0.001** | met |
+| Gzipped payload | 1,278,885 B | **1,268,733 B** | met |
+| Largest contentful paint | not measured | **not measured** | **open** |
+| Contrast, every pair in use | tokens only | tokens only | **open** |
+
+| Stage | State | What the deeper pass should do |
+|---|---|---|
+| D1 shell (surface 1) | **Done**: sticky top bar with jump links, dead Refresh button removed, quiet section headers | Check keyboard order through the bar; consider a "back to top" |
+| D2 rankings table (9) | **Done**: page scroll, sticky header, windowed rows (38 in the DOM), tinted scores, designed filters, words for flags, phone cards, `/` to search | Column resizing is not offered; consider saved sort/filter in the URL hash so a view can be shared; verify find-in-page expectations with the owner (only rendered rows are searchable by the browser, the search box covers all 502) |
+| D3 drilldown (10, 11) | **Done** for the shell and the workings: side sheet / bottom sheet, sticky identity header, jump links, grouped summary, score grid, equation view | **Rank History, Price Targets, Company Snapshot and Sector Peers were re-chromed, not redesigned.** Peers still colours cells red/green against the stock (status colour as a ramp); Rank History and Price Targets want real chart treatment; the percentile-convention note is printed once but is still long |
+| D4 Top 5, KPIs, Holdings, What Changed (2-5) | **Done** for Top 5, the stat strip, What Changed (five a side) and the Holdings rationale behind a disclosure | **Look at the Holdings panel populated** (add three names) at both widths - not re-inspected; the fit/concentration lines are still dense |
+| D5 analytics, diagnostics, charts (6-8, 12) | **Done**: sector x category matrix replaces the flat bar chart; trap rates one hue and labelled; correlation heatmap one hue with outlines; badges use a dot | One shared chart module is **not** built (two Chart.js charts remain with their own options); alt text for the charts; the sector matrix needs a phone treatment (it scrolls sideways) |
+| D6 methodology + state vocabulary (13, 14, 18) | **Partly**: methodology has a contents rail and a readable measure; empty table state designed | The "no data" vs "not applicable" vocabulary is not unified across the page (`no data`, `-`, blank all occur); a number-formatting module is not extracted; stale-run banner not built |
+| D7 mobile first-class (15) | **Largely done** for the table, drilldown, KPIs, Top 5, header | Re-check 320px and 414px; the workings table on a phone wraps the info button awkwardly; 44px target audit |
+| D8 polish, a11y, perf (16, 17) | **Not done** beyond the budgets above | Full keyboard pass, focus trap in the sheet (focus is moved and returned, not trapped), roles/labels audit, contrast on every pair in use via `scripts/check_contrast.py`, LCP measurement, and the final side-by-side against the reference products |
+
 ## What was seen on 2026-10-06 (after stage 1), surface by surface
 
 Looked at the live page at 1440px and 375px, and one bank (JPM) and one ordinary

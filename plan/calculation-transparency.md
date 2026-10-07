@@ -20,6 +20,42 @@ Credibility is the product (CLAUDE.md). A score a student cannot check is a
 claim; a score they can check is evidence. This is also the investment-club
 requirement: *teachable and explainable*.
 
+## Status, 2026-10-07 evening - built, and ready for a deeper pass
+
+The owner asked for all of it to be built in one owner-run session, with the nightly sessions then
+going deeper. **Every stage below is shipped in a first version.** What each one left for the
+nightly sessions is the work to do next, in this order.
+
+| Stage | State | Left for the deep pass |
+|---|---|---|
+| T0a false sentences + claims register | **Done** (06:00 session) | - |
+| T0b true weights, reproducibility, refuse-to-publish | **Done.** 4,010/4,010 category scores and 502/502 composites rebuild from the payload; the build refuses otherwise | Promote `research/measurements/2026-10-06-calculation-reproducibility.py` into the dated record of the *original* defect and stop re-running it as a live check (it measures the pre-fix reading by design) |
+| T1 lineage registry | **Done** (`metric_lineage.py`, 36 metrics with formula, inputs, caveat) | The 8 zero-weight candidate metrics have no entry; add them when one is activated |
+| T2 inputs + "how it was computed" | **Done** for 24 of 36 metrics (equation rebuilt for every stock, 99.5-100%); Piotroski and Beneish show their components | The 12 others say why they show no equation. **Add the missing inputs at fetch** for the analyst metrics (per-quarter EPS actual/estimate are not retained) and the shared risk-free rate / market return behind Jensen's alpha, Sharpe and Sortino; then add `sustainable_growth` to `RECOMPUTE` |
+| T3 percentile context | **Done** ("Ranked 3rd of 47 in Industrials", sector median and quartiles, universe fallback) | A small distribution strip per metric (where this stock sits between the sector's quartiles) |
+| T4 the equation view in the drilldown | **Done** except the download | **"Download this stock's workings" (client-side CSV)** - the most direct form of "don't trust us, check" |
+| T5 independent checker + gate | **Done** (`scripts/audit_stock.py`, two new modules in the data loop's publish gate) | Run `--sample 25` in the morning brief and record the pass count |
+| T6 per-input provenance | **Partly**: statement dates, source, what the page cannot vouch for | Per-input staleness (filing age is shown once per stock, not per figure); name which metrics used the annual fallback |
+
+### Findings the build produced that need *research*, not a patch (rule 4)
+
+All four were read from the code by the lineage audit and **verified against the live payload**.
+The page now states each in plain words next to the metric; none is changed. Each deserves a
+dated note in `research/` with the literature and practice, then a changelog entry if it changes:
+
+1. **`operating_leverage` ranks backwards for negative values.** 95 of 393 are negative and
+   average the 84th sector percentile against 37th for the rest. 8% of non-bank Quality.
+   (Q: how do practitioners treat a negative degree of operating leverage - exclude, floor, or
+   drop the metric?)
+2. **"Year-over-year" growth is 12-21 months.** The prior figure is the fiscal year before the
+   latest completed one. Affects `revenue_growth`, Piotroski signals 3, 8 and 9 and the Company
+   Snapshot's YoY figures. (Q: what window does the literature assume; can a true prior-year
+   quarter-aligned figure be built from the five quarters Yahoo returns?)
+3. **Two EBITDA definitions** across `ev_ebitda` and `net_debt_to_ebitda`, neither equal to the
+   Company Snapshot figure.
+4. **Labels that disagree with the code**: `return_6m` is a 6-1 return; "1Y" risk metrics use about
+   13 months; `consecutive_beat_streak` is a recency-weighted count; Sortino's denominator.
+
 ## What the drilldown shows today, and what it does not
 
 Today, for each of the eight categories, the metric table shows: raw value,

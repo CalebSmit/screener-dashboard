@@ -422,7 +422,7 @@ outcome.
   weaken a row.
 
 ### Tests
-- `tests/` (64 modules) + `test_screener.py`. Run: `python -m pytest tests/ test_screener.py -q`
+- `tests/` (70+ modules) + `test_screener.py`. Run: `python -m pytest tests/ test_screener.py -q`
 - `conftest.py` at root protects published artifacts from test side effects.
   **Deeper fix still open:** point offending tests at `tmp_path` and stub the
   network call in `get_sp500_tickers`.
@@ -557,7 +557,7 @@ Valuation panel showed a score no arithmetic on screen produces); the composite 
 omitted the coverage discount (2 stocks); and the first sentence of every drilldown
 called the composite a percentile ("scores above 74%" for the stock ranked **1st**),
 wrong by a median of 19.6 points, because the composite has been cardinal since
-Phase 13. The standing rules that outlive the plan: **the page shows the engine's
+Phase 13. **All three were fixed on 2026-10-07** (the sentence by the 06:00 session; the weights and the composite line by an owner-run session). The standing rules that outlive the plan: **the page shows the engine's
 numbers and never its own re-derivation of them** (one weight-resolution function
 feeds both scoring and display); **a sentence that says how a number is computed
 needs a registered check against the code that makes it true**; and **a build that
@@ -591,6 +591,7 @@ already shipped to the live public site.
 | 2 | A run enters the rank history only at Spearman **>= 0.50** against the last accepted run. Do **not** reuse `check_run_health`'s dispersion rule here - it excluded 16 of 20 real runs | `tests/test_history.py` |
 | 4 | Per-stock summaries are baked **at build time**, advice language is blocked by `BANNED_TERMS` / `advice_terms_in()`, and metric percentiles are labelled **sector**-relative because that is what they are | `tests/test_stock_summary.py`, `tests/test_ai_chat_removed.py` |
 | 5 | My Holdings renders **every** saved name every time, ordered **by rank and never by size of move**, and stores **no cost basis, share count or P&L**. The review cadence is read from the **run's own** config snapshot and stated, never enforced | `tests/test_holdings_panel.py`, `tests/test_review_cadence.py` |
+| 0.8 | **The page shows the engine's numbers and refuses to publish if they do not add up.** Metric weights are resolved in one place (`factor_engine.metric_weight_profiles`) and published, never re-derived; `generate_dashboard` rebuilds every score from its own payload (`calc_trace`) and raises `CalculationMismatch`; an equation is shown only if it reproduces (`metric_lineage.RECOMPUTE`); `scoring_schema` keys the scored cache. Do not widen the tolerances to pass a build | `tests/test_calculation_reproducibility.py`, `tests/test_metric_lineage.py`, `tests/test_dashboard_browser.py` |
 | gates | Both publish paths parse the payload (`node --check`) and check its opening assignment; the data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`). Where node or pytest is absent both fall back with a `WARN` rather than jamming | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
 **One constraint with no test, kept here because it governs how you spend the
@@ -604,16 +605,28 @@ properly over three done shallowly.
 
 ### Open
 
-**0.8. Calculation transparency and the false claims - opened 2026-10-06, age 1
-day; two owner items run together** (`OWNER_FOCUS.md`). `plan/calculation-transparency.md`
-(stages T0a, T0b, T1-T6) and `plan/dashboard-redesign-master.md` (surfaces and stages
-D2-D8) govern. **T0a is DONE (2026-10-07).** Remaining order: **T0b** (true per-stock
-metric weights from the engine, a payload-only reproducibility test that fails today
-for **333 of 4,010** pairs across **275 of 502** stocks and **3 of 502** composites,
-a build-time refusal to publish) -> D2 (rankings table: 81% of the page's DOM nodes)
--> T1 -> T2/T3 -> D3+T4 together -> D4-D6 -> D7, D8, T5, T6. Reproduce the defects
-with `research/measurements/2026-10-06-*.py` - **re-run them, the counts move with
-each data run.** No scoring change; explanation only.
+**0.8. Calculation transparency and the premium redesign - first version of every stage
+SHIPPED 2026-10-07 by an owner-run session; the deeper pass is the open work**
+(`OWNER_FOCUS.md`, two items). `plan/calculation-transparency.md` and
+`plan/dashboard-redesign-master.md` each carry a **"Status, 2026-10-07 evening"** table of what
+is built and, per stage, what the deep pass should do. Highlights: the page now prints the
+weights the engine used; every metric opens to its formula, inputs and peer rank; **4,010/4,010
+category scores and 502/502 composites rebuild from the payload and the build refuses to publish
+otherwise**; `scripts/audit_stock.py --all` independently reproduces 502/502; DOM nodes
+9,928 -> 2,779, transitioned elements 662 -> 99, row click to paint 70 ms, payload gzipped flat.
+**Be critical in the deep pass:** a first version built in one sitting is not "perfect", and
+the owner asked for perfect. Look at every surface at 1440 and 375px, say what you saw, and fix
+what is still not premium. No scoring change; explanation and presentation only.
+
+**0.9. Four methodology questions the transparency build surfaced - research, do not patch
+(opened 2026-10-07, age 0 days).** Read from the code, verified on the live payload, now stated
+on the page next to each metric (`METHODOLOGY_CHANGELOG.md` 2026-10-07 (owner-run)):
+**(a) `operating_leverage` ranks negative values best** (95 of 393; 84th percentile average vs
+37th) at 8% of non-bank Quality; **(b) "year-over-year" growth spans 12-21 months** (prior =
+the fiscal year before the latest completed one); **(c) two EBITDA definitions**; **(d) labels
+that disagree with the code** (`return_6m` is 6-1; "1Y" risk metrics use ~13 months). Each is a
+legitimate Monday research note with the literature and practice, then a changelog entry. (a) is
+the one with a measured effect on rankings and should go first.
 
 **T0a's standing constraint:** `claims.py` registers every sentence that says how a
 number is computed, with the code that makes it true and the test that checks it.

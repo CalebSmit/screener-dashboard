@@ -3318,8 +3318,30 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // METHODOLOGY MODAL
     // =====================================================================
     function openMethodology() {{
+        buildMethodologyToc();
         document.getElementById('methodology-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+    }}
+
+    // The methodology is ~30 headings long. Give it a "contents" rail built from its own
+    // second-level headings, so a reader can jump instead of scrolling for a minute.
+    function buildMethodologyToc() {{
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        if (!body || body.querySelector('.method-toc')) return;
+        const heads = body.querySelectorAll('h2');
+        if (heads.length < 4) return;
+        let h = '<nav class="method-toc" aria-label="Methodology sections"><div class="method-toc-title">On this page</div>';
+        heads.forEach(function(el, i) {{
+            el.id = el.id || 'm-sec-' + i;
+            h += '<a href="#' + el.id + '" data-m="' + el.id + '" onclick="return goToMethod(this.dataset.m)">' + escapeHtml(el.textContent) + '</a>';
+        }});
+        body.insertAdjacentHTML('afterbegin', h + '</nav>');
+    }}
+
+    function goToMethod(id) {{
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        return false;
     }}
     function closeMethodology() {{
         document.getElementById('methodology-modal').style.display = 'none';
@@ -6112,6 +6134,47 @@ def _css() -> str:
         .provenance-line { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 10px 0 0; }
         .provenance-line strong { color: var(--text-primary); font-weight: 600; }
         .provenance-limit { color: var(--text-muted); }
+
+        /* ---- METHODOLOGY: a reading surface ----
+           A readable measure (about 72 characters), a contents rail, quiet headings. */
+        .methodology-content { max-width: 1060px; }
+        .methodology-body {
+            display: grid; grid-template-columns: 210px minmax(0, 1fr); column-gap: 44px;
+            max-height: 78vh; padding-right: 0; scroll-padding-top: 8px;
+        }
+        .methodology-body > * { grid-column: 2; min-width: 0; }
+        .methodology-body > .method-toc {
+            grid-column: 1; grid-row: 1 / span 400; position: sticky; top: 0; align-self: start;
+            max-height: 74vh; overflow-y: auto; padding-right: 8px; scrollbar-width: thin;
+        }
+        .method-toc-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 8px; }
+        .method-toc a {
+            display: block; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; padding: 4px 0; text-decoration: none;
+            transition: color var(--t-fast) ease-out;
+        }
+        .methodology-body .method-toc a { border-bottom: 0; }
+        .method-toc a:hover { color: var(--text-primary); }
+        .methodology-body p, .methodology-body ul, .methodology-body ol, .methodology-body blockquote,
+        .methodology-body h1, .methodology-body h2, .methodology-body h3 { max-width: 72ch; }
+        .methodology-body h1 {
+            color: var(--text-primary); border-left: 0; padding-left: 0; font-weight: 600; letter-spacing: -.02em; font-size: 26px;
+        }
+        .methodology-body h2 {
+            background: none; border-left: 0; border-radius: 0; padding: 28px 0 0; margin: 40px 0 14px;
+            border-top: 1px solid var(--border); font-size: 18px; letter-spacing: -.01em;
+        }
+        .methodology-body h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 28px; }
+        .methodology-body h3 { border-left: 0; padding-left: 0; margin: 28px 0 8px; font-size: 15px; }
+        @media (max-width: 900px) {
+            .methodology-body { display: block; max-height: 80vh; }
+            .methodology-body > .method-toc { display: none; }
+        }
+
+        /* ---- FEEL ----
+           Hover feedback in a dense list should be instant: a 120ms fade on every row
+           reads as lag, and costs a transition on every row. Controls keep theirs. */
+        .data-table tbody tr, .mover-row { transition: none; }
+        button, select, input, textarea { font-family: inherit; }
 
         /* ---- PRINT ---- */
         /* ---- Defensibility & Diagnostics Section ---- */

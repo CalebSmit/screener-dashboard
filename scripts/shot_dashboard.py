@@ -37,6 +37,34 @@ METRICS_JS = """
 """
 
 
+FEEL_JS = """
+() => new Promise(res => {
+  const out = {};
+  const rows = document.querySelectorAll('#universe-tbody tr[data-t]').length;
+  out.rendered_table_rows = rows;
+  const shell = document.querySelectorAll('*').length;
+  out.nodes_first_paint = shell;
+  let t0 = performance.now();
+  sortTable('momentum_score');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    out.sort_to_paint_ms = Math.round(performance.now() - t0);
+    t0 = performance.now();
+    const tr = document.querySelector('#universe-tbody tr[data-t]');
+    if (tr) tr.click();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      out.row_click_to_paint_ms = Math.round(performance.now() - t0);
+      let cls = 0;
+      try {
+        const po = new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentInput) cls += e.value; });
+        po.observe({ type: 'layout-shift', buffered: true });
+      } catch (e) {}
+      setTimeout(() => { out.layout_shift = Math.round(cls * 1000) / 1000; closeModal(); res(out); }, 200);
+    }));
+  }));
+})
+"""
+
+
 def main() -> None:
     label = sys.argv[1] if len(sys.argv) > 1 else "shot"
     url = (ROOT / "index.html").as_uri()
@@ -49,6 +77,8 @@ def main() -> None:
             page.screenshot(path=str(OUT / f"{label}-{name}.png"))
             if name == "desktop":
                 print(json.dumps(page.evaluate(METRICS_JS), indent=1))
+                # The budgets in plan/dashboard-redesign-master.md: nodes, click-to-paint, shift.
+                print("feel:", json.dumps(page.evaluate(FEEL_JS)))
             # drilldown shot on desktop only
             if name == "desktop":
                 page.evaluate("openStockDetail(SCREENER_DATA.table_data[0].ticker)")

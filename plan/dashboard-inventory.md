@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-09-29)
+# Dashboard inventory (as of 2026-10-07)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -13,27 +13,51 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
-## Top-level views
+## Top-level views (as rebuilt 2026-10-07)
 
 | Section | Contents |
 |---|---|
-| **Top 5 Stocks** | Highest-composite names, card layout. Reads `table_data` directly, excluding trap-flagged names |
-| **My Holdings** | The sell-side surface, added 2026-09-15. Client-side list, one card per saved name, plus the cadence note, the fit line and the Concentration block (2026-09-22) |
-| **Factor Analytics** | `Factor Scores by Sector`, `Trap Rate by Sector` |
-| **Defensibility & Diagnostics** | `How Stable Is the Ranking?` (weight sensitivity), `Are the Factors Independent?` (factor correlation) |
-| **Full Universe Rankings** | The 501-row sortable table - the workhorse view |
-| **Methodology** | A very large embedded explainer (~30 headings) |
+| **Top bar** | Sticky, full-width: product name, data date, jump links to every section (`goToSection()` opens a collapsed one first), Methodology. **The Refresh Data button is gone** - it opened an `EventSource` to `localhost:7720` and could only ever work on the owner's machine (`refresh_server.py` still exists for local use) |
+| **Stat strip** | One bar, four cells: universe, value-trap flags, growth-trap flags, **metric coverage** (average, on the applicable basis) |
+| **Top 5 Stocks** | Five cards in a grid (three across below 1100px, stacked on a phone): rank and sector, ticker and composite, the eight categories as a 4x2 aligned strip. Reads `table_data` directly, excluding trap-flagged names |
+| **Full Universe Rankings** | The workhorse. Scrolls **with the page**; header row sticky below the top bar; **windowed rows** (only what is on screen plus a margin is in the DOM; `renderWindow()`, fixed `--row-h`); score cells tinted by value; designed filters (search with `/` shortcut, sector, trap flags, composite minimum, clear); flags as words, blank when none; phone: each row is a 96px card and a "Sort by" select replaces the header. **Section order is pinned by tests: Top 5, What Changed, then this** |
+| **My Holdings** | Unchanged in behaviour (every property in the section below is still pinned). The seven cited rationales moved behind "Why this panel works this way" |
+| **What Changed** | Five movers each way, "Show all N" for the rest; footnote behind "How to read this" |
+| **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector) and Trap Rate by Sector (one hue, value-labelled) |
+| **Defensibility & Diagnostics** | Same two analyses; the correlation heatmap is one hue by magnitude with pairs above 0.7 outlined; status colour is only a dot |
+| **Methodology** | Reading surface: contents rail built from its own headings, ~72-character measure |
 
-Interactive elements are sparse: **2 charts** (`sector-dist-chart`,
-`vt-chart`) and **1 table** (`universe-table`).
+The **stock drilldown** (`openStockDetail`) is a **side sheet** (a bottom sheet on a phone) with a
+fixed identity header (ticker, company, sector, rank, composite), jump links, and a body that
+scrolls. In order: **Why it ranks here** (headline, then grouped: what drives the score / what
+changed / context / read with care), the score cards (composite banner + 4x2), About, Rank
+History, Analyst Price Targets, Company Snapshot, Sector Peers, Data Provenance, **Score
+Contribution Breakdown** (category points, the coverage-discount line when one applies, the
+composite; each row opens its workings) and **The workings**.
 
-The **stock drilldown** (`openStockDetail`) is where most of the surface area
-actually is, in this order: **Why It Ranks Here**, the score-card row, About,
-Rank History, Analyst Price Targets, Company Snapshot, Sector Peers, Data
-Provenance, Score Contribution Breakdown, and the eight category-detail
-sections with their metric tables.
+## The workings - every number behind a score (2026-10-07)
 
-## Visual design system - stage 1 DONE 2026-10-06
+`plan/calculation-transparency.md`. **Read `DECISIONS.md` 0.8b before changing any of this.**
+For each category: a table of every metric with weight in the table this stock was scored with -
+raw value, sector percentile, **weight used**, points - totalling the category score. A header note
+says which table (bank, Piotroski halved, ...) and why (`weights.profile_labels`). Each metric row
+opens: the **formula**, the **reported figures behind it** (`stock_detail[t].inp`, as fetched), the
+nine Piotroski signals or eight Beneish indices where it is one, whether the inputs **rebuild the
+value** (`inp_bad` lists the stocks where they do not), **who it was ranked against** ("Ranked 3rd
+of 47 in Consumer Discretionary", sector median and quartiles, or the universe where a sector has
+fewer than `sector_min_peers` values) and the registry's plain **caveat** where the code differs
+from the label.
+
+New payload keys: `weights.profiles`, `weights.profile_labels`, `weights.coverage_discount`,
+`lineage`, `lineage_check`, `sector_stats`, `sector_min_peers`; per stock `wp`, `cov`, `inp`,
+`pio`, `bn`, `asof`, `inp_bad`. `peers` is tickers only. All are display-only (asserted absent
+from `raw`/`pct`). Payload: 1,268,733 B gzipped (was 1,278,885).
+
+Not yet: a "download this stock's workings" CSV; equations for the 12 series-based and
+provider-ratio metrics (they say so instead); the analyst-history inputs (the per-quarter EPS
+actuals and estimates are not retained at fetch).
+
+## Visual design system - stage 1 DONE 2026-10-06, applied across the page 2026-10-07
 
 Owner directive 2026-10-05 (`OWNER_FOCUS.md`): the page read as generated and
 did not feel good to use. Stage 1 replaced the *tokens*, not the structure:
@@ -44,15 +68,19 @@ not restyled: the rainbow header rule, per-category and per-sector hue maps,
 glows and the entrance animations. Every value and its source is in
 `plan/dashboard-design-system.md` - change a token there and in `:root` together.
 
-**Presentation only: `dashboard_data.js` is byte-identical before and after**
-(5,150,209 bytes, same SHA-256). Check that again after every design session.
+**2026-10-07** applied it surface by surface (`plan/dashboard-redesign-master.md`). Measured
+with `scripts/shot_dashboard.py` (now also reports the feel numbers): **DOM nodes 9,928 ->
+2,779; transitioned elements 662 -> 99; row click to paint 70 ms; sort to paint 21 ms; layout
+shift 0.001; payload gzipped flat.** `tests/test_dashboard_browser.py` (25 tests, Chromium via
+Playwright, skipped where unavailable) holds those budgets.
 
-Still the old structure, and the next stages in the owner's order: the rankings
-table's nested scroll box and 502-row DOM (stage 2), the drilldown hierarchy
-(stage 3), phone layout - an orphaned KPI card and a header that takes the first
-screen (stage 4). Baseline for stage 2: 9,928 DOM nodes, 662 elements with
-transitions. `scripts/shot_dashboard.py` measures these; `scripts/check_contrast.py`
-checks text/surface ratios.
+Presentation-only stages leave `dashboard_data.js` byte-identical (check with
+`scripts/diff_payload.py`); 2026-10-07 added payload keys deliberately, listed above.
+
+Still the old structure or not yet judged: the lower drilldown blocks (Rank History, Price Targets,
+Company Snapshot, Peers) were re-chromed but not redesigned; the peers table still colours cells
+green/red against the stock; the Holdings panel's populated state was not re-looked-at; contrast
+was checked for tokens, not every pair in use.
 
 ## My Holdings - the sell-side surface (2026-09-15)
 
