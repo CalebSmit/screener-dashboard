@@ -45,6 +45,18 @@ does not.
   If an owner item is a bad idea, do not silently skip it. Say why in the log,
   do the part that is sound, and leave the item open with your reasoning.
 
+  **When an item names a plan under `plan/`, that plan is the brief.** Read it in
+  full, work the stage its Progress line says is *next* - one stage per session,
+  split at a step boundary if the session is short - and do not start the stage
+  after it. Look at the page before and after (`scripts/shot_dashboard.py`, desktop
+  and 375px) and say what you saw. Re-measure any defect the plan cites before
+  fixing it, and if the number has moved, say so rather than trusting the plan.
+  Finish by updating the item's Progress line with what shipped and what is next,
+  so the following session does not have to infer it. As of 2026-10-06 the two
+  open items are `plan/calculation-transparency.md` and
+  `plan/dashboard-redesign-master.md`; their order is fixed by the first of them
+  (T0a, then T0b, then D2).
+
 - Read the last 3 entries of `NIGHTLY_LOG.md`. What was in progress? What did
   the last session say to do next? What did it flag as broken?
 - **Check the priorities section in `CLAUDE.md`.** Read what is at the top of

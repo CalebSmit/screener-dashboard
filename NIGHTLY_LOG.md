@@ -8035,3 +8035,105 @@ None. Presentation only; the payload is byte-identical.
    step 3; the run-level overview; priority 0.6).
 
 ---
+
+## 2026-10-06 (evening) - PLANNING, owner-run session: a surface-by-surface redesign plan and a calculation-transparency plan; three live defects found, none fixed yet
+
+Written by an interactive session at the owner's request. **No product code
+changed.** Two plans, three research measurements, and queue/prompt edits.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **No** - the 06:00 session was cut off by a 429; see the entry above. Nothing new has run since |
+| Data loop published? | **Yes** - `logs/datarun-2026-10-06_020001.log` ends "Data loop complete", HEALTH: PASS |
+| Evidence base | at `1m`: **23 rows, newest 2026-09-04, 4 effective observations** (re-read with `scripts/report_evidence.py`); lag 32 days, inside the 40-day bound |
+| Priority 0 | Fixed 2026-08-24, not touched |
+| Top open roadmap item | **0.8, calculation transparency and the false claims** - opened today, **0 days**. Below it, priority 3 (backtest v2) is **42 days** old and was not taken |
+
+**Tests:** only docs, prompt and two read-only research scripts changed;
+`tests/test_owner_focus.py`, `test_governance.py` and `test_scripts_static.py`
+pass (76). The full suite was not re-run; nothing it covers changed.
+
+### What the owner asked for
+
+*"Get it set up with a full blown plan to make it look better, every single place
+on the dashboard. Also, I want it to have more data integrity, or calculation
+integrity - we can see how things score, but we don't actually see the numbers going
+into any calculations in the breakout details for each company."*
+
+### What was written
+
+- `plan/dashboard-redesign-master.md` - 18 surfaces, each with what was seen on the
+  live page at 1440 and 375px and the target; stages D2-D8; measured budgets; the
+  order of work against the other plan.
+- `plan/calculation-transparency.md` - the goal, eight design principles, stages
+  T0a, T0b, T1-T6, a verification protocol, sources, and what it deliberately does
+  not do.
+- `OWNER_FOCUS.md` - a new top item for transparency; the premium item now points at
+  the master plan. `CLAUDE.md` - a standing rule and priority 0.8. `prompts/nightly.md`
+  - a paragraph saying a named plan is the brief and one stage is one session.
+- `research/measurements/2026-10-06-calculation-reproducibility.py` and
+  `...-rank-sentence-claim.py` - the two measurements below, runnable from the repo.
+
+### Three defects found while auditing - all on the live site, none fixed
+
+Each was measured against the live payload; re-run the two scripts to reproduce.
+
+1. **The per-metric weights in the drilldown are not the weights used, for 276 of 502
+   stocks (55%).** The page prints `D.weights.metric_weights` (generic) for every
+   stock; `compute_category_scores` uses bank weights, Piotroski-conditional weights
+   and per-stock renormalisation. **334 of 4,012** stock-category pairs do not
+   reproduce (59 Valuation, 275 Quality). JPM's Valuation panel lists EV/EBITDA, FCF
+   Yield and EV/Sales as N/A at 25/45/10%, marks P/B "Inactive (0% weight)" although
+   it is the bank's 60% metric, and shows a score (39.9) that nothing on screen
+   produces. Same class as the 2026-08-28 factor-weight bug.
+2. **"Composite = sum of points" is false for 2 stocks** (FDXF 41.15 vs 42.04, L 51.45
+   vs 51.68): the coverage discount is applied after the weighted average and shown
+   nowhere.
+3. **The first sentence of every drilldown is false.** `stock_summary._sentence_rank`
+   says "composite of 73.7 is a percentile: it scores above 74% of the universe" -
+   for the stock ranked **1st**. Median error 19.6 points, more than 10 points for
+   75.1% of stocks, 31 at worst. `Composite` has been cardinal since Phase 13; the
+   README, `plan/investor-profiles.md` and Step 5 of the generated methodology page
+   still say percentile, while the same page's Limitation 8 says the opposite.
+
+Also found, in the design audit: the public **Refresh Data button is dead for every
+visitor** (`triggerRefresh()` opens an `EventSource` to `http://localhost:7720`); and
+the rankings table is **8,050 of the page's 9,923 DOM nodes (81%)**.
+
+### Evidence
+
+The documented failures above, each reproducible; the owner's words for both
+requests; and the 2026-08-28 precedent for the weights defect. The plans cite
+Hou, Xue & Zhang (2020, *RFS* 33(5)) for replication as the standard for credibility
+and tell the Monday session to read it and quote its numbers rather than rely on the
+plan's paraphrase. No backtest or IC number was used (rules 4, 5).
+
+### Methodology changed
+
+None. Nothing here alters a score, weight, rank or metric.
+
+### Tried and rejected
+
+- **Fixing the three defects in this session.** They are real, but the weights fix
+  needs a refactor of `compute_category_scores` and a full-suite run, and the owner
+  asked for the plan. They are the first work in the queue instead, ordered by
+  severity, and the log says so rather than leaving them for someone to discover.
+- **Styling the existing category tables and replacing them later.** The drilldown
+  redesign and the calculation view are one stage (D3 + T4) for exactly this reason.
+- **Putting the payload diff off.** `scripts/diff_payload.py` does not exist and every
+  later stage needs it; T0b builds it.
+
+### Next
+
+1. **T0a** - fix the composite sentences in all four places, build the claims
+   register, add it to the data loop's publish gates.
+2. **T0b** - weight resolution in one function; true per-stock weights in the
+   payload; `tests/test_calculation_reproducibility.py` (fails today for 334 pairs and
+   2 composites); build-time refusal to publish; `scripts/diff_payload.py`.
+3. **D2** - the rankings table, then the order table in
+   `plan/dashboard-redesign-master.md`. Update the Progress line in `OWNER_FOCUS.md`
+   after each stage.
+
+---

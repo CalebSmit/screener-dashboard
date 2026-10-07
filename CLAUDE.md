@@ -547,6 +547,22 @@ meaning, not decoration; every figure uses tabular numerals; and presentation wo
 must leave every number, rank and sentence byte-identical, which you verify by
 diffing the rebuilt payload against the live one.
 
+**Every number on the page must be checkable from the page** - owner direction,
+2026-10-06: *"we can see how things score, but we don't actually see the numbers
+going into any calculations... This will add trust to the screener."* Writing the plan
+for it turned up three defects on the live site (`plan/calculation-transparency.md`):
+the drilldown printed the generic metric weight for **276 of 502 stocks** where the
+engine had used bank, Piotroski-conditional or renormalised weights (so JPM's
+Valuation panel showed a score no arithmetic on screen produces); the composite line
+omitted the coverage discount (2 stocks); and the first sentence of every drilldown
+called the composite a percentile ("scores above 74%" for the stock ranked **1st**),
+wrong by a median of 19.6 points, because the composite has been cardinal since
+Phase 13. The standing rules that outlive the plan: **the page shows the engine's
+numbers and never its own re-derivation of them** (one weight-resolution function
+feeds both scoring and display); **a sentence that says how a number is computed
+needs a registered check against the code that makes it true**; and **a build that
+cannot reproduce its own published scores from its own payload does not publish.**
+
 ## Current priorities (rewrite this section as things land)
 
 **Restructured 2026-10-02.** This section had reached **551 lines - 52% of this
@@ -587,6 +603,16 @@ and a data run is always affordable.** That is the argument for one thing done
 properly over three done shallowly.
 
 ### Open
+
+**0.8. Calculation transparency and the false claims - opened 2026-10-06, age 0
+days; two owner items run together** (`OWNER_FOCUS.md`). `plan/calculation-transparency.md`
+(stages T0a, T0b, T1-T6) and `plan/dashboard-redesign-master.md` (surfaces and stages
+D2-D8) govern. **Order:** T0a (fix the false composite sentences everywhere, build the
+claims register) -> T0b (true per-stock metric weights from the engine, a payload-only
+reproducibility test that fails today for 334 of 4,012 pairs and 2 of 502 composites,
+a build-time refusal to publish) -> D2 (rankings table: 81% of the page's DOM nodes)
+-> T1 -> T2/T3 -> D3+T4 together -> D4-D6 -> D7, D8, T5, T6. Reproduce the defects
+with `research/measurements/2026-10-06-*.py`. No scoring change; explanation only.
 
 **0.6. Do not record an improvement-engine snapshot when the run did not fetch.**
 Found 2026-08-11 and never closed on its own terms: a warm-started run still

@@ -28,8 +28,81 @@ Add items below. Anything under this heading is unclaimed work.
 
 <!-- Add items here, newest at the top. Free text, one item per bullet. -->
 
+- **2026-10-06 — Show the numbers that go into every score, and make the
+  arithmetic provably right. This builds trust; spend real sessions on it, in
+  step with the premium item below.** Owner, verbatim: *"I want it to have more
+  data integrity, or calculation integrity - we can see how things score, but we
+  don't actually see the numbers going into any calculations in the breakout
+  details for each company. This will add trust to the screener."*
+
+  **The full plan is `plan/calculation-transparency.md` - read it first.** It holds
+  the goal, the design principles, seven stages (T0a, T0b, T1-T6), the tests and
+  the sources. The short version: a reader should be able to follow any number from
+  the composite, down through category score, metric percentile and raw value, to the
+  company's own reported inputs - see every weight and peer count on the way - and
+  recompute it in a spreadsheet and get the same answer.
+
+  **Why this is urgent and not just a feature - three defects, measured on the live
+  site 2026-10-06 while writing the plan** (reproduce with the two scripts in
+  `research/measurements/2026-10-06-*.py`; do not trust these, re-run them):
+
+  1. **The per-metric weights on the drilldown are not the weights used, for 276 of
+     502 stocks (55%).** The page prints the generic configured weight; the engine uses
+     bank weights, Piotroski-conditional weights and per-stock renormalisation.
+     334 of 4,012 stock-category pairs cannot be reproduced from what is on screen.
+     JPM's Valuation panel shows three heavily-weighted metrics as N/A, calls P/B
+     (the bank's main metric) "Inactive", and prints a score no arithmetic on the
+     page produces. Same class of bug as 2026-08-28.
+  2. **"Composite = sum of the points" is false for 2 stocks** (FDXF, L): a coverage
+     discount is applied after the weighted average and never shown.
+  3. **The first sentence of every drilldown is false.** *"Its composite of 73.7 is a
+     percentile: it scores above 74% of the universe"* - for the stock ranked **1st**.
+     Off by a median of 19.6 points, by more than 10 points for 75% of stocks. The
+     composite has been cardinal since Phase 13; the README, the generated methodology
+     page's Step 5 and one plan doc still say percentile, while the same methodology
+     page's Limitation 8 says the opposite.
+
+  **Order, and why it outranks the design stages:** these are false statements on a
+  public site, so **T0a (fix the false sentences, build the claims register) then T0b
+  (true weights, reproducibility test, build-time refusal to publish a page whose
+  arithmetic does not add up) come before any presentation stage.** Then T1 (lineage
+  registry), then T2/T3 (inputs and percentile context in the payload), then T4 built
+  *together with* the drilldown redesign (design stage D3 - do not style the old
+  category tables twice), then T5 (an independent checker and a gate) and T6
+  (per-input provenance).
+
+  **Constraints that do not move:**
+  - **No scoring change of any kind.** This is explanation, not methodology; nothing
+    here may be justified by the backtest (rule 5) or the thin IC series (rule 4).
+  - **The page shows the engine's numbers, never its own re-derivation.** Refactor
+    `compute_category_scores` so weight resolution is one function used by scoring and
+    export - a second copy in the generator or in JS is how defect 1 happened.
+  - **Say what cannot be shown** ("provider-supplied", "computed from 252 daily
+    closes") rather than print a formula that does not reproduce. A false equation is
+    worse than none.
+  - **Payload budget:** <= +150 KB gzipped inline, else per-ticker shards; measure
+    after gzip and log it. Decision support, not advice: `BANNED_TERMS` applies to
+    every new sentence. Display-only: inputs enter no metric, weight or rank.
+  - **Any discrepancy the new checks find is reported, not smoothed over** - in the
+    log and `METHODOLOGY_CHANGELOG.md`. Finding them is the point.
+
+  **Progress (update this line each session):**
+  - **2026-10-06 - plan written, nothing built yet.** Next: **T0a**.
+  - **Commit after every stage.**
+
+  **The test:** a student picks any stock, opens it, and can answer *"where did this
+  63 come from?"* three levels down without leaving the panel; downloads the workings;
+  a spreadsheet agrees with the page to the displayed precision; and the 02:00 data
+  loop would refuse to publish a day on which that stopped being true.
+
 - **2026-10-05 — Make the dashboard look and feel premium. Spend a lot of the
-  next two weeks on it.** Owner, verbatim: *"It looks like AI slop. Make it look
+  next two weeks on it.** **The surface-by-surface plan is
+  `plan/dashboard-redesign-master.md` (18 surfaces, stages D2-D8, measured budgets,
+  order of work) - read it first; the brief below is the owner's words and the
+  original measurements.** The calculation-transparency item above takes the first
+  code session (T0a, T0b) because those are correctness defects; after that the two
+  items interleave as the master plan's order table sets out, meeting at the
+  drilldown. Owner, verbatim: *"It looks like AI slop. Make it look
   premium and expensive. Right now it does not look good, and it doesn't feel
   good to move around in it either."* Both halves count: how it **looks** and how
   it **feels to use**. This outranks the day's rotation focus on every day it can
@@ -116,9 +189,15 @@ Add items below. Anything under this heading is unclaimed work.
   - **2026-10-06 - stage 1 shipped:** design-system tokens in the generator, with the
     written argument in `plan/dashboard-design-system.md` - one neutral ramp and one
     accent, Inter with tabular figures, 14px base, rainbow/glow/entrance-animation
-    removed, `color-scheme: dark`. Payload byte-identical. **Next: stage 2, the
+    removed, `color-scheme: dark`. Payload byte-identical. **Next: stage D2, the
     rankings table** (nested scroll box, 502-row DOM, native selects, score
-    encoding). Baseline to beat: 9,928 DOM nodes, 662 transitioned elements.
+    encoding) - after calculation-transparency T0a/T0b. Baseline to beat: 9,928 DOM
+    nodes (8,050 of them in the table), 662 transitioned elements.
+  - **2026-10-06 (evening) - full plan written:** every surface audited at 1440 and
+    375px and listed with what is wrong and the target; stages D2-D8; budgets for DOM
+    nodes, click-to-paint, LCP, CLS and contrast. One finding to act on early: the
+    public **Refresh Data button is dead for every visitor** (it connects to
+    `localhost:7720`).
   - **Commit after every stage** - the 2026-10-06 session was cut off by a usage
     limit with nothing committed (see `NIGHTLY_LOG.md` 2026-10-06).
 
