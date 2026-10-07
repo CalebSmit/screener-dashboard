@@ -81,7 +81,7 @@ def main() -> None:
                 print("feel:", json.dumps(page.evaluate(FEEL_JS)))
             # drilldown shot on desktop only
             if name == "desktop":
-                page.evaluate("openStockDetail(SCREENER_DATA.table_data[0].ticker)")
+                page.evaluate("openStockDetail(SCREENER_DATA.table_data[0].Ticker)")
                 page.wait_for_timeout(600)
                 page.screenshot(path=str(OUT / f"{label}-drilldown.png"))
             page.close()

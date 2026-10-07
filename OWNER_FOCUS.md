@@ -250,6 +250,27 @@ Add items below. Anything under this heading is unclaimed work.
     and a side-by-side against Linear / Stripe / Vercel / Mercury. **Be critical:** a first
     version built in one sitting is not "perfect" and the owner asked for perfect - find what
     is still not premium and fix it, and say what you saw in the log.
+  - **2026-10-07 (late, owner-run pass 2) - owner, verbatim: *"keep improving the
+    UI/UX/Frontend please, it looks alot better now! But do as much as you can right now ...
+    and for the fine tunups give that work to the nightly sessions to do and test. Be
+    creative!"*** Shipped, presentation only (payload byte-identical): a **search palette**
+    (Ctrl/Cmd+K, any stock or section from anywhere); **stock links** (`#stock=TICKER`
+    opens it; the back gesture closes the sheet); **J / K stepping** through the table's
+    current filter and sort; **Compare** (up to four, side by side, with the composite gap
+    taken apart into category points - registered as claim `compare.composite_gap`);
+    **Add to Holdings** from any drilldown; **Download as CSV** of a stock's whole workings;
+    the drilldown **reordered to match its own jump links** (they skipped four sections);
+    **Peers lost its green/red verdicts** (it judged "better" on rules the screener does
+    not use, e.g. dividend yield) and gained a peer median; trap rates as HTML bars (the
+    canvas clipped sector names); sector matrix and trap bars **filter the rankings** on
+    click; section previews on collapsed headers; a dismissible first-visit guide;
+    shortcuts sheet (`?`); price targets, snapshot and populated Holdings de-boxed; phone
+    filter bar, score grid and contribution rows fixed (two lost the cascade). 18 new tests
+    in `tests/test_dashboard_navigation.py`; 3 payload tests for the gap claim in
+    `test_calculation_reproducibility.py` (in the data loop's publish gate).
+    **The nightly fine-tuning list is now `plan/dashboard-redesign-master.md` "Status,
+    pass 2"** - it supersedes the six items above where they overlap. Test what shipped
+    tonight first (palette, links, J/K, compare, CSV) on the live site at 1440 and 375px.
   - **Commit after every stage** - the 2026-10-06 session was cut off by a usage
     limit with nothing committed (see `NIGHTLY_LOG.md` 2026-10-06).
 

@@ -53,6 +53,43 @@ Built in one owner-run session, verified in a real browser at 1440 and 375px, an
 | D7 mobile first-class (15) | **Largely done** for the table, drilldown, KPIs, Top 5, header | Re-check 320px and 414px; the workings table on a phone wraps the info button awkwardly; 44px target audit |
 | D8 polish, a11y, perf (16, 17) | **Not done** beyond the budgets above | Full keyboard pass, focus trap in the sheet (focus is moved and returned, not trapped), roles/labels audit, contrast on every pair in use via `scripts/check_contrast.py`, LCP measurement, and the final side-by-side against the reference products |
 
+## Status, pass 2 (2026-10-07 late, owner-run) - what shipped, and the nightly fine-tuning list
+
+Owner: *"keep improving the UI/UX/Frontend ... do as much as you can right now ... and for the
+fine tunups give that work to the nightly sessions to do and test. Be creative!"* Everything below
+is presentation; the payload was byte-identical before and after (the HTML was rebuilt alone).
+
+**Shipped:** a search palette (Ctrl/Cmd+K) for any stock or section; `#stock=TICKER` links (open on
+load, back closes the sheet, stepping replaces rather than pushes); J / K stepping in the table's
+current order with "N of M" in the sheet; Compare (up to four) with the composite gap decomposed
+into category points (`claims.py` `compare.composite_gap`); Add to Holdings from the sheet; the
+workings as a CSV; drilldown body reordered to match its jump links; Peers without green/red
+verdicts, with a peer median; trap rates as HTML bars; matrix rows and trap bars filter the table;
+section previews; first-visit guide; shortcuts sheet; scroll-spy in the top bar and the sheet; lower
+blocks and populated Holdings de-boxed; phone fixes for filters, score grid, contribution rows,
+sheet header. Measured: DOM nodes 2,958 (+179 for the overlays), transitions 108, click to paint
+74-95 ms (JS is ~8 ms of that, unchanged by the wrapper - the rest is paint; budget 100), sort 21-24
+ms, CLS 0.002.
+
+**Nightly fine-tuning list, in order - test each in a real browser at 1440 and 375px, then fix:**
+
+| # | Item | Notes |
+|---|---|---|
+| 1 | **Verify pass 2 on the live site** | Palette (type a name, a sector), a `#stock=` link from a cold load, back on a phone, J/K with a filter on, Compare with a discounted stock (FDXF, L, PSKY carry a coverage discount - the gap view must show a discount line), CSV opens in Excel with the right columns |
+| 2 | Click-to-paint crept from ~65 to ~80 ms | Profile the paint, not the JS (JS is ~8 ms). Suspects: the sheet's box-shadow/animation, the contribution grid, the new toolbar. Budget 100 ms |
+| 3 | **Rank History** wants a real chart | Today a 90px sparkline and two tables of +/- numbers; a rank-over-time line with the material-move band (H.noise) would say more. No new payload unless measured |
+| 4 | **Price targets** range bar labels collide when current ~ low | Check a stock trading below its low target |
+| 5 | Sector matrix on a phone | Scrolls sideways; consider a per-sector card or a sticky first column |
+| 6 | Compare on a phone | Sticky first column is in; check 4 stocks at 320px; chips in the tray overflow at 3+ |
+| 7 | Focus trap in the sheet, palette and compare | Focus is moved in and returned, not trapped; Tab can leave the dialog |
+| 8 | Contrast on every pair in use | `--text-muted` on `--bg-card` in small type (11px labels) is the likely failure |
+| 9 | One "no data" vocabulary and a number-format module | `no data`, `-`, `&mdash;`, blank all occur |
+| 10 | 320 and 414px | Not checked in either pass |
+| 11 | LCP | Never measured |
+| 12 | Holdings concentration note | Still a dense paragraph block; consider a disclosure like the rationale. Pinned by `test_holdings_concentration.py` - move it, do not drop it |
+| 13 | Guide copy | Shown once per browser; check a first-time student understands "composite" and "sector percentile" from it alone |
+| 14 | ~~Remaining Chart.js chart~~ **Done in pass 2** | Nothing used Chart.js once trap rates became HTML; the render-blocking CDN script is gone from `<head>`. Measure LCP (item 11) with this in mind - the before/after is worth recording |
+
 ## What was seen on 2026-10-06 (after stage 1), surface by surface
 
 Looked at the live page at 1440px and 375px, and one bank (JPM) and one ordinary

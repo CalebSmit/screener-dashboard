@@ -617,6 +617,14 @@ otherwise**; `scripts/audit_stock.py --all` independently reproduces 502/502; DO
 **Be critical in the deep pass:** a first version built in one sitting is not "perfect", and
 the owner asked for perfect. Look at every surface at 1440 and 375px, say what you saw, and fix
 what is still not premium. No scoring change; explanation and presentation only.
+**Pass 2 shipped the same night** (owner: *"be creative"*): a search palette (Ctrl/Cmd+K),
+`#stock=TICKER` links, J/K stepping, Compare with the composite gap decomposed (claim
+`compare.composite_gap`), a workings CSV, Add to Holdings from the sheet, analytics rows that
+filter the table, Peers without green/red verdicts, and Chart.js removed (nothing used it). **The
+nightly fine-tuning list is `plan/dashboard-redesign-master.md` "Status, pass 2"** - it supersedes
+the evening table where they overlap; start by testing what pass 2 shipped on the live site. The
+navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`); keep it that way, so every
+way of opening a stock keeps links and stepping.
 
 **0.9. Four methodology questions the transparency build surfaced - research, do not patch
 (opened 2026-10-07, age 0 days).** Read from the code, verified on the live payload, now stated
