@@ -150,7 +150,7 @@ def test_every_claim_is_complete_and_uniquely_identified():
     for claim in claims.CLAIMS:
         assert claim.asserts.strip(), f"{claim.id}: empty `asserts`"
         assert claim.checked_by, f"{claim.id}: no check - a claim with no check fails"
-        assert claim.surface in (claims.SUMMARY, claims.OVERVIEW, claims.README), \
+        assert claim.surface in (claims.SUMMARY, claims.OVERVIEW, claims.README, claims.DRILLDOWN), \
             f"{claim.id}: unknown surface {claim.surface!r}"
 
 
@@ -353,11 +353,14 @@ def test_the_corrected_rank_sentence_is_not_itself_forbidden():
     assert not stock_summary.advice_terms_in(built), "new sentence carries advice language"
 
 
-def test_the_recorded_caveats_name_the_stage_that_will_close_them():
-    """Every known-incomplete claim must point at the stage that fixes it, so
-    the next session inherits the list instead of rediscovering it."""
-    open_ones = claims.open_caveats()
-    assert open_ones, "expected recorded caveats while T0b is outstanding"
-    for claim in open_ones:
-        assert "T0b" in claim.caveat, (
-            f"{claim.id}: caveat does not say which stage closes it")
+def test_the_recorded_caveats_say_whether_fixed_or_which_stage_extends_them():
+    """Every recorded caveat is either marked fixed (with the stage that fixed it) or names
+    the stage that will extend it, so the next session inherits the list instead of
+    rediscovering it. T0b - the stage the first version of this test was waiting on -
+    shipped 2026-10-07."""
+    import re as _re
+    recorded = claims.open_caveats()
+    assert recorded, "expected at least one recorded caveat"
+    for claim in recorded:
+        assert ("Fixed" in claim.caveat) or _re.search(r"\bT[0-6][ab]?\b|\bD[2-8]\b", claim.caveat), (
+            f"{claim.id}: caveat neither says it is fixed nor names the stage that closes it")

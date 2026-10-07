@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=d4e5d96ddc8b"></script>
+    <script src="./dashboard_data.js?v=d2ff7e74910d"></script>
     <style>
 
         /* ====================================================================
@@ -1960,6 +1960,17 @@
         .def-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
         .defensibility-summary .def-badge { color: var(--text-secondary); }
 
+        /* The overrides below sit after the rules they replace (the cascade is the contract). */
+        .contrib-cat-dot { display: none; }
+        .contrib-cat-weight { margin-left: 0; }
+        .contrib-qual, .qual-strong, .qual-avg, .qual-weak, .qual-vweak {
+            background: var(--bg-elevated); color: var(--text-muted);
+        }
+        .provenance-badge.provenance-ok { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border); }
+        .provenance-line { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 10px 0 0; }
+        .provenance-line strong { color: var(--text-primary); font-weight: 600; }
+        .provenance-limit { color: var(--text-muted); }
+
         /* ---- PRINT ---- */
         /* ---- Defensibility & Diagnostics Section ---- */
         .section-desc {
@@ -3305,7 +3316,10 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <h3>Factor Correlation Matrix</h3>
 <p>A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.</p>
 <h3>Data Provenance</h3>
-<p>Every stock carries three provenance fields: <code>_data_source</code> (where the data came from — e.g., "yfinance", "cache", "sample"), <code>_metric_count</code> (how many core metrics have valid data), and <code>_metric_total</code> (total possible metrics for that stock type). This makes per-stock data completeness visible at a glance.</p>
+<p>Every stock carries three provenance fields: <code>_data_source</code> (where the data came from — e.g., "yfinance", "cache", "sample"), <code>_metric_count</code> (how many of the metrics that apply to that stock have a value), and <code>_metric_total</code> (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.</p>
+<h3>The Workings Behind Every Score</h3>
+<p>Open any stock and <strong>The workings</strong> section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for <em>this</em> stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.</p>
+<p>The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; <code>scripts/audit_stock.py</code> repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.</p>
 <h3>DataValidation Sheet</h3>
 <p>The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by &gt;15pp), and beta overlap warnings (&lt;80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.</p>
 <hr />
@@ -6054,7 +6068,20 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (s.eps_mismatch) {
             html += '<span class="provenance-badge provenance-alert">EPS Mismatch (ratio: ' + (s.eps_ratio !== null ? s.eps_ratio : '?') + ')</span>';
         }
-        html += '</div></div>';
+        html += '</div>';
+        const fmtD = function(d) {
+            const t = new Date(d + 'T00:00:00');
+            return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+        const a = s.asof || {};
+        const parts = [];
+        if (a.bs) parts.push('Balance sheet as of <strong>' + fmtD(a.bs) + '</strong>');
+        if (a.is) parts.push('Income statement as of <strong>' + fmtD(a.is) + '</strong>');
+        if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
+        if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
+        html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but it cannot check that they are true.</p>';
+        html += '</div>';
         container.innerHTML = html;
     }
 

@@ -184,7 +184,7 @@ def load_run_data(run_dir: Path) -> dict:
         # some of these columns away.
         try:
             raw_full = pd.read_parquet(raw_path)
-            in_cols = [k for k in INPUT_KEYS if k in raw_full.columns]
+            in_cols = [k for k in tuple(INPUT_KEYS) + PROVENANCE_KEYS if k in raw_full.columns]
             if in_cols:
                 df = df.merge(raw_full[["Ticker"] + in_cols].rename(
                     columns={k: "_in_" + k for k in in_cols}), on="Ticker", how="left")
@@ -497,6 +497,10 @@ def _with_weight_profiles(weights: dict, run_cfg: dict) -> dict:
     return weights
 
 
+# Dates of the statements each stock's figures come from (display only).
+PROVENANCE_KEYS = ("_stmt_date_balance_sheet", "_stmt_date_cashflow", "_stmt_date_financials")
+
+
 def _compact(v):
     """JSON-safe number: whole floats become ints, so 4,891,001,487,360.0 ships as
     4891001487360 - the figure is identical and the payload smaller."""
@@ -754,6 +758,14 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _bn = row.get("_beneish_idx")
         if isinstance(_bn, str) and _bn:
             detail["bn"] = _bn
+        _asof = {}
+        for _k, _src in (("bs", "_stmt_date_balance_sheet"), ("cf", "_stmt_date_cashflow"),
+                         ("is", "_stmt_date_financials")):
+            _v = row.get("_in_" + _src)
+            if isinstance(_v, str) and _v:
+                _asof[_k] = _v[:10]
+        if _asof:
+            detail["asof"] = _asof
         _bad = _input_mismatches(detail["inp"], detail["raw"])
         if _bad:
             detail["inp_bad"] = _bad
@@ -3559,7 +3571,20 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (s.eps_mismatch) {{
             html += '<span class="provenance-badge provenance-alert">EPS Mismatch (ratio: ' + (s.eps_ratio !== null ? s.eps_ratio : '?') + ')</span>';
         }}
-        html += '</div></div>';
+        html += '</div>';
+        const fmtD = function(d) {{
+            const t = new Date(d + 'T00:00:00');
+            return isNaN(t) ? d : t.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }});
+        }};
+        const a = s.asof || {{}};
+        const parts = [];
+        if (a.bs) parts.push('Balance sheet as of <strong>' + fmtD(a.bs) + '</strong>');
+        if (a.is) parts.push('Income statement as of <strong>' + fmtD(a.is) + '</strong>');
+        if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
+        if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
+        html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but it cannot check that they are true.</p>';
+        html += '</div>';
         container.innerHTML = html;
     }}
 
@@ -6076,6 +6101,17 @@ def _css() -> str:
         .corr-legend-swatch.corr-high { box-shadow: inset 0 0 0 1px var(--amber); }
         .def-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
         .defensibility-summary .def-badge { color: var(--text-secondary); }
+
+        /* The overrides below sit after the rules they replace (the cascade is the contract). */
+        .contrib-cat-dot { display: none; }
+        .contrib-cat-weight { margin-left: 0; }
+        .contrib-qual, .qual-strong, .qual-avg, .qual-weak, .qual-vweak {
+            background: var(--bg-elevated); color: var(--text-muted);
+        }
+        .provenance-badge.provenance-ok { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border); }
+        .provenance-line { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 10px 0 0; }
+        .provenance-line strong { color: var(--text-primary); font-weight: 600; }
+        .provenance-limit { color: var(--text-muted); }
 
         /* ---- PRINT ---- */
         /* ---- Defensibility & Diagnostics Section ---- */
