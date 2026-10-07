@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-    <script src="./dashboard_data.js?v=042f3408003f"></script>
+    <script src="./dashboard_data.js?v=d2ff7e74910d"></script>
     <style>
 
         /* ====================================================================
@@ -315,31 +315,65 @@
             padding: 24px var(--gap);
         }
 
-        /* ---- HEADER ---- */
+        /* ---- HEADER: a slim bar that stays put, with the section jump links ---- */
+        :root { --bar-h: 52px; }
         .dashboard-header {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 20px 24px;
-            border-radius: var(--radius);
-            margin-bottom: var(--gap);
+            position: sticky;
+            top: 0;
+            z-index: 30;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
+            gap: 20px;
+            height: var(--bar-h);
+            margin: 0 calc(var(--gap) * -1) var(--gap);
+            padding: 0 var(--gap);
         }
+        /* The bar's surface is a pseudo-element as wide as the viewport, so it spans
+           the page even though the content column stops at 1440px. */
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            width: 100vw;
+            transform: translateX(-50%);
+            background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: -1;
+        }
+        body { overflow-x: clip; }
+        .header-left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
         .dashboard-header h1 {
             font-family: var(--font-heading);
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
-            letter-spacing: -.2px;
+            letter-spacing: -.01em;
+            white-space: nowrap;
         }
         .run-info {
-            font-size: 12.5px;
+            font-size: 12px;
             color: var(--text-muted);
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        .header-nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+        .header-nav::-webkit-scrollbar { display: none; }
+        .header-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 6px 10px;
+            border-radius: var(--radius);
+            white-space: nowrap;
+            transition: color var(--t-fast) ease-out, background var(--t-fast) ease-out;
+        }
+        .header-nav a:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .header-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .section { scroll-margin-top: calc(var(--bar-h) + 12px); }
+        .data-table thead th { top: var(--bar-h); }
         .badge {
             display: inline-block;
             background: var(--bg-elevated);
@@ -357,180 +391,79 @@
             color: var(--red);
         }
 
-        /* ---- KPI ROW ---- */
+        /* ---- KPI STRIP: one quiet bar, not a row of cards ---- */
         .kpi-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: var(--gap);
-            margin-bottom: var(--gap);
-        }
-        .kpi-card {
+            grid-template-columns: repeat(4, 1fr);
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 18px 22px;
-            transition: border-color var(--t-base) ease-out;
+            overflow: hidden;
+            margin-bottom: calc(var(--gap) * 1.5);
         }
-        .kpi-card:hover {
-            border-color: var(--border-bright);
-        }
+        .kpi-card { padding: 16px 22px; border-right: 1px solid var(--border); min-width: 0; }
+        .kpi-card:last-child { border-right: 0; }
         .kpi-label {
-            font-family: var(--font-heading);
+            font-family: var(--font-body);
             font-size: 11px;
-            color: var(--text-secondary);
+            font-weight: 500;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: .8px;
+            letter-spacing: .05em;
             margin-bottom: 4px;
         }
         .kpi-value {
             font-family: var(--font-body);
-            font-size: 28px;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: 600;
             color: var(--text-primary);
-            letter-spacing: -.5px;
+            letter-spacing: -.02em;
+            line-height: 1.2;
         }
-        .kpi-sub {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
+        .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
         /* ---- TOP 5 ---- */
-        .top5-row {
-            display: flex;
-            gap: var(--gap);
-            overflow-x: auto;
-            padding-bottom: 4px;
-        }
+        .top5-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap); }
         .top5-card {
-            flex: 1;
-            min-width: 210px;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 0 0 14px;
+            padding: 14px 16px 16px;
             cursor: pointer;
-            transition: border-color var(--t-base) ease-out, background var(--t-base) ease-out;
-            overflow: hidden;
-        }
-        .top5-card:hover {
-            border-color: var(--border-bright);
-            background: var(--bg-card-hover);
-        }
-        .top5-rank-bar {
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
-            padding: 10px 18px 0;
-            letter-spacing: .05em;
-        }
-        .top5-header { padding: 12px 18px 2px; }
-        .top5-ticker {
-            font-family: var(--font-heading);
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--accent);
-        }
-        .top5-composite-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding: 8px 16px;
-            margin: 6px 12px 10px;
-            background: var(--bg-elevated);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        .top5-composite-label {
-            font-family: var(--font-heading);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-        .top5-composite {
-            font-family: var(--font-body);
-            font-size: 22px;
-            font-weight: 700;
-            /* Ink, not green: green is reserved for direction of change
-               (docs: plan/dashboard-design-system.md). A composite is a level. */
-            color: var(--text-primary);
-        }
-        .top5-company {
-            font-size: 12px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 18px;
-            margin-bottom: 4px;
-        }
-        /* Sector is a fact, not a brand: neutral chip, identity rides the
-           label. The 11-hue sector map was decoration (design-system doc). */
-        .top5-sector {
-            display: inline-flex;
-            align-items: center;
-            font-size: 11px;
-            font-weight: 500;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            padding: 3px 10px;
-            border-radius: var(--radius-pill);
-            margin-left: 18px;
-            letter-spacing: .02em;
-        }
-        .top5-factors {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding: 0 18px;
+            gap: 12px;
+            transition: border-color var(--t-fast) ease-out, background var(--t-fast) ease-out;
         }
+        .top5-card:hover { border-color: var(--border-bright); background: var(--bg-card-hover); }
+        .top5-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .top5-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .top5-rank-bar { color: var(--text-muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .top5-sector {
+            font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .top5-id { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+        .top5-who { min-width: 0; }
+        .top5-ticker {
+            font-family: var(--font-heading); font-size: 20px; font-weight: 600; letter-spacing: -.01em;
+            color: var(--text-primary); line-height: 1.1;
+        }
+        .top5-company {
+            font-size: 12px; color: var(--text-secondary); margin-top: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .top5-score { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+        .top5-composite { font-size: 24px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); line-height: 1.1; }
+        .top5-composite-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+        .top5-factors { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
         .top5-factor {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: grid; grid-template-columns: 1fr auto; align-items: baseline; row-gap: 3px;
             font-size: 11px;
         }
-        .top5-factor-label {
-            flex: 0 0 32px;
-            color: var(--text-secondary);
-            font-family: var(--font-body);
-            font-weight: 500;
-            font-size: 10px;
-        }
-        .top5-factor-bar {
-            flex: 1;
-            height: 6px;
-            background: var(--bg-elevated);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .top5-factor-fill {
-            height: 100%;
-            border-radius: 3px;
-        }
-        .top5-factor-val {
-            flex: 0 0 30px;
-            text-align: right;
-            font-family: var(--font-body);
-            font-weight: 600;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-        .top5-cta {
-            margin-top: 10px;
-            padding: 0 18px;
-            font-size: 11px;
-            color: var(--accent);
-            text-align: center;
-            opacity: 0;
-            transition: opacity .2s;
-            font-weight: 500;
-        }
-        .top5-card:hover .top5-cta { opacity: 1; }
+        .top5-factor-label { color: var(--text-muted); font-size: 11px; }
+        .top5-factor-val { color: var(--text-secondary); font-weight: 500; font-size: 12px; }
+        .top5-factor-bar { grid-column: 1 / -1; height: 3px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+        .top5-factor-fill { height: 100%; background: var(--accent); border-radius: 2px; opacity: .9; }
 
         /* ---- SECTIONS ---- */
         .section {
@@ -538,25 +471,12 @@
         }
         .section-title {
             font-family: var(--font-heading);
-            font-size: 17px;
-            font-weight: 700;
-            margin-bottom: 14px;
-            padding-left: 4px;
-            letter-spacing: -.2px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -.01em;
             color: var(--text-primary);
-            position: relative;
-            padding-left: 14px;
         }
-        .section-title::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 3px;
-            bottom: 3px;
-            width: 3px;
-            background: var(--accent);
-            border-radius: 2px;
-        }
+        .section-title::before { display: none; }
 
         /* ---- COLLAPSIBLE SECTIONS ---- */
         .collapsible-section .section-header {
@@ -565,27 +485,25 @@
             justify-content: space-between;
             cursor: pointer;
             user-select: none;
-            padding: 6px 4px 6px 0;
-            border-radius: 8px;
-            transition: background .15s ease;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            transition: border-color var(--t-fast) ease-out;
         }
-        .collapsible-section .section-header:hover {
-            background: var(--bg-elevated);
-        }
+        .collapsible-section .section-header:hover { border-bottom-color: var(--border-bright); }
         .section-chevron {
-            width: 22px;
-            height: 22px;
-            color: var(--text-secondary);
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
             flex-shrink: 0;
-            transition: transform .25s ease;
+            transition: transform var(--t-base) ease-out;
             margin-left: 12px;
         }
         .collapsible-section .section-body {
             overflow: hidden;
             max-height: 5000px;
             opacity: 1;
-            transition: max-height .35s ease, opacity .25s ease, margin .25s ease;
-            margin-top: 14px;
+            transition: max-height var(--t-base) ease-out, opacity var(--t-base) ease-out, margin var(--t-base) ease-out;
+            margin-top: 16px;
         }
         .collapsible-section.collapsed .section-body {
             max-height: 0;
@@ -593,9 +511,29 @@
             margin-top: 0;
             pointer-events: none;
         }
-        .collapsible-section.collapsed .section-chevron {
-            transform: rotate(-90deg);
+        .collapsible-section.collapsed .section-chevron { transform: rotate(-90deg); }
+
+        /* ---- PROGRESSIVE DISCLOSURE: the evidence is one click away, not in the way ---- */
+        .why-panel { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+        .why-panel > summary {
+            cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12.5px; color: var(--text-secondary);
+            transition: color var(--t-fast) ease-out;
         }
+        .why-panel > summary::-webkit-details-marker { display: none; }
+        .why-panel > summary::before { content: '▸'; font-size: 10px; display: inline-block; transition: transform var(--t-fast) ease-out; }
+        .why-panel[open] > summary::before { transform: rotate(90deg); }
+        .why-panel > summary:hover { color: var(--text-primary); }
+        .why-panel > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+        .why-panel .holdings-footnote, .why-panel .changed-footnote { margin-top: 12px; border-top: 0; padding-top: 0; }
+        .holdings-footnote strong, .changed-footnote strong { color: var(--text-primary); font-weight: 600; }
+        .movers-col > div:not(.expanded) .mover-row:nth-child(n+6) { display: none; }
+        .show-more {
+            margin: 10px 0 0; background: none; border: 1px solid var(--border-bright); color: var(--text-secondary);
+            border-radius: var(--radius); padding: 6px 12px; font: inherit; font-size: 12.5px; cursor: pointer;
+            transition: color var(--t-fast) ease-out, border-color var(--t-fast) ease-out;
+        }
+        .show-more:hover { color: var(--text-primary); border-color: var(--text-muted); }
 
         /* ---- CHARTS ---- */
         .chart-row {
@@ -680,110 +618,214 @@
         }
         .chart-title-row select:hover { border-color: var(--accent); }
 
-        /* ---- TABLES ---- */
+        /* ---- RANKINGS TABLE ----
+           Scrolls with the page, header stuck to the top, rows windowed (see
+           _js_table). Fixed row height is part of the contract: renderWindow()
+           reads --row-h to place the spacer rows. */
+        #sec-universe:not(.collapsed) .section-body { max-height: none; overflow: visible; }
         .table-section {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 12px 16px;
-            overflow-x: auto;
-            overflow-y: auto;
-            max-height: 700px;
             margin-bottom: var(--gap);
+            overflow: clip;
         }
         .data-table {
+            --row-h: 40px;
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            table-layout: fixed;
             font-size: 13px;
         }
         .data-table thead th {
             text-align: left;
-            padding: 10px 10px;
+            height: 40px;
+            padding: 0 10px;
             border-bottom: 1px solid var(--border-bright);
-            color: var(--text-secondary);
-            font-family: var(--font-heading);
-            font-weight: 600;
-            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-weight: 500;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: .8px;
+            letter-spacing: .05em;
             white-space: nowrap;
             user-select: none;
-            transition: color .15s;
+            cursor: pointer;
             position: sticky;
-            top: 0;
-            z-index: 1;
+            top: var(--bar-h);
+            z-index: 2;
             background: var(--bg-card);
+            transition: color var(--t-fast) ease-out;
         }
-        .data-table thead th:hover { color: var(--accent); }
-        .data-table thead th.sorted { color: var(--accent); }
-        .data-table thead th.sorted::after { content: ' ▾'; }
-        .data-table thead th.sorted[data-dir="asc"]::after { content: ' ▴'; }
+        .data-table thead th:hover { color: var(--text-primary); }
+        .data-table thead th.sorted { color: var(--text-primary); }
+        .data-table thead th.sorted::after { content: ' ↓'; color: var(--accent-text); }
+        .data-table thead th.sorted[data-dir="asc"]::after { content: ' ↑'; }
+        .data-table thead th:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .data-table th:nth-child(1) { width: 56px; }
+        .data-table th:nth-child(2) { width: 56px; }
+        .data-table th:nth-child(3) { width: 76px; }
+        .data-table th:nth-child(5) { width: 178px; }
+        .data-table th:nth-child(6) { width: 108px; }
+        .data-table th:nth-child(n+7):nth-child(-n+14) { width: 62px; }
+        .data-table th:nth-child(15) { width: 132px; }
+        .data-table th:nth-child(n+6):nth-child(-n+14) { text-align: right; }
+        .data-table tbody tr.row-active { background: var(--accent-glow); }
+        .data-table tbody tr {
+            height: var(--row-h);
+            cursor: pointer;
+            transition: background var(--t-fast) ease-out;
+        }
+        .data-table tbody tr:hover { background: var(--bg-card-hover); }
+        .data-table tbody tr.row-active:hover { background: var(--accent-glow); }
+        .data-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         .data-table tbody td {
-            padding: 8px 10px;
+            padding: 0 10px;
             border-bottom: 1px solid var(--border);
             font-family: var(--font-body);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .data-table tbody tr { transition: background .1s; }
-        .data-table tbody tr:hover { background: var(--bg-card-hover); }
-        .data-table .num {
-            text-align: right;
-            font-family: var(--font-body);
-            font-variant-numeric: tabular-nums;
-            font-size: 12px;
+        .data-table tbody tr.vt-spacer, .data-table tbody tr.vt-empty { height: auto; cursor: default; }
+        .data-table tbody tr.vt-spacer td { padding: 0; border: 0; }
+        .data-table tbody tr.vt-spacer:hover, .data-table tbody tr.vt-empty:hover { background: none; }
+        .data-table .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+        .data-table .rank { color: var(--text-muted); }
+        .data-table .ticker { font-weight: 600; color: var(--accent-text); }
+        .data-table .company { color: var(--text-secondary); }
+        .data-table .sector { color: var(--text-muted); font-size: 12px; }
+        .data-table .delta-cell { font-size: 12px; }
+        .data-table td.comp { position: relative; font-weight: 600; color: var(--text-primary); }
+        .data-table td.comp i {
+            position: absolute; left: 10px; bottom: 7px; height: 2px; max-width: calc(100% - 20px);
+            background: var(--accent); border-radius: 1px; opacity: .85;
         }
-        .data-table .ticker {
-            font-family: var(--font-body);
-            font-weight: 600;
-            color: var(--accent);
+        .data-table td.sc {
+            color: var(--text-secondary);
+            background: color-mix(in srgb, var(--accent) calc(var(--v) * 20%), transparent);
         }
-        .vt-row { background: var(--red-dim); }
-        .vt-cell { text-align: center; }
+        .data-table td.sc-na { color: var(--text-muted); }
+        .data-table .vt-cell { text-align: left; }
+        .flag {
+            display: inline-block; margin-right: 4px; padding: 1px 7px; border-radius: 10px;
+            font-size: 11px; line-height: 16px; color: var(--amber); background: var(--amber-dim);
+        }
+        .empty-state { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 48px 16px; color: var(--text-muted); font-size: 13px; }
+        .empty-state strong { color: var(--text-primary); font-weight: 600; font-size: 14px; }
 
         /* ---- FILTERS ---- */
         .filters-bar {
             display: flex;
-            gap: 16px;
+            gap: 12px 16px;
             align-items: flex-end;
             flex-wrap: wrap;
             margin-bottom: 12px;
-            padding: 14px 18px;
+            padding: 12px 16px;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
         }
         .filter-group { display: flex; flex-direction: column; gap: 4px; }
         .filter-group label {
-            font-family: var(--font-heading);
-            font-size: 10px;
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 500;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: .8px;
+            letter-spacing: .05em;
         }
-        .filter-group select, .filter-group input {
-            padding: 7px 12px;
+        .filter-group select, .filter-group input, .filter-search input {
+            height: 34px;
+            padding: 0 12px;
             border: 1px solid var(--border-bright);
-            border-radius: 6px;
+            border-radius: var(--radius);
             font-family: var(--font-body);
             font-size: 13px;
             background: var(--bg-elevated);
             color: var(--text-primary);
-            transition: border-color .15s;
+            transition: border-color var(--t-fast) ease-out, box-shadow var(--t-fast) ease-out;
         }
-        .filter-group select:focus, .filter-group input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
+        .filter-group select {
+            appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23898781' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
         }
-        .filter-group input[type="number"] { width: 80px; }
-        .filter-group input[type="text"] { width: 180px; }
-        .filter-group input::placeholder { color: var(--text-muted); }
+        .filter-group select:hover, .filter-group input:hover, .filter-search input:hover { border-color: var(--text-muted); }
+        .filter-group select:focus-visible, .filter-group input:focus-visible, .filter-search input:focus-visible {
+            outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .filter-group input[type="number"] { width: 88px; }
+        .filter-group input::placeholder, .filter-search input::placeholder { color: var(--text-muted); }
+        .filter-search { position: relative; display: flex; align-items: center; flex: 1 1 220px; max-width: 340px; }
+        .filter-search svg { position: absolute; left: 11px; width: 15px; height: 15px; color: var(--text-muted); pointer-events: none; }
+        .filter-search input { width: 100%; padding-left: 34px; padding-right: 30px; }
+        .filter-search kbd {
+            position: absolute; right: 9px; font-family: var(--font-body); font-size: 11px; color: var(--text-muted);
+            border: 1px solid var(--border-bright); border-radius: 4px; padding: 0 5px; line-height: 16px; pointer-events: none;
+        }
+        .filter-search input:focus ~ kbd, .filter-search input:not(:placeholder-shown) ~ kbd { display: none; }
+        .filter-sort-m { display: none; }
+        .filter-clear {
+            height: 34px; padding: 0 12px; background: none; border: 1px solid var(--border-bright);
+            border-radius: var(--radius); color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer;
+            transition: color var(--t-fast) ease-out, border-color var(--t-fast) ease-out;
+        }
+        .filter-clear:hover { color: var(--text-primary); border-color: var(--text-muted); }
+        .filter-clear[hidden] { display: none; }
         .result-count {
             font-family: var(--font-body);
             font-size: 12px;
-            color: var(--text-secondary);
-            padding: 7px 0;
+            color: var(--text-muted);
+            margin-left: auto;
+            align-self: center;
+            font-variant-numeric: tabular-nums;
         }
 
+        /* ---- RANKINGS TABLE ON NARROW SCREENS ----
+           Below 1180px the Sector column goes. Below 760px each row becomes a card:
+           identity and composite on the first line, the eight scores on the second,
+           movement and flags on the third. Same fixed-height contract, a taller row. */
+        @media (max-width: 1180px) {
+            .data-table th:nth-child(5), .data-table td.sector { display: none; }
+        }
+        @media (max-width: 760px) {
+            .filter-sort-m { display: flex; }
+            .filter-search { max-width: none; flex-basis: 100%; }
+            .data-table { --row-h: 96px; table-layout: auto; display: block; }
+            .data-table thead { display: none; }
+            .data-table tbody { display: block; }
+            .data-table tbody tr {
+                display: grid;
+                grid-template-columns: repeat(8, 1fr);
+                grid-template-rows: 36px 34px 24px;
+                height: var(--row-h);
+                padding: 0 12px;
+                border-bottom: 1px solid var(--border);
+                box-sizing: border-box;
+            }
+            .data-table tbody tr.vt-spacer, .data-table tbody tr.vt-empty { display: block; padding: 0; }
+            .data-table tbody td { border-bottom: 0; padding: 0; display: flex; align-items: center; min-width: 0; }
+            .data-table tbody td.sector { display: none; }
+            .data-table td.rank { grid-column: 1; grid-row: 1; justify-content: flex-start; }
+            .data-table td.ticker { grid-column: 2 / span 2; grid-row: 1; }
+            .data-table td.company { grid-column: 4 / span 3; grid-row: 1; font-size: 12px; }
+            .data-table td.comp { grid-column: 7 / span 2; grid-row: 1; justify-content: flex-end; }
+            .data-table td.comp i { left: auto; right: 0; bottom: 4px; width: 100%; }
+            .data-table td.sc {
+                grid-row: 2; flex-direction: column; justify-content: center; gap: 0; font-size: 12px; border-radius: 4px;
+            }
+            .data-table td.sc::before {
+                content: attr(data-l); font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em;
+            }
+            .data-table td.delta-cell { grid-column: 1 / span 2; grid-row: 3; justify-content: flex-start; }
+            .data-table td.vt-cell { grid-column: 3 / span 6; grid-row: 3; justify-content: flex-end; }
+            .data-table .vt-empty td { display: block; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .data-table tbody tr, .data-table thead th { transition: none; }
+        }
 
         /* ---- FOOTER ---- */
         .dashboard-footer {
@@ -986,85 +1028,162 @@
         }
         .modal-body { padding: 22px 26px 28px; }
 
-        /* ---- COLLAPSIBLE SECTIONS ---- */
-        .collapsible {
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
+        /* ---- THE STOCK DRILLDOWN AS A SHEET ----
+           A right-hand sheet on desktop, a bottom sheet on phones. The identity
+           header and the jump links stay put; only the body scrolls. */
+        #stock-modal.modal-overlay {
+            align-items: stretch; justify-content: flex-end; padding: 0; overflow: hidden;
+            background: rgba(0,0,0,.55);
+            -webkit-backdrop-filter: none; backdrop-filter: none;
         }
+        #stock-modal .modal-content {
+            max-width: 880px; height: 100%; max-height: 100vh;
+            display: flex; flex-direction: column;
+            border-radius: 0; border-width: 0 0 0 1px;
+            animation: sheetIn var(--t-base) ease-out;
+        }
+        #stock-modal .modal-header {
+            flex: none; align-items: center; gap: 20px; padding: 18px 24px 14px;
+            border-radius: 0; background: var(--bg-primary); border-bottom: 0;
+        }
+        #stock-modal .modal-header > div:first-child { min-width: 0; flex: 1; }
+        #stock-modal .modal-ticker { color: var(--text-primary); font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+        #stock-modal .modal-company { font-size: 13px; display: inline; margin: 0 8px 0 0; }
+        #stock-modal .modal-sector {
+            background: none; border: 0; padding: 0; margin: 0; font-size: 12px; color: var(--text-muted);
+        }
+        .modal-headline { display: flex; gap: 22px; flex: none; }
+        .mh-item { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+        .mh-item strong { font-size: 18px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+        .mh-k { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+        .mh-of { font-size: 11px; color: var(--text-muted); }
+        .modal-nav {
+            flex: none; display: flex; gap: 2px; padding: 0 20px 10px;
+            border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none;
+            background: var(--bg-primary);
+        }
+        .modal-nav::-webkit-scrollbar { display: none; }
+        .modal-nav a {
+            color: var(--text-secondary); text-decoration: none; font-size: 12.5px; padding: 5px 10px;
+            border-radius: var(--radius); white-space: nowrap;
+            transition: color var(--t-fast) ease-out, background var(--t-fast) ease-out;
+        }
+        .modal-nav a:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .modal-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        #stock-modal .modal-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 22px 24px 40px; }
+        #stock-modal .modal-close {
+            flex: none; width: 34px; height: 34px; padding: 0; display: grid; place-items: center;
+            font-size: 20px; border-radius: var(--radius);
+        }
+        #stock-modal .modal-close:hover { border-color: var(--border-bright); background: var(--bg-elevated); color: var(--text-primary); }
+        #stock-modal .modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        @keyframes sheetIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+        @keyframes sheetUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+        @media (max-width: 760px) {
+            #stock-modal.modal-overlay { align-items: flex-end; }
+            #stock-modal .modal-content {
+                max-width: none; height: 94vh; border-radius: 16px 16px 0 0; border-width: 1px 0 0 0;
+                animation: sheetUp var(--t-base) ease-out;
+            }
+            #stock-modal .modal-header { padding: 14px 16px 10px; gap: 12px; flex-wrap: wrap; }
+            #stock-modal .modal-header > div:first-child { flex: 1 1 60%; }
+            .modal-headline { order: 3; flex: 1 1 100%; gap: 20px; }
+            .mh-item { align-items: flex-start; }
+            .modal-nav { padding: 0 12px 8px; }
+            #stock-modal .modal-body { padding: 16px 16px 32px; }
+            .modal-score-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        /* "Why it ranks here": a headline, then quiet groups. */
+        .summary-block {
+            background: none; border: 0; border-radius: 0; padding: 0;
+            margin-bottom: 28px; scroll-margin-top: 12px;
+        }
+        .summary-head { margin-bottom: 10px; }
+        .summary-title {
+            font-family: var(--font-body); font-size: 11px; font-weight: 500; letter-spacing: .05em; color: var(--text-muted);
+        }
+        .summary-rank { font-size: 16px; font-weight: 600; line-height: 1.5; letter-spacing: -.01em; margin-bottom: 14px; }
+        .summary-group-label {
+            font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted);
+            margin: 16px 0 6px; padding-top: 12px; border-top: 1px solid var(--border);
+        }
+        .summary-fact { font-size: 13.5px; color: var(--text-secondary); margin-bottom: 6px; }
+        .summary-confidence, .summary-flags { color: var(--text-muted); font-size: 13px; }
+        .summary-source { border-top: 0; padding-top: 0; margin-top: 16px; }
+        .contrib-cat-dot { display: none; }
+        .contrib-cat-weight { margin-left: 0; }
+        .qual-strong, .qual-avg, .qual-weak, .qual-vweak { background: var(--bg-elevated); color: var(--text-muted); }
+        .about-block, .modal-chart-section {
+            background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 18px 0;
+        }
+
+        /* ---- COLLAPSIBLE BLOCKS INSIDE THE DRILLDOWN: hairlines, not boxes ---- */
+        .collapsible { margin-bottom: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
         .collapsible-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 18px;
-            cursor: pointer;
-            background: var(--bg-card);
-            user-select: none;
-            transition: background .15s;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0; cursor: pointer; user-select: none; background: none;
+            transition: color var(--t-fast) ease-out;
         }
-        .collapsible-header:hover {
-            background: var(--bg-card-hover);
-        }
+        .collapsible-header:hover { background: none; }
+        .collapsible-header:hover span:first-child { color: var(--accent-text); }
         .collapsible-header span:first-child {
-            font-family: var(--font-heading);
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
+            font-family: var(--font-heading); font-size: 14px; font-weight: 600; color: var(--text-primary);
         }
-        .collapsible-chevron {
-            font-size: 10px;
-            color: var(--text-muted);
-            transition: transform .2s ease;
-        }
-        .collapsible.collapsed .collapsible-chevron {
-            transform: rotate(-90deg);
-        }
-        .collapsible-body {
-            padding: 0 18px 16px;
-            background: var(--bg-card);
-        }
-        .collapsible.collapsed .collapsible-body {
-            display: none;
-        }
+        .collapsible-chevron { font-size: 10px; color: var(--text-muted); transition: transform var(--t-fast) ease-out; }
+        .collapsible.collapsed .collapsible-chevron { transform: rotate(-90deg); }
+        .collapsible-body { padding: 0 0 20px; background: none; }
+        .collapsible.collapsed .collapsible-body { display: none; }
+        .collapsible { scroll-margin-top: 12px; }
 
         .modal-score-row {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-            margin-bottom: 22px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 24px;
+            scroll-margin-top: 12px;
         }
         .modal-score-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px 10px;
-            text-align: center;
-            transition: border-color .2s;
+            border-radius: var(--radius);
+            padding: 12px 12px 10px;
+            text-align: left;
+            transition: border-color var(--t-fast) ease-out;
         }
         .modal-score-card:hover { border-color: var(--border-bright); }
         .modal-score-card.composite {
-            border-color: var(--accent);
+            grid-column: 1 / -1;
+            display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+            border-color: var(--border-bright);
+            padding: 14px 16px;
         }
+        .modal-score-card.composite .modal-score-val { font-size: 32px; }
         .modal-score-label {
-            font-family: var(--font-heading);
-            font-size: 10px;
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: .6px;
-            color: var(--text-secondary);
-            margin-bottom: 3px;
+            letter-spacing: .05em;
+            color: var(--text-muted);
+            margin-bottom: 2px;
         }
+        .modal-score-card.composite .modal-score-label { margin: 0; }
         .modal-score-val {
             font-family: var(--font-body);
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -.02em;
+            color: var(--text-primary);
+            line-height: 1.2;
         }
         .modal-score-sub {
             font-family: var(--font-body);
-            font-size: 11px;
+            font-size: 11.5px;
             color: var(--text-muted);
             margin-top: 2px;
         }
+        .modal-score-card.composite .modal-score-sub { margin: 0; }
         .modal-chart-section {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -1085,34 +1204,6 @@
         }
 
         /* ---- REFRESH BUTTON ---- */
-        .refresh-btn {
-            background: var(--surface);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-family: var(--font-heading);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            letter-spacing: .3px;
-            transition: all .2s;
-            margin-right: 8px;
-        }
-        .refresh-btn:hover {{ background: var(--surface-2); border-color: var(--accent); color: var(--accent); }}
-        .refresh-btn:disabled {{ opacity: .5; cursor: not-allowed; }}
-        .refresh-status {{
-            font-family: var(--font-body);
-            font-size: 11px;
-            color: var(--accent);
-            margin-right: 10px;
-            max-width: 220px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }}
-
-        /* ---- METHODOLOGY BUTTON & MODAL ---- */
         .methodology-btn {
             background: var(--bg-elevated);
             color: var(--text-primary);
@@ -1725,6 +1816,104 @@
             color: var(--text-muted);
         }
         .metric-na { color: var(--text-muted); font-style: italic; }
+
+        /* ---- WORKINGS: how a category score is built ---- */
+        .wk-controls { display: flex; gap: 8px; justify-content: flex-end; margin: 0 0 10px; }
+        .wk-toggle-all {
+            background: none; border: 1px solid var(--border); color: var(--text-secondary);
+            border-radius: var(--radius); padding: 4px 10px; font-size: 12px; cursor: pointer;
+            font-family: inherit; transition: border-color var(--t-fast) ease-out, color var(--t-fast) ease-out;
+        }
+        .wk-toggle-all:hover { border-color: var(--border-bright); color: var(--text-primary); }
+        .cat-detail-section.collapsed .cat-detail-body { display: none; }
+        .cat-detail-header .wk-chevron {
+            display: inline-block; margin-left: 10px; color: var(--text-muted);
+            transition: transform var(--t-fast) ease-out;
+        }
+        .cat-detail-section.collapsed .wk-chevron { transform: rotate(-90deg); }
+        .wk-note {
+            font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+            margin: 0 0 10px; padding: 8px 12px; background: var(--bg-elevated);
+            border-radius: var(--radius); border-left: 2px solid var(--border-bright);
+        }
+        .wk-note strong { color: var(--text-primary); font-weight: 600; }
+        .wk-profile { border-left-color: var(--accent); }
+        .wk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .wk-table th {
+            text-align: left; font-weight: 500; font-size: 11px; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px;
+            border-bottom: 1px solid var(--border-bright);
+        }
+        .wk-table th.wk-num { text-align: right; }
+        .wk-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .wk-table tr.metric-row { display: table-row; border-bottom: none; }
+        .wk-table tr.metric-row:hover { background: var(--bg-card-hover); margin: 0; padding: 0; }
+        .wk-table .wk-metric { color: var(--text-secondary); }
+        .wk-table .wk-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .wk-table .wk-pct { width: 34%; }
+        .wk-table .metric-pct-bar-container { margin-left: 0; }
+        .wk-table .wk-points { color: var(--text-primary); font-weight: 600; }
+        .wk-table tr.wk-nodata td { color: var(--text-muted); }
+        .wk-table tfoot td { border-bottom: none; border-top: 1px solid var(--border-bright); color: var(--text-primary); font-weight: 600; }
+        .metric-pct-fill { background: var(--accent); }
+        .wk-off { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; line-height: 1.5; }
+        .wk-info {
+            background: none; border: 0; color: var(--text-muted); cursor: pointer;
+            width: 22px; height: 22px; margin: 0 4px 0 -6px; padding: 0; border-radius: 4px;
+            font-size: 11px; line-height: 1; vertical-align: middle;
+            transition: color var(--t-fast) ease-out, background var(--t-fast) ease-out;
+        }
+        .wk-info:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .wk-info span { display: inline-block; transition: transform var(--t-fast) ease-out; }
+        .wk-info[aria-expanded="true"] span { transform: rotate(90deg); }
+        tr.wk-open > td { border-bottom-color: transparent; }
+        tr.wk-detail > td { padding: 0 8px 12px; background: var(--bg-card); }
+        .wk-detail-body {
+            background: var(--bg-elevated); border-radius: var(--radius); padding: 12px 14px;
+            font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+        }
+        .wk-detail-body > * + * { margin-top: 10px; }
+        .wk-k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 500; margin-right: 8px; }
+        .wk-formula { color: var(--text-primary); }
+        .wk-formula .wk-k { display: block; margin-bottom: 2px; }
+        .wk-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 16px; margin: 4px 0 0; }
+        .wk-inputs div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); padding: 3px 0; }
+        .wk-inputs dt { color: var(--text-muted); }
+        .wk-inputs dd { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .wk-parts { list-style: none; margin: 4px 0 0; padding: 0; }
+        .wk-part { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--border); }
+        .wk-part .wk-mark { width: 14px; flex: none; text-align: center; }
+        .wk-part .wk-part-val { margin-left: auto; color: var(--text-muted); }
+        .wk-part-pass .wk-mark { color: var(--green); }
+        .wk-part-fail .wk-mark { color: var(--red); }
+        .wk-part-na { color: var(--text-muted); }
+        .wk-sum { color: var(--text-primary); font-weight: 600; margin-top: 6px; }
+        .wk-mini { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+        .wk-mini th { text-align: left; font-weight: 500; color: var(--text-muted); padding: 3px 4px; }
+        .wk-mini th.wk-num { text-align: right; }
+        .wk-mini td { padding: 3px 4px; border-bottom: 1px solid var(--border); }
+        .wk-mini tfoot td { border-bottom: none; color: var(--text-primary); font-weight: 600; }
+        .wk-dim { color: var(--text-muted); }
+        .wk-check { color: var(--text-muted); }
+        .wk-check-ok { color: var(--text-secondary); }
+        .wk-check-bad { color: var(--amber); }
+        .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
+        .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
+        .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
+        .contrib-row-link:hover { background: var(--bg-card-hover); }
+        .chain-line {
+            display: flex; justify-content: space-between; gap: 16px; font-size: 13px;
+            color: var(--text-secondary); padding: 6px 0; font-variant-numeric: tabular-nums;
+        }
+        .chain-line strong { color: var(--text-primary); white-space: nowrap; }
+        .chain-discount { border-left: 2px solid var(--amber); padding-left: 10px; }
+        @media (max-width: 600px) {
+            .wk-table .wk-pct { width: auto; }
+            .wk-table .metric-pct-bar { display: none; }
+            .wk-table th, .wk-table td { padding: 8px 4px; }
+            .wk-table th.wk-pct { font-size: 0; }
+            .wk-table th.wk-pct::after { content: "Pctile"; font-size: 11px; }
+        }
         .ticker-link { cursor: pointer; }
         .ticker-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 
@@ -1736,6 +1925,92 @@
             .chart-small { flex: 1 1 100%; min-width: 100%; }
             .filters-bar { flex-direction: column; }
         }
+
+        @media (max-width: 1100px) {
+            .top5-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 760px) {
+            .dashboard-header { position: static; height: auto; padding: 12px var(--gap); flex-wrap: wrap; gap: 8px 12px; }
+            .header-left { flex-wrap: wrap; flex: 1 1 100%; gap: 2px 12px; }
+            .header-nav { order: 3; flex: 1 1 100%; margin-left: -10px; }
+            .header-right { margin-left: auto; order: 2; }
+            .data-table thead th { top: 0; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .kpi-card { padding: 14px 16px; }
+            .kpi-card:nth-child(2) { border-right: 0; }
+            .kpi-card:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+            .top5-row { grid-template-columns: 1fr; }
+        }
+
+        /* ---- ANALYTICS & DIAGNOSTICS: one hue, status only where it means something ---- */
+        .chart-note { font-size: 12.5px; line-height: 1.55; color: var(--text-muted); margin: 8px 0 14px; max-width: 70ch; }
+        .sector-matrix { overflow-x: auto; }
+        .sm-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .sm-table th {
+            font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted);
+            padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-bright); white-space: nowrap;
+        }
+        .sm-table th.num, .sm-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .sm-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .sm-sector { color: var(--text-primary); }
+        .sm-table td.sm { color: var(--text-secondary); background: color-mix(in srgb, var(--accent) calc(var(--t) * 34%), transparent); }
+        .sm-table td.sm-na, .sm-table td.sm-n { color: var(--text-muted); }
+        .corr-cell.corr-high { box-shadow: inset 0 0 0 1px var(--amber); }
+        .corr-legend-swatch.corr-high { box-shadow: inset 0 0 0 1px var(--amber); }
+        .def-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+        .defensibility-summary .def-badge { color: var(--text-secondary); }
+
+        /* The overrides below sit after the rules they replace (the cascade is the contract). */
+        .contrib-cat-dot { display: none; }
+        .contrib-cat-weight { margin-left: 0; }
+        .contrib-qual, .qual-strong, .qual-avg, .qual-weak, .qual-vweak {
+            background: var(--bg-elevated); color: var(--text-muted);
+        }
+        .provenance-badge.provenance-ok { background: var(--bg-elevated); color: var(--text-secondary); border-color: var(--border); }
+        .provenance-line { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 10px 0 0; }
+        .provenance-line strong { color: var(--text-primary); font-weight: 600; }
+        .provenance-limit { color: var(--text-muted); }
+
+        /* ---- METHODOLOGY: a reading surface ----
+           A readable measure (about 72 characters), a contents rail, quiet headings. */
+        .methodology-content { max-width: 1060px; }
+        .methodology-body {
+            display: grid; grid-template-columns: 210px minmax(0, 1fr); column-gap: 44px;
+            max-height: 78vh; padding-right: 0; scroll-padding-top: 8px;
+        }
+        .methodology-body > * { grid-column: 2; min-width: 0; }
+        .methodology-body > .method-toc {
+            grid-column: 1; grid-row: 1 / span 400; position: sticky; top: 0; align-self: start;
+            max-height: 74vh; overflow-y: auto; padding-right: 8px; scrollbar-width: thin;
+        }
+        .method-toc-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 8px; }
+        .method-toc a {
+            display: block; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; padding: 4px 0; text-decoration: none;
+            transition: color var(--t-fast) ease-out;
+        }
+        .methodology-body .method-toc a { border-bottom: 0; }
+        .method-toc a:hover { color: var(--text-primary); }
+        .methodology-body p, .methodology-body ul, .methodology-body ol, .methodology-body blockquote,
+        .methodology-body h1, .methodology-body h2, .methodology-body h3 { max-width: 72ch; }
+        .methodology-body h1 {
+            color: var(--text-primary); border-left: 0; padding-left: 0; font-weight: 600; letter-spacing: -.02em; font-size: 26px;
+        }
+        .methodology-body h2 {
+            background: none; border-left: 0; border-radius: 0; padding: 28px 0 0; margin: 40px 0 14px;
+            border-top: 1px solid var(--border); font-size: 18px; letter-spacing: -.01em;
+        }
+        .methodology-body h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 28px; }
+        .methodology-body h3 { border-left: 0; padding-left: 0; margin: 28px 0 8px; font-size: 15px; }
+        @media (max-width: 900px) {
+            .methodology-body { display: block; max-height: 80vh; }
+            .methodology-body > .method-toc { display: none; }
+        }
+
+        /* ---- FEEL ----
+           Hover feedback in a dense list should be instant: a 120ms fade on every row
+           reads as lag, and costs a transition on every row. Controls keep theirs. */
+        .data-table tbody tr, .mover-row { transition: none; }
+        button, select, input, textarea { font-family: inherit; }
 
         /* ---- PRINT ---- */
         /* ---- Defensibility & Diagnostics Section ---- */
@@ -1799,9 +2074,9 @@
             padding: 10px 10px; font-family: var(--font-body);
             border-bottom: 1px solid var(--border); vertical-align: middle;
         }
-        .sens-cell-high { background: var(--green-dim); color: var(--green); border-radius: 4px; padding: 4px 10px; }
-        .sens-cell-med  { background: var(--amber-dim); color: var(--amber); border-radius: 4px; padding: 4px 10px; }
-        .sens-cell-low  { background: var(--red-dim); color: var(--red); border-radius: 4px; padding: 4px 10px; }
+        .sens-cell-high, .sens-cell-med, .sens-cell-low { color: var(--text-secondary); }
+        .dq-kpi-card .kpi-value { color: var(--text-primary) !important; }
+        .sens-bar-fill { background: var(--accent) !important; opacity: .85; }
         .sens-bar-track {
             height: 10px; background: var(--bg-card); border-radius: 5px;
             overflow: hidden; margin-bottom: 6px; border: 1px solid var(--border);
@@ -2201,7 +2476,7 @@
             .dashboard-container { max-width: none; }
             .filters-bar { display: none; }
             .modal-overlay { display: none !important; }
-            .methodology-btn, .refresh-btn, .refresh-status { display: none; }
+            .methodology-btn, .header-nav { display: none; }
             .collapsible-section.collapsed .section-body { max-height: none; opacity: 1; pointer-events: auto; }
             .kpi-card, .chart-container, .table-section { box-shadow: none; border: 1px solid #ddd; }
         }
@@ -2211,14 +2486,20 @@
 <body>
     <div class="dashboard-container">
         <!-- Header -->
-        <header class="dashboard-header">
+        <header class="dashboard-header" id="top-bar">
             <div class="header-left">
                 <h1>Multi-Factor Screener</h1>
                 <span class="run-info" id="run-info"></span>
             </div>
+            <nav class="header-nav" aria-label="Sections">
+                <a href="#sec-top5" onclick="goToSection('sec-top5');return false">Top 5</a>
+                <a href="#sec-universe" onclick="goToSection('sec-universe');return false">Rankings</a>
+                <a href="#sec-holdings" onclick="goToSection('sec-holdings');return false">Holdings</a>
+                <a href="#sec-changed" onclick="goToSection('sec-changed');return false" id="nav-changed">What changed</a>
+                <a href="#sec-analytics" onclick="goToSection('sec-analytics');return false">Analytics</a>
+                <a href="#sec-defensibility" onclick="goToSection('sec-defensibility');return false">Diagnostics</a>
+            </nav>
             <div class="header-right">
-                <button id="refresh-btn" class="refresh-btn" onclick="triggerRefresh()" title="Requires refresh_server.py running locally">&#x21BB; Refresh Data</button>
-                <span id="refresh-status" class="refresh-status" style="display:none"></span>
                 <button class="methodology-btn" onclick="openMethodology()">Methodology</button>
             </div>
         </header>
@@ -2265,7 +2546,9 @@
                 </div>
                 <div class="holdings-fit" id="holdings-fit"></div>
                 <div id="holdings-body"></div>
-                <div class="holdings-footnote" id="holdings-footnote"></div>
+                <details class="why-panel"><summary>Why this panel works this way</summary>
+                    <div class="holdings-footnote" id="holdings-footnote"></div>
+                </details>
             </div>
         </section>
 
@@ -2290,7 +2573,9 @@
                         <div id="movers-down"></div>
                     </div>
                 </div>
-                <div class="changed-footnote" id="changed-footnote"></div>
+                <details class="why-panel"><summary>How to read this</summary>
+                    <div class="changed-footnote" id="changed-footnote"></div>
+                </details>
             </div>
         </section>
 
@@ -2302,28 +2587,16 @@
             </div>
             <div class="section-body">
                 <div class="chart-row">
-                    <div class="chart-container" style="flex:1">
+                    <div class="chart-container" style="flex:1.4">
                         <div class="chart-title-row">
-                            <h3 class="chart-title" style="margin-bottom:0">Factor Scores by Sector</h3>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <select id="sector-dist-factor" onchange="updateSectorDist()">
-                                    <option value="Composite">Composite</option>
-                                    <option value="valuation_score">Valuation</option>
-                                    <option value="quality_score">Quality</option>
-                                    <option value="growth_score">Growth</option>
-                                    <option value="momentum_score">Momentum</option>
-                                    <option value="risk_score">Risk</option>
-                                    <option value="revisions_score">Revisions</option>
-                                    <option value="size_score">Size</option>
-                                    <option value="investment_score">Investment</option>
-                                </select>
-                                <div class="toggle-btns">
-                                    <button class="toggle-btn active" id="btn-median" onclick="setSectorStat('median')">Median</button>
-                                    <button class="toggle-btn" id="btn-mean" onclick="setSectorStat('mean')">Average</button>
-                                </div>
+                            <h3 class="chart-title" style="margin-bottom:0">Where each sector scores</h3>
+                            <div class="toggle-btns">
+                                <button class="toggle-btn active" id="btn-median" onclick="setSectorStat('median')">Median</button>
+                                <button class="toggle-btn" id="btn-mean" onclick="setSectorStat('mean')">Average</button>
                             </div>
                         </div>
-                        <canvas id="sector-dist-chart"></canvas>
+                        <p class="chart-note">The score of the typical stock in each sector, 0&ndash;100. Shading is relative within each column, so it shows where a sector stands out on that factor rather than an absolute level. The Composite column is why most sectors look alike overall: the differences are in the factors.</p>
+                        <div id="sector-matrix" class="sector-matrix" role="region" aria-label="Sector by factor scores"></div>
                     </div>
                     <div class="chart-container" style="flex:0.5">
                         <div class="chart-title-row">
@@ -2354,12 +2627,12 @@
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">How Stable Is the Ranking?</h3>
-                        <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> Green (&ge;0.85) means almost no change. Red (&lt;0.70) means the ranking is sensitive to that weight.</p>
+                        <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> A score of 0.85 or more means almost no change; below 0.70 means the ranking is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">Are the Factors Independent?</h3>
-                        <p class="chart-desc">Spearman correlations between the 8 factor scores. <strong>Low values (green) = independent signals.</strong> High values (red) mean two factors are measuring similar things, reducing the effective number of independent dimensions.</p>
+                        <p class="chart-desc">Spearman correlations between the 8 factor scores. <strong>Low values = independent signals.</strong> Shading deepens with the size of the correlation, and pairs above 0.7 are outlined: they are measuring similar things, which reduces the effective number of independent dimensions.</p>
                         <div id="correlation-heatmap"></div>
                     </div>
                 </div>
@@ -2373,35 +2646,50 @@
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
-                <div class="filters-bar">
-                    <div class="filter-group">
-                        <label for="filter-sector">Sector</label>
-                        <select id="filter-sector"><option value="all">All Sectors</option></select>
+                <div class="filters-bar" role="search">
+                    <div class="filter-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                        <input type="text" id="filter-search" placeholder="Search ticker or company" aria-label="Search ticker or company" autocomplete="off" spellcheck="false">
+                        <kbd aria-hidden="true">/</kbd>
                     </div>
                     <div class="filter-group">
-                        <label for="filter-vt">Trap Flags</label>
+                        <label for="filter-sector">Sector</label>
+                        <select id="filter-sector"><option value="all">All sectors</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-vt">Trap flags</label>
                         <select id="filter-vt">
                             <option value="all">All</option>
-                            <option value="clean">Clean Only</option>
-                            <option value="vt">Value Traps</option>
-                            <option value="gt">Growth Traps</option>
-                            <option value="any">Any Flagged</option>
+                            <option value="clean">No flag</option>
+                            <option value="vt">Value trap</option>
+                            <option value="gt">Growth trap</option>
+                            <option value="any">Any flag</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label for="filter-comp-min">Composite Min</label>
-                        <input type="number" id="filter-comp-min" min="0" max="100" value="0" step="5">
+                        <label for="filter-comp-min">Composite min</label>
+                        <input type="number" id="filter-comp-min" min="0" max="100" value="0" step="5" inputmode="numeric">
                     </div>
-                    <div class="filter-group">
-                        <label for="filter-search">Search</label>
-                        <input type="text" id="filter-search" placeholder="Ticker or company...">
+                    <div class="filter-group filter-sort-m">
+                        <label for="sort-by">Sort by</label>
+                        <select id="sort-by" aria-label="Sort the rankings by">
+                            <option value="Rank">Rank</option>
+                            <option value="Composite">Composite</option>
+                            <option value="valuation_score">Valuation</option>
+                            <option value="quality_score">Quality</option>
+                            <option value="growth_score">Growth</option>
+                            <option value="momentum_score">Momentum</option>
+                            <option value="risk_score">Risk</option>
+                            <option value="revisions_score">Revisions</option>
+                            <option value="size_score">Size</option>
+                            <option value="investment_score">Investment</option>
+                        </select>
                     </div>
-                    <div class="filter-group">
-                        <span class="result-count" id="result-count"></span>
-                    </div>
+                    <button type="button" class="filter-clear" id="filter-clear" onclick="clearFilters()" hidden>Clear filters</button>
+                    <span class="result-count" id="result-count" aria-live="polite"></span>
                 </div>
                 <div class="table-section">
-                    <table class="data-table" id="universe-table">
+                    <table class="data-table" id="universe-table" aria-label="Full universe rankings" aria-rowcount="-1">
                         <thead><tr>
                             <th data-sort="Rank">Rank</th>
                             <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the previous comparable run. Positive means the stock moved up the table.">&Delta;</th>
@@ -2417,7 +2705,7 @@
                             <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? 90-day FY1 EPS revision (35%), earnings acceleration (20%), earnings surprise (15%), price-target upside (10%), beat streak (10%), short interest (10%). Higher score = improving expectations; 0-100.">Rev</th>
                             <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
-                            <th data-sort="Value_Trap_Flag">Flags</th>
+                            <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
                         </tr></thead>
                         <tbody id="universe-tbody"></tbody>
                     </table>
@@ -2427,15 +2715,25 @@
 
         <!-- Stock Detail Modal -->
         <div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeModal()">
-            <div class="modal-content">
+            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-ticker">
                 <div class="modal-header">
                     <div>
                         <h2 class="modal-ticker" id="modal-ticker"></h2>
                         <span class="modal-company" id="modal-company"></span>
                         <span class="modal-sector" id="modal-sector"></span>
                     </div>
-                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                    <div class="modal-headline" id="modal-headline"></div>
+                    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
                 </div>
+                <nav class="modal-nav" aria-label="In this stock">
+                    <a href="#modal-summary" onclick="goToModal('modal-summary');return false">Why it ranks here</a>
+                    <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
+                    <a href="#section-contribution" onclick="goToModal('section-contribution');return false">How it adds up</a>
+                    <a href="#section-categories" onclick="goToModal('section-categories');return false">The workings</a>
+                    <a href="#section-price-targets" onclick="goToModal('section-price-targets');return false">Price targets</a>
+                    <a href="#section-peers" onclick="goToModal('section-peers');return false">Peers</a>
+                    <a href="#section-provenance" onclick="goToModal('section-provenance');return false">Data</a>
+                </nav>
                 <div class="modal-body">
                     <!-- Why it ranks here: deterministic summary, built at
                          run time from this run's own numbers. Replaced the
@@ -2939,7 +3237,7 @@
 <li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
 </ol>
 <p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
-<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 45 weighted metrics less the ones its type does not use, so 35 for a bank-like stock and 41 for every other. It is <strong>not</strong> the "Metrics: n/18" figure on the drilldown's provenance badge, which counts a fixed 18-metric list and therefore reads low for banks whose applicable set is complete. Measured on the 2026-10-07 payload: 62 stocks show under 80% on that badge and 3 actually received a discount. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
+<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 45 weighted metrics less the ones its type does not use, so 35 for a bank-like stock and 41 for every other. The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
 <h3>Step 6: Apply Trap Filters &amp; Rank</h3>
 <p>After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.</p>
 <hr />
@@ -3059,7 +3357,10 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <h3>Factor Correlation Matrix</h3>
 <p>A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.</p>
 <h3>Data Provenance</h3>
-<p>Every stock carries three provenance fields: <code>_data_source</code> (where the data came from — e.g., "yfinance", "cache", "sample"), <code>_metric_count</code> (how many core metrics have valid data), and <code>_metric_total</code> (total possible metrics for that stock type). This makes per-stock data completeness visible at a glance.</p>
+<p>Every stock carries three provenance fields: <code>_data_source</code> (where the data came from — e.g., "yfinance", "cache", "sample"), <code>_metric_count</code> (how many of the metrics that apply to that stock have a value), and <code>_metric_total</code> (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.</p>
+<h3>The Workings Behind Every Score</h3>
+<p>Open any stock and <strong>The workings</strong> section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for <em>this</em> stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.</p>
+<p>The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; <code>scripts/audit_stock.py</code> repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.</p>
 <h3>DataValidation Sheet</h3>
 <p>The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by &gt;15pp), and beta overlap warnings (&lt;80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.</p>
 <hr />
@@ -3237,7 +3538,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-10-07 02:00 UTC</span><br>
+            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">2026-10-07 07:15 UTC</span><br>
             <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
         </footer>
     </div>
@@ -3277,6 +3578,24 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         Chart.defaults.color = '#898781';
         Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
         Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+        // A bar chart that makes you read the axis to learn the number is doing half
+        // the job: print the value at the end of each bar.
+        Chart.register({
+            id: 'valueLabels',
+            afterDatasetsDraw(chart, args, opts) {
+                if (!opts || opts.suffix === undefined) return;
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.fillStyle = '#c3c2b7';
+                ctx.font = "500 11px 'Inter', system-ui, sans-serif";
+                ctx.textBaseline = 'middle';
+                chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                    const v = chart.data.datasets[0].data[i];
+                    ctx.fillText(v + opts.suffix, bar.x + 6, bar.y);
+                });
+                ctx.restore();
+            }
+        });
     }
 
     // =====================================================================
@@ -3315,8 +3634,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const k = D.kpis;
         const html = [
             kpiCard('Universe', k.universe_size, 'stocks scored'),
-            kpiCard('Value Traps', k.value_traps, `${(k.value_traps/k.universe_size*100).toFixed(0)}% flagged`),
-            kpiCard('Growth Traps', k.growth_traps || 0, `${((k.growth_traps||0)/k.universe_size*100).toFixed(0)}% flagged`),
+            kpiCard('Value-trap flags', k.value_traps, `${(k.value_traps/k.universe_size*100).toFixed(0)}% of the universe`),
+            kpiCard('Growth-trap flags', k.growth_traps || 0, `${((k.growth_traps||0)/k.universe_size*100).toFixed(0)}% of the universe`),
+            kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
+                ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'),
         ].join('');
         document.getElementById('kpi-row').innerHTML = html;
         const ts = k.run_timestamp ? new Date(k.run_timestamp) : null;
@@ -3328,6 +3649,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (genEl && !genEl.textContent.trim()) {
             genEl.textContent = new Date().toLocaleString();
         }
+    }
+
+    // Jump to a section, opening it first if it is collapsed.
+    function goToSection(id) {
+        const sec = document.getElementById(id);
+        if (!sec) return;
+        if (sec.style.display === 'none') return;
+        if (sec.classList.contains('collapsed')) toggleSection(id);
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function kpiCard(label, value, sub) {
@@ -3373,29 +3703,25 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         };
 
         document.getElementById('top5-row').innerHTML = top5.map((h, i) => {
-            const bars = catKeys.map(c => {
+            const cells = catKeys.map(c => {
                 const val = h[c] || 0;
-                const color = catColors[c];
                 return `<div class="top5-factor">
-                    <div class="top5-factor-label">${catLabels[c]}</div>
-                    <div class="top5-factor-bar"><div class="top5-factor-fill" style="width:${val}%;background:${color}"></div></div>
-                    <div class="top5-factor-val">${fmt(val,'score')}</div>
+                    <span class="top5-factor-label">${catLabels[c]}</span>
+                    <span class="top5-factor-val">${fmt(val,'score')}</span>
+                    <div class="top5-factor-bar"><div class="top5-factor-fill" style="width:${val}%"></div></div>
                 </div>`;
             }).join('');
 
-            return `<div class="top5-card" onclick="openStockDetail('${escapeHtml(h.ticker)}')">
-                <div class="top5-rank-bar">#${h.rank}</div>
-                <div class="top5-header">
-                    <span class="top5-ticker">${escapeHtml(h.ticker)}</span>
+            return `<div class="top5-card" role="button" tabindex="0" onclick="openStockDetail('${escapeHtml(h.ticker)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStockDetail('${escapeHtml(h.ticker)}')}">
+                <div class="top5-top"><span class="top5-rank-bar">#${h.rank}</span><span class="top5-sector">${escapeHtml(h.sector)}</span></div>
+                <div class="top5-id">
+                    <div class="top5-who">
+                        <span class="top5-ticker">${escapeHtml(h.ticker)}</span>
+                        <div class="top5-company">${escapeHtml(h.company)}</div>
+                    </div>
+                    <div class="top5-score"><span class="top5-composite">${fmt(h.composite,'score')}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
-                <div class="top5-company">${escapeHtml(h.company)}</div>
-                <div class="top5-sector">${escapeHtml(h.sector)}</div>
-                <div class="top5-composite-row">
-                    <span class="top5-composite-label">Composite</span>
-                    <span class="top5-composite">${fmt(h.composite,'score')}</span>
-                </div>
-                <div class="top5-factors">${bars}</div>
-                <div class="top5-cta">Click for full breakdown</div>
+                <div class="top5-factors">${cells}</div>
             </div>`;
         }).join('');
     }
@@ -3422,7 +3748,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         const sectors = Object.keys(dataSource).sort((a,b) => dataSource[b].rate - dataSource[a].rate);
         const rates = sectors.map(s => dataSource[s].rate);
-        const labels = sectors.map(s => s.length > 18 ? s.slice(0,16)+'…' : s);
+        const labels = sectors;
 
         if (trapChart) trapChart.destroy();
 
@@ -3433,16 +3759,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 datasets: [{
                     label: labelText,
                     data: rates,
-                    backgroundColor: barColor
-                        ? rates.map(r => r > 25 ? barColor + 'CC' : r > 15 ? '#fab219CC' : POS + 'CC')
-                        : rates.map(r => r > 25 ? NEG + 'CC' : r > 15 ? '#fab219CC' : POS + 'CC'),
+                    // One hue: the length of the bar is the whole message. Red/amber/green
+                    // thresholds were status colour used as a ramp.
+                    backgroundColor: ACCENT + 'B3',
                     borderRadius: 3,
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 indexAxis: 'y',
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: false }, valueLabels: { suffix: '%' },
+                    tooltip: { callbacks: { label: ctx => { const d = dataSource[sectors[ctx.dataIndex]]; return d.flagged + ' of ' + d.total + ' stocks flagged (' + d.rate + '%)'; } } } },
                 scales: {
                     x: { beginAtZero: true, max: 40, title: { display: true, text: 'Flag Rate %', color: '#898781' }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#898781' } },
                     y: { ticks: { font: { size: 11 }, color: '#898781' }, grid: { color: 'rgba(255,255,255,0.04)' } }
@@ -3473,51 +3800,36 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     };
 
     function updateSectorDist() {
-        if (!HAS_CHART) {
-            const target = document.getElementById('sector-dist-chart');
-            if (target && target.parentElement) {
-                target.parentElement.innerHTML = '<div style="padding:12px;color:#898781">Chart.js failed to load. Sector distribution chart is unavailable.</div>';
-            }
-            return;
-        }
-        const factor = document.getElementById('sector-dist-factor').value;
+        const host = document.getElementById('sector-matrix');
+        if (!host) return;
         const stat = currentSectorStat;
-        const statLabel = stat === 'median' ? 'Median' : 'Average';
-        const dist = D.sector_distributions[factor];
-        const sectors = Object.keys(dist).sort((a,b) => (dist[b][stat] || 0) - (dist[a][stat] || 0));
-        const values = sectors.map(s => dist[s][stat] || 0);
-        const labels = sectors.map(s => s.length > 18 ? s.slice(0,16)+'…' : s);
-        const color = FACTOR_COLOR_MAP[factor] || COLORS[0];
-
-        if (sectorDistChart) {
-            sectorDistChart.data.labels = labels;
-            sectorDistChart.data.datasets[0].data = values;
-            sectorDistChart.data.datasets[0].label = statLabel + ' Score';
-            sectorDistChart.data.datasets[0].backgroundColor = color + 'CC';
-            sectorDistChart.update('none');
-        } else {
-            sectorDistChart = new Chart(document.getElementById('sector-dist-chart'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: statLabel + ' Score',
-                        data: values,
-                        backgroundColor: color + 'CC',
-                        borderRadius: 3,
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { beginAtZero: true, max: 70, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#898781' } },
-                        y: { ticks: { font: { size: 11 }, color: '#898781' }, grid: { color: 'rgba(255,255,255,0.04)' } }
-                    }
-                }
+        const cols = [['Composite', 'Composite'], ['valuation_score', 'Val'], ['quality_score', 'Qual'],
+                      ['growth_score', 'Grow'], ['momentum_score', 'Mom'], ['risk_score', 'Risk'],
+                      ['revisions_score', 'Rev'], ['size_score', 'Size'], ['investment_score', 'Inv']];
+        const dist = D.sector_distributions || {};
+        const comp = dist['Composite'] || {};
+        const sectors = Object.keys(comp).sort((a, b) => (comp[b][stat] || 0) - (comp[a][stat] || 0));
+        // Shade relative to each column's own spread - otherwise a column where every
+        // sector sits at 48-52 looks identical to one that varies from 20 to 80.
+        const span = {};
+        cols.forEach(c => {
+            const vals = sectors.map(s => ((dist[c[0]] || {})[s] || {})[stat]).filter(v => v !== undefined && v !== null);
+            span[c[0]] = vals.length ? [Math.min(...vals), Math.max(...vals)] : [0, 1];
+        });
+        let h = '<table class="sm-table"><thead><tr><th>Sector</th>' + cols.map(c => '<th class="num">' + c[1] + '</th>').join('') + '<th class="num">Stocks</th></tr></thead><tbody>';
+        sectors.forEach(s => {
+            h += '<tr><td class="sm-sector">' + escapeHtml(s) + '</td>';
+            cols.forEach(c => {
+                const d = (dist[c[0]] || {})[s];
+                const v = d ? d[stat] : null;
+                if (v === null || v === undefined) { h += '<td class="num sm sm-na">&mdash;</td>'; return; }
+                const [lo, hi] = span[c[0]];
+                const t = hi > lo ? (v - lo) / (hi - lo) : 0.5;
+                h += '<td class="num sm" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
             });
-        }
+            h += '<td class="num sm-n">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
+        });
+        host.innerHTML = h + '</tbody></table>';
     }
 
     function setSectorStat(stat) {
@@ -3628,8 +3940,44 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         });
     }
 
+
+    // =====================================================================
+    // RANKINGS TABLE - filters, sorting, and a windowed body.
+    //
+    // The table used to render all 502 rows (8,050 of the page's 9,923 DOM
+    // nodes) inside a box that scrolled inside the page. It now scrolls with the
+    // page, keeps its header stuck to the top, and only builds the rows that are
+    // on screen plus a margin; spacer rows stand in for the rest so the scrollbar
+    // and scroll position stay true. Row height is fixed (a CSS variable, taller
+    // on phones where each row becomes a card) so the arithmetic is exact.
+    // =====================================================================
+    let winRange = { a: -1, b: -1 };
+    let winQueued = false;
+    let activeTicker = null;
+    const WIN_OVERSCAN = 12;
+
+    function rowHeight() {
+        const t = document.getElementById('universe-table');
+        const v = t ? parseFloat(getComputedStyle(t).getPropertyValue('--row-h')) : NaN;
+        return v > 0 ? v : 40;
+    }
+
+    function filtersActive() {
+        return document.getElementById('filter-sector').value !== 'all' ||
+            document.getElementById('filter-vt').value !== 'all' ||
+            (parseFloat(document.getElementById('filter-comp-min').value) || 0) > 0 ||
+            document.getElementById('filter-search').value.trim() !== '';
+    }
+
+    function clearFilters() {
+        document.getElementById('filter-sector').value = 'all';
+        document.getElementById('filter-vt').value = 'all';
+        document.getElementById('filter-comp-min').value = '0';
+        document.getElementById('filter-search').value = '';
+        applyFilters();
+    }
+
     function setupFilters() {
-        // Populate sector dropdown
         const sel = document.getElementById('filter-sector');
         D.sectors.forEach(s => {
             const opt = document.createElement('option');
@@ -3637,12 +3985,46 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             sel.appendChild(opt);
         });
 
-        // Event listeners
-        // Event listeners (dropdowns instant, text inputs debounced)
+        // Dropdowns apply instantly; text inputs are debounced.
         sel.addEventListener('change', applyFilters);
         document.getElementById('filter-vt').addEventListener('change', applyFilters);
         document.getElementById('filter-comp-min').addEventListener('input', debounce(applyFilters, 200));
-        document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 200));
+        document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 150));
+        document.getElementById('sort-by').addEventListener('change', e => {
+            tableState.sortCol = e.target.value;
+            tableState.sortDir = (e.target.value === 'Rank') ? 'asc' : 'desc';
+            sortTable(tableState.sortCol, false);
+        });
+
+        // "/" jumps to search, the way every dense data tool does.
+        document.addEventListener('keydown', e => {
+            const tag = (document.activeElement || {}).tagName || '';
+            if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(tag) && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('filter-search').focus();
+            }
+        });
+
+        const tb = document.getElementById('universe-tbody');
+        tb.addEventListener('click', e => {
+            const tr = e.target.closest('tr[data-t]');
+            if (tr) openFromRow(tr.dataset.t);
+        });
+        tb.addEventListener('keydown', e => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const tr = e.target.closest('tr[data-t]');
+            if (tr) { e.preventDefault(); openFromRow(tr.dataset.t); }
+        });
+        window.addEventListener('scroll', queueWindow, { passive: true });
+        window.addEventListener('resize', queueWindow);
+    }
+
+    function openFromRow(ticker) {
+        activeTicker = ticker;
+        document.querySelectorAll('#universe-tbody tr.row-active').forEach(r => r.classList.remove('row-active'));
+        const tr = document.querySelector('#universe-tbody tr[data-t="' + ticker + '"]');
+        if (tr) tr.classList.add('row-active');
+        openStockDetail(ticker);
     }
 
     function applyFilters() {
@@ -3665,6 +4047,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             return true;
         });
 
+        document.getElementById('filter-clear').hidden = !filtersActive();
         sortTable(tableState.sortCol, false);
     }
 
@@ -3692,56 +4075,116 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         renderUniverseTable();
     }
 
+    const CAT_SHORT = ['Val', 'Qual', 'Grow', 'Mom', 'Risk', 'Rev', 'Size', 'Inv'];
+    const CAT_KEYS = ['valuation_score', 'quality_score', 'growth_score', 'momentum_score',
+                      'risk_score', 'revisions_score', 'size_score', 'investment_score'];
+
+    // A score cell: the number stays plain ink; the cell carries a faint tint that
+    // deepens with the score, so a column can be read at a glance without
+    // spending colour on meaning it does not have.
+    function scoreCell(v, label) {
+        if (v === null || v === undefined) return '<td class="num sc sc-na" data-l="' + label + '">&mdash;</td>';
+        return '<td class="num sc" data-l="' + label + '" style="--v:' + (v / 100).toFixed(3) + '">' + fmt(v, 'score') + '</td>';
+    }
+
+    function universeRowHtml(row, i) {
+        const t = escapeHtml(row.Ticker);
+        const rd = rankDelta(row.Ticker);
+        const rdCell = rd == null
+            ? '<td class="num delta-cell muted">&mdash;</td>'
+            : (rd === 0
+                ? '<td class="num delta-cell"></td>'
+                : '<td class="num delta-cell ' + (rd > 0 ? 'pos' : 'neg') + '">' + (rd > 0 ? '&#9650;' : '&#9660;') + Math.abs(rd) + '</td>');
+        const flags = (row.Value_Trap_Flag ? '<span class="flag" title="Value-trap flag">Value</span>' : '') +
+                      (row.Growth_Trap_Flag ? '<span class="flag" title="Growth-trap flag">Growth</span>' : '');
+        const comp = row.Composite;
+        return '<tr data-t="' + t + '" tabindex="0" aria-rowindex="' + (i + 2) + '"' +
+            (row.Ticker === activeTicker ? ' class="row-active"' : '') + '>' +
+            '<td class="num rank">' + row.Rank + '</td>' + rdCell +
+            '<td class="ticker">' + t + '</td>' +
+            '<td class="company">' + escapeHtml(row.Company || '') + '</td>' +
+            '<td class="sector">' + escapeHtml(row.Sector) + '</td>' +
+            '<td class="num comp">' + (comp === null || comp === undefined ? '&mdash;'
+                : '<span>' + fmt(comp, 'score') + '</span><i style="width:' + Math.max(0, Math.min(100, comp)).toFixed(1) + '%"></i>') + '</td>' +
+            CAT_KEYS.map((k, j) => scoreCell(row[k], CAT_SHORT[j])).join('') +
+            '<td class="vt-cell">' + flags + '</td></tr>';
+    }
+
+    function emptyRowsHtml(cols) {
+        return '<tr class="vt-empty"><td colspan="' + cols + '"><div class="empty-state"><strong>No stocks match these filters.</strong>' +
+            '<span>Try a wider sector or a lower composite minimum.</span>' +
+            '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
+    }
+
+    function queueWindow() {
+        if (winQueued) return;
+        winQueued = true;
+        requestAnimationFrame(() => { winQueued = false; renderWindow(false); });
+    }
+
+    // Build only the rows on screen (plus a margin) between two spacers.
+    function renderWindow(force) {
+        const table = document.getElementById('universe-table');
+        const tbody = document.getElementById('universe-tbody');
+        if (!table || !tbody || table.offsetParent === null) return;
+        const rows = tableState.filtered;
+        const total = rows.length;
+        const cols = table.tHead.rows[0].cells.length;
+        if (total === 0) {
+            tbody.innerHTML = emptyRowsHtml(cols);
+            winRange = { a: 0, b: 0 };
+            return;
+        }
+        const H = rowHeight();
+        const headH = table.tHead.offsetHeight;
+        const above = Math.max(0, -(table.getBoundingClientRect().top + headH));
+        const a = Math.max(0, Math.floor(above / H) - WIN_OVERSCAN);
+        const b = Math.min(total, Math.floor((above + window.innerHeight) / H) + WIN_OVERSCAN + 1);
+        if (!force && a === winRange.a && b === winRange.b) return;
+        winRange = { a: a, b: b };
+
+        const focused = document.activeElement && document.activeElement.closest
+            ? document.activeElement.closest('#universe-tbody tr[data-t]') : null;
+        const focusT = focused ? focused.dataset.t : null;
+
+        let html = a > 0 ? '<tr class="vt-spacer" aria-hidden="true"><td colspan="' + cols + '" style="height:' + (a * H) + 'px"></td></tr>' : '';
+        for (let i = a; i < b; i++) html += universeRowHtml(rows[i], i);
+        if (b < total) html += '<tr class="vt-spacer" aria-hidden="true"><td colspan="' + cols + '" style="height:' + ((total - b) * H) + 'px"></td></tr>';
+        tbody.innerHTML = html;
+        table.setAttribute('aria-rowcount', String(total + 1));
+        if (focusT) {
+            const again = tbody.querySelector('tr[data-t="' + focusT + '"]');
+            if (again) again.focus({ preventScroll: true });
+        }
+    }
+
     function renderUniverseTable() {
         const s = tableState;
-
-        // Update sort indicators
         document.querySelectorAll('#universe-table th').forEach(th => {
             const col = th.dataset.sort;
-            th.classList.toggle('sorted', col === s.sortCol);
-            th.setAttribute('data-dir', col === s.sortCol ? s.sortDir : '');
+            const on = col === s.sortCol;
+            th.classList.toggle('sorted', on);
+            th.setAttribute('data-dir', on ? s.sortDir : '');
+            th.setAttribute('aria-sort', on ? (s.sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
         });
+        const sb = document.getElementById('sort-by');
+        if (sb && sb.querySelector('option[value="' + s.sortCol + '"]')) sb.value = s.sortCol;
 
-        const tbody = document.getElementById('universe-tbody');
-        tbody.innerHTML = s.filtered.map(row => {
-            const trapClass = (row.Value_Trap_Flag || row.Growth_Trap_Flag) ? ' class="vt-row"' : '';
-            const trapIcons = [];
-            if (row.Value_Trap_Flag) trapIcons.push('VT');
-            if (row.Growth_Trap_Flag) trapIcons.push('GT');
-            const trapDisplay = trapIcons.length ? trapIcons.join('/') : '✓';
-            const rd = rankDelta(row.Ticker);
-            const rdCell = rd == null
-                ? '<td class="num delta-cell muted">&mdash;</td>'
-                : (rd === 0
-                    ? '<td class="num delta-cell muted">0</td>'
-                    : `<td class="num delta-cell ${rd > 0 ? 'pos' : 'neg'}">${rd > 0 ? '▲' : '▼'}${Math.abs(rd)}</td>`);
-            return `<tr${trapClass}>
-                <td class="num">${row.Rank}</td>
-                ${rdCell}
-                <td class="ticker ticker-link" onclick="openStockDetail('${escapeHtml(row.Ticker)}')">${escapeHtml(row.Ticker)}</td>
-                <td>${escapeHtml(row.Company || '')}</td>
-                <td>${escapeHtml(row.Sector)}</td>
-                <td class="num">${fmt(row.Composite,'score')}</td>
-                <td class="num">${fmt(row.valuation_score,'score')}</td>
-                <td class="num">${fmt(row.quality_score,'score')}</td>
-                <td class="num">${fmt(row.growth_score,'score')}</td>
-                <td class="num">${fmt(row.momentum_score,'score')}</td>
-                <td class="num">${fmt(row.risk_score,'score')}</td>
-                <td class="num">${fmt(row.revisions_score,'score')}</td>
-                <td class="num">${fmt(row.size_score,'score')}</td>
-                <td class="num">${fmt(row.investment_score,'score')}</td>
-                <td class="vt-cell">${trapDisplay}</td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('result-count').textContent =
-            `${s.filtered.length} of ${s.data.length} stocks`;
+        renderWindow(true);
+        document.getElementById('result-count').textContent = s.filtered.length === s.data.length
+            ? s.data.length + ' stocks'
+            : s.filtered.length + ' of ' + s.data.length + ' stocks';
     }
+
 
     // Sort click handler
     document.querySelectorAll('#universe-table th[data-sort]').forEach(th => {
-        th.style.cursor = 'pointer';
+        th.tabIndex = 0;
+        th.setAttribute('role', 'columnheader');
         th.addEventListener('click', () => sortTable(th.dataset.sort));
+        th.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortTable(th.dataset.sort); }
+        });
     });
 
     // =====================================================================
@@ -3835,8 +4278,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
-        document.getElementById('movers-up').innerHTML = up;
-        document.getElementById('movers-down').innerHTML = down;
+        document.getElementById('movers-up').innerHTML = up + moversMore('movers-up', mv.up.length);
+        document.getElementById('movers-down').innerHTML = down + moversMore('movers-down', mv.down.length);
 
         // Footnote: what was truncated, what was flagged, what was excluded.
         const notes = [];
@@ -3855,6 +4298,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // most likely to read a daily redraw as a daily decision.
         if (cadenceText(false)) notes.push(cadenceText(false));
         document.getElementById('changed-footnote').innerHTML = notes.join(' ');
+    }
+
+    // Five rows each way by default; the rest on request. Nothing is dropped from the
+    // list - the footnote still reports how many moved - it is only folded away.
+    function moversMore(id, n) {
+        return n > 5 ? `<button type="button" class="show-more" onclick="expandMovers('${id}')">Show all ${n}</button>` : '';
+    }
+    function expandMovers(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('expanded');
+        const b = el.querySelector('.show-more');
+        if (b) b.remove();
     }
 
     function setChangedRange(k) {
@@ -4415,16 +4871,42 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const box = document.getElementById('modal-summary');
         const body = document.getElementById('modal-summary-body');
         if (!box || !body) return;
-        const facts = (s && Array.isArray(s.summary)) ? s.summary : [];
+        let facts = (s && Array.isArray(s.summary)) ? s.summary : [];
         if (!facts.length) {
             box.style.display = 'none';
             body.innerHTML = '';
             return;
         }
         box.style.display = '';
+        // The lead line is the headline; the rest sit under quiet group labels so
+        // eleven sentences stop reading as one block of equal weight.
+        const GROUPS = {
+            drivers: 'What drives the score', weakest: 'What drives the score',
+            best_inputs: 'What drives the score', worst_input: 'What drives the score',
+            change: 'What changed', change_driver: 'What changed', input_churn: 'What changed',
+            target: 'Context', peers: 'Context', earnings: 'Context',
+            flags: 'Read with care', confidence: 'Read with care'
+        };
+        // Reorder so each group is contiguous, in order of first appearance, and the
+        // lead sentence stays first - otherwise a label repeats when kinds interleave.
+        const lead = [], order = [], byGroup = {};
+        facts.forEach(function(f) {
+            const group = GROUPS[String(f.k || '').replace(/[^a-z_]/g, '')] || '';
+            if (!group) { lead.push(f); return; }
+            if (!byGroup[group]) { byGroup[group] = []; order.push(group); }
+            byGroup[group].push(f);
+        });
+        facts = lead.concat.apply(lead, order.map(function(g) { return byGroup[g]; }));
+        let lastGroup = '';
         body.innerHTML = facts.map(function(f) {
             const kind = String(f.k || '').replace(/[^a-z_]/g, '');
-            return '<p class="summary-fact summary-' + kind + '">' +
+            const group = GROUPS[kind] || '';
+            let label = '';
+            if (group && group !== lastGroup) {
+                label = '<div class="summary-group-label">' + group + '</div>';
+                lastGroup = group;
+            }
+            return label + '<p class="summary-fact summary-' + kind + '">' +
                    escapeHtml(f.t || '') + '</p>';
         }).join('');
     }
@@ -4477,6 +4959,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.getElementById('modal-ticker').textContent = ticker;
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
+        const hl = document.getElementById('modal-headline');
+        if (hl) hl.innerHTML = `<span class="mh-item"><span class="mh-k">Rank</span><strong>#${s.rank}</strong><span class="mh-of">of ${D.kpis.universe_size}</span></span>` +
+            `<span class="mh-item"><span class="mh-k">Composite</span><strong>${fmt(s.composite,'score')}</strong></span>`;
 
         renderSummary(s);
         renderAbout(s);
@@ -4496,7 +4981,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const wtText = weight === null ? 'no data' : fmtWeight(weight) + ' wt';
             scoreHtml += `<div class="modal-score-card">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
-                <div class="modal-score-val" style="color:${CAT_COLORS[c]}">${fmt(score,'score')}</div>
+                <div class="modal-score-val">${fmt(score,'score')}</div>
                 <div class="modal-score-sub">${fmt(contrib,'score')} pts (${wtText})</div>
             </div>`;
         });
@@ -4521,18 +5006,40 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // Category detail sections with metric breakdowns
         renderCategoryDetails(ticker, s, cats);
 
+        modalReturnFocus = document.activeElement;
         document.getElementById('stock-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        const mb = document.querySelector('#stock-modal .modal-body');
+        if (mb) mb.scrollTop = 0;
+        const closeBtn = document.querySelector('#stock-modal .modal-close');
+        if (closeBtn) closeBtn.focus({ preventScroll: true });
     }
 
+    let modalReturnFocus = null;
+
     function closeModal() {
-        document.getElementById('stock-modal').style.display = 'none';
+        const m = document.getElementById('stock-modal');
+        if (m.style.display === 'none') return;
+        m.style.display = 'none';
         document.body.style.overflow = '';
+        if (modalReturnFocus && modalReturnFocus.focus && document.contains(modalReturnFocus)) {
+            modalReturnFocus.focus({ preventScroll: true });
+        }
+        modalReturnFocus = null;
+    }
+
+    // Jump within the drilldown, opening the target first if it is folded away.
+    function goToModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.classList.contains('collapsed')) el.classList.remove('collapsed');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function toggleSection(id) {
         const el = document.getElementById(id);
         if (el) el.classList.toggle('collapsed');
+        if (id === 'sec-universe') requestAnimationFrame(() => renderWindow(true));
     }
 
     // ESC to close any open modal
@@ -4989,7 +5496,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 else { qualLabel = 'Very Weak'; qualClass = 'qual-vweak'; }
             }
 
-            html += `<div class="contrib-row">
+            html += `<div class="contrib-row contrib-row-link" onclick="openWorkings('${c}')" title="Show how this score is built">
                 <div class="contrib-label">
                     <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]}"></span>
                     <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
@@ -5017,91 +5524,316 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         document.getElementById('contrib-visual').innerHTML = html;
 
-        // Total row
-        const totalPct = (runningTotal / 100 * 100).toFixed(0);
+        // Total: category points, then the coverage discount when one applies, then
+        // the composite. The chain sums on screen for every stock.
+        const cov = s.cov || null;
+        const disc = cov && cov.disc ? cov.disc : 0;
+        const cd = (D.weights || {}).coverage_discount || null;
+        const composite = (s.composite !== null && s.composite !== undefined) ? s.composite : runningTotal;
+        const totalPct = Math.max(0, Math.min(100, composite)).toFixed(0);
+        let chain = `<div class="chain-line"><span>Category points add up to</span><strong>${runningTotal.toFixed(1)}</strong></div>`;
+        if (disc > 0) {
+            const covPct = cov.of ? (cov.n / cov.of * 100).toFixed(0) : '?';
+            chain += `<div class="chain-line chain-discount"><span>Coverage discount &mdash; values for ${cov.n} of ${cov.of} applicable metrics (${covPct}%), below the ${cd ? Math.round(cd.threshold * 100) : 80}% threshold, so the composite is reduced by ${(disc * 100).toFixed(1)}%</span><strong>&minus;${(runningTotal - composite).toFixed(1)}</strong></div>`;
+        }
         document.getElementById('contrib-total').innerHTML = `
             <div class="contrib-total-bar-area">
                 <div class="contrib-total-track">
                     <div class="contrib-total-fill" style="width:${totalPct}%"></div>
                 </div>
             </div>
+            ${chain}
             <div class="contrib-total-label">
-                Composite Score: <strong>${runningTotal.toFixed(1)}</strong> / 100
+                Composite Score: <strong>${fmt(composite,'score')}</strong> / 100
             </div>`;
     }
 
+
+    // =====================================================================
+    // WORKINGS - how a category score is built, from the published numbers.
+    //
+    // Every figure here is arithmetic on numbers the page already carries:
+    // the engine's own weight tables (D.weights.profiles), which table this stock
+    // was scored with (s.wp), and its sector percentiles (s.pct). calc_trace.py
+    // does the same sum in Python with no shared code, and the build refuses to
+    // publish if the two disagree - so the workings below cannot drift from the
+    // scores. Until 2026-10-07 this table printed the generic metric weight for
+    // every stock, which was wrong for 275 of 502 (plan/calculation-transparency.md).
+    // =====================================================================
+    function metricLabel(m) {
+        const meta = (D.metric_meta || {})[m];
+        if (meta && meta.label) return meta.label;
+        return m.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // The weight table this stock's `cat` score was built with, and how much of
+    // it had data. A metric with no data drops out and the rest are rescaled.
+    function weightProfile(cat, s) {
+        const profs = (D.weights.profiles || {})[cat];
+        if (!profs) return null;
+        const pid = (s.wp && s.wp[cat]) || 'generic';
+        const table = profs[pid] || profs.generic || {};
+        let total = 0, withData = 0, weighted = 0;
+        Object.keys(table).forEach(m => {
+            if (table[m] > 0) {
+                weighted++;
+                const p = s.pct[m];
+                if (p !== null && p !== undefined) { total += table[m]; withData++; }
+            }
+        });
+        return { pid: pid, table: table, total: total, weighted: weighted, withData: withData };
+    }
+
+    // One category's metric rows: value, percentile, weight used, points.
+    function categoryWorkings(cat, s) {
+        const wp = weightProfile(cat, s);
+        if (!wp) return null;
+        const rows = [];
+        const notUsed = [];
+        Object.keys(wp.table).forEach(m => {
+            const w = wp.table[m];
+            if (!(w > 0)) { notUsed.push(m); return; }
+            const p = s.pct[m];
+            const has = p !== null && p !== undefined;
+            const share = has && wp.total > 0 ? (w / wp.total) * 100 : null;
+            rows.push({
+                metric: m, raw: s.raw[m], pct: has ? p : null, configured: w,
+                share: share, points: has && share !== null ? p * share / 100 : null
+            });
+        });
+        rows.sort((a, b) => b.configured - a.configured);
+        const points = rows.reduce((t, r) => t + (r.points || 0), 0);
+        return { wp: wp, rows: rows, notUsed: notUsed, points: points };
+    }
+
+    let WK_CURRENT = null;
+
     function renderCategoryDetails(ticker, s, cats) {
+        WK_CURRENT = { ticker: ticker, s: s };
         const container = document.getElementById('modal-categories');
-        container.innerHTML = '';
-        const mw = D.weights.metric_weights || {};
         const ew = effWeights(s);
+        const labels = D.weights.profile_labels || {};
+        const nLower = Object.keys(D.metric_meta || {}).filter(m => D.metric_meta[m].dir === 'lower').length;
+        let out = `<div class="pctile-convention-note">${PCTILE_CONVENTION}</div>
+            <div class="wk-controls"><button type="button" class="wk-toggle-all" onclick="toggleAllWorkings(true)">Expand all</button>
+            <button type="button" class="wk-toggle-all" onclick="toggleAllWorkings(false)">Collapse all</button></div>`;
 
         cats.forEach(cat => {
-            const catMetrics = mw[cat] || {};
-            const metricKeys = Object.keys(catMetrics);
-            // Filter to metrics with non-zero weight
-            const activeMetrics = metricKeys.filter(m => catMetrics[m] > 0);
-            const inactiveMetrics = metricKeys.filter(m => catMetrics[m] === 0);
-
             const catScore = s.cat_scores[cat];
             const contrib = s.contrib[cat];
             const scored = catScore !== null && catScore !== undefined;
-            // The weight this stock's score was multiplied by - see effWeights().
+            const wk = categoryWorkings(cat, s);
             const badge = scored
                 ? `${fmtWeight(ew[cat])} weight → ${fmt(contrib,'score')} pts`
                 : `not scored for this stock`;
 
-            let html = `<div class="cat-detail-section">
-                <div class="cat-detail-header" onclick="this.parentElement.querySelector('.cat-detail-body').classList.toggle('collapsed')">
-                    <div>
-                        <h3 style="display:inline;color:${CAT_COLORS[cat]}">${CAT_LABELS[cat]}</h3>
-                        <span class="cat-weight-badge">${badge}</span>
-                    </div>
-                    <div>
-                        <span class="cat-score-badge">Score: ${fmt(catScore,'score')}</span>
-                    </div>
-                </div>
-                <div class="cat-detail-body">
-                    <div style="display:flex;padding:4px 0;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border-bright);margin-bottom:4px;font-family:var(--font-heading);letter-spacing:.5px;text-transform:uppercase;">
-                        <span style="flex:0 0 160px">Metric</span>
-                        <span style="flex:0 0 100px;text-align:right">Raw Value</span>
-                        <span style="flex:1;margin-left:16px" title="${PCTILE_CONVENTION}">Sector Percentile &mdash; 100 = best</span>
-                        <span style="flex:0 0 50px;text-align:right">Weight</span>
-                    </div>
-                    <div class="pctile-convention-note">${PCTILE_CONVENTION}</div>`;
-
-            activeMetrics.forEach(metric => {
-                const meta = D.metric_meta[metric] || { label: metric, fmt: 'ratio' };
-                const raw = s.raw[metric];
-                const pct = s.pct[metric];
-                const weight = catMetrics[metric];
-                const rawStr = fmtMetric(raw, meta.fmt);
-                const pctVal = pct !== null && pct !== undefined ? pct : null;
-                const barColor = pctBarColor(pctVal, cat);
-
-                html += `<div class="metric-row">
-                    <span class="metric-name">${meta.label}${dirChip(meta)}</span>
-                    <span class="metric-raw">${raw !== null && raw !== undefined ? rawStr : '<span class=metric-na>N/A</span>'}</span>
-                    <div class="metric-pct-bar-container">
-                        <div class="metric-pct-bar">
-                            ${pctVal !== null ? `<div class="metric-pct-fill" style="width:${Math.max(1, pctVal)}%;background:${barColor}"></div>` : ''}
-                        </div>
-                        <span class="metric-pct-label">${pctVal !== null ? pctVal.toFixed(0) + '%' : '<span class=metric-na>—</span>'}</span>
-                    </div>
-                    <span class="metric-weight">${weight}%</span>
-                </div>`;
-            });
-
-            if (inactiveMetrics.length > 0) {
-                html += `<div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
-                    Inactive (0% weight): ${inactiveMetrics.map(m => (D.metric_meta[m]||{}).label || m).join(', ')}
-                </div>`;
+            let body = '';
+            if (!wk) {
+                body = `<p class="wk-note">This run did not publish its weight tables, so the per-metric workings are not shown.</p>`;
+            } else {
+                const generic = wk.wp.pid === 'generic';
+                if (!generic) {
+                    body += `<p class="wk-note wk-profile"><strong>Scored with different weights.</strong> ${escapeHtml(labels[wk.wp.pid] || wk.wp.pid)}.</p>`;
+                }
+                if (wk.wp.withData < wk.wp.weighted && wk.wp.withData > 0) {
+                    body += `<p class="wk-note">${wk.wp.withData} of the ${wk.wp.weighted} weighted metrics have data for this stock. A metric with no data drops out and the rest are scaled up to 100%, so the weights below are shares of this stock's score.</p>`;
+                }
+                if (!scored) {
+                    body += `<p class="wk-note">No weighted metric has data for this stock, so the category is not scored and its weight is shared across the others.</p>`;
+                }
+                body += `<table class="wk-table"><thead><tr>
+                    <th class="wk-metric">Metric</th>
+                    <th class="wk-num">Value</th>
+                    <th class="wk-pct" title="${PCTILE_CONVENTION}">Sector Percentile &mdash; 100 = best</th>
+                    <th class="wk-num" title="Share of this category's score">Weight</th>
+                    <th class="wk-num" title="Percentile x weight">Points</th></tr></thead><tbody>`;
+                wk.rows.forEach(r => {
+                    const meta = D.metric_meta[r.metric] || { label: r.metric, fmt: 'ratio' };
+                    const has = r.pct !== null;
+                    const rawStr = r.raw !== null && r.raw !== undefined ? fmtMetric(r.raw, meta.fmt) : null;
+                    const tip = has
+                        ? `Configured ${fmtWeight(r.configured)} of this weighting; ${fmtWeight(r.share)} of this score after rescaling to the metrics that have data.`
+                        : `Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.`;
+                    const hasInfo = (D.lineage || {})[r.metric];
+                    body += `<tr class="metric-row${has ? '' : ' wk-nodata'}" data-metric="${r.metric}">
+                        <td class="wk-metric metric-name">${hasInfo ? `<button type="button" class="wk-info" aria-expanded="false" aria-label="Show how ${escapeHtml(meta.label)} is computed" onclick="toggleMetricDetail(this)"><span aria-hidden="true">&#9656;</span></button>` : ''}${meta.label}${dirChip(meta)}</td>
+                        <td class="wk-num metric-raw">${rawStr !== null ? rawStr : '<span class="metric-na">no data</span>'}</td>
+                        <td class="wk-pct"><div class="metric-pct-bar-container"><div class="metric-pct-bar">${has ? `<div class="metric-pct-fill" style="width:${Math.max(1, r.pct)}%"></div>` : ''}</div>
+                            <span class="metric-pct-label">${has ? r.pct.toFixed(0) : '<span class="metric-na">&mdash;</span>'}</span></div></td>
+                        <td class="wk-num metric-weight" title="${escapeHtml(tip)}">${has ? fmtWeight(r.share) : '<span class="metric-na">&mdash;</span>'}</td>
+                        <td class="wk-num wk-points">${has ? r.points.toFixed(1) : '<span class="metric-na">&mdash;</span>'}</td></tr>`;
+                });
+                body += `</tbody>`;
+                if (scored) {
+                    const ok = Math.abs(wk.points - catScore) < 0.06;
+                    body += `<tfoot><tr class="wk-total"><td class="wk-metric">Category score</td><td></td><td></td>
+                        <td class="wk-num">100%</td><td class="wk-num wk-points" title="${ok ? 'The points add up to the category score.' : 'These points do not add up to the published category score.'}">${fmt(catScore,'score')}${ok ? '' : ' !'}</td></tr></tfoot>`;
+                }
+                body += `</table>`;
+                if (wk.notUsed.length) {
+                    body += `<p class="wk-off">Not used in this weighting: ${wk.notUsed.map(metricLabel).join(', ')}.</p>`;
+                }
             }
 
-            html += `</div></div>`;
-            container.innerHTML += html;
+            out += `<div class="cat-detail-section collapsed" data-cat="${cat}" id="cat-detail-${cat}">
+                <div class="cat-detail-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <div><h3>${CAT_LABELS[cat]}</h3><span class="cat-weight-badge">${badge}</span></div>
+                    <div><span class="cat-score-badge">Score ${fmt(catScore,'score')}</span><span class="wk-chevron" aria-hidden="true">&#9662;</span></div>
+                </div>
+                <div class="cat-detail-body">${body}</div>
+            </div>`;
+        });
+        container.innerHTML = out;
+    }
+
+    function toggleAllWorkings(open) {
+        document.querySelectorAll('#modal-categories .cat-detail-section').forEach(el => {
+            el.classList.toggle('collapsed', !open);
         });
     }
+
+
+    // ---- metric detail: formula, inputs, components, who it was ranked against ----
+    const PIO_SIGNALS = [
+        'Net income is positive', 'Operating cash flow is positive',
+        'Return on assets rose from the prior year', 'Operating cash flow exceeds net income',
+        'Long-term debt relative to assets fell', 'Current ratio rose',
+        'No net new shares issued', 'Gross margin rose', 'Asset turnover rose'
+    ];
+    const BENEISH_INDICES = [
+        ['DSRI', 'Days sales in receivables', 0.920], ['GMI', 'Gross margin', 0.528],
+        ['AQI', 'Asset quality', 0.404], ['SGI', 'Sales growth', 0.892],
+        ['DEPI', 'Depreciation', 0.115], ['SGAI', 'SG&A expense', -0.172],
+        ['LVGI', 'Leverage', -0.327], ['TATA', 'Total accruals to assets', 4.679]
+    ];
+
+    function fmtInput(v, f) {
+        if (v === null || v === undefined) return '&mdash;';
+        if (f === 'usd') return fmtBig(v);
+        if (f === 'price') return '$' + Number(v).toFixed(2);
+        if (f === 'pct') return (v * 100).toFixed(1) + '%';
+        if (f === 'ratio') return Number(v).toFixed(2);
+        return String(v);
+    }
+
+    // Who a stock was ranked against for one metric: its sector, or the whole universe
+    // when the sector has too few values - the rule the scorer applied.
+    function peerContext(m, s) {
+        const mine = s.raw[m];
+        if (mine === null || mine === undefined) return null;
+        const meta = (D.metric_meta || {})[m] || {};
+        const lower = meta.dir === 'lower';
+        const st = ((D.sector_stats || {})[s.sector] || {})[m];
+        const fallback = !st || st[0] < (D.sector_min_peers || 10);
+        let n = 0, better = 0;
+        Object.keys(D.stock_detail).forEach(t => {
+            const o = D.stock_detail[t];
+            if (!fallback && o.sector !== s.sector) return;
+            const v = o.raw[m];
+            if (v === null || v === undefined) return;
+            n++;
+            if (lower ? v < mine : v > mine) better++;
+        });
+        return { rank: better + 1, n: n, fallback: fallback, st: st, lower: lower, meta: meta };
+    }
+
+    function ordinal(n) {
+        const v = n % 100;
+        const suf = (v >= 11 && v <= 13) ? 'th' : ({1: 'st', 2: 'nd', 3: 'rd'}[n % 10] || 'th');
+        return n + suf;
+    }
+
+    function metricDetailHtml(m, s) {
+        const info = (D.lineage || {})[m];
+        if (!info) return '';
+        const meta = (D.metric_meta || {})[m] || { fmt: 'ratio', label: m };
+        const bad = (s.inp_bad || []).indexOf(m) >= 0;
+        let h = `<div class="wk-detail-body"><div class="wk-formula"><span class="wk-k">Formula</span>${escapeHtml(info.f)}</div>`;
+        if (info.how) h += `<div class="wk-how">${escapeHtml(info.how)}</div>`;
+
+        const inp = s.inp || {};
+        const shown = (info.in || []).filter(x => inp[x[1]] !== undefined && inp[x[1]] !== null);
+        if (shown.length) {
+            h += `<div class="wk-k">Inputs, as reported</div><dl class="wk-inputs">` +
+                shown.map(x => `<div><dt>${escapeHtml(x[0])}</dt><dd>${fmtInput(inp[x[1]], x[2])}</dd></div>`).join('') + `</dl>`;
+        }
+
+        // Components for the two scores that are sums of parts.
+        if (m === 'piotroski_f_score' && s.pio) {
+            const sig = s.pio.split('');
+            h += `<div class="wk-k">The nine signals</div><ol class="wk-parts">` + sig.map((c, i) =>
+                `<li class="wk-part wk-part-${c === '1' ? 'pass' : c === '0' ? 'fail' : 'na'}"><span class="wk-mark">${c === '1' ? '&#10003;' : c === '0' ? '&#10007;' : '&ndash;'}</span>${PIO_SIGNALS[i]}<span class="wk-part-val">${c === '1' ? 'pass' : c === '0' ? 'fail' : 'not testable'}</span></li>`).join('') +
+                `</ol><div class="wk-sum">${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}</div>`;
+        }
+        if (m === 'beneish_m_score' && s.bn) {
+            const parts = s.bn.split('|');
+            const vals = parts[0].split(',').map(Number);
+            const mask = (parts[1] || '').split('');
+            let total = -4.84;
+            h += `<div class="wk-k">The eight indices</div><table class="wk-mini"><thead><tr><th>Index</th><th class="wk-num">Value</th><th class="wk-num">&times; weight</th><th class="wk-num">Adds</th></tr></thead><tbody>` +
+                BENEISH_INDICES.map((b, i) => {
+                    const add = b[2] * vals[i];
+                    total += add;
+                    return `<tr class="${mask[i] === '1' ? '' : 'wk-nodata'}"><td>${b[0]} <span class="wk-dim">${b[1]}${mask[i] === '1' ? '' : ' &middot; neutral default, no data'}</span></td><td class="wk-num">${vals[i].toFixed(3)}</td><td class="wk-num">${b[2].toFixed(3)}</td><td class="wk-num">${add.toFixed(3)}</td></tr>`;
+                }).join('') +
+                `</tbody><tfoot><tr><td colspan="3">Constant -4.840 + the eight terms</td><td class="wk-num">${total.toFixed(3)}</td></tr></tfoot></table>`;
+        }
+
+        // Does the equation hold for this stock?
+        if (info.eq) {
+            h += bad
+                ? `<div class="wk-check wk-check-bad">These inputs do <strong>not</strong> rebuild the value shown: at least one figure the scorer used differs from the one listed. The value shown is the one that was scored.</div>`
+                : (shown.length ? `<div class="wk-check wk-check-ok">&#10003; Rebuilt from the inputs above: the same ${fmtMetric(s.raw[m], meta.fmt)} that was scored.</div>` : '');
+        } else if (info.k === 'series') {
+            h += `<div class="wk-check">Built from a daily price or analyst history, not from a handful of figures, so no single equation is shown.</div>`;
+        } else if (info.k === 'components') {
+            // the component tables above are the working
+        } else {
+            h += `<div class="wk-check">Not rebuilt from the inputs shown: part of this calculation is a provider figure or a longer history.</div>`;
+        }
+
+        const pc = peerContext(m, s);
+        const pctv = s.pct[m];
+        if (pc && pctv !== null && pctv !== undefined) {
+            const where = pc.fallback ? 'the whole universe (fewer than ' + (D.sector_min_peers || 10) + ' stocks in ' + escapeHtml(s.sector) + ' have a value)' : escapeHtml(s.sector);
+            h += `<div class="wk-k">Who it was ranked against</div><div class="wk-peers">Ranked <strong>${ordinal(pc.rank)}</strong> of ${pc.n} in ${where}, ${pc.lower ? 'lower' : 'higher'} being better`;
+            if (pc.st && !pc.fallback) {
+                h += `; sector median ${fmtMetric(pc.st[2], meta.fmt)}, middle half ${fmtMetric(pc.st[1], meta.fmt)} to ${fmtMetric(pc.st[3], meta.fmt)}`;
+            }
+            h += `. That is the ${ordinal(Math.round(pctv))} percentile.</div>`;
+        }
+        if (info.cav) h += `<div class="wk-caveat"><strong>Worth knowing.</strong> ${escapeHtml(info.cav)}</div>`;
+        return h + `</div>`;
+    }
+
+    function toggleMetricDetail(btn) {
+        const tr = btn.closest('tr');
+        if (!tr || !WK_CURRENT) return;
+        const next = tr.nextElementSibling;
+        if (next && next.classList.contains('wk-detail')) {
+            next.remove();
+            tr.classList.remove('wk-open');
+            btn.setAttribute('aria-expanded', 'false');
+            return;
+        }
+        const row = document.createElement('tr');
+        row.className = 'wk-detail';
+        row.innerHTML = '<td colspan="5">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s) + '</td>';
+        tr.after(row);
+        tr.classList.add('wk-open');
+        btn.setAttribute('aria-expanded', 'true');
+    }
+
+    // Open one category's workings and bring it into view (used by the points rows).
+    function openWorkings(cat) {
+        const el = document.getElementById('cat-detail-' + cat);
+        if (!el) return;
+        const section = document.getElementById('section-categories');
+        if (section) section.classList.remove('collapsed');
+        el.classList.remove('collapsed');
+        el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+
 
     function fmtMetric(v, type) {
         if (v === null || v === undefined) return '—';
@@ -5124,8 +5856,30 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // METHODOLOGY MODAL
     // =====================================================================
     function openMethodology() {
+        buildMethodologyToc();
         document.getElementById('methodology-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+    }
+
+    // The methodology is ~30 headings long. Give it a "contents" rail built from its own
+    // second-level headings, so a reader can jump instead of scrolling for a minute.
+    function buildMethodologyToc() {
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        if (!body || body.querySelector('.method-toc')) return;
+        const heads = body.querySelectorAll('h2');
+        if (heads.length < 4) return;
+        let h = '<nav class="method-toc" aria-label="Methodology sections"><div class="method-toc-title">On this page</div>';
+        heads.forEach(function(el, i) {
+            el.id = el.id || 'm-sec-' + i;
+            h += '<a href="#' + el.id + '" data-m="' + el.id + '" onclick="return goToMethod(this.dataset.m)">' + escapeHtml(el.textContent) + '</a>';
+        });
+        body.insertAdjacentHTML('afterbegin', h + '</nav>');
+    }
+
+    function goToMethod(id) {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return false;
     }
     function closeMethodology() {
         document.getElementById('methodology-modal').style.display = 'none';
@@ -5139,19 +5893,20 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const sec = document.getElementById(sectionId);
         if (!sec) return;
         sec.classList.toggle('collapsed');
+        if (sectionId === 'sec-universe') requestAnimationFrame(() => renderWindow(true));
     }
 
     // =====================================================================
     // DEFENSIBILITY & DIAGNOSTICS
     // =====================================================================
 
+    // Magnitude in one hue. Correlation is not good or bad in itself - it only says
+    // two categories overlap - so green/amber/red would assert a verdict the number
+    // does not carry. Pairs past 0.7 get an outline instead (see .corr-high).
     function corrColor(v, isDiag) {
         if (isDiag) return 'var(--bg-elevated)';
         if (v === null || v === undefined) return 'transparent';
-        const abs = Math.abs(v);
-        if (abs > 0.7) return 'rgba(248,81,73,' + (0.12 + abs * 0.18) + ')';
-        if (abs > 0.4) return 'rgba(210,153,34,' + (0.08 + abs * 0.12) + ')';
-        return 'rgba(63,185,80,' + (0.04 + (1 - abs) * 0.08) + ')';
+        return 'rgba(57,135,229,' + (0.05 + Math.min(1, Math.abs(v)) * 0.5).toFixed(3) + ')';
     }
 
     function renderDefensibility() {
@@ -5167,17 +5922,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (avgJ !== null) {
                 const jColor = avgJ >= 0.85 ? '#0ca30c' : avgJ >= 0.70 ? '#fab219' : '#e66767';
                 const jLabel = avgJ >= 0.85 ? 'Robust' : avgJ >= 0.70 ? 'Moderate' : 'Sensitive';
-                summaryHtml += '<span class="def-badge" style="color:' + jColor + '">Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
+                summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + jColor + '"></i>Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
             }
         }
         if (dq.eps_mismatch_count !== undefined) {
             const mColor = dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219';
-            summaryHtml += '<span class="def-badge" style="color:' + mColor + '">EPS Flags: ' + dq.eps_mismatch_count + '</span>';
+            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + mColor + '"></i>EPS Flags: ' + dq.eps_mismatch_count + '</span>';
         }
         if (dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined) {
             const cov = (dq.avg_metric_coverage * 100).toFixed(0);
             const cColor = dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : dq.avg_metric_coverage >= 0.60 ? '#fab219' : '#e66767';
-            summaryHtml += '<span class="def-badge" style="color:' + cColor + '">Data: ' + cov + '% complete</span>';
+            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + cColor + '"></i>Data: ' + cov + '% complete</span>';
         }
         document.getElementById('defensibility-summary').innerHTML = summaryHtml;
 
@@ -5188,7 +5943,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         kpiHtml += dqKpi('Data Freshness', freshStr, 'when the data was last fetched from Yahoo Finance', null);
         kpiHtml += dqKpi('Metric Coverage',
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '—',
-            'of the 21 core metrics have valid data, on average per stock', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
+            'of the metrics that apply to each stock have a value, on average', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '—',
             'stocks have a GAAP vs. non-GAAP EPS discrepancy that may distort growth metrics',
             dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219');
@@ -5241,15 +5996,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     const bg = corrColor(v, i === j);
                     const txt = i === j ? '—' : (v !== null ? v.toFixed(2) : '');
                     const title = corr.labels[i] + ' vs ' + corr.labels[j] + ': ' + (v !== null ? v.toFixed(3) : 'N/A');
-                    hHtml += '<div class="corr-cell" style="background:' + bg + '" title="' + title + '">' + txt + '</div>';
+                    hHtml += '<div class="corr-cell' + (i !== j && v !== null && Math.abs(v) > 0.7 ? ' corr-high' : '') + '" style="background:' + bg + '" title="' + title + '">' + txt + '</div>';
                 });
             });
             hHtml += '</div>';
             // Legend
             hHtml += '<div class="corr-legend">';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(63,185,80,.15)"></span>Low (&lt;0.4) = Independent</span>';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(210,153,34,.15)"></span>Moderate (0.4–0.7)</span>';
-            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(248,81,73,.25)"></span>High (&gt;0.7) = Overlapping</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(57,135,229,.10)"></span>Weak (&lt;0.4): largely independent</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch" style="background:rgba(57,135,229,.28)"></span>Moderate (0.4&ndash;0.7)</span>';
+            hHtml += '<span class="corr-legend-item"><span class="corr-legend-swatch corr-high" style="background:rgba(57,135,229,.45)"></span>Strong (&gt;0.7): overlapping, outlined</span>';
             hHtml += '</div>';
 
             // Auto-generated interpretation summary
@@ -5376,7 +6131,20 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (s.eps_mismatch) {
             html += '<span class="provenance-badge provenance-alert">EPS Mismatch (ratio: ' + (s.eps_ratio !== null ? s.eps_ratio : '?') + ')</span>';
         }
-        html += '</div></div>';
+        html += '</div>';
+        const fmtD = function(d) {
+            const t = new Date(d + 'T00:00:00');
+            return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+        const a = s.asof || {};
+        const parts = [];
+        if (a.bs) parts.push('Balance sheet as of <strong>' + fmtD(a.bs) + '</strong>');
+        if (a.is) parts.push('Income statement as of <strong>' + fmtD(a.is) + '</strong>');
+        if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
+        if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
+        html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but it cannot check that they are true.</p>';
+        html += '</div>';
         container.innerHTML = html;
     }
 
@@ -5406,75 +6174,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         setupFilters();
         applyFilters();
         renderDefensibility();
-    }
-
-    // ---- Refresh button ----
-    async function triggerRefresh() {
-        const btn = document.getElementById('refresh-btn');
-        const status = document.getElementById('refresh-status');
-        const STEP_LABELS = {
-            screener:  'Running screener (~15 min)…',
-            dashboard: 'Generating dashboard…',
-            deploy:    'Deploying to GitHub…',
-        };
-
-        // Ping the local server first
-        try {
-            const ping = await fetch('http://localhost:7720/ping', {
-                signal: AbortSignal.timeout(1500)
-            });
-            if (!ping.ok) throw new Error('bad status');
-        } catch (e) {
-            alert(
-                'Refresh server is not running.\n\n' +
-                'Start it in a terminal with:\n' +
-                '  python refresh_server.py\n\n' +
-                'Then try again. Keep the terminal open while it runs.'
-            );
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = '↻ Starting…';
-        status.style.display = 'inline';
-        status.textContent = 'Connecting…';
-
-        const es = new EventSource('http://localhost:7720/refresh-sse');
-
-        es.onmessage = function(e) {
-            const msg = e.data;
-            if (msg.startsWith('step:')) {
-                const step = msg.slice(5);
-                btn.textContent = '↻ ' + (step.charAt(0).toUpperCase() + step.slice(1));
-                status.textContent = STEP_LABELS[step] || step;
-            } else if (msg.startsWith('log:')) {
-                // Optionally surface last log line
-                const parts = msg.split(':');
-                status.textContent = parts.slice(2).join(':').slice(-80);
-            } else if (msg.startsWith('done:')) {
-                status.textContent = '✓ ' + msg.slice(5);
-            } else if (msg === 'complete') {
-                status.textContent = '✓ Deployed! Reloading in 5s…';
-                es.close();
-                btn.textContent = '↻ Refresh Data';
-                btn.disabled = false;
-                setTimeout(function() { location.reload(); }, 5000);
-            } else if (msg.startsWith('error:')) {
-                const detail = msg.split(':').slice(2).join(':');
-                status.textContent = '✗ Error: ' + detail;
-                es.close();
-                btn.disabled = false;
-                btn.textContent = '↻ Refresh Data';
-            }
-        };
-
-        es.onerror = function() {
-            if (es.readyState === EventSource.CLOSED) return; // already handled
-            status.textContent = 'Server disconnected.';
-            btn.disabled = false;
-            btn.textContent = '↻ Refresh Data';
-            es.close();
-        };
     }
 
     </script>

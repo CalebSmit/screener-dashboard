@@ -268,11 +268,12 @@ def build_screener_overview(cfg: dict) -> str:
         f"does not use, so {len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])} "
         f"for a bank-like stock and "
         f"{len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])} for every "
-        f"other. It is **not** the \"Metrics: n/18\" figure on the drilldown's "
-        f"provenance badge, which counts a fixed 18-metric list and therefore reads "
-        f"low for banks whose applicable set is complete. Measured on the 2026-10-07 "
-        f"payload: 62 stocks show under {_cov_thr}% on that badge and 3 actually "
-        f"received a discount."
+        f"other. The drilldown's \"Metrics: n/m\" badge and its \"The score rests on "
+        f"n of m metrics\" sentence read **this same figure**, taken from the engine "
+        f"rather than recounted (until 2026-10-07 they counted a fixed 18-metric "
+        f"list, which made 62 stocks look under-covered when only 3 were "
+        f"discounted). The drilldown shows the discount as its own line, so the "
+        f"category points, the discount and the composite add up on screen."
         if cov_disc.get("enabled", False) else ""
     )
 
@@ -848,7 +849,12 @@ Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward conse
 A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.
 
 ### Data Provenance
-Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many core metrics have valid data), and `_metric_total` (total possible metrics for that stock type). This makes per-stock data completeness visible at a glance.
+Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many of the metrics that apply to that stock have a value), and `_metric_total` (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.
+
+### The Workings Behind Every Score
+Open any stock and **The workings** section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for *this* stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.
+
+The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; `scripts/audit_stock.py` repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.
 
 ### DataValidation Sheet
 The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by >15pp), and beta overlap warnings (<80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.

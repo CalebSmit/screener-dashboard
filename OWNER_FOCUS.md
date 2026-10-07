@@ -109,6 +109,22 @@ Add items below. Anything under this heading is unclaimed work.
     reproducibility test, the build-time refusal to publish) - which now also
     owns that fourth defect. `scripts/diff_payload.py`, which the plan assigned
     to T0b, is already built.
+  - **2026-10-07 (owner-run session) - T0b, T1, T2, T3, T4, T5 and most of T6 are built and
+    shipped, at the owner's request ("make all improvements right now ... then the nightly
+    sessions do an even deeper pass").** The page now prints the weights the engine used
+    (bank / Piotroski-conditional / rescaled), every metric opens to its formula, the
+    figures behind it, whether they rebuild the value, and who it was ranked against; the
+    nine Piotroski signals and eight Beneish indices are listed; the composite chain shows
+    the coverage discount. **4,010/4,010 category scores and 502/502 composites rebuild from
+    the payload; the build refuses to publish otherwise; `scripts/audit_stock.py --all`
+    independently reproduces 502/502.** 24 metric equations rebuild at 99.5-100%. Payload
+    gzipped is flat (1,268,733 B vs 1,278,885). **The deep pass - read
+    `plan/calculation-transparency.md` "Status, 2026-10-07 evening" for the table - is, in
+    order:** (1) the "download this stock's workings" CSV; (2) add the missing inputs at
+    fetch (analyst per-quarter EPS, the risk-free rate and market return) so the last 12
+    metrics can show an equation; (3) **research the four findings the build surfaced**
+    (open item 0.9 in `CLAUDE.md`) - negative `operating_leverage` ranking best is the one
+    with a measured effect; (4) put `audit_stock.py --sample 25` in the morning brief.
   - **Commit after every stage.**
 
   **The test:** a student picks any stock, opens it, and can answer *"where did this
@@ -219,6 +235,21 @@ Add items below. Anything under this heading is unclaimed work.
     nodes, click-to-paint, LCP, CLS and contrast. One finding to act on early: the
     public **Refresh Data button is dead for every visitor** (it connects to
     `localhost:7720`).
+  - **2026-10-07 (owner-run session) - a first version of D1 through D7 is built and
+    shipped, verified in a real browser at 1440 and 375px.** Measured: DOM nodes **9,928 ->
+    2,779**, transitioned elements **662 -> 99**, row-click to paint **70 ms**, sort to paint
+    **21 ms**, layout shift **0.001**, payload gzipped flat. `tests/test_dashboard_browser.py`
+    (25 tests) holds those budgets. **The deep pass is the work listed per stage in
+    `plan/dashboard-redesign-master.md` "Status, 2026-10-07 evening"** - in this order: (1) the
+    lower drilldown blocks (Rank History, Price Targets, Company Snapshot, Sector Peers) were
+    re-chromed, **not redesigned**, and Peers still colours cells red/green against the stock;
+    (2) **look at My Holdings populated** at both widths - never re-inspected; (3) the
+    sector matrix has no phone treatment; (4) one shared chart module and alt text; (5) one
+    "no data" / "not applicable" vocabulary and a formatting module; (6) D8: a full keyboard
+    pass, a real focus trap in the sheet, contrast on **every pair in use**, LCP, 320 and 414px,
+    and a side-by-side against Linear / Stripe / Vercel / Mercury. **Be critical:** a first
+    version built in one sitting is not "perfect" and the owner asked for perfect - find what
+    is still not premium and fix it, and say what you saw in the log.
   - **Commit after every stage** - the 2026-10-06 session was cut off by a usage
     limit with nothing committed (see `NIGHTLY_LOG.md` 2026-10-06).
 

@@ -109,6 +109,13 @@ class RunContext:
             "sector_neutral": cfg.get("sector_neutral", {}),
             "value_trap_filters": cfg.get("value_trap_filters", {}),
             "universe": cfg.get("universe", {}),
+            # Bump when scoring code changes what a cached scored table contains
+            # (columns, not just values). The cache is keyed by config alone, so
+            # without this a warm start serves a table built by the previous engine:
+            # on 2026-10-07 a warm start loaded scores that lacked the per-stock
+            # weight-table and coverage columns the dashboard now needs to
+            # reproduce them. 2 = weight profiles + applicable coverage recorded.
+            "scoring_schema": 2,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]
@@ -156,6 +163,14 @@ class RunContext:
             "base_factor_weights": dict(base),
             "factor_weights_adjusted": dict(effective) != dict(base),
         }
+        # The metric-weight tables the scorer resolved (bank / Piotroski-conditional
+        # / generic), so the dashboard can print the weights that were used rather
+        # than re-deriving them. A failure here must not lose the run.
+        try:
+            from factor_engine import published_weight_profiles
+            data["profiles"] = published_weight_profiles(cfg)
+        except Exception:  # noqa: BLE001
+            pass
         path = self.run_dir / "effective_weights.json"
         with open(path, "w") as f:
             json.dump(data, f, indent=2)

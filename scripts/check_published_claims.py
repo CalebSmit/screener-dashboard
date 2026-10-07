@@ -82,6 +82,11 @@ MODULES: tuple[tuple[str, str], ...] = (
     ("tests/test_claims_register.py",
      "every computational claim on the site is registered, checked, and not "
      "one of the false statements fixed on 2026-10-07"),
+    ("tests/test_calculation_reproducibility.py",
+     "every published category score and composite rebuilds from the published "
+     "weights - the page's arithmetic adds up"),
+    ("tests/test_metric_lineage.py",
+     "every metric equation shown on the page rebuilds from the inputs shown beside it"),
     ("tests/test_overview_claims.py",
      "the published overview and index.html state the configured weights"),
     ("tests/test_overview_is_generated.py",

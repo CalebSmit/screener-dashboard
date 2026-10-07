@@ -8330,3 +8330,116 @@ composite line needs. `tests/test_calculation_reproducibility.py` must fail
 against today's tree for **333 of 4,010 pairs and 3 of 502 composites** - re-run
 `research/measurements/2026-10-06-calculation-reproducibility.py` first, those
 counts move with each data run. `scripts/diff_payload.py` already exists.
+
+## 2026-10-07 (evening) - OWNER-RUN BUILD: calculation transparency T0b-T6 and a first version of the premium redesign, D1-D7, built and shipped in one session
+
+Written by an interactive session at the owner's request: *"make all improvements right now ...
+I want design work done right now, then for the nightly sessions to still do an even deeper pass
+on it to ensure that it is perfect."* **The deep pass is the work the next sessions inherit**;
+both plans carry a "Status, 2026-10-07 evening" table that says what is built and, stage by
+stage, what is left.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - 2026-10-07 06:00 shipped to main, tag `good/2026-10-07` (T0a) |
+| Data loop published? | **Yes** - `logs/datarun-2026-10-07_020001.log` ends "Data loop complete", HEALTH: PASS |
+| Evidence base | at `1m`: **24 rows, newest 2026-09-07, 4 effective observations**; lag 30 days, inside the 40-day bound. **Untouched**: the extra run this session wrote one improvement snapshot, which was deleted (`git clean improvement/snapshots`), as `data-run.ps1` does for a run that did not publish |
+| Priority 0 | Fixed 2026-08-24, not touched |
+| Top open roadmap item | **0.8, calculation transparency + premium redesign - 1 day old; first version of every stage shipped today, deep pass open.** New **0.9** (four methodology questions the build surfaced) is 0 days old. Priority 3 (backtest v2) is **43 days** and was not taken: owner items outrank it |
+
+**Tests:** before **1716**, after **1806, 0 failed** (+90: `test_calculation_reproducibility` 26,
+`test_metric_lineage` 39, `test_dashboard_browser` 25; the one claims-register test that pinned
+the old defect was rewritten, not removed).
+
+### What was built
+
+**Calculation transparency** (`plan/calculation-transparency.md`):
+
+- **T0b - the page prints the weights that were used.** `factor_engine.metric_weight_profiles()`
+  is the one place metric weights resolve; scoring consumes it; the page publishes the same
+  tables and each stock's choice. **Verified bit-identical:** old and new engine on all 502 rows -
+  every category score, `Composite`, `Composite_Pct`, `Composite_Confidence` equal. The composite
+  chain on screen now includes the coverage discount (3 stocks). The "N of 18 metrics" count is now
+  the applicable-metric coverage the discount actually reads (35 bank-like, 41 otherwise).
+- **The build refuses to publish arithmetic that does not add up.** `generate_dashboard`
+  rebuilds every score from its own payload with `calc_trace.py` (no engine import) and raises
+  `CalculationMismatch` otherwise. It fired for real on the first attempt - see below.
+- **T1 / T2 / T3 - every metric opens to its workings.** `metric_lineage.py` (36 metrics: formula,
+  named inputs, caveat; **24 with an equation rebuilt for every stock - 99.5% to 100%**, lowest ROIC
+  441/443 and net debt/EBITDA 437/439); the nine Piotroski signals and eight Beneish indices
+  listed; "Ranked 3rd of 47 in Consumer Discretionary", sector median and quartiles, or the
+  universe where a sector has fewer than 10 values. Inputs come from the raw fetch as fetched.
+- **T5 - an independent checker.** `scripts/audit_stock.py`: **502 of 502 stocks reproduce**,
+  every percentile from its sector peers, every equation from its inputs. Two modules joined the
+  data loop's publish gate.
+- **T6 (part) - statement dates** per stock and an honest statement of what the page cannot vouch for.
+- **Payload: flat.** Inputs cost +142 KB gzipped; slimming `peers` to tickers (the browser read only
+  the ticker; the rest was duplication of `stock_detail`) saved 170 KB. **1,268,733 B vs 1,278,885.**
+
+**Premium redesign** (`plan/dashboard-redesign-master.md`), verified in Chromium at 1440 and 375px:
+sticky top bar with jump links; the **dead Refresh button removed**; one stat strip; Top 5 cards in
+a grid; **the rankings table scrolls with the page, header sticky, rows windowed (38 in the DOM),
+tinted score cells, designed filters, flags in words, phone cards**; the drilldown as a side sheet
+(bottom sheet on a phone) with a fixed identity header and jump links, a grouped "why it ranks here",
+a score grid with no orphan; sector x category matrix replacing the flat bar chart; one-hue trap
+rates and correlation heatmap; Holdings and What Changed rationale behind disclosures; methodology
+with a contents rail and a readable measure. **Measured:** DOM nodes 9,928 -> **2,779**;
+transitioned elements 662 -> **99**; row-click to paint **70 ms**; sort to paint **21 ms**; layout
+shift **0.001**.
+
+### Things found on the way
+
+- **The cache served stale columns.** The scored-data cache is keyed by config alone, so a warm
+  start after an engine change loaded scores without the new columns - and the new build guard
+  correctly refused to publish them ("279 of 502 stocks do not reproduce"). `scoring_schema` now keys
+  the cache. **Without that, tonight's 02:00 run could have hit the same wall.** Worth knowing that
+  the guard is the reason it was caught rather than published.
+- **Latent CSS no-ops**: three `{{ }}` rules in the plain-string stylesheet (refresh button hover,
+  status) never applied; removed with the button.
+- **A stale hard-coded claim**: the diagnostics card said "of the 21 core metrics" (the badge used
+  18, the discount 35 or 41). Reworded.
+- **Four methodology questions**, verified on the live payload and recorded (not patched - rule 4)
+  as **open item 0.9**: negative `operating_leverage` ranks best (95 of 393, average 84th percentile
+  vs 37th); "year-over-year" growth spans 12-21 months (AAPL: TTM to June 2026 vs FY2024); two EBITDA
+  definitions; labels that disagree with the code.
+
+### Evidence
+
+Three documented failures, each reproducible from the repo
+(`research/measurements/2026-10-06-*.py`): 275 of 502 stocks showed weights the engine had not used;
+the composite chain omitted the discount; the metric count was the wrong denominator. The design
+choices carry their sources in `plan/dashboard-design-system.md` and the budgets in
+`plan/dashboard-redesign-master.md`. No backtest or IC number was used (rules 4, 5).
+
+### Methodology changed
+
+None. `METHODOLOGY_CHANGELOG.md` 2026-10-07 (owner-run) records a **display and explanation change
+with bit-identical scores**. `DECISIONS.md` 0.8b records the constraint.
+
+### Tried and rejected
+
+- **Re-deriving the bank / Piotroski / renormalise rules in the generator or in JS.** That second
+  copy is how the defect happened. The engine emits the tables; the page applies one line of
+  arithmetic to published numbers, and the build proves the two agree.
+- **Showing an equation for every metric.** Twelve are built from a price history, analyst history
+  or a provider ratio; they say so rather than show a formula that does not reproduce.
+- **Widening the tolerance when the first build failed.** The failure was real (stale cache), not
+  rounding.
+- **A canvas chart for sector scores.** Every sector's median composite is 49-52; a bar chart of
+  that is flat by construction. A matrix with column-relative shading shows where sectors differ.
+
+### Next - the deep pass, in order
+
+1. **Design** (`plan/dashboard-redesign-master.md` status table): the lower drilldown blocks were
+   re-chromed, not redesigned; **look at My Holdings populated** at both widths; the sector matrix on a
+   phone; shared chart module and alt text; one "no data" vocabulary; D8 - keyboard pass, a real focus
+   trap, **contrast on every pair in use**, LCP, 320/414px, and a critical side-by-side against the
+   reference products. A first version built in one sitting is not perfect.
+2. **Transparency** (`plan/calculation-transparency.md` status table): the "download this stock's
+   workings" CSV; add analyst per-quarter EPS and the risk-free / market return at fetch so the last
+   twelve metrics can show an equation; `audit_stock.py --sample 25` in the morning brief.
+3. **Research 0.9(a)** - negative operating leverage - as Monday's note.
+
+---

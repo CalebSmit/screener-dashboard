@@ -633,3 +633,45 @@ tripwire: a check wired to something that cannot move is decoration.
 **Do not** re-implement any of this in the generator or in JS. Principle 1 of
 `plan/calculation-transparency.md`: the page shows the engine's numbers, never its
 own re-derivation. A second copy is how the metric-weight defect happened.
+
+
+## 0.8b. The page shows the engine's numbers, and refuses to publish if they do not add up (settled 2026-10-07)
+
+**The constraint.** Three things, each with a test:
+
+1. **Metric weights are resolved in exactly one place** - `factor_engine.metric_weight_profiles()`.
+   Scoring consumes its tables; the dashboard publishes the same tables and each stock's choice
+   (`weights.profiles`, `wp`). Do not re-implement the bank / Piotroski / renormalise rules in
+   the generator or in JS. That second copy is what let the page print the generic weight for
+   275 of 502 stocks. (`tests/test_calculation_reproducibility.py`)
+2. **A build that cannot rebuild its own published scores from its own payload does not publish.**
+   `generate_dashboard._reconcile_scores` runs `calc_trace.verify_payload` and raises
+   `CalculationMismatch`; the data loop treats a failed build as a discarded run, so the live site
+   keeps the last good version. Tolerances are tied to the payload's stored precision (4dp scores,
+   6dp weights, 2dp contributions): **do not widen them to make a build pass** - a mismatch
+   means the page and the engine disagree, which is exactly the defect.
+3. **An equation is shown only if it reproduces.** `metric_lineage.RECOMPUTE` holds a function per
+   metric; a stock whose inputs do not rebuild its value is listed in `inp_bad` and the page says
+   so. Series-based metrics (volatility, beta, drawdown, Sharpe, Sortino) and provider ratios show
+   no equation and say why. (`tests/test_metric_lineage.py`)
+
+**Why.** The page prints its own arithmetic and presents it as the thing to check. On 2026-10-06 it
+was false for 55% of stocks, and no test could see it because nothing recomputed a score from the
+payload. Two independent implementations agreeing (`calc_trace` and the engine, then
+`scripts/audit_stock.py`) is the evidence; one implementation agreeing with itself is not.
+
+**Things not to undo.**
+- `run_context.config_hash` carries `scoring_schema`. The scored-data cache is keyed by config
+  alone, so a code change that adds columns is invisible to it; bump the number when scoring
+  output changes shape.
+- `peers` ships tickers only. The full rows were ~195 KB gzipped of duplication; the browser
+  rebuilds them from `stock_detail`.
+- Inputs, `pio`, `bn`, `asof`, `wp` and `cov` are display-only and are asserted absent from
+  `raw`/`pct`.
+- The claims register covers the drilldown (`drilldown.*`); a new on-page claim about how a
+  number is computed needs an entry and a test, like a new `_sentence_*` does.
+
+**Cost, measured.** Payload 1,268,733 B gzipped against 1,278,885 B before (flat): inputs +142 KB,
+peer slimming -170 KB. The data run's extra publish gates add ~2 s.
+
+**Source.** `plan/calculation-transparency.md`; `METHODOLOGY_CHANGELOG.md` 2026-10-07 (owner-run).
