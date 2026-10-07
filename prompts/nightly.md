@@ -17,8 +17,21 @@ run by hand. If verifying genuinely requires something outside this session's
 reach, say so in the log and leave it for the *next* session to finish - not
 for the owner.
 
+**Commit as you go. A usage limit can end this session at any moment.** On
+2026-10-06 the session was cut off by an API 429 eighteen minutes in, after
+finishing a coherent piece of design work and before committing any of it: no
+commits, no log entry, a dirty tree. Commit after every stage that passes its
+own tests - a small "wip:" commit on your branch is fine and costs nothing - and
+write the `NIGHTLY_LOG.md` entry early and extend it, rather than saving both for
+the end. Work that is committed survives a cut-off; work that is only in the tree
+does not.
+
 ## 1. Orient
 
+- **Run `git stash list` straight away.** An `auto-rescue` entry is a
+  previous session's work that was cut off or left behind: look at it
+  (`git stash show -p`) and recover it before starting anything new, or say in
+  the log why not. A rescued stash nobody reads is lost work with extra steps.
 - **Read `OWNER_FOCUS.md` first.** It is how the owner directs this routine.
   Anything under its **Open** heading outranks today's nominal focus. Work the
   top open item; if you finish it, take the next one. When an item is done,

@@ -52,7 +52,9 @@ def test_script_exists():
 def test_nightly_calls_the_revert_script_on_gate_failure():
     src = NIGHTLY.read_text(encoding="utf-8-sig")
     i = src.index("SHIP GATES FAILED")
-    block = src[i:i + 2500]
+    # A locality window, not a limit: 2500 chars covered the whole failure block
+    # until the 2026-10-06 salvage step was added ahead of the push.
+    block = src[i:i + 6000]
     assert "revert-bad-merge.ps1" in block
     assert "-BaseSha" in block and "-RepoPath" in block
 
@@ -63,7 +65,9 @@ def test_the_unconditional_false_claim_is_gone():
     the inspection branch any more."""
     src = NIGHTLY.read_text(encoding="utf-8-sig")
     i = src.index("SHIP GATES FAILED")
-    block = src[i:i + 2500]
+    # A locality window, not a limit: 2500 chars covered the whole failure block
+    # until the 2026-10-06 salvage step was added ahead of the push.
+    block = src[i:i + 6000]
     # The old text is fine to still appear as part of a conditional success
     # message, but the specific pattern - printed right after pushing the
     # branch, with nothing checking origin first - must be gone.

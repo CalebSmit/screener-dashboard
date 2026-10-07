@@ -3537,6 +3537,10 @@ def _css() -> str:
            ==================================================================== */
 
         :root {
+            /* Tells the browser the page is dark, so native scrollbars, form
+               controls and autofill render dark instead of as stark white
+               chrome (the Top 5 row's scrollbar was a white bar on near-black). */
+            color-scheme: dark;
             /* surfaces */
             --bg-deep: #0d0d0d;
             --bg-primary: #141413;
@@ -3966,7 +3970,9 @@ def _css() -> str:
             font-family: var(--font-body);
             font-size: 22px;
             font-weight: 700;
-            color: var(--green);
+            /* Ink, not green: green is reserved for direction of change
+               (docs: plan/dashboard-design-system.md). A composite is a level. */
+            color: var(--text-primary);
         }
         .top5-company {
             font-size: 12px;

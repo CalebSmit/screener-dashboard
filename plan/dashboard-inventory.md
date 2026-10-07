@@ -33,6 +33,27 @@ Rank History, Analyst Price Targets, Company Snapshot, Sector Peers, Data
 Provenance, Score Contribution Breakdown, and the eight category-detail
 sections with their metric tables.
 
+## Visual design system - stage 1 DONE 2026-10-06
+
+Owner directive 2026-10-05 (`OWNER_FOCUS.md`): the page read as generated and
+did not feel good to use. Stage 1 replaced the *tokens*, not the structure:
+`:root` in `generate_dashboard.py` now carries a neutral ramp, one accent, an
+Inter-based type stack with `tabular-nums` figures and a 14px base, one radius,
+named-property transitions at 120-160ms and `prefers-reduced-motion`. Deleted,
+not restyled: the rainbow header rule, per-category and per-sector hue maps,
+glows and the entrance animations. Every value and its source is in
+`plan/dashboard-design-system.md` - change a token there and in `:root` together.
+
+**Presentation only: `dashboard_data.js` is byte-identical before and after**
+(5,150,209 bytes, same SHA-256). Check that again after every design session.
+
+Still the old structure, and the next stages in the owner's order: the rankings
+table's nested scroll box and 502-row DOM (stage 2), the drilldown hierarchy
+(stage 3), phone layout - an orphaned KPI card and a header that takes the first
+screen (stage 4). Baseline for stage 2: 9,928 DOM nodes, 662 elements with
+transitions. `scripts/shot_dashboard.py` measures these; `scripts/check_contrast.py`
+checks text/surface ratios.
+
 ## My Holdings - the sell-side surface (2026-09-15)
 
 Priority 5 / north-star gap 2. A `localStorage` list under
