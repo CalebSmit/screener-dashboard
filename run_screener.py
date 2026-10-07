@@ -245,6 +245,24 @@ def build_screener_overview(cfg: dict) -> str:
     clamps = cfg.get("metric_clamps", {})
     cov_disc = dq.get("coverage_discount", {})
 
+    # Step 5's description of what happens *after* the weighted average.
+    # Read from config rather than written out, so the page cannot drift from
+    # the rule the engine applies (rule 10's lesson). Until 2026-10-07 Step 5
+    # said the composite was "converted to a cross-sectional percentile rank
+    # (0-100), so a score of 95 means better than 95% of stocks" - which has
+    # been false since Phase 13 (F1) made the composite cardinal, and which the
+    # same document's Limitation 8 already contradicted.
+    _cov_thr = int(cov_disc.get("threshold", 0.80) * 100)
+    _cov_rate = int(cov_disc.get("penalty_rate", 0.15) * 100)
+    cov_step = (
+        f" One adjustment is applied after that weighted average: a stock below "
+        f"{_cov_thr}% metric coverage has its composite multiplied by "
+        f"`1 - (({_cov_thr}% - coverage) x {_cov_rate}%)` - the coverage discount "
+        f"described under Data Quality Safeguards below - so for those stocks the "
+        f"composite sits slightly below the sum of the category contributions."
+        if cov_disc.get("enabled", False) else ""
+    )
+
     # Helper to format metric weight tables
     def _metric_table(weights: dict, descriptions: dict) -> str:
         rows = []
@@ -654,7 +672,7 @@ The same missing-data redistribution logic applies: if a category score is NaN (
 
 So a stock's momentum score may be multiplied by something other than the {fw.get("momentum", 0)}% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows **the weight each score was actually multiplied by**, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to `runs/<run_id>/effective_weights.json`.
 
-The raw composite is then converted to a cross-sectional percentile rank (0-100), so a score of 95 means "better than 95% of stocks in the universe."
+**The composite is cardinal, and it is not a percentile.** The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100.{cov_step} The universe percentile is a **separate** column, `Composite_Pct` (`rank(pct=True) * 100`, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.
 
 ### Step 6: Apply Trap Filters & Rank
 After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.

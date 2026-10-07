@@ -198,11 +198,61 @@ def test_rank_sentence_quotes_rank_universe_and_composite():
     assert "74.7" in fact
 
 
-def test_composite_is_described_as_a_universe_percentile():
-    """It is one - ``Composite`` is a cross-sectional percentile rank
-    (``SCREENER_OVERVIEW.md``), and a student needs told that once."""
-    assert "percentile" in _fact(_build(), "rank")
-    assert "above 75% of the universe" in _fact(_build(), "rank")
+def test_composite_is_not_described_as_a_percentile():
+    """**Corrected 2026-10-07 (stage T0a).** This test used to assert the
+    opposite - that the sentence called the composite a percentile and said it
+    "scores above 75% of the universe" - and cited ``SCREENER_OVERVIEW.md`` as
+    its authority. Both the sentence and that authority were wrong:
+    ``Composite`` has been the cardinal weighted average since Phase 13 (F1)
+    and the percentile is the separate ``Composite_Pct`` column, which the same
+    page's Limitation 8 already said.
+
+    This is how the false claim survived - a test pinned it, so correcting the
+    sentence would have looked like a regression. A claim is only as good as
+    the thing that checks it, which is why T0a also adds ``claims.py``.
+    """
+    fact = _fact(_build(), "rank")
+    assert "is a percentile" not in fact
+    assert "above 75% of the universe" not in fact
+    assert "not a percentile" in fact
+
+
+def test_rank_share_is_derived_from_the_rank_not_the_composite():
+    """The share must be ``(N - rank) / (N - 1)``, so rank 1 of 502 is ahead of
+    100% of the other 501 - not "above 75%", which is what the composite of
+    74.65 produced before the fix.
+    """
+    fact = _fact(_build(), "rank")
+    assert "ahead of 100% of the other 501 stocks" in fact
+
+    # Mid-pack: rank 372 of 502 -> (502-372)/501 = 25.9% -> "26%".
+    mid = _fact(_build(_detail(rank=372, composite=45.13)), "rank")
+    assert "ahead of 26% of the other 501 stocks" in mid
+    # The composite must not be re-used as the share.
+    assert "45%" not in mid
+
+    # Last place is ahead of nothing, and must still render.
+    last = _fact(_build(_detail(rank=502, composite=12.0)), "rank")
+    assert "ahead of 0% of the other 501 stocks" in last
+
+
+def test_category_count_in_the_rank_sentence_is_this_stocks_own_count():
+    """Measured 2026-10-07: 500 of 502 stocks have eight scored categories, one
+    has six and one has five (FDXF, PSKY - both sparse financials). A
+    hard-coded "eight" would have been a *new* false claim for those two.
+    """
+    assert "its 8 category scores" in _fact(_build(), "rank")
+
+    thin = _detail(cat_scores={"valuation": 50.0, "quality": 60.0,
+                               "risk": 40.0, "size": 55.0, "investment": 45.0})
+    assert "its 5 category scores" in _fact(_build(thin), "rank")
+
+
+def test_rank_sentence_survives_a_one_stock_universe():
+    """``(N - 1)`` is a denominator; a universe of one must not divide by zero."""
+    fact = _fact(_build(universe_size=1), "rank")
+    assert "Ranks 1st of 1" in fact
+    assert "ahead of" not in fact
 
 
 def test_drivers_are_the_two_largest_contributors_with_exact_points():

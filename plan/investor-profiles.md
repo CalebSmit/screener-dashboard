@@ -55,23 +55,43 @@ milestones 1-3.
 
 ## Three things that are easy to get wrong
 
-### 1. `Composite` is a percentile rank, not the weighted sum
+### 1. `Composite` is the cardinal weighted average — **not** a percentile rank
 
-Per `README.md` and `SCREENER_OVERVIEW.md`, the pipeline computes a raw weighted
-sum of category scores and then converts it to a cross-sectional percentile:
-`rank(pct=True) * 100`. A score of 95 means "better than 95% of the universe."
+**Corrected 2026-10-07 (stage T0a). This section previously said the opposite,
+and acting on it would have produced wrong numbers.** It instructed a future
+session to add a client-side `rank(pct=True) * 100` step "or the Balanced profile
+would not reproduce the server's own published numbers" — which is backwards:
+adding that step is what would stop it reproducing them.
 
-So the client-side recompute is **two steps**, not one:
+What `compute_composite` (`factor_engine.py:2927-2952`) actually does, since
+Phase 13 (F1):
+
+1. weighted average of the 0-100 category scores, with missing-category weight
+   redistributed across the categories a stock does have;
+2. the **coverage discount** — a stock below the configured metric-coverage
+   threshold (80%) has the result multiplied by `1 - (0.80 - coverage) * 0.15`.
+   This moved 3 of 502 stocks on the 2026-10-07 payload (FDXF, PSKY, L);
+3. the result is kept **cardinal** and is the ranking key. Phase 13 made this
+   change on purpose: the percentile overwrite mapped "#1 by 20 points" and "#1
+   by 0.1 points" both to 100.0, so conviction never reached portfolio
+   construction.
+
+The percentile is a **separate** column, `Composite_Pct`, for display only.
+
+So the client-side recompute is **one** step, not two:
 
 ```js
-// 1. raw weighted sum
-const raw = CATEGORIES.reduce((s, c) => s + w[c] * row[`${c}_score`], 0) / 100;
-// 2. percentile-rank across the full scored universe, ties averaged
+// weighted average over the categories this stock has a score for
+const live = CATEGORIES.filter(c => row[`${c}_score`] != null);
+const wsum = live.reduce((s, c) => s + w[c], 0);
+const composite = live.reduce((s, c) => s + w[c] * row[`${c}_score`], 0) / wsum;
+// no percentile transform — and note the coverage discount in step 2 above is
+// NOT reproducible client-side today: the payload does not yet carry the
+// coverage figure it reads (see plan/calculation-transparency.md, T0b).
 ```
 
-Skipping step 2 produces numbers on a different scale from every other
-composite in the app, and the Balanced profile would not reproduce the
-server's own published numbers.
+**Reconcile against the engine before trusting a recompute**, per that plan's
+principle 1: the page shows the engine's numbers, never its own re-derivation.
 
 **Acceptance test for milestone 2:** selecting Balanced must reproduce the
 existing `Composite` and `Rank` for all 501 rows to within floating-point

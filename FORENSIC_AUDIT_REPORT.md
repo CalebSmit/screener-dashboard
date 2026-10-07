@@ -1,6 +1,6 @@
 > **⚠️ SUPERSEDED (as of 2026-07-28):** This report describes the pre-2026-02 17-metric / 6-category build. The current model has 8 categories and 44 metrics in METRIC_COLS. See SCREENER_OVERVIEW.md (canonical) and HEDGE_FUND_REVIEW_FINDINGS.md (latest review). Retained for historical reference only.
 >
-> **Correction:** This report describes the final Composite as min-max scaling. That is incorrect for the current code — the Composite is a percentile-rank transform (`rank(pct=True) * 100`), not min-max scaling.
+> **Correction:** This report describes the final Composite as min-max scaling. That was already wrong when the report was written, and the correction note that replaced it — "the Composite is a percentile-rank transform (`rank(pct=True) * 100`)" — went stale too. **Corrected 2026-10-07:** since Phase 13 (F1) the `Composite` is the **cardinal** weighted average of the 0-100 category scores (with a coverage discount for sparse-data stocks), and it is the ranking key. The percentile-rank transform produces a *separate* display column, `Composite_Pct`. Neither min-max scaling nor a percentile transform describes `Composite`. See `SCREENER_OVERVIEW.md` Step 5 and Limitation 8.
 
 # FORENSIC AUDIT REPORT — Multi-Factor Stock Screener
 **Date:** 2026-02-17

@@ -49,10 +49,18 @@ against `METRIC_COLS` and `config.yaml` rather than incremented by hand.)*
 
 ### Composite Score
 
-Category scores are weighted and summed into a raw composite, which is then
-converted to a **cross-sectional percentile rank** (`rank(pct=True) * 100`) — so a
-score of 95 means "better than 95% of the universe." (This is a percentile-rank
-transform, not min-max scaling.)
+Category scores are weighted and averaged into a composite that is **cardinal**:
+a 0-100 score which keeps its magnitude, and which is the ranking key. A stock
+below the configured metric-coverage threshold then has its composite reduced by
+the coverage discount. **The composite is not a percentile** — the universe
+percentile is a separate column, `Composite_Pct` (`rank(pct=True) * 100`), kept
+for display. So a composite of 95 means 95 points out of 100, *not* "better than
+95% of the universe".
+
+*(Corrected 2026-10-07. This section previously said the composite was converted
+to a cross-sectional percentile rank, which stopped being true at Phase 13 (F1) —
+`compute_composite` preserves cardinality deliberately so that conviction reaches
+portfolio construction. See `SCREENER_OVERVIEW.md` Step 5 and Limitation 8.)*
 
 ## Quick Start
 
