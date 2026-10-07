@@ -287,41 +287,33 @@ def test_overview_states_the_coverage_discount_from_config(generated_overview, c
     assert f"{rate}%" in generated_overview
 
 
-def test_confidence_metric_count_is_not_the_discount_coverage(payload, generated_overview):
-    """**A defect this register records rather than hides** (found 2026-10-07,
-    fix belongs to T0b).
+def test_confidence_metric_count_is_the_discount_coverage(payload, generated_overview):
+    """The drilldown's "N of M metrics" must be the coverage the discount reads.
 
-    The drilldown says "The score rests on N of 18 metrics" and its provenance
-    badge colours that share at 60%/80% thresholds - the *coverage discount's*
-    thresholds. But the 18 is `factor_engine`'s hard-coded `_metric_keys`
-    list, while the discount measures coverage over the metrics **applicable to
-    that stock**: METRIC_COLS less the ones its type does not use. So a bank
-    reads 12/18 = 67% and is not discounted at all.
-
-    This test pins the mismatch so it cannot be silently "tidied" in either
-    direction: if someone changes the lists, this fails and they must revisit
-    the explanation. It also requires Step 5 to keep saying which figure the
-    discount uses, which is the only part T0a could honestly fix.
+    Found 2026-10-07 and fixed in T0b: the sentence and the provenance badge counted
+    a hard-coded 18-metric list while the discount counts the metrics applicable to
+    the stock (35 bank-like, 41 otherwise), so a bank read 12/18 = 67% and was not
+    discounted at all. Now both come from `factor_engine.applicable_coverage`.
     """
     from factor_engine import (METRIC_COLS, _BANK_ONLY_METRICS,
                                _NONBANK_ONLY_METRICS)
 
-    totals = {s.get("metric_total") for s in payload["stock_detail"].values()
-              if s.get("metric_total")}
-    assert totals == {18}, f"expected the fixed 18-metric basis, got {totals}"
-
     bank = len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])
     other = len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])
-    assert 18 not in (bank, other), (
-        "the provenance basis now equals an applicable-metric count; if the two "
-        "have been reconciled, update claims.claim('summary.confidence').caveat "
-        "and this test."
-    )
 
-    # The page must say which figure the discount reads, so the two cannot be
-    # confused by a reader doing the arithmetic.
+    stocks = payload["stock_detail"].values()
+    assert all(s.get("cov") for s in stocks), "every stock must publish its coverage"
+    for s in stocks:
+        assert s["metric_count"] == s["cov"]["n"]
+        assert s["metric_total"] == s["cov"]["of"]
+        expected = bank if s["flags"]["is_bank"] else other
+        assert s["cov"]["of"] == expected, (
+            f"{s['cov']} for a {'bank' if s['flags']['is_bank'] else 'non-bank'} stock; "
+            f"expected an applicable set of {expected}")
+
+    # The methodology page says the badge and the discount read the same figure.
     assert f"{bank}" in generated_overview and f"{other}" in generated_overview
-    assert "provenance badge" in generated_overview
+    assert "read **this same figure**" in generated_overview
 
 
 #  ---------------------------------------------------------------------------

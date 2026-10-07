@@ -268,11 +268,12 @@ def build_screener_overview(cfg: dict) -> str:
         f"does not use, so {len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])} "
         f"for a bank-like stock and "
         f"{len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])} for every "
-        f"other. It is **not** the \"Metrics: n/18\" figure on the drilldown's "
-        f"provenance badge, which counts a fixed 18-metric list and therefore reads "
-        f"low for banks whose applicable set is complete. Measured on the 2026-10-07 "
-        f"payload: 62 stocks show under {_cov_thr}% on that badge and 3 actually "
-        f"received a discount."
+        f"other. The drilldown's \"Metrics: n/m\" badge and its \"The score rests on "
+        f"n of m metrics\" sentence read **this same figure**, taken from the engine "
+        f"rather than recounted (until 2026-10-07 they counted a fixed 18-metric "
+        f"list, which made 62 stocks look under-covered when only 3 were "
+        f"discounted). The drilldown shows the discount as its own line, so the "
+        f"category points, the discount and the composite add up on screen."
         if cov_disc.get("enabled", False) else ""
     )
 

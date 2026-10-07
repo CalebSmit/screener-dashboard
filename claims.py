@@ -281,29 +281,25 @@ CLAIMS: tuple[Claim, ...] = (
         id="summary.confidence",
         surface=SUMMARY,
         asserts=(
-            "How many of a fixed 18-metric list the stock has values for, which "
-            "categories could not be scored and were reweighted away, whether "
-            "filings are flagged stale and how old, and whether reported and "
-            "normalised EPS disagree."
+            "How many of the stock's applicable metrics it has values for (35 for a "
+            "bank-like stock, 41 otherwise - the same count the composite's coverage "
+            "discount reads), which categories could not be scored and were "
+            "reweighted away, whether filings are flagged stale and how old, and "
+            "whether reported and normalised EPS disagree."
         ),
         made_true_by="stock_summary:_sentence_confidence",
         checked_by=(
             "tests/test_stock_summary.py::test_metric_coverage_is_stated",
-            "tests/test_claims_register.py::test_confidence_metric_count_is_not_the_discount_coverage",
+            "tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage",
         ),
         caveat=(
-            "**Defect found 2026-10-07, not yet fixed - T0b.** 'rests on N of 18 "
-            "metrics' counts `factor_engine`'s hard-coded `_metric_keys` list, "
-            "which is NOT the applicable-metric coverage the composite's coverage "
-            "discount reads (35 metrics for a bank-like stock, 41 otherwise, out "
-            "of METRIC_COLS). A bank reads 12/18 = 67% while its applicable set is "
-            "complete. Measured on the 2026-10-07 payload: 62 stocks read under "
-            "80% on this basis and 3 were actually discounted. The sentence is "
-            "true as stated, but invites the wrong inference next to the coverage "
-            "rule; the drilldown's provenance badge colours 60/80% thresholds on "
-            "the same wrong denominator. Step 5 of the overview now says which "
-            "figure the discount uses; the badge still needs the engine to emit "
-            "applicable coverage."
+            "Fixed 2026-10-07 (T0b). 'rests on N of M metrics' used to count a "
+            "hard-coded 18-metric list, which is NOT the applicable-metric coverage "
+            "the coverage discount reads; 62 stocks read under 80% on that basis and "
+            "3 were discounted. The engine now emits applicable coverage "
+            "(`factor_engine.applicable_coverage`) and the page publishes it as "
+            "`stock_detail[t].cov`; `metric_count`/`metric_total` carry the same two "
+            "numbers."
         ),
     ),
     Claim(

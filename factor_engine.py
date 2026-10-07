@@ -503,21 +503,18 @@ def _is_rate_limited(err_str: str) -> bool:
     return any(p in err_str.lower() for p in _RATE_LIMIT_PATTERNS)
 
 
-def _compute_beneish_mscore(d: dict):
-    """Compute Beneish M-Score from annual financial statement data.
+BENEISH_INDEX_NAMES = ("DSRI", "GMI", "AQI", "SGI", "DEPI", "SGAI", "LVGI", "TATA")
 
-    Returns (m_score, flag) where flag is True if M-Score > -2.22
-    (indicating potential earnings manipulation).
 
-    Uses the 8-variable model from Beneish (1999):
-    M = -4.84 + 0.920*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI
-        + 0.115*DEPI - 0.172*SGAI + 4.679*TATA - 0.327*LVGI
+def _beneish_parts(d: dict):
+    """The eight Beneish indices and which of them came from real data.
 
-    Missing individual index inputs default to 1.0 (neutral), except
-    revenue and total assets which are required for both years.
-
-    Returns (NaN, False) if fewer than 5 of 8 indices can be computed
-    from actual data (analogous to Piotroski's n_testable >= 6 gate).
+    Returns ``(indices, real)`` - ``indices`` in ``BENEISH_INDEX_NAMES`` order,
+    ``real[i]`` True when index ``i`` was computed from reported figures and False
+    when it fell back to its neutral value (1.0, TATA 0.0) - or ``None`` when revenue
+    or total assets are missing for either year. Split out of
+    ``_compute_beneish_mscore`` so the page can show the components behind the
+    score; the arithmetic is unchanged.
     """
     # Extract required fields (all prefixed _beneish_ from fetch layer)
     rec_t  = d.get("_beneish_net_receivables", np.nan)
@@ -545,75 +542,106 @@ def _compute_beneish_mscore(d: dict):
 
     # Minimum required: revenue and total assets for both years
     if any(pd.isna(x) or x == 0 for x in [rev_t, rev_p, ta_t, ta_p]):
-        return np.nan, False
+        return None
 
-    n_computed = 0  # Track how many indices are computed from real data
+    real = []
 
     # 1. DSRI (Days Sales in Receivables Index)
     if pd.notna(rec_t) and pd.notna(rec_p) and rec_p > 0:
         dsri = (rec_t / rev_t) / (rec_p / rev_p)
-        n_computed += 1
+        real.append(True)
     else:
         dsri = 1.0  # neutral
+        real.append(False)
 
     # 2. GMI (Gross Margin Index)
     gm_t = (rev_t - cogs_t) / rev_t if (pd.notna(cogs_t) and rev_t > 0) else np.nan
     gm_p = (rev_p - cogs_p) / rev_p if (pd.notna(cogs_p) and rev_p > 0) else np.nan
     if pd.notna(gm_t) and pd.notna(gm_p) and gm_t > 0:
         gmi = gm_p / gm_t
-        n_computed += 1
+        real.append(True)
     else:
         gmi = 1.0
+        real.append(False)
 
     # 3. AQI (Asset Quality Index)
     if all(pd.notna(x) for x in [ca_t, ppe_t, ta_t, ca_p, ppe_p, ta_p]):
         aq_t = 1 - (ca_t + ppe_t) / ta_t
         aq_p = 1 - (ca_p + ppe_p) / ta_p
         aqi = (aq_t / aq_p) if aq_p != 0 else 1.0
-        n_computed += 1
+        real.append(True)
     else:
         aqi = 1.0
+        real.append(False)
 
-    # 4. SGI (Sales Growth Index) — always computable (rev guaranteed above)
+    # 4. SGI (Sales Growth Index) - always computable (rev guaranteed above)
     sgi = rev_t / rev_p
-    n_computed += 1
+    real.append(True)
 
     # 5. DEPI (Depreciation Index)
     if (all(pd.notna(x) for x in [dep_t, dep_p, ppe_t, ppe_p])
             and (ppe_t + dep_t) > 0 and (ppe_p + dep_p) > 0):
         depi = (dep_p / (ppe_p + dep_p)) / (dep_t / (ppe_t + dep_t))
-        n_computed += 1
+        real.append(True)
     else:
         depi = 1.0
+        real.append(False)
 
-    # 6. SGAI (SGA Expense Index) — set to 1.0 (neutral) if SGA missing
+    # 6. SGAI (SGA Expense Index) - set to 1.0 (neutral) if SGA missing
     if (all(pd.notna(x) for x in [sga_t, sga_p])
             and rev_t > 0 and rev_p > 0 and sga_p > 0):
         sgai = (sga_t / rev_t) / (sga_p / rev_p)
-        n_computed += 1
+        real.append(True)
     else:
         sgai = 1.0
+        real.append(False)
 
     # 7. LVGI (Leverage Index)
     if (all(pd.notna(x) for x in [ltd_t, cl_t, ta_t, ltd_p, cl_p, ta_p])
             and ta_t > 0 and ta_p > 0
             and (ltd_p + cl_p) > 0):
         lvgi = ((ltd_t + cl_t) / ta_t) / ((ltd_p + cl_p) / ta_p)
-        n_computed += 1
+        real.append(True)
     else:
         lvgi = 1.0
+        real.append(False)
 
     # 8. TATA (Total Accruals to Total Assets)
     if pd.notna(ni_t) and pd.notna(ocf_t) and ta_t > 0:
         tata = (ni_t - ocf_t) / ta_t
-        n_computed += 1
+        real.append(True)
     else:
         tata = 0.0  # neutral
+        real.append(False)
+
+    return (dsri, gmi, aqi, sgi, depi, sgai, lvgi, tata), real
+
+
+def _compute_beneish_mscore(d: dict):
+    """Compute Beneish M-Score from annual financial statement data.
+
+    Returns (m_score, flag) where flag is True if M-Score > -2.22
+    (indicating potential earnings manipulation).
+
+    Uses the 8-variable model from Beneish (1999):
+    M = -4.84 + 0.920*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI
+        + 0.115*DEPI - 0.172*SGAI + 4.679*TATA - 0.327*LVGI
+
+    Missing individual index inputs default to 1.0 (neutral), except
+    revenue and total assets which are required for both years.
+
+    Returns (NaN, False) if fewer than 5 of 8 indices can be computed
+    from actual data (analogous to Piotroski's n_testable >= 6 gate).
+    """
+    parts = _beneish_parts(d)
+    if parts is None:
+        return np.nan, False
+    (dsri, gmi, aqi, sgi, depi, sgai, lvgi, tata), real = parts
 
     # Minimum-data gate: require >= 5 of 8 indices computed from real data.
     # With < 5 indices, the M-Score is dominated by neutral defaults (1.0)
-    # and loses discriminating power — analogous to Piotroski's n_testable >= 6.
-    if n_computed < 5:
+    # and loses discriminating power - analogous to Piotroski's n_testable >= 6.
+    if sum(real) < 5:
         return np.nan, False
 
     m_score = (-4.84 + 0.920 * dsri + 0.528 * gmi + 0.404 * aqi
@@ -1572,6 +1600,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                         f"(ratio={_ev_ratio:.2f})")
                     ev = _ev_computed
 
+        # The EV the scorer actually used (the API value unless it was missing or
+        # failed the cross-check above) - published so the page shows this, not Yahoo's
+        # raw figure, beside the multiples built from it.
+        rec["_ev_used"] = ev
+
         ta = d.get("totalAssets", np.nan)
         ni = d.get("netIncome", np.nan)
         eq_v = d.get("totalEquity", np.nan)
@@ -1628,6 +1661,9 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
             # 4. EV/Sales
             rec["ev_sales"] = (ev / rev_c) if (pd.notna(ev) and pd.notna(rev_c) and rev_c > 0 and ev > 0) else np.nan
+            # The EBITDA and free cash flow the multiples above used, for display.
+            rec["_ebitda_used"] = ebitda
+            rec["_fcf_used"] = fcf
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: valuation metrics failed: {type(e).__name__}: {e}")
 
@@ -1712,6 +1748,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     _ebitda_nd = _ebit_nd + _da_nd
                 else:
                     _ebitda_nd = d.get("ebitda", np.nan)
+                rec["_ebitda_nd_used"] = _ebitda_nd
                 if pd.notna(_debt_bs) and pd.notna(_ebitda_nd) and _ebitda_nd > 0:
                     _net_debt = _debt_bs - (_cash_bs if pd.notna(_cash_bs) else 0.0)
                     if _net_debt <= 0:
@@ -1770,27 +1807,32 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             gp_v = d.get("grossProfit", np.nan)
             gp_p = d.get("grossProfit_prior", np.nan)
 
-            f = 0
-            n_testable = 0
+            # Nine signals in Piotroski's order: 1 pass, 0 fail, None = untestable
+            # (a missing input is untestable, not a fail). Recorded as a string so
+            # the drilldown can show the nine behind the score.
+            _sig = [None] * 9
             if pd.notna(ni):
-                n_testable += 1; f += int(ni > 0)
+                _sig[0] = int(ni > 0)
             if pd.notna(ocfv):
-                n_testable += 1; f += int(ocfv > 0)
+                _sig[1] = int(ocfv > 0)
             if all(pd.notna(x) for x in [ni, ni_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                n_testable += 1; f += int((ni/ta) > (ni_p/ta_p))
+                _sig[2] = int((ni/ta) > (ni_p/ta_p))
             if pd.notna(ocfv) and pd.notna(ni):
-                n_testable += 1; f += int(ocfv > ni)
+                _sig[3] = int(ocfv > ni)
             if all(pd.notna(x) for x in [ltd, ltd_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                n_testable += 1; f += int((ltd/ta) < (ltd_p/ta_p))
+                _sig[4] = int((ltd/ta) < (ltd_p/ta_p))
             if all(pd.notna(x) for x in [ca_c, cl_c, ca_p, cl_p]) and cl_c > 0 and cl_p > 0:
-                n_testable += 1; f += int((ca_c/cl_c) > (ca_p/cl_p))
+                _sig[5] = int((ca_c/cl_c) > (ca_p/cl_p))
             if pd.notna(sh) and pd.notna(sh_p):
-                n_testable += 1; f += int(sh <= sh_p)
+                _sig[6] = int(sh <= sh_p)
             if all(pd.notna(x) for x in [gp_v, gp_p, rev_c, rev_p]) and rev_c > 0 and rev_p > 0:
-                n_testable += 1; f += int((gp_v/rev_c) > (gp_p/rev_p))
+                _sig[7] = int((gp_v/rev_c) > (gp_p/rev_p))
             if all(pd.notna(x) for x in [rev_c, rev_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                n_testable += 1; f += int((rev_c/ta) > (rev_p/ta_p))
-            # Use raw integer score (0-9).  Do NOT proportionally normalize —
+                _sig[8] = int((rev_c/ta) > (rev_p/ta_p))
+            n_testable = sum(x is not None for x in _sig)
+            f = sum(x for x in _sig if x is not None)
+            rec["_pio_signals"] = "".join("-" if x is None else str(x) for x in _sig)
+            # Use raw integer score (0-9).  Do NOT proportionally normalize -
             # a company that passes 7 of 7 testable signals is NOT the same
             # quality as one passing 9 of 9; it simply has less data.
             # Require >= 6 testable signals for a meaningful score (with
@@ -1808,6 +1850,12 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 _mscore, _mflag = _compute_beneish_mscore(d)
                 rec["beneish_m_score"] = _mscore
                 rec["_beneish_flag"] = _mflag
+                # The eight indices behind the score, for the drilldown: "v1,..,v8|11110111"
+                # (the mask marks indices computed from real data, 0 = neutral default).
+                _bparts = _beneish_parts(d)
+                if _bparts is not None:
+                    rec["_beneish_idx"] = (",".join(f"{x:.4f}" for x in _bparts[0]) + "|"
+                                           + "".join("1" if r else "0" for r in _bparts[1]))
             else:
                 rec["beneish_m_score"] = np.nan
                 rec["_beneish_flag"] = False
@@ -2484,6 +2532,12 @@ METRIC_DIR = {
 }
 
 
+# A sector needs at least this many valid values for a metric before that metric is
+# ranked within the sector; below it the stock is ranked against the whole universe
+# instead. Shared with the dashboard so the page states the rule the scorer applied.
+SECTOR_MIN_PEERS = 10
+
+
 def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
     pct = {c: f"{c}_pct" for c in METRIC_COLS}
     for c in pct.values():
@@ -2510,7 +2564,7 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
                 df.loc[grp.index, pc] = 50.0
                 continue
             valid = grp[col].dropna()
-            if len(valid) < 10:
+            if len(valid) < SECTOR_MIN_PEERS:
                 # Fall back to universe-wide ranking for this metric
                 if col in universe_ranks:
                     df.loc[grp.index, pc] = universe_ranks[col].loc[grp.index]
@@ -2587,57 +2641,127 @@ CAT_METRICS = {
 }
 
 
-def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    mw = cfg["metric_weights"]
+# Plain-English reason a stock is scored on something other than the generic
+# metric weights. The dashboard prints these verbatim, so the sentence that
+# explains a weight lives next to the code that applies it.
+WEIGHT_PROFILE_LABELS = {
+    "generic": "the standard metric weights",
+    "bank": "bank weighting - banks and insurers are scored on P/B, ROE, ROA and "
+            "equity ratio instead of EV-based and operating metrics",
+    "pio_lowval": "Piotroski halved - its valuation score is below the "
+                  "threshold, so the F-Score carries less weight and the freed "
+                  "weight moves to other quality metrics",
+    "pio_gt": "Piotroski halved - high growth with low quality, so the F-Score "
+              "carries less weight and the freed weight moves to other quality metrics",
+}
+
+
+def metric_weight_profiles(cfg: dict, cat: str) -> dict:
+    """Every metric-weight set the scorer can apply to a stock in ``cat``.
+
+    Returns ``{profile_id: {metric: weight_as_a_fraction}}``. ``generic`` is always
+    present; ``bank`` when the config gives banks their own weights for this
+    category; ``pio_lowval`` / ``pio_gt`` for Quality when Piotroski conditional
+    weighting is on.
+
+    **This is the single place metric weights are resolved.** ``compute_category_scores``
+    scores from these tables and the dashboard publishes the same tables, so the
+    weights shown beside a score cannot differ from the weights that produced it.
+    Until 2026-10-07 the page printed the generic weight for every stock while the
+    scorer used bank, Piotroski-conditional and renormalised weights - the displayed
+    arithmetic was wrong for 275 of 502 stocks (``plan/calculation-transparency.md``).
+    """
+    generic_ws = cfg["metric_weights"].get(cat, {})
     bank_mw = cfg.get("bank_metric_weights", None)
+    metrics = CAT_METRICS[cat]
+
+    profiles = {"generic": {m: generic_ws.get(m, 0) / 100.0 for m in metrics}}
+
+    if bank_mw and cat in bank_mw:
+        bank_ws = bank_mw[cat]
+        profiles["bank"] = {m: bank_ws.get(m, 0) / 100.0 for m in metrics}
+
+    pio_cfg = cfg.get("piotroski_conditional", {})
+    if cat == "quality" and pio_cfg.get("enabled", False):
+        reduction = pio_cfg.get("reduction_factor", 0.5)
+        pio_w = generic_ws.get("piotroski_f_score", 0) / 100.0
+        freed = pio_w * (1 - reduction)
+
+        def _shifted(recipients):
+            # Proportional redistribution: the freed weight is split in
+            # proportion to the recipients' base weights, not equally.
+            base = {m: generic_ws.get(m, 0) for m in recipients if generic_ws.get(m, 0) > 0}
+            total = sum(base.values())
+            shares = {m: w / total for m, w in base.items()} if total > 0 else {}
+            table = {}
+            for m in metrics:
+                w_generic = generic_ws.get(m, 0) / 100.0
+                if m == "piotroski_f_score":
+                    table[m] = w_generic * reduction
+                elif m in shares:
+                    table[m] = w_generic + freed * shares[m]
+                else:
+                    table[m] = w_generic
+            return table
+
+        profiles["pio_lowval"] = _shifted(
+            set(pio_cfg.get("redistribute_to", ["roic", "gross_profit_assets"])))
+        if pio_cfg.get("growth_trap_enabled", False):
+            profiles["pio_gt"] = _shifted(
+                set(pio_cfg.get("growth_trap_redistribute_to",
+                                ["accruals", "gross_profit_assets"])))
+    return profiles
+
+
+def published_weight_profiles(cfg: dict) -> dict:
+    """``metric_weight_profiles`` for every category, as percentages, for the page.
+
+    ``{category: {profile_id: {metric: weight_percent}}}``. Rounded to six decimals,
+    which is far inside the 4dp the payload stores scores to.
+    """
+    return {
+        cat: {pid: {m: round(w * 100.0, 6) for m, w in table.items()}
+              for pid, table in metric_weight_profiles(cfg, cat).items()}
+        for cat in CAT_METRICS
+    }
+
+
+def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
 
     # Piotroski conditional weighting config
     pio_cfg = cfg.get("piotroski_conditional", {})
     pio_enabled = pio_cfg.get("enabled", False)
     pio_val_threshold = pio_cfg.get("valuation_threshold", 50)
-    pio_reduction = pio_cfg.get("reduction_factor", 0.5)
-    pio_redistribute_to = set(pio_cfg.get("redistribute_to", ["roic", "gross_profit_assets"]))
 
     # Growth-trap Piotroski conditional config (Extension of above)
     pio_gt_enabled = pio_enabled and pio_cfg.get("growth_trap_enabled", False)
     pio_gt_growth_thr = pio_cfg.get("growth_trap_growth_threshold", 70)
     pio_gt_quality_thr = pio_cfg.get("growth_trap_quality_threshold", 35)
-    pio_gt_redistribute_to = set(pio_cfg.get("growth_trap_redistribute_to", ["accruals", "gross_profit_assets"]))
 
     for cat, metrics in CAT_METRICS.items():
-        generic_ws = mw.get(cat, {})
-        bank_ws = bank_mw.get(cat, generic_ws) if bank_mw else generic_ws
         col = f"{cat}_score"
+        # The weight tables for this category. Resolved once, in one function,
+        # so the dashboard can publish exactly what is applied below.
+        profiles = metric_weight_profiles(cfg, cat)
 
-        # Pre-compute Piotroski conditional adjustment for quality category
-        # Only applies to non-bank stocks with low valuation scores
-        pio_adjust = False
-        is_low_val = pd.Series(False, index=df.index)
-        # Growth-trap-like Piotroski adjustment (high growth + low quality, non-bank)
-        pio_gt_adjust = False
-        is_growth_trap_like = pd.Series(False, index=df.index)
+        # Which table each stock is scored with. Precedence is bank, then the
+        # Piotroski low-valuation rule, then the growth-trap variant; the three
+        # masks are disjoint by construction.
+        profile = pd.Series("generic", index=df.index, dtype=object)
+        if "bank" in profiles:
+            profile[is_bank.astype(bool)] = "bank"
+
         if (cat == "quality" and pio_enabled
                 and "valuation_score" in df.columns):
             is_low_val = (df["valuation_score"] < pio_val_threshold).fillna(False)
             # Only adjust non-bank rows (bank quality weights don't use ROIC/GPA)
             is_low_val = is_low_val & ~is_bank
             if is_low_val.any():
-                pio_adjust = True
-                # Compute freed weight from piotroski reduction
-                pio_generic_w = generic_ws.get("piotroski_f_score", 0) / 100.0
-                freed_w = pio_generic_w * (1 - pio_reduction)
-                # Proportional redistribution: split freed weight in proportion to
-                # base weights of recipient metrics (not equal split).
-                pio_redist_weights = {m: generic_ws.get(m, 0) for m in pio_redistribute_to
-                                      if generic_ws.get(m, 0) > 0}
-                pio_redist_total = sum(pio_redist_weights.values())
-                pio_redist_shares = ({m: w / pio_redist_total
-                                      for m, w in pio_redist_weights.items()}
-                                     if pio_redist_total > 0 else {})
+                profile[is_low_val] = "pio_lowval"
 
             # Growth-trap Piotroski: high-growth + low-quality non-bank stocks
-            # get Piotroski weight halved, freed weight → accruals + gross_profit_assets
+            # get Piotroski weight halved, freed weight -> accruals + gross_profit_assets
             if (pio_gt_enabled
                     and "growth_score" in df.columns and "quality_score" in df.columns):
                 g_thr = df["growth_score"].quantile(pio_gt_growth_thr / 100.0)
@@ -2649,46 +2773,24 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
                     & ~is_low_val  # Don't double-apply; growth trap takes precedence on redistribution targets
                 )
                 if is_growth_trap_like.any():
-                    pio_gt_adjust = True
-                    gt_pio_w = generic_ws.get("piotroski_f_score", 0) / 100.0
-                    gt_freed_w = gt_pio_w * (1 - pio_reduction)
-                    # Proportional redistribution for growth-trap variant
-                    gt_redist_weights = {m: generic_ws.get(m, 0) for m in pio_gt_redistribute_to
-                                         if generic_ws.get(m, 0) > 0}
-                    gt_redist_total = sum(gt_redist_weights.values())
-                    gt_redist_shares = ({m: w / gt_redist_total
-                                         for m, w in gt_redist_weights.items()}
-                                        if gt_redist_total > 0 else {})
+                    profile[is_growth_trap_like] = "pio_gt"
+
+        # Recorded so the dashboard can say which table each stock was scored
+        # with. Internal column (leading underscore): never written to Excel.
+        df[f"_wp_{cat}"] = profile
 
         # Per-row weighted average: only count metrics that have data.
         # NaN percentiles are excluded (not imputed to 50th), and each
         # row's score uses its own effective weight denominator.
-        # Bank-like stocks use bank_metric_weights; others use generic.
         weighted_sum = pd.Series(0.0, index=df.index)
         weight_sum = pd.Series(0.0, index=df.index)
         skipped_metrics = []
         for m in metrics:
             pc = f"{m}_pct"
-            w_generic = generic_ws.get(m, 0) / 100.0
-            w_bank = bank_ws.get(m, 0) / 100.0
-            # Per-row weight: bank weight for bank stocks, generic for others
-            w = pd.Series(w_generic, index=df.index)
-            w[is_bank] = w_bank
-
-            # Piotroski conditional: reduce piotroski weight for low-val non-bank stocks,
-            # redistribute freed weight proportionally to specified recipient metrics
-            if pio_adjust:
-                if m == "piotroski_f_score":
-                    w[is_low_val] = w_generic * pio_reduction
-                elif m in pio_redist_shares:
-                    w[is_low_val] = w_generic + freed_w * pio_redist_shares[m]
-
-            # Growth-trap Piotroski conditional: same reduction, proportional redistribution
-            if pio_gt_adjust:
-                if m == "piotroski_f_score":
-                    w[is_growth_trap_like] = w_generic * pio_reduction
-                elif m in gt_redist_shares:
-                    w[is_growth_trap_like] = w_generic + gt_freed_w * gt_redist_shares[m]
+            w = pd.Series(profiles["generic"][m], index=df.index)
+            for pid, table in profiles.items():
+                if pid != "generic":
+                    w[profile == pid] = table[m]
 
             if pc not in df.columns:
                 continue
@@ -2869,6 +2971,31 @@ def neutralize_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # I. Composite score (SS3.2)
 # =========================================================================
+def applicable_coverage(df: pd.DataFrame):
+    """Per stock: (metrics present, metrics applicable to that stock's type).
+
+    Bank-only metrics apply to banks, the non-bank-only set to everyone else, the
+    rest to all. This is the coverage the composite's discount reads, and it is
+    published as-is: the page used to show "N of 18" from a hard-coded list while
+    the discount used 35 (bank-like) or 41, so 62 stocks looked under-covered and
+    only 3 were actually discounted (``plan/calculation-transparency.md``).
+    """
+    all_metrics = [c for c in METRIC_COLS if c in df.columns]
+    is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False).astype(bool)
+    present = pd.Series(0, index=df.index)
+    applicable = pd.Series(0, index=df.index)
+    for m in all_metrics:
+        if m in _BANK_ONLY_METRICS:
+            applies = is_bank
+        elif m in _NONBANK_ONLY_METRICS:
+            applies = ~is_bank
+        else:
+            applies = pd.Series(True, index=df.index)
+        applicable += applies.astype(int)
+        present += (df[m].notna() & applies).astype(int)
+    return present, applicable
+
+
 def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     if df.empty:
         df["Composite"] = pd.Series(dtype=float)
@@ -2902,27 +3029,24 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # Stocks with >=threshold coverage get no penalty; below that, the
     # composite is reduced proportionally to the gap.
     cov_cfg = cfg.get("data_quality", {}).get("coverage_discount", {})
+    # Always recorded, whether or not the discount is enabled, so the page can
+    # state the coverage figure and the discount actually applied.
+    _cov_present, _cov_applicable = applicable_coverage(df)
+    df["_cov_present"] = _cov_present
+    df["_cov_applicable"] = _cov_applicable
+    df["_cov_discount"] = 0.0
     if cov_cfg.get("enabled", False):
         threshold = cov_cfg.get("threshold", 0.80)
         penalty_rate = cov_cfg.get("penalty_rate", 0.15)
-        is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False).astype(bool)
-
-        # Count applicable metrics per stock (bank vs non-bank differ)
-        all_metrics = [c for c in METRIC_COLS if c in df.columns]
         for idx in df.index:
-            row_bank = is_bank.loc[idx] if idx in is_bank.index else False
-            if row_bank:
-                applicable = [m for m in all_metrics if m not in _NONBANK_ONLY_METRICS]
-            else:
-                applicable = [m for m in all_metrics if m not in _BANK_ONLY_METRICS]
-            n_applicable = len(applicable)
+            n_applicable = int(_cov_applicable.loc[idx])
             if n_applicable == 0:
                 continue
-            n_present = sum(1 for m in applicable if pd.notna(df.at[idx, m]))
-            coverage = n_present / n_applicable
+            coverage = int(_cov_present.loc[idx]) / n_applicable
             if coverage < threshold:
                 discount = (threshold - coverage) * penalty_rate
                 df.at[idx, "Composite"] = df.at[idx, "Composite"] * (1 - discount)
+                df.at[idx, "_cov_discount"] = discount
 
     # === Phase 13 (F1): preserve composite CARDINALITY =====================
     # Previously the cardinal weighted-average composite was OVERWRITTEN by its
