@@ -8443,3 +8443,90 @@ with bit-identical scores**. `DECISIONS.md` 0.8b records the constraint.
 3. **Research 0.9(a)** - negative operating leverage - as Monday's note.
 
 ---
+
+
+## 2026-10-07 (late) - OWNER-RUN UI PASS 2: a navigation layer (search, links, stepping, compare), the drilldown reordered to match its nav, Peers without verdicts, Chart.js removed
+
+Written by an interactive session at the owner's request: *"keep improving the UI/UX/Frontend
+please, it looks alot better now! But do as much as you can right now to improve it more, and for
+the fine tunups give that work to the nightly sessions to do and test. Be creative!"* **The
+nightly fine-tuning list is `plan/dashboard-redesign-master.md` "Status, pass 2"** (14 items, in
+order); item 1 is to test what this pass shipped on the live site.
+
+### Health numbers (rule 8, all five)
+
+| Check | Reading |
+|---|---|
+| Last code session ran? | **Yes** - 2026-10-07 06:00 "shipped to main"; the evening owner-run build after it, tag `good/2026-10-07-owner` |
+| Data loop published? | **Yes** - newest `logs/datarun-*.log` ends "Data loop complete", HEALTH: PASS |
+| Evidence base | at `1m`: **24 rows, newest 2026-09-07, 4 effective observations**; lag 30 days, inside the 40-day bound. Untouched: this pass rebuilt the HTML only and wrote no snapshot |
+| Priority 0 | Fixed 2026-08-24, not touched |
+| Top open roadmap item | **0.8 (transparency + premium redesign) - 1 day old**, pass 2 shipped, fine-tuning open. 0.9 (four methodology questions) 0 days. Priority 3 (backtest v2) **43 days**, not taken: owner items outrank it |
+
+### How it was checked before building
+
+Every surface screenshotted at 1440 and 375px, sheet scrolled section by section. What was seen
+and acted on, in the order found:
+
+- **The drilldown's jump links lied about its order.** Nav: Why / Scores / How it adds up / The
+  workings / Price targets. Body: Why / Scores / About / History / Price targets / Snapshot / Peers /
+  Data / Contribution / Categories - "How it adds up" jumped past four sections. Body reordered to
+  the nav; section titles renamed to match; a test pins nav order = body order.
+- **Two first-pass phone rules lost the cascade**: the 2-column score grid (a later base rule
+  re-set 4 columns, so phone cards were 75px wide) and the contribution rows (score, chip and
+  equation wrapped into 4-line stacks). Fixed in a second `<style>` block emitted after the first,
+  so equal specificity wins - simpler than hunting earlier rules.
+- **The phone filter bar was right-aligned and ragged** (`flex-direction: column` + `align-items:
+  flex-end`); now a 2-column grid.
+- **The trap-rate canvas clipped sector names** ("onsumer Discretionary"). Rebuilt as HTML bars
+  with "n of N" printed. That left **nothing using Chart.js**, which was still a render-blocking
+  ~200 KB script in `<head>` - removed.
+- **Peers coloured cells green/red** when a peer "beat" the stock on the table's own rules (lower
+  P/E, higher dividend yield, unexplained 80%/120% cut-offs). The screener does not score dividend
+  yield and makes none of those judgements; it is status colour as editorial. Now plain figures, a
+  "Peer median" row, and a note that these are reported values, not the percentiles scores use.
+- **Populated Holdings** (never looked at before): 32 accent rules for four names, a concentration
+  note with an accent rail and bold everywhere. De-boxed; phone strip 4-across.
+- **The screenshot tool's drilldown shot never opened a drilldown** - `table_data[0].ticker`
+  (the field is `Ticker`). Every "drilldown" PNG it wrote was the home page. Fixed.
+
+### What was built (the creative half)
+
+All in `_js_ux()` / `_css_ux()`; it **wraps** `openStockDetail` and `closeModal`, so every way of
+opening a stock gets it.
+
+- **Search palette** (Ctrl/Cmd+K, top-bar button): stocks by ticker/company/sector, recent stocks,
+  sections and actions.
+- **Stock links** `#stock=TICKER`: open on load; opening pushes one history entry so the phone back
+  gesture closes the sheet; stepping replaces; closing clears. Copy link in the sheet.
+- **J / K stepping** through the table's current filter and sort, "N of M" in the sheet.
+- **Compare** (C, up to four): side by side, best per row marked, and **where the composite gap
+  comes from** - category point differences (+ a discount line only for a discounted pair) that add
+  to the gap. That sentence says how a number is computed, so it is **registered**
+  (`compare.composite_gap`) with three payload tests in `test_calculation_reproducibility.py` -
+  which the data loop's publish gate runs - plus a browser test that sums the rendered lines.
+- **Download as CSV** of a stock's workings; a browser test rebuilds the composite and a category
+  score from the file alone.
+- **Add to Holdings from the sheet** (H). **Analytics -> rankings**: a matrix row or trap bar
+  filters the table (a test checks the filtered count equals the bar's "n"). Section previews on
+  collapsed headers; scroll-spy in the top bar and sheet; a dismissible first-visit guide (advice
+  terms checked by test); `?` shortcuts.
+
+Three bugs of my own, caught by looking: a `cmp-open` body class collided with the button class of
+the same name (the page turned accent-blue behind the comparison and text stopped wrapping);
+`inline-grid` buttons put "Add to" and "Holdings" on two rows, then flex trimmed the space between
+them; the Node test harness has no `window.addEventListener`, so the popstate hook is guarded.
+
+### Numbers
+
+Payload **byte-identical** (`rebuild_html.py` regenerated the HTML alone and asserted the payload
+hash). DOM nodes **2,958** (+179 for the overlays), transitions **108**, sort to paint **21-24 ms**,
+CLS **0.002**, row click to paint **74-95 ms** across runs (was ~61-70; the open path's JS is ~8 ms
+with or without the wrapper, so the rest is paint - item 2 on the nightly list; budget 100).
+**Tests: 1806 -> 1827, 0 failed** (+18 `test_dashboard_navigation`, +3 gap tests in `test_calculation_reproducibility`). `run_screener.py --dry-run` OK, `node --check` OK, data-loop publish gate `check_published_claims.py` **PASS (329)**.
+
+### Not done, and why
+
+Everything on the "Status, pass 2" list. The largest: Rank History still wants a real chart; no
+focus trap in the sheet, palette or compare; contrast on every pair; LCP (now worth measuring, with
+Chart.js gone); 320/414px; the sector matrix on a phone.

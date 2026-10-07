@@ -1,4 +1,4 @@
-# Dashboard inventory (as of 2026-10-07)
+# Dashboard inventory (as of 2026-10-07, pass 2)
 
 **Read this before changing the dashboard.** There is far more in it than a
 first look suggests, and the most common failure mode will be rebuilding
@@ -17,23 +17,47 @@ leaving it wrong.
 
 | Section | Contents |
 |---|---|
-| **Top bar** | Sticky, full-width: product name, data date, jump links to every section (`goToSection()` opens a collapsed one first), Methodology. **The Refresh Data button is gone** - it opened an `EventSource` to `localhost:7720` and could only ever work on the owner's machine (`refresh_server.py` still exists for local use) |
+| **Top bar** | Sticky, full-width: product name, data date, jump links to every section (`goToSection()` opens a collapsed one first; **scroll-spy lights the one you are in**), a **Search stocks** button (the palette, below), Methodology. **The Refresh Data button is gone** - it opened an `EventSource` to `localhost:7720` and could only ever work on the owner's machine (`refresh_server.py` still exists for local use) |
+| **First-visit guide** (pass 2) | Three numbered sentences (eight scores per stock / one composite / every number is checkable) and "Not investment advice". Dismissed once per browser (`screener_ux_guide_done`); reopened from the palette |
 | **Stat strip** | One bar, four cells: universe, value-trap flags, growth-trap flags, **metric coverage** (average, on the applicable basis) |
 | **Top 5 Stocks** | Five cards in a grid (three across below 1100px, stacked on a phone): rank and sector, ticker and composite, the eight categories as a 4x2 aligned strip. Reads `table_data` directly, excluding trap-flagged names |
 | **Full Universe Rankings** | The workhorse. Scrolls **with the page**; header row sticky below the top bar; **windowed rows** (only what is on screen plus a margin is in the DOM; `renderWindow()`, fixed `--row-h`); score cells tinted by value; designed filters (search with `/` shortcut, sector, trap flags, composite minimum, clear); flags as words, blank when none; phone: each row is a 96px card and a "Sort by" select replaces the header. **Section order is pinned by tests: Top 5, What Changed, then this** |
-| **My Holdings** | Unchanged in behaviour (every property in the section below is still pinned). The seven cited rationales moved behind "Why this panel works this way" |
-| **What Changed** | Five movers each way, "Show all N" for the rest; footnote behind "How to read this" |
-| **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector) and Trap Rate by Sector (one hue, value-labelled) |
+| **My Holdings** | Unchanged in behaviour (every property in the section below is still pinned). The seven cited rationales moved behind "Why this panel works this way". Pass 2: names can be added from any drilldown (**Add to Holdings**, or `H`); cards de-boxed (no per-category accent rules); the collapsed header previews the saved tickers |
+| **What Changed** | Five movers each way, "Show all N" for the rest; footnote behind "How to read this". The collapsed header previews "N up, M down materially since <date>" |
+| **Factor Analytics** | **Where each sector scores** - a sector x category matrix (median or average, one hue, shading relative within each column; the old bar chart was flat at ~50 for every sector) and **Trap Rate by Sector as HTML bars** (pass 2; rate and "n of N" printed on each row - the Chart.js canvas clipped sector names, and **Chart.js is no longer loaded at all**). **A matrix row or a trap bar filters the rankings table** to that sector (and flag) and scrolls to it |
 | **Defensibility & Diagnostics** | Same two analyses; the correlation heatmap is one hue by magnitude with pairs above 0.7 outlined; status colour is only a dot |
 | **Methodology** | Reading surface: contents rail built from its own headings, ~72-character measure |
 
 The **stock drilldown** (`openStockDetail`) is a **side sheet** (a bottom sheet on a phone) with a
-fixed identity header (ticker, company, sector, rank, composite), jump links, and a body that
-scrolls. In order: **Why it ranks here** (headline, then grouped: what drives the score / what
-changed / context / read with care), the score cards (composite banner + 4x2), About, Rank
-History, Analyst Price Targets, Company Snapshot, Sector Peers, Data Provenance, **Score
-Contribution Breakdown** (category points, the coverage-discount line when one applies, the
-composite; each row opens its workings) and **The workings**.
+fixed identity header (ticker, company, sector, rank, composite), a **toolbar** (previous / "N of M" /
+next, Add to Holdings, Compare, Copy link), jump links (scroll-spied), and a body that scrolls.
+**Pass 2 reordered the body to match its jump links** (they used to skip four sections). In order:
+**Why it ranks here** (headline, then grouped: what drives the score / what changed / context /
+read with care), About, the score cards (composite banner + 4x2, each with its own bar; a card
+opens its workings), **How it adds up** (was "Score Contribution Breakdown": category points as a
+quiet ledger, the coverage-discount line when one applies, the composite; each row opens its
+workings), **The workings** (was "Category Details"; now with **Download as CSV**), Rank History,
+Analyst Price Targets (de-boxed stat row), Company Snapshot (de-boxed), Sector Peers (**no
+green/red verdicts; a "Peer median" row**; the old colouring judged "better" on rules the screener
+does not use, e.g. a higher dividend yield), Data Provenance.
+
+## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
+
+It wraps `openStockDetail` and `closeModal` rather than copying them, so every way of opening a
+stock gets all of this. `tests/test_dashboard_navigation.py` (18).
+
+| Feature | How |
+|---|---|
+| **Search palette** | Ctrl/Cmd+K or the top-bar button: any stock by ticker, company or sector (ticker match first, then rank), recent stocks when empty, and actions (every section, Methodology, the comparison, the guide, shortcuts). Arrow keys + Enter |
+| **Stock links** | `#stock=TICKER` opens that stock on load. Opening from a closed sheet **pushes** one history entry (the back gesture closes the sheet instead of leaving the site); stepping **replaces** it; closing clears the hash. Copy link in the toolbar. Tab title becomes the ticker |
+| **Stepping** | `J` / `K` (or the toolbar arrows) move through the table's **current filter and sort**; a stock opened from outside that list steps through the full ranking |
+| **Compare** | `C` or the toolbar adds the open stock (up to four, kept per browser in `screener_ux_compare`); a tray at the bottom opens **Side by side**: composite and rank, eight category scores with bars and points (highest per row marked), metric coverage, trap flags, price vs mean target; then **where the composite gap comes from** - per-category point differences (plus a coverage-discount line only when one of the pair is discounted) that add up to the gap. Registered claim `compare.composite_gap`; payload checks in `test_calculation_reproducibility.py` |
+| **Workings CSV** | "Download as CSV" in The workings: composite from category points, each category from metric percentile x weight share, and every reported input. A browser test rebuilds the composite and a category from the file alone |
+| **Holdings from the sheet** | `H` or the toolbar; same storage and rules as the panel |
+| **Shortcuts** | `?` lists them |
+
+Storage keys are prefixed `screener_ux_` and every access is guarded (a test checks it); the page
+works with storage blocked.
 
 ## The workings - every number behind a score (2026-10-07)
 
@@ -53,7 +77,7 @@ New payload keys: `weights.profiles`, `weights.profile_labels`, `weights.coverag
 `pio`, `bn`, `asof`, `inp_bad`. `peers` is tickers only. All are display-only (asserted absent
 from `raw`/`pct`). Payload: 1,268,733 B gzipped (was 1,278,885).
 
-Not yet: a "download this stock's workings" CSV; equations for the 12 series-based and
+Not yet: equations for the 12 series-based and
 provider-ratio metrics (they say so instead); the analyst-history inputs (the per-quarter EPS
 actuals and estimates are not retained at fetch).
 

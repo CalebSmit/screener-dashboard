@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <script src="./dashboard_data.js?v=d2ff7e74910d"></script>
     <style>
 
@@ -2547,6 +2546,14 @@
         .trap-val strong { font-weight: 600; color: var(--text-primary); }
         .trap-val span { font-size: 11px; color: var(--text-muted); }
 
+        .trap-row[data-sector], .sm-table tbody tr[data-sector] { cursor: pointer; }
+        .trap-row[data-sector] { border-radius: 6px; padding: 0 6px; margin: 0 -6px; }
+        .trap-row[data-sector]:hover { background: var(--bg-card-hover); }
+        .sm-table tbody tr[data-sector]:hover .sm-sector { color: var(--accent-text); }
+        .trap-row:focus-visible, .sm-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .methodology-body h1 { letter-spacing: -.02em; }
+        @media (max-width: 760px) { .methodology-body h1 { font-size: 24px; line-height: 1.25; } }
+
         /* ---- DRILLDOWN TOOLBAR ---- */
         .modal-tools { display: flex; align-items: center; gap: 4px; flex: none; }
         .mt-btn {
@@ -2612,6 +2619,24 @@
         #stock-modal .peer-table td, #stock-modal .peer-table th { font-variant-numeric: tabular-nums; }
         #stock-modal .peer-row-median td { color: var(--text-muted); border-top: 1px solid var(--border-bright); }
         #stock-modal .peer-row-median .peer-ticker { font-weight: 500; color: var(--text-muted); }
+
+        /* ---- MY HOLDINGS, populated: one quiet card per name ----
+           The category strip had eight accent-coloured top rules per card (the old hue-per-
+           category scheme collapsed to one blue), so a list of four names drew 32 blue lines.
+           The concentration note drops its accent rail and heavy bold: it is reading, not an alert. */
+        .holding-cat { border-top: 0 !important; background: var(--bg-primary); border-radius: 6px; padding: 6px 8px; }
+        .holding-cat-val { font-variant-numeric: tabular-nums; font-weight: 600; }
+        .holding-composite, .holding-rank, .holding-delta { font-variant-numeric: tabular-nums; }
+        .holdings-concentration { border-left: 1px solid var(--border); background: var(--bg-card); }
+        .holdings-concentration strong { font-weight: 600; }
+        .holdings-fit-line { background: var(--bg-card); }
+        @media (max-width: 760px) {
+            .holding-cats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+            .holding-cat { padding: 5px 6px; }
+            .holding-company { max-width: 150px; }
+            .holding-sector { display: none; }
+            .holding-cat-name { letter-spacing: 0; font-size: 10px; }
+        }
 
         /* ---- SEARCH PALETTE ---- */
         .pal-overlay {
@@ -2927,7 +2952,7 @@
                                 <button class="toggle-btn" id="btn-mean" onclick="setSectorStat('mean')">Average</button>
                             </div>
                         </div>
-                        <p class="chart-note">The score of the typical stock in each sector, 0&ndash;100. Shading is relative within each column, so it shows where a sector stands out on that factor rather than an absolute level. The Composite column is why most sectors look alike overall: the differences are in the factors.</p>
+                        <p class="chart-note">The score of the typical stock in each sector, 0&ndash;100. Shading is relative within each column, so it shows where a sector stands out on that factor rather than an absolute level. The Composite column is why most sectors look alike overall: the differences are in the factors. Select a sector to list its stocks.</p>
                         <div id="sector-matrix" class="sector-matrix" role="region" aria-label="Sector by factor scores"></div>
                     </div>
                     <div class="chart-container" style="flex:0.5">
@@ -3942,7 +3967,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
     // =====================================================================
     const D = window.SCREENER_DATA || {};
-    const HAS_CHART = typeof window.Chart !== 'undefined';
 
     function setDefault(obj, key, value) {
         if (obj[key] === undefined || obj[key] === null) obj[key] = value;
@@ -3967,30 +3991,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     const COLORS = [ACCENT];
     const POS = '#0ca30c', NEG = '#e66767';
 
-    // ---- Chart.js global dark-theme defaults ----
-    if (HAS_CHART) {
-        Chart.defaults.color = '#898781';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
-        Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-        // A bar chart that makes you read the axis to learn the number is doing half
-        // the job: print the value at the end of each bar.
-        Chart.register({
-            id: 'valueLabels',
-            afterDatasetsDraw(chart, args, opts) {
-                if (!opts || opts.suffix === undefined) return;
-                const ctx = chart.ctx;
-                ctx.save();
-                ctx.fillStyle = '#c3c2b7';
-                ctx.font = "500 11px 'Inter', system-ui, sans-serif";
-                ctx.textBaseline = 'middle';
-                chart.getDatasetMeta(0).data.forEach((bar, i) => {
-                    const v = chart.data.datasets[0].data[i];
-                    ctx.fillText(v + opts.suffix, bar.x + 6, bar.y);
-                });
-                ctx.restore();
-            }
-        });
-    }
+    // Chart.js is gone (2026-10-07 pass 2): the last canvas chart, trap rates, became HTML
+    // bars, and the library was a render-blocking ~200 KB script in <head> for no chart.
 
     // =====================================================================
     // UTILITIES
@@ -4142,10 +4144,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const kind = currentTrapType === 'gt' ? 'growth-trap' : 'value-trap';
         const note = document.getElementById('trap-note');
         if (note) note.textContent = 'Share of each sector carrying a ' + kind + ' flag. ' + flagged + ' of ' + total +
-            ' stocks overall. A flag is a caveat shown beside the score; see Methodology for the rules.';
+            ' stocks overall. A flag is a caveat shown beside the score; see Methodology for the rules. Select a sector to list the flagged names.';
         host.innerHTML = sectors.map(s => {
             const d = src[s];
-            return '<div class="trap-row" role="listitem">' +
+            return '<div class="trap-row" role="listitem" data-sector="' + escapeHtml(s) + '" tabindex="0" title="Show these stocks in the rankings">' +
                 '<span class="trap-name" title="' + escapeHtml(s) + '">' + escapeHtml(s) + '</span>' +
                 '<span class="trap-track"><i style="width:' + (d.rate / max * 100).toFixed(1) + '%"></i></span>' +
                 '<span class="trap-val"><strong>' + Number(d.rate).toFixed(1) + '%</strong><span>' + d.flagged + ' of ' + d.total + '</span></span></div>';
@@ -4192,7 +4194,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         });
         let h = '<table class="sm-table"><thead><tr><th>Sector</th>' + cols.map(c => '<th class="num">' + c[1] + '</th>').join('') + '<th class="num">Stocks</th></tr></thead><tbody>';
         sectors.forEach(s => {
-            h += '<tr><td class="sm-sector">' + escapeHtml(s) + '</td>';
+            h += '<tr data-sector="' + escapeHtml(s) + '" tabindex="0" title="Show ' + escapeHtml(s) + ' in the rankings"><td class="sm-sector">' + escapeHtml(s) + '</td>';
             cols.forEach(c => {
                 const d = (dist[c[0]] || {})[s];
                 const v = d ? d[stat] : null;
@@ -6312,7 +6314,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const sh = document.getElementById('section-history');
         if (nh && sh) nh.hidden = sh.style.display === 'none';
         updateSheetTools();
-        modalSpy();
+        requestAnimationFrame(modalSpy);  // after paint: it reads layout
     };
 
     const _baseCloseModal = closeModal;
@@ -6733,6 +6735,41 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         toast('Downloaded ' + a.download);
     }
 
+    // ---- analytics -> rankings --------------------------------------------------
+    // A sector row in the matrix, or a bar in the trap chart, is a question ("which stocks
+    // are these?") whose answer is the rankings table filtered. One click asks it.
+    function filterTable(opts) {
+        const sec = document.getElementById('filter-sector');
+        const vt = document.getElementById('filter-vt');
+        const comp = document.getElementById('filter-comp-min');
+        const q = document.getElementById('filter-search');
+        if (!sec || !vt) return;
+        sec.value = opts.sector || 'all';
+        vt.value = opts.flag || 'all';
+        if (comp) comp.value = '0';
+        if (q) q.value = '';
+        applyFilters();
+        goToSection('sec-universe');
+        const n = tableState.filtered.length;
+        toast('Showing ' + n + ' ' + (opts.flag === 'vt' ? 'value-trap flagged ' : opts.flag === 'gt' ? 'growth-trap flagged ' : '') +
+              (opts.sector ? opts.sector + ' ' : '') + (n === 1 ? 'stock' : 'stocks'));
+    }
+    function bindAnalyticsLinks() {
+        const act = (e, fn) => {
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+            const row = e.target.closest('[data-sector]');
+            if (!row) return;
+            e.preventDefault();
+            fn(row.dataset.sector);
+        };
+        const sm = document.getElementById('sector-matrix');
+        const tb = document.getElementById('trap-bars');
+        ['click', 'keydown'].forEach(ev => {
+            if (sm) sm.addEventListener(ev, e => act(e, sec => filterTable({ sector: sec })));
+            if (tb) tb.addEventListener(ev, e => act(e, sec => filterTable({ sector: sec, flag: currentTrapType })));
+        });
+    }
+
     // ---- guide and shortcuts -------------------------------------------------
     function showGuide() {
         const g = document.getElementById('guide');
@@ -6839,6 +6876,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         renderCompareTray();
         updateSectionMeta();
         initScrollSpy();
+        bindAnalyticsLinks();
         if (!uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = false; }
         // Keep the holdings preview current whichever way the list changes.
         if (typeof renderHoldings === 'function') {

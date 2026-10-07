@@ -22,6 +22,7 @@ The browser tests skip where Playwright or Chromium is absent, like ``test_dashb
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -320,6 +321,26 @@ def test_the_workings_csv_redoes_the_arithmetic_on_its_own(browser, tmp_path):
         jpm = page.evaluate("D.stock_detail.JPM.cat_scores.valuation")
         assert abs(float(score_row[5]) - jpm) < 0.06
         assert any(r[:1] == ["Field"] for r in rows), "the reported inputs section is missing"
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_a_trap_bar_lists_exactly_the_flagged_stocks_in_that_sector(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("toggleSection('sec-analytics')")
+        page.wait_for_timeout(200)
+        row = page.query_selector("#trap-bars .trap-row[data-sector]")
+        sector = row.get_attribute("data-sector")
+        flagged = int(row.inner_text().split(" of ")[0].split()[-1])
+        row.click()
+        page.wait_for_timeout(300)
+        assert page.input_value("#filter-sector") == sector
+        assert page.input_value("#filter-vt") == "vt"
+        assert page.evaluate("tableState.filtered.length") == flagged
+        assert page.evaluate("tableState.filtered.every(r => r.Value_Trap_Flag && r.Sector === %s)" % json.dumps(sector))
         assert errors == []
     finally:
         ctx.close()
