@@ -2431,18 +2431,18 @@ def main():
         # Copy to project root as the canonical dashboard location
         main_dash = ROOT / "dashboard.html"
         shutil.copy2(dash_path, main_dash)
-        # Write lightweight redirect for GitHub Pages root URL
-        (ROOT / "index.html").write_text(
-            '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
-            '    <meta charset="UTF-8">\n'
-            '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-            '    <meta http-equiv="refresh" content="0; url=dashboard.html">\n'
-            '    <title>Redirecting...</title>\n'
-            '</head>\n<body>\n'
-            '    <p>Redirecting to <a href="dashboard.html">dashboard</a>...</p>\n'
-            '</body>\n</html>\n',
-            encoding="utf-8",
-        )
+        # `index.html` is what GitHub Pages serves, so it gets the dashboard
+        # itself - the same copy `data-run.ps1` makes after this step.
+        #
+        # 2026-10-08: this used to write a ~350-byte `<meta refresh>` stub to
+        # `index.html` instead. The scheduled path never showed it, because
+        # `data-run.ps1` overwrites the file with `dashboard.html` immediately
+        # afterwards; a plain `python run_screener.py` left the published page
+        # as a redirect and the tree **failing ship gate 3**, which requires
+        # `index.html` to exceed 50,000 bytes. The weaker of two paths doing the
+        # same job was the bug, as usual. Keeping one line of Python do it means
+        # the two paths cannot disagree again - `tests/test_index_is_the_dashboard.py`.
+        shutil.copy2(dash_path, ROOT / "index.html")
         # Copy companion data file (generated alongside the dashboard HTML)
         src_data_js = ctx.run_dir / "dashboard_data.js"
         if src_data_js.exists():

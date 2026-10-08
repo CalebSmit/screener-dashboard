@@ -2894,13 +2894,33 @@ backtest number and not this system's IC series.
   correlated with the signal rather than noise around it.
 
 **Expected effect:** every stock's `max_drawdown_1y` becomes a smaller (less
-negative) number, by about 0.15-4.7pp with a median near 1.1pp. Because the
-metric is scored as a sector percentile, the level shift is largely absorbed;
-what changes is the *ordering* among stocks whose errors differed, which is
-concentrated in high-volatility names. `max_drawdown_1y` carries 20% of the Risk
-category and Risk carries 10% of the composite, so 2.86% of composite weight is
-affected and composite moves should be well under a point for almost all stocks.
-Measured on the rescored run, reported in `NIGHTLY_LOG.md` 2026-10-08.
+negative) number. Because the metric is scored as a sector percentile the level
+shift is largely absorbed; what changes is the *ordering* among stocks whose
+errors differed, which is concentrated in high-volatility names.
+`max_drawdown_1y` carries 20% of the Risk category and Risk carries 10% of the
+composite, so 2.86% of composite weight is affected.
+
+**Measured effect**, on the full 502-stock rescoring run `f387d63484ef` against
+the payload the 02:00 run published
+(`research/measurements/2026-10-08-drawdown-fix-effect.py`, reproducible against
+the previous commit):
+
+| | |
+|---|---|
+| Direction | smaller fall for **499 of 499** stocks, larger for 0 |
+| Size | median **+1.317pp**, mean +1.742pp, min +0.108pp, max **+13.520pp** |
+| Largest | SNPS **-52.68% -> -39.16%**; FISV -77.40% -> -67.48%; APP -72.38% -> -63.44%; SMCI -73.00% -> -65.01% |
+| Sector percentile | Spearman 0.993; **264 of 499** move more than half a point; largest move **24.3** points |
+| Composite | **272 of 502** move more than 0.05; median \|move\| **0.070**; max **4.19** |
+| Rank | **379 of 502** move; median 1 place; max **22** places; Spearman 0.9996 |
+| Top 10 | same ten names; BBY/APA swap 3rd-4th and CAH/INCY/BMY reorder 7th-9th |
+
+**The 50-ticker sample understated the tail by a factor of three.** It gave a
+median 1.09pp and a max 4.70pp; the full universe gives 1.317pp and 13.52pp,
+because the sample was deliberately large-cap and the error grows with
+volatility - SNPS, APP, SMCI and NCLH are exactly the kind of name it was
+missing. Recorded here rather than quietly updated: the pre-registered estimate
+was right about the direction and the median and wrong about the extreme.
 
 **Validated by:** `tests/test_max_drawdown_price_path.py`, 11 tests, written
 against price paths whose drawdown is known by construction rather than against
