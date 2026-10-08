@@ -2951,3 +2951,50 @@ own label, its own code comment and its own published formula claimed.
 **Rollback:** tag `good/2026-10-07`, or revert the step 16d hunk in
 `factor_engine.py` together with the `metric_lineage.py` entry - they must move
 together or the suite fails, which is the point.
+
+---
+
+## 2026-10-08 - `factor_vol_history.csv` holds one row per run date, so the momentum-weight regime is not decided by repeated days
+
+**Area:** scoring input (`adjust_momentum_weight`, the momentum/valuation weight
+tilt). **No formula, threshold or weight definition changed**; what changed is
+the sample the existing rule reads.
+
+**Changed:** `adjust_momentum_weight` appended a row to
+`factor_vol_history.csv` on every call. It then ranks the current run's momentum
+dispersion against **every row in that file** and uses the percentile to classify
+the regime - below p25 is LOW VOL (momentum weight up, funded from valuation),
+above p75 is HIGH VOL (momentum down, redistributed to quality and valuation). A
+day with two runs therefore put two observations of one day's data into the
+distribution. It now **replaces** the row for the current date.
+
+**Evidence:** a documented failure, measured 2026-10-08 on the committed file -
+**72 rows for 52 distinct dates**, with `2026-02-21` appearing **nine** times,
+`2026-02-24` five, `2026-07-28` four, and four more dates twice. Twenty of 72
+rows (28%) were repeats of a day already counted. This is the same defect as
+`improvement/dispersion_history.csv` and `improvement/snapshots/` (CLAUDE.md
+priority 0.6, closed the same day); the reason it is in *this* file rather than
+only in the nightly log is that this one feeds scoring and the other two do not.
+
+**Expected effect:** the percentile thresholds move slightly; the regime
+classification changes only where a run sat near p25 or p75.
+
+**Measured effect:** on the run published today the thresholds moved from
+`p25=25.57, p75=26.59` to `p25=25.57, p75=26.27` - so the distribution did
+change - but today's dispersion of 25.15 classifies as **LOW VOL** either way,
+and the adjusted weights are identical under both: **momentum 14.95, valuation
+20.05, quality 22.00**. **The published payload is therefore unaffected.** The
+defect was capable of flipping a regime and did not happen to today; it is fixed
+on that basis, not on a realised loss.
+
+**Validated by:** `tests/test_one_observation_per_run_date.py` - three runs on one
+day leave one row; earlier dates survive the rewrite; and a tripwire asserts the
+committed file never repeats a date. `scripts/repair_one_observation_per_date.py`
+collapsed the history 72 -> 52 rows, keeping the last row per date, which is the
+rule `compute_forward_returns` already applied to snapshots.
+
+**Backtest observation (not decision-grade, rule 5):** none used.
+
+**Applied by:** morning session (manual), 2026-10-08.
+**Rollback:** tag `good/2026-10-07`. Reverting restores a 72-row file in which
+28% of rows are repeated days; it would not change today's published weights.

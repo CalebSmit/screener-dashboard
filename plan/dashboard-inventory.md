@@ -87,9 +87,19 @@ stock gets all of this. `tests/test_dashboard_navigation.py` (18).
 Storage keys are prefixed `screener_ux_` and every access is guarded (a test checks it); the page
 works with storage blocked.
 
-## The workings - every number behind a score (2026-10-07)
+## The workings - every number behind a score (2026-10-07, extended 2026-10-08)
 
 `plan/calculation-transparency.md`. **Read `DECISIONS.md` 0.8b before changing any of this.**
+
+**2026-10-08: `max_drawdown_1y` moved from `SOURCES` to `EQUATIONS` as exact**, so the
+Risk workings now show `($367.70 at the trough - $604.37 at the prior peak) / $604.37 at
+the prior peak = -39.2%` with a **Peak close / Peak date / Trough close / Trough date**
+input block. The pair is the engine's own (`_mdd_peak` / `_mdd_trough`, published through
+`metric_lineage.ENGINE_KEYS`) - the page never recomputes it. Writing that equation is what
+exposed the log-return compounding error fixed the same day (`METHODOLOGY_CHANGELOG.md`
+2026-10-08). The `date` format code renders through `fmtInput`'s `String(v)` fallback, now
+pinned by a test. **Seven history-based metrics still have no equation** - the ordered plan
+for them is CLAUDE.md priority 0.10, `jensens_alpha` first.
 For each category: a table of every metric with weight in the table this stock was scored with -
 raw value, sector percentile, **weight used**, points - totalling the category score. A header note
 says which table (bank, Piotroski halved, ...) and why (`weights.profile_labels`). Each metric row
@@ -110,8 +120,8 @@ line on every row; the owner found it cluttered, so pass 4 moved it behind the c
 this score** lists each unweighted metric with why (bank-only / not for banks / removed, with the
 documented reason / a zero-weight candidate), grouped so a shared reason is said once - text in
 `metric_lineage` (`published_not_used()`, payload key `not_used`), chosen by rule from the weight
-tables. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
-suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
+tables. Templates are `metric_lineage.EQUATIONS` (26 metrics; 20 exact, which the
+suite evaluates against every stock) and `SOURCES` (10 history-based metrics, one plain line);
 published as `lineage[m].x / xe / src`. Rendered by `equationHtml()` / `metricDetailHtml()` in `_js_workings()`. On a phone each metric
 is a two-line card with a chevron. **A scoring change must update these in the same commit**
 (CLAUDE.md 0.8c, `prompts/nightly.md` section 3).
@@ -119,8 +129,8 @@ is a two-line card with a chevron. **A scoring change must update these in the s
 **On every row, without a click (2026-10-07, owner-run pass 3):** a second line under each metric:
 the stock's reported figures through the formula to the value scored (`$4.5B free cash flow ÷ $31.0B
 enterprise value = 14.4%`), its rank among the peers it was ranked against with the sector median,
-and percentile x weight. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
-suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
+and percentile x weight. Templates are `metric_lineage.EQUATIONS` (26 metrics; 20 exact, which the
+suite evaluates against every stock) and `SOURCES` (10 history-based metrics, one plain line);
 published as `lineage[m].x / xe / src`. Rendered by `equationHtml()` / `metricDetailHtml()` in `_js_workings()`. On a phone each metric
 is a two-line card with a chevron. **A scoring change must update these in the same commit**
 (CLAUDE.md 0.8c, `prompts/nightly.md` section 3).

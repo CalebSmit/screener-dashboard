@@ -2885,14 +2885,35 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
             warnings.warn(f"[MOM-VOL] Could not read vol history {hist_path}: "
                           f"{type(e).__name__}: {e}")
 
-    # Append current run
-    write_header = not os.path.exists(hist_path) or os.path.getsize(hist_path) == 0
+    # Record this run - **one row per date**, replacing any row this date already
+    # has rather than appending beside it.
+    #
+    # 2026-10-08: this appended unconditionally, so a day with two runs put two
+    # observations of one day's data into the distribution `current_vol` is then
+    # ranked against - and that percentile is what sets the momentum weight
+    # below. Measured that day the file held 2026-02-21 **nine** times, 2026-02-24
+    # five and 2026-07-28 four, out of 71 rows. Same defect, and the same fix, as
+    # `improvement_engine.record_dispersion` and the snapshot directory
+    # (CLAUDE.md priority 0.6); `tests/test_one_observation_per_run_date.py`
+    # covers all three.
+    today = date.today().isoformat()
+    rows = []
+    if os.path.exists(hist_path):
+        try:
+            with open(hist_path, "r", newline="") as f:
+                rows = [r for r in csv.DictReader(f)
+                        if str(r.get("date", "")) != today]
+        except (OSError, csv.Error) as e:
+            warnings.warn(f"[MOM-VOL] Could not rewrite vol history {hist_path}: "
+                          f"{type(e).__name__}: {e}")
+            rows = []
     try:
-        with open(hist_path, "a", newline="") as f:
+        with open(hist_path, "w", newline="") as f:
             writer = csv.writer(f)
-            if write_header:
-                writer.writerow(["date", "momentum_vol"])
-            writer.writerow([date.today().isoformat(), f"{current_vol:.4f}"])
+            writer.writerow(["date", "momentum_vol"])
+            for r in rows:
+                writer.writerow([r.get("date", ""), r.get("momentum_vol", "")])
+            writer.writerow([today, f"{current_vol:.4f}"])
     except OSError as e:
         warnings.warn(f"[MOM-VOL] Could not append vol history {hist_path}: "
                       f"{type(e).__name__}: {e}")

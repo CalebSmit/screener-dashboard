@@ -67,13 +67,38 @@ def test_lineage_only_names_metrics_the_scorer_knows():
     assert set(ml.LINEAGE) <= known, sorted(set(ml.LINEAGE) - known)
 
 
+# Every format code an input may carry. `date` was added 2026-10-08 for the two closes
+# `max_drawdown_1y` is measured between; it renders through `fmtInput`'s documented
+# `String(v)` fallback, which the test below pins so the fallback cannot be removed under it.
+VALID_FORMATS = {ml.USD, ml.PRICE, ml.PCT, ml.RATIO, ml.NUM, ml.DATE}
+
+
 def test_every_entry_has_a_formula_and_valid_formats():
     for m, e in ml.LINEAGE.items():
         assert e["formula"].strip(), m
         assert e["kind"] in {"ratio", "components", "series"}, m
         for label, key, fmt in e["inputs"]:
             assert label and key
-            assert fmt in {ml.USD, ml.PRICE, ml.PCT, ml.RATIO, ml.NUM}, (m, key, fmt)
+            assert fmt in VALID_FORMATS, (m, key, fmt)
+
+
+# `fmtInput` formats these by name; `num` and `date` are printed verbatim by its
+# `return String(v)` fallback, which is the right rendering for both.
+EXPLICITLY_FORMATTED = {ml.USD, ml.PRICE, ml.PCT, ml.RATIO}
+
+
+def test_the_page_can_render_every_format_code_the_registry_uses():
+    """A format code the registry hands the browser that `fmtInput` handles neither by name nor
+    by its fallback would print `undefined` beside a number a reader is checking."""
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    body = src[src.index("function fmtInput("):][:900]
+    assert "return String(v)" in body, (
+        "fmtInput lost its verbatim fallback; 'num' and 'date' inputs rely on it")
+    used = {fmt for e in ml.LINEAGE.values() for _, _, fmt in e["inputs"]}
+    for fmt in used:
+        assert fmt in VALID_FORMATS, f"{fmt!r} is not a declared format code"
+        if fmt in EXPLICITLY_FORMATTED:
+            assert f"'{fmt}'" in body, f"fmtInput has no branch for {fmt!r}"
 
 
 def test_every_recompute_function_has_a_lineage_entry():

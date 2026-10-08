@@ -380,13 +380,16 @@ LINEAGE = {
                         how="Weight 0 in the composite; shown for reference.",
                         caveat="The denominator is the standard deviation of the shortfalls about their own mean, not the root-mean-square shortfall."),
     "max_drawdown_1y": _L("(Lowest close after the peak - the peak) / the peak",
-                          [("Highest close before the trough", "mdd_peak", PRICE),
-                           ("On", "mdd_peak_date", DATE),
-                           ("Lowest close after that peak", "mdd_trough", PRICE),
-                           ("On", "mdd_trough_date", DATE)],
+                          # Each date is labelled with the close it belongs to: the inputs
+                          # grid reflows, so a bare "On" can end up a row away from its
+                          # price (seen at 1440px on 2026-10-08).
+                          [("Peak close", "mdd_peak", PRICE),
+                           ("Peak date", "mdd_peak_date", DATE),
+                           ("Trough close", "mdd_trough", PRICE),
+                           ("Trough date", "mdd_trough_date", DATE)],
                           kind="series",
                           how="The two closes are the ends of the largest fall in about 13 months of daily adjusted closes; needs at least 200 daily returns. A negative fraction, so a smaller fall scores higher.",
-                          caveat="Labelled 1-year, but the window is about 13 months. Until 2026-10-08 the fall was measured on cumprod(1 + log return) rather than the price path, which overstated it for every stock tested - median 1.09pp, max 4.70pp (METHODOLOGY_CHANGELOG.md 2026-10-08)."),
+                          caveat="Labelled 1-year, but the window is about 13 months. Until 2026-10-08 the fall was measured on cumprod(1 + log return) rather than on the price path, which overstated it for all 499 stocks that carry the metric - median 1.3pp, up to 13.5pp (METHODOLOGY_CHANGELOG.md 2026-10-08)."),
     # ---- revisions
     "fy1_revision_3m": _L("(Current-year EPS estimate now - 90 days ago) / price",
                           [("Estimate now", "_fy1_eps_current", PRICE), ("Estimate 90 days ago", "_fy1_eps_90d_ago", PRICE),

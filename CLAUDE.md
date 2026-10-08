@@ -701,9 +701,18 @@ times) and `improvement/snapshots` **79 files for 52 dates**;
 `scripts/repair_one_observation_per_date.py` collapsed both, and
 `live_ic_history.csv` / `performance_history.csv` came out byte-identical, so this
 removed a latent distortion of `check_run_health`'s trailing dispersion median
-rather than correcting a live one. The constraint that stays: **the evidence base
-holds one row and one file per run date**, with a tripwire on the real files -
-`tests/test_one_observation_per_run_date.py`, 9 tests.
+rather than correcting a live one.
+
+**A third file had the same defect and was found the same day, by the session's own rescoring
+run adding a row to it: `factor_vol_history.csv`, 72 rows for 52 dates, 2026-02-21 appearing
+nine times.** That one feeds **scoring** - `adjust_momentum_weight` ranks the run's momentum
+dispersion against every row and the percentile sets the momentum weight. Deduplicating moved
+the distribution (p75 26.59 -> 26.27) without flipping the regime, so the published run was
+unaffected; it was capable of it. The constraint that stays: **every append-once-per-run file
+holds one row per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
+`factor_vol_history.csv` - with a tripwire on the real files.
+`tests/test_one_observation_per_run_date.py`, 11 tests. A fourth such file gets its tripwire
+in the same module.
 
 **3. Backtest v2 - step 1 is DONE on both halves; step 3 is next.**
 `plan/backtest-v2.md` governs. The two measurements, both reproducible from

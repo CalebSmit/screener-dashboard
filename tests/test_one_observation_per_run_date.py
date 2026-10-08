@@ -135,17 +135,62 @@ def test_the_surviving_snapshot_is_the_one_that_was_written_last(isolated):
 
 # --------------------------------------------------------------------------- the real files
 
+# --------------------------------------------------------------------------- momentum vol
+
+def test_the_momentum_vol_history_keeps_one_row_per_date(tmp_path):
+    """`factor_vol_history.csv` is the third file with this defect, found 2026-10-08 when a
+    second run that day added a second row for it.
+
+    It matters more than the other two: `adjust_momentum_weight` ranks the current run's
+    momentum dispersion against **every row** in this file, and that percentile decides
+    whether momentum weight is cut or raised. A date repeated nine times - which 2026-02-21
+    was, out of 71 rows - is nine votes for one day's data."""
+    import numpy as np
+    from factor_engine import adjust_momentum_weight
+
+    cfg = {"factor_weights": {"momentum": 13, "quality": 22, "valuation": 22}}
+    rng = np.random.default_rng(11)
+    df = pd.DataFrame({"momentum_score": rng.normal(50, 15, 200)})
+
+    for _ in range(3):
+        adjust_momentum_weight(df, cfg, root_dir=str(tmp_path))
+
+    hist = pd.read_csv(tmp_path / "factor_vol_history.csv")
+    assert len(hist) == 1, f"three runs on one day wrote {len(hist)} rows: {hist.to_dict()}"
+    assert hist["date"].astype(str).is_unique
+
+
+def test_the_momentum_vol_history_keeps_earlier_dates(tmp_path):
+    """Replacing today's row must not drop the history the percentile is taken against."""
+    import numpy as np
+    from factor_engine import adjust_momentum_weight
+
+    path = tmp_path / "factor_vol_history.csv"
+    path.write_text("date,momentum_vol\n2026-09-01,10.0\n2026-09-02,11.0\n", encoding="utf-8")
+    cfg = {"factor_weights": {"momentum": 13, "quality": 22, "valuation": 22}}
+    df = pd.DataFrame({"momentum_score": np.random.default_rng(5).normal(50, 15, 200)})
+
+    adjust_momentum_weight(df, cfg, root_dir=str(tmp_path))
+    adjust_momentum_weight(df, cfg, root_dir=str(tmp_path))
+
+    hist = pd.read_csv(path)
+    assert list(hist["date"].astype(str)[:2]) == ["2026-09-01", "2026-09-02"]
+    assert len(hist) == 3 and hist["date"].astype(str).is_unique
+
+
 def test_the_committed_evidence_base_has_one_row_and_one_file_per_date():
     """A tripwire on the real files: the repair done on 2026-10-08 must stay repaired.
 
     If this fails, something has started appending again - find it before reading any
     number off the evidence base."""
-    disp = ROOT / "improvement" / "dispersion_history.csv"
-    if disp.exists():
-        d = pd.read_csv(disp)
+    for name in ("improvement/dispersion_history.csv", "factor_vol_history.csv"):
+        path = ROOT / name
+        if not path.exists():
+            continue
+        d = pd.read_csv(path)
         dupes = d["date"].astype(str).value_counts()
         dupes = dupes[dupes > 1]
-        assert dupes.empty, f"dispersion_history.csv repeats these dates: {dupes.to_dict()}"
+        assert dupes.empty, f"{name} repeats these dates: {dupes.to_dict()}"
 
     snaps = ROOT / "improvement" / "snapshots"
     if snaps.exists():

@@ -8668,3 +8668,140 @@ for that case I took the top open item in "Current priorities" that is a build t
 equations exposed an arithmetic error in `max_drawdown_1y`, which became the session.
 
 ### Did
+- **Fixed a measured arithmetic error in `max_drawdown_1y`, and put its arithmetic on the
+  page.** `compute_metrics` step 16d built the path it measured the fall on with
+  `cumprod(1 + log return)`. `_daily_returns` holds **log** returns, so that series is neither
+  the price path nor the log path: because `ln(1+r) <= r` it drifts below the real path, and
+  the drift compounds, so the peak-to-trough ratio taken on it was not the stock's largest
+  fall. It is now `exp(cumsum(log return))`. Two smaller corrections in the same block: the
+  series is read in **date order** (the drawdown is order-dependent and was relying on the
+  fetch's dict insertion order), and the engine now publishes the two closes the fall was
+  measured between. *I know this is an improvement because* the old expression did not compute
+  the quantity its own label, its own code comment and its own published formula all claimed -
+  and the error is one-directional and measurable.
+  **Measured on the full rescoring run:** smaller fall for **499 of 499** stocks, median
+  **+1.317pp**, max **+13.520pp** (SNPS **-52.68% -> -39.16%**); sector percentile Spearman
+  0.993 with **264 of 499** moving more than half a point and a largest move of **24.3**;
+  composite median |move| **0.070**, max **4.19**; **379 of 502** ranks move, max **22
+  places**. Same top ten, BBY/APA and CAH/INCY/BMY reordered within it.
+  `METHODOLOGY_CHANGELOG.md` 2026-10-08; `tests/test_max_drawdown_price_path.py` (11 tests,
+  written against paths whose drawdown is known by construction, including one that keeps the
+  old formula present as the thing that must not come back).
+
+- **The page shows it, same commit (0.8c).** The metric's row opens to
+  `($367.70 at the trough - $604.37 at the prior peak) / $604.37 at the prior peak = -39.2%`
+  with both dates and the rebuild check. It is the engine's own pair, published through
+  `ENGINE_KEYS` from the one place it is computed - the page does not re-derive it.
+  `max_drawdown_1y` moves from `SOURCES` to `EQUATIONS` as **exact**, so the suite now
+  evaluates that division against every stock's scored value. Share of composite weight whose
+  arithmetic is shown on the page: **77.4% -> 80.3%**. Looked at it at 1440 and 375px: the
+  calculation, rank, points, definition, inputs and rebuild check all read correctly and
+  nothing runs off a phone screen. One fix from looking - the two date inputs were both
+  labelled "On", and the inputs grid reflows, so at 1440px "On 2026-09-15" wrapped a row away
+  from the price it belonged to; they are now "Peak close / Peak date / Trough close / Trough
+  date". Regenerated after that change and diffed: **only the `lineage` key differs**, 0
+  stocks with changed `raw` values, `table_data` byte-identical.
+
+- **Closed priority 0.6, open since 2026-08-11: one observation per run date.** Needed for
+  the rescoring run above, which would otherwise have written a second observation of a day
+  that had one. `record_dispersion` appended unconditionally and `improvement/snapshots` kept
+  every file. Measured before: `dispersion_history.csv` **52 rows for 45 distinct dates**
+  (2026-04-14 four times, 2026-07-28 three) and **79 snapshot files for 52 dates**.
+  `record_dispersion` now replaces a date's row, `record_run_snapshot` removes superseded
+  files - the rule `compute_forward_returns` already applied when reading them, so all three
+  now agree. `scripts/repair_one_observation_per_date.py` collapsed the history.
+  **Nothing that is read changed:** `live_ic_history.csv` and `performance_history.csv` are
+  byte-identical (sha256 `64ac2f91` / `410ec21d` before and after), `1m` still reads 25 rows /
+  4 effective, and the trailing-20 dispersion median is unchanged at 23.2425 - the duplicates
+  all sat outside the window, so this removed a latent distortion rather than correcting a
+  live one. `tests/test_one_observation_per_run_date.py`, 9 tests including a tripwire on the
+  real files. Verified after the run: exactly one `2026-10-08` snapshot, 45 rows / 45 dates.
+
+- **Found and fixed a latent ship-gate failure: `run_screener.py` wrote a redirect stub to
+  `index.html`.** Step 12 wrote a ~350-byte `<meta http-equiv="refresh">` page to the file
+  GitHub Pages serves, and only `data-run.ps1`'s later `Copy-Item` repaired it. So the
+  scheduled path published the real dashboard and never showed the problem, while a plain
+  `python run_screener.py` left `index.html` at **351 bytes against ship gate 3's 50,000-byte
+  floor**. Found by looking at the tree after the rescoring run - nothing else would have
+  caught it until a session committed it. Step 12 now copies the generated dashboard, the same
+  as the PowerShell loop. `tests/test_index_is_the_dashboard.py`, 5 tests, pinned against the
+  **generator** rather than the artifact so a hand-fixed file cannot hide the next run putting
+  the stub back (rule 10). This is the asymmetry CLAUDE.md already warns about - two paths
+  doing the same job, and the weaker one was the bug.
+
+- **Bumped `scoring_schema` 2 -> 3.** The first rescoring attempt was served the 02:00 scored
+  cache, which carried the old drawdown and lacked the new columns, and the build **refused to
+  publish** - `281 of 502 stocks do not reproduce their published scores`. That is the
+  calculation gate working exactly as designed, and it is why the live site was never at risk;
+  the lever for it is `run_context.config_hash`, which exists for this and now records why.
+
+- **A third file had the same defect, and it mattered more: `factor_vol_history.csv`.** Found
+  because my own rescoring run added a second `2026-10-08` row to it. `adjust_momentum_weight`
+  ranks the current run's momentum dispersion against **every row** in that file, and the
+  resulting percentile decides whether momentum weight is cut or raised - so this one feeds
+  **scoring**, not just health checks. Measured: **72 rows for 52 distinct dates**, with
+  **2026-02-21 appearing nine times**, 2026-02-24 five and 2026-07-28 four. Same fix (replace
+  the date's row), same repair script, two more tests.
+  **Checked before accepting the repair:** under the duplicated history the published run read
+  `p25=25.57 p75=26.59`, under the deduplicated one `p25=25.57 p75=26.27` - the distribution
+  genuinely moved, but both classify today's 25.15 as **LOW VOL** and both give
+  **momentum 14.95 / valuation 20.05 / quality 22.00**, so the payload published today is
+  consistent with the code as it now stands. It was capable of flipping a regime; it did not
+  happen to today.
+
+### Evidence / research
+- **Definition of maximum drawdown.** Magdon-Ismail & Atiya, "Maximum Drawdown", *Risk*
+  17(10), 2004; Chekhlov, Uryasev & Zabarankin, "Drawdown Measure in Portfolio Optimization",
+  *International Journal of Theoretical and Applied Finance* 8(1):13-58, 2005. Both define it
+  on the price/equity path as `min_t (P_t - max_{s<=t} P_s) / max_{s<=t} P_s`, taking the
+  running maximum of the cumulative **value** process. `cumprod(1 + ln(1+r))` is not that
+  process and is not a quantity either paper, or any practitioner definition, uses.
+- **The size of the error, measured twice.**
+  `research/measurements/2026-10-08-max-drawdown-log-return-compounding.py` on 50 real
+  13-month histories: overstated for 50 of 50, median 1.09pp, max 4.70pp.
+  `research/measurements/2026-10-08-drawdown-fix-effect.py` on all 502 after the fix: 499 of
+  499, median 1.317pp, max 13.520pp. **The sample understated the tail roughly threefold**
+  because it was deliberately large-cap and the error grows with volatility. Both numbers are
+  in the changelog; the pre-registered estimate was right on direction and median and wrong on
+  the extreme, which is worth saying out loud rather than quietly replacing.
+- **The gap this came out of.** `research/measurements/2026-10-08-equation-coverage.py`: of 29
+  weighted metrics, **15 carry an exact equation (58.0% of composite weight), 5 an inexact one
+  (19.5%), 9 none at all (22.6%)**. Writing the first of the missing nine is what exposed the
+  bug, which is the argument for doing the rest: you cannot write a metric's arithmetic down
+  without checking it.
+- No backtest number and no IC measurement was used for any of it (rules 4 and 5).
+
+### Methodology changed
+- `METHODOLOGY_CHANGELOG.md` **2026-10-08** - `max_drawdown_1y` measures the fall of the price
+  path. Evidence, expected effect, the measured-effect table, validation, frontend, rollback.
+  The only scoring change today.
+
+### Tried and rejected
+- **Doing `volatility` (4.29%) in the same session.** Its input is the daily standard
+  deviation, which must be kept beside the one `std()` call at **fetch** that already makes
+  `volatility_1y` - computing it anywhere else is the re-derivation CLAUDE.md row 0.8 forbids.
+  A fetch field only reaches the payload on the next full fetch, and
+  `test_nearly_every_scored_value_gets_a_line` requires >99% of scored values to carry a line,
+  so adding the `EQUATIONS` entry before the inputs exist **fails the suite** rather than
+  passing vacuously. Correctly ordered, not skipped: it belongs in a session already running a
+  refetch, and CLAUDE.md 0.10 now says so.
+- **Repairing `max_drawdown_1y`'s label while I was in the block.** It is a "1Y" metric over a
+  ~13-month window, which is open item 0.9(d). Renaming a metric is a separate change needing
+  its own research and its own changelog entry, and bundling it would have buried an
+  arithmetic fix inside a cosmetic one. The caveat says so on the page instead.
+- **Chasing the Sortino denominator.** The same block takes the standard deviation of
+  shortfalls about their own mean rather than the root-mean-square shortfall - already recorded
+  as a known deviation, and the metric carries **zero weight**, so fixing it today would have
+  changed nothing a reader sees.
+
+### Next
+- **Priority 0.10 item (a): `jensens_alpha` (3.25% of composite).** Everything it needs is
+  already computed inside `compute_metrics` - `return_12m`, `beta`, `risk_free_rate`,
+  `market_12m_return`. Publish the run-level rate and market return beside the per-stock pair
+  and the CAPM line becomes exact and verifiable **without a refetch**, which is what makes it
+  the right next one rather than `volatility`. `max_drawdown_1y` is the worked pattern to copy;
+  CLAUDE.md 0.10 now carries the ordered list and the constraint on each.
+- The duplicate-per-date class is now closed in all three files that had it (`dispersion_history.csv`, `improvement/snapshots/`, `factor_vol_history.csv`). If a fourth append-only file turns up, `tests/test_one_observation_per_run_date.py` is where its tripwire goes.
+- Open item **0.9** is still untouched and is now **age 1 day** - `operating_leverage` ranking
+  negative values best is the one with a measured effect on rankings, and it is a Monday
+  research note, not a patch.
