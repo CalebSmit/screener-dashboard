@@ -125,6 +125,18 @@ Add items below. Anything under this heading is unclaimed work.
     metrics can show an equation; (3) **research the four findings the build surfaced**
     (open item 0.9 in `CLAUDE.md`) - negative `operating_leverage` ranking best is the one
     with a measured effect; (4) put `audit_stock.py --sample 25` in the morning brief.
+    **(1) shipped in pass 2 the same night** (Download as CSV).
+  - **2026-10-07 (late, owner-run pass 3) - the numbers are on every row, not behind a
+    click.** Owner, with a screenshot of the Valuation workings: *"there is nothing like
+    showing the actual numbers going into any scores ... make sure the nightly sessions know
+    that if something is changed with scoring, that it also updates on there, the frontend
+    side of things to match the backend."* Each metric now carries a second line, e.g.
+    "$4.5B free cash flow ÷ $31.0B enterprise value = 14.4% · 1st of 46 in sector, median
+    4.0% · 100.0 x 45%"; a two-line card on a phone. The equations are templates
+    (`metric_lineage.EQUATIONS`) the suite **evaluates against every stock's scored value** -
+    19 exact ones reproduce 100% - so a formula changed in the engine without the page fails
+    the build, and the data loop's publish gate runs the same check. Standing rule:
+    CLAUDE.md 0.8c, `prompts/nightly.md` section 3, `DECISIONS.md` 0.8c.
   - **Commit after every stage.**
 
   **The test:** a student picks any stock, opens it, and can answer *"where did this

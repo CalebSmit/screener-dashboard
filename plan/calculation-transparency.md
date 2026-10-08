@@ -20,6 +20,17 @@ Credibility is the product (CLAUDE.md). A score a student cannot check is a
 claim; a score they can check is evidence. This is also the investment-club
 requirement: *teachable and explainable*.
 
+## Status, 2026-10-07 late (pass 3) - the numbers are on the row
+
+The owner looked at the workings and saw no numbers: the inputs were there, but behind a
+disclosure triangle. Every metric row now prints its own figures through the formula to the
+value scored, its rank and sector median, and percentile x weight = points
+(`metric_lineage.EQUATIONS` / `SOURCES`, `equationRow()`). Exact templates are evaluated against
+every stock by `tests/test_metric_lineage.py` (19 of 19 reproduce 100%), so a scoring formula cannot
+change without the page - see `DECISIONS.md` 0.8c. The CSV ("download this stock's workings")
+shipped in pass 2. Still open from the table below: inputs at fetch for the 11 history-based
+metrics, the 0.9 research items, `audit_stock.py --sample 25` in the morning brief.
+
 ## Status, 2026-10-07 evening - built, and ready for a deeper pass
 
 The owner asked for all of it to be built in one owner-run session, with the nightly sessions then

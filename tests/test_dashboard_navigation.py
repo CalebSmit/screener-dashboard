@@ -344,3 +344,29 @@ def test_a_trap_bar_lists_exactly_the_flagged_stocks_in_that_sector(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_every_metric_row_shows_its_own_numbers(browser):
+    """The owner's complaint, 2026-10-07: the workings showed a percentile and a direction
+    but 'no numbers anywhere ... going into the scoring'. Every scored metric row now carries
+    its inputs, the result, its rank among peers and percentile x weight - without a click."""
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("openStockDetail('EXPE')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        page.evaluate("openWorkings('valuation')")
+        row = page.inner_text("#cat-detail-valuation tr.wk-eqrow[data-for='fcf_yield']")
+        raw = page.inner_text("#cat-detail-valuation tr.metric-row[data-metric='fcf_yield'] .metric-raw").strip()
+        assert "free cash flow" in row and "enterprise value" in row and "=" in row, row
+        assert raw in row, (raw, row)
+        assert " in sector" in row and "median" in row, row
+        assert "\u00d7" in row, row  # percentile x weight
+        counts = page.evaluate("""() => {
+            const n = [...document.querySelectorAll('#modal-categories tr.metric-row')].filter(r => !r.classList.contains('wk-nodata')).length;
+            const eq = [...document.querySelectorAll('#modal-categories tr.wk-eqrow')].filter(r => !r.classList.contains('wk-nodata') && r.querySelector('.wk-eq').textContent.trim()).length;
+            return [n, eq]; }""")
+        assert counts[0] > 20 and counts[1] == counts[0], counts
+        assert errors == []
+    finally:
+        ctx.close()

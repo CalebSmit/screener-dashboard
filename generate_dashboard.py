@@ -3824,6 +3824,7 @@ def _js_workings() -> str:
                             <span class="metric-pct-label">${has ? r.pct.toFixed(0) : '<span class="metric-na">&mdash;</span>'}</span></div></td>
                         <td class="wk-num metric-weight" title="${escapeHtml(tip)}">${has ? fmtWeight(r.share) : '<span class="metric-na">&mdash;</span>'}</td>
                         <td class="wk-num wk-points">${has ? r.points.toFixed(1) : '<span class="metric-na">&mdash;</span>'}</td></tr>`;
+                    body += equationRow(r, s, meta);
                 });
                 body += `</tbody>`;
                 if (scored) {
@@ -3968,10 +3969,88 @@ def _js_workings() -> str:
         return h + `</div>`;
     }
 
+    // ---- the numbers on the row itself (owner, 2026-10-07: "we don't see any numbers
+    // anywhere ... the numbers going into the scoring") ----
+    // Under every metric: its own reported figures, through the formula, to the value that
+    // was scored; who it was ranked against; and percentile x weight = points. The equation
+    // is a template from metric_lineage.EQUATIONS - the page fills it, it never computes the
+    // result. tests/test_metric_lineage.py evaluates every exact template against every
+    // stock's published value, so a scoring change that is not mirrored here fails the build.
+    const SLOT_RE = /\{([A-Za-z0-9_]+)\|([^}]*)\}/g;
+
+    // How to print each input key, from every registry entry that names it.
+    let INPUT_FMT = null;
+    function inputFormats() {
+        if (!INPUT_FMT) {
+            INPUT_FMT = { ev_used: 'usd', ebitda_used: 'usd', fcf_used: 'usd', ebitda_nd_used: 'usd' };
+            Object.values(D.lineage || {}).forEach(e => (e.in || []).forEach(x => { INPUT_FMT[x[1]] = x[2]; }));
+        }
+        return INPUT_FMT;
+    }
+
+    function pickTemplate(info, inp) {
+        return (info.x || []).find(t => [...t.matchAll(SLOT_RE)].every(m => {
+            const v = inp[m[1]];
+            return v !== null && v !== undefined && isFinite(v);
+        })) || null;
+    }
+
+    function equationHtml(m, s, meta) {
+        const info = (D.lineage || {})[m];
+        const val = s.raw[m];
+        if (!info || val === null || val === undefined) return '';
+        const inp = s.inp || {};
+        const res = '<span class="wk-n wk-res">' + fmtMetric(val, meta.fmt) + '</span>';
+        const tpl = pickTemplate(info, inp);
+        if (tpl) {
+            const fmtOf = inputFormats();
+            let html = '', last = 0;
+            for (const mm of tpl.matchAll(SLOT_RE)) {
+                html += escapeHtml(tpl.slice(last, mm.index));
+                html += '<span class="wk-n">' + fmtInput(inp[mm[1]], fmtOf[mm[1]] || 'num') + '</span>' +
+                        (mm[2] ? ' <span class="wk-l">' + escapeHtml(mm[2]) + '</span>' : '');
+                last = mm.index + mm[0].length;
+            }
+            html += escapeHtml(tpl.slice(last));
+            const bad = (s.inp_bad || []).indexOf(m) >= 0;
+            const exact = info.xe && !bad;
+            return html + (exact ? ' <span class="wk-op">=</span> ' : ' <span class="wk-op">&rarr;</span> ') + res +
+                (bad ? ' <span class="wk-warn" title="At least one figure the scorer used differs from the one listed; open the row for detail.">inputs differ</span>' : '');
+        }
+        if (m === 'piotroski_f_score' && s.pio) {
+            const sig = s.pio.split('');
+            return '<span class="wk-n">' + sig.filter(c => c === '1').length + '</span> <span class="wk-l">of</span> <span class="wk-n">' +
+                sig.filter(c => c !== '-').length + '</span> <span class="wk-l">testable signals passed</span> <span class="wk-op">=</span> ' + res;
+        }
+        if (info.src) return '<span class="wk-l">' + escapeHtml(info.src) + '</span> <span class="wk-op">&rarr;</span> ' + res;
+        return '';
+    }
+
+    function equationRow(r, s, meta) {
+        const eq = equationHtml(r.metric, s, meta);
+        const has = r.pct !== null;
+        const pc = has ? peerContext(r.metric, s) : null;
+        let ctx = '';
+        if (pc) {
+            ctx = '<span class="wk-n">' + ordinal(pc.rank) + '</span> of ' + pc.n + (pc.fallback ? ' in the universe' : ' in sector');
+            if (pc.st && !pc.fallback) ctx += ' &middot; median <span class="wk-n">' + fmtMetric(pc.st[2], meta.fmt) + '</span>';
+        }
+        const calc = has && r.share !== null
+            ? '<span class="wk-n">' + r.pct.toFixed(1) + '</span> &times; ' + fmtWeight(r.share) : '';
+        if (!eq && !ctx && !calc) return '';
+        return `<tr class="wk-eqrow${has ? '' : ' wk-nodata'}" data-for="${r.metric}">
+            <td colspan="2" class="wk-eq">${eq}</td>
+            <td class="wk-ctx">${ctx}</td>
+            <td></td>
+            <td class="wk-num wk-calc" title="Sector percentile x share of the category weight = points">${calc}</td></tr>`;
+    }
+
     function toggleMetricDetail(btn) {
         const tr = btn.closest('tr');
         if (!tr || !WK_CURRENT) return;
-        const next = tr.nextElementSibling;
+        const eqr = tr.nextElementSibling && tr.nextElementSibling.classList.contains('wk-eqrow') ? tr.nextElementSibling : null;
+        const anchor = eqr || tr;
+        const next = anchor.nextElementSibling;
         if (next && next.classList.contains('wk-detail')) {
             next.remove();
             tr.classList.remove('wk-open');
@@ -3981,7 +4060,7 @@ def _js_workings() -> str:
         const row = document.createElement('tr');
         row.className = 'wk-detail';
         row.innerHTML = '<td colspan="5">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s) + '</td>';
-        tr.after(row);
+        anchor.after(row);
         tr.classList.add('wk-open');
         btn.setAttribute('aria-expanded', 'true');
     }
@@ -7544,6 +7623,56 @@ def _css_ux() -> str:
             .holding-company { max-width: 150px; }
             .holding-sector { display: none; }
             .holding-cat-name { letter-spacing: 0; font-size: 10px; }
+        }
+
+        /* ---- THE NUMBERS ON EVERY METRIC ROW ----
+           A second line under each metric: its reported figures through the formula to the
+           value scored, its rank among peers, and percentile x weight. Figures in ink, words
+           muted, so the eye can run down the numbers without the line reading as a wall. */
+        #modal-categories .wk-table tr.metric-row td { border-bottom: 0; padding-bottom: 2px; }
+        #modal-categories .wk-table tr.wk-eqrow td {
+            padding-top: 0; padding-bottom: 11px; font-size: 12px; line-height: 1.5; color: var(--text-muted);
+            border-bottom: 1px solid var(--border); vertical-align: top;
+        }
+        #modal-categories .wk-table tr.metric-row:hover + tr.wk-eqrow { background: var(--bg-card-hover); }
+        .wk-eq { padding-left: 30px !important; }
+        .wk-eq .wk-n, .wk-ctx .wk-n, .wk-calc .wk-n { color: var(--text-secondary); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .wk-eq .wk-res { color: var(--text-primary); font-weight: 600; }
+        .wk-eq .wk-op { color: var(--text-muted); padding: 0 1px; }
+        .wk-eq .wk-warn { color: var(--amber); font-size: 11px; margin-left: 4px; cursor: help; }
+        .wk-ctx { font-variant-numeric: tabular-nums; }
+        .wk-calc { font-variant-numeric: tabular-nums; }
+        #modal-categories .wk-table tr.wk-eqrow.wk-nodata td { padding-bottom: 8px; }
+        @media (max-width: 760px) {
+            /* On a phone each metric is a small card: name and points, then value, bar and
+               weight, then the equation, its rank and the points arithmetic. */
+            #modal-categories .wk-table, #modal-categories .wk-table tbody, #modal-categories .wk-table tfoot { display: block; }
+            #modal-categories .wk-table thead { display: none; }
+            #modal-categories .wk-table tr.metric-row {
+                display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+                grid-template-areas: "name name pts" "raw pct w"; gap: 4px 12px; padding: 12px 0 4px;
+            }
+            #modal-categories .wk-table tr.metric-row td { padding: 0; border: 0; }
+            #modal-categories .wk-table tr.metric-row .wk-metric { grid-area: name; color: var(--text-primary); }
+            #modal-categories .wk-table tr.metric-row .metric-raw { grid-area: raw; text-align: left; }
+            #modal-categories .wk-table tr.metric-row .wk-pct { grid-area: pct; }
+            #modal-categories .wk-table tr.metric-row .metric-weight { grid-area: w; }
+            #modal-categories .wk-table tr.metric-row .wk-points { grid-area: pts; font-size: 15px; }
+            #modal-categories .wk-table .metric-pct-bar { display: block; }
+            #modal-categories .wk-table tr.wk-eqrow {
+                display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "eq eq" "ctx calc";
+                gap: 3px 12px; padding: 2px 0 12px; border-bottom: 1px solid var(--border);
+            }
+            #modal-categories .wk-table tr.wk-eqrow td { padding: 0; border: 0; }
+            #modal-categories .wk-table tr.wk-eqrow td:empty { display: none; }
+            .wk-eq { grid-area: eq; padding-left: 0 !important; }
+            .wk-ctx { grid-area: ctx; }
+            .wk-calc { grid-area: calc; }
+            #modal-categories .wk-table tr.wk-detail { display: block; }
+            #modal-categories .wk-table tr.wk-detail td { display: block; }
+            #modal-categories .wk-table tfoot tr { display: flex; justify-content: space-between; padding: 10px 0; }
+            #modal-categories .wk-table tfoot td { padding: 0; border: 0; }
+            #modal-categories .wk-table tfoot td:empty { display: none; }
         }
 
         /* ---- SEARCH PALETTE ---- */

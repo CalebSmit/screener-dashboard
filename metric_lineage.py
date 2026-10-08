@@ -398,6 +398,104 @@ LINEAGE = {
                        how="Lower is scored as better (Fama-French conservative investment)."),
 }
 
+# --------------------------------------------------------------------------- equations
+# The line printed under every metric in the workings, filled with that stock's own figures:
+# "$4.53B free cash flow ÷ $31.2B enterprise value = 14.5%". Owner, 2026-10-07: "we don't
+# see any numbers anywhere ... the numbers going into the scoring."
+#
+# Each entry is (exact, [templates]). A template is text with {input_key|label} slots; the
+# page uses the FIRST template whose slots all have a value for the stock (that is how the
+# scorer's own fallbacks run - e.g. Yahoo's price-to-book before price / book per share).
+#
+# exact=True means the template IS the arithmetic: with ÷ × − ^ ln read as operators,
+# ``evaluate_template`` turns it into a number, and tests/test_metric_lineage.py checks that
+# number against the published value for every stock. So if the scoring formula changes in
+# factor_engine and this line is not updated, the suite fails - the page cannot drift from
+# the engine. exact=False is for a formula with steps a one-line equation cannot carry
+# (tax rates, floors, clamps); its line lists the real inputs and points at the full detail.
+EQUATIONS = {
+    "ev_ebitda": (True, ["{ev_used|enterprise value} ÷ {ebitda_used|EBITDA}"]),
+    "fcf_yield": (True, ["{fcf_used|free cash flow} ÷ {ev_used|enterprise value}"]),
+    "earnings_yield": (True, ["{netIncome|net income} ÷ {marketCap|market cap}"]),
+    "ev_sales": (True, ["{ev_used|enterprise value} ÷ {totalRevenue|revenue}"]),
+    "pb_ratio": (True, ["{priceToBook|price-to-book, as reported}",
+                        "{currentPrice|price} ÷ {bookValue|book value per share}"]),
+    "roic": (False, ["{ebit|EBIT} after tax ÷ ({totalEquity|equity} + {totalDebt_bs|debt} − excess cash)",
+                     "{ebit|EBIT} after tax ÷ invested capital"]),
+    "gross_profit_assets": (True, ["{grossProfit|gross profit} ÷ {totalAssets|total assets}"]),
+    "accruals": (True, ["({netIncome|net income} − {operatingCashFlow|operating cash flow}) ÷ {totalAssets|total assets}"]),
+    "net_debt_to_ebitda": (False, ["({totalDebt_bs|debt} − {cash_bs|cash}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",
+                                   "net debt ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash"]),
+    "operating_leverage": (False, ["EBIT change ({ebit_prior|prior} → {ebit_annual|latest}) ÷ revenue change ({totalRevenue_annual_prior|prior} → {totalRevenue_annual|latest})"]),
+    "forward_eps_growth": (False, ["({forwardEps|forward EPS} − {trailingEps|trailing EPS}) ÷ trailing EPS (at least $1), clipped"]),
+    "peg_ratio": (False, ["({currentPrice|price} ÷ {trailingEps|trailing EPS}) ÷ (EPS growth × 100), capped at 50"]),
+    "revenue_growth": (True, ["({totalRevenue|revenue} − {totalRevenue_prior|prior revenue}) ÷ {totalRevenue_prior|prior revenue}"]),
+    "revenue_cagr_3yr": (True, ["({totalRevenue_annual|revenue} ÷ {totalRevenue_3yr_ago|revenue 3 years earlier}) ^ (1/3) − 1",
+                                "({totalRevenue|revenue} ÷ {totalRevenue_3yr_ago|revenue 3 years earlier}) ^ (1/3) − 1"]),
+    "sustainable_growth": (False, ["ROE ({netIncome|net income} ÷ average equity) × share of earnings kept"]),
+    "price_target_upside": (True, ["({targetMeanPrice|mean target} − {currentPrice|price}) ÷ {currentPrice|price}",
+                                   "({targetMeanPrice|mean target} − {price_latest|price}) ÷ {price_latest|price}"]),
+    "short_interest_ratio": (True, ["{shortRatio|days of trading to cover the short position}"]),
+    "size_log_mcap": (True, ["−ln({marketCap|market cap})"]),
+    "asset_growth": (True, ["({totalAssets|total assets} − {totalAssets_prior|a year earlier}) ÷ {totalAssets_prior|a year earlier}"]),
+    "equity_ratio": (True, ["{totalEquity|equity} ÷ {totalAssets|total assets}"]),
+    "roe": (True, ["{returnOnEquity|return on equity, as reported}",
+                   "{netIncome|net income} ÷ {totalEquity|equity}"]),
+    "roa": (True, ["{returnOnAssets|return on assets, as reported}",
+                   "{netIncome|net income} ÷ {totalAssets|total assets}"]),
+    "return_12_1": (True, ["({price_1m_ago|price 1 month ago} − {price_12m_ago|12 months ago}) ÷ {price_12m_ago|12 months ago}"]),
+    "return_6m": (True, ["({price_1m_ago|price 1 month ago} − {price_6m_ago|6 months ago}) ÷ {price_6m_ago|6 months ago}"]),
+    "fy1_revision_3m": (True, ["({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {currentPrice|price}",
+                               "({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {price_latest|price}"]),
+}
+
+# Metrics with no per-stock equation: one plain line saying what the number is made of.
+SOURCES = {
+    "piotroski_f_score": "Pass/fail financial-health signals that passed",
+    "beneish_m_score": "−4.84 plus eight weighted indices from the annual statements",
+    "jensens_alpha": "12-month return minus the return its beta predicted",
+    "volatility": "Daily price swings over about 13 months, annualised",
+    "beta": "How far it moves with the S&P 500, from about 13 months of daily returns",
+    "sharpe_ratio": "12-month return above the risk-free rate, per unit of volatility",
+    "sortino_ratio": "12-month return above the risk-free rate, per unit of downside swing",
+    "max_drawdown_1y": "Largest fall from a peak over about 13 months",
+    "analyst_surprise": "Median beat or miss against the EPS estimate, last 4 quarters",
+    "earnings_acceleration": "Latest quarter's surprise minus the one before it",
+    "consecutive_beat_streak": "Quarters that beat the estimate, recent ones counting more",
+}
+
+def template_slots(template: str) -> list[tuple[str, str]]:
+    """The (input_key, label) pairs in a template, in order."""
+    import re
+    return [(k, lab) for k, lab in re.findall(r"\{([A-Za-z0-9_]+)\|([^}]*)\}", template)]
+
+
+def choose_template(metric: str, inp: dict):
+    """The template the page shows for this stock: the first whose slots all have values."""
+    entry = EQUATIONS.get(metric)
+    if not entry:
+        return None
+    for t in entry[1]:
+        if all(_ok(inp.get(k)) for k, _ in template_slots(t)):
+            return t
+    return None
+
+
+def evaluate_template(template: str, inp: dict):
+    """Read an exact template as arithmetic and return its value (or None)."""
+    import re
+    expr = re.sub(r"\{([A-Za-z0-9_]+)\|[^}]*\}", lambda m: repr(float(inp[m.group(1)])), template)
+    expr = (expr.replace("÷", "/").replace("×", "*").replace("−", "-")
+            .replace("^", "**").replace("ln(", "_ln("))
+    if re.search(r"[A-Za-z]", expr.replace("_ln", "")):
+        raise ValueError(f"template has words left after substitution: {template!r}")
+    try:
+        v = eval(expr, {"__builtins__": {}}, {"_ln": math.log})  # noqa: S307 - our own templates
+    except (ZeroDivisionError, ValueError, OverflowError):
+        return None
+    return v.real if isinstance(v, complex) else v
+
+
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used")
@@ -421,4 +519,9 @@ def published_lineage() -> dict:
             out[m]["cav"] = e["caveat"]
         if m in RECOMPUTE:
             out[m]["eq"] = 1
+        if m in EQUATIONS:
+            out[m]["x"] = EQUATIONS[m][1]
+            out[m]["xe"] = 1 if EQUATIONS[m][0] else 0
+        if m in SOURCES:
+            out[m]["src"] = SOURCES[m]
     return out
