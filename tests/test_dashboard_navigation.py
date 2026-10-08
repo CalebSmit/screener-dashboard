@@ -95,7 +95,7 @@ def test_new_copy_carries_no_advice_language(html):
     def text_of(fragment: str) -> str:
         return re.sub(r"<[^>]+>", " ", fragment)
 
-    guide = html[html.index('<section class="guide"'):html.index("<!-- KPI Row -->")]
+    guide = html[html.index('<section class="guide"'):html.index("<!-- Top 5 Stocks -->")]
     overlays = html[html.index("<!-- Search palette"):html.index('<footer class="dashboard-footer">')]
     js_strings = " ".join(re.findall(r"'([^'\n]{12,})'", gd._js_ux()))
     for name, chunk in (("guide", text_of(guide)), ("overlays", text_of(overlays)), ("js", js_strings)):

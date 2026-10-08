@@ -1152,7 +1152,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Factor Screener Dashboard</title>
+    <title>Multi-Factor Screener · S&amp;P 500 factor rankings</title>
+    <meta name="description" content="Every S&amp;P 500 stock scored on eight factors against its own sector, with the numbers behind every score. A research and teaching tool, not investment advice.">
+    <meta name="theme-color" content="#0d0d0d">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1169,7 +1172,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- Header -->
         <header class="dashboard-header" id="top-bar">
             <div class="header-left">
-                <h1>Multi-Factor Screener</h1>
+                <a class="brand" href="#" onclick="window.scrollTo({{top:0,behavior:'smooth'}});return false" aria-label="Multi-Factor Screener, back to top">
+                    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>
+                    <h1>Multi-Factor Screener</h1>
+                </a>
                 <span class="run-info" id="run-info"></span>
             </div>
             <nav class="header-nav" aria-label="Sections">
@@ -1189,6 +1195,22 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </header>
 
+        <!-- Page title -->
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-text">
+                <p class="hero-eyebrow" id="hero-eyebrow">S&amp;P 500 &middot; daily run</p>
+                <h2 class="hero-title" id="hero-title">Factor rankings</h2>
+                <p class="hero-sub">Every stock scored on eight factors against its own sector, and every number behind each score one click away. A research and teaching tool, not investment advice.</p>
+            </div>
+            <div class="hero-actions">
+                <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
+                <button type="button" class="hero-btn" onclick="openMethodology()">How it works</button>
+            </div>
+        </section>
+
+        <!-- KPI Row -->
+        <section class="kpi-row" id="kpi-row"></section>
+
         <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
              per browser; reopened from the search palette. -->
         <section class="guide" id="guide" hidden aria-label="How to read this screener">
@@ -1202,9 +1224,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <button type="button" class="guide-close" onclick="dismissGuide()">Got it</button>
             </div>
         </section>
-
-        <!-- KPI Row -->
-        <section class="kpi-row" id="kpi-row"></section>
 
         <!-- Top 5 Stocks -->
         <section class="section collapsible-section" id="sec-top5">
@@ -1325,7 +1344,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
-                <p class="section-desc">These diagnostics help you evaluate how robust and trustworthy the screener's output is. They answer: <em>"Would the same stocks be picked if I tweaked the weights slightly?"</em> and <em>"Are any of the 8 factors just measuring the same thing?"</em></p>
+                <p class="section-desc">Two checks on whether this ranking deserves trust: would small changes to the weights reshuffle the top 20, and are any two of the eight factors really measuring the same thing?</p>
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
@@ -1607,8 +1626,19 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
         <footer class="dashboard-footer">
-            Multi-Factor Screener Dashboard &bull; Data as of <span id="gen-time">{data_timestamp}</span><br>
-            <span class="footer-disclaimer">Screening tool, not investment advice &bull; data from Yahoo Finance (yfinance), not institutional-grade &bull; no covariance risk model &bull; see <a href="#" onclick="openMethodology();return false;">Methodology</a> for limitations</span>
+            <div class="footer-brand">
+                <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>
+                <div>
+                    <div class="footer-name">Multi-Factor Screener</div>
+                    <div class="footer-meta">Data as of <span id="gen-time">{data_timestamp}</span> &middot; prices and filings from Yahoo Finance</div>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="#" onclick="openMethodology();return false;">Methodology</a>
+                <a href="#" onclick="openShortcuts();return false;">Keyboard shortcuts</a>
+                <a href="#" onclick="showGuide();return false;">How to read this</a>
+            </nav>
+            <p class="footer-disclaimer">A screening tool for research and teaching, not investment advice. Data is not institutional-grade, and there is no covariance risk model; see Methodology for every limitation.</p>
         </footer>
     </div>
 
@@ -1678,18 +1708,39 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     function renderKPIs() {{
         const k = D.kpis;
-        const html = [
-            kpiCard('Universe', k.universe_size, 'stocks scored'),
-            kpiCard('Value-trap flags', k.value_traps, `${{(k.value_traps/k.universe_size*100).toFixed(0)}}% of the universe`),
-            kpiCard('Growth-trap flags', k.growth_traps || 0, `${{((k.growth_traps||0)/k.universe_size*100).toFixed(0)}}% of the universe`),
-            kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
-                ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'),
-        ].join('');
+        const n = k.universe_size || 0;
+        const pct = v => n ? Math.round(v / n * 100) + '%' : '';
+        // 1. what was ranked
+        const cards = [kpiCard('Ranked this run', n, 'S&amp;P 500 stocks, on 8 factors')];
+        // 2. what moved - the time dimension, if this run has comparable history
+        const mvKey = (H && H.movers) ? (H.movers.m1 ? 'm1' : (H.movers.prev ? 'prev' : null)) : null;
+        if (mvKey && H.compare && H.compare[mvKey]) {{
+            const mv = H.movers[mvKey];
+            cards.push(kpiCard('Moved materially', `${{mv.n_up}}<span class="kpi-sep">&uarr;</span> ${{mv.n_down}}<span class="kpi-sep">&darr;</span>`,
+                `since ${{escapeHtml(H.compare[mvKey].date)}}, beyond &plusmn;${{(H.noise || {{}}).material_threshold || ''}} ranks`));
+        }} else {{
+            cards.push(kpiCard('Average composite', fmt(k.avg_composite, 'score'), 'across the universe'));
+        }}
+        // 3. caveats on the list
+        cards.push(kpiCard('Trap flags', `${{k.value_traps}} <span class="kpi-sep">/</span> ${{k.growth_traps || 0}}`,
+            `value / growth &middot; ${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks`));
+        // 4. how this run was weighted
+        const fw = (D.weights || {{}}).factor_weights || {{}}, bw = (D.weights || {{}}).base_factor_weights || {{}};
+        if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {{
+            cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),
+                `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the volatility rule this run`));
+        }} else {{
+            cards.push(kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
+                ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'));
+        }}
+        const html = cards.join('');
         document.getElementById('kpi-row').innerHTML = html;
         const ts = k.run_timestamp ? new Date(k.run_timestamp) : null;
         const fmtDate = ts ? ts.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }}) : '';
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
         document.getElementById('run-info').textContent = ts ? `Last updated ${{fmtDate}} at ${{fmtTime}}` : '';
+        const eb = document.getElementById('hero-eyebrow');
+        if (eb && ts) eb.innerHTML = `S&amp;P 500 &middot; data as of ${{fmtDate}}, ${{fmtTime}}`;
         // Only set gen-time via JS if it wasn't already embedded as a static value
         const genEl = document.getElementById('gen-time');
         if (genEl && !genEl.textContent.trim()) {{
@@ -2445,6 +2496,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             + parts.join('') + '</div>';
     }}
 
+    const HC_SHORT = {{ valuation: 'Val', quality: 'Qual', growth: 'Grow', momentum: 'Mom', risk: 'Risk', revisions: 'Rev', size: 'Size', investment: 'Inv' }};
     function holdingCard(r) {{
         const t = r.t, s = r.s;
         const d = holdingDelta(t);
@@ -2468,7 +2520,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             if (v === null || v === undefined) {{
                 return '<div class="holding-cat holding-cat-nodata" title="'
                     + CAT_LABELS[c] + ' could not be scored for this stock, so the other categories were reweighted">'
-                    + '<span class="holding-cat-name">' + CAT_LABELS[c] + '</span>'
+                    + '<span class="holding-cat-name"><span class="hc-long">' + CAT_LABELS[c] + '</span><span class="hc-short" aria-hidden="true">' + (HC_SHORT[c] || CAT_LABELS[c]) + '</span></span>'
                     + '<span class="holding-cat-val">no data</span></div>';
             }}
             const dv = (d && d.cat && d.cat[c] !== undefined && d.cat[c] !== null) ? d.cat[c] : null;
@@ -2478,7 +2530,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     + (dv > 0 ? '+' : '') + dv.toFixed(1) + '</span>';
             }}
             return '<div class="holding-cat" style="border-top-color:' + CAT_COLORS[c] + '">'
-                + '<span class="holding-cat-name">' + CAT_LABELS[c] + '</span>'
+                + '<span class="holding-cat-name"><span class="hc-long">' + CAT_LABELS[c] + '</span><span class="hc-short" aria-hidden="true">' + (HC_SHORT[c] || CAT_LABELS[c]) + '</span></span>'
                 + '<span class="holding-cat-val">' + v.toFixed(0) + move + '</span></div>';
         }}).join('');
 
@@ -3504,7 +3556,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const mj = s.minus_jaccard !== null ? (s.minus_jaccard * 100).toFixed(0) + '%' : '\u2014';
                 tHtml += '<tr>';
                 tHtml += '<td style="font-weight:600">' + s.category + '</td>';
-                tHtml += '<td>' + (s.original_weight !== null ? s.original_weight + '%' : '\u2014') + '</td>';
+                tHtml += '<td>' + (s.original_weight !== null ? fmtWeight(s.original_weight) : '\u2014') + '</td>';
                 tHtml += '<td><div class="sens-bar-track"><div class="sens-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
                 tHtml += '<span class="sens-bar-labels"><span>+5%: ' + pj + '</span><span>-5%: ' + mj + '</span></span></td>';
                 tHtml += '<td class="' + jClass + '" style="font-weight:600">' + verdict + '</td>';
@@ -7735,6 +7787,95 @@ def _css_ux() -> str:
             #modal-categories .wk-table tfoot tr { display: flex; justify-content: space-between; padding: 10px 4px; }
             #modal-categories .wk-table tfoot td { padding: 0; border: 0; }
             #modal-categories .wk-table tfoot td:empty { display: none; }
+        }
+
+        /* ---- SHELL: brand, page title, content width, footer (final pass, 2026-10-07) ---- */
+        .dashboard-container { max-width: 1360px; padding: 20px 32px 32px; }
+        .dashboard-header { margin: 0 -32px 0; padding: 0 32px; }
+        .brand { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; min-width: 0; }
+        .brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+        .brand-mark { width: 24px; height: 24px; flex: none; }
+        .bm-bg { fill: var(--bg-elevated); stroke: var(--border-bright); stroke-width: 1; }
+        .bm-1 { fill: var(--accent); opacity: .5; } .bm-2 { fill: var(--accent); opacity: .75; } .bm-3 { fill: var(--accent); }
+        .hero {
+            display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+            padding: 36px 0 24px;
+        }
+        .hero-text { max-width: 720px; }
+        .hero-eyebrow { margin: 0 0 8px; font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+        .hero-title { margin: 0; font-size: 34px; line-height: 1.12; font-weight: 600; letter-spacing: -.025em; color: var(--text-primary); }
+        .hero-sub { margin: 10px 0 0; font-size: 15px; line-height: 1.6; color: var(--text-secondary); }
+        .hero-actions { display: flex; gap: 8px; flex: none; }
+        .hero-btn {
+            height: 38px; padding: 0 16px; border-radius: var(--radius); border: 1px solid var(--border-bright);
+            background: var(--bg-card); color: var(--text-primary); font: 500 14px var(--font-body); cursor: pointer;
+            transition: border-color var(--t-fast) ease-out, background var(--t-fast) ease-out;
+        }
+        .hero-btn:hover { border-color: var(--text-muted); }
+        .hero-btn-primary { background: var(--text-primary); color: var(--bg-deep); border-color: var(--text-primary); }
+        .hero-btn-primary:hover { background: #e7e6df; border-color: #e7e6df; }
+        .hero-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .kpi-row { margin-bottom: 28px; }
+        .header-left { align-items: center; }
+        .guide { margin-bottom: 28px; }
+        .kpi-card { padding: 18px 22px; }
+        .kpi-value { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+        .kpi-sep { color: var(--text-muted); font-weight: 400; font-size: .7em; margin: 0 2px 0 1px; }
+        .collapsible-section .section-header { padding: 16px 0 14px; }
+        .section-title { font-size: 17px !important; font-weight: 600; letter-spacing: -.01em; }
+        .section { margin-bottom: 12px; }
+        .dashboard-footer {
+            display: grid; grid-template-columns: 1fr auto; gap: 16px 32px; align-items: center;
+            text-align: left; margin-top: 48px; padding: 28px 0 8px; border-top: 1px solid var(--border);
+        }
+        .footer-brand { display: flex; align-items: center; gap: 12px; }
+        .footer-name { color: var(--text-primary); font-weight: 600; font-size: 13.5px; }
+        .footer-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+        .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 13px; }
+        .footer-links a:hover { color: var(--text-primary); }
+        .dashboard-footer .footer-disclaimer { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6; display: block; }
+        @media (max-width: 1024px) {
+            .dashboard-container { padding: 16px 20px 28px; }
+            .dashboard-header { margin: 0 -20px; padding: 0 20px; }
+        }
+        @media (max-width: 760px) {
+            .dashboard-container { padding: 12px 16px 24px; }
+            .dashboard-header { margin: 0 -16px; padding: 12px 16px; }
+            .hero { padding: 20px 0 16px; gap: 16px; }
+            .hero-title { font-size: 26px; }
+            .hero-sub { font-size: 14px; }
+            .hero-actions { width: 100%; }
+            .hero-btn { flex: 1; }
+            .dashboard-footer { grid-template-columns: 1fr; }
+            .brand h1 { font-size: 15px; }
+            .run-info { display: none; }
+        }
+
+        /* ---- NARROW-SCREEN FIXES (final pass) ----
+           .chart-container carried min-width:100% plus 44px of padding on phones, so every
+           analytics card ran 44px off the right edge at 375 and 320. */
+        .chart-container, .dq-kpi-card { box-sizing: border-box; min-width: 0; }
+        .hc-short { display: none; }
+        @media (max-width: 760px) {
+            .chart-container { min-width: 0 !important; width: 100%; padding: 16px; }
+            .sens-table th:nth-child(2), .sens-table td:nth-child(2) { display: none; }
+            .sens-table th, .sens-table td { padding: 8px 6px; }
+            .dq-kpi-card { min-width: 0; flex: 1 1 100%; }
+        }
+        @media (max-width: 400px) {
+            .hc-long { display: none; }
+            .hc-short { display: inline; }
+            .header-right .methodology-btn { display: none; }
+            .hero-actions { flex-direction: column; }
+            .hero-btn { white-space: nowrap; flex: none; width: 100%; height: 40px; }
+            .kpi-card { padding: 14px 14px; }
+            .kpi-value { font-size: 22px !important; white-space: nowrap; }
+        }
+        .hero-btn { white-space: nowrap; }
+        @media (max-width: 760px) {
+            #correlation-heatmap { overflow-x: auto; }
+            #correlation-heatmap .corr-grid { min-width: 520px; }
         }
 
         /* ---- SEARCH PALETTE ---- */
