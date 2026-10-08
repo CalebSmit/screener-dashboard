@@ -2104,8 +2104,14 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # could get a Sortino from as few as 20 downside days, annualized as
             # if it were a full year, then ranked against full-history peers.
             _daily_all = None
+            _daily_dates = None
             if dr and isinstance(dr, dict):
-                _daily_all = np.array(list(dr.values()))
+                # Sorted by date, not by insertion order: the drawdown below is
+                # order-dependent (Sortino's is not), and relying on the fetch
+                # having inserted chronologically is a silent dependency.  The
+                # fetch does, so this is a no-op today.
+                _daily_dates = sorted(dr.keys())
+                _daily_all = np.array([dr[k] for k in _daily_dates])
             elif dr and isinstance(dr, list):
                 _daily_all = np.array(dr)
             if _daily_all is not None and len(_daily_all) >= 200 and pd.notna(_ret_12m_sr):
@@ -2121,15 +2127,49 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 rec["sortino_ratio"] = np.nan
 
             # 16d. Max Drawdown (trailing 12 months)
-            # Peak-to-trough decline from cumulative return series.
-            # Expressed as a negative fraction (e.g., -0.25 = 25% drawdown).
+            # Largest peak-to-trough fall of the *price path*, as a negative
+            # fraction (-0.25 = a 25% fall).
             # Phase 13 (F35): require >=200 obs (was >=50) to match the vol/
             # Sortino gate and avoid ranking thin-history MDDs against full-year.
+            #
+            # 2026-10-08: the path is `exp(cumsum(log r))`, not the former
+            # `cumprod(1 + log r)`.  `_daily_returns` holds **log** returns
+            # (the fetch computes `log(close / close.shift(1))`), so compounding
+            # them as if they were simple returns measured a series that is
+            # neither the price path nor the log path: since ln(1+r) <= r it
+            # drifts below the real path, and the drift is path-dependent, so
+            # the peak-to-trough ratio taken on it was not the stock's actual
+            # largest fall.  Measured over 50 real 13-month histories it
+            # overstated the fall for 50 of 50 tickers - median 1.09pp, max
+            # 4.70pp (AMD -32.46% against -27.76%) - and the bias grows with
+            # volatility, so it fell hardest on exactly the stocks a tail-risk
+            # metric is meant to separate.  Reproduce with
+            # research/measurements/2026-10-08-max-drawdown-log-return-compounding.py;
+            # METHODOLOGY_CHANGELOG.md 2026-10-08.
+            #
+            # `_mdd_peak` / `_mdd_trough` are the two points the fall is
+            # measured between, published so the page can show the arithmetic
+            # (metric_lineage.EQUATIONS["max_drawdown_1y"]).  They are rebased
+            # to the window's first close so they read as prices; the ratio is
+            # scale-invariant, so rebasing cannot change the metric.  They are
+            # taken from this one computation - the page never recomputes them
+            # (CLAUDE.md priority 0.8).
             if _daily_all is not None and len(_daily_all) >= 200:
-                _cum = np.cumprod(1 + _daily_all)
+                _cum = np.exp(np.cumsum(_daily_all))
                 _peak = np.maximum.accumulate(_cum)
                 _drawdowns = (_cum - _peak) / _peak
-                rec["max_drawdown_1y"] = float(np.min(_drawdowns))
+                _i = int(np.argmin(_drawdowns))
+                rec["max_drawdown_1y"] = float(_drawdowns[_i])
+                # The window's first close: `_cum` starts one day in, so the
+                # close the series is rebased on is price_latest / _cum[-1].
+                _p0 = d.get("price_latest", np.nan)
+                _base = (_p0 / _cum[-1] if pd.notna(_p0) and _cum[-1] > 0 else 1.0)
+                rec["_mdd_peak"] = float(_peak[_i] * _base)
+                rec["_mdd_trough"] = float(_cum[_i] * _base)
+                if _daily_dates is not None:
+                    _j = int(np.argmax(_cum[: _i + 1]))
+                    rec["_mdd_peak_date"] = str(_daily_dates[_j])
+                    rec["_mdd_trough_date"] = str(_daily_dates[_i])
             else:
                 rec["max_drawdown_1y"] = np.nan
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:

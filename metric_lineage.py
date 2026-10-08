@@ -33,8 +33,9 @@ from __future__ import annotations
 import math
 
 # fmt codes understood by the page: usd ($B/$M), price ($0.00), pct (fraction -> %),
-# ratio (0.00), num (as is), shares (millions)
-USD, PRICE, PCT, RATIO, NUM = "usd", "price", "pct", "ratio", "num"
+# ratio (0.00), num (as is), shares (millions). `date` is an ISO day printed as it
+# stands - `fmtInput` falls through to String(v) for any code it does not special-case.
+USD, PRICE, PCT, RATIO, NUM, DATE = "usd", "price", "pct", "ratio", "num", "date"
 
 # Clamp bounds the scorer applies (config.yaml metric_clamps); pinned by a test.
 FEG_CLAMP = (-0.75, 1.50)
@@ -230,6 +231,16 @@ def _fy1_rev(i):
     return (c - a) / p if _ok(c, a, p) and p > 0 else None
 
 
+def _max_drawdown(i):
+    """The fall between the two closes the engine measured it between.
+
+    Scale-invariant, so the rebasing `factor_engine` applies to turn its cumulative
+    series back into prices cannot move the answer.
+    """
+    pk, tr = i.get("mdd_peak"), i.get("mdd_trough")
+    return (tr - pk) / pk if _ok(pk, tr) and pk > 0 else None
+
+
 RECOMPUTE = {
     "ev_ebitda": _ev_ebitda, "fcf_yield": _fcf_yield, "earnings_yield": _earnings_yield,
     "ev_sales": _ev_sales, "pb_ratio": _pb, "roic": _roic, "gross_profit_assets": _gpa,
@@ -239,6 +250,7 @@ RECOMPUTE = {
     "price_target_upside": _ptu, "short_interest_ratio": _short, "size_log_mcap": _size,
     "asset_growth": _asset_growth, "equity_ratio": _equity_ratio, "roe": _roe, "roa": _roa,
     "return_12_1": _ret_12_1, "return_6m": _ret_6m, "fy1_revision_3m": _fy1_rev,
+    "max_drawdown_1y": _max_drawdown,
 }
 
 
@@ -367,9 +379,14 @@ LINEAGE = {
     "sortino_ratio": _L("(12-month return - risk-free) / downside deviation", kind="series",
                         how="Weight 0 in the composite; shown for reference.",
                         caveat="The denominator is the standard deviation of the shortfalls about their own mean, not the root-mean-square shortfall."),
-    "max_drawdown_1y": _L("Largest peak-to-trough fall in the price path", kind="series",
-                          how="About 13 months of daily returns; a negative fraction, so a smaller fall scores higher.",
-                          caveat="Labelled 1-year, but the window is about 13 months."),
+    "max_drawdown_1y": _L("(Lowest close after the peak - the peak) / the peak",
+                          [("Highest close before the trough", "mdd_peak", PRICE),
+                           ("On", "mdd_peak_date", DATE),
+                           ("Lowest close after that peak", "mdd_trough", PRICE),
+                           ("On", "mdd_trough_date", DATE)],
+                          kind="series",
+                          how="The two closes are the ends of the largest fall in about 13 months of daily adjusted closes; needs at least 200 daily returns. A negative fraction, so a smaller fall scores higher.",
+                          caveat="Labelled 1-year, but the window is about 13 months. Until 2026-10-08 the fall was measured on cumprod(1 + log return) rather than the price path, which overstated it for every stock tested - median 1.09pp, max 4.70pp (METHODOLOGY_CHANGELOG.md 2026-10-08)."),
     # ---- revisions
     "fy1_revision_3m": _L("(Current-year EPS estimate now - 90 days ago) / price",
                           [("Estimate now", "_fy1_eps_current", PRICE), ("Estimate 90 days ago", "_fy1_eps_90d_ago", PRICE),
@@ -447,6 +464,7 @@ EQUATIONS = {
     "return_6m": (True, ["({price_1m_ago|price 1 month ago} − {price_6m_ago|6 months ago}) ÷ {price_6m_ago|6 months ago}"]),
     "fy1_revision_3m": (True, ["({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {currentPrice|price}",
                                "({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {price_latest|price}"]),
+    "max_drawdown_1y": (True, ["({mdd_trough|at the trough} − {mdd_peak|at the prior peak}) ÷ {mdd_peak|at the prior peak}"]),
 }
 
 # Metrics with no per-stock equation: one plain line saying what the number is made of.
@@ -458,7 +476,6 @@ SOURCES = {
     "beta": "How far it moves with the S&P 500, from about 13 months of daily returns",
     "sharpe_ratio": "12-month return above the risk-free rate, per unit of volatility",
     "sortino_ratio": "12-month return above the risk-free rate, per unit of downside swing",
-    "max_drawdown_1y": "Largest fall from a peak over about 13 months",
     "analyst_surprise": "Median beat or miss against the EPS estimate, last 4 quarters",
     "earnings_acceleration": "Latest quarter's surprise minus the one before it",
     "consecutive_beat_streak": "Quarters that beat the estimate, recent ones counting more",
@@ -528,9 +545,14 @@ def published_not_used() -> dict:
             "because": dict(NOT_USED_BECAUSE)}
 
 
+# Figures the engine computed rather than fetched, published from the scored frame's
+# `_`-prefixed columns. These are the engine's own numbers, taken from the one place it
+# computed them - the page must never re-derive them (CLAUDE.md priority 0.8).
+ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used",
+               "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date")
+
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.
-ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used")
 INPUT_KEYS = tuple(dict.fromkeys(
     k for entry in LINEAGE.values() for _, k, _ in entry["inputs"]
     if k not in ENGINE_KEYS))

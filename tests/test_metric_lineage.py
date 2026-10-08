@@ -80,12 +80,43 @@ def test_every_recompute_function_has_a_lineage_entry():
     assert set(ml.RECOMPUTE) <= set(ml.LINEAGE)
 
 
+# A series metric may claim an equation only when the equation's inputs are the specific
+# points of the series the engine measured between, so the arithmetic on the row is the
+# arithmetic the engine did. Default is deny: a new series metric fails this test until it
+# is listed here with its reason, which is the whole point of the guard.
+SERIES_METRICS_WITH_AN_EXACT_EQUATION = {
+    # The drawdown is found by scanning ~13 months of closes, but the fall itself is one
+    # division between two of them. `factor_engine` step 16d publishes the pair it chose
+    # (`_mdd_peak` / `_mdd_trough`), so the row shows that division and nothing is
+    # re-derived. Added 2026-10-08 with the price-path fix.
+    "max_drawdown_1y",
+}
+
+
 def test_a_series_metric_never_claims_an_equation():
-    """Volatility, beta, drawdown and friends are built from a daily price history; showing a
-    two-number equation for them would be a false formula."""
+    """Volatility, beta and friends are summaries of a whole daily price history; showing a
+    two-number equation for them would be a false formula.
+
+    The exceptions are listed above, each with the engine-published inputs that make its
+    equation the real arithmetic rather than a re-derivation."""
     for m, e in ml.LINEAGE.items():
-        if e["kind"] == "series":
+        if e["kind"] == "series" and m not in SERIES_METRICS_WITH_AN_EXACT_EQUATION:
             assert m not in ml.RECOMPUTE, m
+
+
+def test_a_listed_series_exception_really_publishes_the_points_it_divides():
+    """An entry in the allow-list above has to earn it: its equation may only name inputs the
+    engine computed and published, never a figure the page would have to work out itself."""
+    for m in SERIES_METRICS_WITH_AN_EXACT_EQUATION:
+        assert m in ml.LINEAGE and ml.LINEAGE[m]["kind"] == "series", m
+        assert m in ml.RECOMPUTE and m in ml.EQUATIONS, m
+        exact, templates = ml.EQUATIONS[m]
+        assert exact, f"{m}: listed as an exception but its equation is not exact"
+        slots = {k for t in templates for k, _ in ml.template_slots(t)}
+        assert slots, m
+        assert slots <= set(ml.ENGINE_KEYS), (
+            f"{m}: equation names {sorted(slots - set(ml.ENGINE_KEYS))}, which the engine does "
+            f"not publish as its own computed figures")
 
 
 def test_clamps_in_the_registry_match_config():
