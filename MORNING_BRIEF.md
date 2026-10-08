@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 08 October 2026, 02:15
+# Morning Brief - Thursday 08 October 2026, 06:55
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,15 +9,23 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-10-08T02:00:03.589594 |
+| Dashboard data from | 2026-10-08T06:18:36.982674 |
 | Stocks scored | 502 |
 | With a price | 502/502 |
 | With an analyst target | 498/502 |
-| Top 5 | EXPE, HST, BBY, APA, DLTR |
+| Top 5 | EXPE, HST, APA, BBY, DLTR |
 | Evidence for weight changes | 4 of 8 needed at the 1m horizon (25 rows, but overlapping windows are not independent; 73 rows across all horizons), newest 2026-10-01 |
 
 ## What changed in the repo
 
+- `bbe5758 log: 2026-10-08 session entry - gate results`
+- `576951b fix: factor_vol_history keeps one row per date; clearer drawdown input labels; docs`
+- `1077e83 wip: rescore with the drawdown fix; index.html is the dashboard, not a redirect stub`
+- `6fc0297 wip: changelog entry, scoring_schema bump to 3, log entry started`
+- `1b8613b fix: one observation per run date in the evidence base (priority 0.6)`
+- `d99c20d wip: max_drawdown_1y measures the price path, and publishes the two closes it measured between`
+- `f9582f7 measure: 22.6% of composite has no shown arithmetic; max_drawdown_1y compounds log returns as simple`
+- `8a8c195 brief: data run 2026-10-08`
 - `d704cc6 data: screener run 2026-10-08 - 502 scored, top: EXPE HST BBY APA DLTR`
 - `98afd4d final UI pass 6: the redesign is finished; nightly sessions return to methodology`
 - `4e36763 final UI pass 5: price-target labels cannot collide, arrow/Home/End keys walk the windowed rankings table, tests for keyboard and focus trap`
@@ -25,53 +33,55 @@ history is in `NIGHTLY_LOG.md`.
 - `3237695 final UI pass 3: focus trapped in every dialog, muted text passes AA on every surface, shell paints before the data lands (LCP 4.8s -> ~0.3-1.1s at 10 Mbit/s), loading placeholders`
 - `1af0236 final UI pass 2: rank history as a real chart with the ordinary-variation band; history's last point is the published run (284 drilldowns showed a rank 1-3 off)`
 - `0900e50 final UI pass 1: brand mark and favicon, page title block, meaningful stat strip, centred content width, footer; phone and 320px overflow fixes`
-- `4466320 owner-run pass 4: calculations behind a clear click on each row, reasons for unused metrics, sheet no longer lifts its header`
-- `dbd3258 owner-run pass 3: the numbers behind every score on the row itself, with equations checked against the engine`
-- `783d432 owner-run UI pass 2: navigation layer, compare with gap decomposition, workings CSV, analytics filter links, Peers without verdicts, Chart.js removed, holdings de-boxed; docs and nightly fine-tuning list`
-- `ee4ee07 wip: peers table loses its green/red verdicts and gains a peer median; lower drilldown blocks de-boxed; workings CSV download; toolbar label fixes`
-- `5a09665 wip: navigation layer (search palette, stock links, J/K stepping, compare with gap decomposition), drilldown order matches its nav, HTML trap bars, guide, section previews, phone fixes`
-- `2128a53 owner-run build: calculation transparency T0b-T6 and the premium redesign D1-D7, first version`
-- `d670a65 wip: provenance dates, independent auditor and publish gate, claims register entries, methodology workings section`
-- `df98b8c wip: T0b true weights and reproducibility, T1-T3 lineage and inputs, drilldown sheet, rankings table, shell and analytics redesign`
 
 ## The session's own account
 
-> 2026-10-07 (late, pass 5) - OWNER-RUN: the redesign is finished; nightly sessions go back to methodology
+> 2026-10-08 - BUILD. Implement what the week's research justified. Write tests alongside the code.
 > 
-> Owner: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make
-> the nightly sessions just focus on what it was previously focusing on, making sure the methodology
-> is sound. And improving this tool overall every single night. So I want you to start working until
-> you think this dashboard is something that someone would genuinly pay for."* Health numbers
-> unchanged from pass 2 (same evening).
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-07_060001.log`
+> ends "Run complete: shipped to main", tagged `good/2026-10-07`. | Data loop published? **yes** -
+> `logs/datarun-2026-10-08_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored. |
+> Evidence base at horizon `1m`: **25 rows, newest `run_date` 2026-09-08 (30 days ago, bound 40),
+> 4 effective observations** - inside the steady-state 30-33 day lag, nothing to investigate. |
+> Priority 0: holding as designed - `allow_auto_apply` still `false`, 4 effective against a gate of
+> 8, and the engine reported rather than applied. | Top open roadmap item: **0.9, the four
+> methodology questions the transparency build surfaced - age 1 day** (opened 2026-10-07).
+> **Tests:** before **1863 passed / 0 failed**; after **1894 passed / 0 failed** (+31: 11 drawdown, 11 one-observation-per-date, 5 index.html, 2 lineage guards, 2 series-equation guards). All four ship gates pass: suite clean, dry-run OK, index.html 461,071 B and the payload parses (node --check rc 0), tree clean. The data loop publish gate passes too (363).
+> **Owner queue / rotation:** `OWNER_FOCUS.md` has **no open item** - the redesign and the
+> transparency work were closed on 2026-10-07 and nightly sessions were told to return to
+> methodology. So this was the rotation's Thursday: build. The week justified no *weighting* change
+> (it was spent on the owner's UI/UX work, not on factor research), so per the prompt's instruction
+> for that case I took the top open item in "Current priorities" that is a build task - priority
+> 0.10, keeping the inputs the history-based metrics need - and writing the first of those
+> equations exposed an arithmetic error in `max_drawdown_1y`, which became the session.
 > 
-> **For the next session, the short version:** there is no open owner item. The redesign is closed -
-> do not start design passes. Work the rotation and CLAUDE.md "Current priorities" (0.9 first: the
-> four methodology questions; 0.10: keep the inputs the history-based metrics need). The page's two
-> correctness rules still bind: a scoring change ships with its frontend (0.8c), and a broken or
-> false page is a defect.
+> ### Did
+> - **Fixed a measured arithmetic error in `max_drawdown_1y`, and put its arithmetic on the
+>   page.** `compute_metrics` step 16d built the path it measured the fall on with
+>   `cumprod(1 + log return)`. `_daily_returns` holds **log** returns, so that series is neither
+>   the price path nor the log path: because `ln(1+r) <= r` it drifts below the real path, and
+>   the drift compounds, so the peak-to-trough ratio taken on it was not the stock's largest
+>   fall. It is now `exp(cumsum(log return))`. Two smaller corrections in the same block: the
+>   series is read in **date order** (the drawdown is order-dependent and was relying on the
+>   fetch's dict insertion order), and the engine now publishes the two closes the fall was
+>   measured between. *I know this is an improvement because* the old expression did not compute
+>   the quantity its own label, its own code comment and its own published formula all claimed -
+>   and the error is one-directional and measurable.
+>   **Measured on the full rescoring run:** smaller fall for **499 of 499** stocks, median
+>   **+1.317pp**, max **+13.520pp** (SNPS **-52.68% -> -39.16%**); sector percentile Spearman
+>   0.993 with **264 of 499** moving more than half a point and a largest move of **24.3**;
+>   composite median |move| **0.070**, max **4.19**; **379 of 502** ranks move, max **22
+>   places**. Same top ten, BBY/APA and CAH/INCY/BMY reordered within it.
+>   `METHODOLOGY_CHANGELOG.md` 2026-10-08; `tests/test_max_drawdown_price_path.py` (11 tests,
+>   written against paths whose drawdown is known by construction, including one that keeps the
+>   old formula present as the thing that must not come back).
 > 
-> **Audited at 1440, 375 and 320px before starting.** Found and fixed:
-> - No brand, no page title, content edge to edge, a stat strip of four facts a visitor could not use
->   (502 / 120 / 121 / 94%). Now: brand mark + favicon + title + meta, a page title block, a stat
->   strip of what moved, trap flags and this run's weighting, centred content, a real footer.
-> - **Analytics and diagnostics cards ran 44px off phone screens** (`min-width: 100%` plus padding);
->   the weight-sensitivity table and the correlation grid were cut off at 320px.
-> - Rank History was a 90px sparkline: now a chart with the measured ordinary-variation band.
-> - **284 of 502 drilldowns showed a history rank 1-3 places off the rank beside it** - the history
->   kept the 02:00 snapshot for today while the page came from an evening re-run. The published run
->   now defines its own date's point (`history.py`, test added). Payload regenerated: only `history`
->   and the 328 "what changed" sentences that read it differ; table_data and every score identical.
-> - No focus trap in any dialog; muted text at 4.4:1 on raised surfaces (now >= 4.5:1 everywhere,
->   token `#8e8c86`); no keyboard movement in the table (now arrows/Home/End through the windowed rows).
-> - **The page painted nothing for 4.8 s at 10 Mbit/s** - a blocking 1.3 MB data script in `<head>`.
->   Preloaded and moved to the end of `<body>`, with placeholder cards: largest paint ~0.3-1.1 s.
-> - Price-target labels could collide; the score tint left the lowest scores as black holes; the
->   Holdings concentration note was three open paragraphs (now a summary that expands).
-> 
-> Final budgets: DOM 2,989 nodes, click to paint ~70-75 ms, sort ~22 ms, layout shift 0.002, LCP ~0.3-1.1 s at 10 Mbit/s. **Tests 1860 -> 1863** (+ history same-day point, arrow keys, focus trap), dry-run, `node --check` and the publish gate (359) pass.
-> Docs: OWNER_FOCUS (both items to Done, archived), CLAUDE.md (0.8 closed, 0.10 added),
-> `prompts/nightly.md` (design closed; Tuesday is product-through-the-numbers), the redesign plan
-> (CLOSED, final budgets), inventory.
+> - **The page shows it, same commit (0.8c).** The metric's row opens to
+>   `($367.70 at the trough - $604.37 at the prior peak) / $604.37 at the prior peak = -39.2%`
+>   with both dates and the rebuild check. It is the engine's own pair, published through
+>   `ENGINE_KEYS` from the one place it is computed - the page does not re-derive it.
+>   `max_drawdown_1y` moves from `SOURCES` to `EQUATIONS` as **exact**, so the suite now
+> ...
 
 ---
 
