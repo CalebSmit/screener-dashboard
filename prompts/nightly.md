@@ -52,10 +52,16 @@ does not.
   and 375px) and say what you saw. Re-measure any defect the plan cites before
   fixing it, and if the number has moved, say so rather than trusting the plan.
   Finish by updating the item's Progress line with what shipped and what is next,
-  so the following session does not have to infer it. As of 2026-10-06 the two
-  open items are `plan/calculation-transparency.md` and
-  `plan/dashboard-redesign-master.md`; their order is fixed by the first of them
-  (T0a, then T0b, then D2).
+  so the following session does not have to infer it.
+
+  **The UI/UX redesign is closed** (owner, 2026-10-07: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make the nightly sessions just focus on what it was previously focusing on, making sure the methodology is sound. And improving this tool overall every single night."*). It was
+  finished in owner-run sessions that night; `plan/dashboard-redesign-master.md` is
+  history, not a queue. Do not start design passes, restyling or "fine-tuning". The
+  sessions' job is the one in "Your mandate": a methodology that is sound and
+  well-evidenced, and a tool that is measurably better every morning. Two standing
+  rules about the page still bind, because they are about correctness: **a scoring
+  change ships with its frontend in the same commit** (section 3 below, CLAUDE.md
+  0.8c), and **a page that is broken or false is a defect to fix** like any other.
 
 - Read the last 3 entries of `NIGHTLY_LOG.md`. What was in progress? What did
   the last session say to do next? What did it flag as broken?
@@ -128,11 +134,16 @@ evidence contradicts what this screener currently does. The note must be
 **complete today** - it is not a first half that Tuesday finishes.
 **No production code.**
 
-**Tuesday - product.** Open the live dashboard as a user would and ask whether
-it answers *what should I look at / should I buy this / should I sell what I
-hold / how much*. **Read `plan/dashboard-inventory.md` first** - the
-most likely failure here is rebuilding something that already exists. Ship a
-dashboard change, or write down precisely what it cannot answer and why.
+**Tuesday - product, through the numbers.** The visual design is finished (owner,
+2026-10-07); Tuesday is no longer a design day. Open the live dashboard as a user
+would and ask whether it answers *what should I look at / should I buy this /
+should I sell what I hold / how much* - and when it cannot, the gap is almost
+always **data or methodology** (a number the page cannot show because the run does
+not keep it, a question no metric answers), so that is what to fix. Check that the
+page still tells the truth about the engine: open two or three drilldowns and
+confirm the workings match, especially after a week with a methodology change.
+**Read `plan/dashboard-inventory.md` first.** A broken surface is a defect to fix;
+a surface that merely could look different is not work.
 
 **Wednesday - synthesis.** How does Monday's research fit the *rest* of the
 screener? What does it overlap with or make redundant? What does it imply for

@@ -606,8 +606,13 @@ properly over three done shallowly.
 
 ### Open
 
-**0.8. Calculation transparency and the premium redesign - first version of every stage
-SHIPPED 2026-10-07 by an owner-run session; the deeper pass is the open work**
+**0.8. Calculation transparency and the premium redesign - CLOSED 2026-10-07.** Owner:
+*"I actually decided that I want you to finish up all UI/UX work in here tonight. And make the nightly sessions just focus on what it was previously focusing on, making sure the methodology is sound. And improving this tool overall every single night."* Finished that night across five owner-run passes; what shipped is in
+`plan/dashboard-inventory.md` and `NIGHTLY_LOG.md` 2026-10-07. **Nightly sessions do not take
+on design or fine-tuning work**; the page's standing correctness rules (row 0.8 and 0.8c above)
+still bind. The paragraph below is the record of how it got there.
+
+*Record:* first version of every stage shipped 2026-10-07 by an owner-run session
 (`OWNER_FOCUS.md`, two items). `plan/calculation-transparency.md` and
 `plan/dashboard-redesign-master.md` each carry a **"Status, 2026-10-07 evening"** table of what
 is built and, per stage, what the deep pass should do. Highlights: the page now prints the
@@ -651,6 +656,15 @@ hard-coded 18-metric list, **not** the applicable-metric coverage the composite'
 coverage discount uses (35 for a bank-like stock, 41 otherwise, out of `METRIC_COLS`).
 62 stocks read under 80% on that badge; **3** were actually discounted. The engine must
 emit applicable coverage - which is also what the composite line needs for defect 2.
+
+**0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
+days).** A data change, not design - the residual of the transparency work. Every metric's
+calculation is one click away on the page, but for volatility, beta, drawdown, Jensen's alpha,
+Sharpe/Sortino and the four analyst-history metrics the page can only describe the inputs
+(`metric_lineage.SOURCES`), because the run does not keep them: the per-quarter EPS actuals and
+estimates, the risk-free rate and the market's 12-month return. Keep them in the raw fetch,
+publish them as inputs, and give each an `EQUATIONS` entry (exact where the arithmetic allows) -
+the equation tests then hold them to the engine like the other 25.
 
 **0.6. Do not record an improvement-engine snapshot when the run did not fetch.**
 Found 2026-08-11 and never closed on its own terms: a warm-started run still

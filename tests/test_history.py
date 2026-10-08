@@ -379,6 +379,18 @@ def test_live_run_is_not_duplicated_when_already_on_disk(tmp_path):
     assert len(out["dates"]) == 3
 
 
+def test_the_published_run_defines_its_own_dates_point(tmp_path):
+    """A same-day snapshot already on disk can be an earlier run; the page must agree with
+    itself, so the history's last point is the run being published (2026-10-07: 284 of 502
+    drilldowns showed a history rank 1-3 off the rank beside it)."""
+    _three_run_dir(tmp_path)
+    live = _snap_df(_ranks(_shift(UNIVERSE, {"T002": 12})))
+    out = H.build_history(current_df=live, current_date="2026-05-05", snapshots_dir=tmp_path)
+    live_ranks = dict(zip(live["Ticker"], live["Rank"]))
+    for ticker, ser in out["series"].items():
+        assert ser["r"][-1] == live_ranks[ticker], ticker
+
+
 def test_movers_report_the_full_count_even_when_the_list_is_capped(tmp_path):
     """Silent truncation reads as "this is everything" when it is not."""
     # Promote 20 names from deep in the table to the top: a lot of material

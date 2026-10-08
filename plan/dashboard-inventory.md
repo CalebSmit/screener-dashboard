@@ -13,6 +13,34 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Final state, 2026-10-07 (the redesign is CLOSED - see `plan/dashboard-redesign-master.md`)
+
+Last owner-run pass, on top of everything below:
+
+- **Shell:** brand mark (SVG, also the favicon), real `<title>` and meta description, content
+  centred at 1360px with 32px gutters, a **page title block** ("Factor rankings", data date as the
+  eyebrow, two actions: Browse the rankings / How it works), then the **stat strip** - four cells
+  that say something: stocks ranked, **moved materially** (n up / n down since the comparison run,
+  beyond the measured noise threshold), trap flags (value / growth), and **this run's momentum
+  weight** with the volatility rule's adjustment; then the first-visit guide; then Top 5. A footer
+  with brand, data date, Methodology / Keyboard shortcuts / How to read this, and the disclaimer.
+- **Loading:** `dashboard_data.js` is preloaded in `<head>` and executed at the end of `<body>`,
+  so the shell paints first; placeholder cards hold the KPI and Top 5 space. LCP at 10 Mbit/s
+  4.8 s -> ~0.3-1.1 s. A tiny `id="guide-early"` script in `<head>` hides the guide before first
+  paint for a reader who dismissed it (tests expect exactly one bare `<script>` block).
+- **Rank History** is an SVG chart (`rankChartSvg()`): rank over every comparable run, rank 1 at
+  the top, the **+/- material-threshold band** around today's rank labelled "ordinary run-to-run
+  variation", hover for date and rank; the category changes sit in two columns beneath.
+- **History consistency:** `history.build_history` lets the run being published define its own
+  date's point even when a same-day snapshot is on disk (it showed a rank 1-3 off for 284 stocks).
+- **Keyboard:** Up/Down/PageUp/PageDown/Home/End walk the windowed rankings table; focus is trapped
+  in every open dialog (sheet, palette, compare, shortcuts, methodology).
+- **Accessibility:** `--text-muted` is `#8e8c86` (was `#898781`, 4.4:1 on raised surfaces).
+- **Holdings:** the Concentration block is a `<details>` with a one-line summary; category labels
+  shorten below 400px. **Price targets:** marker labels above the bar, range labels below.
+- **Narrow screens:** analytics and diagnostics cards no longer run off 375/320px screens;
+  the sensitivity table drops its weight column on phones; the correlation grid scrolls.
+
 ## Top-level views (as rebuilt 2026-10-07)
 
 | Section | Contents |

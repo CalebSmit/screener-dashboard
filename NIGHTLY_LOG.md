@@ -8610,3 +8610,40 @@ above (same evening).
   Now `overflow: clip` on the overlay plus `scrollSheetTo()` scrolling only the body; a test jumps
   three times and clicks, and checks the header stays at 0.
 - Payload: regenerated from the same run; only the new `not_used` key differs. **Tests 1854 -> 1860, 0 failed**; dry-run, `node --check` and the publish gate (359) pass.
+
+## 2026-10-07 (late, pass 5) - OWNER-RUN: the redesign is finished; nightly sessions go back to methodology
+
+Owner: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make
+the nightly sessions just focus on what it was previously focusing on, making sure the methodology
+is sound. And improving this tool overall every single night. So I want you to start working until
+you think this dashboard is something that someone would genuinly pay for."* Health numbers
+unchanged from pass 2 (same evening).
+
+**For the next session, the short version:** there is no open owner item. The redesign is closed -
+do not start design passes. Work the rotation and CLAUDE.md "Current priorities" (0.9 first: the
+four methodology questions; 0.10: keep the inputs the history-based metrics need). The page's two
+correctness rules still bind: a scoring change ships with its frontend (0.8c), and a broken or
+false page is a defect.
+
+**Audited at 1440, 375 and 320px before starting.** Found and fixed:
+- No brand, no page title, content edge to edge, a stat strip of four facts a visitor could not use
+  (502 / 120 / 121 / 94%). Now: brand mark + favicon + title + meta, a page title block, a stat
+  strip of what moved, trap flags and this run's weighting, centred content, a real footer.
+- **Analytics and diagnostics cards ran 44px off phone screens** (`min-width: 100%` plus padding);
+  the weight-sensitivity table and the correlation grid were cut off at 320px.
+- Rank History was a 90px sparkline: now a chart with the measured ordinary-variation band.
+- **284 of 502 drilldowns showed a history rank 1-3 places off the rank beside it** - the history
+  kept the 02:00 snapshot for today while the page came from an evening re-run. The published run
+  now defines its own date's point (`history.py`, test added). Payload regenerated: only `history`
+  and the 328 "what changed" sentences that read it differ; table_data and every score identical.
+- No focus trap in any dialog; muted text at 4.4:1 on raised surfaces (now >= 4.5:1 everywhere,
+  token `#8e8c86`); no keyboard movement in the table (now arrows/Home/End through the windowed rows).
+- **The page painted nothing for 4.8 s at 10 Mbit/s** - a blocking 1.3 MB data script in `<head>`.
+  Preloaded and moved to the end of `<body>`, with placeholder cards: largest paint ~0.3-1.1 s.
+- Price-target labels could collide; the score tint left the lowest scores as black holes; the
+  Holdings concentration note was three open paragraphs (now a summary that expands).
+
+Final budgets: DOM 2,989 nodes, click to paint ~70-75 ms, sort ~22 ms, layout shift 0.002, LCP ~0.3-1.1 s at 10 Mbit/s. **Tests 1860 -> 1863** (+ history same-day point, arrow keys, focus trap), dry-run, `node --check` and the publish gate (359) pass.
+Docs: OWNER_FOCUS (both items to Done, archived), CLAUDE.md (0.8 closed, 0.10 added),
+`prompts/nightly.md` (design closed; Tuesday is product-through-the-numbers), the redesign plan
+(CLOSED, final budgets), inventory.
