@@ -348,25 +348,88 @@ def test_a_trap_bar_lists_exactly_the_flagged_stocks_in_that_sector(browser):
 
 @needs_browser
 def test_every_metric_row_shows_its_own_numbers(browser):
-    """The owner's complaint, 2026-10-07: the workings showed a percentile and a direction
-    but 'no numbers anywhere ... going into the scoring'. Every scored metric row now carries
-    its inputs, the result, its rank among peers and percentile x weight - without a click."""
+    """The owner's two asks, 2026-10-07. First: the workings showed a percentile and a direction
+    but 'no numbers anywhere ... going into the scoring'. Then, seeing them on every row: 'a
+    little cluttery ... maybe if they click on each one, they can see the calculation. But it
+    should be easy to recognize ... that it is an option'. So: rows are quiet, every scored row
+    carries a labelled Calculation control, the whole row opens it, and the card it opens leads
+    with the stock's figures through the formula, its rank, and percentile x weight = points."""
     ctx, page, errors = _open(browser)
     try:
         page.evaluate("openStockDetail('EXPE')")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         page.evaluate("openWorkings('valuation')")
-        row = page.inner_text("#cat-detail-valuation tr.wk-eqrow[data-for='fcf_yield']")
-        raw = page.inner_text("#cat-detail-valuation tr.metric-row[data-metric='fcf_yield'] .metric-raw").strip()
-        assert "free cash flow" in row and "enterprise value" in row and "=" in row, row
-        assert raw in row, (raw, row)
-        assert " in sector" in row and "median" in row, row
-        assert "\u00d7" in row, row  # percentile x weight
-        counts = page.evaluate("""() => {
-            const n = [...document.querySelectorAll('#modal-categories tr.metric-row')].filter(r => !r.classList.contains('wk-nodata')).length;
-            const eq = [...document.querySelectorAll('#modal-categories tr.wk-eqrow')].filter(r => !r.classList.contains('wk-nodata') && r.querySelector('.wk-eq').textContent.trim()).length;
-            return [n, eq]; }""")
-        assert counts[0] > 20 and counts[1] == counts[0], counts
+        page.wait_for_timeout(300)
+        assert "Select any metric to see the numbers behind it" in page.inner_text("#modal-categories")
+        assert page.evaluate("document.querySelectorAll('#modal-categories .wk-card').length") == 0, "calculations must start closed"
+        rows = page.evaluate("""() => [...document.querySelectorAll('#modal-categories tr.metric-row')]
+            .filter(r => !r.classList.contains('wk-nodata'))
+            .map(r => [r.dataset.metric, !!r.querySelector('.wk-more'), r.classList.contains('wk-click')])""")
+        assert len(rows) > 20 and all(r[1] and r[2] for r in rows), [r for r in rows if not (r[1] and r[2])]
+        assert page.inner_text("#cat-detail-valuation tr[data-metric='fcf_yield'] .wk-more").strip() == "Calculation"
+        # the whole row opens it, not only the control
+        page.click("#cat-detail-valuation tr[data-metric='fcf_yield'] .metric-raw")
+        card = page.inner_text("#cat-detail-valuation tr.wk-detail .wk-card")
+        raw = page.inner_text("#cat-detail-valuation tr[data-metric='fcf_yield'] .metric-raw").strip()
+        assert "free cash flow" in card and "enterprise value" in card and "=" in card, card
+        assert raw in card, (raw, card)
+        assert "Ranked" in card and "median" in card and "×" in card and "points" in card, card
+        assert page.get_attribute("#cat-detail-valuation tr[data-metric='fcf_yield'] .wk-more", "aria-expanded") == "true"
+        # every scored metric on the page has a calculation line in its card
+        missing = page.evaluate("""() => {
+            const s = D.stock_detail.EXPE, out = [];
+            Object.keys(D.lineage).forEach(m => {
+                if (s.raw[m] === null || s.raw[m] === undefined) return;
+                const h = metricDetailHtml(m, s, null);
+                if (h.indexOf('>Calculation<') < 0) out.push(m);
+            });
+            return out; }""")
+        assert missing == [], missing
         assert errors == []
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_unused_metrics_say_why(browser):
+    """Owner: 'it should say a little bit about why something was not used in the score'."""
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("openStockDetail('EXPE')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        page.evaluate("openWorkings('valuation')")
+        off = page.inner_text("#cat-detail-valuation .wk-off")
+        assert "P/B Ratio" in off and "banks and insurers" in off, off
+        assert "Dividend Yield" in off and "no weight" in off, off
+        page.evaluate("openStockDetail('JPM')")
+        page.wait_for_timeout(300)
+        page.evaluate("openWorkings('valuation')")
+        off = page.inner_text("#cat-detail-valuation .wk-off")
+        assert "FCF Yield" in off and "Not used for banks" in off, off
+        rows = page.evaluate("[...document.querySelectorAll('#modal-categories .wk-off-row')].map(r => r.querySelector('.wk-off-why').textContent.trim())")
+        assert rows and all(len(r) > 20 for r in rows), rows
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_jumping_inside_the_sheet_never_lifts_its_header(browser):
+    """scrollIntoView() inside the sheet also scrolled the fixed overlay holding it, lifting the
+    header 164px off the screen (found by screenshot, 2026-10-07). The overlay must not scroll."""
+    ctx, page, _ = _open(browser, 1440, 1000)
+    try:
+        page.evaluate("openStockDetail('EXPE')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        for js in ("openWorkings('valuation')", "goToModal('section-peers')", "openWorkings('risk')"):
+            page.evaluate(js)
+            page.wait_for_timeout(500)
+            top = page.evaluate("document.querySelector('#stock-modal .modal-content').getBoundingClientRect().top")
+            assert abs(top) < 1, (js, top)
+        page.click("#cat-detail-risk tr.metric-row.wk-click .wk-more")
+        page.wait_for_timeout(200)
+        assert abs(page.evaluate("document.querySelector('#stock-modal .modal-content').getBoundingClientRect().top")) < 1
+    finally:
+        ctx.close()
+
+

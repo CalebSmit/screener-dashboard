@@ -173,9 +173,12 @@ it because a 3-point return series drifted is not.
 
 **A scoring change is not finished until the page shows it** (owner direction,
 2026-10-07: *"make sure ... if something is changed with scoring, that it also
-updates on there, the frontend side of things to match the backend"*). The
-drilldown prints, on every metric row, the stock's own figures put through the
-formula, its rank among peers and percentile x weight. In the **same commit** as
+updates on there, the frontend side of things to match the backend"*). Opening
+any metric row in the drilldown shows the stock's own figures put through the
+formula, its rank among peers and percentile x weight; a metric that is listed
+but not scored says why (`metric_lineage.NOT_USED_BECAUSE` and the rule-based
+reasons beside it - if you put weight back on a metric with a "removed" reason,
+the suite fails until you remove the reason). In the **same commit** as
 any change to how a metric, weight or category is computed:
 
 - **Weights** need nothing extra - the page reads the engine's own tables

@@ -368,3 +368,45 @@ def test_the_nightly_prompt_still_says_scoring_changes_carry_their_frontend():
     """The owner asked that sessions be told; a deleted instruction is how a rule decays."""
     prompt = (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
     assert "EQUATIONS" in prompt and "same commit" in prompt.lower()
+
+
+# ---------------------------------------------------------------------------
+# why a listed metric is not in the score (owner, 2026-10-07)
+# ---------------------------------------------------------------------------
+
+def _config():
+    import yaml
+    return yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+
+
+def test_a_specific_not_used_reason_is_only_given_for_a_metric_at_zero_weight():
+    """'Removed from the score' must stay true: if a later session puts weight back on PEG or
+    Sharpe, this fails until the reason is removed."""
+    cfg = _config()
+    for m in ml.NOT_USED_BECAUSE:
+        for table in ("metric_weights", "bank_metric_weights"):
+            for cat, weights in (cfg.get(table) or {}).items():
+                if m in (weights or {}):
+                    assert weights[m] == 0, f"{m} has weight {weights[m]} in {table}.{cat} but the page says it is not used"
+
+
+def test_bank_only_metrics_really_are_bank_only():
+    """The page calls a metric bank-only when the bank table weights it and the generic one
+    does not - check config agrees for the metrics it says it about."""
+    cfg = _config()
+    gen, bank = cfg["metric_weights"], cfg["bank_metric_weights"]
+    for cat, weights in bank.items():
+        for m, w in (weights or {}).items():
+            if w and w > 0 and (gen.get(cat) or {}).get(m, 0) == 0:
+                assert m in {"pb_ratio", "roe", "roa", "equity_ratio"}, f"new bank-only metric {m}: check the BANK_ONLY wording still fits"
+
+
+def test_not_used_reasons_carry_no_advice_language():
+    import stock_summary
+    texts = [ml.BANK_ONLY, ml.NOT_FOR_BANKS, ml.CANDIDATE, *ml.NOT_USED_BECAUSE.values()]
+    for t in texts:
+        assert stock_summary.advice_terms_in(t) == [], t
+
+
+def test_the_payload_carries_the_reasons(payload):
+    assert payload.get("not_used") == ml.published_not_used()

@@ -29,6 +29,7 @@ from metric_lineage import (
     INPUT_KEYS,
     RECOMPUTE,
     published_lineage,
+    published_not_used,
 )
 from factor_engine import (
     METRIC_DIR,
@@ -1110,6 +1111,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "stock_detail": stock_detail,
         "weights": weights,
         "lineage": published_lineage(),
+        "not_used": published_not_used(),
         "lineage_check": _lineage_check(stock_detail),
         "sector_stats": _sector_stats(df, raw_metrics),
         "sector_min_peers": SECTOR_MIN_PEERS,
@@ -2823,7 +2825,20 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const el = document.getElementById(id);
         if (!el) return;
         if (el.classList.contains('collapsed')) el.classList.remove('collapsed');
-        el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        scrollSheetTo(el);
+    }}
+
+    // Scroll the drilldown's own body, never the sheet. scrollIntoView() also scrolled the
+    // fixed overlay that holds the sheet (it clips with overflow:hidden but is still a
+    // scroll container), lifting the header 164px off the top of the screen - found
+    // 2026-10-07 by screenshot, present since the sheet was introduced.
+    function scrollSheetTo(el) {{
+        const body = el.closest('.modal-body');
+        if (!body) {{ el.scrollIntoView({{ behavior: 'smooth', block: 'start' }}); return; }}
+        const top = body.scrollTop + el.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
+        body.scrollTo({{ top: Math.max(0, top), behavior: 'smooth' }});
+        const ov = el.closest('.modal-overlay');
+        if (ov) ov.scrollTop = 0;
     }}
 
     function toggleSection(id) {{
@@ -3776,7 +3791,7 @@ def _js_workings() -> str:
         const labels = D.weights.profile_labels || {};
         const nLower = Object.keys(D.metric_meta || {}).filter(m => D.metric_meta[m].dir === 'lower').length;
         let out = `<div class="pctile-convention-note">${PCTILE_CONVENTION}</div>
-            <div class="wk-controls"><button type="button" class="wk-toggle-all" onclick="toggleAllWorkings(true)">Expand all</button>
+            <div class="wk-controls"><span class="wk-hint"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h6M3 12h8"/></svg>Select any metric to see the numbers behind it</span><button type="button" class="wk-toggle-all" onclick="toggleAllWorkings(true)">Expand all</button>
             <button type="button" class="wk-toggle-all" onclick="toggleAllWorkings(false)">Collapse all</button>
             <button type="button" class="wk-toggle-all wk-download" onclick="downloadWorkings()" title="Every number behind this stock's score, as a spreadsheet">Download as CSV</button></div>`;
 
@@ -3808,7 +3823,7 @@ def _js_workings() -> str:
                     <th class="wk-num">Value</th>
                     <th class="wk-pct" title="${PCTILE_CONVENTION}">Sector Percentile &mdash; 100 = best</th>
                     <th class="wk-num" title="Share of this category's score">Weight</th>
-                    <th class="wk-num" title="Percentile x weight">Points</th></tr></thead><tbody>`;
+                    <th class="wk-num" title="Percentile x weight">Points</th><th class="wk-more-h"><span class="sr-only">Calculation</span></th></tr></thead><tbody>`;
                 wk.rows.forEach(r => {
                     const meta = D.metric_meta[r.metric] || { label: r.metric, fmt: 'ratio' };
                     const has = r.pct !== null;
@@ -3817,25 +3832,23 @@ def _js_workings() -> str:
                         ? `Configured ${fmtWeight(r.configured)} of this weighting; ${fmtWeight(r.share)} of this score after rescaling to the metrics that have data.`
                         : `Configured ${fmtWeight(r.configured)}; no data for this stock, so it carries no weight here.`;
                     const hasInfo = (D.lineage || {})[r.metric];
-                    body += `<tr class="metric-row${has ? '' : ' wk-nodata'}" data-metric="${r.metric}">
-                        <td class="wk-metric metric-name">${hasInfo ? `<button type="button" class="wk-info" aria-expanded="false" aria-label="Show how ${escapeHtml(meta.label)} is computed" onclick="toggleMetricDetail(this)"><span aria-hidden="true">&#9656;</span></button>` : ''}${meta.label}${dirChip(meta)}</td>
+                    body += `<tr class="metric-row${has ? '' : ' wk-nodata'}${hasInfo ? ' wk-click' : ''}" data-metric="${r.metric}"${hasInfo ? ' onclick="toggleMetricDetail(this)"' : ''}>
+                        <td class="wk-metric metric-name">${meta.label}${dirChip(meta)}</td>
                         <td class="wk-num metric-raw">${rawStr !== null ? rawStr : '<span class="metric-na">no data</span>'}</td>
                         <td class="wk-pct"><div class="metric-pct-bar-container"><div class="metric-pct-bar">${has ? `<div class="metric-pct-fill" style="width:${Math.max(1, r.pct)}%"></div>` : ''}</div>
                             <span class="metric-pct-label">${has ? r.pct.toFixed(0) : '<span class="metric-na">&mdash;</span>'}</span></div></td>
                         <td class="wk-num metric-weight" title="${escapeHtml(tip)}">${has ? fmtWeight(r.share) : '<span class="metric-na">&mdash;</span>'}</td>
-                        <td class="wk-num wk-points">${has ? r.points.toFixed(1) : '<span class="metric-na">&mdash;</span>'}</td></tr>`;
-                    body += equationRow(r, s, meta);
+                        <td class="wk-num wk-points">${has ? r.points.toFixed(1) : '<span class="metric-na">&mdash;</span>'}</td>
+                        <td class="wk-more-c">${hasInfo ? `<button type="button" class="wk-info wk-more" aria-expanded="false" aria-label="Show how ${escapeHtml(meta.label)} is calculated"><span class="wk-more-t">Calculation</span><svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg></button>` : ''}</td></tr>`;
                 });
                 body += `</tbody>`;
                 if (scored) {
                     const ok = Math.abs(wk.points - catScore) < 0.06;
                     body += `<tfoot><tr class="wk-total"><td class="wk-metric">Category score</td><td></td><td></td>
-                        <td class="wk-num">100%</td><td class="wk-num wk-points" title="${ok ? 'The points add up to the category score.' : 'These points do not add up to the published category score.'}">${fmt(catScore,'score')}${ok ? '' : ' !'}</td></tr></tfoot>`;
+                        <td class="wk-num">100%</td><td class="wk-num wk-points" title="${ok ? 'The points add up to the category score.' : 'These points do not add up to the published category score.'}">${fmt(catScore,'score')}${ok ? '' : ' !'}</td><td></td></tr></tfoot>`;
                 }
                 body += `</table>`;
-                if (wk.notUsed.length) {
-                    body += `<p class="wk-off">Not used in this weighting: ${wk.notUsed.map(metricLabel).join(', ')}.</p>`;
-                }
+                if (wk.notUsed.length) body += notUsedHtml(cat, wk);
             }
 
             out += `<div class="cat-detail-section collapsed" data-cat="${cat}" id="cat-detail-${cat}">
@@ -3906,12 +3919,27 @@ def _js_workings() -> str:
         return n + suf;
     }
 
-    function metricDetailHtml(m, s) {
+    function metricDetailHtml(m, s, r) {
         const info = (D.lineage || {})[m];
         if (!info) return '';
         const meta = (D.metric_meta || {})[m] || { fmt: 'ratio', label: m };
         const bad = (s.inp_bad || []).indexOf(m) >= 0;
-        let h = `<div class="wk-detail-body"><div class="wk-formula"><span class="wk-k">Formula</span>${escapeHtml(info.f)}</div>`;
+        let h = `<div class="wk-detail-body"><div class="wk-card">`;
+        const eq = equationHtml(m, s, meta);
+        if (eq) h += `<div class="wk-line"><span class="wk-k">Calculation</span><div class="wk-v">${eq}</div></div>`;
+        const pc0 = peerContext(m, s);
+        const pctv0 = s.pct[m];
+        if (pc0 && pctv0 !== null && pctv0 !== undefined) {
+            const where = pc0.fallback ? 'the whole universe (fewer than ' + (D.sector_min_peers || 10) + ' stocks in ' + escapeHtml(s.sector) + ' have a value)' : escapeHtml(s.sector);
+            let rk = `Ranked <span class="wk-n">${ordinal(pc0.rank)}</span> of ${pc0.n} in ${where}, ${pc0.lower ? 'lower' : 'higher'} being better`;
+            if (pc0.st && !pc0.fallback) rk += `; sector median <span class="wk-n">${fmtMetric(pc0.st[2], meta.fmt)}</span>, middle half ${fmtMetric(pc0.st[1], meta.fmt)} to ${fmtMetric(pc0.st[3], meta.fmt)}`;
+            rk += `. That is the <span class="wk-n">${ordinal(Math.round(pctv0))}</span> percentile.`;
+            h += `<div class="wk-line"><span class="wk-k">Rank</span><div class="wk-v">${rk}</div></div>`;
+        }
+        if (r && r.pct !== null && r.share !== null && r.points !== null) {
+            h += `<div class="wk-line"><span class="wk-k">Points</span><div class="wk-v"><span class="wk-n">${r.pct.toFixed(1)}</span> <span class="wk-l">percentile</span> <span class="wk-op">&times;</span> <span class="wk-n">${fmtWeight(r.share)}</span> <span class="wk-l">weight</span> <span class="wk-op">=</span> <span class="wk-n wk-res">${r.points.toFixed(1)}</span> <span class="wk-l">points toward the category score</span></div></div>`;
+        }
+        h += `</div><div class="wk-formula"><span class="wk-k">Definition</span>${escapeHtml(info.f)}</div>`;
         if (info.how) h += `<div class="wk-how">${escapeHtml(info.how)}</div>`;
 
         const inp = s.inp || {};
@@ -3955,21 +3983,11 @@ def _js_workings() -> str:
             h += `<div class="wk-check">Not rebuilt from the inputs shown: part of this calculation is a provider figure or a longer history.</div>`;
         }
 
-        const pc = peerContext(m, s);
-        const pctv = s.pct[m];
-        if (pc && pctv !== null && pctv !== undefined) {
-            const where = pc.fallback ? 'the whole universe (fewer than ' + (D.sector_min_peers || 10) + ' stocks in ' + escapeHtml(s.sector) + ' have a value)' : escapeHtml(s.sector);
-            h += `<div class="wk-k">Who it was ranked against</div><div class="wk-peers">Ranked <strong>${ordinal(pc.rank)}</strong> of ${pc.n} in ${where}, ${pc.lower ? 'lower' : 'higher'} being better`;
-            if (pc.st && !pc.fallback) {
-                h += `; sector median ${fmtMetric(pc.st[2], meta.fmt)}, middle half ${fmtMetric(pc.st[1], meta.fmt)} to ${fmtMetric(pc.st[3], meta.fmt)}`;
-            }
-            h += `. That is the ${ordinal(Math.round(pctv))} percentile.</div>`;
-        }
         if (info.cav) h += `<div class="wk-caveat"><strong>Worth knowing.</strong> ${escapeHtml(info.cav)}</div>`;
         return h + `</div>`;
     }
 
-    // ---- the numbers on the row itself (owner, 2026-10-07: "we don't see any numbers
+    // ---- the numbers behind a metric (owner, 2026-10-07: "we don't see any numbers
     // anywhere ... the numbers going into the scoring") ----
     // Under every metric: its own reported figures, through the formula, to the value that
     // was scored; who it was ranked against; and percentile x weight = points. The equation
@@ -4026,43 +4044,52 @@ def _js_workings() -> str:
         return '';
     }
 
-    function equationRow(r, s, meta) {
-        const eq = equationHtml(r.metric, s, meta);
-        const has = r.pct !== null;
-        const pc = has ? peerContext(r.metric, s) : null;
-        let ctx = '';
-        if (pc) {
-            ctx = '<span class="wk-n">' + ordinal(pc.rank) + '</span> of ' + pc.n + (pc.fallback ? ' in the universe' : ' in sector');
-            if (pc.st && !pc.fallback) ctx += ' &middot; median <span class="wk-n">' + fmtMetric(pc.st[2], meta.fmt) + '</span>';
-        }
-        const calc = has && r.share !== null
-            ? '<span class="wk-n">' + r.pct.toFixed(1) + '</span> &times; ' + fmtWeight(r.share) : '';
-        if (!eq && !ctx && !calc) return '';
-        return `<tr class="wk-eqrow${has ? '' : ' wk-nodata'}" data-for="${r.metric}">
-            <td colspan="2" class="wk-eq">${eq}</td>
-            <td class="wk-ctx">${ctx}</td>
-            <td></td>
-            <td class="wk-num wk-calc" title="Sector percentile x share of the category weight = points">${calc}</td></tr>`;
+    // Why a listed metric carries no weight in this score. The words come from
+    // metric_lineage (published as D.not_used); the rule that picks them reads the same
+    // weight tables the score was computed from.
+    function notUsedReason(cat, m, pid) {
+        const NU = D.not_used || {};
+        const profs = ((D.weights || {}).profiles || {})[cat] || {};
+        const inBank = ((profs.bank || {})[m] || 0) > 0;
+        const inGeneric = ((profs.generic || {})[m] || 0) > 0;
+        if (pid === 'bank' && inGeneric) return NU.not_for_banks;
+        if (pid !== 'bank' && inBank) return NU.bank_only;
+        return (NU.because || {})[m] || NU.candidate || '';
     }
 
-    function toggleMetricDetail(btn) {
-        const tr = btn.closest('tr');
+    function notUsedHtml(cat, wk) {
+        const groups = [];
+        wk.notUsed.forEach(m => {
+            const why = notUsedReason(cat, m, wk.wp.pid);
+            let g = groups.find(x => x.why === why);
+            if (!g) { g = { why: why, ms: [] }; groups.push(g); }
+            g.ms.push(metricLabel(m));
+        });
+        return '<div class="wk-off"><div class="wk-off-h">Not used in this score</div>' + groups.map(g =>
+            '<div class="wk-off-row"><span class="wk-off-m">' + g.ms.map(escapeHtml).join(', ') + '</span>' +
+            '<span class="wk-off-why">' + escapeHtml(g.why) + '</span></div>').join('') + '</div>';
+    }
+
+    function toggleMetricDetail(el) {
+        const tr = el.closest('tr');
         if (!tr || !WK_CURRENT) return;
-        const eqr = tr.nextElementSibling && tr.nextElementSibling.classList.contains('wk-eqrow') ? tr.nextElementSibling : null;
-        const anchor = eqr || tr;
-        const next = anchor.nextElementSibling;
+        const btn = tr.querySelector('.wk-info');
+        const next = tr.nextElementSibling;
         if (next && next.classList.contains('wk-detail')) {
             next.remove();
             tr.classList.remove('wk-open');
-            btn.setAttribute('aria-expanded', 'false');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
             return;
         }
+        const sec = tr.closest('.cat-detail-section');
+        const wk = sec ? categoryWorkings(sec.dataset.cat, WK_CURRENT.s) : null;
+        const r = wk ? wk.rows.find(x => x.metric === tr.dataset.metric) : null;
         const row = document.createElement('tr');
         row.className = 'wk-detail';
-        row.innerHTML = '<td colspan="5">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s) + '</td>';
-        anchor.after(row);
+        row.innerHTML = '<td colspan="6">' + metricDetailHtml(tr.dataset.metric, WK_CURRENT.s, r) + '</td>';
+        tr.after(row);
         tr.classList.add('wk-open');
-        btn.setAttribute('aria-expanded', 'true');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
     }
 
     // Open one category's workings and bring it into view (used by the points rows).
@@ -4072,7 +4099,7 @@ def _js_workings() -> str:
         const section = document.getElementById('section-categories');
         if (section) section.classList.remove('collapsed');
         el.classList.remove('collapsed');
-        el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        scrollSheetTo(el);
     }
 """
 
@@ -7625,52 +7652,87 @@ def _css_ux() -> str:
             .holding-cat-name { letter-spacing: 0; font-size: 10px; }
         }
 
-        /* ---- THE NUMBERS ON EVERY METRIC ROW ----
-           A second line under each metric: its reported figures through the formula to the
-           value scored, its rank among peers, and percentile x weight. Figures in ink, words
-           muted, so the eye can run down the numbers without the line reading as a wall. */
-        #modal-categories .wk-table tr.metric-row td { border-bottom: 0; padding-bottom: 2px; }
-        #modal-categories .wk-table tr.wk-eqrow td {
-            padding-top: 0; padding-bottom: 11px; font-size: 12px; line-height: 1.5; color: var(--text-muted);
-            border-bottom: 1px solid var(--border); vertical-align: top;
+        /* ---- THE WORKINGS: quiet rows, the numbers one click away ----
+           Owner, 2026-10-07: the always-on equation line looked cluttered. Each metric is
+           one clean row again; the whole row opens its calculation, and a labelled control
+           at the end says so. The card it opens leads with the arithmetic. */
+        /* The sheet's overlay clips but must never scroll: with overflow:hidden it is still a
+           scroll container, so focus moves and scrollIntoView() lifted the whole sheet. */
+        #stock-modal.modal-overlay { overflow: hidden; overflow: clip; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        #modal-categories .wk-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .wk-hint { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-secondary); }
+        .wk-hint svg { width: 14px; height: 14px; fill: none; stroke: var(--accent-text); stroke-width: 1.6; stroke-linecap: round; }
+        #modal-categories .wk-table tr.wk-click { cursor: pointer; }
+        #modal-categories .wk-table tr.wk-click:hover td, #modal-categories .wk-table tr.wk-open td { background: var(--bg-card-hover); }
+        #modal-categories .wk-table tr.wk-open td { border-bottom-color: transparent; }
+        #modal-categories .wk-table th.wk-more-h { width: 1%; }
+        #modal-categories .wk-table td.wk-more-c { width: 1%; text-align: right; padding-left: 4px; }
+        .wk-more {
+            display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px 0 10px;
+            border: 1px solid var(--border-bright); border-radius: var(--radius-pill); background: none;
+            color: var(--text-secondary); font: 500 12px var(--font-body); cursor: pointer; white-space: nowrap;
+            transition: color var(--t-fast) ease-out, border-color var(--t-fast) ease-out, background var(--t-fast) ease-out;
         }
-        #modal-categories .wk-table tr.metric-row:hover + tr.wk-eqrow { background: var(--bg-card-hover); }
-        .wk-eq { padding-left: 30px !important; }
-        .wk-eq .wk-n, .wk-ctx .wk-n, .wk-calc .wk-n { color: var(--text-secondary); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .wk-eq .wk-res { color: var(--text-primary); font-weight: 600; }
-        .wk-eq .wk-op { color: var(--text-muted); padding: 0 1px; }
-        .wk-eq .wk-warn { color: var(--amber); font-size: 11px; margin-left: 4px; cursor: help; }
-        .wk-ctx { font-variant-numeric: tabular-nums; }
-        .wk-calc { font-variant-numeric: tabular-nums; }
-        #modal-categories .wk-table tr.wk-eqrow.wk-nodata td { padding-bottom: 8px; }
+        .wk-more svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--t-fast) ease-out; }
+        .wk-info.wk-more { width: auto; margin: 0; vertical-align: middle; }
+        .wk-info.wk-more:hover { background: none; }
+        .wk-info.wk-more span { transform: none !important; }
+        #modal-categories .wk-detail-body { background: none; padding: 0; }
+        tr.wk-click:hover .wk-more, .wk-more:focus-visible { color: var(--accent-text); border-color: var(--accent); }
+        .wk-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        tr.wk-open .wk-more { color: var(--accent-text); border-color: var(--accent); background: var(--accent-glow); }
+        tr.wk-open .wk-more svg { transform: rotate(180deg); }
+
+        /* the card a row opens */
+        #modal-categories tr.wk-detail td { background: var(--bg-card-hover); padding: 0 12px 14px; }
+        .wk-card {
+            background: var(--bg-primary); border: 1px solid var(--border-bright); border-radius: var(--radius);
+            padding: 4px 16px; margin-bottom: 12px;
+        }
+        .wk-line { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 10px 0; align-items: baseline; }
+        .wk-line + .wk-line { border-top: 1px solid var(--border); }
+        .wk-line .wk-k { margin: 0; }
+        .wk-v { font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+        .wk-v .wk-n { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .wk-v .wk-l { color: var(--text-secondary); }
+        .wk-v .wk-op { color: var(--text-muted); padding: 0 2px; }
+        .wk-v .wk-res { color: var(--accent-text); }
+        .wk-v .wk-warn { color: var(--amber); font-size: 12px; margin-left: 4px; cursor: help; }
+
+        /* why a listed metric is not in the score */
+        .wk-off { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12.5px; }
+        .wk-off-h { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+        .wk-off-row { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 4px 16px; padding: 5px 0; }
+        .wk-off-m { color: var(--text-secondary); font-weight: 500; }
+        .wk-off-why { color: var(--text-muted); line-height: 1.5; }
+
         @media (max-width: 760px) {
-            /* On a phone each metric is a small card: name and points, then value, bar and
-               weight, then the equation, its rank and the points arithmetic. */
+            /* On a phone each metric is a small card: name, points and the control, then value, bar and weight. */
             #modal-categories .wk-table, #modal-categories .wk-table tbody, #modal-categories .wk-table tfoot { display: block; }
             #modal-categories .wk-table thead { display: none; }
             #modal-categories .wk-table tr.metric-row {
-                display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
-                grid-template-areas: "name name pts" "raw pct w"; gap: 4px 12px; padding: 12px 0 4px;
+                display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center;
+                grid-template-areas: "name name pts more" "raw pct w more"; gap: 4px 12px; padding: 12px 4px;
+                border-bottom: 1px solid var(--border);
             }
-            #modal-categories .wk-table tr.metric-row td { padding: 0; border: 0; }
+            #modal-categories .wk-table tr.metric-row td { padding: 0; border: 0; background: none !important; }
+            #modal-categories .wk-table tr.metric-row.wk-open { background: var(--bg-card-hover); border-bottom-color: transparent; }
             #modal-categories .wk-table tr.metric-row .wk-metric { grid-area: name; color: var(--text-primary); }
             #modal-categories .wk-table tr.metric-row .metric-raw { grid-area: raw; text-align: left; }
             #modal-categories .wk-table tr.metric-row .wk-pct { grid-area: pct; }
             #modal-categories .wk-table tr.metric-row .metric-weight { grid-area: w; }
             #modal-categories .wk-table tr.metric-row .wk-points { grid-area: pts; font-size: 15px; }
+            #modal-categories .wk-table tr.metric-row .wk-more-c { grid-area: more; }
             #modal-categories .wk-table .metric-pct-bar { display: block; }
-            #modal-categories .wk-table tr.wk-eqrow {
-                display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "eq eq" "ctx calc";
-                gap: 3px 12px; padding: 2px 0 12px; border-bottom: 1px solid var(--border);
-            }
-            #modal-categories .wk-table tr.wk-eqrow td { padding: 0; border: 0; }
-            #modal-categories .wk-table tr.wk-eqrow td:empty { display: none; }
-            .wk-eq { grid-area: eq; padding-left: 0 !important; }
-            .wk-ctx { grid-area: ctx; }
-            .wk-calc { grid-area: calc; }
+            .wk-more { padding: 0; width: 30px; height: 30px; justify-content: center; }
+            .wk-more-t { display: none; }
+            .wk-hint { width: 100%; margin: 0 0 4px; }
             #modal-categories .wk-table tr.wk-detail { display: block; }
-            #modal-categories .wk-table tr.wk-detail td { display: block; }
-            #modal-categories .wk-table tfoot tr { display: flex; justify-content: space-between; padding: 10px 0; }
+            #modal-categories .wk-table tr.wk-detail td { display: block; padding: 0 4px 12px; }
+            .wk-line { grid-template-columns: 1fr; gap: 2px; }
+            .wk-off-row { grid-template-columns: 1fr; gap: 2px; }
+            #modal-categories .wk-table tfoot tr { display: flex; justify-content: space-between; padding: 10px 4px; }
             #modal-categories .wk-table tfoot td { padding: 0; border: 0; }
             #modal-categories .wk-table tfoot td:empty { display: none; }
         }
