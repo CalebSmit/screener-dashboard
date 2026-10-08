@@ -666,14 +666,53 @@ estimates, the risk-free rate and the market's 12-month return. Keep them in the
 publish them as inputs, and give each an `EQUATIONS` entry (exact where the arithmetic allows) -
 the equation tests then hold them to the engine like the other 25.
 
-**0.6. Do not record an improvement-engine snapshot when the run did not fetch.**
-Found 2026-08-11 and never closed on its own terms: a warm-started run still
-writes a snapshot, so a day with two cached runs produced three "observations" of
-one real data point. In practice `check_run_health` now discards a non-fetching
-run and `data-run.ps1` cleans `improvement/snapshots` when it does, so the
-scheduled path is covered - **but nothing asserts it**, and a direct
-`python run_screener.py` still writes one. Either skip the snapshot on a
-warm-start or deduplicate on `(run_date, content hash)`, and add the test.
+*Measured 2026-10-08, re-measure rather than trusting it
+(`research/measurements/2026-10-08-equation-coverage.py`): of 29 weighted metrics **15 carry an
+exact equation (58.0% of composite weight), 5 an inexact one (19.5%) and 9 none at all
+(22.6%)**. Of that 22.6%, Piotroski (3.30%) and Beneish (1.54%) already list their signals and
+indices, so the genuine gap is the seven history-based metrics - 17.8%.*
+
+**`max_drawdown_1y` is done (2026-10-08) and is the pattern to copy:** the two closes the
+fall was measured between are computed **where the metric is computed**, stored as
+`_mdd_peak` / `_mdd_trough`, published through `ENGINE_KEYS`, and divided on the row. One
+computation, published - never a second one in the generator or in JS (row 0.8). Writing that
+equation is also what exposed the log-return compounding error, which is the argument for
+doing the rest: *you cannot write a metric's arithmetic down without checking it.*
+
+*Next, in this order.* **(a) `jensens_alpha` (3.25%)** - everything it needs already exists
+in `compute_metrics` (`return_12m`, `beta`, `risk_free_rate`, `market_12m_return`); publish
+the run-level rate and market return beside the per-stock pair and the CAPM line becomes
+exact, verifiable today without a refetch. **(b) `beta` (2.86%)** - publish the `cov` and
+`var` the slope is taken from, which the block already computes. **(c) `volatility` (4.29%)**
+- needs the daily standard deviation kept **at fetch**, beside the one `std()` call that
+already makes `volatility_1y`; it therefore only lands on the next full fetch, so add the
+fetch field and its `EQUATIONS` entry in the *same* session as a run that refetches, or
+`test_nearly_every_scored_value_gets_a_line` fails on a payload that has no inputs for it.
+**(d) the three analyst-history metrics (4.50%)** - the per-quarter EPS actuals and estimates,
+also a fetch change, same constraint.
+
+**0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
+item asked for deduplication and a test, and both landed: `record_dispersion` now
+**replaces** a date's row instead of appending, and `record_run_snapshot` removes
+superseded files for its date - which is the rule `compute_forward_returns` already
+applied when reading them, so the three now agree. Measured before the fix:
+`dispersion_history.csv` held **52 rows for 45 distinct dates** (2026-04-14 four
+times) and `improvement/snapshots` **79 files for 52 dates**;
+`scripts/repair_one_observation_per_date.py` collapsed both, and
+`live_ic_history.csv` / `performance_history.csv` came out byte-identical, so this
+removed a latent distortion of `check_run_health`'s trailing dispersion median
+rather than correcting a live one.
+
+**A third file had the same defect and was found the same day, by the session's own rescoring
+run adding a row to it: `factor_vol_history.csv`, 72 rows for 52 dates, 2026-02-21 appearing
+nine times.** That one feeds **scoring** - `adjust_momentum_weight` ranks the run's momentum
+dispersion against every row and the percentile sets the momentum weight. Deduplicating moved
+the distribution (p75 26.59 -> 26.27) without flipping the regime, so the published run was
+unaffected; it was capable of it. The constraint that stays: **every append-once-per-run file
+holds one row per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
+`factor_vol_history.csv` - with a tripwire on the real files.
+`tests/test_one_observation_per_run_date.py`, 11 tests. A fourth such file gets its tripwire
+in the same module.
 
 **3. Backtest v2 - step 1 is DONE on both halves; step 3 is next.**
 `plan/backtest-v2.md` governs. The two measurements, both reproducible from

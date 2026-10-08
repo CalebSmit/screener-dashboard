@@ -283,6 +283,22 @@ def record_run_snapshot(
     snap.to_parquet(path, index=False)
     logger.info(f"Improvement snapshot saved: {path.name} ({len(snap)} tickers)")
 
+    # One snapshot per run date (CLAUDE.md priority 0.6). Several runs a day
+    # score the same fetched data, so they are one observation; the last one is
+    # the one that published, which is already the rule `compute_forward_returns`
+    # applies when it reads this directory. Superseded files are removed rather
+    # than left to be silently ignored, so `improvement/snapshots` cannot imply
+    # more evidence than exists - measured 2026-10-08 it held **79 files for 52
+    # distinct dates**, and `generate_improvement_report` counts files.
+    for stale in sorted(SNAPSHOTS_DIR.glob(f"{run_date}_*.parquet")):
+        if stale.name == path.name:
+            continue
+        try:
+            stale.unlink()
+            logger.info(f"Superseded snapshot removed: {stale.name}")
+        except OSError as e:
+            logger.warning(f"Could not remove superseded snapshot {stale.name}: {e}")
+
     # Record dispersion for regime detection
     try:
         disp = compute_dispersion(scored_df)
@@ -1412,16 +1428,34 @@ def compute_dispersion(scored_df: pd.DataFrame) -> dict[str, float]:
 
 
 def record_dispersion(run_date: str, dispersion: dict[str, float]) -> None:
-    """Append dispersion to improvement/dispersion_history.csv."""
+    """Record this run's dispersion in improvement/dispersion_history.csv.
+
+    **One row per date.** A date that already has a row is replaced, not appended
+    to: two runs on one day score the same fetched data, so they are one
+    observation of dispersion, and the later run is the one that published.
+
+    This used to append unconditionally (CLAUDE.md priority 0.6, open since
+    2026-08-11). Measured on 2026-10-08 the file held **52 rows for 45 distinct
+    dates** - 2026-04-14 four times, 2026-07-28 three times, 2026-03-16 and
+    2026-08-26 twice each. `check_run_health` discards a run whose category
+    dispersion is more than 20% below the *trailing median* of this file, and
+    `detect_regime` reads it too, so a day counted four times pulled the median
+    toward that day. `compute_forward_returns` already collapses several
+    snapshots of one date to the last; this makes dispersion agree with it.
+    """
     row = {"date": run_date, **{f"{cat}_disp": dispersion.get(cat, np.nan) for cat in CATEGORY_NAMES}}
     df_row = pd.DataFrame([row])
 
     if DISPERSION_HISTORY_PATH.exists():
         existing = pd.read_csv(DISPERSION_HISTORY_PATH)
+        if "date" in existing.columns:
+            existing = existing[existing["date"].astype(str) != str(run_date)]
         combined = pd.concat([existing, df_row], ignore_index=True)
     else:
         combined = df_row
 
+    if "date" in combined.columns:
+        combined = combined.sort_values("date", kind="stable").reset_index(drop=True)
     combined.to_csv(DISPERSION_HISTORY_PATH, index=False)
 
 

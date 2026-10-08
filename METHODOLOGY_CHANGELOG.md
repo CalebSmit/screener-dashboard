@@ -2841,3 +2841,160 @@ each one in plain words next to the metric.
 
 **Applied by:** owner-run interactive session (2026-10-07), at the owner's request.
 **Rollback:** tag `good/2026-10-07` (the 06:38 nightly merge, immediately before this change).
+
+
+## 2026-10-08 - `max_drawdown_1y` measures the fall of the price path, not of a series that is neither price nor log
+
+**Area:** metric definition (`risk` category, `max_drawdown_1y`, 2.86% of composite weight).
+
+**Changed:** `factor_engine.compute_metrics` step 16d built the path it measured
+the drawdown on with
+
+    _cum = np.cumprod(1 + _daily_all)
+
+where `_daily_all` holds **log** returns - `fetch_fundamentals` stores
+`np.log(closes / closes.shift(1))`. Compounding log returns as if they were simple
+returns produces a series that is neither the price path nor the log path. It is
+now
+
+    _cum = np.exp(np.cumsum(_daily_all))
+
+which is the price path. Two smaller corrections in the same block: the return
+series is now read in **date order** rather than relying on the fetch's dict
+insertion order (the drawdown is order-dependent; volatility and Sortino are not),
+and the engine publishes the two closes the fall was measured between
+(`_mdd_peak`, `_mdd_trough` and their dates), so the drilldown shows the division
+instead of a sentence describing it.
+
+**Evidence:** a documented arithmetic error, demonstrated on real data - not a
+backtest number and not this system's IC series.
+
+- **The definition.** Maximum drawdown is defined on the price or equity path:
+  `min_t (P_t - max_{s<=t} P_s) / max_{s<=t} P_s`. Magdon-Ismail & Atiya,
+  "Maximum Drawdown", *Risk* 17(10), 2004; Chekhlov, Uryasev & Zabarankin,
+  "Drawdown Measure in Portfolio Optimization", *International Journal of
+  Theoretical and Applied Finance* 8(1):13-58, 2005. Both take the running
+  maximum of the cumulative value process. `cumprod(1 + ln(1+r))` is not that
+  process, and is not a quantity either paper or any practitioner definition
+  uses.
+- **Direction of the error is not ambiguous.** Since `ln(1+r) <= r`, the old
+  series drifts below the true path, and because the drift compounds
+  path-dependently the peak-to-trough *ratio* taken on it is wrong by an amount
+  that grows with volatility.
+- **Size, measured on 50 real 13-month histories** (large-cap S&P names,
+  `research/measurements/2026-10-08-max-drawdown-log-return-compounding.py`,
+  reproducible): the old formula reported a **larger** fall than the price path
+  for **50 of 50** tickers. Median **1.09pp**, mean 1.42pp, max **4.70pp** -
+  AMD **-32.46%** against an actual **-27.76%**; NFLX -50.47% against -46.91%;
+  UNH -32.15% against -28.96%. The smallest error was 0.15pp (UNP).
+- **It reached the ranking.** Over those 50 names Spearman between the two is
+  0.996, but **27 of 50 move at all** and the largest move is **4 places**. The
+  error is largest for the most volatile names, so a tail-risk metric was
+  penalising hardest exactly the stocks it exists to separate - the bias is
+  correlated with the signal rather than noise around it.
+
+**Expected effect:** every stock's `max_drawdown_1y` becomes a smaller (less
+negative) number. Because the metric is scored as a sector percentile the level
+shift is largely absorbed; what changes is the *ordering* among stocks whose
+errors differed, which is concentrated in high-volatility names.
+`max_drawdown_1y` carries 20% of the Risk category and Risk carries 10% of the
+composite, so 2.86% of composite weight is affected.
+
+**Measured effect**, on the full 502-stock rescoring run `f387d63484ef` against
+the payload the 02:00 run published
+(`research/measurements/2026-10-08-drawdown-fix-effect.py`, reproducible against
+the previous commit):
+
+| | |
+|---|---|
+| Direction | smaller fall for **499 of 499** stocks, larger for 0 |
+| Size | median **+1.317pp**, mean +1.742pp, min +0.108pp, max **+13.520pp** |
+| Largest | SNPS **-52.68% -> -39.16%**; FISV -77.40% -> -67.48%; APP -72.38% -> -63.44%; SMCI -73.00% -> -65.01% |
+| Sector percentile | Spearman 0.993; **264 of 499** move more than half a point; largest move **24.3** points |
+| Composite | **272 of 502** move more than 0.05; median \|move\| **0.070**; max **4.19** |
+| Rank | **379 of 502** move; median 1 place; max **22** places; Spearman 0.9996 |
+| Top 10 | same ten names; BBY/APA swap 3rd-4th and CAH/INCY/BMY reorder 7th-9th |
+
+**The 50-ticker sample understated the tail by a factor of three.** It gave a
+median 1.09pp and a max 4.70pp; the full universe gives 1.317pp and 13.52pp,
+because the sample was deliberately large-cap and the error grows with
+volatility - SNPS, APP, SMCI and NCLH are exactly the kind of name it was
+missing. Recorded here rather than quietly updated: the pre-registered estimate
+was right about the direction and the median and wrong about the extreme.
+
+**Validated by:** `tests/test_max_drawdown_price_path.py`, 11 tests, written
+against price paths whose drawdown is known by construction rather than against
+recorded numbers: a 150 -> 90 sawtooth must give exactly -40%; a rising series
+0%; the deepest fall wins over the most recent; a random path must match the
+textbook definition applied straight to the closes to 1e-9; a shuffled fetch dict
+must still give the chronological answer; and one test keeps the old formula
+present as the thing that must not come back, asserting it reports a strictly
+deeper fall. The published pair rebuilds the published value through
+`metric_lineage.RECOMPUTE` and the row's equation, and
+`tests/test_metric_lineage.py`'s equation pass now checks that division against
+every stock's scored value.
+
+**Frontend, same commit (CLAUDE.md 0.8c):** the metric's drilldown row opens to
+`($158.10 at the trough - $214.30 at the prior peak) / $214.30 at the prior peak
+= -26.2%` with both dates, instead of the sentence "Largest fall from a peak over
+about 13 months". It is the engine's own pair, published from the one place it is
+computed; the page does not re-derive it. `max_drawdown_1y` moves out of
+`SOURCES` and into `EQUATIONS` as exact. This takes the share of composite weight
+whose arithmetic is shown on the page from **77.4% to 80.3%**
+(`research/measurements/2026-10-08-equation-coverage.py`).
+
+**Backtest observation (not decision-grade, rule 5):** none used, and none needed
+- the justification is that the old expression did not compute the quantity its
+own label, its own code comment and its own published formula claimed.
+
+**Applied by:** morning session (manual), 2026-10-08.
+**Rollback:** tag `good/2026-10-07`, or revert the step 16d hunk in
+`factor_engine.py` together with the `metric_lineage.py` entry - they must move
+together or the suite fails, which is the point.
+
+---
+
+## 2026-10-08 - `factor_vol_history.csv` holds one row per run date, so the momentum-weight regime is not decided by repeated days
+
+**Area:** scoring input (`adjust_momentum_weight`, the momentum/valuation weight
+tilt). **No formula, threshold or weight definition changed**; what changed is
+the sample the existing rule reads.
+
+**Changed:** `adjust_momentum_weight` appended a row to
+`factor_vol_history.csv` on every call. It then ranks the current run's momentum
+dispersion against **every row in that file** and uses the percentile to classify
+the regime - below p25 is LOW VOL (momentum weight up, funded from valuation),
+above p75 is HIGH VOL (momentum down, redistributed to quality and valuation). A
+day with two runs therefore put two observations of one day's data into the
+distribution. It now **replaces** the row for the current date.
+
+**Evidence:** a documented failure, measured 2026-10-08 on the committed file -
+**72 rows for 52 distinct dates**, with `2026-02-21` appearing **nine** times,
+`2026-02-24` five, `2026-07-28` four, and four more dates twice. Twenty of 72
+rows (28%) were repeats of a day already counted. This is the same defect as
+`improvement/dispersion_history.csv` and `improvement/snapshots/` (CLAUDE.md
+priority 0.6, closed the same day); the reason it is in *this* file rather than
+only in the nightly log is that this one feeds scoring and the other two do not.
+
+**Expected effect:** the percentile thresholds move slightly; the regime
+classification changes only where a run sat near p25 or p75.
+
+**Measured effect:** on the run published today the thresholds moved from
+`p25=25.57, p75=26.59` to `p25=25.57, p75=26.27` - so the distribution did
+change - but today's dispersion of 25.15 classifies as **LOW VOL** either way,
+and the adjusted weights are identical under both: **momentum 14.95, valuation
+20.05, quality 22.00**. **The published payload is therefore unaffected.** The
+defect was capable of flipping a regime and did not happen to today; it is fixed
+on that basis, not on a realised loss.
+
+**Validated by:** `tests/test_one_observation_per_run_date.py` - three runs on one
+day leave one row; earlier dates survive the rewrite; and a tripwire asserts the
+committed file never repeats a date. `scripts/repair_one_observation_per_date.py`
+collapsed the history 72 -> 52 rows, keeping the last row per date, which is the
+rule `compute_forward_returns` already applied to snapshots.
+
+**Backtest observation (not decision-grade, rule 5):** none used.
+
+**Applied by:** morning session (manual), 2026-10-08.
+**Rollback:** tag `good/2026-10-07`. Reverting restores a 72-row file in which
+28% of rows are repeated days; it would not change today's published weights.

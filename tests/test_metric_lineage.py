@@ -67,25 +67,81 @@ def test_lineage_only_names_metrics_the_scorer_knows():
     assert set(ml.LINEAGE) <= known, sorted(set(ml.LINEAGE) - known)
 
 
+# Every format code an input may carry. `date` was added 2026-10-08 for the two closes
+# `max_drawdown_1y` is measured between; it renders through `fmtInput`'s documented
+# `String(v)` fallback, which the test below pins so the fallback cannot be removed under it.
+VALID_FORMATS = {ml.USD, ml.PRICE, ml.PCT, ml.RATIO, ml.NUM, ml.DATE}
+
+
 def test_every_entry_has_a_formula_and_valid_formats():
     for m, e in ml.LINEAGE.items():
         assert e["formula"].strip(), m
         assert e["kind"] in {"ratio", "components", "series"}, m
         for label, key, fmt in e["inputs"]:
             assert label and key
-            assert fmt in {ml.USD, ml.PRICE, ml.PCT, ml.RATIO, ml.NUM}, (m, key, fmt)
+            assert fmt in VALID_FORMATS, (m, key, fmt)
+
+
+# `fmtInput` formats these by name; `num` and `date` are printed verbatim by its
+# `return String(v)` fallback, which is the right rendering for both.
+EXPLICITLY_FORMATTED = {ml.USD, ml.PRICE, ml.PCT, ml.RATIO}
+
+
+def test_the_page_can_render_every_format_code_the_registry_uses():
+    """A format code the registry hands the browser that `fmtInput` handles neither by name nor
+    by its fallback would print `undefined` beside a number a reader is checking."""
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    body = src[src.index("function fmtInput("):][:900]
+    assert "return String(v)" in body, (
+        "fmtInput lost its verbatim fallback; 'num' and 'date' inputs rely on it")
+    used = {fmt for e in ml.LINEAGE.values() for _, _, fmt in e["inputs"]}
+    for fmt in used:
+        assert fmt in VALID_FORMATS, f"{fmt!r} is not a declared format code"
+        if fmt in EXPLICITLY_FORMATTED:
+            assert f"'{fmt}'" in body, f"fmtInput has no branch for {fmt!r}"
 
 
 def test_every_recompute_function_has_a_lineage_entry():
     assert set(ml.RECOMPUTE) <= set(ml.LINEAGE)
 
 
+# A series metric may claim an equation only when the equation's inputs are the specific
+# points of the series the engine measured between, so the arithmetic on the row is the
+# arithmetic the engine did. Default is deny: a new series metric fails this test until it
+# is listed here with its reason, which is the whole point of the guard.
+SERIES_METRICS_WITH_AN_EXACT_EQUATION = {
+    # The drawdown is found by scanning ~13 months of closes, but the fall itself is one
+    # division between two of them. `factor_engine` step 16d publishes the pair it chose
+    # (`_mdd_peak` / `_mdd_trough`), so the row shows that division and nothing is
+    # re-derived. Added 2026-10-08 with the price-path fix.
+    "max_drawdown_1y",
+}
+
+
 def test_a_series_metric_never_claims_an_equation():
-    """Volatility, beta, drawdown and friends are built from a daily price history; showing a
-    two-number equation for them would be a false formula."""
+    """Volatility, beta and friends are summaries of a whole daily price history; showing a
+    two-number equation for them would be a false formula.
+
+    The exceptions are listed above, each with the engine-published inputs that make its
+    equation the real arithmetic rather than a re-derivation."""
     for m, e in ml.LINEAGE.items():
-        if e["kind"] == "series":
+        if e["kind"] == "series" and m not in SERIES_METRICS_WITH_AN_EXACT_EQUATION:
             assert m not in ml.RECOMPUTE, m
+
+
+def test_a_listed_series_exception_really_publishes_the_points_it_divides():
+    """An entry in the allow-list above has to earn it: its equation may only name inputs the
+    engine computed and published, never a figure the page would have to work out itself."""
+    for m in SERIES_METRICS_WITH_AN_EXACT_EQUATION:
+        assert m in ml.LINEAGE and ml.LINEAGE[m]["kind"] == "series", m
+        assert m in ml.RECOMPUTE and m in ml.EQUATIONS, m
+        exact, templates = ml.EQUATIONS[m]
+        assert exact, f"{m}: listed as an exception but its equation is not exact"
+        slots = {k for t in templates for k, _ in ml.template_slots(t)}
+        assert slots, m
+        assert slots <= set(ml.ENGINE_KEYS), (
+            f"{m}: equation names {sorted(slots - set(ml.ENGINE_KEYS))}, which the engine does "
+            f"not publish as its own computed figures")
 
 
 def test_clamps_in_the_registry_match_config():
