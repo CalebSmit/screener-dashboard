@@ -8647,3 +8647,24 @@ Final budgets: DOM 2,989 nodes, click to paint ~70-75 ms, sort ~22 ms, layout sh
 Docs: OWNER_FOCUS (both items to Done, archived), CLAUDE.md (0.8 closed, 0.10 added),
 `prompts/nightly.md` (design closed; Tuesday is product-through-the-numbers), the redesign plan
 (CLOSED, final budgets), inventory.
+
+## 2026-10-08 - BUILD. Implement what the week's research justified. Write tests alongside the code.
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-07_060001.log`
+ends "Run complete: shipped to main", tagged `good/2026-10-07`. | Data loop published? **yes** -
+`logs/datarun-2026-10-08_020001.log` ends "Data loop complete", HEALTH: PASS, 502 scored. |
+Evidence base at horizon `1m`: **25 rows, newest `run_date` 2026-09-08 (30 days ago, bound 40),
+4 effective observations** - inside the steady-state 30-33 day lag, nothing to investigate. |
+Priority 0: holding as designed - `allow_auto_apply` still `false`, 4 effective against a gate of
+8, and the engine reported rather than applied. | Top open roadmap item: **0.9, the four
+methodology questions the transparency build surfaced - age 1 day** (opened 2026-10-07).
+**Tests:** before **1863 passed / 0 failed**; after **TBD**
+**Owner queue / rotation:** `OWNER_FOCUS.md` has **no open item** - the redesign and the
+transparency work were closed on 2026-10-07 and nightly sessions were told to return to
+methodology. So this was the rotation's Thursday: build. The week justified no *weighting* change
+(it was spent on the owner's UI/UX work, not on factor research), so per the prompt's instruction
+for that case I took the top open item in "Current priorities" that is a build task - priority
+0.10, keeping the inputs the history-based metrics need - and writing the first of those
+equations exposed an arithmetic error in `max_drawdown_1y`, which became the session.
+
+### Did

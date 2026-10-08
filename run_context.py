@@ -115,7 +115,13 @@ class RunContext:
             # on 2026-10-07 a warm start loaded scores that lacked the per-stock
             # weight-table and coverage columns the dashboard now needs to
             # reproduce them. 2 = weight profiles + applicable coverage recorded.
-            "scoring_schema": 2,
+            # 3 = `max_drawdown_1y` measured on the price path, and the two
+            # closes it was measured between recorded as `_mdd_peak` /
+            # `_mdd_trough` / their dates (2026-10-08). Without the bump a warm
+            # start served the 02:00 table, which both carried the old drawdown
+            # and lacked those columns, so the dashboard refused to publish -
+            # correctly, but for a reason that reads as a scoring bug.
+            "scoring_schema": 3,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]
