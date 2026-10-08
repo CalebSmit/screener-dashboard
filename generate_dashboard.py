@@ -1598,6 +1598,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <div class="cmp-tray" id="cmp-tray" hidden role="region" aria-label="Comparison tray">
             <span class="cmp-tray-label">Compare</span>
             <div class="cmp-chips" id="cmp-chips"></div>
+            <span class="cmp-count" id="cmp-count"></span>
             <button type="button" class="cmp-open" id="cmp-open" onclick="openCompare()">Side by side</button>
             <button type="button" class="cmp-clear" onclick="clearCompare()" aria-label="Clear the comparison">Clear</button>
         </div>
@@ -2500,9 +2501,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             );
         }}
 
-        return '<div class="holdings-concentration">'
-            + '<h4 class="holdings-conc-title">Concentration</h4>'
-            + parts.join('') + '</div>';
+        // Folded by default: three dense paragraphs of sourced arithmetic sat open above the
+        // list itself. The summary says what is inside; nothing is dropped.
+        return '<details class="holdings-concentration">'
+            + '<summary class="holdings-conc-title">Concentration <span class="conc-hint">how spread out the list is, and what an equal split would mean</span></summary>'
+            + '<div class="conc-body">' + parts.join('') + '</div></details>';
     }}
 
     const HC_SHORT = {{ valuation: 'Val', quality: 'Qual', growth: 'Grow', momentum: 'Mom', risk: 'Risk', revisions: 'Rev', size: 'Size', investment: 'Inv' }};
@@ -3598,7 +3601,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 row.forEach(function(v, j) {{
                     const bg = corrColor(v, i === j);
                     const txt = i === j ? '\u2014' : (v !== null ? v.toFixed(2) : '');
-                    const title = corr.labels[i] + ' vs ' + corr.labels[j] + ': ' + (v !== null ? v.toFixed(3) : 'N/A');
+                    const title = corr.labels[i] + ' vs ' + corr.labels[j] + ': ' + (v !== null ? v.toFixed(3) : 'no data');
                     hHtml += '<div class="corr-cell' + (i !== j && v !== null && Math.abs(v) > 0.7 ? ' corr-high' : '') + '" style="background:' + bg + '" title="' + title + '">' + txt + '</div>';
                 }});
             }});
@@ -7241,6 +7244,8 @@ def _js_ux() -> str:
             '<span class="cmp-chip"><button type="button" class="cmp-chip-t" onclick="openStockDetail(\'' + t + '\')">' + escapeHtml(t) + '</button>' +
             '<button type="button" class="cmp-chip-x" onclick="toggleCompare(\'' + t + '\')" aria-label="Remove ' + escapeHtml(t) + '">&times;</button></span>'
         ).join('');
+        const cnt = document.getElementById('cmp-count');
+        if (cnt) cnt.textContent = UX.compare.length + (UX.compare.length === 1 ? ' stock' : ' stocks');
         const open = document.getElementById('cmp-open');
         open.disabled = UX.compare.length < 2;
         open.textContent = UX.compare.length < 2 ? 'Add one more' : 'Side by side';
@@ -7310,7 +7315,7 @@ def _js_ux() -> str:
             '<div class="cmp-scroll"><table class="cmp-table" style="--n:' + ts.length + '"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
             '<h3 class="cmp-h3">Where the composite gap comes from</h3>' +
             '<p class="modal-note">Each line is the difference in category points, so the lines add up to the gap in composite (rounding aside). It says which categories separate the two in this run, not which is the better company.</p>' +
-            gaps;
+            '<div class="cmp-gaps">' + gaps + '</div>';
         const m = document.getElementById('compare-modal');
         m.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -7995,6 +8000,31 @@ def _css_ux() -> str:
         .top5-card.sk-card { min-height: 240px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
         .sk, .sk-l { animation: skPulse 1.4s ease-in-out infinite; }
         @keyframes skPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+        /* ---- TABLE AND DIAGNOSTICS, final pass ----
+           Score tint has a floor: with 0% at the bottom, the lowest scores read as black holes
+           in an otherwise tinted column. A gentle 3-17% ramp reads as one field. */
+        .data-table td.sc { background: color-mix(in srgb, var(--accent) calc(3% + var(--v) * 14%), transparent); }
+        .defensibility-row { align-items: flex-start; }
+        .corr-cell { border-radius: 4px; }
+
+        .cmp-gaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 40px; }
+        .cmp-gaps .gap-rows { max-width: none; }
+        .cmp-count { display: none; font-size: 13px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        @media (max-width: 420px) {
+            .cmp-chips { display: none; }
+            .cmp-count { display: inline; margin-right: auto; }
+        }
+
+        details.holdings-concentration { padding: 0; }
+        details.holdings-concentration > summary {
+            list-style: none; cursor: pointer; padding: 12px 14px; margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+        }
+        details.holdings-concentration > summary::-webkit-details-marker { display: none; }
+        details.holdings-concentration > summary::after { content: '›'; margin-left: auto; color: var(--text-muted); transition: transform var(--t-fast) ease-out; }
+        details.holdings-concentration[open] > summary::after { transform: rotate(90deg); }
+        .conc-hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12.5px; color: var(--text-muted); }
+        .conc-body { padding: 0 14px 12px; }
 
         /* ---- RANK HISTORY CHART ---- */
         .rank-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
