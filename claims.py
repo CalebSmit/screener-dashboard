@@ -434,10 +434,10 @@ CLAIMS: tuple[Claim, ...] = (
         id="drilldown.row_equation",
         surface=DRILLDOWN,
         asserts=(
-            "The line under each metric in the workings - the stock's reported figures put "
-            "through the formula, '= value' - gives the value that was scored. Where the line "
-            "ends in an arrow rather than '=', it lists the real inputs of a calculation with "
-            "steps one line cannot carry."
+            "The Calculation line shown when a metric row in the workings is opened - the "
+            "stock's reported figures put through the formula, '= value' - gives the value "
+            "that was scored. Where it ends in an arrow rather than '=', it lists the real "
+            "inputs of a calculation with steps one line cannot carry."
         ),
         made_true_by="metric_lineage:EQUATIONS",
         checked_by=(

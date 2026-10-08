@@ -72,13 +72,20 @@ of 47 in Consumer Discretionary", sector median and quartiles, or the universe w
 fewer than `sector_min_peers` values) and the registry's plain **caveat** where the code differs
 from the label.
 
-**On every row, without a click (2026-10-07, owner-run pass 3):** a second line under each metric:
-the stock's reported figures through the formula to the value scored (`$4.5B free cash flow ÷ $31.0B
-enterprise value = 14.4%`), its rank among the peers it was ranked against with the sector median,
-and percentile x weight. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
+**One click on any row (2026-10-07, owner-run passes 3-4):** rows are quiet (name, value, bar,
+weight, points) with a labelled **Calculation** pill at the end and a hint above the table ("Select
+any metric to see the numbers behind it"); the whole row opens a card: **Calculation** (the stock's
+reported figures through the formula to the value scored, `$4.5B free cash flow ÷ $31.0B enterprise
+value = 14.4%`), **Rank** (position, sector median, middle half, percentile) and **Points**
+(percentile x weight = points), then the definition, inputs, rebuild check and caveat. Pass 3 put the
+line on every row; the owner found it cluttered, so pass 4 moved it behind the click. **Not used in
+this score** lists each unweighted metric with why (bank-only / not for banks / removed, with the
+documented reason / a zero-weight candidate), grouped so a shared reason is said once - text in
+`metric_lineage` (`published_not_used()`, payload key `not_used`), chosen by rule from the weight
+tables. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
 suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
-published as `lineage[m].x / xe / src`. Rendered by `equationRow()` in `_js_workings()`. On a phone
-each metric becomes a two-line card. **A scoring change must update these in the same commit**
+published as `lineage[m].x / xe / src`. Rendered by `equationHtml()` / `metricDetailHtml()` in `_js_workings()`. On a phone each metric
+is a two-line card with a chevron. **A scoring change must update these in the same commit**
 (CLAUDE.md 0.8c, `prompts/nightly.md` section 3).
 
 **On every row, without a click (2026-10-07, owner-run pass 3):** a second line under each metric:
@@ -86,8 +93,8 @@ the stock's reported figures through the formula to the value scored (`$4.5B fre
 enterprise value = 14.4%`), its rank among the peers it was ranked against with the sector median,
 and percentile x weight. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
 suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
-published as `lineage[m].x / xe / src`. Rendered by `equationRow()` in `_js_workings()`. On a phone
-each metric becomes a two-line card. **A scoring change must update these in the same commit**
+published as `lineage[m].x / xe / src`. Rendered by `equationHtml()` / `metricDetailHtml()` in `_js_workings()`. On a phone each metric
+is a two-line card with a chevron. **A scoring change must update these in the same commit**
 (CLAUDE.md 0.8c, `prompts/nightly.md` section 3).
 
 New payload keys: `weights.profiles`, `weights.profile_labels`, `weights.coverage_discount`,

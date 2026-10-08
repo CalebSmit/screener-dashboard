@@ -8585,3 +8585,28 @@ Item 15: the equation line wraps to two lines for ROIC and operating leverage at
 shorter template or letting the line run under the bar column. Item 16: the 11 history-based metrics
 have no per-stock numbers yet (needs the analyst per-quarter EPS and the risk-free / market return
 kept at fetch - transparency plan, open).
+
+## 2026-10-07 (late, pass 4) - OWNER-RUN: the calculation moves behind a clear click, unused metrics say why, and the sheet no longer lifts its own header
+
+Owner, on pass 3's always-visible equation line: *"it does seem a little cluttery, makes it look bad.
+So maybe if they click on each one, they can see the calculation. But it should be easy to recognize
+and see that it is an option for users. Also it should say a little bit about why something was not
+used in the score like ... the p/b ratio or dividend yield."* Health numbers unchanged from pass 2
+above (same evening).
+
+- **Rows are quiet again**, and each scored row ends in a labelled **Calculation** pill (a chevron on a
+  phone); the whole row is clickable, and a hint above the tables says "Select any metric to see the
+  numbers behind it". The card it opens leads with **Calculation** (figures through the formula, = the
+  scored value), **Rank** and **Points** (percentile x weight = points), then definition, inputs,
+  rebuild check, caveat. The old tiny triangle is gone.
+- **"Not used in this score"** now gives a reason per metric, grouped: bank-only (P/B, ROE, ROA, equity
+  ratio for non-banks), not for banks (EV- and cash-flow-based measures for JPM and peers), removed
+  with the documented reason (PEG; Sharpe and Sortino 2026-09-02, +0.94 with 12-1), or a zero-weight
+  candidate. Text in `metric_lineage`, published as `not_used`; chosen by rule from the weight tables.
+  A test fails if a "removed" metric gets weight back without its reason being removed.
+- **Bug found by screenshot, present since the sheet shipped:** any jump inside the drilldown
+  (`goToModal`, `openWorkings`, a focus move) scrolled the *overlay* holding the sheet - it clipped
+  with `overflow:hidden` but was still a scroll container - lifting the header 164px off the screen.
+  Now `overflow: clip` on the overlay plus `scrollSheetTo()` scrolling only the body; a test jumps
+  three times and clicks, and checks the header stays at 0.
+- Payload: regenerated from the same run; only the new `not_used` key differs. **Tests 1854 -> 1860, 0 failed**; dry-run, `node --check` and the publish gate (359) pass.

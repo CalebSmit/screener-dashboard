@@ -496,6 +496,38 @@ def evaluate_template(template: str, inp: dict):
     return v.real if isinstance(v, complex) else v
 
 
+# --------------------------------------------------------------------------- not used
+# Why a metric listed under a category carries no weight in the score a reader is looking
+# at (owner, 2026-10-07: "it should say a little bit about why something was not used in the
+# score"). The page picks the reason by rule from the published weight tables:
+#   - weighted in the bank table but not in this one      -> BANK_ONLY
+#   - this IS the bank table and the metric is weighted in the generic one -> NOT_FOR_BANKS
+#   - a specific, documented reason below                  -> NOT_USED_BECAUSE[metric]
+#   - otherwise                                           -> CANDIDATE
+# Every specific reason cites a decision that is written down (config.yaml comments and
+# METHODOLOGY_CHANGELOG.md); none is new methodology.
+BANK_ONLY = ("Used only for banks and insurers, where it replaces measures built on enterprise "
+             "value, cash flow or operating profit, which do not mean the same thing for a lender.")
+NOT_FOR_BANKS = ("Not used for banks and insurers: a lender's debt is its raw material, so measures "
+                 "built on enterprise value, free cash flow, operating profit or leverage do not "
+                 "describe it the way they describe other companies.")
+CANDIDATE = ("Tracked, but given no weight: a candidate the screener records so its record can be "
+             "measured before it is ever allowed to move a score.")
+NOT_USED_BECAUSE = {
+    "peg_ratio": ("Removed from the score: P/E divided by growth counts valuation a second time "
+                  "(earnings yield is already 1 / P/E) and breaks when growth is negative."),
+    "sharpe_ratio": ("Removed from the score 2026-09-02: it is 12-month return divided by risk, so it "
+                     "mostly repeated the momentum signal (correlation +0.94 with 12-1 return)."),
+    "sortino_ratio": ("Removed from the score 2026-09-02, with Sharpe: return divided by downside "
+                      "risk, so it mostly repeated the momentum signal."),
+}
+
+
+def published_not_used() -> dict:
+    return {"bank_only": BANK_ONLY, "not_for_banks": NOT_FOR_BANKS, "candidate": CANDIDATE,
+            "because": dict(NOT_USED_BECAUSE)}
+
+
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used")

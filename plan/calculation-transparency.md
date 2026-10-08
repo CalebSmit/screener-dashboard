@@ -25,7 +25,7 @@ requirement: *teachable and explainable*.
 The owner looked at the workings and saw no numbers: the inputs were there, but behind a
 disclosure triangle. Every metric row now prints its own figures through the formula to the
 value scored, its rank and sector median, and percentile x weight = points
-(`metric_lineage.EQUATIONS` / `SOURCES`, `equationRow()`). Exact templates are evaluated against
+(`metric_lineage.EQUATIONS` / `SOURCES`; since pass 4 behind a click on the row, with reasons for unused metrics). Exact templates are evaluated against
 every stock by `tests/test_metric_lineage.py` (19 of 19 reproduce 100%), so a scoring formula cannot
 change without the page - see `DECISIONS.md` 0.8c. The CSV ("download this stock's workings")
 shipped in pass 2. Still open from the table below: inputs at fetch for the 11 history-based
