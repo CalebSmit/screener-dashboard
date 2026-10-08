@@ -530,10 +530,14 @@ def build_history(
     kept, excluded = select_comparable_runs(snapshots_dir, up_to_date=current_date)
 
     if current_df is not None and current_date is not None:
-        if not kept or kept[-1].date != current_date:
-            live = _to_run_snapshot(current_date, current_df)
-            if live.ranks:
-                kept = [s for s in kept if s.date != current_date] + [live]
+        # The run being published defines its own date's point, even when a snapshot
+        # for that date is already on disk: that one may be an earlier run the same day.
+        # On 2026-10-07 it was (the 02:00 run, while the page came from an evening
+        # re-run), and 284 of 502 drilldowns printed a history rank 1-3 places off the
+        # rank shown beside it.
+        live = _to_run_snapshot(current_date, current_df)
+        if live.ranks:
+            kept = [s for s in kept if s.date != current_date] + [live]
 
     empty = {
         "dates": [], "series": {}, "excluded": excluded, "noise": None,

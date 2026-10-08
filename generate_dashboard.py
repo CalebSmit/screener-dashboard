@@ -3682,17 +3682,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                  .some(m => m.t === ticker && m.rt));
 
         body.innerHTML = `
-            <div class="modal-history-row">
-                <span class="modal-spark">${{sparkline(ser.r, d.prev ? d.prev.dr : 0)}}</span>
-                <span class="muted" style="font-size:.78rem">
-                    rank ${{first[1]}} on ${{escapeHtml(H.dates[first[0]])}}
-                    &rarr; ${{last[1]}} on ${{escapeHtml(H.dates[last[0]])}}
-                    across ${{pts.length}} comparable runs
-                </span>
+            <div class="rank-chart-head">
+                <span>Rank <strong>${{first[1]}}</strong> on ${{escapeHtml(H.dates[first[0]])}} &rarr; <strong>${{last[1]}}</strong> on ${{escapeHtml(H.dates[last[0]])}}, across ${{pts.length}} comparable runs</span>
                 ${{rt ? '<span class="rt-badge" title="A large rank excursion that returned to base. Usually a metric dropping out and returning rather than a real change.">round-trip</span>' : ''}}
             </div>
+            ${{rankChartSvg(ser.r)}}
+            <div class="modal-hist-blocks">
             ${{catTable(d.prev, 'Since last run', (H.compare.prev || {{}}).date || '')}}
             ${{catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {{}}).date || '')}}
+            </div>
             <p class="modal-note">History covers ${{H.dates.length}} runs judged comparable to each other. Score changes describe what the model saw, not what you should do.</p>
         `;
     }}
@@ -7386,6 +7384,98 @@ def _js_ux() -> str:
         toast('Downloaded ' + a.download);
     }
 
+    // ---- rank history chart ----------------------------------------------------
+    // Rank over every comparable run, rank 1 at the top, with the band around today's
+    // rank that the What Changed panel treats as ordinary run-to-run variation
+    // (H.noise.material_threshold, measured from paired runs). A move inside the band is
+    // noise by the screener's own measure; that is the one reading this chart should
+    // make easy.
+    function rankChartSvg(r) {
+        const dates = H.dates || [];
+        const pts = r.map((v, i) => [i, v]).filter(p => p[1] !== null && p[1] !== undefined);
+        if (pts.length < 2) return '';
+        const N = D.table_data.length || 500;
+        const thr = ((H.noise || {}).material_threshold) || 0;
+        const last = pts[pts.length - 1];
+        let lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));
+        if (thr) { lo = Math.min(lo, last[1] - thr); hi = Math.max(hi, last[1] + thr); }
+        lo = Math.max(1, lo); hi = Math.min(N, hi);
+        const padR = Math.max(4, (hi - lo) * 0.08);
+        lo = Math.max(1, lo - padR); hi = Math.min(N, hi + padR);
+        if (hi - lo < 10) { hi = Math.min(N, lo + 10); }
+        // Draw at the sheet's real width so text is never scaled: full sheet on desktop, the screen on a phone.
+        const W = Math.round(window.innerWidth <= 760 ? Math.max(280, window.innerWidth - 32) : Math.max(480, Math.min(880, window.innerWidth) - 48));
+        const Hh = W < 500 ? 150 : 176, L = 44, R = 52, T = 14, B = 26;
+        const iw = W - L - R, ih = Hh - T - B;
+        const nx = Math.max(1, dates.length - 1);
+        const X = i => L + (i / nx) * iw;
+        const Y = v => T + ((v - lo) / (hi - lo)) * ih;
+        let path = '', prev = -2;
+        pts.forEach(([i, v]) => { path += (i === prev + 1 ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); prev = i; });
+        const area = 'M' + X(pts[0][0]).toFixed(1) + ' ' + (T + ih) + ' ' + path.replace(/^M/, 'L') + ' L' + X(last[0]).toFixed(1) + ' ' + (T + ih) + ' Z';
+        const ticks = [lo, (lo + hi) / 2, hi].map(v => Math.round(v));
+        const short = d => { const t = new Date(d + 'T00:00:00'); return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+        let g = '';
+        ticks.forEach(t => {
+            g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '" class="rc-grid"/>' +
+                 '<text x="' + (L - 8) + '" y="' + (Y(t) + 4).toFixed(1) + '" class="rc-ytick" text-anchor="end">#' + t + '</text>';
+        });
+        let band = '';
+        if (thr) {
+            const y1 = Y(Math.max(lo, last[1] - thr)), y2 = Y(Math.min(hi, last[1] + thr));
+            band = '<rect x="' + L + '" y="' + y1.toFixed(1) + '" width="' + iw + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '" class="rc-band"/>' +
+                   '<text x="' + (L + 6) + '" y="' + (y1 + 12).toFixed(1) + '" class="rc-band-label">&plusmn;' + thr + ' ranks: ordinary run-to-run variation</text>';
+        }
+        const lx = X(last[0]), ly = Y(last[1]);
+        return '<figure class="rank-chart" data-lo="' + lo + '" data-hi="' + hi + '">' +
+            '<svg viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Rank over ' + pts.length + ' runs, from ' + pts[0][1] + ' to ' + last[1] + '">' +
+            g + band +
+            '<path d="' + area + '" class="rc-area"/>' +
+            '<path d="' + path + '" class="rc-line"/>' +
+            '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4" class="rc-dot"/>' +
+            '<text x="' + (lx + 8).toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" class="rc-last">#' + last[1] + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - 6) + '" class="rc-xtick">' + escapeHtml(short(dates[pts[0][0]] || '')) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="rc-xtick" text-anchor="end">' + escapeHtml(short(dates[last[0]] || '')) + '</text>' +
+            '<line class="rc-hover-line" x1="0" x2="0" y1="' + T + '" y2="' + (T + ih) + '" visibility="hidden"/>' +
+            '<circle class="rc-hover-dot" r="3.5" cx="0" cy="0" visibility="hidden"/>' +
+            '<rect class="rc-hit" x="' + L + '" y="' + T + '" width="' + iw + '" height="' + ih + '" data-pts=\'' + JSON.stringify(pts) + '\' data-geo="' + [L, T, iw, ih, nx, lo, hi, W].join(',') + '"/>' +
+            '</svg><figcaption class="rc-tip" hidden></figcaption></figure>';
+    }
+
+    function bindRankChartHover() {
+        const host = document.getElementById('modal-history');
+        if (!host || host.dataset.bound) return;
+        host.dataset.bound = '1';
+        const hide = fig => {
+            fig.querySelector('.rc-tip').hidden = true;
+            fig.querySelectorAll('.rc-hover-line, .rc-hover-dot').forEach(e => e.setAttribute('visibility', 'hidden'));
+        };
+        host.addEventListener('mousemove', e => {
+            const hit = e.target.closest && e.target.closest('.rc-hit');
+            const fig = host.querySelector('.rank-chart');
+            if (!fig) return;
+            if (!hit) { hide(fig); return; }
+            const [L, T, iw, ih, nx, lo, hi, W] = hit.dataset.geo.split(',').map(Number);
+            const pts = JSON.parse(hit.dataset.pts);
+            const svg = fig.querySelector('svg');
+            const box = svg.getBoundingClientRect();
+            const vx = (e.clientX - box.left) / box.width * W;
+            const idx = Math.round((vx - L) / iw * nx);
+            let best = pts[0];
+            pts.forEach(p => { if (Math.abs(p[0] - idx) < Math.abs(best[0] - idx)) best = p; });
+            const x = L + best[0] / nx * iw, y = T + (best[1] - lo) / (hi - lo) * ih;
+            const line = fig.querySelector('.rc-hover-line'), dot = fig.querySelector('.rc-hover-dot');
+            line.setAttribute('x1', x); line.setAttribute('x2', x); line.setAttribute('visibility', 'visible');
+            dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('visibility', 'visible');
+            const tip = fig.querySelector('.rc-tip');
+            tip.hidden = false;
+            tip.innerHTML = '<strong>#' + best[1] + '</strong> ' + escapeHtml((H.dates || [])[best[0]] || '');
+            const left = Math.min(Math.max(x / W * box.width, 40), box.width - 40);
+            tip.style.left = left + 'px';
+        });
+        host.addEventListener('mouseleave', () => { const fig = host.querySelector('.rank-chart'); if (fig) hide(fig); });
+    }
+
     // ---- analytics -> rankings --------------------------------------------------
     // A sector row in the matrix, or a bar in the trap chart, is a question ("which stocks
     // are these?") whose answer is the rankings table filtered. One click asks it.
@@ -7528,6 +7618,7 @@ def _js_ux() -> str:
         updateSectionMeta();
         initScrollSpy();
         bindAnalyticsLinks();
+        bindRankChartHover();
         if (!uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = false; }
         // Keep the holdings preview current whichever way the list changes.
         if (typeof renderHoldings === 'function') {
@@ -7851,6 +7942,32 @@ def _css_ux() -> str:
             .brand h1 { font-size: 15px; }
             .run-info { display: none; }
         }
+
+        /* ---- RANK HISTORY CHART ---- */
+        .rank-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+        .rank-chart-head strong { color: var(--text-primary); font-weight: 600; }
+        .rank-chart { position: relative; margin: 0 0 16px; }
+        .rank-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .rc-grid { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+        .rc-ytick, .rc-xtick { fill: var(--text-muted); font: 500 11px var(--font-body); font-variant-numeric: tabular-nums; }
+        .rc-band { fill: var(--accent); opacity: .07; }
+        .rc-band-label { fill: var(--text-muted); font: 11px var(--font-body); }
+        .rc-area { fill: var(--accent); opacity: .08; }
+        .rc-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+        .rc-dot { fill: var(--accent); stroke: var(--bg-primary); stroke-width: 2; }
+        .rc-last { fill: var(--text-primary); font: 600 12px var(--font-body); font-variant-numeric: tabular-nums; }
+        .rc-hover-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+        .rc-hover-dot { fill: var(--text-primary); }
+        .rc-hit { fill: transparent; cursor: crosshair; }
+        .rc-tip {
+            position: absolute; top: -6px; transform: translateX(-50%); pointer-events: none;
+            background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 6px;
+            padding: 3px 8px; font-size: 12px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums;
+        }
+        .rc-tip strong { color: var(--text-primary); }
+        .modal-hist-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+        .modal-hist-blocks .mini-table { width: 100%; }
+        @media (max-width: 760px) { .modal-hist-blocks { grid-template-columns: 1fr; } }
 
         /* ---- NARROW-SCREEN FIXES (final pass) ----
            .chart-container carried min-width:100% plus 44px of padding on phones, so every
