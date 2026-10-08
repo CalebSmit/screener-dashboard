@@ -2794,8 +2794,12 @@
 
         /* ---- LOADING PLACEHOLDERS (shell paints before the data lands) ---- */
         .sk { pointer-events: none; }
-        .sk-l { display: block; height: 10px; border-radius: 4px; background: var(--bg-elevated); margin: 4px 0 10px; }
-        .sk-l.sk-big { height: 24px; margin: 8px 0 12px; }
+        .sk-l { display: block; height: 10px; border-radius: 4px; background: var(--bg-elevated); margin: 2px 0 10px; }
+        .sk-l.sk-big { height: 24px; margin: 4px 0 8px; }
+        /* Matched to the rendered cards (measured: 108px desktop, 116px per cell on a phone), so
+           the page does not jump when the data lands. */
+        .kpi-row .kpi-card { box-sizing: border-box; min-height: 112px; }
+        @media (max-width: 760px) { .kpi-row .kpi-card { min-height: 116px; } }
         .sk-l.w40 { width: 40%; } .sk-l.w50 { width: 50%; } .sk-l.w70 { width: 70%; }
         .top5-card.sk-card { min-height: 240px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
         .sk, .sk-l { animation: skPulse 1.4s ease-in-out infinite; }

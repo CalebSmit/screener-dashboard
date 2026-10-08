@@ -53,6 +53,21 @@ Built in one owner-run session, verified in a real browser at 1440 and 375px, an
 | D7 mobile first-class (15) | **Largely done** for the table, drilldown, KPIs, Top 5, header | Re-check 320px and 414px; the workings table on a phone wraps the info button awkwardly; 44px target audit |
 | D8 polish, a11y, perf (16, 17) | **Not done** beyond the budgets above | Full keyboard pass, focus trap in the sheet (focus is moved and returned, not trapped), roles/labels audit, contrast on every pair in use via `scripts/check_contrast.py`, LCP measurement, and the final side-by-side against the reference products |
 
+## CLOSED 2026-10-07 - the redesign is finished; this file is history, not a queue
+
+Owner, 2026-10-07: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make the nightly sessions just focus on what it was previously focusing on, making sure the methodology is sound. And improving this tool overall every single night."* The remaining fine-tuning items were done the same night in
+owner-run passes 3-5 (see `NIGHTLY_LOG.md` 2026-10-07 and `plan/dashboard-inventory.md`). Item 16
+(per-stock numbers for the 11 history-based metrics) is a **data** change and moved to CLAUDE.md
+"Current priorities". **Do not reopen design passes from this list.**
+
+| Budget | Baseline (2026-10-05) | Final (2026-10-07) |
+|---|---|---|
+| DOM nodes at first paint | 9,928 | ~3,000 |
+| Largest contentful paint, 10 Mbit/s | 4.8 s (whole page waited on the data) | ~0.3-1.1 s |
+| Row click to paint | not measured | 75-95 ms |
+| Contrast, every pair in use | tokens only, one pair at 4.4:1 | all >= 4.5:1 (AA) |
+| Horizontal overflow at 375 / 320px | analytics cards 44px off-screen | none |
+
 ## Status, pass 2 (2026-10-07 late, owner-run) - what shipped, and the nightly fine-tuning list
 
 Owner: *"keep improving the UI/UX/Frontend ... do as much as you can right now ... and for the

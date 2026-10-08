@@ -28,6 +28,37 @@ Add items below. Anything under this heading is unclaimed work.
 
 <!-- Add items here, newest at the top. Free text, one item per bullet. -->
 
+*(No open owner items. Calculation transparency and the premium redesign were finished on
+2026-10-07 in owner-run sessions; their text is archived under **Done**. Owner direction that
+night: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make
+the nightly sessions just focus on what it was previously focusing on, making sure the methodology
+is sound. And improving this tool overall every single night."* Nightly sessions return to the
+weekly rotation: research-led methodology and overall improvement. The residuals that are data or
+methodology, not design, are in CLAUDE.md "Current priorities": 0.9 (four methodology questions)
+and the inputs the 11 history-based metrics need kept at fetch.)*
+
+---
+
+## Done
+
+Completed items, newest first.
+
+- **2026-10-07 - Premium redesign and calculation transparency: finished.** Owner-run, five
+  passes in one evening, verified in a real browser at 1440, 375 and 320px and live on the
+  public site. Shipped, beyond the first version: search palette (Ctrl/Cmd+K), stock links,
+  J/K stepping, Compare with the composite gap decomposed, workings CSV, Add to Holdings from the
+  sheet, analytics that filter the table, every metric's calculation one click away with its
+  equation checked against the engine for every stock, reasons for unused metrics, a real rank
+  history chart with the ordinary-variation band, brand mark / favicon / page title / meaningful
+  stat strip / footer, focus trapped in every dialog, AA contrast on every surface, keyboard
+  navigation of the rankings, the shell painting before the data lands (LCP 4.8 s -> ~0.3-1.1 s
+  at 10 Mbit/s), and fixes found by looking: the sheet lifting its own header 164px, analytics
+  cards running 44px off phone screens, the drilldown's nav order, Peers' green/red verdicts,
+  a history rank 1-3 off for 284 stocks. Nightly sessions now return to methodology and overall
+  improvement (owner direction, same night).
+
+  <details><summary>Archived text of the two finished items, as they stood when closed</summary>
+
 - **2026-10-06 — Show the numbers that go into every score, and make the
   arithmetic provably right. This builds trust; spend real sessions on it, in
   step with the premium item below.** Owner, verbatim: *"I want it to have more
@@ -290,11 +321,7 @@ Add items below. Anything under this heading is unclaimed work.
   calm, confident, fast, and obvious where to look. If you would be
   embarrassed to screenshot it next to Linear or Stripe, it is not done.
 
----
-
-## Done
-
-Completed items, newest first. The session moves them here with the date and a
+  </details> The session moves them here with the date and a
 pointer to what it did, so this file doubles as a record of what you asked for
 and what actually happened.
 
