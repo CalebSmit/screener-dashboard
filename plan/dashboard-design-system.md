@@ -41,7 +41,7 @@ dashboard" tell the owner's brief measured.
 | `--border-bright` | `#343433` | control borders, emphasized rules |
 | `--text-primary` | `#ffffff` | headings, key figures (17.4:1 on card) |
 | `--text-secondary` | `#c3c2b7` | body, labels (9.7:1) |
-| `--text-muted` | `#898781` | fine print (4.9:1 card; 4.4:1 raised - de-emphasis is the point) |
+| `--text-muted` | `#8e8c86` | fine print (5.1:1 card; 4.7:1 raised). Was `#898781` until 2026-10-07; raised one step because 4.4:1 on raised surfaces missed AA |
 | `--accent` | `#3987e5` | fills, active states, focus, "you" markers |
 | `--accent-text` | `#5598e7` | accent as text - links, tickers (≥5.3:1 everywhere) |
 | `--accent-glow` | `rgba(57,135,229,.12)` | focus ring / selected wash only (name kept for compat; no glows) |

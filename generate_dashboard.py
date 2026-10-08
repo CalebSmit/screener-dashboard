@@ -1159,7 +1159,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="./dashboard_data.js?v={version}"></script>
+    <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
+         end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
+    <link rel="preload" href="./dashboard_data.js?v={version}" as="script">
+    <script id="guide-early">try {{ if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); }} catch (e) {{}}</script>
     <style>
 {_css()}
     </style>
@@ -1209,11 +1212,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </section>
 
         <!-- KPI Row -->
-        <section class="kpi-row" id="kpi-row"></section>
+        <section class="kpi-row" id="kpi-row" aria-busy="true">
+            <div class="kpi-card sk"><i class="sk-l w40"></i><i class="sk-l sk-big w50"></i><i class="sk-l w70"></i></div>
+            <div class="kpi-card sk"><i class="sk-l w40"></i><i class="sk-l sk-big w50"></i><i class="sk-l w70"></i></div>
+            <div class="kpi-card sk"><i class="sk-l w40"></i><i class="sk-l sk-big w50"></i><i class="sk-l w70"></i></div>
+            <div class="kpi-card sk"><i class="sk-l w40"></i><i class="sk-l sk-big w50"></i><i class="sk-l w70"></i></div>
+        </section>
 
         <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
              per browser; reopened from the search palette. -->
-        <section class="guide" id="guide" hidden aria-label="How to read this screener">
+        <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
                 <li><span class="guide-n">1</span><div><strong>Eight scores per stock.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
                 <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The rank is just the composite in order &mdash; a description of the numbers, not a verdict on the company.</div></li>
@@ -1232,7 +1240,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
-                <div class="top5-row" id="top5-row"></div>
+                <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
             </div>
         </section>
 
@@ -1559,13 +1567,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         <!-- Methodology Modal -->
         <div class="modal-overlay methodology-modal" id="methodology-modal" style="display:none" onclick="if(event.target===this)closeMethodology()">
-            <div class="modal-content methodology-content">
+            <div class="modal-content methodology-content" role="dialog" aria-modal="true" aria-labelledby="meth-title">
                 <div class="modal-header">
                     <div>
-                        <h2 class="modal-ticker">Methodology</h2>
+                        <h2 class="modal-ticker" id="meth-title">Methodology</h2>
                         <span class="modal-company">How the screener works, what it measures, and why</span>
                     </div>
-                    <button class="modal-close" onclick="closeMethodology()">&times;</button>
+                    <button class="modal-close" onclick="closeMethodology()" aria-label="Close methodology">&times;</button>
                 </div>
                 <div class="modal-body methodology-body">
                     {methodology_escaped}
@@ -1642,6 +1650,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </footer>
     </div>
 
+    <script src="./dashboard_data.js?v={version}"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -3023,14 +3032,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         const groups = [
-            {{ label: 'Size & Valuation', color: '#898781', items: [
+            {{ label: 'Size & Valuation', color: '#8e8c86', items: [
                 {{ label: 'Market Cap',      value: fmtBig(f.market_cap) }},
                 {{ label: 'Enterprise Value', value: fmtBig(f.enterprise_value) }},
                 {{ label: 'EPS (TTM / Fwd)', value:
                     (f.trailing_eps !== null ? '$' + f.trailing_eps.toFixed(2) : '\u2014') + ' / ' +
                     (f.forward_eps !== null ? '$' + f.forward_eps.toFixed(2) : '\u2014') }},
             ]}},
-            {{ label: 'Profitability', color: '#898781', items: [
+            {{ label: 'Profitability', color: '#8e8c86', items: [
                 {{ label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
                    sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' }},
                 {{ label: 'Net Income',      value: fmtBig(f.net_income),
@@ -3039,13 +3048,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 {{ label: 'Gross Margin',    value: fmtPct2(f.gross_margin) }},
                 {{ label: 'Net Margin',      value: fmtPct2(f.net_margin) }},
             ]}},
-            {{ label: 'Cash Flow & Leverage', color: '#898781', items: [
+            {{ label: 'Cash Flow & Leverage', color: '#8e8c86', items: [
                 {{ label: 'Free Cash Flow',  value: fmtBig(f.fcf) }},
                 {{ label: 'Total Debt',      value: fmtBig(f.total_debt) }},
                 {{ label: 'Cash & Equiv.',   value: fmtBig(f.total_cash) }},
                 {{ label: 'Net Debt',        value: fmtBig(f.net_debt) }},
             ]}},
-            {{ label: 'Shareholder', color: '#898781', items: [
+            {{ label: 'Shareholder', color: '#8e8c86', items: [
                 {{ label: 'Dividend Yield',  value: f.dividend_yield !== null ? fmtPct2(f.dividend_yield) : 'None' }},
                 {{ label: 'Payout Ratio',    value: f.payout_ratio !== null ? fmtPct2(f.payout_ratio) : '\u2014' }},
                 {{ label: 'Shares Out',      value: fmtShares(f.shares_outstanding) }},
@@ -3056,7 +3065,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const tradingItems = [];
         if (f.avg_daily_dollar_vol !== null) tradingItems.push({{ label: 'Avg Daily $ Vol', value: fmtBig(f.avg_daily_dollar_vol) }});
         if (f.short_ratio !== null) tradingItems.push({{ label: 'Short Interest', value: f.short_ratio.toFixed(1) + ' days to cover' }});
-        if (tradingItems.length > 0) groups.push({{ label: 'Trading', color: '#898781', items: tradingItems }});
+        if (tradingItems.length > 0) groups.push({{ label: 'Trading', color: '#8e8c86', items: tradingItems }});
 
         let html = '<div class="snapshot-section">';
         html += '<div class="snapshot-header">';
@@ -3440,7 +3449,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
     function pctBarColor(pct, cat) {{
-        if (pct === null) return '#898781';
+        if (pct === null) return '#8e8c86';
         return CAT_COLORS[cat] || ACCENT;
     }}
 
@@ -3451,6 +3460,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         buildMethodologyToc();
         document.getElementById('methodology-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        const mc = document.querySelector('#methodology-modal .modal-close');
+        if (mc) mc.focus({{ preventScroll: true }});
     }}
 
     // The methodology is ~30 headings long. Give it a "contents" rail built from its own
@@ -3750,6 +3761,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
     }} else {{
         renderKPIs();
+        const kr = document.getElementById('kpi-row');
+        if (kr) kr.removeAttribute('aria-busy');
         renderChanged();
         if (!H.available) {{
             // No comparable history yet - hide the delta column rather than
@@ -4421,7 +4434,7 @@ def _css() -> str:
             /* ink */
             --text-primary: #ffffff;
             --text-secondary: #c3c2b7;
-            --text-muted: #898781;
+            --text-muted: #8e8c86;
             /* one accent: fills vs text (text step passes 4.5:1 on every surface) */
             --accent: #3987e5;
             --accent-text: #5598e7;
@@ -5134,7 +5147,7 @@ def _css() -> str:
         }
         .filter-group select {
             appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: pointer;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23898781' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238e8c86' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='2.5 4.5 6 8 9.5 4.5'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
         }
         .filter-group select:hover, .filter-group input:hover, .filter-search input:hover { border-color: var(--text-muted); }
@@ -5311,7 +5324,7 @@ def _css() -> str:
             border-top: 1px solid var(--border, rgba(255,255,255,0.08));
             font-size: 11.5px;
             line-height: 1.5;
-            color: var(--text-muted, #898781);
+            color: var(--text-muted, #8e8c86);
         }
         @media print {
             .summary-block { break-inside: avoid; }
@@ -7515,6 +7528,7 @@ def _js_ux() -> str:
     function showGuide() {
         const g = document.getElementById('guide');
         if (!g) return;
+        document.documentElement.classList.remove('guide-done');
         g.hidden = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -7584,6 +7598,36 @@ def _js_ux() -> str:
         update();
     }
 
+    // ---- focus stays inside whatever dialog is open -------------------------------
+    // Focus was moved into each dialog and returned on close, but Tab could walk out
+    // into the page behind it. The topmost open dialog now keeps it.
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
+    function topDialog() {
+        const pal = document.getElementById('palette');
+        if (pal && !pal.hidden) return pal.querySelector('.pal');
+        const kb = document.getElementById('shortcuts');
+        if (kb && !kb.hidden) return kb.querySelector('.pal');
+        const cmp = document.getElementById('compare-modal');
+        if (cmp && cmp.style.display !== 'none') return cmp.querySelector('.modal-content');
+        if (sheetOpen()) return document.querySelector('#stock-modal .modal-content');
+        const meth = document.getElementById('methodology-modal');
+        if (meth && meth.style.display !== 'none' && meth.style.display !== '') return meth.querySelector('.modal-content');
+        return null;
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Tab') return;
+        const dlg = topDialog();
+        if (!dlg) return;
+        const items = [...dlg.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null || el === document.activeElement);
+        if (!items.length) { e.preventDefault(); return; }
+        const first = items[0], last = items[items.length - 1];
+        if (!dlg.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    const _openShortcutsBase = openShortcuts;
+    openShortcuts = function() { _openShortcutsBase(); const k = document.querySelector('#shortcuts .pal'); if (k) { k.setAttribute('tabindex', '-1'); k.focus(); } };
+
     // ---- keyboard --------------------------------------------------------------
     document.addEventListener('keydown', e => {
         const tag = (e.target && e.target.tagName) || '';
@@ -7619,7 +7663,7 @@ def _js_ux() -> str:
         initScrollSpy();
         bindAnalyticsLinks();
         bindRankChartHover();
-        if (!uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = false; }
+        if (uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = true; }
         // Keep the holdings preview current whichever way the list changes.
         if (typeof renderHoldings === 'function') {
             const _rh = renderHoldings;
@@ -7663,7 +7707,7 @@ def _css_ux() -> str:
             margin: 0 0 var(--gap); padding: 18px 20px 14px; border: 1px solid var(--border-bright);
             border-radius: var(--radius); background: var(--bg-card);
         }
-        .guide[hidden] { display: none; }
+        .guide[hidden], .guide-done .guide { display: none; }
         .guide-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
         .guide-steps li { display: flex; gap: 12px; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
         .guide-steps strong { color: var(--text-primary); font-weight: 600; display: block; margin-bottom: 2px; }
@@ -7942,6 +7986,15 @@ def _css_ux() -> str:
             .brand h1 { font-size: 15px; }
             .run-info { display: none; }
         }
+
+        /* ---- LOADING PLACEHOLDERS (shell paints before the data lands) ---- */
+        .sk { pointer-events: none; }
+        .sk-l { display: block; height: 10px; border-radius: 4px; background: var(--bg-elevated); margin: 4px 0 10px; }
+        .sk-l.sk-big { height: 24px; margin: 8px 0 12px; }
+        .sk-l.w40 { width: 40%; } .sk-l.w50 { width: 50%; } .sk-l.w70 { width: 70%; }
+        .top5-card.sk-card { min-height: 240px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+        .sk, .sk-l { animation: skPulse 1.4s ease-in-out infinite; }
+        @keyframes skPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
         /* ---- RANK HISTORY CHART ---- */
         .rank-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
