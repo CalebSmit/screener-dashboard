@@ -433,3 +433,34 @@ def test_jumping_inside_the_sheet_never_lifts_its_header(browser):
         ctx.close()
 
 
+
+
+@needs_browser
+def test_arrow_keys_walk_the_rankings_past_the_rendered_window(browser):
+    ctx, page, _ = _open(browser)
+    try:
+        page.focus("#universe-tbody tr[data-t]")
+        first = page.evaluate("document.activeElement.dataset.t")
+        assert first == page.evaluate("tableState.filtered[0].Ticker")
+        for _ in range(60):  # well past the rows rendered at load
+            page.keyboard.press("ArrowDown")
+        assert page.evaluate("document.activeElement.dataset.t") == page.evaluate("tableState.filtered[60].Ticker")
+        page.keyboard.press("End")
+        assert page.evaluate("document.activeElement.dataset.t") == page.evaluate("tableState.filtered[tableState.filtered.length - 1].Ticker")
+        page.keyboard.press("Enter")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_tab_stays_inside_an_open_drilldown(browser):
+    ctx, page, _ = _open(browser)
+    try:
+        page.evaluate("openStockDetail('EXPE')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        for _ in range(80):
+            page.keyboard.press("Tab")
+            assert page.evaluate("document.querySelector('#stock-modal .modal-content').contains(document.activeElement)")
+    finally:
+        ctx.close()

@@ -2826,6 +2826,18 @@
         .conc-hint { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12.5px; color: var(--text-muted); }
         .conc-body { padding: 0 14px 12px; }
 
+        /* Price targets: marker labels above the bar, range labels below, so "Current" and
+           "Low $28.70" cannot collide when the price sits near a target. */
+        #stock-modal .pt-range-bar { margin-top: 28px; }
+        #stock-modal .pt-marker { top: -6px; }
+        #stock-modal .pt-marker-label {
+            position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+            margin: 0; font-size: 11px; font-weight: 500; color: var(--text-secondary);
+        }
+        #stock-modal .pt-marker-mean .pt-marker-label { color: var(--accent-text); }
+        #stock-modal .pt-close .pt-marker-label { bottom: auto; top: calc(100% + 4px); }
+        #stock-modal .pt-range-labels span { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
         /* ---- RANK HISTORY CHART ---- */
         .rank-chart-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
         .rank-chart-head strong { color: var(--text-primary); font-weight: 600; }
@@ -4682,12 +4694,36 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (tr) openFromRow(tr.dataset.t);
         });
         tb.addEventListener('keydown', e => {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
             const tr = e.target.closest('tr[data-t]');
-            if (tr) { e.preventDefault(); openFromRow(tr.dataset.t); }
+            if (!tr) return;
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFromRow(tr.dataset.t); return; }
+            // Arrow keys walk the list the way a spreadsheet does; the windowed body
+            // renders the next row on demand.
+            const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 10, PageUp: -10 }[e.key];
+            if (step === undefined && e.key !== 'Home' && e.key !== 'End') return;
+            e.preventDefault();
+            const rows = tableState.filtered;
+            const i = rows.findIndex(r => r.Ticker === tr.dataset.t);
+            const j = e.key === 'Home' ? 0 : e.key === 'End' ? rows.length - 1 : Math.max(0, Math.min(rows.length - 1, i + step));
+            focusTableRow(j);
         });
         window.addEventListener('scroll', queueWindow, { passive: true });
         window.addEventListener('resize', queueWindow);
+    }
+
+    function focusTableRow(j) {
+        const rows = tableState.filtered;
+        if (!rows[j]) return;
+        const table = document.getElementById('universe-table');
+        const H = rowHeight();
+        const headH = table.tHead.offsetParent ? table.tHead.offsetHeight : 0;
+        const barH = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')) || 52) + headH;
+        const rowTop = table.getBoundingClientRect().top + window.scrollY + headH + j * H;
+        if (rowTop < window.scrollY + barH) window.scrollTo(0, rowTop - barH - 8);
+        else if (rowTop + H > window.scrollY + window.innerHeight) window.scrollTo(0, rowTop + H - window.innerHeight + 8);
+        renderWindow(true);
+        const el = document.querySelector('#universe-tbody tr[data-t="' + rows[j].Ticker + '"]');
+        if (el) el.focus({ preventScroll: true });
     }
 
     function openFromRow(ticker) {
@@ -5781,7 +5817,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                             <div class="pt-marker-line"></div>
                             <div class="pt-marker-label">Current</div>
                         </div>
-                        ${pctMean ? `<div class="pt-marker pt-marker-mean" style="left:${pctMean}%" title="Avg Target: ${fmtDollar(ptMean)}">
+                        ${pctMean ? `<div class="pt-marker pt-marker-mean${Math.abs(pctMean - pctPrice) < 12 ? ' pt-close' : ''}" style="left:${pctMean}%" title="Avg Target: ${fmtDollar(ptMean)}">
                             <div class="pt-marker-line"></div>
                             <div class="pt-marker-label">Avg</div>
                         </div>` : ''}
