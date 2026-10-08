@@ -8658,7 +8658,7 @@ Evidence base at horizon `1m`: **25 rows, newest `run_date` 2026-09-08 (30 days 
 Priority 0: holding as designed - `allow_auto_apply` still `false`, 4 effective against a gate of
 8, and the engine reported rather than applied. | Top open roadmap item: **0.9, the four
 methodology questions the transparency build surfaced - age 1 day** (opened 2026-10-07).
-**Tests:** before **1863 passed / 0 failed**; after **TBD**
+**Tests:** before **1863 passed / 0 failed**; after **1894 passed / 0 failed** (+31: 11 drawdown, 11 one-observation-per-date, 5 index.html, 2 lineage guards, 2 series-equation guards). All four ship gates pass: suite clean, dry-run OK, index.html 461,071 B and the payload parses (node --check rc 0), tree clean. The data loop publish gate passes too (363).
 **Owner queue / rotation:** `OWNER_FOCUS.md` has **no open item** - the redesign and the
 transparency work were closed on 2026-10-07 and nightly sessions were told to return to
 methodology. So this was the rotation's Thursday: build. The week justified no *weighting* change
