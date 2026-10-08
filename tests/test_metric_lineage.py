@@ -272,3 +272,99 @@ def test_sector_stats_agree_with_the_raw_values(payload):
             assert n == len(vals), (sector, m)
             assert math.isclose(med, statistics.median(vals), abs_tol=2e-4), (sector, m)
             assert q1 <= med <= q3
+
+
+# ---------------------------------------------------------------------------
+# the equation printed on every row (owner, 2026-10-07: "we don't see any numbers ...
+# the numbers going into the scoring") - and the guarantee that it tracks the engine
+# ---------------------------------------------------------------------------
+# Each metric row in the workings prints a line like "$4.5B free cash flow ÷ $31.0B
+# enterprise value = 14.4%", filled from metric_lineage.EQUATIONS with the stock's own
+# published inputs. An *exact* template is real arithmetic: these tests evaluate it for
+# every stock and compare it with the value the engine scored. **If a scoring formula in
+# factor_engine changes and its template here is not updated in the same commit, this
+# fails** - which is the point: the page must not describe a formula the engine no longer
+# uses.
+
+def test_every_weighted_metric_has_a_line_on_the_row(payload):
+    missing = sorted(m for m in _weighted_metrics(payload)
+                     if m not in ml.EQUATIONS and m not in ml.SOURCES)
+    assert not missing, ("weighted metrics with no equation or source line in "
+                         f"metric_lineage.EQUATIONS / SOURCES: {missing}")
+
+
+def test_every_rebuildable_metric_has_an_equation_template():
+    assert set(ml.RECOMPUTE) <= set(ml.EQUATIONS), sorted(set(ml.RECOMPUTE) - set(ml.EQUATIONS))
+
+
+def test_template_slots_name_published_inputs():
+    published = set(ml.INPUT_KEYS) | set(ml.ENGINE_KEYS)
+    for m, (_, templates) in ml.EQUATIONS.items():
+        assert templates, m
+        for t in templates:
+            slots = ml.template_slots(t)
+            assert slots or not ml.EQUATIONS[m][0], (m, t)
+            for key, label in slots:
+                assert key in published, f"{m}: template names {key!r}, which the page never receives"
+                assert label.strip(), (m, t)
+
+
+def test_exact_templates_are_pure_arithmetic():
+    """An exact template may contain only slots, numbers and operators - words would make
+    it unevaluable, and so unchecked."""
+    for m, (exact, templates) in ml.EQUATIONS.items():
+        if not exact:
+            continue
+        for t in templates:
+            ones = {k: 2.0 for k, _ in ml.template_slots(t)}
+            ml.evaluate_template(t, ones)  # raises on leftover words
+
+
+@pytest.mark.parametrize("metric", sorted(m for m, e in ml.EQUATIONS.items() if e[0]))
+def test_the_equation_on_the_row_gives_the_value_that_was_scored(payload, metric):
+    ok = total = 0
+    worst = []
+    for t, s in payload["stock_detail"].items():
+        pub = s["raw"].get(metric)
+        if pub is None:
+            continue
+        tpl = ml.choose_template(metric, s.get("inp") or {})
+        if tpl is None:
+            continue
+        total += 1
+        v = ml.evaluate_template(tpl, s["inp"])
+        if v is not None and abs(v - pub) <= _tol(v):
+            ok += 1
+        else:
+            worst.append((t, pub, v, tpl))
+    assert total > 0, f"{metric}: no stock shows this equation"
+    assert ok / total >= 0.99, (f"{metric}: the equation printed on the row gives the scored value "
+                               f"for only {ok}/{total} stocks - did the scoring formula change "
+                               f"without metric_lineage.EQUATIONS? First: {worst[:3]}")
+
+
+def test_nearly_every_scored_value_gets_a_line(payload):
+    shown = total = 0
+    for s in payload["stock_detail"].values():
+        for m in ml.EQUATIONS:
+            if s["raw"].get(m) is None:
+                continue
+            total += 1
+            shown += ml.choose_template(m, s.get("inp") or {}) is not None
+    assert shown / total > 0.99, f"only {shown}/{total} scored values have an equation line"
+
+
+def test_the_payload_carries_the_templates(payload):
+    lin = payload["lineage"]
+    for m, (exact, templates) in ml.EQUATIONS.items():
+        if m in lin:
+            assert lin[m].get("x") == templates and lin[m].get("xe") == (1 if exact else 0), m
+    for m, text in ml.SOURCES.items():
+        if m in lin:
+            assert lin[m].get("src") == text, m
+
+
+def test_the_nightly_prompt_still_says_scoring_changes_carry_their_frontend():
+    """The owner asked that sessions be told; a deleted instruction is how a rule decays."""
+    prompt = (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
+    assert "EQUATIONS" in prompt and "same commit" in prompt.lower()

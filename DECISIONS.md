@@ -675,3 +675,33 @@ payload. Two independent implementations agreeing (`calc_trace` and the engine, 
 peer slimming -170 KB. The data run's extra publish gates add ~2 s.
 
 **Source.** `plan/calculation-transparency.md`; `METHODOLOGY_CHANGELOG.md` 2026-10-07 (owner-run).
+
+## 0.8c. A scoring change ships with its frontend in the same commit (settled 2026-10-07)
+
+**Owner, verbatim:** *"there is nothing like showing the actual numbers going into any scores ...
+we see if it goes up or down, but we dont see any numbers anywhere for these companys ... make sure
+the nightly sessions know that if something is changed with scoring, that it also updates on there,
+the frontend side of things to match the backend."*
+
+**What was wrong.** The inputs behind every metric were already in the payload (T2, same day), but
+only behind a small disclosure triangle on each row. Looking at the workings, a reader saw a value,
+a percentile bar and a direction chip - and reasonably concluded the numbers were not there.
+
+**What shipped.** Under every metric row, without a click: the stock's reported figures put through
+the formula to the value scored ("$4.5B free cash flow ÷ $31.0B enterprise value = 14.4%"), its rank
+among the peers it was ranked against with the sector median, and percentile x weight = points.
+The equation is a template in `metric_lineage.EQUATIONS`; the page fills it with published inputs
+and **never computes the result itself** - the value after "=" is the engine's.
+
+**Why the template is arithmetic.** An *exact* template is evaluated by
+`metric_lineage.evaluate_template` for every stock in the payload and must give the scored value for
+99% of them (it gave 100% for all 19 exact metrics on the day it shipped). So a scoring formula that
+changes in `factor_engine` without its template changing fails the suite - measured by substitution:
+a stale FCF-yield template (÷ market cap instead of ÷ EV) matched 34 of 466 stocks. That is what makes
+"the frontend matches the backend" a property the build checks rather than a promise. Templates whose
+calculation has steps a line cannot carry (ROIC's tax rate and floor, clamps, net-cash floor) are
+`exact=False`, list the real inputs, and end in an arrow instead of "=".
+
+**Constraint.** Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never get
+past the test by lowering the bar or flipping a template to `exact=False`. `test_metric_lineage.py`
+is in the data loop's publish gate, so the equations are also checked on every 02:00 publish.

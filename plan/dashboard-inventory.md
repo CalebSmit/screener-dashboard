@@ -72,6 +72,24 @@ of 47 in Consumer Discretionary", sector median and quartiles, or the universe w
 fewer than `sector_min_peers` values) and the registry's plain **caveat** where the code differs
 from the label.
 
+**On every row, without a click (2026-10-07, owner-run pass 3):** a second line under each metric:
+the stock's reported figures through the formula to the value scored (`$4.5B free cash flow ÷ $31.0B
+enterprise value = 14.4%`), its rank among the peers it was ranked against with the sector median,
+and percentile x weight. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
+suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
+published as `lineage[m].x / xe / src`. Rendered by `equationRow()` in `_js_workings()`. On a phone
+each metric becomes a two-line card. **A scoring change must update these in the same commit**
+(CLAUDE.md 0.8c, `prompts/nightly.md` section 3).
+
+**On every row, without a click (2026-10-07, owner-run pass 3):** a second line under each metric:
+the stock's reported figures through the formula to the value scored (`$4.5B free cash flow ÷ $31.0B
+enterprise value = 14.4%`), its rank among the peers it was ranked against with the sector median,
+and percentile x weight. Templates are `metric_lineage.EQUATIONS` (25 metrics; 19 exact, which the
+suite evaluates against every stock) and `SOURCES` (11 history-based metrics, one plain line);
+published as `lineage[m].x / xe / src`. Rendered by `equationRow()` in `_js_workings()`. On a phone
+each metric becomes a two-line card. **A scoring change must update these in the same commit**
+(CLAUDE.md 0.8c, `prompts/nightly.md` section 3).
+
 New payload keys: `weights.profiles`, `weights.profile_labels`, `weights.coverage_discount`,
 `lineage`, `lineage_check`, `sector_stats`, `sector_min_peers`; per stock `wp`, `cov`, `inp`,
 `pio`, `bn`, `asof`, `inp_bad`. `peers` is tickers only. All are display-only (asserted absent

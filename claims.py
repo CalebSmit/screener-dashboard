@@ -431,6 +431,23 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.row_equation",
+        surface=DRILLDOWN,
+        asserts=(
+            "The line under each metric in the workings - the stock's reported figures put "
+            "through the formula, '= value' - gives the value that was scored. Where the line "
+            "ends in an arrow rather than '=', it lists the real inputs of a calculation with "
+            "steps one line cannot carry."
+        ),
+        made_true_by="metric_lineage:EQUATIONS",
+        checked_by=(
+            "tests/test_metric_lineage.py::test_the_equation_on_the_row_gives_the_value_that_was_scored",
+            "tests/test_metric_lineage.py::test_every_weighted_metric_has_a_line_on_the_row",
+            "tests/test_metric_lineage.py::test_template_slots_name_published_inputs",
+            "tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers",
+        ),
+    ),
+    Claim(
         id="compare.composite_gap",
         surface=DRILLDOWN,
         asserts=(

@@ -8530,3 +8530,58 @@ with or without the wrapper, so the rest is paint - item 2 on the nightly list; 
 Everything on the "Status, pass 2" list. The largest: Rank History still wants a real chart; no
 focus trap in the sheet, palette or compare; contrast on every pair; LCP (now worth measuring, with
 Chart.js gone); 320/414px; the sector matrix on a phone.
+
+## 2026-10-07 (late, pass 3) - OWNER-RUN: the numbers behind every score are now on the row, and the page is checked against the engine
+
+Written by an interactive session. The owner sent a screenshot of the Valuation workings: *"there
+is nothing like showing the actual numbers going into any scores ... we see if it goes up or down,
+but we dont see any numbers anywhere ... make sure the nightly sessions know that if something is
+changed with scoring, that it also updates on there, the frontend side of things to match the
+backend."*
+
+### Health numbers (rule 8)
+
+Unchanged from the pass-2 entry above, same evening: last code session shipped; data loop
+published, HEALTH: PASS; evidence base at `1m` **24 rows, newest 2026-09-07, 4 effective**; Priority
+0 fixed, untouched; top open item **0.8, 1 day old** (0.9 at 0 days; backtest v2 at 43 days, not
+taken - owner items outrank it).
+
+### What was wrong
+
+The inputs were in the payload since T2 this morning - behind a small triangle on each row. A
+reader looking at the table saw a value, a percentile bar and an "up/down is better" chip, and
+fairly concluded the numbers going in were not shown. A disclosure nobody finds is the same as no
+disclosure.
+
+### What shipped
+
+- **A second line under every metric, no click needed:** the stock's own reported figures through
+  the formula to the value scored - "$4.5B free cash flow ÷ $31.0B enterprise value = 14.4%" - its
+  rank among the peers it was ranked against and the sector median ("1st of 46 in sector · median
+  4.0%"), and percentile x weight ("100.0 x 45%") beside the points. History-based metrics
+  (volatility, beta, surprises) get one plain line saying what they are made of; Piotroski shows
+  "8 of 9 testable signals passed = 8". On a phone each metric is a two-line card.
+- **The equations are templates in `metric_lineage.EQUATIONS`**, filled with published inputs;
+  the page never computes the result. 19 are *exact* - read as arithmetic - and reproduce the scored
+  value for **100%** of stocks; 6 (ROIC, net debt, operating leverage, forward EPS growth, PEG,
+  sustainable growth) have steps a line cannot carry and end in an arrow.
+- **The guard the owner asked for.** `test_the_equation_on_the_row_gives_the_value_that_was_scored`
+  evaluates every exact template against every stock at a 99% bar. Proved it fires: a stale FCF-yield
+  template (÷ market cap) matches 34 of 466. A weighted metric with no line fails too. The module is
+  in the data loop's publish gate, so the 02:00 run checks it. The instruction is in
+  `prompts/nightly.md` section 3 (pinned by a test), CLAUDE.md row 0.8c, `DECISIONS.md` 0.8c, and the
+  claim is registered as `drilldown.row_equation`.
+
+### Numbers
+
+Payload: regenerated from the same 02:00 run; **only `lineage` changed** (x/xe/src added to 36
+metrics) - every score, rank and sentence byte-identical, checked by diff. The build reproduced
+4,011 category scores and 502 composites. **Tests 1827 -> 1854, 0 failed**; dry-run OK; `node
+--check` OK; publish gate PASS (355).
+
+### For the nightly fine-tuning list
+
+Item 15: the equation line wraps to two lines for ROIC and operating leverage at 1440 - consider a
+shorter template or letting the line run under the bar column. Item 16: the 11 history-based metrics
+have no per-stock numbers yet (needs the analyst per-quarter EPS and the risk-free / market return
+kept at fetch - transparency plan, open).

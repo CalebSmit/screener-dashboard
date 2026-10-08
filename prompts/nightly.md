@@ -171,6 +171,32 @@ That includes weights. Changing a factor weight because the research says a
 factor is worth more or less - and explaining why - is legitimate work. Doing
 it because a 3-point return series drifted is not.
 
+**A scoring change is not finished until the page shows it** (owner direction,
+2026-10-07: *"make sure ... if something is changed with scoring, that it also
+updates on there, the frontend side of things to match the backend"*). The
+drilldown prints, on every metric row, the stock's own figures put through the
+formula, its rank among peers and percentile x weight. In the **same commit** as
+any change to how a metric, weight or category is computed:
+
+- **Weights** need nothing extra - the page reads the engine's own tables
+  (`factor_engine.metric_weight_profiles`), and the build refuses to publish if
+  it cannot rebuild every score (`calc_trace`).
+- **A metric's formula or inputs** - update its entry in `metric_lineage.py`:
+  `LINEAGE` (formula text, inputs, caveat), `RECOMPUTE` (the checker) and
+  `EQUATIONS` (the line on the row). The suite evaluates every exact equation
+  against every stock's scored value and **fails if they disagree** - do not
+  loosen the 99% bar or flip a template to `exact=False` to get past it; fix
+  the template.
+- **A new metric** fails `test_every_weighted_metric_has_a_line_on_the_row`
+  until it has an `EQUATIONS` or `SOURCES` entry, and
+  `test_every_weighted_metric_has_a_lineage_entry` until it has a `LINEAGE`
+  entry. If it needs a fetch field the page does not yet receive, add it to the
+  entry's `inputs` (that publishes it).
+- **Any sentence about how a number is computed** - register it in `claims.py`.
+
+Then open the drilldown for a stock the change affects, at 1440 and 375px, and
+check the row reads correctly. Say in the log what you saw.
+
 ## 4. Ship gates
 
 All four must pass before you push to `main`:

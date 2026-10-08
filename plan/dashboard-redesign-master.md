@@ -89,6 +89,8 @@ ms, CLS 0.002.
 | 12 | Holdings concentration note | Still a dense paragraph block; consider a disclosure like the rationale. Pinned by `test_holdings_concentration.py` - move it, do not drop it |
 | 13 | Guide copy | Shown once per browser; check a first-time student understands "composite" and "sector percentile" from it alone |
 | 14 | ~~Remaining Chart.js chart~~ **Done in pass 2** | Nothing used Chart.js once trap rates became HTML; the render-blocking CDN script is gone from `<head>`. Measure LCP (item 11) with this in mind - the before/after is worth recording |
+| 15 | Equation lines (pass 3) wrap for ROIC and operating leverage | Shorter templates, or let the line run under the bar column; check 320px |
+| 16 | History-based metrics show a plain line, not numbers | Needs analyst per-quarter EPS, risk-free and market return kept at fetch (transparency plan) |
 
 ## What was seen on 2026-10-06 (after stage 1), surface by surface
 
