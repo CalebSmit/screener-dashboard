@@ -1019,7 +1019,7 @@ _QUAL_DESCRIPTIONS = {
 }
 
 _GROWTH_DESCRIPTIONS = {
-    "forward_eps_growth": "(Forward EPS - Trailing EPS) / Trailing EPS. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth.",
+    "forward_eps_growth": "Expected EPS over the next 12 months (current- and next-fiscal-year consensus, weighted by the months left in the current year - MSCI's construction) versus the last four reported quarters, on the same basis. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth. Since 2026-10-09; before, it compared a fiscal year 13-24 months out with GAAP trailing EPS.",
     "revenue_growth": "Year-over-year revenue increase from financial statements. Higher = growing top line.",
     "revenue_cagr_3yr": "3-year compound annual revenue growth rate from annual filings. Smooths lumpy single-year revenue growth.",
     "peg_ratio": "P/E ratio divided by forward EPS growth. A PEG of 1.0 means fairly valued relative to growth. Lower = better.",

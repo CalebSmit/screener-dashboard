@@ -92,7 +92,7 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-| **Forward EPS Growth** | 45% | (Forward EPS - Trailing EPS) / Trailing EPS. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth. |
+| **Forward EPS Growth** | 45% | Expected EPS over the next 12 months (current- and next-fiscal-year consensus, weighted by the months left in the current year - MSCI's construction) versus the last four reported quarters, on the same basis. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth. Since 2026-10-09; before, it compared a fiscal year 13-24 months out with GAAP trailing EPS. |
 | **Revenue Growth** | 25% | Year-over-year revenue increase from financial statements. Higher = growing top line. |
 | **Revenue CAGR (3Y)** | 15% | 3-year compound annual revenue growth rate from annual filings. Smooths lumpy single-year revenue growth. |
 | **Sustainable Growth** | 15% | ROE × retention rate (1 - dividend payout ratio). Higher = more internally funded growth capacity. |
