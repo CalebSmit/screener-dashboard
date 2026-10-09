@@ -687,8 +687,9 @@ P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `e
 surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
 1990); **(c) MEASURED, no change:** accruals counted three times within Quality - correlation 0.49 with Beneish, 0.00 with Piotroski, 13 points in all;
 **(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. Also: the
-momentum regime rule is **off** (its input did not measure volatility); rebuilding it on a real
-volatility measure (Barroso & Santa-Clara 2015; Daniel & Moskowitz 2016) is its own research item.
+momentum regime rule is **off** (its input did not measure volatility); `research/2026-10-09-momentum-regime.md`
+pre-registers a replacement (cut momentum only in Daniel & Moskowitz's panic state, from the index's own
+long history; no upward scaling) - build it with the replay its evidence gate asks for.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's
