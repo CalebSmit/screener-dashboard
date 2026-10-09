@@ -42,7 +42,6 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data" / "insider"
 CACHE_PATH = DATA_DIR / "filings.json"
 TICKERS_PATH = ROOT / "data" / "sec" / "company_tickers.json"
-SUMMARY_PATH = ROOT / "data" / "insider_summary.json"
 
 USER_AGENT = "screener-dashboard personal research"   # data.sec.gov accepts; www.sec.gov needs an email
 USER_AGENT_FILE = ROOT / "data" / "sec" / "user_agent.txt"
@@ -157,7 +156,9 @@ def parse_form4(xml_text: str) -> dict:
             "ad": _t(tx, "transactionAmounts/transactionAcquiredDisposedCode/value"),
             "value": round(shares * price, 2) if shares is not None and price is not None else None,
         })
-    return {"owners": owners, "plan": plan, "trades": trades}
+    issuer = _t(root, "issuer/issuerCik")
+    return {"owners": owners, "plan": plan, "trades": trades,
+            "issuer": int(issuer) if issuer and issuer.isdigit() else None}
 
 
 # --------------------------------------------------------------------------- refresh
@@ -213,8 +214,8 @@ def refresh(tickers: list[str], today: date | None = None, edgar: Edgar | None =
             if fdate < since:
                 continue
             acc = rec["accessionNumber"][j]
-            if acc in entry["filings"]:
-                continue
+            if acc in entry["filings"] and ("issuer" in entry["filings"][acc] or "error" in entry["filings"][acc]):
+                continue                   # parsed already (pre-"issuer" entries are re-read once)
             doc = rec["primaryDocument"][j].split("/")[-1]
             url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{doc}"
             try:
@@ -239,47 +240,7 @@ def refresh(tickers: list[str], today: date | None = None, edgar: Edgar | None =
     return cache
 
 
-# --------------------------------------------------------------------------- summarise
-def summarise_ticker(entry: dict, today: date, window_days: int = 90) -> dict:
-    """Open-market buying and selling by insiders over ``window_days``, plus the latest trades."""
-    since = (today - timedelta(days=window_days)).isoformat()
-    since_long = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
-    cik = entry.get("cik")
-    buys, sells, recent = [], [], []
-    for acc, f in (entry.get("filings") or {}).items():
-        if "trades" not in f:
-            continue
-        who = (f.get("owners") or [{}])[0]
-        for t in f["trades"]:
-            if t.get("code") not in ("P", "S") or not t.get("date"):
-                continue
-            row = {"date": t["date"], "code": t["code"], "name": who.get("name"), "role": who.get("role"),
-                   "shares": t.get("shares"), "price": t.get("price"), "value": t.get("value"),
-                   "plan": bool(f.get("plan")),
-                   "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{acc}-index.htm"}
-            if t["date"] >= since_long:
-                recent.append(row)
-            if t["date"] >= since:
-                (buys if t["code"] == "P" else sells).append(row)
-    recent.sort(key=lambda r: r["date"], reverse=True)
-
-    def total(rows):
-        return round(sum(r["value"] or 0 for r in rows), 2)
-
-    buyers = sorted({r["name"] for r in buys if r["name"]})
-    officer_buy = any(re.search(r"chief|ceo|cfo|president", (r["role"] or ""), re.I) for r in buys)
-    out = {
-        "window": window_days,
-        "buy_n": len(buys), "buy_people": len(buyers), "buy_value": total(buys),
-        "sell_n": len(sells), "sell_people": len({r["name"] for r in sells if r["name"]}),
-        "sell_value": total(sells), "sell_planned_value": total([r for r in sells if r["plan"]]),
-        "cluster": len(buyers) >= CLUSTER_MIN_BUYERS,
-        "officer_buy": officer_buy,
-        "recent": recent[:8],
-    }
-    return out
-
-
+# --------------------------------------------------------------------------- rows
 def _person(name: str | None) -> str | None:
     """EDGAR files names surname first and often in capitals ("COOK TIMOTHY D"); keep the order
     (it is the filing's) but not the shouting."""
@@ -293,23 +254,39 @@ def rows_from_sec(entry: dict, today: date | None = None) -> list[dict]:
 
     Same row shape as ``rows_from_yahoo``, plus ``plan`` (the filing's Rule 10b5-1 checkbox) and
     ``url`` (the filing's index page). Grants, exercises, tax withholding and gifts are other
-    codes and are left out, as they are from Yahoo's feed."""
+    codes and are left out, as they are from Yahoo's feed.
+
+    One filing often reports a single decision executed at several prices (Apple's executive chair
+    filed four "S" lines on 2026-10-02); those are **one trade** to a reader, so lines in the same
+    filing with the same date and direction are summed into one row."""
     today = today or date.today()
     since = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
     cik = entry.get("cik")
     out = []
     for acc, f in (entry.get("filings") or {}).items():
-        if "trades" not in f:
+        # A company's EDGAR list also holds the Form 4s it filed as an *owner of another
+        # company's shares* (Berkshire's filings for its Lennar purchases sit in Berkshire's
+        # list). Only filings whose issuer is this company are its insiders' trades.
+        if "trades" not in f or f.get("issuer") != cik:
             continue
         who = (f.get("owners") or [{}])[0]
+        merged: dict = {}
         for t in f["trades"]:
             if t.get("code") not in ("P", "S") or not t.get("date") or t["date"] < since:
                 continue
-            out.append({"date": t["date"][:10], "code": t["code"], "name": _person(who.get("name")),
-                        "role": who.get("role"), "shares": t.get("shares"), "value": t.get("value"),
-                        "plan": bool(f.get("plan")),
-                        "url": (f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/"
-                                f"{acc}-index.htm") if cik else None})
+            key = (t["date"][:10], t["code"])
+            row = merged.get(key)
+            if row is None:
+                merged[key] = {"date": key[0], "code": key[1], "name": _person(who.get("name")),
+                               "role": who.get("role"), "shares": t.get("shares"), "value": t.get("value"),
+                               "plan": bool(f.get("plan")),
+                               "url": (f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/"
+                                       f"{acc}-index.htm") if cik else None}
+            else:
+                for k in ("shares", "value"):
+                    if t.get(k) is not None:
+                        row[k] = round((row[k] or 0) + t[k], 2)
+        out.extend(merged.values())
     return out
 
 
@@ -320,6 +297,8 @@ def sec_rows_for(cache: dict, ticker: str, today: date) -> list[dict] | None:
         return None
     if entry["checked"] < (today - timedelta(days=SEC_FRESH_DAYS)).isoformat():
         return None
+    if any("issuer" not in f and "error" not in f for f in (entry.get("filings") or {}).values()):
+        return None                   # parsed before the issuer check existed; not re-read yet
     return rows_from_sec(entry, today)
 
 
@@ -357,11 +336,34 @@ def rows_from_yahoo(df, today: date | None = None) -> list[dict]:
     return out
 
 
+_HOLDER = re.compile(r"10%|beneficial owner", re.I)
+_INSIDE = re.compile(r"director|officer|chief|president|chair|counsel|ceo|cfo|coo|vp|treasurer|secretary", re.I)
+
+
+def holder_only(role: str | None) -> bool:
+    """True for a 10%+ holder that is neither an officer nor a director - typically another
+    company or a fund (Berkshire, Cascade Investment). Their trades are listed, but kept out of
+    the officer-and-director counts: measured 2026-10-08 on SEC filings, **92 of 189**
+    open-market purchase lines in 90 days were such holders, all in **3** stocks ($1.98bn), and
+    one fund's $1.38bn of Republic Services read as "insider buying" beside a sentence about
+    executives (``research/measurements/2026-10-08-insider-sec-vs-yahoo.py``). Whether 10%
+    holders' trades carry less information than officers' is a research question left open -
+    see ``plan/context-layer.md`` item 3."""
+    r = role or ""
+    return bool(_HOLDER.search(r)) and not _INSIDE.search(r)
+
+
 def summarise_rows(rows: list[dict], today: date, window_days: int = 90, link: str | None = None) -> dict:
-    """Open-market buying and selling by insiders over ``window_days`` (from any source)."""
+    """Open-market buying and selling over ``window_days`` (from any source): officers and
+    directors in the main counts, 10%+ holders that are neither (``holder_only``) separately."""
     since = (today - timedelta(days=window_days)).isoformat()
-    buys = [r for r in rows if r["code"] == "P" and r["date"] >= since]
-    sells = [r for r in rows if r["code"] == "S" and r["date"] >= since]
+    window = [r for r in rows if r["date"] >= since]
+    holders = [r for r in window if holder_only(r.get("role"))]
+    inside = [r for r in window if not holder_only(r.get("role"))]
+    buys = [r for r in inside if r["code"] == "P"]
+    sells = [r for r in inside if r["code"] == "S"]
+    h_buys = [r for r in holders if r["code"] == "P"]
+    h_sells = [r for r in holders if r["code"] == "S"]
 
     def total(rs):
         return round(sum(r.get("value") or 0 for r in rs), 2)
@@ -378,6 +380,8 @@ def summarise_rows(rows: list[dict], today: date, window_days: int = 90, link: s
         "sell_value": total(sells),
         "sell_planned_n": len(planned) if known else None,
         "sell_planned_value": total(planned) if known else None,
+        "holder_buy_n": len(h_buys), "holder_buy_value": total(h_buys),
+        "holder_sell_n": len(h_sells), "holder_sell_value": total(h_sells),
         "cluster": len(buyers) >= CLUSTER_MIN_BUYERS,
         "officer_buy": any(re.search(r"chief|ceo|cfo|president|officer", (r.get("role") or ""), re.I) for r in buys),
         "recent": [{k: v for k, v in r.items() if v is not None} for r in recent],
@@ -390,34 +394,14 @@ def edgar_link(ticker: str) -> str:
             f"{ticker}&type=4&dateb=&owner=include&count=40")
 
 
-def summarise(cache: dict, today: date | None = None, write: bool = True) -> dict:
-    today = today or date.today()
-    meta = cache.get("_meta", {})
-    out = {"as_of": today.isoformat(), "source": "SEC EDGAR Form 4 filings",
-           "complete": meta.get("complete", False), "stocks": {}}
-    for tk, entry in cache.items():
-        if tk.startswith("_"):
-            continue
-        out["stocks"][tk] = summarise_ticker(entry, today)
-    if write:
-        SUMMARY_PATH.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")
-    return out
-
-
-def load() -> dict | None:
-    try:
-        return json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-
-
 if __name__ == "__main__":
+    # Fill or top up the cache by hand (the nightly run does this itself, inside a time budget).
     import sys
     tks = json.loads((ROOT / "sp500_tickers.json").read_text())
     tks = [t["Ticker"] if isinstance(t, dict) else t for t in tks]
     budget = float(sys.argv[1]) if len(sys.argv) > 1 else None
     c = refresh(tks, budget_seconds=budget)
-    s = summarise(c)
-    flagged = [(t, v["buy_people"], v["buy_value"]) for t, v in s["stocks"].items() if v["buy_n"]]
-    print(f"{len(s['stocks'])} stocks summarised; {len(flagged)} with insider buying in 90 days")
-    print(sorted(flagged, key=lambda x: -x[2])[:15])
+    today = date.today()
+    summ = {t: summarise_rows(rows_from_sec(e, today), today) for t, e in c.items() if not t.startswith("_")}
+    flagged = sorted(((t, v["buy_people"], v["buy_value"]) for t, v in summ.items() if v["buy_n"]), key=lambda x: -x[2])
+    print(f"{len(summ)} stocks; {len(flagged)} with insider buying in 90 days; largest: {flagged[:10]}")

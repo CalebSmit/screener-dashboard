@@ -463,12 +463,14 @@ CLAIMS: tuple[Claim, ...] = (
         surface=DRILLDOWN,
         asserts=(
             "Insider buying and selling counts open-market purchases and sales only, over the "
-            "last 90 days; grants, gifts and option exercises are left out."
+            "last 90 days, by officers and directors; grants, gifts and option exercises are left "
+            "out, and holders of 10% or more who are neither are shown separately."
         ),
         made_true_by="insider_activity:summarise_rows",
         checked_by=(
             "tests/test_context_layer.py::test_grants_and_exercises_are_not_purchases",
             "tests/test_context_layer.py::test_ninety_day_summary_and_cluster",
+            "tests/test_context_layer.py::test_ten_percent_holders_are_shown_apart",
         ),
     ),
     Claim(

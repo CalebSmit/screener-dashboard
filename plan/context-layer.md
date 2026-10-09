@@ -79,7 +79,29 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    source. The first fill was run by the owner session; nightly cost is ~503 submissions requests
    plus the day's new filings at <8 requests/s, inside a 900 s budget. Nightly: read the
    `insider refresh:` and `Context: insider trades from SEC Form 4 for N stocks` lines in the data
-   log - N should be ~500. **Next research question this opens:** Cohen, Malloy & Pomorski (2012)
+   log - N should be ~500.
+
+   **Two defects found and fixed the same night, before anything published:** (i) a company's
+   EDGAR list also holds the Form 4s it filed *as an owner of another company* - Berkshire's
+   filings for its Lennar purchases appeared as Berkshire insider buying, likewise Goldman and
+   Prudential. `parse_form4` now keeps `issuerCik` and `rows_from_sec` reads only filings whose
+   issuer is the company; cached entries parsed before that were re-read (14,643 filings, 0
+   failures, 39 min) and `sec_rows_for` falls back to Yahoo for any entry not yet re-read.
+   (ii) **10%+ holders who are neither officers nor directors** (Cascade Investment's $1.38bn of
+   Republic Services) are listed but kept out of the officer-and-director counts
+   (`holder_only`), and the card states their total on its own line. Also: lines of one filing
+   with the same date and direction are one trade (a sale split across price tiers).
+
+   **Measured after both fixes** (`research/measurements/2026-10-08-insider-sec-vs-yahoo.py`, run
+   `91fa11d3ae8e`): SEC record for 502 of 503; stocks with officer/director buying in 90 days
+   **60 (SEC) vs 54 (Yahoo)**, 51 in both, 9 SEC-only, 3 Yahoo-only; with sales 338 vs 318;
+   purchase lines 97 officer/director vs 92 holder-only, the latter in 3 stocks; sale value
+   $17.8bn, of which **72.4% on Rule 10b5-1 plans**. Open: why 3 stocks show buys only on Yahoo
+   (candidate: Form 4/A, which is not read).
+
+   **Research questions this opens:** (a) is the officer/director-vs-10%-holder split right?
+   Seyhun's work is the usual lead for an "information hierarchy" among insider types; it was not
+   verified this night and is **not cited on the page**. (b) Cohen, Malloy & Pomorski (2012)
    separate *routine* from *opportunistic* insiders by each person's own trading calendar; the
    180-day cache is too short for their three-year rule, so it needs a longer retention before it can
    be built.

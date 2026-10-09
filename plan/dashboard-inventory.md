@@ -46,6 +46,8 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
 - **Insider trades from the SEC** (2026-10-08 late): each trade's date links to its Form 4; a sale made
   under a Rule 10b5-1 plan carries a **plan** tag and the sales total states the share on pre-set
   plans; the note names the source (SEC, or Yahoo as a per-stock fallback with "no plan flag").
+  Counts are **officers and directors**; 10%+ holders that are neither get their own line and stay
+  in the trade list (`insider_activity.holder_only`).
 - **Its own file.** All of the above ships in `dashboard_context.js` (`window.SCREENER_CONTEXT`), loaded
   after the page is usable and merged into `D` by `loadContext()`; `dashboard_data.js` carries no `ctx`,
   `market`, `track` or `ctx_weeks`. Anything that reads them must wait for `CTX_LOADED`.
