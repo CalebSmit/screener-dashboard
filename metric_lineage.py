@@ -329,7 +329,7 @@ LINEAGE = {
                 ("Equity", "totalEquity", USD), ("Debt (balance sheet)", "totalDebt_bs", USD),
                 ("Cash (balance sheet)", "cash_bs", USD), ("Revenue (TTM)", "totalRevenue", USD),
                 ("Total assets", "totalAssets", USD)],
-               how="NOPAT = operating income x (1 - tax rate) - operating income, not Yahoo's 'EBIT', which adds non-operating gains (since 2026-10-09); the tax rate is tax / pre-tax income capped at 50%, zero for a loss, 21% if unreported. Invested capital = equity + debt - excess cash (cash above 2% of revenue, at most half of cash), floored at 10% of total assets."),
+               how="NOPAT = operating income x (1 - tax rate) - operating income, not Yahoo's 'EBIT', which adds non-operating gains (since 2026-10-09). This is Yahoo's 'Operating Income' line, which leaves out some special charges (impairments, acquired R&D), so it can sit above the GAAP figure in a year with such a charge; the tax rate is tax / pre-tax income capped at 50%, zero for a loss, 21% if unreported. Invested capital = equity + debt - excess cash (cash above 2% of revenue, at most half of cash), floored at 10% of total assets."),
     "gross_profit_assets": _L("Gross profit / total assets",
                               [("Gross profit (TTM)", "grossProfit", USD), ("Total assets", "totalAssets", USD)],
                               how="Novy-Marx's gross profitability. Uses ending, not average, assets."),
