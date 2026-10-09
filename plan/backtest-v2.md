@@ -61,7 +61,17 @@ is the cheapest honest improvement available to v2 and it should come first.
   regime** - the current call reads the current run's regime, which is a third
   look-ahead vector, living in the weights rather than the metrics.
 
-### The one thing in step 1 still unmeasured
+### The fundamentals half - MEASURED 2026-10-09 (owner-run)
+
+`research/2026-10-09-pit-fundamentals-census.md`: from SEC XBRL `companyfacts` (503 requests, 1.17M
+facts, each with its filed date), the inputs for most of the 49.0pp are knowable point-in-time for
+**~95-97% of name-months** (net income, assets, equity, revenue, operating cash flow), 68-85% for
+operating income / D&A / debt / cash / capex, and only **39%** for a gross-profit tag (59% can derive
+it from cost of revenue). Median first-filing lag: **33 days** after a quarter, **54** after a year.
+Analyst estimates (9.0pp) and short interest have no free history, as expected. Facts cache:
+`data/sec/pit/facts.parquet` (gitignored; rebuild with the measurement script).
+
+### What step 1 said was unmeasured (kept for the record)
 
 The **49.0pp fundamentals half**. SEC EDGAR's XBRL `companyconcept` endpoint is
 free and carries a `filed` date per fact, so both the reporting lag and the drift

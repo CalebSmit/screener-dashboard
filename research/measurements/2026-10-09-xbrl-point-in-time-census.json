@@ -1,0 +1,263 @@
+{
+ "panel": {
+  "months": 81,
+  "names": 503,
+  "name_months": 40743,
+  "window": [
+   "2020-01-31",
+   "2026-09-30"
+  ]
+ },
+ "inputs": {
+  "revenue": {
+   "concepts": [
+    "Revenues",
+    "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "RevenueFromContractWithCustomerIncludingAssessedTax",
+    "SalesRevenueNet",
+    "SalesRevenueGoodsNet",
+    "RevenuesNetOfInterestExpense"
+   ],
+   "companies_with_facts": 500,
+   "name_month_coverage": 0.9552,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 390.0,
+    "max": 1233.0
+   },
+   "lag_days_10k": {
+    "p50": 56.0,
+    "p90": 601.0,
+    "max": 1517.0
+   }
+  },
+  "gross_profit": {
+   "concepts": [
+    "GrossProfit"
+   ],
+   "companies_with_facts": 258,
+   "name_month_coverage": 0.3896,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 40.0,
+    "max": 718.0
+   },
+   "lag_days_10k": {
+    "p50": 57.0,
+    "p90": 422.0,
+    "max": 1152.0
+   }
+  },
+  "cost_of_revenue": {
+   "concepts": [
+    "CostOfRevenue",
+    "CostOfGoodsAndServicesSold",
+    "CostOfGoodsSold"
+   ],
+   "companies_with_facts": 358,
+   "name_month_coverage": 0.5879,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 389.0,
+    "max": 810.0
+   },
+   "lag_days_10k": {
+    "p50": 55.0,
+    "p90": 515.0,
+    "max": 1148.0
+   }
+  },
+  "operating_income": {
+   "concepts": [
+    "OperatingIncomeLoss"
+   ],
+   "companies_with_facts": 420,
+   "name_month_coverage": 0.7552,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 40.0,
+    "max": 810.0
+   },
+   "lag_days_10k": {
+    "p50": 54.0,
+    "p90": 421.0,
+    "max": 1519.0
+   }
+  },
+  "net_income": {
+   "concepts": [
+    "NetIncomeLoss",
+    "ProfitLoss"
+   ],
+   "companies_with_facts": 502,
+   "name_month_coverage": 0.962,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 42.0,
+    "max": 810.0
+   },
+   "lag_days_10k": {
+    "p50": 55.0,
+    "p90": 423.0,
+    "max": 1502.0
+   }
+  },
+  "total_assets": {
+   "concepts": [
+    "Assets"
+   ],
+   "companies_with_facts": 502,
+   "name_month_coverage": 0.9676,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 39.0,
+    "max": 854.0
+   },
+   "lag_days_10k": {
+    "p50": 53.0,
+    "p90": 59.0,
+    "max": 1517.0
+   }
+  },
+  "equity": {
+   "concepts": [
+    "StockholdersEquity",
+    "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+   ],
+   "companies_with_facts": 502,
+   "name_month_coverage": 0.9678,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 40.0,
+    "max": 858.0
+   },
+   "lag_days_10k": {
+    "p50": 53.0,
+    "p90": 62.0,
+    "max": 1507.0
+   }
+  },
+  "long_term_debt": {
+   "concepts": [
+    "LongTermDebt",
+    "LongTermDebtNoncurrent"
+   ],
+   "companies_with_facts": 459,
+   "name_month_coverage": 0.712,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 40.0,
+    "max": 1589.0
+   },
+   "lag_days_10k": {
+    "p50": 53.0,
+    "p90": 59.0,
+    "max": 1884.0
+   }
+  },
+  "cash": {
+   "concepts": [
+    "CashAndCashEquivalentsAtCarryingValue"
+   ],
+   "companies_with_facts": 487,
+   "name_month_coverage": 0.8491,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 131.0,
+    "max": 859.0
+   },
+   "lag_days_10k": {
+    "p50": 53.0,
+    "p90": 60.0,
+    "max": 1347.0
+   }
+  },
+  "operating_cash_flow": {
+   "concepts": [
+    "NetCashProvidedByUsedInOperatingActivities"
+   ],
+   "companies_with_facts": 501,
+   "name_month_coverage": 0.9554,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 383.0,
+    "max": 855.0
+   },
+   "lag_days_10k": {
+    "p50": 54.0,
+    "p90": 425.0,
+    "max": 1093.0
+   }
+  },
+  "capex": {
+   "concepts": [
+    "PaymentsToAcquirePropertyPlantAndEquipment"
+   ],
+   "companies_with_facts": 398,
+   "name_month_coverage": 0.6834,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 41.0,
+    "max": 810.0
+   },
+   "lag_days_10k": {
+    "p50": 54.0,
+    "p90": 422.0,
+    "max": 1517.0
+   }
+  },
+  "d_and_a": {
+   "concepts": [
+    "DepreciationDepletionAndAmortization",
+    "DepreciationAndAmortization"
+   ],
+   "companies_with_facts": 433,
+   "name_month_coverage": 0.7587,
+   "lag_days_10q": {
+    "p50": 34.0,
+    "p90": 385.0,
+    "max": 810.0
+   },
+   "lag_days_10k": {
+    "p50": 54.0,
+    "p90": 424.0,
+    "max": 1517.0
+   }
+  },
+  "current_assets": {
+   "concepts": [
+    "AssetsCurrent"
+   ],
+   "companies_with_facts": 424,
+   "name_month_coverage": 0.8104,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 39.0,
+    "max": 537.0
+   },
+   "lag_days_10k": {
+    "p50": 52.0,
+    "p90": 59.0,
+    "max": 787.0
+   }
+  },
+  "current_liabilities": {
+   "concepts": [
+    "LiabilitiesCurrent"
+   ],
+   "companies_with_facts": 424,
+   "name_month_coverage": 0.8104,
+   "lag_days_10q": {
+    "p50": 33.0,
+    "p90": 39.0,
+    "max": 537.0
+   },
+   "lag_days_10k": {
+    "p50": 52.0,
+    "p90": 59.0,
+    "max": 787.0
+   }
+  }
+ },
+ "facts": 1167445
+}

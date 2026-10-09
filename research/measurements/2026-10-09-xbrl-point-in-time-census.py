@@ -35,8 +35,11 @@ SUMMARY = Path(__file__).with_suffix(".json")
 
 # Input -> XBRL us-gaap concepts, first with data wins (per company).
 INPUTS = {
-    "revenue": ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet"),
+    "revenue": ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet",
+                "SalesRevenueGoodsNet", "RevenuesNetOfInterestExpense"),
     "gross_profit": ("GrossProfit",),
+    "cost_of_revenue": ("CostOfRevenue", "CostOfGoodsAndServicesSold", "CostOfGoodsSold"),
     "operating_income": ("OperatingIncomeLoss",),
     "net_income": ("NetIncomeLoss", "ProfitLoss"),
     "total_assets": ("Assets",),
@@ -95,13 +98,9 @@ def census(df: pd.DataFrame, tickers: list[str]) -> dict:
                      "window": [str(WINDOW[0].date()), str(WINDOW[-1].date())]}, "inputs": {}}
     for name, concepts in INPUTS.items():
         sub = df[df["concept"].isin(concepts)].dropna(subset=["end", "filed"])
-        # per company, the first concept (in priority order) that has any facts
-        pick = {}
-        for t, g in sub.groupby("ticker"):
-            for c in concepts:
-                if (g["concept"] == c).any():
-                    pick[t] = g[g["concept"] == c]
-                    break
+        # Any of the input's concepts counts: filers switch tags over the years (e.g. to
+        # RevenueFromContractWithCustomer... after ASC 606), so "first tag found" undercounts.
+        pick = {t: g for t, g in sub.groupby("ticker")}
         covered = 0
         for t in tickers:
             g = pick.get(t)
@@ -113,15 +112,20 @@ def census(df: pd.DataFrame, tickers: list[str]) -> dict:
                 mv = m.to_datetime64()
                 ok = (filed <= mv) & (ends >= (m - pd.DateOffset(months=15)).to_datetime64())
                 covered += bool(ok.any())
-        lag = (sub["filed"] - sub["end"]).dt.days
-        q = lag[sub["form"].str.startswith("10-Q")]
-        k = lag[sub["form"].str.startswith("10-K")]
+        # A figure reappears as a comparative in later filings; its lag is from its FIRST filing.
+        first = (sub.sort_values("filed")
+                    .drop_duplicates(["ticker", "concept", "start", "end"], keep="first"))
+        lag = (first["filed"] - first["end"]).dt.days
+        q = lag[first["form"].str.startswith("10-Q")]
+        k = lag[first["form"].str.startswith("10-K")]
         out["inputs"][name] = {
             "concepts": list(concepts),
             "companies_with_facts": len(pick),
             "name_month_coverage": round(covered / (len(WINDOW) * len(tickers)), 4),
-            "lag_days_10q": {"p50": float(q.median()) if len(q) else None, "p90": float(q.quantile(0.9)) if len(q) else None},
-            "lag_days_10k": {"p50": float(k.median()) if len(k) else None, "p90": float(k.quantile(0.9)) if len(k) else None},
+            "lag_days_10q": {"p50": float(q.median()) if len(q) else None, "p90": float(q.quantile(0.9)) if len(q) else None,
+                             "max": float(q.max()) if len(q) else None},
+            "lag_days_10k": {"p50": float(k.median()) if len(k) else None, "p90": float(k.quantile(0.9)) if len(k) else None,
+                             "max": float(k.max()) if len(k) else None},
         }
     return out
 
