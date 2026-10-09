@@ -523,7 +523,7 @@ CTX_FIELDS = {
     "r5": "_ctx_ret_5d", "r1m": "_ctx_ret_1m", "r3m": "_ctx_ret_3m", "vr": "_ctx_vol_ratio",
     "ox": "_ctx_opt_expiry", "od": "_ctx_opt_days", "oe": "_ctx_opt_spans_earnings", "om": "_ctx_opt_move",
     "ost": "_ctx_opt_straddle", "ok": "_ctx_opt_atm_strike", "oi": "_ctx_opt_iv", "osk": "_ctx_opt_skew",
-    "opc": "_ctx_opt_pc_oi", "os": "_ctx_opt_status",
+    "opc": "_ctx_opt_pc_oi", "os": "_ctx_opt_status", "oqd": "_ctx_opt_quote_date",
     "rb": "_ctx_rate_beta", "rr2": "_ctx_rate_r2", "rn": "_ctx_rate_n",
 }
 
@@ -8653,7 +8653,9 @@ def _js_context() -> str:
             if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
             if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns (Xing, Zhang &amp; Zhao 2010). Quotes are the previous close.</p>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns (Xing, Zhang &amp; Zhao 2010). ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+        } else if (c.os === 'quotes-closed') {
+            o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
             o += '<p class="ctx-line">' + (c.os === 'stale-quotes' ? 'Option quotes were missing or too wide at the time of the fetch, so no expected move is shown rather than a misleading one.' : 'No usable option chain this run.') + '</p>';
         }

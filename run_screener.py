@@ -1328,7 +1328,8 @@ def run_factor_engine(cfg, args, ctx=None):
             try:
                 import context_fetch
                 stats["context_pass"] = context_fetch.enrich(
-                    raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900))
+                    raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900),
+                    root=Path(__file__).resolve().parent)
             except Exception as e:  # noqa: BLE001 - context must never stop a run
                 print(f"  WARNING: context pass unavailable: {e}")
             # Insider trades from the SEC's own Form 4 filings where an identity with a contact
