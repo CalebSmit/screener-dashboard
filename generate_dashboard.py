@@ -8820,7 +8820,7 @@ def _js_context() -> str:
         }
         if (c.s50) t += '<div class="ctx-fact"><span class="ctx-fk">vs 50-day average</span><span class="ctx-fv">' + cPct(c.px / c.s50 - 1) + '</span><span class="ctx-fs">' + cPrice(c.s50) + (c.s200 ? ', ' + (c.s50 >= c.s200 ? 'above' : 'below') + ' the 200-day' : '') + '</span></div>';
         if (c.hi) t += '<div class="ctx-fact"><span class="ctx-fk">From 52-week high</span><span class="ctx-fv">' + cPct(c.px / c.hi - 1) + '</span><span class="ctx-fs">high ' + cPrice(c.hi) + (c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '') + ', low ' + cPrice(c.lo) + '</span></div>';
-        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice. On broad market indices, a rule of holding only above it (Faber 2007 uses the 10-month average) has historically cut drawdowns far more than it raised returns; that evidence is for whole markets, not single stocks. It describes the trend; it does not predict the next move.</p></div>';
+        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice. On broad market indices, a rule of holding only above it (Faber 2007 uses the 10-month average) has historically cut drawdowns far more than it raised returns. For single stocks, the gap between the 21-day and 200-day averages has predicted returns across US stocks (Avramov, Kaplanski &amp; Subrahmanyam 2021); this screener records that gap every run to test it here, and does not score it.</p></div>';
         h += t;
 
         // 2. Recent move

@@ -27,3 +27,15 @@ record, and how practitioners use the signal - then the measured record from `co
   About Future Equity Returns?" *JFQA* 45(3), 641-662. https://ideas.repec.org/a/cup/jfinqa/v45y2010i03p641-662_00.html
 - Lakonishok, J. & Lee, I. (2001). "Are Insider Trades Informative?" *Review of Financial Studies* 14(1).
 - Cohen, L., Malloy, C. & Pomorski, L. (2012). "Decoding Inside Information." *Journal of Finance* 67(3).
+
+## Addendum, same day: trend evidence for single stocks
+
+Faber's evidence is on indices. For **individual stocks** the closest published result is Avramov,
+Kaplanski & Subrahmanyam (2021, *Review of Financial Economics* 39(2), 127-145): the distance between
+the 21-day and 200-day moving averages ("MAD") predicts the cross-section of US stock returns,
+1977-2018, with value-weighted hedge-portfolio alphas around 9% a year, beyond momentum, the 52-week
+high and profitability, and stronger on the long side. The panel now says so, and the run records the
+21-day average (`_ctx_sma21`) so `context_eval.py` tracks `ma_distance_21_200` in this universe -
+recorded, not scored. Han, Zhou & Zhu (2016, *JFE* 122(2)) combine moving averages of 3 to 1,000 days
+into a "trend factor" with roughly double the Sharpe ratio of momentum; it is a heavier construction
+than a context panel needs, noted for any future scoring argument.

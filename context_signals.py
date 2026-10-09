@@ -68,6 +68,10 @@ def price_context(closes: pd.Series, volume: pd.Series | None = None) -> dict:
 
     if len(c) >= SMA_SHORT:
         out["_ctx_sma50"] = float(c.tail(SMA_SHORT).mean())
+        # 21-day average: with the 200-day it is the "moving average distance" Avramov,
+        # Kaplanski & Subrahmanyam (2021) find predicts returns across stocks. Recorded so
+        # context_eval.py can keep its record here; not scored.
+        out["_ctx_sma21"] = float(c.tail(21).mean())
     if len(c) >= SMA_LONG:
         sma200 = c.rolling(SMA_LONG).mean()
         out["_ctx_sma200"] = float(sma200.iloc[-1])

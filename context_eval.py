@@ -43,6 +43,8 @@ MIN_EFFECTIVE_FOR_T = 3
 SIGNALS = {
     "distance_from_200d": ("close / 200-day average - 1", "stocks further above their 200-day average did better"),
     "distance_from_50d": ("close / 50-day average - 1", "stocks further above their 50-day average did better"),
+    "ma_distance_21_200": ("21-day average / 200-day average - 1 (Avramov, Kaplanski & Subrahmanyam 2021)",
+                           "stocks whose short average sat further above the long one did better"),
     "return_1m": ("last month's price return", "last month's winners kept winning (negative = reversal)"),
     "return_5d": ("last week's price return", "last week's winners kept winning (negative = reversal)"),
     "return_3m": ("last three months' price return", "three-month winners kept winning"),
@@ -68,6 +70,8 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
     out["close"] = px.values
     out["distance_from_200d"] = (px / _num(log.get("_ctx_sma200")) - 1).values
     out["distance_from_50d"] = (px / _num(log.get("_ctx_sma50")) - 1).values
+    s21 = _num(log["_ctx_sma21"]) if "_ctx_sma21" in log.columns else pd.Series(np.nan, index=log.index)
+    out["ma_distance_21_200"] = (s21 / _num(log.get("_ctx_sma200")) - 1).values
     out["return_1m"] = _num(log.get("_ctx_ret_1m")).values
     out["return_5d"] = _num(log.get("_ctx_ret_5d")).values
     out["return_3m"] = _num(log.get("_ctx_ret_3m")).values
