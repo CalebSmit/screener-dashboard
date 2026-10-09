@@ -413,6 +413,7 @@ try {
         'dashboard.html',
         'index.html',
         'dashboard_data.js',
+        'dashboard_context.js',
         'factor_output.xlsx',
         'factor_vol_history.csv',
         'sp500_tickers.json',

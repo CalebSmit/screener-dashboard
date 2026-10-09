@@ -30,8 +30,8 @@ imported by a scoring path (`tests/test_context_layer.py::test_no_scoring_module
 | Piece | Where | Data | Cost per night |
 |---|---|---|---|
 | **Trend / range / recent move / volume** | `context_signals.price_context`, called in the fetch | the 13-month history the fetch already pulls | none |
-| **Options: expected move, ATM IV, put skew, put/call OI** | `context_signals.options_context`, in the fetch | yfinance option chain, one expiry per stock | 2 calls/stock |
-| **Insider open-market buys and sales, 90 days** | `insider_activity.rows_from_yahoo` + `summarise_rows`, in the fetch | yfinance `insider_transactions` (compiled from Form 4) | 1 call/stock |
+| **Options: expected move, ATM IV, put skew, put/call OI** | `context_signals.options_context`, in `context_fetch.enrich` (after the core fetch) | yfinance option chain, one expiry per stock | 2 calls/stock |
+| **Insider open-market buys and sales, 90 days** | `insider_activity.rows_from_yahoo` + `summarise_rows`, in `context_fetch.enrich` | yfinance `insider_transactions` (compiled from Form 4) | 1 call/stock |
 | **Rate sensitivity** (return per +1pp in the 10-year yield) | `context_signals.rate_sensitivity`, in `run_screener` after the fetch | the fetch's daily returns + FRED `DGS10` | none extra |
 | **Market backdrop** - 10 FRED series, readings, sector rate medians, factor notes | `market_context.build` -> `data/market_context.json` | FRED CSV (no key), cached `data/market/` | 10 small requests |
 | **Track record** - top 25 vs RSP/SPY, top vs bottom fifth, per period | `track_record.build_from_disk` -> `data/track_record.json` | the comparable snapshots + yfinance closes, cached `data/track/` | 1 batched download (incremental) |
@@ -39,7 +39,16 @@ imported by a scoring path (`tests/test_context_layer.py::test_no_scoring_module
 
 Page: **Before you decide** in every drilldown (with a one-line teaser under "Why it ranks here");
 **Market Backdrop** and **Track Record** sections; a **Context** filter on the rankings (uptrend,
-downtrend, insider buying, reports within 14 days). Payload: per stock `ctx`, top level `market`, `track`.
+downtrend, insider buying, reports within 14 days).
+
+**Payload: its own file.** `generate_dashboard.split_context()` moves every stock's `ctx` and the
+top-level `market`, `track` and `ctx_weeks` into `dashboard_context.js` (`window.SCREENER_CONTEXT`),
+which the page loads *after* it is usable and merges into `D` (`loadContext`, `CTX_LOADED`). Inline,
+the context had grown the scored payload from 1.27 to 1.68 MB gzipped; split, the main file is
+**1.29 MB** and the context **0.31 MB**, with every score, summary and table row byte-identical
+(2026-10-08). Until it lands the drilldown says "Loading context"; if it fails, it says so. Both
+files are written by the generator, copied by `run_screener` step 12 and committed by the data loop.
+`tests/test_context_layer.py::test_the_main_payload_carries_no_context`.
 
 **First measurements (2026-10-08):** track record Feb 20 -> Oct 8 (230 days): top 25 **+5.7%**, RSP
 **+4.9%**, SPY **+13.6%**; top fifth minus bottom fifth **+2.5pp**; top 25 ahead of RSP in **4 of 7**
@@ -48,11 +57,15 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
 
 ## Known limits of the draft - the nightly queue, in order
 
-1. **Fetch load.** The context calls add three requests per stock to the 02:00 fetch, which already
-   meets Yahoo's rate limit. Measure the fetch time and failure rate against the week before (the
-   data loop refuses to publish above 40% failures). If context costs the core fetch anything, move the
-   options and insider calls to a **separate, time-budgeted pass after scoring** so they can never
-   cost a scored number. Core data first, always.
+1. **Fetch load - DONE 2026-10-08 (owner-run), keep watching.** Inside the core fetch, the three extra
+   calls per stock tripped Yahoo's limiter at batch 9 of 17 and dropped the fetch to one worker. They
+   now run in `context_fetch.enrich`, a separate pass after the core fetch with its own pacing, a
+   rate-limit backoff and a 900 s budget. **Measured in isolation on the full universe:** 503 of 503
+   stocks in **206 s**, **0** rate limits, **0** failures; options `ok` 394, `partial` 56,
+   `stale-quotes` 25, `no-atm` 18, `no-chain` 9; insider 503; 471 chosen expiries span the next
+   report. Nightly: read the `Context pass:` line in `logs/datarun-*.log` and record the seconds and
+   whether it stopped. If it ever stops on `rate limited` two nights running, lower `WORKERS` to 1
+   before anything else. Core data first, always.
 2. **Option quotes at 2 AM** are the previous close; some chains have no bid/ask. Measure the share of
    stocks with `os == "ok"` and decide whether that is good enough or the options pass belongs in a
    market-hours run. Do not loosen `MAX_REL_SPREAD` or the IV bounds to raise the number.

@@ -342,15 +342,49 @@ def test_no_scoring_module_reads_a_context_field():
         assert not reads, f"{name} reads context fields {reads}"
 
 
+CONTEXT = ROOT / "dashboard_context.js"
+
+
+def _load(path):
+    t = path.read_text(encoding="utf-8", errors="replace")
+    return json.loads(t[t.find("{"):t.rfind("}") + 1])
+
+
 @pytest.fixture(scope="module")
 def payload():
-    if not PAYLOAD.exists():
-        pytest.skip("dashboard_data.js not present")
-    t = PAYLOAD.read_text(encoding="utf-8", errors="replace")
-    d = json.loads(t[t.find("{"):t.rfind("}") + 1])
+    """The main payload with the context file merged back in, as the page does."""
+    if not PAYLOAD.exists() or not CONTEXT.exists():
+        pytest.skip("dashboard_data.js / dashboard_context.js not present")
+    d = _load(PAYLOAD)
+    c = _load(CONTEXT)
+    for tk, ctx in (c.get("ctx") or {}).items():
+        if tk in d["stock_detail"]:
+            d["stock_detail"][tk]["ctx"] = ctx
+    for k in ("market", "track", "ctx_weeks"):
+        if k in c:
+            d[k] = c[k]
     if not any(s.get("ctx") for s in d["stock_detail"].values()):
         pytest.skip("payload predates the context layer")
     return d
+
+
+def test_the_main_payload_carries_no_context():
+    """Context ships in its own file so the scored payload stays the size it was (1.27 MB gz
+    before the layer; 1.68 MB with context inline; 1.29 MB after the split, 2026-10-08)."""
+    if not PAYLOAD.exists():
+        pytest.skip("dashboard_data.js not present")
+    d = _load(PAYLOAD)
+    assert not any("ctx" in s for s in d["stock_detail"].values())
+    assert not any(k in d for k in ("market", "track", "ctx_weeks"))
+
+
+def test_split_context_moves_every_context_key():
+    import generate_dashboard as gd
+    data = {"stock_detail": {"A": {"raw": {}, "ctx": {"px": 1}}, "B": {"raw": {}}},
+            "market": {"x": 1}, "track": {"y": 2}, "ctx_weeks": ["2026-10-02"], "kpis": {}}
+    out = gd.split_context(data)
+    assert out == {"ctx": {"A": {"px": 1}}, "market": {"x": 1}, "track": {"y": 2}, "ctx_weeks": ["2026-10-02"]}
+    assert data == {"stock_detail": {"A": {"raw": {}}, "B": {"raw": {}}}, "kpis": {}}
 
 
 def test_context_is_display_only_in_the_payload(payload):
@@ -387,7 +421,7 @@ def test_the_data_loop_commits_the_context_outputs():
     ps = (ROOT / "scripts" / "data-run.ps1").read_text(encoding="utf-8")
     block = ps[ps.index("$DataArtifacts"):]
     block = block[:block.index(")")]
-    for a in ("data/market_context.json", "data/track_record.json", "data/context_log"):
+    for a in ("data/market_context.json", "data/track_record.json", "data/context_log", "dashboard_context.js"):
         assert a in block, a
     gi = (ROOT / ".gitignore").read_text(encoding="utf-8")
     for c in ("data/market/", "data/track/", "data/insider/"):

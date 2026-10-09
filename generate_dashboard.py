@@ -594,6 +594,27 @@ def _shared_weeks(stock_detail: dict) -> list | None:
     return common
 
 
+CONTEXT_FILE = "dashboard_context.js"
+CONTEXT_KEYS = ("market", "track", "ctx_weeks")
+
+
+def split_context(data: dict) -> dict:
+    """Move the context layer out of the main payload, in place, and return it.
+
+    The scored payload is what the page needs to be usable; the context (each stock's ``ctx``,
+    the market backdrop, the track record) is ~0.3 MB gzipped that nobody needs in the first
+    second. It ships as ``dashboard_context.js`` and loads after the page is up."""
+    out = {"ctx": {}}
+    for t, s in (data.get("stock_detail") or {}).items():
+        c = s.pop("ctx", None)
+        if c:
+            out["ctx"][t] = c
+    for k in CONTEXT_KEYS:
+        if k in data:
+            out[k] = data.pop(k)
+    return out
+
+
 def _track_block() -> dict | None:
     try:
         import track_record
@@ -1238,7 +1259,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
 # HTML generation
 # ---------------------------------------------------------------------------
 
-def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "") -> str:
+def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
+                  context_version: str = "") -> str:
     """Build the complete dashboard HTML string.
 
     Data is loaded from the companion `dashboard_data.js` file (written by
@@ -1251,6 +1273,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     # Escape braces in methodology_html so f-string doesn't choke
     methodology_escaped = methodology_html.replace("{", "{{").replace("}", "}}")
     version = data_version or "latest"
+    ctx_version = context_version or version
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3934,7 +3957,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         applyFilters();
         renderDefensibility();
         initUX();
-        initContext();
+        loadContext("./dashboard_context.js?v={ctx_version}");
     }}
 
     </script>
@@ -8577,7 +8600,8 @@ def _js_context() -> str:
         if (!host) return;
         renderCtxTeaser(s);
         const c = s.ctx;
-        if (!c) { host.innerHTML = '<p class="modal-note">No context was recorded for this stock in this run.</p>'; return; }
+        if (!c && !CTX_LOADED) { host.innerHTML = '<p class="modal-note">Loading context&hellip;</p>'; return; }
+        if (!c) { host.innerHTML = '<p class="modal-note">' + (CTX_FAILED ? 'The context file could not be loaded.' : 'No context was recorded for this stock in this run.') + '</p>'; return; }
         let h = '<p class="ctx-note">' + CTX_NOTE + '</p><div class="ctx-grid">';
 
         // 1. Trend
@@ -8798,9 +8822,36 @@ def _js_context() -> str:
             mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal-weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
         }
     }
+    // The context file loads after the page is usable; until it lands, context surfaces say so.
+    let CTX_LOADED = false, CTX_FAILED = false;
+    function loadContext(src) {
+        const el = document.createElement('script');
+        el.src = src;
+        el.async = true;
+        el.onload = () => {
+            const C = window.SCREENER_CONTEXT || {};
+            Object.keys(C.ctx || {}).forEach(t => { if (D.stock_detail[t]) D.stock_detail[t].ctx = C.ctx[t]; });
+            ['market', 'track', 'ctx_weeks'].forEach(k => { if (C[k] !== undefined) D[k] = C[k]; });
+            CTX_LOADED = true;
+            SECTOR_R1M = null;
+            initContext();
+            const sel = document.getElementById('filter-ctx');
+            if (sel && sel.value !== 'all') applyFilters();
+            if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
+            ['sec-market', 'sec-track'].forEach(id => {
+                const el2 = document.getElementById(id);
+                if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
+            });
+        };
+        el.onerror = () => { CTX_FAILED = true; CTX_LOADED = true; initContext(); };
+        document.body.appendChild(el);
+    }
+
     function initContext() {
         contextMetas();
         // Render a section's body the first time it opens: collapsed, it costs nothing.
+        if (initContext.wrapped) return;
+        initContext.wrapped = true;
         const _ts = toggleSection;
         toggleSection = function(id) {
             if (id === 'sec-market' && !MK_DONE) { MK_DONE = true; renderMarket(); }
@@ -9012,9 +9063,15 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     else:
         data_timestamp = ""
 
+    # The context layer ships in its own file, loaded after the page is usable.
+    _full = json.loads(data_json)
+    ctx_payload = split_context(_full)
+    data_json = json.dumps(_full, default=str)
+    ctx_json = json.dumps(ctx_payload, separators=(",", ":"), default=str)
     data_version = hashlib.md5(data_json.encode("utf-8")).hexdigest()[:12]
+    context_version = hashlib.md5(ctx_json.encode("utf-8")).hexdigest()[:12]
     html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp,
-                         data_version=data_version)
+                         data_version=data_version, context_version=context_version)
 
     output_path.write_text(html, encoding="utf-8")
     print(f"Dashboard generated: {output_path} ({output_path.stat().st_size / 1024:.0f} KB)")
@@ -9024,6 +9081,9 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     data_js_path = output_path.parent / "dashboard_data.js"
     data_js_path.write_text(f"window.SCREENER_DATA = {data_json};", encoding="utf-8")
     print(f"Data file:           {data_js_path} ({data_js_path.stat().st_size / 1024:.0f} KB)")
+    ctx_js_path = output_path.parent / CONTEXT_FILE
+    ctx_js_path.write_text(f"window.SCREENER_CONTEXT = {ctx_json};", encoding="utf-8")
+    print(f"Context file:        {ctx_js_path} ({ctx_js_path.stat().st_size / 1024:.0f} KB)")
 
     return output_path
 

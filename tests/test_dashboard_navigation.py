@@ -472,6 +472,7 @@ def test_context_panels_render_without_errors(browser):
     and the context filter narrows the table without touching the ranking."""
     ctx, page, errors = _open(browser)
     try:
+        page.wait_for_function("typeof CTX_LOADED !== 'undefined' && CTX_LOADED", timeout=30000)
         has_ctx = page.evaluate("Object.values(D.stock_detail).some(s => s.ctx)")
         if not has_ctx:
             pytest.skip("payload predates the context layer")
