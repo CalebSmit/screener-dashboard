@@ -1,0 +1,116 @@
+{
+ "as_of": "2026-10-09",
+ "horizon": "1m",
+ "log_dates": 2,
+ "first_log": "2026-10-08",
+ "gate_effective_observations": 8,
+ "method": "Spearman IC between each context signal and the price return to the first log 30-40 days later; effective observations are non-overlapping one-month windows. Reporting only - nothing here moves a score.",
+ "signals": {
+  "distance_from_200d": {
+   "definition": "close / 200-day average - 1",
+   "positive_ic_means": "stocks further above their 200-day average did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "distance_from_50d": {
+   "definition": "close / 50-day average - 1",
+   "positive_ic_means": "stocks further above their 50-day average did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "return_1m": {
+   "definition": "last month's price return",
+   "positive_ic_means": "last month's winners kept winning (negative = reversal)",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "return_5d": {
+   "definition": "last week's price return",
+   "positive_ic_means": "last week's winners kept winning (negative = reversal)",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "return_3m": {
+   "definition": "last three months' price return",
+   "positive_ic_means": "three-month winners kept winning",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "position_in_52w_range": {
+   "definition": "(close - 52-week low) / (52-week high - low)",
+   "positive_ic_means": "stocks nearer their 52-week high did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "volume_ratio": {
+   "definition": "20-day / 3-month average volume",
+   "positive_ic_means": "heavier recent volume preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "options_expected_move": {
+   "definition": "at-the-money straddle / price",
+   "positive_ic_means": "a bigger implied move preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "options_put_skew": {
+   "definition": "90% put IV - at-the-money IV",
+   "positive_ic_means": "steeper put skew preceded better returns (literature: worse)",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "options_put_call_oi": {
+   "definition": "put / call open interest",
+   "positive_ic_means": "more put open interest preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "insider_buyers": {
+   "definition": "officers and directors buying in 90 days",
+   "positive_ic_means": "more insider buyers preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "insider_buy_value": {
+   "definition": "dollar value of insider purchases, 90 days",
+   "positive_ic_means": "larger insider purchases preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "rate_sensitivity": {
+   "definition": "return per +1pp in the 10-year yield",
+   "positive_ic_means": "rate-sensitive stocks did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  }
+ },
+ "first_forward_window_closes": "2026-11-07",
+ "earliest_gate_date_if_logged_daily": "2027-06-05"
+}

@@ -2519,6 +2519,15 @@ def main():
             context_signals.write_context_log(ctx.run_dir, run_day)
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: context log not written: {e}")
+        # The record each context signal is building (plan/context-layer.md item 5):
+        # one-month ICs from the logs themselves, reporting only.
+        try:
+            import context_eval
+            from datetime import date as _d_ev
+            _ev = context_eval.evaluate(today=_d_ev.fromisoformat(run_day))
+            print("  " + context_eval.summary_line(_ev))
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: context evaluation unavailable: {e}")
 
     # ---- 12. Generate interactive dashboard ----
     try:

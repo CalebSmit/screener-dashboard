@@ -223,6 +223,17 @@ def ic_observations() -> str:
     )
 
 
+def context_record() -> str:
+    """One line on the record the context signals are building (context_eval.py)."""
+    p = ROOT / "data" / "context_eval.json"
+    try:
+        sys.path.insert(0, str(ROOT))
+        import context_eval
+        return context_eval.summary_line(json.loads(p.read_text(encoding="utf-8")))
+    except Exception:  # noqa: BLE001 - the brief must still publish
+        return "no context evaluation yet"
+
+
 def last_log_entry() -> str:
     """The most recent dated section of NIGHTLY_LOG.md, lightly trimmed."""
     p = ROOT / "NIGHTLY_LOG.md"
@@ -293,6 +304,7 @@ def main() -> int:
         if facts.get("top5"):
             a(f"| Top 5 | {', '.join(facts['top5'])} |")
     a(f"| Evidence for weight changes | {ic_observations()} |")
+    a(f"| Context signals | {context_record()} |")
     a("")
 
     payload_notes = []

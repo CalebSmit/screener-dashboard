@@ -155,8 +155,16 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    & Pomorski 2012), macro regimes and factors (Asness, Frazzini & Pedersen 2019; Daniel & Moskowitz
    2016). Each note checks the page's sentence about it is fair, and records whether the signal is a
    **candidate** for the score.
-5. **The evaluation harness.** Join `data/context_log/` to forward returns; report each signal's IC and
-   effective observations in the morning brief once there are 3+ months. Reporting only - see the rule.
+5. **The evaluation harness - BUILT 2026-10-09 (owner-run).** `context_eval.py`: for every log date,
+   the forward price return to the first log 30-40 days later (from the logs' own closes - no extra
+   download), and per signal the Spearman IC across stocks; effective observations are the
+   improvement engine's own non-overlapping count, and a t-statistic appears only from 3 effective
+   observations, computed on those alone. 13 signals (trend distances, recent returns, 52-week
+   position, volume, three option readings, insider buyers and value, rate sensitivity). Runs at the
+   end of every full run, writes `data/context_eval.json` (committed by the data loop) and one line
+   in the morning brief. **First one-month window closes 2026-11-07; the gate (8 effective) is about
+   eight months of daily logs away.** `tests/test_context_eval.py`. Nightly: nothing to do until
+   November except keep the logs complete; then read the brief line monthly.
 6. **Track record hardening.** Prices for names that left the index (some tickers fail to download -
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25); a turnover/cost
    estimate; whether RSP is the right benchmark after cap-weighted leadership; never list current

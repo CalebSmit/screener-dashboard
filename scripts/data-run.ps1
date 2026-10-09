@@ -423,6 +423,7 @@ try {
         'validation',
         'data/market_context.json',
         'data/track_record.json',
+        'data/context_eval.json',
         'data/context_log'
     )
     foreach ($a in $DataArtifacts) {
