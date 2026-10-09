@@ -1,172 +1,150 @@
 Timestamp,Ticker,Issue_Type,Severity,Description,Action_Taken
-2026-10-09 02:17:24,HONA,missing_metric,Medium,Insufficient metric coverage (< 60%),Excluded from scoring
-2026-10-09 02:17:24,VYLR,missing_metric,Medium,Insufficient metric coverage (< 60%),Excluded from scoring
-2026-10-09 02:17:24,AFL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ALL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AXP,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AIG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AMP,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AON,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,APO,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ACGL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ARES,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AJG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AIZ,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BAC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BRK-B,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BX,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BLK,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BNY,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BRO,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,COF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CNC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,SCHW,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CINF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,C,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CFG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,COIN,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ECHO,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ERIE,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,EG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,FITB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BEN,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,GL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,GS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HIG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HBAN,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,IBKR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,IVZ,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,JPM,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,KEY,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,KKR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,L,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,LITE,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MTB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MRSH,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MET,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MRNA,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,NTRS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PNC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PFG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PGR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PRU,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,RJF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,RF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HOOD,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,STT,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,SYF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TROW,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TRV,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TFC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,USB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WRB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WFC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WTW,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AFL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ALL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AXP,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AIG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AMP,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AON,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,APO,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ACGL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ARES,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AJG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,AIZ,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BAC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BRK-B,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BX,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BLK,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BNY,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BRO,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,COF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,SCHW,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CINF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,C,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,CFG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,COIN,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,ERIE,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,EG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,FITB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,BEN,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,GL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,GS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HIG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HBAN,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,IBKR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,IVZ,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,JPM,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,KEY,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,KKR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,L,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MTB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MRSH,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MET,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,MS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,NTRS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PNC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PFG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PGR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,PRU,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,RJF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,RF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,HOOD,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,STT,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,SYF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TROW,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TRV,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,TFC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,USB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WRB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WFC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,WTW,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,FDXF,missing_metric,Medium,return_12_1 is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,Q,missing_metric,Medium,return_12_1 is missing/NaN,Left as NaN; weight redistributed to available metrics
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"ev_ebitda: 5 at/below 4.808, 5 at/above 210.1 (1th/99th pctile of 438 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"fcf_yield: 5 at/below -0.08197, 5 at/above 0.1874 (1th/99th pctile of 465 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"earnings_yield: 6 at/below -0.1274, 6 at/above 0.1488 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"ev_sales: 5 at/below 0.3133, 5 at/above 27.91 (1th/99th pctile of 441 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"pb_ratio: 1 at/below 0.5432, 1 at/above 10.31 (1th/99th pctile of 59 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"roic: 5 at/below -0.09227, 5 at/above 0.8733 (1th/99th pctile of 442 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"gross_profit_assets: 5 at/below 0.0443, 5 at/above 0.8342 (1th/99th pctile of 433 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"debt_equity: 5 at/below 0.006064, 5 at/above 32.59 (1th/99th pctile of 411 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"net_debt_to_ebitda: 47 at/below 0, 5 at/above 17.17 (1th/99th pctile of 438 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"piotroski_f_score: 16 at/below 3, 17 at/above 9 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"accruals: 5 at/below -0.163, 5 at/above 0.06393 (1th/99th pctile of 498 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"operating_leverage: 4 at/below -24.7, 4 at/above 57.36 (1th/99th pctile of 392 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"beneish_m_score: 5 at/below -3.514, 5 at/above -0.08159 (1th/99th pctile of 441 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"roe: 1 at/below -0.03628, 1 at/above 0.5339 (1th/99th pctile of 59 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"roa: 1 at/below 0.004001, 1 at/above 0.1422 (1th/99th pctile of 59 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"equity_ratio: 1 at/below 0.02869, 1 at/above 0.7032 (1th/99th pctile of 59 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"forward_eps_growth: 4 at/below -0.5742, 4 at/above 0.9443 (1th/99th pctile of 398 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"peg_ratio: 4 at/below 0.2105, 4 at/above 8.457 (1th/99th pctile of 344 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"revenue_growth: 5 at/below -0.113, 5 at/above 1.137 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"revenue_cagr_3yr: 6 at/below -0.1517, 6 at/above 0.4893 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"sustainable_growth: 37 at/below 0, 12 at/above 1 (1th/99th pctile of 446 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"return_12_1: 5 at/below -0.5102, 5 at/above 2.948 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"return_6m: 5 at/below -0.3002, 5 at/above 1.129 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"jensens_alpha: 5 at/below -0.6965, 5 at/above 2.188 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"volatility: 5 at/below 0.16, 5 at/above 0.8453 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"beta: 5 at/below -0.5707, 5 at/above 3.23 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"sharpe_ratio: 5 at/below -1.47, 5 at/above 4.225 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"sortino_ratio: 5 at/below -1.926, 5 at/above 6.986 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"max_drawdown_1y: 5 at/below -0.6358, 5 at/above -0.1025 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"fy1_revision_3m: 5 at/below -0.01897, 5 at/above 0.02713 (1th/99th pctile of 498 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"analyst_surprise: 5 at/below -0.325, 5 at/above 0.7003 (1th/99th pctile of 497 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"price_target_upside: 5 at/below -0.09296, 5 at/above 0.6882 (1th/99th pctile of 496 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"earnings_acceleration: 5 at/below -2.127, 5 at/above 1.242 (1th/99th pctile of 497 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"consecutive_beat_streak: 10 at/below 1, 283 at/above 10 (1th/99th pctile of 497 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"short_interest_ratio: 5 at/below 1.458, 5 at/above 12.59 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"size_log_mcap: 6 at/below -28.64, 6 at/above -22.78 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"asset_growth: 5 at/below -0.16, 5 at/above 1.056 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"proximity_52w_high: 6 at/below 0.3979, 6 at/above 0.9905 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"operating_margin: 5 at/below -0.1352, 5 at/above 0.7781 (1th/99th pctile of 441 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"current_ratio: 5 at/below 0.2036, 5 at/above 7.463 (1th/99th pctile of 440 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"dividend_yield: 5 at/below 0.001026, 5 at/above 0.06586 (1th/99th pctile of 402 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"insider_ownership: 5 at/below 0.0004293, 5 at/above 0.4548 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"short_pct_float: 5 at/below 0.009094, 5 at/above 0.1879 (1th/99th pctile of 498 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"analyst_rating: 5 at/below 1.28, 5 at/above 3.242 (1th/99th pctile of 486 values)",Reported only - the value is scored and published as fetched
-2026-10-09 02:17:24,UNIVERSE,outlier_flagged,Low,"interest_coverage: 4 at/below -6.085, 4 at/above 396.6 (1th/99th pctile of 400 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,HONA,missing_metric,Medium,Insufficient metric coverage (< 60%),Excluded from scoring
+2026-10-09 15:23:20,VYLR,missing_metric,Medium,Insufficient metric coverage (< 60%),Excluded from scoring
+2026-10-09 15:23:20,AFL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ALL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AXP,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AIG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AMP,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,APO,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ACGL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AIZ,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BAC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BRK-B,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BX,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BNY,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BA,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,COF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,SCHW,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CINF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,C,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CFG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ERIE,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,EG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,FITB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,GL,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,GS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HIG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HBAN,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,IBKR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,IVZ,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,JPM,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,KEY,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,KKR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,L,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MTB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MET,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MRNA,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,NTRS,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PNC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PFG,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PGR,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PRU,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,RJF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,RF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HOOD,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,STT,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,SYF,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,TRV,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,TFC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,USB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,WRB,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,WFC,missing_metric,Medium,ev_ebitda is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AFL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ALL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AXP,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AIG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AMP,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,APO,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ACGL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,AIZ,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BAC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BRK-B,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BX,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,BNY,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,COF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,SCHW,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CINF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,C,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,CFG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,ERIE,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,EG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,FITB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,GL,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,GS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HIG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HBAN,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,IBKR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,JPM,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,KEY,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,KKR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,L,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MTB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MET,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,MS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,NTRS,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PNC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PFG,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PGR,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,PRU,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,RJF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,RF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,HOOD,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,STT,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,SYF,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,TRV,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,TFC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,USB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,WRB,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,WFC,missing_metric,Medium,roic is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,FDXF,missing_metric,Medium,return_12_1 is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,Q,missing_metric,Medium,return_12_1 is missing/NaN,Left as NaN; weight redistributed to available metrics
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"ev_ebitda: 5 at/below 4.817, 5 at/above 188.1 (1th/99th pctile of 450 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"fcf_yield: 5 at/below -0.08273, 5 at/above 0.1883 (1th/99th pctile of 459 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"earnings_yield: 6 at/below -0.1308, 6 at/above 0.1528 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"ev_sales: 5 at/below 0.3247, 5 at/above 27.76 (1th/99th pctile of 454 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"pb_ratio: 1 at/below 0.4162, 1 at/above 8.816 (1th/99th pctile of 46 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"roic: 5 at/below -0.02537, 5 at/above 0.7754 (1th/99th pctile of 453 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"gross_profit_assets: 5 at/below 0.04445, 5 at/above 0.8329 (1th/99th pctile of 444 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"debt_equity: 5 at/below 0.006105, 5 at/above 31.68 (1th/99th pctile of 424 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"net_debt_to_ebitda: 64 at/below 0, 5 at/above 8.444 (1th/99th pctile of 450 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"piotroski_f_score: 5 at/below 2.98, 13 at/above 9 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"accruals: 5 at/below -0.163, 5 at/above 0.06393 (1th/99th pctile of 498 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"operating_leverage: 5 at/below -11.55, 5 at/above 21.72 (1th/99th pctile of 410 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"beneish_m_score: 5 at/below -3.532, 5 at/above -0.05564 (1th/99th pctile of 423 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"roe: 1 at/below 0.07247, 1 at/above 0.5564 (1th/99th pctile of 46 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"roa: 1 at/below 0.003893, 1 at/above 0.083 (1th/99th pctile of 46 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"equity_ratio: 1 at/below 0.02761, 1 at/above 0.4973 (1th/99th pctile of 46 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"forward_eps_growth: 5 at/below -0.349, 5 at/above 1.425 (1th/99th pctile of 491 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"peg_ratio: 5 at/below 0.2138, 5 at/above 18.49 (1th/99th pctile of 413 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"revenue_growth: 6 at/below -0.1049, 6 at/above 1.059 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"revenue_cagr_3yr: 6 at/below -0.1517, 6 at/above 0.4893 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"sustainable_growth: 37 at/below 0, 12 at/above 1 (1th/99th pctile of 445 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"return_12_1: 5 at/below -0.5092, 5 at/above 3.017 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"return_6m: 5 at/below -0.319, 5 at/above 1.152 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"jensens_alpha: 5 at/below -0.7881, 5 at/above 2.148 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"volatility: 5 at/below 0.16, 5 at/above 0.845 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"beta: 5 at/below -0.6461, 5 at/above 3.212 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"sharpe_ratio: 5 at/below -1.429, 5 at/above 4.133 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"sortino_ratio: 5 at/below -1.904, 5 at/above 7.722 (1th/99th pctile of 499 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"max_drawdown_1y: 5 at/below -0.6358, 5 at/above -0.1025 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"fy1_revision_3m: 5 at/below -0.01475, 5 at/above 0.02809 (1th/99th pctile of 495 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"analyst_surprise: 5 at/below -0.3254, 5 at/above 0.7004 (1th/99th pctile of 496 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"price_target_upside: 5 at/below -0.1081, 5 at/above 0.6818 (1th/99th pctile of 496 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"earnings_acceleration: 5 at/below -2.132, 5 at/above 1.247 (1th/99th pctile of 495 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"consecutive_beat_streak: 10 at/below 1, 286 at/above 10 (1th/99th pctile of 496 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"short_interest_ratio: 5 at/below 1.458, 5 at/above 12.59 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"size_log_mcap: 6 at/below -28.67, 6 at/above -22.78 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"asset_growth: 5 at/below -0.1627, 5 at/above 1.059 (1th/99th pctile of 497 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"proximity_52w_high: 6 at/below 0.3833, 6 at/above 0.9968 (1th/99th pctile of 501 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"operating_margin: 5 at/below -0.02313, 5 at/above 0.6564 (1th/99th pctile of 452 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"current_ratio: 5 at/below 0.2045, 5 at/above 9.736 (1th/99th pctile of 451 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"dividend_yield: 5 at/below 0.001016, 5 at/above 0.06792 (1th/99th pctile of 402 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"insider_ownership: 5 at/below 0.0004293, 5 at/above 0.4548 (1th/99th pctile of 500 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"short_pct_float: 5 at/below 0.009094, 5 at/above 0.1879 (1th/99th pctile of 498 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"analyst_rating: 5 at/below 1.28, 5 at/above 3.241 (1th/99th pctile of 487 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"interest_coverage: 4 at/below -2.101, 4 at/above 395.5 (1th/99th pctile of 398 values)",Reported only - the value is scored and published as fetched
+2026-10-09 15:23:20,UNIVERSE,outlier_flagged,Low,"earnings_variability: 5 at/below 0.006213, 5 at/above 1.006 (1th/99th pctile of 443 values)",Reported only - the value is scored and published as fetched

@@ -125,6 +125,22 @@
    "effective_observations": 0,
    "mean_ic_all_days": null,
    "meets_gate": false
+  },
+  "earnings_yield_vs_own_history": {
+   "definition": "today's earnings yield as a percentile of its own past 60 month-ends",
+   "positive_ic_means": "stocks whose earnings yield sat higher in their own range did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "fcf_yield_vs_own_history": {
+   "definition": "today's free-cash-flow yield as a percentile of its own past 60 month-ends",
+   "positive_ic_means": "stocks whose FCF yield sat higher in their own range did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
   }
  },
  "first_forward_window_closes": "2026-11-07",
