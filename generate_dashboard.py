@@ -2918,12 +2918,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
           +   trap
           +   '<span class="holding-spacer"></span>'
           +   deltaChip
-          +   '<span class="holding-composite" title="Composite score - a universe percentile">'
+          +   '<span class="holding-composite" title="Composite score - the weighted blend of the eight category scores, 0-100; the ranking key">'
           +     ((s.composite === null || s.composite === undefined) ? '--' : s.composite.toFixed(1)) + '</span>'
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
+          + (function() {{
+                // Context, never part of the score: trend, options, insiders (the drilldown's teaser line).
+                const bits = (typeof ctxBits === 'function') ? ctxBits(s) : [];
+                return bits.length ? '<p class="holding-ctx"><span class="holding-ctx-k">Context</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '</p>' : '';
+            }})()
           + '</div>';
     }}
 
@@ -8788,11 +8793,10 @@ def _js_context() -> str:
     }
 
     // ---- the teaser under "Why it ranks here" ------------------------------------
-    function renderCtxTeaser(s) {
-        const el = document.getElementById('modal-ctx-teaser');
-        if (!el) return;
-        const c = s.ctx;
-        if (!c) { el.innerHTML = ''; el.hidden = true; return; }
+    // The one-line context summary, shared by the drilldown teaser and each My Holdings card.
+    function ctxBits(s) {
+        const c = s && s.ctx;
+        if (!c) return [];
         const bits = [];
         const tr = trendOf(c);
         if (tr) bits.push('<span><b>' + TREND_WORD[tr] + '</b> ' + cPct(c.px / c.s200 - 1) + ' vs 200-day</span>');
@@ -8800,6 +8804,12 @@ def _js_context() -> str:
         const ins = c.ins;
         if (ins && ins.buy_n) bits.push('<span><b>' + ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ' bought</b> in 90 days</span>');
         else if (ins && ins.sell_n) bits.push('<span>Insiders: ' + ins.sell_n + ' sale' + (ins.sell_n === 1 ? '' : 's') + ', no buys in 90 days</span>');
+        return bits;
+    }
+    function renderCtxTeaser(s) {
+        const el = document.getElementById('modal-ctx-teaser');
+        if (!el) return;
+        const bits = ctxBits(s);
         if (!bits.length) { el.innerHTML = ''; el.hidden = true; return; }
         el.hidden = false;
         el.innerHTML = '<button type="button" class="ctx-teaser-btn" onclick="goToModal(\'section-context\')"><span class="ctx-teaser-k">Before you decide</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '<span class="ctx-teaser-go" aria-hidden="true">&rsaquo;</span></button>';
@@ -9145,6 +9155,7 @@ def _js_context() -> str:
             if (sel && sel.value !== 'all') applyFilters();
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
             if (RP_DONE) renderReporting();
+            if (typeof renderHoldings === 'function') renderHoldings();
             ['sec-market', 'sec-track'].forEach(id => {
                 const el2 = document.getElementById(id);
                 if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
@@ -9221,6 +9232,8 @@ def _css_context() -> str:
         .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
         .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
         .ctx-sell { color: var(--text-secondary) !important; }
+        .holding-ctx { margin: 8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .holding-ctx-k { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
         .rp-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .rp-wrap { overflow-x: auto; }
         .rp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }

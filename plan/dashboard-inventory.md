@@ -31,6 +31,9 @@ leaving it wrong.
   earnings variability (a weight-0 candidate) shows its five years of ROE (`roe5`).
 - **Labels:** "6-1M Return", "Max Drawdown (13M)". **Company Snapshot** "YoY" lines compare periods
   exactly a year apart and say which; its EBITDA is the engine's.
+- **My Holdings** cards carry the drilldown's context line (trend, options, insiders - `ctxBits`, shared
+  with the teaser), re-rendered when the context file lands; the composite tooltip no longer calls the
+  composite "a universe percentile" (false since Phase 13).
 - **Context panel** research sentences scoped and dated (Faber on indices; Lehmann weekly; XZZ
   1996-2005). **Track Record** caveats name picks the price source no longer serves.
 
