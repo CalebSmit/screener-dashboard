@@ -26,13 +26,13 @@ Rationale: High-quality companies (profitable, low leverage, strong fundamentals
 
 | Metric | Weight | Formula | Why It Exists |
 |--------|--------|---------|---------------|
-| **ROIC** | 27% | `EBIT × (1 - tax_rate) / IC` where IC = Equity + Debt_BS - ExcessCash; ExcessCash = min(max(0, Cash - 2%×Rev), 50%×Cash); IC = max(IC, 10%×TotalAssets) | Measures management's ability to deploy capital profitably. Tax rate: actual effective rate (clamped 0-50%) when pretax > 0; **0% when pretax ≤ 0** (tax-loss position — no fictional tax charge); 21% default when both pretax and tax expense are missing. Excess cash capped at 50% of total cash; IC floored at 10% of total assets to prevent denominator collapse. |
-| **Gross Profit / Assets** | 20% | `Gross Profit / Total Assets` | Novy-Marx quality factor; closer to "economic profitability" than net margin because it's above operating expenses. |
-| **Net Debt / EBITDA** | 18% | `(Total Debt - Cash) / EBITDA`; net cash → 0.0; negative EBITDA → NaN; banks → NaN | Replaces Debt/Equity: negative equity from buybacks (MCD, MO, LOW) distorts D/E. Net Debt/EBITDA works across all capital structures. |
-| **Piotroski F-Score** | 15% | 9 binary signals scored 0-9 | Composite financial health indicator covering profitability, leverage, liquidity, and operating efficiency (Piotroski 2000). |
+| **ROIC** | 29% | `EBIT × (1 - tax_rate) / IC` where IC = Equity + Debt_BS - ExcessCash; ExcessCash = min(max(0, Cash - 2%×Rev), 50%×Cash); IC = max(IC, 10%×TotalAssets) | Measures management's ability to deploy capital profitably. Tax rate: actual effective rate (clamped 0-50%) when pretax > 0; **0% when pretax ≤ 0** (tax-loss position — no fictional tax charge); 21% default when both pretax and tax expense are missing. Excess cash capped at 50% of total cash; IC floored at 10% of total assets to prevent denominator collapse. |
+| **Gross Profit / Assets** | 22% | `Gross Profit / Total Assets` | Novy-Marx quality factor; closer to "economic profitability" than net margin because it's above operating expenses. |
+| **Net Debt / EBITDA** | 20% | `(Total Debt - Cash) / EBITDA`; net cash → 0.0; negative EBITDA → NaN; banks → NaN | Replaces Debt/Equity: negative equity from buybacks (MCD, MO, LOW) distorts D/E. Net Debt/EBITDA works across all capital structures. |
+| **Piotroski F-Score** | 16% | 9 binary signals scored 0-9; signals 3, 8, 9 compare the latest two fiscal years on beginning-of-year assets (since 2026-10-09) | Composite financial health indicator covering profitability, leverage, liquidity, and operating efficiency (Piotroski 2000). |
 | **Accruals** | 5% | `(Net Income - OCF) / Total Assets` | Earnings quality; lower accruals = more cash-backed earnings = higher quality (Sloan 1996). |
-| **Operating Leverage** | 8% | `(%Δ EBIT) / (%Δ Revenue)`; \|Δ Rev\| < 1% → NaN; banks → NaN | Degree of Operating Leverage (DOL). Lower = more durable earnings (less sensitivity to revenue swings). |
-| **Beneish M-Score** | 7% | 8-variable model from Beneish (1999) on annual financials; requires ≥ 5 of 8 index variables to have real data (otherwise NaN) | Earnings manipulation detection. More negative = lower manipulation risk. Non-bank only. Minimum-data gate prevents spurious scores when too many inputs are missing. |
+| **Operating Leverage** | 0% (candidate since 2026-10-09) | `(%Δ EBIT) / (%Δ Revenue)`; \|Δ Rev\| < 1% → NaN; banks → NaN | Recorded but unweighted: a one-year ratio of changes rewarded margin squeezes, and the literature finds higher operating leverage earns more, not less (`research/2026-10-09-operating-leverage.md`). |
+| **Beneish M-Score** | 8% | 8-variable model from Beneish (1999) on annual financials; requires ≥ 5 of 8 index variables to have real data (otherwise NaN) | Earnings manipulation detection. More negative = lower manipulation risk. Non-bank only. Minimum-data gate prevents spurious scores when too many inputs are missing. |
 
 ### 1.3 Growth (Weight: 13%)
 
@@ -259,16 +259,20 @@ To achieve point-in-time safety, the system would need:
 Valuation: 22  |  Quality: 22  |  Growth: 13  |  Momentum: 13  |  Risk: 10  |  Revisions: 10  |  Size: 5  |  Investment: 5
 ```
 
-**Metric Weights** (each category sums to 100):
+**Metric Weights** (each category sums to 100). `config.yaml` is the source of truth and the
+generated `SCREENER_OVERVIEW.md` restates it every run; this block was last synced 2026-10-09.
 ```
-Valuation:  FCF Yield 45, EV/EBITDA 25 (EBIT+D&A), Earnings Yield 20 (LTM NI/MC), EV/Sales 10
-Quality:    ROIC 27 (50% cash cap, 10% TA floor, 0% tax for losses), GP/Assets 20, Net Debt/EBITDA 18, Piotroski 15, Operating Leverage 8, Beneish M-Score 7, Accruals 5
-Growth:     Forward EPS 45 (clamp [-75%,+150%]), Revenue Growth 25, Revenue CAGR 3Y 15, Sustainable Growth 15 (avg equity, SGR [0%,100%]), PEG 0 (removed — double-counts valuation)
-Momentum:   12-1M Return 40, 6-1M Return 35, Jensen's Alpha 25
-Risk:       Volatility 30, Beta 20, Sharpe 15, Sortino 15, Max Drawdown 20
-Revisions:  Analyst Surprise 38, Earnings Acceleration 20, Beat Score 20, Price Target Upside 12, Short Interest Ratio 10
-Size:       -log(Market Cap) 100
-Investment: Asset Growth 100
+Valuation:   FCF Yield 45, EV/EBITDA 25 (EBIT+D&A), Earnings Yield 20 (LTM NI/MC), EV/Sales 10
+Quality:     ROIC 29, GP/Assets 22, Net Debt/EBITDA 20, Piotroski 16, Beneish M-Score 8, Accruals 5
+             (Operating Leverage 0 and Earnings Variability 0 are tracked candidates)
+Growth:      Forward EPS 45, Revenue Growth 25 (latest quarter vs the same quarter a year earlier),
+             Revenue CAGR 3Y 15, Sustainable Growth 15, PEG 0 (removed - double-counts valuation)
+Momentum:    12-1M Return 40, 6-1M Return 35, Jensen's Alpha 25
+Risk:        Volatility 42.86, Beta 28.57, Max Drawdown (13M) 28.57 (Sharpe and Sortino 0 since 2026-09-02)
+Revisions:   FY1 EPS Revision (90d) 35, Earnings Acceleration 20, Analyst Surprise 15,
+             Price Target Upside 10, Beat Score 10, Short Interest Ratio 10
+Size:        -log(Market Cap) 100
+Investment:  Asset Growth 100
 ```
 
 ### 5.3 Normalization Justification
