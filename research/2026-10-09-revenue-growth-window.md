@@ -75,11 +75,16 @@ noise proves to matter.
   12 months), 3-year revenue CAGR 15 (annual, smoothed), sustainable growth 15 (ROE x retention).
   The quarter definition makes revenue growth **less** redundant with the CAGR than the annual
   alternative would.
-- **Not changed today, same defect:** Piotroski signals 3 (ROA up), 8 (gross margin up) and 9
-  (asset turnover up) compare TTM figures with that same fiscal-year-before-last fallback, and the
-  Company Snapshot's "YoY" lines do too. Piotroski (2000) defines each signal on **annual** data,
-  year t against t-1 - so the literature-faithful fix there is fiscal year vs fiscal year, not
-  the quarter. That is its own change, with its own measurement; it is the next item.
+- **Same defect, fixed the same day:** Piotroski signals 3 (ROA up), 8 (gross margin up) and 9
+  (asset turnover up) compared TTM figures with that same fiscal-year-before-last fallback.
+  Piotroski (2000) defines each on **annual** data, year t against t-1, with ROA and turnover on
+  beginning-of-year total assets - so those three now compare the latest fiscal year with the one
+  before, on beginning-of-year assets, and a missing annual input leaves the signal untestable
+  rather than reviving the mix. Signals 5-7 already compared the latest quarter-end balance sheet
+  with the same quarter a year earlier, which is consistent, and are unchanged. On the 10-stock
+  test fixture this changed 2 of 10 F-scores.
+- **Still to do:** the Company Snapshot's "YoY" display lines compare the same TTM and fallback
+  figures; they are display-only and should show the same 12-month comparison.
 
 ## Sources
 

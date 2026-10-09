@@ -1007,6 +1007,15 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # same-basis endpoints (annual vs annual) instead of LTM vs annual.
         rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
         rec["totalRevenue_annual_prior"] = _stmt_val(fins, "Total Revenue", 1)
+        # Annual figures for Piotroski's three year-on-year signals (2026-10-09): net income
+        # and gross profit for the latest two fiscal years, total assets at the end of the
+        # latest three - Piotroski (2000) scales ROA and turnover by BEGINNING-of-year assets.
+        rec["_ni_a0"] = _stmt_val(fins, "Net Income", 0)
+        rec["_ni_a1"] = _stmt_val(fins, "Net Income", 1)
+        rec["_gp_a0"] = _stmt_val(fins, "Gross Profit", 0)
+        rec["_gp_a1"] = _stmt_val(fins, "Gross Profit", 1)
+        rec["_ta_a1"] = _stmt_val(bs, "Total Assets", 1)
+        rec["_ta_a2"] = _stmt_val(bs, "Total Assets", 2)
         if np.isnan(rec["ebit_prior"]):
             rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
 
@@ -1858,8 +1867,17 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 _sig[0] = int(ni > 0)
             if pd.notna(ocfv):
                 _sig[1] = int(ocfv > 0)
-            if all(pd.notna(x) for x in [ni, ni_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                _sig[2] = int((ni/ta) > (ni_p/ta_p))
+            # Signals 3, 8 and 9 compare the latest FISCAL YEAR with the one before, as
+            # Piotroski (2000) defines them; ROA and turnover use beginning-of-year assets.
+            # Until 2026-10-09 they compared TTM flows with the fiscal year before last - a
+            # 12-23 month span (research/2026-10-09-revenue-growth-window.md). Missing annual
+            # inputs leave the signal untestable rather than falling back to that mix.
+            _ni0, _ni1 = d.get("_ni_a0", np.nan), d.get("_ni_a1", np.nan)
+            _gp0, _gp1 = d.get("_gp_a0", np.nan), d.get("_gp_a1", np.nan)
+            _ta1, _ta2 = d.get("_ta_a1", np.nan), d.get("_ta_a2", np.nan)
+            _rv0, _rv1 = d.get("totalRevenue_annual", np.nan), d.get("totalRevenue_annual_prior", np.nan)
+            if all(pd.notna(x) for x in [_ni0, _ni1, _ta1, _ta2]) and _ta1 > 0 and _ta2 > 0:
+                _sig[2] = int((_ni0 / _ta1) > (_ni1 / _ta2))
             if pd.notna(ocfv) and pd.notna(ni):
                 _sig[3] = int(ocfv > ni)
             if all(pd.notna(x) for x in [ltd, ltd_p, ta, ta_p]) and ta > 0 and ta_p > 0:
@@ -1868,10 +1886,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 _sig[5] = int((ca_c/cl_c) > (ca_p/cl_p))
             if pd.notna(sh) and pd.notna(sh_p):
                 _sig[6] = int(sh <= sh_p)
-            if all(pd.notna(x) for x in [gp_v, gp_p, rev_c, rev_p]) and rev_c > 0 and rev_p > 0:
-                _sig[7] = int((gp_v/rev_c) > (gp_p/rev_p))
-            if all(pd.notna(x) for x in [rev_c, rev_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                _sig[8] = int((rev_c/ta) > (rev_p/ta_p))
+            if all(pd.notna(x) for x in [_gp0, _gp1, _rv0, _rv1]) and _rv0 > 0 and _rv1 > 0:
+                _sig[7] = int((_gp0 / _rv0) > (_gp1 / _rv1))
+            if all(pd.notna(x) for x in [_rv0, _rv1, _ta1, _ta2]) and _ta1 > 0 and _ta2 > 0:
+                _sig[8] = int((_rv0 / _ta1) > (_rv1 / _ta2))
             n_testable = sum(x is not None for x in _sig)
             f = sum(x for x in _sig if x is not None)
             rec["_pio_signals"] = "".join("-" if x is None else str(x) for x in _sig)

@@ -3124,3 +3124,32 @@ equation tests hold the page to the engine at a 99% bar on the first run.
 **Backtest observation (not decision-grade, rule 5):** none used.
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit (restores the TTM / fallback comparison).
+
+---
+
+## 2026-10-09 (owner-run) - Piotroski signals 3, 8 and 9 compare two fiscal years, as Piotroski defines them
+
+**Area:** metric definition (Quality, `piotroski_f_score`)
+**Changed:** signal 3 (ROA rose), 8 (gross margin rose) and 9 (asset turnover rose) from TTM
+figures against the fiscal year before last (12-23 months apart; see the revenue-growth entry
+above) to **the latest fiscal year against the one before**, with ROA and turnover on
+**beginning-of-year total assets**. New fetch fields `_ni_a0/_ni_a1`, `_gp_a0/_gp_a1`,
+`_ta_a1/_ta_a2` (annual statements). Missing annual inputs make the signal untestable. Signals
+1, 2, 4 (current-period levels) and 5-7 (quarter-end balance sheet vs the same quarter a year
+earlier) are unchanged. Weight unchanged (16% of Quality since this morning).
+
+**Evidence:** Piotroski, J. (2000), *Journal of Accounting Research* 38 (supplement), 1-41: every
+change signal is defined on annual Compustat data, year t against t-1, with ROA = net income
+before extraordinary items / beginning-of-year total assets and turnover = sales / beginning
+total assets. The old comparison's window is measured in
+`research/2026-10-09-revenue-growth-window.md` (18 months for December year-ends, 12 for May-July).
+
+**Expected effect:** a minority of F-scores move by one or two points; on the 10-stock fixture 2 of
+10 changed (JNJ 8 -> 7, PG 8 -> 6). **Measured effect on the first live run:** recorded below by
+the session that runs it.
+
+**Validated by:** `tests/test_metrics.py::TestPiotroskiFScore` (inputs extended to the annual
+fields); golden fixture regenerated with the annual fields mapped from the existing ones.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.

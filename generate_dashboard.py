@@ -4188,7 +4188,7 @@ def _js_workings() -> str:
         'Net income is positive', 'Operating cash flow is positive',
         'Return on assets rose from the prior year', 'Operating cash flow exceeds net income',
         'Long-term debt relative to assets fell', 'Current ratio rose',
-        'No net new shares issued', 'Gross margin rose', 'Asset turnover rose'
+        'No net new shares issued', 'Gross margin rose from the prior year', 'Asset turnover rose from the prior year'
     ];
     const BENEISH_INDICES = [
         ['DSRI', 'Days sales in receivables', 0.920], ['GMI', 'Gross margin', 0.528],

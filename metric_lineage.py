@@ -331,7 +331,7 @@ LINEAGE = {
                              caveat="This EBITDA is EBIT + D&A when D&A is non-negative, which can differ from the EBITDA used for EV/EBITDA and from the figure in Company Snapshot."),
     "piotroski_f_score": _L("Count of nine pass/fail financial-health signals",
                             how="Each signal is 1 (pass) or 0 (fail); a signal whose inputs are missing is not testable and is neither. A score needs at least 6 testable signals, so scores based on 6 and on 9 signals are not strictly comparable.",
-                            caveat="Signal 1 is 'net income > 0' (the published test uses ROA > 0, which has the same sign). Comparisons use this year's and the prior fiscal year's statements, with the prior-year window described under Revenue growth.",
+                            caveat="Signal 1 is 'net income > 0' (the published test uses ROA > 0, which has the same sign). Signals 3, 8 and 9 compare the latest fiscal year with the one before, as Piotroski (2000) defines them, with return on assets and asset turnover on beginning-of-year assets; signals 5-7 compare the latest quarter-end balance sheet with the same quarter a year earlier. Until 2026-10-09 signals 3, 8 and 9 compared trailing-twelve-month figures with the fiscal year before last.",
                             kind="components"),
     "accruals": _L("(Net income - operating cash flow) / total assets",
                    [("Net income (TTM)", "netIncome", USD), ("Operating cash flow (TTM)", "operatingCashFlow", USD),

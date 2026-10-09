@@ -52,7 +52,15 @@
     "totalEquity_prior": 55200000000,
     "payoutRatio": null,
     "_fy1_eps_current": 7.2,
-    "_fy1_eps_90d_ago": 7.05
+    "_fy1_eps_90d_ago": 7.05,
+    "totalRevenue_annual": 390000000000,
+    "totalRevenue_annual_prior": 365000000000,
+    "_ni_a0": 100000000000,
+    "_ni_a1": 90000000000,
+    "_gp_a0": 175000000000,
+    "_gp_a1": 160000000000,
+    "_ta_a1": 330000000000,
+    "_ta_a2": 313500000000
   },
   {
     "Ticker": "MSFT",
@@ -107,7 +115,15 @@
     "totalEquity_prior": 184000000000,
     "payoutRatio": null,
     "_fy1_eps_current": 14.0,
-    "_fy1_eps_90d_ago": 13.55
+    "_fy1_eps_90d_ago": 13.55,
+    "totalRevenue_annual": 240000000000,
+    "totalRevenue_annual_prior": 210000000000,
+    "_ni_a0": 90000000000,
+    "_ni_a1": 75000000000,
+    "_gp_a0": 165000000000,
+    "_gp_a1": 145000000000,
+    "_ta_a1": 380000000000,
+    "_ta_a2": 361000000000
   },
   {
     "Ticker": "JPM",
@@ -162,7 +178,15 @@
     "totalEquity_prior": 276000000000,
     "payoutRatio": null,
     "_fy1_eps_current": 17.0,
-    "_fy1_eps_90d_ago": 17.3
+    "_fy1_eps_90d_ago": 17.3,
+    "totalRevenue_annual": 160000000000,
+    "totalRevenue_annual_prior": 150000000000,
+    "_ni_a0": 50000000000,
+    "_ni_a1": 45000000000,
+    "_gp_a0": 160000000000,
+    "_gp_a1": 150000000000,
+    "_ta_a1": 3700000000000,
+    "_ta_a2": 3515000000000
   },
   {
     "Ticker": "JNJ",
@@ -217,7 +241,15 @@
     "totalEquity_prior": 64400000000,
     "payoutRatio": null,
     "_fy1_eps_current": 6.4,
-    "_fy1_eps_90d_ago": 6.42
+    "_fy1_eps_90d_ago": 6.42,
+    "totalRevenue_annual": 85000000000,
+    "totalRevenue_annual_prior": 82000000000,
+    "_ni_a0": 18000000000,
+    "_ni_a1": 17000000000,
+    "_gp_a0": 58000000000,
+    "_gp_a1": 55000000000,
+    "_ta_a1": 175000000000,
+    "_ta_a2": 166250000000
   },
   {
     "Ticker": "XOM",
@@ -272,7 +304,15 @@
     "totalEquity_prior": 184000000000,
     "payoutRatio": null,
     "_fy1_eps_current": 7.8,
-    "_fy1_eps_90d_ago": 8.35
+    "_fy1_eps_90d_ago": 8.35,
+    "totalRevenue_annual": 340000000000,
+    "totalRevenue_annual_prior": 380000000000,
+    "_ni_a0": 35000000000,
+    "_ni_a1": 55000000000,
+    "_gp_a0": 90000000000,
+    "_gp_a1": 110000000000,
+    "_ta_a1": 360000000000,
+    "_ta_a2": 342000000000
   },
   {
     "Ticker": "LOSS",
@@ -328,7 +368,15 @@
     "totalEquity_prior": 2760000000,
     "payoutRatio": null,
     "_fy1_eps_current": -1.0,
-    "_fy1_eps_90d_ago": -1.35
+    "_fy1_eps_90d_ago": -1.35,
+    "totalRevenue_annual": 3000000000,
+    "totalRevenue_annual_prior": 2500000000,
+    "_ni_a0": -500000000,
+    "_ni_a1": -300000000,
+    "_gp_a0": 800000000,
+    "_gp_a1": 600000000,
+    "_ta_a1": 7500000000,
+    "_ta_a2": 7125000000
   },
   {
     "Ticker": "ZERO",
@@ -384,7 +432,15 @@
     "totalEquity_prior": -460000000,
     "payoutRatio": null,
     "_fy1_eps_current": 0.8,
-    "_fy1_eps_90d_ago": 0.78
+    "_fy1_eps_90d_ago": 0.78,
+    "totalRevenue_annual": 5000000000,
+    "totalRevenue_annual_prior": 4000000000,
+    "_ni_a0": 100000000,
+    "_ni_a1": -200000000,
+    "_gp_a0": 2000000000,
+    "_gp_a1": 1500000000,
+    "_ta_a1": 11000000000,
+    "_ta_a2": 10450000000
   },
   {
     "Ticker": "SPARSE",
@@ -438,7 +494,15 @@
     "numberOfAnalystOpinions": null,
     "da_cf": null,
     "totalEquity_prior": 9200000000,
-    "payoutRatio": null
+    "payoutRatio": null,
+    "totalRevenue_annual": 10000000000,
+    "totalRevenue_annual_prior": null,
+    "_ni_a0": 750000000,
+    "_ni_a1": null,
+    "_gp_a0": 6000000000,
+    "_gp_a1": null,
+    "_ta_a1": null,
+    "_ta_a2": null
   },
   {
     "Ticker": "PG",
@@ -493,7 +557,15 @@
     "totalEquity_prior": 41400000000,
     "payoutRatio": null,
     "_fy1_eps_current": 6.6,
-    "_fy1_eps_90d_ago": 6.58
+    "_fy1_eps_90d_ago": 6.58,
+    "totalRevenue_annual": 82000000000,
+    "totalRevenue_annual_prior": 80000000000,
+    "_ni_a0": 15000000000,
+    "_ni_a1": 14500000000,
+    "_gp_a0": 40000000000,
+    "_gp_a1": 38000000000,
+    "_ta_a1": 118000000000,
+    "_ta_a2": 112100000000
   },
   {
     "Ticker": "HD",
@@ -548,6 +620,14 @@
     "totalEquity_prior": -1840000000,
     "payoutRatio": null,
     "_fy1_eps_current": 17.5,
-    "_fy1_eps_90d_ago": 17.1
+    "_fy1_eps_90d_ago": 17.1,
+    "totalRevenue_annual": 155000000000,
+    "totalRevenue_annual_prior": 150000000000,
+    "_ni_a0": 16000000000,
+    "_ni_a1": 15000000000,
+    "_gp_a0": 52000000000,
+    "_gp_a1": 50000000000,
+    "_ta_a1": 72000000000,
+    "_ta_a2": 68400000000
   }
 ]
