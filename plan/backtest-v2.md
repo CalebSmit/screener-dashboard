@@ -380,7 +380,12 @@ system talks itself into noise.
    costed and chosen ($199/yr, Sharadar), and the decision is to buy it *after*
    step 3, not before. Free data covers 57% of the needed name-months, not the 40%
    previously recorded.
-3. Point-in-time fundamentals with reporting lags. **Now ahead of step 2.** Start
+3. Point-in-time fundamentals with reporting lags. **Data layer BUILT 2026-10-09 (owner-run):**
+   `pit_fundamentals.PointInTime` answers instant / annual / quarter "as filed by date d" from the
+   census's XBRL facts cache (restatements count from their filing date; comparatives in later
+   filings change nothing; tag switches keep the series). Not imported by v1 or production
+   (`tests/test_pit_fundamentals.py`). Next: the 34.1 price points, then v2 recomputing each
+   fundamentals metric per month from this layer - in one piece. **Now ahead of step 2.** Start
    with the 34.1pp that needs no data source; then size the 49.0pp fundamentals
    half via SEC EDGAR XBRL `companyconcept` (free, carries a `filed` date per
    fact); expect the 9.0pp of analyst-estimate metrics to be reportable only as
