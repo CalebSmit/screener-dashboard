@@ -223,3 +223,14 @@ def test_a_subset_run_never_writes_the_universe_cache():
     import run_screener
     assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers=None)) is True
     assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers="AAPL,MSFT")) is False
+
+
+def test_a_subset_run_never_rewrites_the_universe_records():
+    """The track record, the context-signal log (committed evidence) and its evaluation are
+    whole-universe records; a --tickers run reached all three until 2026-10-09."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "run_screener.py").read_text(encoding="utf-8")
+    guard = src.index('elif cfg.get("context", {}).get("enabled", True):')
+    assert 'and not _universe_run:' in src[guard - 300:guard]
+    for call in ("track_record.build_from_disk(", "context_signals.write_context_log(", "context_eval.evaluate("):
+        assert src.count(call) == 1 and src.index(call) > guard, call
