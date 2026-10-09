@@ -626,11 +626,12 @@ class TestSchemaValidation:
         assert ic.candidate_ic_threshold == 0.02
 
     def test_candidate_metrics_constant(self):
-        """CANDIDATE_METRICS should contain exactly the 8 candidates."""
-        assert len(ie.CANDIDATE_METRICS) == 8
+        """CANDIDATE_METRICS should contain exactly the 9 candidates
+        (earnings_variability added 2026-10-09, research/2026-10-09-operating-leverage.md)."""
+        assert len(ie.CANDIDATE_METRICS) == 9
         expected = {
             "proximity_52w_high", "operating_margin", "current_ratio",
             "dividend_yield", "insider_ownership", "short_pct_float",
-            "analyst_rating", "interest_coverage",
+            "analyst_rating", "interest_coverage", "earnings_variability",
         }
         assert ie.CANDIDATE_METRICS == expected
