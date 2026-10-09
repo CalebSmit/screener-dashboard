@@ -148,7 +148,9 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    separate *routine* from *opportunistic* insiders by each person's own trading calendar; the
    180-day cache is too short for their three-year rule, so it needs a longer retention before it can
    be built.
-4. **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
+4. **Step one done 2026-10-09 (owner-run):** every research sentence the panel prints was checked against
+   its source and three were corrected (`research/2026-10-09-context-panel-claims.md`). Still to do -
+   **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
    200-day trend (Faber 2007; Brock, Lakonishok & LeBaron 1992), one-month reversal (Jegadeesh 1990;
    Lehmann 1990), implied-volatility skew (Xing, Zhang & Zhao 2010; Cremers & Weinbaum 2010 on put-call
    IV spreads), insider purchases (Lakonishok & Lee 2001; Jeng, Metrick & Zeckhauser 2003; Cohen, Malloy
