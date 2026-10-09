@@ -65,6 +65,8 @@ FACT_CONCEPTS = (
     "DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "AssetsCurrent",
     "LiabilitiesCurrent",
 )
+# Concepts reported in shares rather than dollars (valuation_history.py's market value).
+SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",)
 
 
 def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False,
@@ -101,8 +103,8 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
             failed += 1
             continue
         gaap = (j.get("facts") or {}).get("us-gaap") or {}
-        for c in FACT_CONCEPTS:
-            for f in ((gaap.get(c) or {}).get("units") or {}).get("USD", []):
+        for c, unit in [(c, "USD") for c in FACT_CONCEPTS] + [(c, "shares") for c in SHARE_CONCEPTS]:
+            for f in ((gaap.get(c) or {}).get("units") or {}).get(unit, []):
                 if f.get("form") in ("10-K", "10-Q", "10-K/A", "10-Q/A"):
                     rows.append((t, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
                                  f.get("fp"), f.get("val")))
