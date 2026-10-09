@@ -186,8 +186,10 @@ FACTOR_NOTES = [
      "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). "
              "The screener's volatility rule scales momentum's weight for exactly this reason; the stat strip shows this run's setting."},
     {"title": "Rates and long-duration stocks",
-     "text": "Companies whose value rests on profits far in the future are more sensitive to interest rates, the way a "
-             "long bond is. Each stock's drilldown shows how its price has actually moved with the 10-year yield."},
+     "text": "Companies whose value rests on profits far in the future behave more like a long bond - 'equity "
+             "duration' (Dechow, Sloan & Soliman 2004) - and such long-duration stocks have historically earned lower "
+             "average returns than short-duration ones, about 1.1% a month in 1963-2013 (Weber 2018). Each stock's "
+             "drilldown shows how its price has actually moved with the 10-year yield."},
 ]
 
 

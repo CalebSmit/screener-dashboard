@@ -39,3 +39,13 @@ high and profitability, and stronger on the long side. The panel now says so, an
 recorded, not scored. Han, Zhou & Zhu (2016, *JFE* 122(2)) combine moving averages of 3 to 1,000 days
 into a "trend factor" with roughly double the Sharpe ratio of momentum; it is a heavier construction
 than a context panel needs, noted for any future scoring argument.
+
+## Addendum: the market backdrop's rates note
+
+"Companies whose value rests on profits far in the future are more sensitive to interest rates" had
+no source. It now cites Dechow, Sloan & Soliman (2004, *Review of Accounting Studies* 9, 197-228),
+who adapt bond duration to equities ("implied equity duration", strongly correlated with volatility
+and beta), and Weber (2018, *JFE* 128(3), 486-503): stocks with high cash-flow duration earned 1.10%
+a month less than short-duration stocks, 1963-2013, a pattern the working paper reports for small
+and large stocks alike. The drilldown's measured rate sensitivity (return per +1pp in the 10-year)
+is this stock's realised behaviour, which the note points to rather than to a model estimate.
