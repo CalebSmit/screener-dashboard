@@ -1331,6 +1331,29 @@ def run_factor_engine(cfg, args, ctx=None):
                     raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900))
             except Exception as e:  # noqa: BLE001 - context must never stop a run
                 print(f"  WARNING: context pass unavailable: {e}")
+            # Insider trades from the SEC's own Form 4 filings where an identity with a contact
+            # email is configured (outside the repo - insider_activity.user_agent); each stock
+            # whose SEC record is fresh replaces the Yahoo rows the pass above fetched.
+            try:
+                import json as _json
+                from datetime import date as _date
+                import insider_activity as _ia
+                if _ia.user_agent():
+                    _today = _date.today()
+                    _cache = _ia.refresh([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r],
+                                         today=_today,
+                                         budget_seconds=cfg.get("context", {}).get("sec_budget_seconds", 900))
+                    _n_sec = 0
+                    for _r in raw:
+                        _rows = _ia.sec_rows_for(_cache, _r.get("Ticker"), _today)
+                        if _rows is not None:
+                            _r["_ctx_insider"] = _json.dumps(_rows, separators=(",", ":"))
+                            _r["_ctx_insider_src"] = "sec"
+                            _n_sec += 1
+                    stats["context_sec_insider"] = _n_sec
+                    print(f"  Context: insider trades from SEC Form 4 for {_n_sec} stocks; Yahoo's feed for the rest")
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: SEC insider refresh unavailable: {e}")
             try:
                 from market_context import yield_changes
                 from context_signals import rate_sensitivity

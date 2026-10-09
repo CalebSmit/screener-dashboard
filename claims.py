@@ -472,6 +472,20 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="context.insider_plan",
+        surface=DRILLDOWN,
+        asserts=(
+            "Plan marks a sale the Form 4 reports under a Rule 10b5-1 trading plan; the share of "
+            "sales on pre-set plans is shown only where the source carries that flag (the SEC), "
+            "never as 0% from a source that does not."
+        ),
+        made_true_by="insider_activity:rows_from_sec",
+        checked_by=(
+            "tests/test_context_layer.py::test_sec_rows_keep_open_market_trades_with_plan_flag_and_filing_link",
+            "tests/test_context_layer.py::test_planned_sales_are_summarised_and_unknown_stays_unknown",
+        ),
+    ),
+    Claim(
         id="context.track_record",
         surface=DRILLDOWN,
         asserts=(

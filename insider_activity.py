@@ -12,17 +12,26 @@ year; Cohen, Malloy & Pomorski (2012, *Journal of Finance*) show the information
 **Context only.** Nothing here enters a score. It is recorded every run so that, once there is
 history, its value as a candidate factor can be measured the same way every other candidate is.
 
-**Source, 2026-10-08:** Yahoo Finance's insider-transactions feed (itself compiled from Form 4),
-read during the nightly fetch - one call per stock, no key. The SEC's own EDGAR archive is the
-primary source and the client for it is below (``refresh``), but ``www.sec.gov`` refuses any
-User-Agent without a contact email, and an email is the owner's to give: set ``sec_user_agent``
-in ``config.yaml`` (``context:`` block) and the nightly session can switch over. Both sources feed
-the same ``summarise_rows``.
+**Source, from 2026-10-08 (late):** the SEC's own EDGAR archive - every Form 4 filed in the last
+180 days, parsed here (``refresh`` / ``parse_form4`` / ``rows_from_sec``). It is the primary source
+and it carries two things Yahoo's compiled feed does not: the **Rule 10b5-1 checkbox** (a sale
+made on a pre-arranged trading plan, which says little about the insider's view) and a link to
+each filing. ``www.sec.gov`` refuses any User-Agent without a contact email; the owner gave one
+on 2026-10-08 and it lives **outside the public repo** - ``SEC_USER_AGENT`` in the environment or
+``data/sec/user_agent.txt`` (gitignored). With neither, ``user_agent()`` returns None and the run
+uses Yahoo's insider-transactions feed (compiled from Form 4) for every stock, as it did before.
+A stock whose SEC record was not refreshed in the last ``SEC_FRESH_DAYS`` falls back to Yahoo
+individually. Both sources feed the same ``summarise_rows``.
+
+Amendments (Form 4/A) are **not** read: an amendment restates an earlier filing, and adding its
+trades would count them twice. The few corrections they carry are the price of not double
+counting.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -35,7 +44,9 @@ CACHE_PATH = DATA_DIR / "filings.json"
 TICKERS_PATH = ROOT / "data" / "sec" / "company_tickers.json"
 SUMMARY_PATH = ROOT / "data" / "insider_summary.json"
 
-USER_AGENT = "Caleb Smit screener-dashboard personal research"   # data.sec.gov accepts; www.sec.gov needs an email
+USER_AGENT = "screener-dashboard personal research"   # data.sec.gov accepts; www.sec.gov needs an email
+USER_AGENT_FILE = ROOT / "data" / "sec" / "user_agent.txt"
+SEC_FRESH_DAYS = 3             # older than this, a stock's SEC record yields to Yahoo for the run
 MIN_INTERVAL = 0.13            # seconds between requests (< 8/s, under the SEC's 10/s)
 LOOKBACK_DAYS = 180
 KEEP_DAYS = 400
@@ -44,6 +55,20 @@ CLUSTER_MIN_BUYERS = 3         # distinct insiders buying in the window -> "clus
 CODES = {"P": "open-market purchase", "S": "open-market sale", "A": "grant or award",
          "M": "option exercise", "F": "shares withheld for tax", "G": "gift",
          "D": "returned to company", "C": "conversion", "X": "option exercise"}
+
+
+def user_agent() -> str | None:
+    """The SEC contact identity, from the environment or the gitignored file - never the repo.
+
+    Returns None when no identity with an email is configured: the archive refuses requests
+    without one, so the caller should not try."""
+    ua = os.environ.get("SEC_USER_AGENT", "").strip()
+    if not ua:
+        try:
+            ua = USER_AGENT_FILE.read_text(encoding="utf-8").strip()
+        except OSError:
+            ua = ""
+    return ua if "@" in ua else None
 
 
 class Edgar:
@@ -156,7 +181,7 @@ def refresh(tickers: list[str], today: date | None = None, edgar: Edgar | None =
     filings) can be completed over several nights without ever holding up the data loop.
     """
     today = today or date.today()
-    edgar = edgar or Edgar()
+    edgar = edgar or Edgar(user_agent() or USER_AGENT)
     started = time.time()
     cmap = ticker_map(edgar)
     cache = _load_cache()
@@ -182,7 +207,7 @@ def refresh(tickers: list[str], today: date | None = None, edgar: Edgar | None =
             continue
         rec = sub.get("filings", {}).get("recent", {})
         for j, form in enumerate(rec.get("form", [])):
-            if form not in ("4", "4/A"):
+            if form != "4":            # 4/A restates an earlier filing - see the module note
                 continue
             fdate = rec["filingDate"][j]
             if fdate < since:
@@ -203,6 +228,7 @@ def refresh(tickers: list[str], today: date | None = None, edgar: Edgar | None =
             new_filings += 1
         # forget filings past the retention window
         entry["filings"] = {a: f for a, f in entry["filings"].items() if f.get("filed", "9999") >= keep}
+        entry["checked"] = today.isoformat()
         if i % 25 == 0:
             _save_cache(cache)
     cache["_meta"] = {"updated": today.isoformat(), "complete": complete,
@@ -254,6 +280,49 @@ def summarise_ticker(entry: dict, today: date, window_days: int = 90) -> dict:
     return out
 
 
+def _person(name: str | None) -> str | None:
+    """EDGAR files names surname first and often in capitals ("COOK TIMOTHY D"); keep the order
+    (it is the filing's) but not the shouting."""
+    if not name:
+        return None
+    return name.title() if name.isupper() else name
+
+
+def rows_from_sec(entry: dict, today: date | None = None) -> list[dict]:
+    """Open-market purchases (P) and sales (S) from one stock's parsed Form 4 filings.
+
+    Same row shape as ``rows_from_yahoo``, plus ``plan`` (the filing's Rule 10b5-1 checkbox) and
+    ``url`` (the filing's index page). Grants, exercises, tax withholding and gifts are other
+    codes and are left out, as they are from Yahoo's feed."""
+    today = today or date.today()
+    since = (today - timedelta(days=LOOKBACK_DAYS)).isoformat()
+    cik = entry.get("cik")
+    out = []
+    for acc, f in (entry.get("filings") or {}).items():
+        if "trades" not in f:
+            continue
+        who = (f.get("owners") or [{}])[0]
+        for t in f["trades"]:
+            if t.get("code") not in ("P", "S") or not t.get("date") or t["date"] < since:
+                continue
+            out.append({"date": t["date"][:10], "code": t["code"], "name": _person(who.get("name")),
+                        "role": who.get("role"), "shares": t.get("shares"), "value": t.get("value"),
+                        "plan": bool(f.get("plan")),
+                        "url": (f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/"
+                                f"{acc}-index.htm") if cik else None})
+    return out
+
+
+def sec_rows_for(cache: dict, ticker: str, today: date) -> list[dict] | None:
+    """A stock's SEC rows if its record was refreshed recently enough to trust, else None."""
+    entry = cache.get(ticker)
+    if not entry or not entry.get("checked"):
+        return None
+    if entry["checked"] < (today - timedelta(days=SEC_FRESH_DAYS)).isoformat():
+        return None
+    return rows_from_sec(entry, today)
+
+
 def rows_from_yahoo(df, today: date | None = None) -> list[dict]:
     """Open-market purchases and sales from yfinance ``Ticker.insider_transactions``.
 
@@ -299,11 +368,16 @@ def summarise_rows(rows: list[dict], today: date, window_days: int = 90, link: s
 
     buyers = sorted({r["name"] for r in buys if r.get("name")})
     recent = sorted(rows, key=lambda r: r["date"], reverse=True)[:8]
+    # The plan flag exists only where the source carries it (SEC); None means "not known".
+    known = any(r.get("plan") is not None for r in rows)
+    planned = [r for r in sells if r.get("plan")]
     return {
         "window": window_days,
         "buy_n": len(buys), "buy_people": len(buyers), "buy_value": total(buys),
         "sell_n": len(sells), "sell_people": len({r["name"] for r in sells if r.get("name")}),
         "sell_value": total(sells),
+        "sell_planned_n": len(planned) if known else None,
+        "sell_planned_value": total(planned) if known else None,
         "cluster": len(buyers) >= CLUSTER_MIN_BUYERS,
         "officer_buy": any(re.search(r"chief|ceo|cfo|president|officer", (r.get("role") or ""), re.I) for r in buys),
         "recent": [{k: v for k, v in r.items() if v is not None} for r in recent],

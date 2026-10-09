@@ -240,6 +240,73 @@ def test_ninety_day_summary_and_cluster():
     assert s["recent"][0]["date"] >= s["recent"][-1]["date"]
 
 
+def _sec_entry(today):
+    d = lambda n: (today - timedelta(days=n)).isoformat()
+    return {"cik": 123, "checked": today.isoformat(), "filings": {
+        "0001-26-000001": {"filed": d(5), "plan": True, "owners": [{"name": "COOK TIMOTHY D", "role": "CEO"}],
+                           "trades": [{"date": d(6), "code": "M", "shares": 10, "value": None},
+                                      {"date": d(6), "code": "F", "shares": 4, "value": 40.0},
+                                      {"date": d(6), "code": "S", "shares": 6, "value": 600.0}]},
+        "0001-26-000002": {"filed": d(10), "plan": False, "owners": [{"name": "Doe Jane", "role": "Director"}],
+                           "trades": [{"date": d(11), "code": "P", "shares": 100, "value": 10000.0},
+                                      {"date": d(11), "code": "S", "shares": 2, "value": 200.0}]},
+        "0001-26-000003": {"filed": d(10), "plan": False, "owners": [{"name": "Roe Rick", "role": "Director"}],
+                           "trades": [{"date": d(11), "code": "A", "shares": 50, "value": 0.0}]},
+        "0001-25-000004": {"filed": d(200), "plan": False, "owners": [{"name": "Old Ann", "role": "CFO"}],
+                           "trades": [{"date": d(201), "code": "P", "shares": 1, "value": 1.0}]},
+        "0001-26-000005": {"filed": d(3), "error": "ParseError"},
+    }}
+
+
+def test_sec_rows_keep_open_market_trades_with_plan_flag_and_filing_link():
+    today = date(2026, 10, 8)
+    rows = ia.rows_from_sec(_sec_entry(today), today)
+    assert sorted(r["code"] for r in rows) == ["P", "S", "S"]       # M, F, A, the 200-day-old buy and the bad filing are gone
+    ceo = next(r for r in rows if r["role"] == "CEO")
+    assert ceo["plan"] is True and ceo["name"] == "Cook Timothy D"   # surname-first order kept, capitals not
+    assert ceo["url"] == "https://www.sec.gov/Archives/edgar/data/123/000126000001/0001-26-000001-index.htm"
+    assert next(r for r in rows if r["code"] == "P")["plan"] is False
+
+
+def test_planned_sales_are_summarised_and_unknown_stays_unknown():
+    today = date(2026, 10, 8)
+    s = ia.summarise_rows(ia.rows_from_sec(_sec_entry(today), today), today)
+    assert s["sell_n"] == 2 and s["sell_value"] == 800.0
+    assert s["sell_planned_n"] == 1 and s["sell_planned_value"] == 600.0
+    y = ia.summarise_rows(ia.rows_from_yahoo(_yahoo_rows(today), today), today)
+    assert y["sell_planned_n"] is None and y["sell_planned_value"] is None   # Yahoo has no plan flag: not "0%"
+
+
+def test_a_stale_sec_record_yields_to_yahoo():
+    today = date(2026, 10, 8)
+    e = _sec_entry(today)
+    assert ia.sec_rows_for({"X": e}, "X", today) is not None
+    e["checked"] = (today - timedelta(days=ia.SEC_FRESH_DAYS + 1)).isoformat()
+    assert ia.sec_rows_for({"X": e}, "X", today) is None
+    assert ia.sec_rows_for({}, "X", today) is None
+
+
+def test_sec_identity_needs_an_email_and_never_lives_in_the_repo(monkeypatch, tmp_path):
+    monkeypatch.delenv("SEC_USER_AGENT", raising=False)
+    monkeypatch.setattr(ia, "USER_AGENT_FILE", tmp_path / "missing.txt")
+    assert ia.user_agent() is None                               # no identity -> Yahoo, never a refused request
+    (tmp_path / "ua.txt").write_text("someone research")
+    monkeypatch.setattr(ia, "USER_AGENT_FILE", tmp_path / "ua.txt")
+    assert ia.user_agent() is None                               # no email in it -> still None
+    monkeypatch.setenv("SEC_USER_AGENT", "Name research name@example.org")
+    assert ia.user_agent() == "Name research name@example.org"
+    assert "@" not in ia.USER_AGENT
+    # The nightly data path reads the owner's contact address from outside the repo, never from
+    # its own source. (Two older files - a 2026-10-05 measurement script and the owner's setup
+    # script - already carry it in history; this guards the code that runs every night.)
+    real = ROOT / "data" / "sec" / "user_agent.txt"
+    if real.exists():
+        secret = real.read_text(encoding="utf-8").strip().split()[-1]
+        path = ["insider_activity.py", "context_fetch.py", "context_signals.py", "run_screener.py",
+                "generate_dashboard.py", "config.yaml", "scripts/data-run.ps1"]
+        assert [f for f in path if secret in (ROOT / f).read_text(encoding="utf-8", errors="ignore")] == []
+
+
 def test_form4_xml_parsing():
     xml = """<?xml version="1.0"?><ownershipDocument><aff10b5One>1</aff10b5One>
       <reportingOwner><reportingOwnerId><rptOwnerName>Doe Jane</rptOwnerName></reportingOwnerId>

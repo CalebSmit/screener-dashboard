@@ -500,3 +500,42 @@ def test_context_panels_render_without_errors(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_reporting_soon_is_a_calendar_not_a_leaderboard(browser):
+    """Reporting Soon lists every scored stock reporting within the window of the run date,
+    ordered by date then rank - never by the size of the expected move - and opens the sheet."""
+    ctx, page, errors = _open(browser)
+    try:
+        page.wait_for_function("typeof CTX_LOADED !== 'undefined' && CTX_LOADED", timeout=30000)
+        page.evaluate("goToSection('sec-reporting')")
+        page.wait_for_selector("#reporting-body .rp-controls")
+        for days in (7, 14):
+            page.evaluate(f"setReporting('days', {days})")
+            want = page.evaluate(f"""(() => {{
+                const run = String(D.kpis.run_timestamp).slice(0, 10);
+                return D.table_data.filter(r => {{
+                    const e = (D.stock_detail[r.Ticker] || {{}}).earn;
+                    if (!e || !e.d) return false;
+                    const d = Math.round((new Date(e.d + 'T00:00:00') - new Date(run + 'T00:00:00')) / 86400000);
+                    return d >= 0 && d <= {days};
+                }}).map(r => r.Ticker).sort();
+            }})()""")
+            got = page.evaluate("[...document.querySelectorAll('#reporting-body .rp-row .rp-tk')].map(e => e.textContent)")
+            assert sorted(got) == want
+            keys = page.evaluate("""[...document.querySelectorAll('#reporting-body .rp-row .rp-tk')].map(e => {
+                const t = e.textContent; return [D.stock_detail[t].earn.d, D.table_data.find(r => r.Ticker === t).Rank]; })""")
+            assert keys == sorted(keys)                        # date, then rank
+        page.evaluate("localStorage.removeItem('screener_holdings_v1'); setReporting('scope', 'held')")
+        assert "None of your saved holdings" in page.inner_text("#reporting-body")
+        page.evaluate("setReporting('scope', 'all'); setReporting('days', 14)")
+        first = page.evaluate("document.querySelector('#reporting-body .rp-row .rp-tk').textContent")
+        page.click("#reporting-body .rp-row")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        assert first in page.inner_text("#stock-modal .modal-header, #stock-modal")
+        from stock_summary import advice_terms_in
+        assert advice_terms_in(page.inner_text("#reporting-body")) == []
+        assert errors == []
+    finally:
+        ctx.close()

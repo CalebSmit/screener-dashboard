@@ -300,6 +300,7 @@ def write_context_log(run_dir, run_day: str) -> int:
                 s = {}
             summ.append({"_ctx_ins_buy_n": s.get("buy_n"), "_ctx_ins_buy_people": s.get("buy_people"),
                          "_ctx_ins_buy_value": s.get("buy_value"), "_ctx_ins_sell_value": s.get("sell_value"),
+                         "_ctx_ins_sell_planned_value": s.get("sell_planned_value"),
                          "_ctx_ins_cluster": s.get("cluster")})
         log = pd.concat([log.reset_index(drop=True), pd.DataFrame(summ)], axis=1)
     out = context_log_dir()

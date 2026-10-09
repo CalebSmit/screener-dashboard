@@ -31,7 +31,7 @@ imported by a scoring path (`tests/test_context_layer.py::test_no_scoring_module
 |---|---|---|---|
 | **Trend / range / recent move / volume** | `context_signals.price_context`, called in the fetch | the 13-month history the fetch already pulls | none |
 | **Options: expected move, ATM IV, put skew, put/call OI** | `context_signals.options_context`, in `context_fetch.enrich` (after the core fetch) | yfinance option chain, one expiry per stock | 2 calls/stock |
-| **Insider open-market buys and sales, 90 days** | `insider_activity.rows_from_yahoo` + `summarise_rows`, in `context_fetch.enrich` | yfinance `insider_transactions` (compiled from Form 4) | 1 call/stock |
+| **Insider open-market buys and sales, 90 days** | `insider_activity.refresh` + `rows_from_sec` in `run_screener` after the context pass; `rows_from_yahoo` in `context_fetch.enrich` as the per-stock fallback | **SEC EDGAR Form 4** (plan flag, filing links); Yahoo `insider_transactions` where a stock's SEC record is older than 3 days | ~1 SEC request/stock + new filings; 1 Yahoo call/stock |
 | **Rate sensitivity** (return per +1pp in the 10-year yield) | `context_signals.rate_sensitivity`, in `run_screener` after the fetch | the fetch's daily returns + FRED `DGS10` | none extra |
 | **Market backdrop** - 10 FRED series, readings, sector rate medians, factor notes | `market_context.build` -> `data/market_context.json` | FRED CSV (no key), cached `data/market/` | 10 small requests |
 | **Track record** - top 25 vs RSP/SPY, top vs bottom fifth, per period | `track_record.build_from_disk` -> `data/track_record.json` | the comparable snapshots + yfinance closes, cached `data/track/` | 1 batched download (incremental) |
@@ -69,10 +69,20 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
 2. **Option quotes at 2 AM** are the previous close; some chains have no bid/ask. Measure the share of
    stocks with `os == "ok"` and decide whether that is good enough or the options pass belongs in a
    market-hours run. Do not loosen `MAX_REL_SPREAD` or the IV bounds to raise the number.
-3. **Insider source.** Yahoo's feed has no Rule 10b5-1 flag and no filing links; the SEC's EDGAR
-   archive has both, and `insider_activity.refresh` / `parse_form4` already parse it - but
-   `www.sec.gov` refuses any User-Agent without a contact email. **That email is the owner's to give;
-   do not add one.** Ask in the log; if he provides it, switch the source and show "planned sale".
+3. **Insider source - DONE 2026-10-08 (late, owner-run).** The owner gave a contact email; it lives in
+   `data/sec/user_agent.txt` (gitignored) or `SEC_USER_AGENT`, **never in a tracked file**
+   (`test_sec_identity_needs_an_email_and_never_lives_in_the_repo`). `run_screener` now refreshes every
+   Form 4 (not 4/A - an amendment restates a filing and would double count) filed in 180 days, cached
+   in `data/insider/filings.json`, and a stock whose SEC record was checked within 3 days uses it; the
+   rest keep Yahoo's rows. The page marks **plan** sales (the Form 4's Rule 10b5-1 checkbox), states
+   the share of sale value on pre-set plans, links each trade's date to its filing, and names its
+   source. The first fill was run by the owner session; nightly cost is ~503 submissions requests
+   plus the day's new filings at <8 requests/s, inside a 900 s budget. Nightly: read the
+   `insider refresh:` and `Context: insider trades from SEC Form 4 for N stocks` lines in the data
+   log - N should be ~500. **Next research question this opens:** Cohen, Malloy & Pomorski (2012)
+   separate *routine* from *opportunistic* insiders by each person's own trading calendar; the
+   180-day cache is too short for their three-year rule, so it needs a longer retention before it can
+   be built.
 4. **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
    200-day trend (Faber 2007; Brock, Lakonishok & LeBaron 1992), one-month reversal (Jegadeesh 1990;
    Lehmann 1990), implied-volatility skew (Xing, Zhang & Zhao 2010; Cremers & Weinbaum 2010 on put-call

@@ -36,8 +36,9 @@ Add items below. Anything under this heading is unclaimed work.
 
   **The brief is `plan/context-layer.md` - read it first.** Its "Known limits of the draft" list is
   the queue, in order: (1) measure that the context pass costs the core fetch nothing; (2) the share
-  of stocks with usable option quotes at 2 AM; (3) insider data from the SEC's own filings needs a
-  contact email - **ask the owner in the log, do not add one**; (4) one research note per signal;
+  of stocks with usable option quotes at 2 AM; (3) insider data from the SEC's own filings - **done
+  2026-10-08 (late)**: the owner gave a contact email for the SEC's User-Agent, which lives outside the
+  repo in `data/sec/user_agent.txt` (gitignored); never copy it into a tracked file; (4) one research note per signal;
   (5) the evaluation harness over `data/context_log/`; (6) track-record hardening; (7) macro data
   vintages. This is product and data work on the new layer - it does **not** reopen the closed
   redesign, and it never moves a score (CLAUDE.md row "ctx").
