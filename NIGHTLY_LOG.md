@@ -8937,3 +8937,60 @@ byte-identical, 501 stocks with SEC insider data, plan tags and filing links pre
 **For the next session:** read the 02:00 data log for `insider refresh:` (should be ~500 requests plus
 the day's new filings, well inside 900 s) and `insider trades from SEC Form 4 for N stocks` (N ~ 500), and
 open one drilldown on the live site to confirm the SEC source line.
+
+## 2026-10-09 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-08_060001.log`
+ends "shipped to main", tagged `good/2026-10-08`. Data loop published? **yes** -
+`logs/datarun-2026-10-09_020001.log` ends "Data loop complete", HEALTH: PASS, 501 scored.
+Evidence base at `1m` = **26 rows, newest 2026-09-09 (30 days ago, bound 40), 4 effective**
+(`_n_observations`; the whole file reads 75 rows / 2026-10-02 and is not the number to quote).
+Priority 0 - `allow_auto_apply` still `false`, 4 effective against a gate of 8, still top of the
+queue. Top open roadmap item: **0.9, the four methodology questions the transparency build
+surfaced - age 2 days** (opened 2026-10-07); 0.10 and 0.11 are the same age.
+**Tests:** before **1936 passed, 3 failed**; after - see the end of this entry.
+**Owner queue / rotation:** took the open owner item (`OWNER_FOCUS.md` 2026-10-08, the context
+layer, brief `plan/context-layer.md`) - but a **failing ship gate outranked it** and came first.
+
+### Did
+
+**1. The ship gate was red at 06:00, and would have blocked tonight's merge whatever I shipped.**
+Baseline was 3 failed / 1936 passed, all three in `tests/test_dashboard_browser.py`. Cause: the
+02:00 run scored **501** stocks rather than the 502 of the days before - an ordinary S&P 500
+membership change and a correct run - and three tests asserted the literals `502` / `503` against
+the published payload.
+
+That is worse than three red tests. The runner's gate 1 is `pytest tests/ test_screener.py -q`
+and it merges only on **exit code 0**, with no baseline (`scripts/nightly-screener.ps1`, "Gate 1:
+tests") - deliberately, because a gate that tolerates yesterday's failures is not a gate. So a
+literal the *data* can move on its own does not fail one test, it **halts every merge until a
+human edits the number**. Index membership changes several times a year.
+
+Fixed by asserting the invariant rather than the count: the table's `aria-rowcount`, its last
+rank and its "N stocks" text all agree with the payload's own universe, inside the **495-515**
+band `universe_history.validate_membership` already enforces. That is stronger than the literal -
+it catches an off-by-one or a truncated table at *any* universe size.
+`tests/test_universe_size_is_not_pinned.py` (4 tests) is the tripwire so it cannot come back
+anywhere else, including a test that the pattern still matches the exact line that failed today -
+rule 8's "a tripwire wired to a number that cannot stand still is decoration", applied to its
+opposite: one wired to a number that cannot move.
+
+**2. Owner item, `plan/context-layer.md` queue item 2: the options panel is empty for every stock
+on every scheduled run.** Item 2 asked for the share of stocks with `_ctx_opt_status == "ok"` and
+whether that is good enough. Measured, and it is not:
+
+| When | Hour (ET) | n | `ok` | usable |
+|---|---|---|---|---|
+| 2026-10-08 owner-run | 21:27 | 503 | 394 | **78.3%** |
+| 2026-10-09 **02:00 data loop** | 03:00 | 503 | **0** | **0.0%** |
+| live probe this session | 07:03 | 10 | 0 | **0.0%** |
+
+484 of 503 came back `stale-quotes` on the scheduled run. The probe shows why: at that hour Yahoo
+serves the chain with **`bid` and `ask` both 0.00 and `impliedVolatility` 0.000** on every strike,
+while `lastPrice` and `openInterest` survive. Expected move, ATM IV and put skew each need a quote,
+so all three are absent - the live site has shown no options number for any stock since the feature
+was scheduled, and the panel blamed "quotes missing or too wide at the time of the fetch", which
+reads as a transient glitch rather than the structural fact that the pipeline runs at an hour when
+no option market data exists. The 06:00 code loop is in the same dead window.
+`research/measurements/2026-10-09-option-quote-availability.py` reproduces both halves (the record
+half needs no network; `--probe N` re-runs the live half at whatever hour you run it).
