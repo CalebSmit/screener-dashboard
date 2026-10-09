@@ -36,6 +36,10 @@ leaving it wrong.
   composite "a universe percentile" (false since Phase 13).
 - **Context panel** research sentences scoped and dated (Faber on indices; Lehmann weekly; XZZ
   1996-2005). **Track Record** caveats name picks the price source no longer serves.
+- **Trap flags narrowed to what they name** (no surface change): a value-trap flag now requires the
+  cheapest 30% on Valuation, a growth-trap flag the top 30% on Growth. The KPI card, table column,
+  Analytics trap chart, Top 5 exclusion and holdings badges read the same two booleans, so all of them
+  follow (122/125 -> 43/74 on the morning run). `research/2026-10-09-trap-flags.md`.
 - **Against its own five years** (Before you decide, after Recent move; `vhCard`): earnings yield
   and FCF yield at each of the past 60 month-ends from SEC filings, today's percentile in that range,
   a chart with the median dashed. Payload `ctx[t].vh` (`valuation_history.py`, ~456 stocks, +0.25 MB
