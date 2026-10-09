@@ -68,6 +68,7 @@ def old_piotroski(raw: pd.DataFrame, scored: pd.DataFrame) -> pd.Series:
 def score(metrics: pd.DataFrame, cfg: dict, coverage_cfg: bool = True) -> pd.Series:
     """Percentiles -> categories -> composite with the engine's functions; returns rank."""
     df = fe.compute_sector_percentiles(metrics.copy())
+    df = fe.apply_percentile_transform(df, copy.deepcopy(cfg))
     df = fe.compute_category_scores(df, copy.deepcopy(cfg))
     c = copy.deepcopy(cfg)
     if not coverage_cfg:
@@ -103,8 +104,11 @@ def main(run_id: str | None = None) -> dict:
     cfg = yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8"))
     eff = json.loads((run / "effective_weights.json").read_text(encoding="utf-8"))
     cfg["factor_weights"] = eff["factor_weights"]
+    cfg["metric_weights"] = eff["metric_weights"]       # post auto-reduce, as the engine scored
     sc = scored.set_index("Ticker")
-    base = metrics[[c for c in metrics.columns if not c.endswith("_pct") and not c.endswith("_score")]].copy()
+    # The post-outlier table as the pipeline holds it (it has no percentiles or category scores
+    # yet; note piotroski_f_score and beneish_m_score are metrics despite their names).
+    base = metrics.copy()
 
     new = score(base, cfg)
     variants = {}
