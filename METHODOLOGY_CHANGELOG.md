@@ -3234,3 +3234,26 @@ the published coverage.
 universe and needs its own measurement.
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit (restores the 41 / 35 count).
+
+---
+
+## 2026-10-09 (owner-run, same day) - Correction: `earnings_variability` reads companies' own 10-K figures, not the XBRL frames
+
+**Area:** data source of the weight-0 candidate added earlier today (no score is affected).
+**Changed:** `sec_fundamentals` now builds the five years of ROE from each company's
+`companyfacts` (its 10-K net income for each fiscal year, and equity at that same fiscal-year end)
+instead of the XBRL *frames* API, cached weekly in `data/sec/pit/facts.parquet` - the cache the
+backtest's point-in-time layer also reads.
+**Why (a documented defect, found by a trial run):** the frames API's NetIncomeLoss CY2024 frame
+gave Con Edison **1,820,000** where its 10-K says **1,820,000,000** (ROE 0.009% instead of 8.3%),
+and frames pair a fiscal year's income with calendar-year-end equity, up to six months apart for
+non-December year-ends. Net income is now chosen per fiscal year (NetIncomeLoss, else ProfitLoss),
+because filers switch tags. Coverage: **444** of 503 (frames: 442); the remainder are years of
+non-positive equity (44) and companies with under five years of filings.
+**Also fixed, found the same way:** a `--tickers` run wrote the scored cache under the full run's
+key, so a later full run that day would have served a subset as the universe
+(`run_screener.should_write_score_cache`; test in `tests/test_cache_freshness.py`).
+The overlap measurements in `research/2026-10-09-earnings-variability-candidate.md` were taken on
+the frames data; the decision there (stay unweighted) does not depend on the handful of mis-scaled
+values.
+**Applied by:** owner-run session, 2026-10-09.

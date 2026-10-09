@@ -1101,6 +1101,17 @@ def _init_pipeline_logger():
     return logger
 
 
+def should_write_score_cache(args) -> bool:
+    """A ``--tickers`` run must not write the scored cache.
+
+    The cache is keyed by config and date, not by universe, and a full run the same day reads
+    the newest file for its key as a HOT cache. On 2026-10-09 a 32-ticker trial run wrote
+    ``factor_scores_<hash>_20261009.parquet``; the evening's full run would have loaded it and
+    published a 32-stock dashboard. Reading already skipped the cache for ``--tickers``; writing
+    did not."""
+    return not getattr(args, "tickers", None)
+
+
 def run_factor_engine(cfg, args, ctx=None):
     """Run the complete factor scoring pipeline. Returns (scored_df, stats_dict)."""
     pipeline_log = _init_pipeline_logger()
@@ -1813,11 +1824,14 @@ def run_factor_engine(cfg, args, ctx=None):
             print(f"  LTM partial annualization (3-of-4 quarters): {n_ltm} tickers flagged")
 
     # ---- Write Parquet cache (config-aware) ----
-    print("Writing cache Parquet...")
-    try:
-        write_scores_parquet(df, config_hash=cfg_hash)
-    except Exception as e:
-        print(f"  WARNING: Failed to write Parquet cache: {e}")
+    if should_write_score_cache(args):
+        print("Writing cache Parquet...")
+        try:
+            write_scores_parquet(df, config_hash=cfg_hash)
+        except Exception as e:
+            print(f"  WARNING: Failed to write Parquet cache: {e}")
+    else:
+        print("Not writing the score cache: a --tickers run scores a subset, not the universe.")
 
     return df, stats
 

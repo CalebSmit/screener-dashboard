@@ -10,6 +10,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -25,57 +26,52 @@ def test_the_five_years_are_the_last_complete_calendar_years():
     assert sf.years_for(date(2026, 2, 1)) == [2020, 2021, 2022, 2023, 2024]   # 10-Ks not all in yet
 
 
-class _FakeEdgar:
-    requests = 0
-
-    class s:  # noqa: N801 - mimics requests.Session on Edgar
-        @staticmethod
-        def get(*a, **k):
-            raise AssertionError("no network in tests")
-
-
-@pytest.fixture
-def frames(tmp_path, monkeypatch):
-    monkeypatch.setattr(sf, "FRAMES_DIR", tmp_path)
-    import insider_activity as ia
-    monkeypatch.setattr(ia, "ticker_map", lambda edgar=None: {"AAA": 1, "BBB": 2, "CCC": 3, "DDD": 4})
-
-    def put(concept, period, data):
-        (tmp_path / f"{concept}_{period}.json").write_text(json.dumps(data))
-
+def _facts():
+    """10-K facts: AAA steady; BBB switches net-income tag; CCC negative equity one year; DDD a gap."""
+    rows = []
     for i, y in enumerate(range(2021, 2026)):
-        # AAA: steady 10% ROE except one year; BBB reports under the fallback tag ProfitLoss;
-        # CCC has negative equity in one year; DDD is missing a year entirely.
-        put("NetIncomeLoss", f"CY{y}", {"1": [10 + (5 if y == 2023 else 0), f"{y}-12-31"],
-                                         "3": [5, f"{y}-12-31"],
-                                         **({"4": [8, f"{y}-12-31"]} if y != 2022 else {})})
-        put("ProfitLoss", f"CY{y}", {"2": [20, f"{y}-06-30"], "1": [999, f"{y}-12-31"]})
-        put("NetIncomeLossAvailableToCommonStockholdersBasic", f"CY{y}", {})
-        put("StockholdersEquity", f"CY{y}Q4I", {"1": [100, f"{y}-12-31"], "2": [200 + 10 * i, f"{y}-12-31"],
-                                                 "3": [-50 if y == 2024 else 50, f"{y}-12-31"], "4": [80, f"{y}-12-31"]})
-        put("StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest", f"CY{y}Q4I", {})
-    return tmp_path
+        end = f"{y}-12-31"
+        start = f"{y}-01-01"
+        rows.append(("AAA", "NetIncomeLoss", start, end, f"{y + 1}-02-15", "10-K", 10.0 + (5 if y == 2023 else 0)))
+        rows.append(("AAA", "StockholdersEquity", None, end, f"{y + 1}-02-15", "10-K", 100.0))
+        tag = "NetIncomeLoss" if y < 2023 else "ProfitLoss"
+        rows.append(("BBB", tag, start, end, f"{y + 1}-02-15", "10-K", 20.0))
+        rows.append(("BBB", "StockholdersEquity", None, end, f"{y + 1}-02-15", "10-K", 200.0 + 10 * i))
+        rows.append(("CCC", "NetIncomeLoss", start, end, f"{y + 1}-02-15", "10-K", 5.0))
+        rows.append(("CCC", "StockholdersEquity", None, end, f"{y + 1}-02-15", "10-K", -50.0 if y == 2024 else 50.0))
+        if y != 2022:
+            rows.append(("DDD", "NetIncomeLoss", start, end, f"{y + 1}-02-15", "10-K", 8.0))
+            rows.append(("DDD", "StockholdersEquity", None, end, f"{y + 1}-02-15", "10-K", 80.0))
+    # a quarterly fact and a restatement: neither may disturb the annual series
+    rows.append(("AAA", "NetIncomeLoss", "2025-01-01", "2025-03-31", "2025-05-01", "10-Q", 3.0))
+    rows.append(("AAA", "NetIncomeLoss", "2021-01-01", "2021-12-31", "2023-02-15", "10-K", 11.0))
+    df = pd.DataFrame(rows, columns=["ticker", "concept", "start", "end", "filed", "form", "val"])
+    df["fp"] = None
+    for c in ("start", "end", "filed"):
+        df[c] = pd.to_datetime(df[c])
+    return df
 
 
-def test_roe_rows_use_the_first_concept_with_a_value(frames):
-    h = sf.roe_history(["AAA", "BBB", "CCC", "DDD", "ZZZ"], TODAY, edgar=_FakeEdgar())
-    assert "ZZZ" not in h                                   # not in the SEC ticker map
-    assert [r[3] for r in h["AAA"]] == [0.1, 0.1, 0.15, 0.1, 0.1]   # NetIncomeLoss, not ProfitLoss's 999
-    assert h["BBB"][0] == [2021, 20, 200, 0.1]              # fell back to ProfitLoss
-    assert h["CCC"][3][3] is None                           # equity not positive -> no ROE
-    assert h["DDD"][1][1] is None and h["DDD"][1][3] is None
+def test_roe_rows_pair_income_with_equity_at_the_same_fiscal_year_end():
+    h = sf.roe_history(["AAA", "BBB", "CCC", "DDD", "ZZZ"], TODAY, facts=_facts())
+    assert "ZZZ" not in h
+    assert [r[3] for r in h["AAA"]] == [0.11, 0.1, 0.15, 0.1, 0.1]       # the 2021 restatement wins
+    assert all(r[0].endswith("-12-31") for r in h["AAA"])
+    assert len(h["BBB"]) == 5                                          # a tag switch keeps every year
+    assert h["CCC"][3][3] is None                                      # equity not positive -> no ROE
 
 
-def test_earnings_variability_needs_all_five_years(frames):
-    h = sf.roe_history(["AAA", "CCC", "DDD"], TODAY, edgar=_FakeEdgar())
-    assert sf.earnings_variability(h["AAA"]) == pytest.approx(statistics.stdev([0.1, 0.1, 0.15, 0.1, 0.1]))
-    assert sf.earnings_variability(h["CCC"]) is None        # one year of negative equity
-    assert sf.earnings_variability(h["DDD"]) is None        # one year not reported
+def test_earnings_variability_needs_five_consecutive_years():
+    h = sf.roe_history(["AAA", "CCC", "DDD"], TODAY, facts=_facts())
+    assert sf.earnings_variability(h["AAA"]) == pytest.approx(statistics.stdev([0.11, 0.1, 0.15, 0.1, 0.1]))
+    assert sf.earnings_variability(h["CCC"]) is None                   # one year of negative equity
+    assert sf.earnings_variability(h["DDD"]) is None                   # 2022 missing: not five consecutive
 
 
-def test_no_sec_identity_means_no_requests(monkeypatch):
+def test_no_sec_identity_and_no_cache_means_no_rows(monkeypatch, tmp_path):
     import insider_activity as ia
     monkeypatch.setattr(ia, "user_agent", lambda: None)
+    monkeypatch.setattr(sf, "FACTS_PATH", tmp_path / "missing.parquet")
     assert sf.roe_history(["AAA"], TODAY) == {}
 
 

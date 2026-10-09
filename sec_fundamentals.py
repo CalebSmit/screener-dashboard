@@ -1,27 +1,26 @@
-"""Five years of annual return on equity from the SEC's XBRL "frames", for earnings variability.
+"""Five fiscal years of return on equity from the SEC's own 10-K figures, for earnings variability.
 
 WHY THIS EXISTS - 2026-10-09, ``research/2026-10-09-operating-leverage.md`` section 6. Both
 published practitioner definitions of quality measure *durability* as how variable earnings have
 been: MSCI's Quality Indexes use the five-year standard deviation of EPS growth, and AQR's
 Quality Minus Junk uses the standard deviation of ROE (60 quarters, or **five fiscal years of
 annual ROE** when quarterly data is unavailable - Asness, Frazzini & Pedersen 2019, *Review of
-Accounting Studies* 24, p. 74). The screener had neither: Yahoo's statements carry four annual
-years, so no faithful version could be computed. The SEC carries a decade.
+Accounting Studies* 24, p. 74). Yahoo's statements carry four annual years, so no faithful
+version could be computed. The SEC carries a decade.
 
-**Source.** ``data.sec.gov/api/xbrl/frames/us-gaap/{concept}/USD/{period}.json`` returns, in one
-request, the value every filer reported for a concept in a calendar period - so five years of net
-income and equity for the whole universe is ~25 requests, not 2,500. The frames API assigns each
-company's fiscal year to the calendar year it most closely fits; equity is the instant nearest the
-end of that calendar year (``CY{y}Q4I``). For a company whose fiscal year does not end in
-December the two can be up to six months apart, which this records and does not correct.
+**Source.** Each company's ``companyfacts`` (one request per company, cached weekly in
+``data/sec/pit/facts.parquet`` - the same cache the backtest's point-in-time layer reads). For
+each of its last five fiscal years: net income for the year from its 10-K, and shareholders'
+equity at that same fiscal-year end. (The XBRL *frames* API was used first, for one morning; it
+mis-scaled a Con Edison figure by 1,000x and paired fiscal-year income with calendar-year-end
+equity - see ``refresh_companyfacts``.)
 
-**Metric.** ``earnings_variability`` = sample standard deviation of annual ROE (net income /
-year-end shareholders' equity) over the last five complete calendar years, **all five required**
-(AQR's rule); missing when equity is zero or negative in any of them. Lower = steadier.
+**Metric.** ``earnings_variability`` = sample standard deviation of the five ROEs, **all five
+required and consecutive** (AQR's rule); missing when equity is zero or negative in any of them.
+Lower = steadier.
 
-**A candidate (weight 0).** It is computed, published and shown with its five years, and the
-improvement engine records it; it moves no score until it has its own note and changelog entry
-(CLAUDE.md rule 4).
+**A candidate (weight 0).** Computed, published and shown with its five years; it moves no score
+(``research/2026-10-09-earnings-variability-candidate.md`` explains why it stays unweighted).
 
 Needs the SEC contact identity (``insider_activity.user_agent``); without one it returns nothing
 and the metric is missing for every stock, which the scorer skips.
@@ -35,18 +34,13 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-FRAMES_DIR = ROOT / "data" / "sec" / "frames"
 
-# First concept with a value wins; the fallbacks are the tags large filers use instead
-# (measured 2026-10-09: NetIncomeLoss alone covers 399 of 503).
-NI_CONCEPTS = ("NetIncomeLoss", "ProfitLoss", "NetIncomeLossAvailableToCommonStockholdersBasic")
 EQ_CONCEPTS = ("StockholdersEquity",
                "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest")
 YEARS = 5
-RECENT_MAX_AGE_DAYS = 7      # frames for the last two years are still being filled in
 
 
-def last_complete_year(today: date) -> int:
+def last_complete_year(today: date) -> int:  # used by the measurement scripts
     """The latest calendar year whose annual reports are all in (10-Ks land by ~March)."""
     return today.year - 1 if today.month >= 4 else today.year - 2
 
@@ -56,70 +50,117 @@ def years_for(today: date, n: int = YEARS) -> list[int]:
     return list(range(y - n + 1, y + 1))
 
 
-def _frame(edgar, concept: str, period: str, today: date) -> dict | None:
-    """``{cik: [value, period_end]}`` for one concept and period, cached on disk."""
-    FRAMES_DIR.mkdir(parents=True, exist_ok=True)
-    path = FRAMES_DIR / f"{concept}_{period}.json"
-    settled = today.year - int(period[2:6]) >= 2
-    if path.exists() and (settled or time.time() - path.stat().st_mtime < RECENT_MAX_AGE_DAYS * 86400):
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except ValueError:
-            pass
-    try:
-        r = edgar.s.get(f"https://data.sec.gov/api/xbrl/frames/us-gaap/{concept}/USD/{period}.json", timeout=60)
-        edgar.requests += 1
-        time.sleep(0.15)
-        if r.status_code == 404:                     # no filer used this concept that period
-            data = {}
-        else:
-            r.raise_for_status()
-            data = {str(d["cik"]): [d["val"], d.get("end")] for d in r.json().get("data", [])}
-    except Exception:  # noqa: BLE001 - keep a stale frame rather than lose the metric
-        if path.exists():
-            try:
-                return json.loads(path.read_text(encoding="utf-8"))
-            except ValueError:
-                return None
-        return None
-    path.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
-    return data
+FACTS_PATH = ROOT / "data" / "sec" / "pit" / "facts.parquet"
+FACTS_MAX_AGE_DAYS = 7
+# Concepts kept from each company's companyfacts: everything the point-in-time layer
+# (pit_fundamentals.INPUTS) reads, so one weekly download serves both.
+FACT_CONCEPTS = (
+    "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet",
+    "RevenuesNetOfInterestExpense", "GrossProfit", "CostOfRevenue", "CostOfGoodsAndServicesSold",
+    "CostOfGoodsSold", "OperatingIncomeLoss", "NetIncomeLoss", "ProfitLoss", "Assets",
+    "StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+    "LongTermDebt", "LongTermDebtNoncurrent", "CashAndCashEquivalentsAtCarryingValue",
+    "NetCashProvidedByUsedInOperatingActivities", "PaymentsToAcquirePropertyPlantAndEquipment",
+    "DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "AssetsCurrent",
+    "LiabilitiesCurrent",
+)
 
 
-def _first(frames: list[dict | None], cik: str):
-    for f in frames:
-        if f and cik in f:
-            return f[cik]
-    return None
+def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False):
+    """Every 10-K / 10-Q fact for ``FACT_CONCEPTS``, one ``companyfacts`` request per company,
+    cached in ``FACTS_PATH`` and refreshed at most weekly (~500 requests, ~3 minutes).
 
-
-def roe_history(tickers: list[str], today: date | None = None, edgar=None, log=print) -> dict:
-    """``{ticker: [[year, net_income, equity, roe_or_None], ...]}``, oldest year first."""
+    Why not the frames API used first: on 2026-10-09 its NetIncomeLoss CY2024 frame gave Con
+    Edison 1,820,000 where the 10-K says 1,820,000,000 - a mis-scaled fact the frame chose -
+    and frames align a fiscal year to a calendar year, pairing a June-year-end company's income
+    with its December equity. A company's own 10-K figures avoid both."""
+    import pandas as pd
+    if not force and FACTS_PATH.exists() and time.time() - FACTS_PATH.stat().st_mtime < FACTS_MAX_AGE_DAYS * 86400:
+        return pd.read_parquet(FACTS_PATH)
     from insider_activity import Edgar, ticker_map, user_agent
-    today = today or date.today()
     if edgar is None:
         ua = user_agent()
         if not ua:
-            log("  Earnings variability: no SEC identity configured - skipped")
-            return {}
+            log("  SEC companyfacts: no SEC identity configured - skipped")
+            return pd.read_parquet(FACTS_PATH) if FACTS_PATH.exists() else None
         edgar = Edgar(ua)
     cmap = ticker_map(edgar)
-    years = years_for(today)
-    ni = {y: [_frame(edgar, c, f"CY{y}", today) for c in NI_CONCEPTS] for y in years}
-    eq = {y: [_frame(edgar, c, f"CY{y}Q4I", today) for c in EQ_CONCEPTS] for y in years}
-    out: dict = {}
+    rows, failed = [], 0
     for t in tickers:
         cik = cmap.get(str(t).upper())
         if cik is None:
             continue
-        cik = str(cik)
+        try:
+            j = edgar.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json").json()
+        except Exception:  # noqa: BLE001 - one company failing must not lose the rest
+            failed += 1
+            continue
+        gaap = (j.get("facts") or {}).get("us-gaap") or {}
+        for c in FACT_CONCEPTS:
+            for f in ((gaap.get(c) or {}).get("units") or {}).get("USD", []):
+                if f.get("form") in ("10-K", "10-Q", "10-K/A", "10-Q/A"):
+                    rows.append((t, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
+                                 f.get("fp"), f.get("val")))
+    if not rows:
+        return pd.read_parquet(FACTS_PATH) if FACTS_PATH.exists() else None
+    df = pd.DataFrame(rows, columns=["ticker", "concept", "start", "end", "filed", "form", "fp", "val"])
+    for col in ("start", "end", "filed"):
+        df[col] = pd.to_datetime(df[col], errors="coerce")
+    FACTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(FACTS_PATH)
+    log(f"  SEC companyfacts: {len(df):,} facts for {df['ticker'].nunique()} companies ({failed} failed)")
+    return df
+
+
+NI_CONCEPTS = ("NetIncomeLoss", "ProfitLoss")
+
+
+def roe_history(tickers: list[str], today: date | None = None, facts=None, log=print) -> dict:
+    """``{ticker: [[fiscal_year_end, net_income, equity, roe_or_None], ...]}``, oldest first.
+
+    The last ``YEARS`` fiscal years from the company's own 10-K figures: net income for each
+    fiscal year (a 340-380 day duration; the latest version filed) and shareholders' equity at
+    that same fiscal-year end - so income and equity always describe the same date."""
+    import pandas as pd
+    today = today or date.today()
+    if facts is None:
+        facts = refresh_companyfacts(tickers, log=log)
+    if facts is None or len(facts) == 0:
+        return {}
+    f = facts[facts["form"].str.startswith("10-K")].copy()
+    f = f[f["end"] <= pd.Timestamp(today)]
+    f["days"] = (f["end"] - f["start"]).dt.days
+    out: dict = {}
+    for t, g in f.groupby("ticker"):
+        if t not in set(tickers):
+            continue
+        # Per fiscal year, the first concept that reports it: filers move between
+        # NetIncomeLoss and ProfitLoss over the years, so one tag per company loses years.
+        yearly = g[g["concept"].isin(NI_CONCEPTS) & g["days"].between(340, 380)].copy()
+        if yearly.empty:
+            continue
+        yearly["rank"] = yearly["concept"].map({c: i for i, c in enumerate(NI_CONCEPTS)})
+        ni = (yearly.sort_values(["end", "rank", "filed"], ascending=[True, True, False])
+                    .drop_duplicates("end", keep="first").sort_values("end"))
+        eq_all = g[g["concept"].isin(EQ_CONCEPTS) & g["start"].isna()]
         rows = []
-        for y in years:
-            n, e = _first(ni[y], cik), _first(eq[y], cik)
-            nv = n[0] if n else None
-            ev = e[0] if e else None
-            roe = (nv / ev) if (nv is not None and ev is not None and ev > 0) else None
-            rows.append([y, nv, ev, roe])
+        for _, r in ni.tail(YEARS).iterrows():
+            e = eq_all[eq_all["end"] == r["end"]]
+            e_val = None
+            for c in EQ_CONCEPTS:
+                ec = e[e["concept"] == c]
+                if len(ec):
+                    e_val = float(ec.sort_values("filed").iloc[-1]["val"])
+                    break
+            nv = float(r["val"])
+            rows.append([r["end"].date().isoformat(), nv, e_val,
+                         (nv / e_val) if (e_val is not None and e_val > 0) else None])
+        # five consecutive fiscal years, no gaps (a missing year would stretch the window)
+        if len(rows) == YEARS:
+            ends = [pd.Timestamp(x[0]) for x in rows]
+            if any((b - a).days > 400 for a, b in zip(ends, ends[1:])):
+                rows = rows[-1:]  # not five consecutive years: earnings_variability() will refuse
         out[t] = rows
     return out
 

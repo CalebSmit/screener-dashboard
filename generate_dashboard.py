@@ -795,6 +795,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
         "short_interest_ratio",
         "size_log_mcap", "asset_growth",
+        "earnings_variability",          # weight-0 candidate, shown with its five years (2026-10-09)
     ]
     pct_cols = [m + "_pct" for m in raw_metrics]
     contrib_cols = ["valuation_contrib", "quality_contrib", "growth_contrib",

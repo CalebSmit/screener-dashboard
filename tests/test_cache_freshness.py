@@ -215,3 +215,11 @@ class TestDailyLoopActuallyFetches:
         max_age = factor_scores_cache_max_age_days(cfg)
         written = datetime(2026, 8, 13)
         assert cache_is_usable(written, max_age, now=datetime(2026, 8, 13, 7, 52)) is True
+
+
+def test_a_subset_run_never_writes_the_universe_cache():
+    """2026-10-09: a --tickers trial wrote a 32-stock table under the full run's cache key."""
+    import types
+    import run_screener
+    assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers=None)) is True
+    assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers="AAPL,MSFT")) is False
