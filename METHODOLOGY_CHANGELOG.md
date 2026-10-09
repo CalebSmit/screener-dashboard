@@ -3087,3 +3087,40 @@ rebuild the published value for every stock once a run carries them).
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit; the metric is weight 0, so scores are unaffected either way except
 the two coverage-discount changes above.
+
+---
+
+## 2026-10-09 (owner-run) - `revenue_growth` compares periods exactly one year apart
+
+**Area:** metric definition (Growth)
+**Changed:** `revenue_growth` from TTM revenue / `totalRevenue_prior` - which for **502 of 502**
+stocks fell back to the fiscal year *before* the latest completed one - to **the latest quarter
+over the same quarter a year earlier** (kept only when the two are 350-380 days apart), falling
+back to **the latest fiscal year over the one before**. `_revg_basis` records which. Weight
+unchanged (25% of Growth). The page shows the two quarters and their dates.
+
+**Evidence** (`research/2026-10-09-revenue-growth-window.md`):
+- *Measured:* the old comparison spanned 12 to 23 months depending on the fiscal calendar - 18 for
+  December year-ends (363 of 466 with a known year-end), 12 for May-July, 21 for August-October -
+  so companies in the same sector were compared over different spans on the same day, and the
+  median "YoY" growth read 11.0% against 6.95% fiscal-year-on-fiscal-year.
+- *Literature:* quarterly revenue is modelled as a seasonal random walk whose benchmark is the
+  same quarter a year earlier (Jegadeesh & Livnat 2006, *JAE* 41, SURGE).
+- *Practice:* "quarterly revenue growth (yoy)" is the vendor convention; the new figure equals
+  Yahoo's own `revenueGrowth` field for Alphabet (0.242) and Microsoft (0.177).
+
+**Expected effect:** Growth-category reordering within sectors; against the fiscal-year
+alternative 13.5% of stocks would move more than 20 sector-percentile points, and the
+quarter definition is expected to move a similar share. **Measured effect on the first run:**
+recorded below by the session that runs it.
+
+**Not changed (same defect, own fix next):** Piotroski signals 3/8/9 and the Company Snapshot's
+YoY lines still compare TTM with the fiscal-year-before-last; Piotroski defines them on annual
+data, so their fix is fiscal year vs fiscal year.
+
+**Validated by:** live smoke test (GOOGL and MSFT on the quarter basis, KIM falling back to annual);
+`metric_lineage.EQUATIONS["revenue_growth"]` and `RECOMPUTE` updated in the same commit, so the
+equation tests hold the page to the engine at a 99% bar on the first run.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (restores the TTM / fallback comparison).

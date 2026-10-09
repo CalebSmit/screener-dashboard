@@ -975,6 +975,24 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             if np.isnan(rec["netIncome_prior"]):
                 rec["netIncome_prior"]    = _stmt_val(fins, "Net Income", 1)
 
+        # Revenue growth on a true 12-month window (2026-10-09, CLAUDE.md 0.9(b)): the latest
+        # quarter against the same quarter a year earlier - the seasonal comparison quarterly
+        # revenue is modelled on (Jegadeesh & Livnat 2006). Kept only when the two quarters
+        # really are a year apart. research/2026-10-09-revenue-growth-window.md
+        try:
+            if q_fins is not None and "Total Revenue" in q_fins.index:
+                _qr = q_fins.loc["Total Revenue"]
+                _qc = sorted([c for c in _qr.index if pd.notna(_qr[c])], reverse=True)
+                if len(_qc) >= 5:
+                    _gap = (pd.Timestamp(_qc[0]) - pd.Timestamp(_qc[4])).days
+                    if 350 <= _gap <= 380 and float(_qr[_qc[4]]) > 0:
+                        rec["_rev_q0"] = float(_qr[_qc[0]])
+                        rec["_rev_q4"] = float(_qr[_qc[4]])
+                        rec["_rev_q0_date"] = str(pd.Timestamp(_qc[0]).date())
+                        rec["_rev_q4_date"] = str(pd.Timestamp(_qc[4]).date())
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
+            warnings.warn(f"{ticker_str}: quarterly revenue YoY unavailable: {type(e).__name__}: {e}")
+
         # Revenue 3 years ago from annual financials (col=3) for 3-year CAGR.
         # Annual financials typically provides 4 columns (indices 0-3).
         rec["totalRevenue_3yr_ago"] = _stmt_val(fins, "Total Revenue", 3)
@@ -1952,8 +1970,23 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             else:
                 rec["peg_ratio"] = np.nan
 
-            # 11. Revenue Growth (1-year)
-            rec["revenue_growth"] = ((rev_c - rev_p) / rev_p) if (pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0) else np.nan
+            # 11. Revenue Growth (1-year), on a window that really is one year (2026-10-09).
+            # Until then: TTM revenue over `totalRevenue_prior`, which for 502 of 502 stocks
+            # fell back to the fiscal year *before* the latest one - a span of 12 to 23 months
+            # depending on the fiscal calendar (median 18). Now: the latest quarter over the
+            # same quarter a year earlier; where those are missing, the latest fiscal year
+            # over the one before. Both are exactly 12 months. `_revg_basis` records which.
+            _q0, _q4 = d.get("_rev_q0", np.nan), d.get("_rev_q4", np.nan)
+            _a0, _a1 = d.get("totalRevenue_annual", np.nan), d.get("totalRevenue_annual_prior", np.nan)
+            if pd.notna(_q0) and pd.notna(_q4) and _q4 > 0:
+                rec["revenue_growth"] = (_q0 - _q4) / _q4
+                rec["_revg_basis"] = "quarter"
+            elif pd.notna(_a0) and pd.notna(_a1) and _a1 > 0:
+                rec["revenue_growth"] = (_a0 - _a1) / _a1
+                rec["_revg_basis"] = "annual"
+            else:
+                rec["revenue_growth"] = np.nan
+                rec["_revg_basis"] = None
 
             # 11b. 3-Year Revenue CAGR — smoothed growth signal from annual filings.
             # Phase 13 (F20): use ANNUAL current (col=0) vs annual 3yr-ago (col=3)

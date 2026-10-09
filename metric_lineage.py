@@ -163,8 +163,11 @@ def _peg(i):
 
 
 def _rev_growth(i):
-    r, p = i.get("totalRevenue"), i.get("totalRevenue_prior")
-    return (r - p) / p if _ok(r, p) and p > 0 else None
+    q0, q4 = i.get("_rev_q0"), i.get("_rev_q4")
+    if _ok(q0, q4) and q4 > 0:
+        return (q0 - q4) / q4
+    a0, a1 = i.get("totalRevenue_annual"), i.get("totalRevenue_annual_prior")
+    return (a0 - a1) / a1 if _ok(a0, a1) and a1 > 0 else None
 
 
 def _rev_cagr(i):
@@ -284,6 +287,10 @@ EV_NOTE = ("Uses the scorer's own enterprise value: Yahoo's figure, unless it is
            "case that sum is used.")
 GROWTH_WINDOW = ("The 'prior' figure is the fiscal year before the latest completed fiscal year, "
                  "so this covers roughly 12-21 months, not exactly one year.")
+REVENUE_GROWTH_HOW = ("The latest reported quarter against the same quarter a year earlier, so the "
+                      "comparison is exactly 12 months apart and seasonally matched; where Yahoo has "
+                      "no such pair, the latest fiscal year against the one before. Until "
+                      "2026-10-09 the comparison spanned 12-23 months depending on the fiscal calendar.")
 
 LINEAGE = {
     # ---- valuation
@@ -362,9 +369,12 @@ LINEAGE = {
                     [("Price", "currentPrice", PRICE), ("Trailing EPS", "trailingEps", PRICE),
                      ("Forward EPS", "forwardEps", PRICE)],
                     how="Capped at 50; missing unless growth and trailing EPS are positive."),
-    "revenue_growth": _L("(Revenue - prior revenue) / prior revenue",
-                         [("Revenue (TTM)", "totalRevenue", USD), ("Prior revenue", "totalRevenue_prior", USD)],
-                         caveat=GROWTH_WINDOW),
+    "revenue_growth": _L("(Revenue - revenue a year earlier) / revenue a year earlier",
+                         [("Revenue, latest quarter", "_rev_q0", USD), ("Quarter ended", "_rev_q0_date", DATE),
+                          ("Revenue, same quarter a year earlier", "_rev_q4", USD), ("Quarter ended", "_rev_q4_date", DATE),
+                          ("Revenue, latest fiscal year", "totalRevenue_annual", USD),
+                          ("Revenue, the fiscal year before", "totalRevenue_annual_prior", USD)],
+                         how=REVENUE_GROWTH_HOW),
     "revenue_cagr_3yr": _L("(Revenue / revenue three years earlier) ^ (1/3) - 1",
                            [("Revenue (latest annual)", "totalRevenue_annual", USD),
                             ("Revenue (three years earlier)", "totalRevenue_3yr_ago", USD)],
@@ -475,7 +485,8 @@ EQUATIONS = {
     "operating_leverage": (False, ["EBIT change ({ebit_prior|prior} → {ebit_annual|latest}) ÷ revenue change ({totalRevenue_annual_prior|prior} → {totalRevenue_annual|latest})"]),
     "forward_eps_growth": (False, ["({forwardEps|forward EPS} − {trailingEps|trailing EPS}) ÷ trailing EPS (at least $1), clipped"]),
     "peg_ratio": (False, ["({currentPrice|price} ÷ {trailingEps|trailing EPS}) ÷ (EPS growth × 100), capped at 50"]),
-    "revenue_growth": (True, ["({totalRevenue|revenue} − {totalRevenue_prior|prior revenue}) ÷ {totalRevenue_prior|prior revenue}"]),
+    "revenue_growth": (True, ["({_rev_q0|latest quarter} − {_rev_q4|same quarter a year earlier}) ÷ {_rev_q4|same quarter a year earlier}",
+                              "({totalRevenue_annual|latest fiscal year} − {totalRevenue_annual_prior|the year before}) ÷ {totalRevenue_annual_prior|the year before}"]),
     "revenue_cagr_3yr": (True, ["({totalRevenue_annual|revenue} ÷ {totalRevenue_3yr_ago|revenue 3 years earlier}) ^ (1/3) − 1",
                                 "({totalRevenue|revenue} ÷ {totalRevenue_3yr_ago|revenue 3 years earlier}) ^ (1/3) − 1"]),
     "sustainable_growth": (False, ["ROE ({netIncome|net income} ÷ average equity) × share of earnings kept"]),
