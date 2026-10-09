@@ -640,11 +640,6 @@
     "Sector": "Financials"
   },
   {
-    "Ticker": "CTVA",
-    "Company": "Corteva",
-    "Sector": "Materials"
-  },
-  {
     "Ticker": "CSGP",
     "Company": "CoStar Group",
     "Sector": "Real Estate"
@@ -1790,11 +1785,6 @@
     "Sector": "Information Technology"
   },
   {
-    "Ticker": "PSKY",
-    "Company": "Paramount Skydance Corporation",
-    "Sector": "Communication Services"
-  },
-  {
     "Ticker": "PH",
     "Company": "Parker Hannifin",
     "Sector": "Industrials"
@@ -2060,6 +2050,11 @@
     "Sector": "Real Estate"
   },
   {
+    "Ticker": "SKYD",
+    "Company": "Skydance Corporation",
+    "Sector": "Communication Services"
+  },
+  {
     "Ticker": "SWKS",
     "Company": "Skyworks Solutions",
     "Sector": "Information Technology"
@@ -2255,6 +2250,11 @@
     "Sector": "Financials"
   },
   {
+    "Ticker": "TWLO",
+    "Company": "Twilio",
+    "Sector": "Information Technology"
+  },
+  {
     "Ticker": "TYL",
     "Company": "Tyler Technologies",
     "Sector": "Information Technology"
@@ -2390,6 +2390,11 @@
     "Sector": "Materials"
   },
   {
+    "Ticker": "VYLR",
+    "Company": "Vylor",
+    "Sector": "Consumer Staples"
+  },
+  {
     "Ticker": "WRB",
     "Company": "W. R. Berkley Corporation",
     "Sector": "Financials"
@@ -2412,11 +2417,6 @@
   {
     "Ticker": "DIS",
     "Company": "Walt Disney Company (The)",
-    "Sector": "Communication Services"
-  },
-  {
-    "Ticker": "WBD",
-    "Company": "Warner Bros. Discovery",
     "Sector": "Communication Services"
   },
   {
