@@ -81,3 +81,17 @@ def test_scoring_reads_the_gics_sector_not_yahoos():
     run = (ROOT / "run_screener.py").read_text(encoding="utf-8")
     assert '_r["_gics_sub"] = _m["SubIndustry"]' in run
     assert run.index('_r["_gics_sub"]') < run.index("df = compute_metrics(raw")
+
+
+def test_beneish_and_the_channel_flag_skip_every_financial():
+    """Beneish's sample excluded financial firms; an insurance broker's receivables are premiums
+    held for insurers (AON's DSRI read 3.52). Generic-set financials get neither."""
+    from tests.test_metrics import _compute_one, _make_rec
+    base = dict(_beneish_net_receivables=30e9, _beneish_net_receivables_p=8e9,
+                _beneish_revenue=50e9, _beneish_revenue_p=45e9, industry="Insurance Brokers")
+    broker = _compute_one(_make_rec(sector="Financial Services", _gics_sector="Financials",
+                                    _gics_sub="Insurance Brokers", **base))
+    assert not bool(broker["_channel_stuffing_flag"])
+    assert broker.get("beneish_m_score") is None or broker["beneish_m_score"] != broker["beneish_m_score"]
+    industrial = _compute_one(_make_rec(sector="Industrials", **base))
+    assert bool(industrial["_channel_stuffing_flag"])

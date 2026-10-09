@@ -359,7 +359,7 @@ LINEAGE = {
                                caveat="A candidate with no weight yet (2026-10-09). A small equity base - often from buybacks - makes ROE, and so this, large."),
     "beneish_m_score": _L("Beneish (1999) eight-index manipulation score",
                           how="M = -4.84 + 0.920 DSRI + 0.528 GMI + 0.404 AQI + 0.892 SGI + 0.115 DEPI - 0.172 SGAI + 4.679 TATA - 0.327 LVGI, from annual statements. Lower is better. Needs at least 5 of the 8 indices computed from real data; the rest default to neutral values.",
-                          caveat="TATA uses the cash-flow form of accruals, not Beneish's original balance-sheet form.",
+                          caveat="TATA uses the cash-flow form of accruals, not Beneish's original balance-sheet form. Not computed for any Financials stock: Beneish's sample excluded financial firms, whose sales and receivables mean something else (since 2026-10-09 this covers insurance brokers, asset managers, exchanges and payment processors too).",
                           kind="components"),
     "roe": _L("Return on equity (banks and insurers)",
               [("Return on equity (Yahoo)", "returnOnEquity", PCT), ("Net income (TTM)", "netIncome", USD),

@@ -3182,6 +3182,27 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run) - The Beneish score and channel-stuffing flag skip every Financials stock
+
+**Area:** beneish_m_score (8% of non-bank Quality), the Beneish and channel-stuffing flags
+**Changed:** neither is computed for a GICS Financials stock, bank-like or not. Before, only bank-like
+stocks were skipped, so payment processors and exchanges were scored on it, and the GICS bank-like
+rule (same day) would have extended it to insurance brokers and asset managers.
+
+**Evidence / reasoning:** Beneish's 1999 model was estimated on a sample that excluded financial
+firms, whose sales and receivables mean something different - reported consistently by secondary
+sources (Wikipedia; CBIZ; GuruFocus; Seeking Alpha); the original paper (*FAJ* 55(5)) is paywalled and
+its sample section was not read directly. The case in point: an insurance broker's receivables are
+premiums it collects for insurers, and AON's receivables index read 3.52 - a "manipulation" signal
+from the business model. `research/2026-10-09-bank-like-financials.md`.
+**Expected effect:** Financials on the generic set (30 stocks) score Quality without Beneish (its
+weight redistributes within the category); none can carry the Beneish or channel-stuffing badge.
+**Validated by:** `tests/test_bank_like.py::test_beneish_and_the_channel_flag_skip_every_financial`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run) - Which financials are scored as banks is decided by GICS sub-industry
 
 **Area:** the metric set (bank or generic) for Financials stocks - Valuation and Quality

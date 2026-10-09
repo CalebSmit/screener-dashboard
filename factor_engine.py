@@ -1800,6 +1800,12 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         _sector = rec["Sector"]
         _industry = d.get("industry", "")
         _is_bank = _is_bank_like(ticker, d.get("_gics_sector") or _sector, _industry, d.get("_gics_sub"))
+        # Beneish's M-score and its receivables index were estimated on non-financial companies:
+        # his sample excluded financial firms, whose sales and receivables mean something else
+        # (an insurance broker's receivables are premiums it holds for insurers - AON's DSRI read
+        # 3.52). So neither the M-score nor the channel-stuffing flag is applied to any Financials
+        # stock, bank-like or not (2026-10-09, with the GICS bank-like rule).
+        _beneish_applies = (not _is_bank) and ((d.get("_gics_sector") or _sector) not in _FINANCIAL_SECTORS)
 
         # -- Valuation metrics (1-4) --
         try:
@@ -2049,7 +2055,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 10. Beneish M-Score (earnings manipulation detection)
             # Non-bank only; uses ANNUAL statements (t vs t-1), not LTM.
             # Banks excluded: no COGS, no PPE, Beneish assumptions break.
-            if (cfg or {}).get("enable_beneish", True) and not _is_bank:
+            if (cfg or {}).get("enable_beneish", True) and _beneish_applies:
                 _mscore, _mflag = _compute_beneish_mscore(d)
                 rec["beneish_m_score"] = _mscore
                 rec["_beneish_flag"] = _mflag
@@ -2081,7 +2087,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             _recv_p = d.get("_beneish_net_receivables_p", np.nan)
             _rev_t = d.get("_beneish_revenue", np.nan)
             _rev_p = d.get("_beneish_revenue_p", np.nan)
-            if (not _is_bank and pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
+            if (_beneish_applies and pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
                     and pd.notna(_rev_t) and _rev_t > 0 and pd.notna(_rev_p) and _rev_p > 0):
                 _recv_growth = (_recv_t / _recv_p) - 1
                 _rev_growth = (_rev_t / _rev_p) - 1
