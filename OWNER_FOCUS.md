@@ -45,6 +45,12 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-09 (owner-run, afternoon) - a new signal, and the evaluation's sector input repaired.**
+    "Against its own five years" (each stock's earnings and FCF yield against its past 60 month-ends,
+    from SEC filings; `valuation_history.py`) joined the panel and the context log as two signals
+    (`_ctx_vh_ey_pct`, `_ctx_vh_fy_pct`) that `context_eval.py` evaluates like the rest. A review found
+    the logs had never carried the GICS sector, so the sector-relative signal was always empty; both
+    committed logs were repaired. A `--tickers` run no longer rewrites the log or the track record.
   - **2026-10-09 (owner-run, daytime) - the outstanding step is done, and items 4-6 moved.** The
     `Screener Option Quotes` task is registered and verified (`Get-ScheduledTask`: one weekly 20:00
     trigger, no logon trigger; loops still PT3M / PT20M) and a live smoke test wrote the cache at
