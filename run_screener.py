@@ -701,7 +701,7 @@ The screener includes several layers of data quality protection:
 
 - **Denominator floors:** Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.
 - **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.50, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.50, 1.0])[1] * 100)}%]. These bounds are configurable in `config.yaml` under `metric_clamps`. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.
-- **Coverage filter:** Stocks with fewer than {min_coverage}% of their applicable metrics available are excluded from the ranking entirely.
+- **Coverage filter:** Stocks with fewer than {min_coverage}% of the metrics that carry weight in their score available are excluded from the ranking entirely - the same coverage the composite's discount reads.
 - **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is reduced by up to {int(cov_disc.get('penalty_rate', 0.15) * 100)}% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
 - **Auto-disable (category-level):** If the Revisions or Investment category has fewer than 30% of its metrics populated, the entire category's weight is zeroed and redistributed proportionally to the remaining categories.
 - **Auto-reduce (metric-level):** If any individual metric has more than {auto_reduce_thresh}% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.
@@ -1473,23 +1473,12 @@ def run_factor_engine(cfg, args, ctx=None):
         skipped_tickers += df.loc[skip_mask, "Ticker"].tolist()
         df = df[~skip_mask].copy()
 
-        # Coverage filter — count only metrics applicable to each stock type.
-        # Bank-only metrics are structurally NaN for non-banks and vice versa;
-        # including them in the denominator would penalize stocks unfairly.
-        present = [c for c in METRIC_COLS if c in df.columns]
-        is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
-        applicable_count = pd.Series(0, index=df.index)
-        metric_count = pd.Series(0, index=df.index)
-        for c in present:
-            # Determine which rows this metric applies to
-            if c in _BANK_ONLY_METRICS:
-                applies = is_bank
-            elif c in _NONBANK_ONLY_METRICS:
-                applies = ~is_bank
-            else:
-                applies = pd.Series(True, index=df.index)
-            applicable_count += applies.astype(int)
-            metric_count += (df[c].notna() & applies).astype(int)
+        # Coverage filter - the same coverage the composite's discount reads: the metrics that
+        # carry weight in the table this stock is scored with (factor_engine.applicable_coverage,
+        # since 2026-10-09). Until then it counted every registered metric, so a stock could be
+        # dropped from the universe for missing candidates that never enter a score.
+        from factor_engine import applicable_coverage
+        metric_count, applicable_count = applicable_coverage(df, cfg)
         coverage_pct = cfg["data_quality"]["min_data_coverage_pct"] / 100
         df["_mc"] = metric_count
         min_needed = (applicable_count * coverage_pct).apply(lambda x: max(1, int(x)))

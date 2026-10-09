@@ -3257,3 +3257,16 @@ The overlap measurements in `research/2026-10-09-earnings-variability-candidate.
 the frames data; the decision there (stay unweighted) does not depend on the handful of mis-scaled
 values.
 **Applied by:** owner-run session, 2026-10-09.
+
+---
+
+## 2026-10-09 (owner-run) - The coverage filter uses the same coverage as the discount
+
+**Area:** universe (the filter that excludes stocks below `min_data_coverage_pct`, 60%)
+**Changed:** it counted every registered metric applicable to the stock's type; it now reads
+`factor_engine.applicable_coverage(df, cfg)` - the metrics carrying weight in the stock's table -
+which the composite's coverage discount has used since this morning. One definition of coverage.
+**Evidence:** a documented defect class: a stock could be dropped from the universe for missing
+weight-0 candidates. **Measured on run `a2d76219dc0a`: no change** - the two stocks excluded (HONA,
+17 of 29 weighted metrics = 59%; VYLR, 8 of 29) are excluded under either rule.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
