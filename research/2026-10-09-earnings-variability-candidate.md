@@ -55,3 +55,24 @@ record against forward returns.
 `earnings_variability` stays at **weight 0**. No change to the scoring today. Next: add an ROA-based
 variant beside it (same frames, one more concept: `Assets`), then compare the two on overlap and,
 once `1m` observations accrue, on record.
+
+## Addendum, same day: the ROA variant, measured
+
+Same five calendar years, net income / year-end total assets (`Assets` frames), sample standard
+deviation, all five required:
+
+| | ROE variant (current) | ROA variant |
+|---|---|---|
+| Coverage | 442 | **482** |
+| rho with ROIC | +0.21 | +0.14 |
+| rho with gross profit / assets | +0.25 | +0.26 |
+| rho with return volatility | +0.44 | **+0.48** |
+| rho with Quality score | +0.13 | +0.14 |
+| rho with Risk score | -0.27 | -0.27 |
+
+The two rank stocks alike (rho **0.79**). The ROA variant fixes coverage and the buyback distortion
+(Apple 0.018 against Coca-Cola 0.009, instead of 0.20 against 0.013), but it overlaps return
+volatility *more*, and neither is less tied to profitability in a way that matters. **Conclusion
+unchanged: neither variant is an independent signal on this evidence; both stay unweighted.** If
+the candidate is ever revisited, switch it to ROA for coverage, then test its residual information
+after the Risk category, not its raw correlation.
