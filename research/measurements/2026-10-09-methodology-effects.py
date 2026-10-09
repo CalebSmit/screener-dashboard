@@ -98,7 +98,8 @@ def main(run_id: str | None = None) -> dict:
     run = (ROOT / "runs" / run_id) if run_id else newest_run()
     scored = pd.read_parquet(run / "05_final_scored.parquet")
     raw = pd.read_parquet(run / "00_raw_fetch.parquet").set_index("Ticker")
-    metrics = pd.read_parquet(run / "01_raw_metrics.parquet") if (run / "01_raw_metrics.parquet").exists() else scored
+    # Post-outlier metrics: the table the pipeline computes percentiles from.
+    metrics = pd.read_parquet(run / "02_outliers_flagged.parquet")
     cfg = yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8"))
     eff = json.loads((run / "effective_weights.json").read_text(encoding="utf-8"))
     cfg["factor_weights"] = eff["factor_weights"]

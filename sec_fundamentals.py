@@ -67,7 +67,8 @@ FACT_CONCEPTS = (
 )
 
 
-def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False):
+def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False,
+                         allow_write: bool = True):
     """Every 10-K / 10-Q fact for ``FACT_CONCEPTS``, one ``companyfacts`` request per company,
     cached in ``FACTS_PATH`` and refreshed at most weekly (~500 requests, ~3 minutes).
 
@@ -76,8 +77,11 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
     and frames align a fiscal year to a calendar year, pairing a June-year-end company's income
     with its December equity. A company's own 10-K figures avoid both."""
     import pandas as pd
-    if not force and FACTS_PATH.exists() and time.time() - FACTS_PATH.stat().st_mtime < FACTS_MAX_AGE_DAYS * 86400:
-        return pd.read_parquet(FACTS_PATH)
+    # A subset run (``--tickers``) never rewrites the universe-wide cache: it would leave a
+    # 32-company file stamped fresh for a week (review, 2026-10-09).
+    if not allow_write or (not force and FACTS_PATH.exists()
+                           and time.time() - FACTS_PATH.stat().st_mtime < FACTS_MAX_AGE_DAYS * 86400):
+        return pd.read_parquet(FACTS_PATH) if FACTS_PATH.exists() else None
     from insider_activity import Edgar, ticker_map, user_agent
     if edgar is None:
         ua = user_agent()
@@ -121,7 +125,11 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
 NI_CONCEPTS = ("NetIncomeLoss", "ProfitLoss")
 
 
-def roe_history(tickers: list[str], today: date | None = None, facts=None, log=print) -> dict:
+MAX_STALENESS_DAYS = 550    # latest fiscal year must end within ~18 months of today
+
+
+def roe_history(tickers: list[str], today: date | None = None, facts=None, log=print,
+                refresh: bool = True) -> dict:
     """``{ticker: [[fiscal_year_end, net_income, equity, roe_or_None], ...]}``, oldest first.
 
     The last ``YEARS`` fiscal years from the company's own 10-K figures: net income for each
@@ -130,7 +138,7 @@ def roe_history(tickers: list[str], today: date | None = None, facts=None, log=p
     import pandas as pd
     today = today or date.today()
     if facts is None:
-        facts = refresh_companyfacts(tickers, log=log)
+        facts = refresh_companyfacts(tickers, log=log, allow_write=refresh)
     if facts is None or len(facts) == 0:
         return {}
     f = facts[facts["form"].str.startswith("10-K")].copy()
@@ -161,6 +169,10 @@ def roe_history(tickers: list[str], today: date | None = None, facts=None, log=p
             nv = float(r["val"])
             rows.append([r["end"].date().isoformat(), nv, e_val,
                          (nv / e_val) if (e_val is not None and e_val > 0) else None])
+        # The five years must be the RECENT five: BKNG stopped tagging net income after FY2015,
+        # and its 2011-2015 table was being published as current (review, 2026-10-09).
+        if rows and (pd.Timestamp(today) - pd.Timestamp(rows[-1][0])).days > MAX_STALENESS_DAYS:
+            rows = rows[-1:]
         # five consecutive fiscal years, no gaps (a missing year would stretch the window)
         if len(rows) == YEARS:
             ends = [pd.Timestamp(x[0]) for x in rows]

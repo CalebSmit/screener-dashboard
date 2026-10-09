@@ -133,3 +133,29 @@ def test_a_partial_refresh_never_replaces_a_complete_cache(tmp_path, monkeypatch
     out = sf.refresh_companyfacts([f"T{i}" for i in range(10)], edgar=E(), log=lambda *a: None)
     assert len(out) == len(good)                             # 1 of 10 reached: the old cache stands
     assert len(pd.read_parquet(path)) == len(good)
+
+
+def test_stale_five_years_are_not_published_as_current():
+    """BKNG stopped tagging net income after FY2015; its 2011-2015 table must not pass as current."""
+    f = _facts()
+    old = f[f["ticker"] == "AAA"].copy()
+    for c in ("start", "end", "filed"):
+        old[c] = old[c] - pd.DateOffset(years=10)
+    old["ticker"] = "OLD"
+    h = sf.roe_history(["OLD"], TODAY, facts=pd.concat([f, old]))
+    assert sf.earnings_variability(h["OLD"]) is None
+
+
+def test_a_subset_run_never_rewrites_the_cache(tmp_path, monkeypatch):
+    path = tmp_path / "facts.parquet"
+    _facts().to_parquet(path)
+    import os
+    os.utime(path, (0, 0))                                  # stale: a full run would refresh it
+    monkeypatch.setattr(sf, "FACTS_PATH", path)
+
+    class Boom:
+        def get(self, url):
+            raise AssertionError("a subset run must not download")
+
+    out = sf.refresh_companyfacts(["AAA"], edgar=Boom(), allow_write=False)
+    assert len(out) == len(_facts()) and os.path.getmtime(path) == 0

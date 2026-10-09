@@ -96,7 +96,7 @@ def load_prices(tickers: list[str], start: date, end: date | None = None, downlo
                     redo = download(thin, start, end)
                     redo.index = pd.to_datetime(redo.index).tz_localize(None)
                     for t in thin:
-                        if t in redo.columns and redo[t].notna().sum() > win[t].notna().sum() if t in win.columns else True:
+                        if t in redo.columns and (redo[t].notna().sum() > (win[t].notna().sum() if t in win.columns else 0)):
                             prices[t] = redo[t].reindex(prices.index).combine_first(prices[t]) if t in prices.columns else redo[t].reindex(prices.index)
                 except Exception:  # noqa: BLE001 - a failed repair keeps what we had
                     pass

@@ -123,7 +123,9 @@ class RunContext:
             # correctly, but for a reason that reads as a scoring bug.
             # 4 = beta's covariance/variance and every term of Jensen's alpha
             # recorded (`_beta_cov`, `_beta_var`, `_ja_*`, 2026-10-09).
-            "scoring_schema": 4,
+            # 5 = revenue-growth window, Piotroski 3/8/9 annual, one EBITDA, weighted-only
+            # coverage (2026-10-09) - all scoring changes a same-day cache must not hide.
+            "scoring_schema": 5,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

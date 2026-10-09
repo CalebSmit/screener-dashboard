@@ -95,3 +95,9 @@ def test_the_published_overview_matches_the_published_history():
     fresh = ro.overview({k: v for k, v in h.items() if k != "overview"}, d["weights"]["factor_weights"])
     assert fresh == h["overview"]
     assert advice_terms_in(json.dumps(h["overview"])) == []
+
+
+def test_one_kept_name_reads_singular():
+    h = _history()
+    h["series"] = {"A": {"r": [1, 2, 3]}, "B": {"r": [40, 40, 40]}}
+    assert "1 of today's top 25 was also in the top 25" in " ".join(ro.overview(h, FW)["m1"]["text"])

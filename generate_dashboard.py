@@ -635,9 +635,14 @@ def _profiles_block(df: pd.DataFrame, weights: dict, cfg: dict) -> dict | None:
         base = weights.get("base_factor_weights") or weights.get("factor_weights") or {}
         regime = infer_momentum_regime(base, weights.get("factor_weights") or base)
         out = {"regime": regime, "list": [], "c": {}}
+        base_cfg = _copy.deepcopy(cfg)
+        # The metric weights the engine scored with (post auto-reduce), as _with_weight_profiles
+        # uses - else an auto-reduce day fails the Balanced check and hides the selector.
+        if weights.get("metric_weights"):
+            base_cfg["metric_weights"] = _copy.deepcopy(weights["metric_weights"])
         for key, p in PRESETS.items():
             fw = apply_momentum_regime(p["factor_weights"], regime)
-            c = _copy.deepcopy(cfg)
+            c = _copy.deepcopy(base_cfg)
             c["factor_weights"] = fw
             d = compute_composite(df.copy(), c)
             comp = d["Composite"]
@@ -4396,7 +4401,7 @@ def _js_workings() -> str:
         }
         if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
             const pc = v => (v === null || v === undefined) ? '&ndash;' : (v * 100).toFixed(1) + '%';
-            h += `<div class="wk-k">Return on equity, five calendar years (SEC filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
+            h += `<div class="wk-k">Return on equity, last five fiscal years (the company&rsquo;s 10-K filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
                 s.roe5.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${r[0]}${r[3] === null ? ' <span class="wk-dim">&middot; ' + (r[2] !== null && r[2] <= 0 ? 'equity not positive' : 'not reported') + '</span>' : ''}</td><td class="wk-num">${r[1] === null ? '&ndash;' : fmtBig(r[1])}</td><td class="wk-num">${r[2] === null ? '&ndash;' : fmtBig(r[2])}</td><td class="wk-num">${pc(r[3])}</td></tr>`).join('') +
                 `</tbody></table><div class="wk-sum">${s.raw[m] === null || s.raw[m] === undefined ? 'Needs all five years - not computed for this stock' : 'Sample standard deviation of the five ROEs = ' + fmtMetric(s.raw[m], meta.fmt)}</div>`;
         }

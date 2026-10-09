@@ -103,7 +103,8 @@ def overview(history: dict, factor_weights: dict) -> dict:
                         + f"; Valuation, Quality and Growth together {_pct(fund)}%.")
         kept = top_kept(history, cmp["date"])
         if kept is not None:
-            text.append(f"{kept} of today's top {TOP_N} were also in the top {TOP_N} on {_date(cmp['date'])}.")
+            text.append(f"{kept} of today's top {TOP_N} {'was' if kept == 1 else 'were'} also in the top {TOP_N} "
+                        f"on {_date(cmp['date'])}.")
         out[base] = {"text": text, "n_up": n_up, "n_down": n_down, "threshold": thr,
                      "shares": {c: round(v, 4) for c, v in shares.items()}, "top_kept": kept}
     return out

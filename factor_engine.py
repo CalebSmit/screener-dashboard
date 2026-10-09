@@ -2430,7 +2430,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 rec["interest_coverage"] = np.nan
 
             # C9. Earnings variability (Quality candidate, 2026-10-09): standard deviation
-            # of five years of annual ROE from the SEC's XBRL frames, attached to the raw
+            # of five fiscal years of ROE from each company's 10-K (SEC companyfacts), attached to the raw
             # record by run_screener (sec_fundamentals). Banks included - ROE is their
             # native profitability measure. research/2026-10-09-operating-leverage.md.
             rec["earnings_variability"] = d.get("_evol", np.nan)

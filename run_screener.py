@@ -1332,12 +1332,14 @@ def run_factor_engine(cfg, args, ctx=None):
         stats["tickers_api"] = len(raw)
 
         # Earnings variability (Quality candidate, weight 0): five years of annual ROE
-        # from the SEC's XBRL frames - Yahoo's statements carry four years at most.
+        # from each company's own 10-K figures (SEC companyfacts) - Yahoo carries four years.
+        # A --tickers run reads the cache but never rewrites it (it would hold only the subset).
         # ~25 cached requests for the whole universe. research/2026-10-09-operating-leverage.md
         try:
             import json as _json_ev
             import sec_fundamentals as _sf
-            _roe = _sf.roe_history([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r])
+            _roe = _sf.roe_history([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r],
+                                   refresh=should_write_score_cache(args))
             _n_ev = 0
             for _r in raw:
                 _rows = _roe.get(_r.get("Ticker"))
