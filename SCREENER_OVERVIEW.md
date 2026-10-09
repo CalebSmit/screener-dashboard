@@ -123,9 +123,9 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-| **Volatility** | 42.86% | Annualized standard deviation of daily returns over the past year. Lower = smoother ride. |
+| **Volatility** | 42.86% | Annualized standard deviation of daily returns over about 13 months of trading (the same price history the momentum signals use). Lower = smoother ride. |
 | **Beta** | 28.57% | Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk. |
-| **Max Drawdown (1Y)** | 28.57% | Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss. |
+| **Max Drawdown (13M)** | 28.57% | Largest peak-to-trough fall in the closing price over about 13 months. Less negative = smaller worst-case loss. |
 
 **Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are *dispersion* measures: they describe how much a stock moves, not how well it did.
 

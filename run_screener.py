@@ -985,7 +985,7 @@ _METRIC_LABELS = {
     "return_12_1": "12-1 Month Return", "return_6m": "6-1 Month Return",
     "volatility": "Volatility", "beta": "Beta",
     "sharpe_ratio": "Sharpe Ratio", "sortino_ratio": "Sortino Ratio",
-    "max_drawdown_1y": "Max Drawdown (1Y)",
+    "max_drawdown_1y": "Max Drawdown (13M)",
     "fy1_revision_3m": "FY1 EPS Revision (3-month)",
     "analyst_surprise": "Analyst Surprise", "price_target_upside": "Price Target Upside",
     "earnings_acceleration": "Earnings Acceleration", "consecutive_beat_streak": "Beat Score",
@@ -1035,11 +1035,11 @@ _MOM_DESCRIPTIONS = {
 }
 
 _RISK_DESCRIPTIONS = {
-    "volatility": "Annualized standard deviation of daily returns over the past year. Lower = smoother ride.",
+    "volatility": "Annualized standard deviation of daily returns over about 13 months of trading (the same price history the momentum signals use). Lower = smoother ride.",
     "beta": "Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk.",
     "sharpe_ratio": "(12-month return - risk-free rate) / volatility. Risk-adjusted return per unit of total risk. Higher = more efficient risk-taking.",
     "sortino_ratio": "(12-month return - risk-free rate) / downside deviation. Like Sharpe but only penalizes downside volatility. Higher = better downside-adjusted return.",
-    "max_drawdown_1y": "Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss.",
+    "max_drawdown_1y": "Largest peak-to-trough fall in the closing price over about 13 months. Less negative = smaller worst-case loss.",
 }
 
 _REV_DESCRIPTIONS = {

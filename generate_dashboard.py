@@ -975,7 +975,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "net_income": _ni,
             "ni_growth_yoy": (round((_ni_fy0 - _ni_fy1) / abs(_ni_fy1), 4)
                               if (_ni_fy0 is not None and _ni_fy1 is not None and abs(_ni_fy1) > 0) else None),
-            "ebitda": _safe(row.get("_ebitda_raw")),
+            # The EBITDA the engine scored with (EBIT + D&A), not Yahoo's reported figure -
+            # one EBITDA on the page, the one behind EV/EBITDA and net debt / EBITDA.
+            "ebitda": _safe(row.get("_ebitda_used")) if _safe(row.get("_ebitda_used")) is not None else _safe(row.get("_ebitda_raw")),
             "gross_margin": round(_gp / _rev, 4) if (_gp is not None and _rev is not None and _rev > 0) else None,
             "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
             "fcf": round(_ocf - abs(_capex_v), 2) if (_ocf is not None and _capex_v is not None) else None,
@@ -1110,13 +1112,13 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "revenue_cagr_3yr": {"label": "Revenue CAGR (3Y)", "fmt": "pct", "category": "growth"},
         "sustainable_growth": {"label": "Sustainable Growth", "fmt": "pct", "category": "growth"},
         "return_12_1": {"label": "12-1M Return", "fmt": "pct", "category": "momentum"},
-        "return_6m": {"label": "6M Return", "fmt": "pct", "category": "momentum"},
+        "return_6m": {"label": "6-1M Return", "fmt": "pct", "category": "momentum"},
         "jensens_alpha": {"label": "Jensen's Alpha", "fmt": "pct", "category": "momentum"},
         "volatility": {"label": "Volatility", "fmt": "pct", "category": "risk"},
         "beta": {"label": "Beta", "fmt": "ratio", "category": "risk"},
         "sharpe_ratio": {"label": "Sharpe Ratio", "fmt": "ratio", "category": "risk"},
         "sortino_ratio": {"label": "Sortino Ratio", "fmt": "ratio", "category": "risk"},
-        "max_drawdown_1y": {"label": "Max Drawdown (1Y)", "fmt": "pct", "category": "risk"},
+        "max_drawdown_1y": {"label": "Max Drawdown (13M)", "fmt": "pct", "category": "risk"},
         "fy1_revision_3m": {"label": "FY1 EPS Revision (90d)", "fmt": "bp", "category": "revisions"},
         "analyst_surprise": {"label": "Analyst Surprise", "fmt": "pct", "category": "revisions"},
         "price_target_upside": {"label": "Price Target Upside", "fmt": "pct", "category": "revisions"},

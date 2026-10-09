@@ -3153,3 +3153,29 @@ fields); golden fixture regenerated with the annual fields mapped from the exist
 **Backtest observation (not decision-grade, rule 5):** none used.
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - One EBITDA; labels that say what is measured
+
+**Area:** metric definition (Quality: `net_debt_to_ebitda`), display labels
+**Changed:** (1) `net_debt_to_ebitda` now uses the EBITDA `ev_ebitda` resolves (EBIT + |D&A|,
+Yahoo's reported EBITDA only when a component is missing) instead of its own copy, which kept the
+`D&A >= 0` gate Phase 13 (F36) had removed from the valuation block. The Company Snapshot's
+EBITDA is that same figure, not Yahoo's reported one. (2) Labels: `return_6m` "6M Return" ->
+**"6-1M Return"** (it has always been six months ago to one month ago, like 12-1);
+`max_drawdown_1y` "Max Drawdown (1Y)" -> **"Max Drawdown (13M)"**; the methodology page's
+volatility and drawdown descriptions say "about 13 months". CLAUDE.md 0.9(c) and (d).
+
+**Evidence:** a *documented defect*, not a research claim: two definitions of one quantity
+inside one score, and labels that disagree with the code - both found by the 2026-10-07 lineage
+audit. Measured on run `a2d76219dc0a`: the two EBITDAs were identical for all 442 stocks that had
+both, so the merge prevents divergence rather than correcting a live difference.
+
+**Expected effect:** none on today's scores (identical EBITDAs; labels only). The windows behind
+the 13-month labels are unchanged - shortening them to exactly 252 days would be a methodology
+change of its own and is not justified by anything found here.
+**Validated by:** full suite; the dashboard build's score reproduction on the next run.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.

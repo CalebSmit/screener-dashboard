@@ -1794,12 +1794,14 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Guard: negative EBITDA makes the ratio uninterpretable → NaN.
             # Banks: skip (return NaN, weight redistributes to other metrics).
             if not _is_bank:
-                _ebit_nd = d.get("ebit", np.nan)
-                _da_nd = d.get("da_cf", np.nan)
-                if pd.notna(_ebit_nd) and pd.notna(_da_nd) and _da_nd >= 0:
-                    _ebitda_nd = _ebit_nd + _da_nd
-                else:
-                    _ebitda_nd = d.get("ebitda", np.nan)
+                # The SAME EBITDA EV/EBITDA uses (2026-10-09, CLAUDE.md 0.9(c)): this block
+                # had its own copy with the old `D&A >= 0` gate that Phase 13 (F36) removed
+                # from the valuation block, so a stock whose D&A row carried a negative sign
+                # was measured on two different EBITDAs. Identical for all 442 stocks with
+                # both on 2026-10-09; one definition so they cannot drift apart.
+                _ebitda_nd = rec.get("_ebitda_used", np.nan)
+                if _ebitda_nd is None:
+                    _ebitda_nd = np.nan
                 rec["_ebitda_nd_used"] = _ebitda_nd
                 if pd.notna(_debt_bs) and pd.notna(_ebitda_nd) and _ebitda_nd > 0:
                     _net_debt = _debt_bs - (_cash_bs if pd.notna(_cash_bs) else 0.0)
