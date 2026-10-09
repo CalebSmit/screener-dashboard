@@ -42,9 +42,11 @@ def load(path: Path) -> dict:
 
 
 def _avg_rank_pct(values, mine):
+    """The engine's midpoint percentile, (average rank - 0.5) / n, since 2026-10-09
+    (factor_engine._directed_pct)."""
     below = sum(1 for v in values if v < mine)
     equal = sum(1 for v in values if v == mine)
-    return ((below + (equal + 1) / 2.0) / len(values)) * 100.0
+    return ((below + equal / 2.0) / len(values)) * 100.0
 
 
 def percentile_from_peers(payload: dict, ticker: str, metric: str, lower_is_better: bool):

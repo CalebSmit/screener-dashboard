@@ -55,6 +55,9 @@ MONTHS = 60                 # five years of month-ends
 MIN_MONTHS = 36             # fewer and the range is not shown
 MCAP_TOLERANCE = 0.15       # |our market value / provider's - 1| above this -> not shown
 MAX_TTM_AGE_DAYS = 460      # a TTM whose period ended longer ago than this is stale
+# "Today's" yield must rest on a recent period: VTRS's filings carry only annual figures, so the
+# 460-day bound let a fiscal-year-old TTM stand as today's (-17.1% against Yahoo's -2.0%).
+TODAY_MAX_AGE_DAYS = 200
 ANNUAL = (340, 380)
 YTD = (80, 290)
 
@@ -109,15 +112,30 @@ def ttm_series(f: pd.DataFrame, concepts: tuple) -> dict:
     return {"end": ends[keep], "avail": avail[keep], "val": vals[keep]}
 
 
-def _as_of(series: dict, when: int):
+def _as_of(series: dict, when: int, max_age: int = MAX_TTM_AGE_DAYS):
     """The latest-ending value known by day ``when``, or None if none or stale."""
     k = series["avail"] <= when
     if not k.any():
         return None
     i = np.flatnonzero(k)[np.argmax(series["end"][k])]
-    if when - series["end"][i] > MAX_TTM_AGE_DAYS:
+    if when - series["end"][i] > max_age:
         return None
     return float(series["val"][i])
+
+
+def _fcf_as_of(ocf: dict, cx: dict, when: int, max_age: int = MAX_TTM_AGE_DAYS):
+    """Operating cash flow minus capex for the latest period BOTH report by ``when`` - one
+    trailing twelve months, never two (VLO paired cash flow to 2026-06 with capex to 2025-09)."""
+    ko, kc = ocf["avail"] <= when, cx["avail"] <= when
+    common = np.intersect1d(ocf["end"][ko], cx["end"][kc])
+    if not len(common):
+        return None
+    e = common.max()
+    if when - e > max_age:
+        return None
+    o = ocf["val"][ko][ocf["end"][ko] == e][0]
+    c = cx["val"][kc][cx["end"][kc] == e][0]
+    return float(o - c)
 
 
 def share_series(f: pd.DataFrame) -> dict:
@@ -195,19 +213,19 @@ def for_ticker(f: pd.DataFrame, closes: pd.Series, splits: list, price_now: floa
         n = _as_of(ni, md)
         ey.append(n / mv if (mv and n is not None) else None)
         if fcf:
-            o, c = _as_of(ocf, md), _as_of(cx, md)
-            fy.append((o - c) / mv if (mv and o is not None and c is not None) else None)
+            v = _fcf_as_of(ocf, cx, md)
+            fy.append(v / mv if (mv and v is not None) else None)
     mv_now = price_now * shares_now
     out = {"asof": str(months[-1].date()) if len(months) else None,
            "m0": str(months[0].date()) if len(months) else None,
            "chk": round(check, 4)}
-    n_now = _as_of(ni, td)
+    n_now = _as_of(ni, td, TODAY_MAX_AGE_DAYS)
     e = _summary(n_now / mv_now if n_now is not None else None, ey)
     if e:
         out["ey"] = e
     if fcf:
-        o, c = _as_of(ocf, td), _as_of(cx, td)
-        x = _summary((o - c) / mv_now if (o is not None and c is not None) else None, fy)
+        v = _fcf_as_of(ocf, cx, td, TODAY_MAX_AGE_DAYS)
+        x = _summary(v / mv_now if v is not None else None, fy)
         if x:
             out["fy"] = x
     return out if ("ey" in out or "fy" in out) else None
@@ -264,6 +282,9 @@ def monthly_prices(tickers: list[str], today: date | None = None, log=print,
     close = d["Close"].rename(columns=ymap)
     sp = d["Stock Splits"].rename(columns=ymap) if "Stock Splits" in d.columns.get_level_values(0) else None
     close.index = pd.to_datetime(close.index)
+    # Complete months only: the current month's bar holds a part-month price, and cached it would
+    # later stand as that month's close (2026-10-09 review).
+    close = close[close.index < today.to_period("M").to_timestamp()]
     splits: dict = {}
     if sp is not None:
         for t in [c for c in sp.columns if (sp[c].fillna(0) > 0).any()]:

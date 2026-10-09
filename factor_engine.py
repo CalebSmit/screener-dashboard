@@ -1806,6 +1806,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # 3.52). So neither the M-score nor the channel-stuffing flag is applied to any Financials
         # stock, bank-like or not (2026-10-09, with the GICS bank-like rule).
         _beneish_applies = (not _is_bank) and ((d.get("_gics_sector") or _sector) not in _FINANCIAL_SECTORS)
+        # ...and so it is not "missing" for them either: applicable_coverage reads this.
+        rec["_beneish_na"] = (not _is_bank) and not _beneish_applies
 
         # -- Valuation metrics (1-4) --
         try:
@@ -2127,7 +2129,9 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             try:
                 _q = json.loads(d["_eps_quarters"]) if isinstance(d.get("_eps_quarters"), str) else []
                 _acts = [r[1] for r in _q[-4:]]
-                if len(_acts) == 4 and all(a is not None for a in _acts):
+                # a stale history (newest quarter > EH_MAX_AGE_DAYS old) is not "the last four
+                # quarters" - AMCR's ended Dec-2025 (2026-10-09 review)
+                if len(_acts) == 4 and all(a is not None for a in _acts) and not d.get("_eps_quarters_stale"):
                     _b12 = float(sum(_acts))
             except (TypeError, ValueError, IndexError, KeyError):
                 _b12 = np.nan
@@ -3420,6 +3424,10 @@ def applicable_coverage(df: pd.DataFrame, cfg: dict | None = None):
             applies = ~is_bank
         else:
             applies = pd.Series(True, index=df.index)
+        if m == "beneish_m_score" and "_beneish_na" in df.columns:
+            # Beneish is not computed for Financials (2026-10-09), so a generic-set financial
+            # is not short of it.
+            applies = applies & ~df["_beneish_na"].fillna(False).astype(bool)
         applicable += applies.astype(int)
         present += (df[m].notna() & applies).astype(int)
     return present, applicable

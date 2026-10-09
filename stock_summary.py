@@ -116,9 +116,10 @@ def _ordinal(n: int) -> str:
 def _pctile_phrase(p: float) -> str:
     """"the 97th", "the lowest", "the highest".
 
-    A sector percentile is ``rank(pct=True) * 100``, so its extremes really do
-    land on 0 and 100 - and "the 0th sector percentile" reads like a bug rather
-    than like "worst in its sector", which is what it means.
+    A sector percentile is the midpoint rank, (rank - 0.5) / n x 100 (since 2026-10-09), so
+    the best and worst in a sector read 50/n from the ends - near 100 and 0 but not on them; a
+    value that rounds to 0 or 100 still reads as "the lowest" / "the highest" rather than as
+    "the 0th", which looks like a bug.
     """
     n = round(p)
     if n <= 0:
@@ -138,6 +139,8 @@ def _fmt_metric(value, fmt: str) -> str:
         return f"{value * 10000:.0f} bp"
     if fmt == "int":
         return f"{round(value):.0f}"
+    if fmt == "score":
+        return f"{value:.0f}" if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
     return f"{value:.2f}"
 
 

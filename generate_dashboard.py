@@ -1179,7 +1179,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "analyst_surprise": {"label": "Analyst Surprise", "fmt": "pct", "category": "revisions"},
         "price_target_upside": {"label": "Price Target Upside", "fmt": "pct", "category": "revisions"},
         "earnings_acceleration": {"label": "Earnings Accel.", "fmt": "ratio", "category": "revisions"},
-        "consecutive_beat_streak": {"label": "Beat Score", "fmt": "int", "category": "revisions"},
+        "consecutive_beat_streak": {"label": "Beat Score", "fmt": "score", "category": "revisions"},
         "short_interest_ratio": {"label": "Short Interest Ratio", "fmt": "ratio", "category": "revisions"},
         "size_log_mcap": {"label": "Size (-log MCap)", "fmt": "ratio", "category": "size"},
         "asset_growth": {"label": "Asset Growth", "fmt": "pct", "category": "investment"},
@@ -3816,6 +3816,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // has none (0.0% ties measured on all 502 names).
         if (type === 'bp') return (v * 10000).toFixed(0) + ' bp';
         if (type === 'int') return Math.round(v).toString();
+        // whole when whole, else one decimal (the beat score is rescaled to 0-10, 2026-10-09)
+        if (type === 'score') return Math.abs(v - Math.round(v)) < 1e-9 ? Math.round(v).toString() : v.toFixed(1);
         if (type === 'ratio') return v.toFixed(2);
         return v.toString();
     }}

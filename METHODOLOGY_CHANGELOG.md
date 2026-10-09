@@ -3182,6 +3182,34 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, third review) - Corrections before publishing
+
+**Area:** coverage count, forward_eps_growth, the valuation-history context card, the audit script
+**Changed:**
+- **Beneish is not counted as missing for Financials** (`_beneish_na`; `applicable_coverage`). Since the
+  same day's restriction it is never computed for them, so all 30 generic-set financials were short one
+  of 27 applicable metrics on the "N of 27" badge and ERIE's coverage discount rose (1.4% -> 2.0%).
+- **A stale earnings history is not a forward-EPS base.** The surprise metrics already skipped a history
+  whose newest quarter is >200 days old; `forward_eps_growth` still summed it (AMCR: next 12 months
+  against calendar 2025, ~21 months - the span the morning's change removed). 1 stock.
+- **Valuation history (context):** free-cash-flow yield takes operating cash flow and capex for the
+  *same* period (VLO paired cash flow to 2026-06 with capex to 2025-09; 8 stocks today, 237 historical
+  points); "today" must rest on a period ended within 200 days (VTRS showed a fiscal-year-old -17.1%
+  against Yahoo's -2.0%); the monthly price cache never stores the current part-month bar, which it
+  would later have used as that month's close.
+- **`scripts/audit_stock.py`** uses the engine's midpoint percentile; it had reported 0 of 501
+  reproducing against a payload built with the day's code (now 501 of 501). A test pins it to
+  `factor_engine._directed_pct`.
+- The beat score, fractional since its rescale (FDX 8.33), displays as such; its description says so.
+
+**Evidence / reasoning:** a third independent review of the afternoon's commits, each item measured on
+the 12:24 rehearsal run against the SEC facts cache.
+**Validated by:** `tests/test_valuation_history.py` (3 new), `tests/test_audit_stock_matches_engine.py`,
+the suite.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run) - The Beneish score and channel-stuffing flag skip every Financials stock
 
 **Area:** beneish_m_score (8% of non-bank Quality), the Beneish and channel-stuffing flags

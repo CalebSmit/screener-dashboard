@@ -34,6 +34,9 @@ def _d(s):
 
 
 NI = "NetIncomeLoss"
+# Fixtures carry annual filings only, so "today" sits soon after the FY2025 10-K (filed 2026-02-15):
+# today's yield needs a period ended within TODAY_MAX_AGE_DAYS.
+TODAY = pd.Timestamp("2026-03-15")
 SH = "WeightedAverageNumberOfDilutedSharesOutstanding"
 
 
@@ -96,7 +99,7 @@ def _history(price=10.0, mcap=1000.0):
 
 def test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown():
     f, closes, px, _ = _history()
-    today = pd.Timestamp("2026-10-09")
+    today = TODAY
     assert vh.for_ticker(f, closes, [], px, 1000.0, today) is not None      # 10 x 100 = 1000
     assert vh.for_ticker(f, closes, [], px, 1200.0, today) is None          # 17% apart
     assert vh.for_ticker(f, closes, [], px, 1100.0, today) is not None      # 9% apart
@@ -104,7 +107,7 @@ def test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown():
 
 def test_the_percentile_is_against_the_stocks_own_month_ends():
     f, closes, px, mcap = _history()
-    b = vh.for_ticker(f, closes, [], px, mcap, pd.Timestamp("2026-10-09"), fcf=False)
+    b = vh.for_ticker(f, closes, [], px, mcap, TODAY, fcf=False)
     ey = b["ey"]
     assert ey["now"] == pytest.approx(50 / 1000)
     hist = [x / 10000 for x in ey["s"] if x is not None]
@@ -116,7 +119,7 @@ def test_the_percentile_is_against_the_stocks_own_month_ends():
 
 def test_too_little_history_shows_nothing():
     f, closes, px, mcap = _history()
-    assert vh.for_ticker(f, closes.iloc[-20:], [], px, mcap, pd.Timestamp("2026-10-09")) is None
+    assert vh.for_ticker(f, closes.iloc[-20:], [], px, mcap, TODAY) is None
 
 
 def test_the_block_rides_the_context_log_as_scalars_only():
@@ -177,8 +180,30 @@ def test_a_filing_during_the_month_counts_at_that_month_end():
     f = _facts(rows)
     idx = pd.date_range("2021-09-01", periods=60, freq="MS")
     closes = pd.Series(10.0, index=idx)
-    b = vh.for_ticker(f, closes, [], 10.0, 1000.0, pd.Timestamp("2026-10-09"), fcf=False)
+    b = vh.for_ticker(f, closes, [], 10.0, 1000.0, TODAY, fcf=False)
     s = dict(zip(idx, b["ey"]["s"]))
     # FY2023 (value 2024) was filed 2024-02-15: it is in the February 2024 month-end, not January's
     assert s[pd.Timestamp("2024-01-01")] == round(2023 / 1000 * 10000)
     assert s[pd.Timestamp("2024-02-01")] == round(2024 / 1000 * 10000)
+
+
+def test_free_cash_flow_pairs_one_period():
+    """VLO, 2026-10-09: cash flow to 2026-06 was paired with capex to 2025-09."""
+    ocf = {"end": np.array([_d("2025-09-30"), _d("2026-06-30")]), "avail": np.array([_d("2025-11-01"), _d("2026-08-01")]),
+           "val": np.array([100.0, 120.0])}
+    cx = {"end": np.array([_d("2025-09-30")]), "avail": np.array([_d("2025-11-01")]), "val": np.array([30.0])}
+    assert vh._fcf_as_of(ocf, cx, _d("2026-09-30")) == 70.0          # both at 2025-09, not 120 - 30
+    assert vh._fcf_as_of(ocf, cx, _d("2026-09-30"), 200) is None     # and too old to be "today"
+
+
+def test_todays_yield_needs_a_recent_period():
+    f = _facts([("X", NI, "2024-01-01", "2024-12-31", "2025-02-15", "10-K", "FY", 100.0)])
+    s = vh.ttm_series(f, vh.NI)
+    assert vh._as_of(s, _d("2025-10-09")) == 100.0                    # fine for a past month-end
+    assert vh._as_of(s, _d("2025-10-09"), vh.TODAY_MAX_AGE_DAYS) is None
+
+
+def test_the_price_cache_never_holds_a_part_month():
+    src = (ROOT / "valuation_history.py").read_text(encoding="utf-8")
+    i = src.index("close = close[close.index < today.to_period")
+    assert i < src.index("close.to_parquet(PRICE_PATH)")
