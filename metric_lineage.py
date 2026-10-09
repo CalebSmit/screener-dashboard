@@ -149,6 +149,8 @@ def _feg(i):
     # own blend (feg_f12 / feg_b12); the old forward-over-trailing form only as its fallback.
     f12, b12 = i.get("feg_f12"), i.get("feg_b12")
     if _ok(f12, b12):
+        if b12 <= 0:
+            return None                        # no growth rate from a loss (engine: loss_base)
         g = (f12 - b12) / max(abs(b12), 1.0)
         return min(max(g, FEG_CLAMP[0]), FEG_CLAMP[1])
     f, t = i.get("forwardEps"), i.get("trailingEps")
@@ -376,7 +378,7 @@ LINEAGE = {
                               ("Months left in the current fiscal year", "feg_m", NUM),
                               ("Current fiscal year, consensus", "_fy1_eps_current", PRICE),
                               ("Next fiscal year, consensus", "_fy2_eps_current", PRICE)],
-                             how="MSCI's short-term forward EPS growth: next 12 months = (M x current-year consensus + (12 - M) x next-year consensus) / 12, where M is the months left in the current fiscal year; compared with the sum of the last four reported quarters on the same basis. Clipped to -75% .. +150%.",
+                             how="MSCI's short-term forward EPS growth: next 12 months = (M x current-year consensus + (12 - M) x next-year consensus) / 12, where M is the months left in the current fiscal year; compared with the sum of the last four reported quarters on the same basis. Clipped to -75% .. +150%. Not computed when the last four quarters sum to a loss: a growth rate from a negative base has no meaning.",
                              caveat="Since 2026-10-09. It used to be Yahoo's forward EPS (the fiscal year after the current one) over GAAP trailing EPS - a 13-24 month span that depended on the fiscal calendar, on two accounting bases; that form is used only where the consensus inputs are missing."),
     "peg_ratio": _L("(Price / trailing EPS) / (forward EPS growth x 100)",
                     [("Price", "currentPrice", PRICE), ("Trailing EPS", "trailingEps", PRICE),

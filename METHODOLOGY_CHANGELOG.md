@@ -3182,6 +3182,30 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, same day) - Correction: no forward EPS growth from a loss base
+
+**Area:** forward_eps_growth (45% of Growth)
+**Changed:** when the last four reported quarters sum to zero or a loss, `forward_eps_growth` is
+missing (`_feg_basis = "loss_base"`) instead of (next 12 months - base) / max(|base|, $1).
+
+**Evidence / reasoning:** found by measuring the first full rehearsal of the MSCI construction shipped
+earlier the same day. **8 of 490** stocks had a loss base, and every one with a positive forward figure
+hit the +150% cap: GILD (four quarters -$0.39 after a one-off acquired-R&D charge) went from Growth 29
+to 81 and rank 349 to 157; IP, TTWO, LYV, ECHO, COIN likewise; ARE and MRNA, losses narrowing, read as
+growth. A growth rate from a negative base has no meaning - its sign flips and its size is set by how
+small the loss was - which is why practice reports it as not meaningful. The old construction's F5
+ratio guard had excluded these; the new one had no guard for them. A ratio guard was considered and
+rejected: of the 13 stocks with forward / base above 2, most are genuine cyclical growth (AMD, STX,
+WDC, SNDK). MRK (base depressed by a one-off charge, +143%) is a known residual of the construction.
+`research/2026-10-09-forward-eps-growth.md` (addendum).
+**Expected effect:** 8 stocks lose the metric (weight redistributes within Growth).
+**Validated by:** `tests/test_forward_eps_growth.py` (7 tests - the first unit tests of the 12-month
+blend itself).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run, metric audit) - Net debt nets the same cash as enterprise value
 
 **Area:** net_debt_to_ebitda (Quality)

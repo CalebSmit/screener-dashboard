@@ -2134,9 +2134,16 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             trail = d.get("trailingEps", np.nan)
             if all(pd.notna(x) for x in (_e1, _e2, _b12, _M)):
                 _f12 = (_M * _e1 + (12.0 - _M) * _e2) / 12.0
-                rec["forward_eps_growth"] = float(np.clip((_f12 - _b12) / max(abs(_b12), 1.0), feg_lo, feg_hi))
                 rec["_feg_f12"], rec["_feg_b12"], rec["_feg_m"] = float(_f12), float(_b12), float(_M)
-                rec["_feg_basis"] = "msci_12m"
+                if _b12 <= 0:
+                    # A growth rate from a loss has no meaning: its sign flips and its size is set
+                    # by how small the loss was. GILD's last four quarters summed to -$0.39 (a
+                    # one-off acquired-R&D charge) and scored +150%, the cap (2026-10-09; 8 stocks).
+                    rec["forward_eps_growth"] = np.nan
+                    rec["_feg_basis"] = "loss_base"
+                else:
+                    rec["forward_eps_growth"] = float(np.clip((_f12 - _b12) / max(abs(_b12), 1.0), feg_lo, feg_hi))
+                    rec["_feg_basis"] = "msci_12m"
             elif pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
                 rec["_feg_basis"] = "fy2_over_trailing"
                 # Phase 13 (F5): trailingEps is GAAP, forwardEps is normalized

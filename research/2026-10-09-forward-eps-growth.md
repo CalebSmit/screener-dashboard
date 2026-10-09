@@ -54,3 +54,11 @@ category's forward-looking leg, now also on a fixed window. Sustainable growth (
   https://www.msci.com/eqb/methodology/meth_docs/MSCI_Fundamental_Data_Methodology_Mar2021.pdf
 - MSCI, *Global Investable Market Value and Growth Index Methodology* (growth variables).
   https://www.msci.com/eqb/methodology/meth_docs/MSCI_GIMIVGMethod_May2023.pdf
+
+## Addendum, same day: a loss base gives no growth rate
+
+The first full rehearsal of this construction (run `37e02ed22407`) showed 8 of 490 stocks whose last
+four quarters summed to a loss; each with a positive forward figure hit the +150% cap (GILD -$0.39 after
+a one-off acquired-R&D charge: Growth 29 -> 81). They are now missing (`loss_base`). Forward / base above
+2 was examined as a guard and rejected - most such stocks (AMD, STX, WDC, SNDK) are genuine cyclical
+growth. `tests/test_forward_eps_growth.py`.
