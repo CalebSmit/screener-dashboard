@@ -105,3 +105,31 @@ def test_the_published_roe_rows_rebuild_the_metric():
             assert pub == pytest.approx(calc, rel=1e-9)
             n += 1
     assert n > 300
+
+
+def test_a_partial_refresh_never_replaces_a_complete_cache(tmp_path, monkeypatch):
+    import insider_activity as ia
+    good = _facts()
+    path = tmp_path / "facts.parquet"
+    good.to_parquet(path)
+    import os
+    os.utime(path, (0, 0))                                   # old enough to refresh
+    monkeypatch.setattr(sf, "FACTS_PATH", path)
+    monkeypatch.setattr(ia, "ticker_map", lambda edgar=None: {f"T{i}": i + 1 for i in range(10)})
+
+    class E:
+        requests = 0
+
+        def get(self, url):
+            if url.endswith("CIK0000000001.json"):
+                class R:
+                    @staticmethod
+                    def json():
+                        return {"facts": {"us-gaap": {"Assets": {"units": {"USD": [
+                            {"end": "2025-12-31", "filed": "2026-02-01", "form": "10-K", "val": 1}]}}}}}
+                return R()
+            raise RuntimeError("down")
+
+    out = sf.refresh_companyfacts([f"T{i}" for i in range(10)], edgar=E(), log=lambda *a: None)
+    assert len(out) == len(good)                             # 1 of 10 reached: the old cache stands
+    assert len(pd.read_parquet(path)) == len(good)

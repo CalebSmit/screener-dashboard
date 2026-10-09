@@ -102,7 +102,12 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
                 if f.get("form") in ("10-K", "10-Q", "10-K/A", "10-Q/A"):
                     rows.append((t, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
                                  f.get("fp"), f.get("val")))
-    if not rows:
+    got = len({r[0] for r in rows})
+    asked = sum(1 for t in tickers if cmap.get(str(t).upper()) is not None)
+    # A refresh that reached under 90% of the companies it asked for (a network outage, a rate
+    # limit) must not replace a complete cache with a partial one for a week.
+    if not rows or (FACTS_PATH.exists() and asked and got < 0.9 * asked):
+        log(f"  SEC companyfacts: refresh reached {got} of {asked} companies - keeping the existing cache")
         return pd.read_parquet(FACTS_PATH) if FACTS_PATH.exists() else None
     df = pd.DataFrame(rows, columns=["ticker", "concept", "start", "end", "filed", "form", "fp", "val"])
     for col in ("start", "end", "filed"):
