@@ -181,7 +181,7 @@ FACTOR_NOTES = [
     {"title": "Quality in downturns",
      "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall - the "
              "'flight to quality' Asness, Frazzini & Pedersen (2019) document across decades and countries. "
-             "Quality carries 22% of this screener's composite."},
+             "Quality is one of this screener's two heaviest categories; the column tooltips show this run's weights."},
     {"title": "Momentum and rebounds",
      "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). "
              "The screener's volatility rule scales momentum's weight for exactly this reason; the stat strip shows this run's setting."},
