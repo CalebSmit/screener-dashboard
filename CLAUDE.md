@@ -680,12 +680,12 @@ first 02:00 log after a 20:00 refresh, then item 4's per-signal notes.
 **0.12. Metric audit residuals - research, do not patch (opened 2026-10-09, age 0 days).**
 Two audit passes over every weighted metric fixed nine defects the same day
 (`research/2026-10-09-metric-audit.md`, changelog "metric audit" entries). Four findings are
-judgement calls and need a Monday-style note before any change: **(a)** which financials are
+judgement calls and need a Monday-style note before any change: **(a) RESEARCHED, BUILD NEXT - `research/2026-10-09-bank-like-financials.md` §5 is the rule to implement (GICS sub-industry from `constituents.csv`; 13 stocks to the generic set; a test that no constituent reaches the default):** which financials are
 "bank-like" - 26 of 59 reach the bank metric set only by the default for an unlisted industry
 (asset managers, insurance brokers, broker-dealers; TROW 100th percentile on equity ratio, AON 8th on
 P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `earnings_acceleration` (20% of Revisions) correlated -0.54 with the prior quarter's
 surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
-1990); **(c)** accruals counted three times within Quality (the metric, Piotroski 4, Beneish TATA);
+1990); **(c) MEASURED, no change:** accruals counted three times within Quality - correlation 0.49 with Beneish, 0.00 with Piotroski, 13 points in all;
 **(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. Also: the
 momentum regime rule is **off** (its input did not measure volatility); rebuilding it on a real
 volatility measure (Barroso & Santa-Clara 2015; Daniel & Moskowitz 2016) is its own research item.

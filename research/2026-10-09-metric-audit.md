@@ -24,7 +24,7 @@ income, AMCR's zero estimate, the regime replay).
 
 ## Deferred - each needs research before a change (rule 4), now on the queue
 
-* **Which financials are "bank-like".** 26 of the 59 stocks scored on bank metrics get there only by
+* **RESEARCHED the same session - `research/2026-10-09-bank-like-financials.md`** recommends classifying on GICS sub-industry (13 of 59 move to the generic set, none the other way; TROW 130 -> 89, ERIE 328 -> 454). Not implemented the same day: it needs the universe loader to keep the GICS sub-industry column, and its effect should be measurable on its own run. The finding: **Which financials are "bank-like".** 26 of the 59 stocks scored on bank metrics get there only by
   the default for an unlisted Financials industry: asset managers (BLK, TROW, BEN, IVZ, ...), insurance
   brokers (AON, AJG, BRO, WTW, ...), broker-dealers and COIN. Equity ratio puts TROW at the 100th
   percentile; P/B puts AON at the 8th. Broker-dealers (GS, MS) arguably *are* bank-like; asset managers
@@ -36,7 +36,7 @@ income, AMCR's zero estimate, the regime replay).
   extremes are mostly one-off GAAP items (REIT property sales). Candidates: the latest quarter's
   price-scaled surprise (SUE, Livnat & Mendenhall 2006) or He & Narayanamoorthy's earnings
   acceleration.
-* **Accruals counted three times within Quality** (the accruals metric, Piotroski signal 4, Beneish
+* **MEASURED the same session, no change:** on the first rehearsal run the accruals percentile correlates **0.49** with Beneish's and **0.00** with Piotroski's; together the three carry 13 of Quality's 100 points directly (accruals 5, Beneish 8) plus one of nine Piotroski signals. A partial, small overlap - not worth a reweight on its own. The finding: **Accruals counted three times within Quality** (the accruals metric, Piotroski signal 4, Beneish
   TATA all use net income minus operating cash flow).
 * **DONE the same session (changelog entry): net debt** now nets cash and short-term investments. The finding: **net debt** subtracts cash only while enterprise value subtracts cash and short-term investments
   (14 non-banks net cash by one definition, net debt by the other).
