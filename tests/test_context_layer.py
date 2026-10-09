@@ -598,3 +598,32 @@ def test_a_thin_cached_price_column_is_downloaded_again(tmp_path, monkeypatch):
     assert any(t == ("BBB",) and s == date(2026, 2, 2) for t, s in calls)   # repaired from the start
     assert out.loc[out.index >= "2026-02-02", "BBB"].notna().mean() > 0.95
     assert not any(t == ("AAA",) for t, _ in calls[1:])                    # complete columns left alone
+
+
+def test_sahm_prefers_the_real_time_series_and_says_which(monkeypatch, tmp_path):
+    monkeypatch.setattr(mc, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(mc, "OUT_PATH", tmp_path / "market_context.json", raising=False)
+    idx = pd.date_range("2024-01-01", periods=30, freq="MS")
+
+    def fake(sid, session=None, today=None):
+        if sid == "SAHMREALTIME":
+            return pd.Series([0.1] * 29 + [0.42], index=idx)
+        if sid == "UNRATE":
+            return pd.Series([4.0] * 30, index=idx)
+        return pd.Series([1.0] * 30, index=idx)
+
+    monkeypatch.setattr(mc, "fetch_series", fake)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    assert out["sahm"] == 0.42 and out["sahm_basis"] == "real-time"
+    jobs = next(r for r in out["readings"] if r["k"] == "jobs")
+    assert "first published" in jobs["text"]
+
+    def fail_rt(sid, session=None, today=None):
+        if sid == "SAHMREALTIME":
+            raise RuntimeError("down")
+        return fake(sid)
+
+    monkeypatch.setattr(mc, "fetch_series", fail_rt)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    assert out["sahm_basis"] == "revised" and out["sahm"] == 0.0
+    assert "revised" in next(r for r in out["readings"] if r["k"] == "jobs")["text"]

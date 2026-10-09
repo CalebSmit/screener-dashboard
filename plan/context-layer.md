@@ -171,7 +171,9 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25); a turnover/cost
    estimate; whether RSP is the right benchmark after cap-weighted leadership; never list current
    holdings (the Model Portfolio decision, 2026-08-26).
-7. **Macro.** Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
+7. **Macro - Sahm DONE 2026-10-09 (owner-run):** the backdrop reads FRED's `SAHMREALTIME` (unemployment
+   as first published) and says so, falling back to the revised computation with a note. Remaining:
+   Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
    latest vintage) - say so or use ALFRED. Consider the dollar and oil for sector context.
 
 ## Things not to do

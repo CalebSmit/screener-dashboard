@@ -131,7 +131,7 @@ def sahm_indicator(unrate: pd.Series) -> float | None:
     return round(float(v), 2) if np.isfinite(v) else None
 
 
-def readings(summ: dict, sahm: float | None) -> list[dict]:
+def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised") -> list[dict]:
     """One descriptive sentence per theme, with the rule or source behind the word it uses."""
     out = []
     c = summ.get("T10Y3M")
@@ -170,7 +170,10 @@ def readings(summ: dict, sahm: float | None) -> list[dict]:
         out.append({"k": "jobs", "state": state, "title": "Labor market",
                     "text": f"Unemployment is {u.get('last', float('nan')):.1f}%. The Sahm indicator - the 3-month average against "
                             f"its 12-month low - reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
-                            "since 1970 (Sahm 2019)."})
+                            "since 1970 (Sahm 2019). "
+                            + ("Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
+                               if sahm_basis == "real-time" else
+                               "Computed here on today's revised unemployment history; the rule is defined on the figures as first published.")})
     return out
 
 
@@ -199,13 +202,26 @@ def build(today: date | None = None, session=None, write: bool = True) -> dict:
             errors[sid] = str(e)[:200]
     summ = {sid: summarise(sid, s) for sid, s in raw.items()}
     summ = {k: v for k, v in summ.items() if v}
-    sahm = sahm_indicator(raw["UNRATE"]) if "UNRATE" in raw else None
+    # Sahm's rule is defined on unemployment as first published; FRED serves the latest
+    # revised history, so computing it from UNRATE reads a number nobody saw at the time.
+    # FRED publishes the real-time version (SAHMREALTIME); use it, and fall back to the
+    # computed figure only when it cannot be fetched (plan/context-layer.md item 7).
+    sahm, sahm_basis = None, None
+    try:
+        rt = fetch_series("SAHMREALTIME", session=session, today=today).dropna()
+        if len(rt):
+            sahm, sahm_basis = round(float(rt.iloc[-1]), 2), "real-time"
+    except Exception as e:  # noqa: BLE001
+        errors["SAHMREALTIME"] = str(e)[:200]
+    if sahm is None and "UNRATE" in raw:
+        sahm, sahm_basis = sahm_indicator(raw["UNRATE"]), "revised"
     out = {
         "as_of": today.isoformat(),
         "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
         "series": summ,
         "sahm": sahm,
-        "readings": readings(summ, sahm),
+        "sahm_basis": sahm_basis,
+        "readings": readings(summ, sahm, sahm_basis),
         "factor_notes": FACTOR_NOTES,
         "errors": errors,
     }

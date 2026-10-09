@@ -534,7 +534,9 @@ CLAIMS: tuple[Claim, ...] = (
     Claim(
         id="context.sahm",
         surface=DRILLDOWN,
-        asserts="The Sahm indicator is the 3-month average unemployment rate minus its low over the prior 12 months.",
+        asserts=("The Sahm indicator is the 3-month average unemployment rate minus its low over the prior "
+                 "12 months, read from FRED's real-time series (unemployment as first published) when "
+                 "available and otherwise computed on the revised history, and the page says which."),
         made_true_by="market_context:sahm_indicator",
         checked_by=("tests/test_context_layer.py::test_sahm_indicator_definition",),
     ),
