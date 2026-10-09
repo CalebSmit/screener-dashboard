@@ -2836,6 +2836,7 @@
   }
  },
  "sahm": 0.0,
+ "sahm_basis": "real-time",
  "readings": [
   {
    "k": "curve",
@@ -2865,13 +2866,13 @@
    "k": "jobs",
    "state": "not triggered",
    "title": "Labor market",
-   "text": "Unemployment is 4.2%. The Sahm indicator - the 3-month average against its 12-month low - reads +0.00pp; at +0.50pp or more it has marked the start of every US recession since 1970 (Sahm 2019)."
+   "text": "Unemployment is 4.2%. The Sahm indicator - the 3-month average against its 12-month low - reads +0.00pp; at +0.50pp or more it has marked the start of every US recession since 1970 (Sahm 2019). Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
   }
  ],
  "factor_notes": [
   {
    "title": "Quality in downturns",
-   "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall - the 'flight to quality' Asness, Frazzini & Pedersen (2019) document across decades and countries. Quality carries 22% of this screener's composite."
+   "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall - the 'flight to quality' Asness, Frazzini & Pedersen (2019) document across decades and countries. Quality is one of this screener's two heaviest categories; the column tooltips show this run's weights."
   },
   {
    "title": "Momentum and rebounds",
@@ -2879,7 +2880,7 @@
   },
   {
    "title": "Rates and long-duration stocks",
-   "text": "Companies whose value rests on profits far in the future are more sensitive to interest rates, the way a long bond is. Each stock's drilldown shows how its price has actually moved with the 10-year yield."
+   "text": "Companies whose value rests on profits far in the future behave more like a long bond - 'equity duration' (Dechow, Sloan & Soliman 2004) - and such long-duration stocks have historically earned lower average returns than short-duration ones, about 1.1% a month in 1963-2013 (Weber 2018). Each stock's drilldown shows how its price has actually moved with the 10-year yield."
   }
  ],
  "errors": {}

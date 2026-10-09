@@ -118,6 +118,28 @@ def dashboard_facts() -> dict:
     }
 
 
+def context_coverage() -> str:
+    """How much of the context layer landed: usable option quotes (and the session they are
+    from), SEC-sourced insider data, and the earnings-variability candidate. One line, so a
+    session can see whether the 20:00 quote task and the SEC caches are doing their job."""
+    try:
+        t = (ROOT / "dashboard_context.js").read_text(encoding="utf-8")
+        c = json.loads(t[t.index("{"):].rstrip().rstrip(";"))
+        ctx = c.get("ctx") or {}
+        n = len(ctx)
+        ok = sum(1 for v in ctx.values() if v.get("os") in ("ok", "partial"))
+        closed = sum(1 for v in ctx.values() if v.get("os") == "quotes-closed")
+        sec = sum(1 for v in ctx.values() if (v.get("ins") or {}).get("src") == "sec")
+        d = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
+        dd = json.loads(d[d.index("{"):].rstrip().rstrip(";"))
+        ev = sum(1 for v in (dd.get("stock_detail") or {}).values()
+                 if (v.get("raw") or {}).get("earnings_variability") is not None)
+        return (f"options usable {ok}/{n}" + (f" ({closed} quotes-closed)" if closed else "")
+                + f" - insider from SEC {sec}/{n} - earnings variability {ev}")
+    except Exception:  # noqa: BLE001 - the brief must still publish
+        return "no context payload"
+
+
 def top5_tickers(table: list[dict]) -> list[str]:
     """The dashboard's Top 5, computed the way the dashboard computes it.
 
@@ -223,6 +245,17 @@ def ic_observations() -> str:
     )
 
 
+def context_record() -> str:
+    """One line on the record the context signals are building (context_eval.py)."""
+    p = ROOT / "data" / "context_eval.json"
+    try:
+        sys.path.insert(0, str(ROOT))
+        import context_eval
+        return context_eval.summary_line(json.loads(p.read_text(encoding="utf-8")))
+    except Exception:  # noqa: BLE001 - the brief must still publish
+        return "no context evaluation yet"
+
+
 def last_log_entry() -> str:
     """The most recent dated section of NIGHTLY_LOG.md, lightly trimmed."""
     p = ROOT / "NIGHTLY_LOG.md"
@@ -293,6 +326,8 @@ def main() -> int:
         if facts.get("top5"):
             a(f"| Top 5 | {', '.join(facts['top5'])} |")
     a(f"| Evidence for weight changes | {ic_observations()} |")
+    a(f"| Context signals | {context_record()} |")
+    a(f"| Context coverage | {context_coverage()} |")
     a("")
 
     payload_notes = []

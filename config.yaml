@@ -34,13 +34,18 @@ metric_weights:
     dividend_yield: 0  # Candidate: improvement engine evaluates IC
 
   quality:
-    roic: 27           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
-    gross_profit_assets: 20  # Novy-Marx quality factor; above operating expenses
-    net_debt_to_ebitda: 18   # Net Debt/EBITDA; lower = better; replaces D/E (negative equity distorts D/E)
-    piotroski_f_score: 15    # Composite health; 9 binary signals
+    # 2026-10-09: operating_leverage's 8 points redistributed in proportion
+    # (27/20/18/15/5/7 -> 29/22/20/16/5/8; whole numbers, sum 100). See below.
+    roic: 29           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
+    gross_profit_assets: 22  # Novy-Marx quality factor; above operating expenses
+    net_debt_to_ebitda: 20   # Net Debt/EBITDA; lower = better; replaces D/E (negative equity distorts D/E)
+    piotroski_f_score: 16    # Composite health; 9 binary signals
     accruals: 5              # Earnings quality; Sloan 1996
-    operating_leverage: 8    # Degree of Operating Leverage; lower = more durable; banks skip
-    beneish_m_score: 7       # Beneish (1999) earnings manipulation detection; non-bank only
+    operating_leverage: 0    # Candidate since 2026-10-09. One-year %chg EBIT / %chg revenue: 85 of its
+                             # 95 negative values were margin squeezes, ranked best; the return
+                             # literature finds higher OL earns MORE (Novy-Marx 2011); neither MSCI
+                             # nor AQR quality uses it. research/2026-10-09-operating-leverage.md
+    beneish_m_score: 8       # Beneish (1999) earnings manipulation detection; non-bank only
     roe: 0             # Bank-only; active weight in bank_metric_weights
     roa: 0             # Bank-only
     equity_ratio: 0    # Bank-only
@@ -48,6 +53,7 @@ metric_weights:
     current_ratio: 0           # Candidate: MRQ Current Assets / Current Liabilities
     insider_ownership: 0       # Candidate: heldPercentInsiders from .info
     interest_coverage: 0       # Candidate: EBIT / Interest Expense (non-bank only)
+    earnings_variability: 0    # Candidate (2026-10-09): stdev of 5 annual ROEs, SEC XBRL; MSCI EVAR / AQR EVOL
 
   growth:
     forward_eps_growth: 45  # Highest: forward-looking consensus estimates; absorbs PEG's removed weight
@@ -89,12 +95,17 @@ metric_weights:
     # research/2026-09-07-revisions-category-has-no-revisions.md SS8.7.
     # The category's 10% share of the composite is UNCHANGED - this is a
     # within-category reweight only.
-    fy1_revision_3m: 35        # 90-day change in FY1 consensus EPS / price (was absent)
+    # 2026-10-09: earnings_acceleration to 0 (latest surprise minus the prior one; -0.54 with
+    # the prior surprise while surprises autocorrelate +0.38, so it penalised a stock that beat
+    # last quarter; no study supports the change in surprise). Its 20 points went to the
+    # non-surprise metrics in proportion (35/10/10 -> 48/13.5/13.5), leaving the surprise
+    # family at the 25 points the 2026-09-10 reweight set. research/2026-10-09-metric-audit.md
+    fy1_revision_3m: 48        # 90-day change in FY1 consensus EPS / price (35 until 2026-10-09)
     analyst_surprise: 15       # Backward-looking: did company beat estimates? (was 38)
-    price_target_upside: 10    # Forward-looking: analyst consensus upside (was 12)
-    earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise % (unchanged)
+    price_target_upside: 13.5  # Forward-looking: analyst consensus upside (10 until 2026-10-09)
+    earnings_acceleration: 0   # Candidate since 2026-10-09 (was 20); computed and shown
     consecutive_beat_streak: 10  # Recency-weighted beat score (0-10) (was 20)
-    short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
+    short_interest_ratio: 13.5 # Days to cover (shortRatio); lower = less bearish (10 until 2026-10-09)
     short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
     analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
     # The revisions category has now SPENT its independence budget: it goes from
@@ -138,6 +149,7 @@ bank_metric_weights:
     current_ratio: 0       # Candidate: banks skip
     insider_ownership: 0   # Candidate: improvement engine evaluates IC
     interest_coverage: 0   # Candidate: banks skip
+    earnings_variability: 0  # Candidate (2026-10-09)
 
 # Piotroski F-Score Conditional Weighting
 # When enabled, reduces Piotroski weight for stocks with LOW valuation scores
@@ -187,28 +199,38 @@ sector_neutral:
   gics_level: 'Sector'  # NOT ENFORCED (Phase 13/F38): sector grouping is hardwired to the 'Sector' column; this key is descriptive only (Industry-level neutrality not implemented).
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
+# Momentum regime rule (factor_engine.adjust_momentum_weight) - OFF since 2026-10-09.
+# It scaled momentum's weight by where the cross-stock spread of momentum_score sat in its own
+# history, labelled "market volatility". That spread is fixed by the percentile construction and
+# does not measure volatility; the rule called 30 of 33 runs "LOW VOL" and raised momentum
+# 13 -> 14.95. Re-enable only on a real volatility input (Barroso & Santa-Clara 2015; Daniel &
+# Moskowitz 2016) with its own research note. research/2026-10-09-momentum-regime.md
+momentum_regime:
+  enabled: false
+
 # Value Trap Filters
-# Logic: MAJORITY (2-of-3) — a stock is flagged if at least 2 of the 3
-# dimensions (quality, momentum, revisions) breach their floor percentile.
-# Rationale: OR logic (any 1 breach) flagged ~60% of the universe, which
-# was too aggressive. Majority logic catches stocks with genuinely broad
-# weakness while tolerating a single weak dimension.
+# Logic: the stock must be CHEAP (valuation score at or above valuation_percentile -
+# the cheapest 30%) AND at least 2 of the 3 dimensions (quality, momentum,
+# revisions) breach their floor percentile. The cheapness condition was added
+# 2026-10-09 (Piotroski 2000 defines the problem within cheap stocks); without it
+# the flag fired on any broadly weak stock. research/2026-10-09-trap-flags.md
 value_trap_filters:
   enabled: true
+  valuation_percentile: 70      # cheap = valuation score in the top 30%
   quality_floor_percentile: 30  # Exclude bottom 30% quality
   momentum_floor_percentile: 30  # Exclude bottom 30% momentum
   revisions_floor_percentile: 30  # Exclude bottom 30% revisions
   flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
 
 # Growth Trap Filters
-# Logic: MAJORITY (2-of-3) — a stock is flagged if it has high growth but
-# at least 2 of the 3 dimensions (growth ceiling, quality floor, revisions floor)
-# breach their threshold. Catches "growth at any price" stocks.
+# Logic: HIGH GROWTH (above growth_ceiling_percentile) AND low quality OR low
+# revisions. Since 2026-10-09; it was 2-of-3 with growth as one of the three, which
+# flagged low-growth stocks as "growth traps". research/2026-10-09-trap-flags.md
 growth_trap_filters:
   enabled: true
   growth_ceiling_percentile: 70  # Flag stocks ABOVE 70th percentile growth
-  quality_floor_percentile: 35   # AND below 35th percentile quality
-  revisions_floor_percentile: 35 # AND below 35th percentile revisions
+  quality_floor_percentile: 35   # AND below 35th percentile quality ...
+  revisions_floor_percentile: 35 # ... OR below 35th percentile revisions
   flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
 
 # Portfolio Construction
@@ -296,7 +318,7 @@ enable_beneish: true
 enable_short_interest_ratio: true   # Days to cover (shortRatio); lower = less bearish sentiment
 enable_revenue_cagr_3yr: true       # 3-year revenue CAGR; smoothed growth signal
 enable_net_debt_ebitda: true        # Net Debt/EBITDA; replaces Debt/Equity in quality scoring
-enable_operating_leverage: true     # Degree of Operating Leverage (DOL); lower = more durable
+enable_operating_leverage: true     # DOL; computed and published as a weight-0 candidate (2026-10-09)
 enable_jensens_alpha: true          # Jensen's Alpha; risk-adjusted excess return above CAPM
 enable_sharpe_ratio: true           # Sharpe Ratio; risk-adjusted return per unit of total risk
 

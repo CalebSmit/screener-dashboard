@@ -131,7 +131,7 @@ def sahm_indicator(unrate: pd.Series) -> float | None:
     return round(float(v), 2) if np.isfinite(v) else None
 
 
-def readings(summ: dict, sahm: float | None) -> list[dict]:
+def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised") -> list[dict]:
     """One descriptive sentence per theme, with the rule or source behind the word it uses."""
     out = []
     c = summ.get("T10Y3M")
@@ -166,11 +166,16 @@ def readings(summ: dict, sahm: float | None) -> list[dict]:
                             f"(measured there on a different index, PCE). Latest reading: {i['date'][:7]}."})
     if sahm is not None:
         state = "triggered" if sahm >= 0.5 else "not triggered"
-        u = summ.get("UNRATE", {})
+        u = summ.get("UNRATE") or {}
+        # The real-time Sahm series can arrive while the UNRATE fetch failed (review, 2026-10-09).
+        lead = f"Unemployment is {u['last']:.1f}%. " if u.get("last") is not None else ""
         out.append({"k": "jobs", "state": state, "title": "Labor market",
-                    "text": f"Unemployment is {u.get('last', float('nan')):.1f}%. The Sahm indicator - the 3-month average against "
+                    "text": lead + f"The Sahm indicator - the 3-month average against "
                             f"its 12-month low - reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
-                            "since 1970 (Sahm 2019)."})
+                            "since 1970 (Sahm 2019). "
+                            + ("Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
+                               if sahm_basis == "real-time" else
+                               "Computed here on today's revised unemployment history; the rule is defined on the figures as first published.")})
     return out
 
 
@@ -178,13 +183,15 @@ FACTOR_NOTES = [
     {"title": "Quality in downturns",
      "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall - the "
              "'flight to quality' Asness, Frazzini & Pedersen (2019) document across decades and countries. "
-             "Quality carries 22% of this screener's composite."},
+             "Quality is one of this screener's two heaviest categories; the column tooltips show this run's weights."},
     {"title": "Momentum and rebounds",
      "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). "
              "The screener's volatility rule scales momentum's weight for exactly this reason; the stat strip shows this run's setting."},
     {"title": "Rates and long-duration stocks",
-     "text": "Companies whose value rests on profits far in the future are more sensitive to interest rates, the way a "
-             "long bond is. Each stock's drilldown shows how its price has actually moved with the 10-year yield."},
+     "text": "Companies whose value rests on profits far in the future behave more like a long bond - 'equity "
+             "duration' (Dechow, Sloan & Soliman 2004) - and such long-duration stocks have historically earned lower "
+             "average returns than short-duration ones, about 1.1% a month in 1963-2013 (Weber 2018). Each stock's "
+             "drilldown shows how its price has actually moved with the 10-year yield."},
 ]
 
 
@@ -199,13 +206,26 @@ def build(today: date | None = None, session=None, write: bool = True) -> dict:
             errors[sid] = str(e)[:200]
     summ = {sid: summarise(sid, s) for sid, s in raw.items()}
     summ = {k: v for k, v in summ.items() if v}
-    sahm = sahm_indicator(raw["UNRATE"]) if "UNRATE" in raw else None
+    # Sahm's rule is defined on unemployment as first published; FRED serves the latest
+    # revised history, so computing it from UNRATE reads a number nobody saw at the time.
+    # FRED publishes the real-time version (SAHMREALTIME); use it, and fall back to the
+    # computed figure only when it cannot be fetched (plan/context-layer.md item 7).
+    sahm, sahm_basis = None, None
+    try:
+        rt = fetch_series("SAHMREALTIME", session=session, today=today).dropna()
+        if len(rt):
+            sahm, sahm_basis = round(float(rt.iloc[-1]), 2), "real-time"
+    except Exception as e:  # noqa: BLE001
+        errors["SAHMREALTIME"] = str(e)[:200]
+    if sahm is None and "UNRATE" in raw:
+        sahm, sahm_basis = sahm_indicator(raw["UNRATE"]), "revised"
     out = {
         "as_of": today.isoformat(),
         "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
         "series": summ,
         "sahm": sahm,
-        "readings": readings(summ, sahm),
+        "sahm_basis": sahm_basis,
+        "readings": readings(summ, sahm, sahm_basis),
         "factor_notes": FACTOR_NOTES,
         "errors": errors,
     }

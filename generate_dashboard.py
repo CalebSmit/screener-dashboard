@@ -153,6 +153,8 @@ def load_run_data(run_dir: Path) -> dict:
                          ("grossProfit", "_gross_profit"),
                          ("netIncome", "_net_income"),
                          ("netIncome_prior", "_net_income_prior"),
+                         ("_ni_a0", "_ni_fy0"),
+                         ("_ni_a1", "_ni_fy1"),
                          ("ebitda", "_ebitda_raw"),
                          ("operatingCashFlow", "_ocf"),
                          ("capex", "_capex"),
@@ -548,6 +550,12 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
             out["wk"] = json.loads(wk)
         except ValueError:
             pass
+    vh = row.get("_ctx_valhist")
+    if isinstance(vh, str) and vh:
+        try:
+            out["vh"] = json.loads(vh)
+        except ValueError:
+            pass
     ins = row.get("_ctx_insider")
     if isinstance(ins, str):
         try:
@@ -614,6 +622,65 @@ def split_context(data: dict) -> dict:
         if k in data:
             out[k] = data.pop(k)
     return out
+
+
+def _profiles_block(df: pd.DataFrame, weights: dict, cfg: dict) -> dict | None:
+    """The ranking under each named weighting in ``presets.py``, computed here by the
+    engine's own ``compute_composite`` (coverage discount included) with the run's own
+    volatility-regime adjustment - so "Value" on the page is what
+    ``run_screener.py --preset value`` would publish from the same scores. The page
+    only switches between these; it never reweights (CLAUDE.md row 0.8).
+
+    Balanced is the published ranking itself; it is recomputed here only as a check,
+    and if it does not reproduce the published composites the profiles are withheld.
+    plan/investor-profiles.md."""
+    import copy as _copy
+    try:
+        from presets import PRESETS
+        from factor_engine import apply_momentum_regime, compute_composite, infer_momentum_regime
+        base = weights.get("base_factor_weights") or weights.get("factor_weights") or {}
+        regime = infer_momentum_regime(base, weights.get("factor_weights") or base)
+        out = {"regime": regime, "list": [], "c": {}}
+        base_cfg = _copy.deepcopy(cfg)
+        # The metric weights the engine scored with (post auto-reduce), as _with_weight_profiles
+        # uses - else an auto-reduce day fails the Balanced check and hides the selector.
+        if weights.get("metric_weights"):
+            base_cfg["metric_weights"] = _copy.deepcopy(weights["metric_weights"])
+        for key, p in PRESETS.items():
+            fw = apply_momentum_regime(p["factor_weights"], regime)
+            c = _copy.deepcopy(base_cfg)
+            c["factor_weights"] = fw
+            d = compute_composite(df.copy(), c)
+            comp = d["Composite"]
+            rank = comp.rank(ascending=False, method="min")
+            if key == "balanced":
+                pub = df["Composite"]
+                if not ((comp - pub).abs().fillna(0) < 1e-6).all() or not (rank == df["Rank"]).all():
+                    print("WARNING: the Balanced profile does not reproduce the published ranking; profiles withheld")
+                    return None
+                out["list"].append({"key": key, "name": p["name"], "description": p["description"],
+                                    "weights": fw, "published": True})
+                continue
+            out["list"].append({"key": key, "name": p["name"], "description": p["description"], "weights": fw})
+            out["c"][key] = {t: [round(float(v), 2), int(r)]
+                             for t, v, r in zip(df["Ticker"], comp, rank) if v == v}
+        return out
+    except Exception as exc:  # noqa: BLE001 - a missing selector is not a failed build
+        print(f"WARNING: investor profiles unavailable ({type(exc).__name__}: {exc})")
+        return None
+
+
+def _with_overview(history_block: dict, weights: dict) -> dict:
+    """The run-level sentences (``run_overview``), built here at build time and published
+    inside ``history`` beside the numbers they are made from."""
+    try:
+        import run_overview
+        ov = run_overview.overview(history_block, (weights or {}).get("factor_weights") or {})
+        if ov:
+            history_block = dict(history_block, overview=ov)
+    except Exception as exc:  # noqa: BLE001 - a missing sentence is not a failed build
+        print(f"WARNING: run overview unavailable ({type(exc).__name__}: {exc})")
+    return history_block
 
 
 def _track_block() -> dict | None:
@@ -739,6 +806,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak",
         "short_interest_ratio",
         "size_log_mcap", "asset_growth",
+        "earnings_variability",          # weight-0 candidate, shown with its five years (2026-10-09)
     ]
     pct_cols = [m + "_pct" for m in raw_metrics]
     contrib_cols = ["valuation_contrib", "quality_contrib", "growth_contrib",
@@ -882,6 +950,21 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _bn = row.get("_beneish_idx")
         if isinstance(_bn, str) and _bn:
             detail["bn"] = _bn
+        # Five years of annual ROE behind earnings variability: [year, net income, equity, roe].
+        _r5 = row.get("_roe5")
+        if isinstance(_r5, str) and _r5:
+            try:
+                detail["roe5"] = json.loads(_r5)
+            except ValueError:
+                pass
+        # The four quarters behind the three surprise metrics, as the fetch computed them:
+        # [date, actual EPS, estimate, surprise or null], oldest first.
+        _eq = row.get("_eps_q")
+        if isinstance(_eq, str) and _eq:
+            try:
+                detail["eq4"] = json.loads(_eq)
+            except ValueError:
+                pass
         _asof = {}
         for _k, _src in (("bs", "_stmt_date_balance_sheet"), ("cf", "_stmt_date_cashflow"),
                          ("is", "_stmt_date_financials")):
@@ -919,6 +1002,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _rev_p = _safe(row.get("_total_revenue_prior"))
         _ni = _safe(row.get("_net_income"))
         _ni_p = _safe(row.get("_net_income_prior"))
+        _ni_fy0 = _safe(row.get("_ni_fy0"))
+        _ni_fy1 = _safe(row.get("_ni_fy1"))
         _gp = _safe(row.get("_gross_profit"))
         _ocf = _safe(row.get("_ocf"))
         _capex_v = _safe(row.get("_capex"))
@@ -933,10 +1018,19 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "market_cap": _mcap,
             "enterprise_value": _safe(row.get("_ev_raw")),
             "revenue": _rev,
-            "revenue_growth_yoy": round((_rev - _rev_p) / abs(_rev_p), 4) if (_rev is not None and _rev_p is not None and abs(_rev_p) > 0) else None,
+            # Both "YoY" figures compare periods exactly a year apart (2026-10-09). Revenue's
+            # is the engine's own scored figure and says which comparison it used; net
+            # income's is the latest fiscal year against the one before. They used to compare
+            # the TTM with the fiscal year before last - 12 to 23 months
+            # (research/2026-10-09-revenue-growth-window.md).
+            "revenue_growth_yoy": _safe(row.get("revenue_growth")),
+            "revenue_growth_basis": row.get("_revg_basis") if isinstance(row.get("_revg_basis"), str) else None,
             "net_income": _ni,
-            "ni_growth_yoy": round((_ni - _ni_p) / abs(_ni_p), 4) if (_ni is not None and _ni_p is not None and abs(_ni_p) > 0) else None,
-            "ebitda": _safe(row.get("_ebitda_raw")),
+            "ni_growth_yoy": (round((_ni_fy0 - _ni_fy1) / abs(_ni_fy1), 4)
+                              if (_ni_fy0 is not None and _ni_fy1 is not None and abs(_ni_fy1) > 0) else None),
+            # The EBITDA the engine scored with (EBIT + D&A), not Yahoo's reported figure -
+            # one EBITDA on the page, the one behind EV/EBITDA and net debt / EBITDA.
+            "ebitda": _safe(row.get("_ebitda_used")) if _safe(row.get("_ebitda_used")) is not None else _safe(row.get("_ebitda_raw")),
             "gross_margin": round(_gp / _rev, 4) if (_gp is not None and _rev is not None and _rev > 0) else None,
             "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
             "fcf": round(_ocf - abs(_capex_v), 2) if (_ocf is not None and _capex_v is not None) else None,
@@ -961,6 +1055,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "beneish_flag": bool(row.get("_beneish_flag")) if pd.notna(row.get("_beneish_flag")) else False,
             "channel_stuffing": bool(row.get("_channel_stuffing_flag")) if pd.notna(row.get("_channel_stuffing_flag")) else False,
             "recv_rev_divergence": _safe(row.get("_recv_rev_divergence")),
+            "dsri": _safe(row.get("_dsri")),
+            "recv_g": _safe(row.get("_recv_growth")),
+            "rev_g": _safe(row.get("_rev_growth_fy")),
             "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
             "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
             "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
@@ -1057,6 +1154,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "gross_profit_assets": {"label": "Gross Profit/Assets", "fmt": "pct", "category": "quality"},
         "debt_equity": {"label": "Debt/Equity", "fmt": "ratio", "category": "reference"},  # Reference only; not scored
         "net_debt_to_ebitda": {"label": "Net Debt/EBITDA", "fmt": "ratio", "category": "quality"},
+        "earnings_variability": {"label": "Earnings Variability (5y ROE)", "fmt": "pct", "category": "quality"},
         "piotroski_f_score": {"label": "Piotroski F-Score", "fmt": "int", "category": "quality"},
         "accruals": {"label": "Accruals", "fmt": "pct", "category": "quality"},
         "operating_leverage": {"label": "Operating Leverage", "fmt": "ratio", "category": "quality"},
@@ -1070,18 +1168,18 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "revenue_cagr_3yr": {"label": "Revenue CAGR (3Y)", "fmt": "pct", "category": "growth"},
         "sustainable_growth": {"label": "Sustainable Growth", "fmt": "pct", "category": "growth"},
         "return_12_1": {"label": "12-1M Return", "fmt": "pct", "category": "momentum"},
-        "return_6m": {"label": "6M Return", "fmt": "pct", "category": "momentum"},
+        "return_6m": {"label": "6-1M Return", "fmt": "pct", "category": "momentum"},
         "jensens_alpha": {"label": "Jensen's Alpha", "fmt": "pct", "category": "momentum"},
         "volatility": {"label": "Volatility", "fmt": "pct", "category": "risk"},
         "beta": {"label": "Beta", "fmt": "ratio", "category": "risk"},
         "sharpe_ratio": {"label": "Sharpe Ratio", "fmt": "ratio", "category": "risk"},
         "sortino_ratio": {"label": "Sortino Ratio", "fmt": "ratio", "category": "risk"},
-        "max_drawdown_1y": {"label": "Max Drawdown (1Y)", "fmt": "pct", "category": "risk"},
+        "max_drawdown_1y": {"label": "Max Drawdown (13M)", "fmt": "pct", "category": "risk"},
         "fy1_revision_3m": {"label": "FY1 EPS Revision (90d)", "fmt": "bp", "category": "revisions"},
         "analyst_surprise": {"label": "Analyst Surprise", "fmt": "pct", "category": "revisions"},
         "price_target_upside": {"label": "Price Target Upside", "fmt": "pct", "category": "revisions"},
         "earnings_acceleration": {"label": "Earnings Accel.", "fmt": "ratio", "category": "revisions"},
-        "consecutive_beat_streak": {"label": "Beat Score", "fmt": "int", "category": "revisions"},
+        "consecutive_beat_streak": {"label": "Beat Score", "fmt": "score", "category": "revisions"},
         "short_interest_ratio": {"label": "Short Interest Ratio", "fmt": "ratio", "category": "revisions"},
         "size_log_mcap": {"label": "Size (-log MCap)", "fmt": "ratio", "category": "size"},
         "asset_growth": {"label": "Asset Growth", "fmt": "pct", "category": "investment"},
@@ -1229,7 +1327,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
     dashboard_json = {
         "kpis": kpis,
         "cadence": _cadence_block(run_data.get("cfg") or {}),
-        "history": history_block,
+        "history": _with_overview(history_block, weights),
+        "profiles": _profiles_block(df, weights, run_data.get("cfg") or {}),
         "table_data": table_data,
         "stock_detail": stock_detail,
         "weights": weights,
@@ -1356,7 +1455,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
                 <li><span class="guide-n">1</span><div><strong>Eight scores per stock.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The rank is just the composite in order &mdash; a description of the numbers, not a verdict on the company.</div></li>
+                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The weights are a choice &mdash; the rankings&rsquo; Weighting menu shows the order with a Value, Growth or Momentum emphasis. The rank is a description of the numbers, not a verdict on the company.</div></li>
                 <li><span class="guide-n">3</span><div><strong>Every number is checkable.</strong> Open any stock to see the inputs, formulas and peers behind each score, and the arithmetic that adds them up.</div></li>
             </ol>
             <div class="guide-foot">
@@ -1423,6 +1522,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
                 </div>
+                <p class="changed-overview" id="changed-overview"></p>
                 <div class="movers-grid">
                     <div class="movers-col">
                         <h3 class="chart-title">Moved up the rankings</h3>
@@ -1539,6 +1639,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
+                <p class="profile-note" id="profile-note" hidden></p>
                 <div class="filters-bar" role="search">
                     <div class="filter-search">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
@@ -1567,6 +1668,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <option value="down">Downtrend</option>
                             <option value="insider">Insider buying, 90 days</option>
                             <option value="earn14">Reports within 14 days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-profile">Weighting</label>
+                        <select id="filter-profile" title="See the ranking under another investment style. The published ranking, and every number in a stock's sheet, is Balanced.">
+                            <option value="balanced">Balanced (published)</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1600,12 +1707,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
                             <th data-sort="Composite" title="The weighted blend of all eight category scores below. This is the ranking key. Higher is better; 0-100.">Composite</th>
-                            <th data-sort="valuation_score" title="Valuation - is it cheap? FCF yield (45%), EV/EBITDA (25%), earnings yield (20%), EV/Sales (10%). Banks are scored instead on P/B (60%) and earnings yield (40%), because enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
-                            <th data-sort="quality_score" title="Quality - is the business sound? ROIC (27%), gross profit/assets (20%), net debt/EBITDA (18%), Piotroski F-Score (15%), operating leverage (8%), Beneish M-Score (7%), accruals (5%). Banks use ROE (35%), ROA (25%), equity ratio (15%), Piotroski (15%) and accruals (10%). Higher score = better quality; 0-100.">Qual</th>
-                            <th data-sort="growth_score" title="Growth - is it expanding? Forward EPS growth (45%), revenue growth (25%), 3-year revenue CAGR (15%), sustainable growth (15%). PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
-                            <th data-sort="momentum_score" title="Momentum - has the price been rising? 12-month return excluding the last month (40%), 6-month return (35%), Jensen's alpha (25%). The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
-                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? Volatility (42.9%), beta (28.6%), max 1-year drawdown (28.6%). Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
-                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? 90-day FY1 EPS revision (35%), earnings acceleration (20%), earnings surprise (15%), price-target upside (10%), beat streak (10%), short interest (10%). Higher score = improving expectations; 0-100.">Rev</th>
+                            <th data-sort="valuation_score" title="Valuation - is it cheap? @W@. @BANK@ - enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100." data-wcat="valuation">Val</th>
+                            <th data-sort="quality_score" title="Quality - is the business sound? @W@. @BANK@. Higher score = better quality; 0-100." data-wcat="quality">Qual</th>
+                            <th data-sort="growth_score" title="Growth - is it expanding? @W@. PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100." data-wcat="growth">Grow</th>
+                            <th data-sort="momentum_score" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100." data-wcat="momentum">Mom</th>
+                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100." data-wcat="risk">Risk</th>
+                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100." data-wcat="revisions">Rev</th>
                             <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
@@ -1923,7 +2030,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fw = (D.weights || {{}}).factor_weights || {{}}, bw = (D.weights || {{}}).base_factor_weights || {{}};
         if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {{
             cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),
-                `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the volatility rule this run`));
+                `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the momentum regime rule this run`));
         }} else {{
             cards.push(kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
                 ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'));
@@ -2214,6 +2321,68 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
 {_js_table()}
 
+    // Investor profiles: the ranking under another named weighting, computed at build time
+    // by the engine (generate_dashboard._profiles_block). Switching only swaps which
+    // composite and rank the table shows; nothing is reweighted here.
+    let PROFILE = 'balanced';
+    function setProfile(key) {{
+        const P = D.profiles || {{}};
+        const c = (P.c || {{}})[key];
+        PROFILE = c ? key : 'balanced';
+        tableState.data = !c ? D.table_data : D.table_data.map(r => {{
+            const v = c[r.Ticker];
+            return Object.assign({{}}, r, {{ Composite: v ? v[0] : null, Rank: v ? v[1] : null }});
+        }});
+        const note = document.getElementById('profile-note');
+        if (note) {{
+            const meta = (P.list || []).find(x => x.key === PROFILE);
+            if (c && meta) {{
+                const w = meta.weights, CL = {{valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment'}};
+                const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
+                note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
+                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum adjusted for this run&rsquo;s ' + (P.regime === 'LOW VOL' ? 'calm' : 'volatile') + ' market, as every run is)' : '') +
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\\'filter-profile\\').value=\\'balanced\\';setProfile(\\'balanced\\')">Back to published</button>';
+                note.hidden = false;
+            }} else {{
+                note.hidden = true;
+            }}
+        }}
+        if (tableState.sortCol !== 'Rank' && tableState.sortCol !== 'Composite') {{ tableState.sortCol = 'Rank'; tableState.sortDir = 'asc'; }}
+        applyFilters();
+    }}
+    (function initProfiles() {{
+        const P = D.profiles, sel = document.getElementById('filter-profile');
+        if (!sel) return;
+        if (!P || !P.list || P.list.length < 2) {{
+            const grp = sel.closest ? sel.closest('.filter-group') : null;
+            if (grp) grp.hidden = true;
+            return;
+        }}
+        sel.innerHTML = P.list.map(x => '<option value="' + x.key + '">' + escapeHtml(x.name) + (x.published ? ' (published)' : '') + '</option>').join('');
+        sel.value = 'balanced';
+        if (sel.addEventListener) sel.addEventListener('change', () => setProfile(sel.value));
+    }})();
+
+    // Column tooltips state the weights the run actually used, read from the run's own
+    // published tables - never typed into the page, where they drift the day a weight
+    // changes (2026-10-09: the Quality tooltip still said operating leverage 8%).
+    function weightList(table) {{
+        const meta = D.metric_meta || {{}};
+        const on = Object.entries(table || {{}}).filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
+        const tot = on.reduce((s, e) => s + e[1], 0);
+        return on.map(e => {{
+            const pct = 100 * e[1] / tot;
+            return ((meta[e[0]] || {{}}).label || e[0]) + ' (' + (Math.abs(pct - Math.round(pct)) < 0.05 ? Math.round(pct) : pct.toFixed(1)) + '%)';
+        }}).join(', ');
+    }}
+    document.querySelectorAll('#universe-table th[data-wcat]').forEach(th => {{
+        const P = ((D.weights || {{}}).profiles || {{}})[th.dataset.wcat] || {{}};
+        const bank = P.bank ? 'Banks and insurers: ' + weightList(P.bank) : '';
+        th.title = th.title.replace('@W@', weightList(P.generic) || 'see Methodology')
+                           .replace(' @BANK@ -', bank ? ' ' + bank + ' -' : '')
+                           .replace(' @BANK@.', bank ? ' ' + bank + '.' : '');
+    }});
+
     // Sort click handler
     document.querySelectorAll('#universe-table th[data-sort]').forEach(th => {{
         th.tabIndex = 0;
@@ -2312,6 +2481,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             + (n.source === 'measured'
                 ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${{n.n_pairs}} paired runs (${{n.n_observations.toLocaleString()}} observations).`
                 : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+
+        // The run as a whole, in the build's own sentences (run_overview.py).
+        const ov = (H.overview || {{}})[changedRange];
+        const ovEl = document.getElementById('changed-overview');
+        if (ovEl) ovEl.textContent = ov ? ov.text.join(' ') : '';
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
@@ -2753,12 +2927,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
           +   trap
           +   '<span class="holding-spacer"></span>'
           +   deltaChip
-          +   '<span class="holding-composite" title="Composite score - a universe percentile">'
+          +   '<span class="holding-composite" title="Composite score - the weighted blend of the eight category scores, 0-100; the ranking key">'
           +     ((s.composite === null || s.composite === undefined) ? '--' : s.composite.toFixed(1)) + '</span>'
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
+          + (function() {{
+                // Context, never part of the score: trend, options, insiders (the drilldown's teaser line).
+                const bits = (typeof ctxBits === 'function') ? ctxBits(s) : [];
+                return bits.length ? '<p class="holding-ctx"><span class="holding-ctx-k">Context</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '</p>' : '';
+            }})()
           + '</div>';
     }}
 
@@ -3232,9 +3411,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             ]}},
             {{ label: 'Profitability', color: '#8e8c86', items: [
                 {{ label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
-                   sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' }},
+                   sub: f.revenue_growth_yoy !== null && f.revenue_growth_yoy !== undefined ? fmtPctChg(f.revenue_growth_yoy) + (f.revenue_growth_basis === 'annual' ? ' fiscal year on year' : ' latest quarter on a year earlier') : '' }},
                 {{ label: 'Net Income',      value: fmtBig(f.net_income),
-                   sub: f.ni_growth_yoy !== null ? fmtPctChg(f.ni_growth_yoy) + ' YoY' : '' }},
+                   sub: f.ni_growth_yoy !== null && f.ni_growth_yoy !== undefined ? fmtPctChg(f.ni_growth_yoy) + ' fiscal year on year' : '' }},
                 {{ label: 'EBITDA',          value: fmtBig(f.ebitda) }},
                 {{ label: 'Gross Margin',    value: fmtPct2(f.gross_margin) }},
                 {{ label: 'Net Margin',      value: fmtPct2(f.net_margin) }},
@@ -3431,10 +3610,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
 
         if (fl.channel_stuffing) {{
-            const div = fl.recv_rev_divergence;
-            badges.push(`<span class="flag-badge flag-warn">
+            const detail = (fl.recv_g !== null && fl.recv_g !== undefined && fl.rev_g !== null && fl.rev_g !== undefined)
+                ? 'receivables ' + (fl.recv_g >= 0 ? '+' : '') + (fl.recv_g * 100).toFixed(0) + '% vs revenue ' + (fl.rev_g >= 0 ? '+' : '') + (fl.rev_g * 100).toFixed(0) + '% over the fiscal year'
+                : (fl.dsri ? 'receivables-to-revenue index ' + fl.dsri.toFixed(2) : '');
+            badges.push(`<span class="flag-badge flag-warn" title="Beneish's days-sales-in-receivables index is 1.465 or more: receivables rose that much faster than revenue over the last fiscal year. 1.465 was the average among companies later found to have manipulated earnings (Beneish 1999).">
                 <span class="flag-icon">\u26a0\ufe0f</span> Channel Stuffing Risk
-                ${{div !== null ? '<span class="flag-detail">(' + (div * 100).toFixed(0) + '% divergence)</span>' : ''}}
+                ${{detail ? '<span class="flag-detail">(' + detail + ')</span>' : ''}}
             </span>`);
         }}
 
@@ -3505,8 +3686,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     `${{CAT_LABELS[c]}} ${{fmtWeight(base[c] || 0)}} &rarr; <strong>${{fmtWeight(D.weights.factor_weights[c] || 0)}}</strong>`
                 ).join(', ');
                 parts.push(`<strong>This run's weights differ from the published defaults.</strong> ` +
-                    `The screener scales momentum with the market's volatility regime &mdash; ` +
-                    `momentum is cut in turbulent markets, where momentum crashes cluster, and raised in calm ones. ` +
+                    `The momentum regime rule changed this run's momentum weight (see Methodology). ` +
                     `For this run: ${{desc}}.`);
             }}
         }}
@@ -3636,6 +3816,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // has none (0.0% ties measured on all 502 names).
         if (type === 'bp') return (v * 10000).toFixed(0) + ' bp';
         if (type === 'int') return Math.round(v).toString();
+        // whole when whole, else one decimal (the beat score is rescaled to 0-10, 2026-10-09)
+        if (type === 'score') return Math.abs(v - Math.round(v)) < 1e-9 ? Math.round(v).toString() : v.toFixed(1);
         if (type === 'ratio') return v.toFixed(2);
         return v.toString();
     }}
@@ -4133,7 +4315,7 @@ def _js_workings() -> str:
         'Net income is positive', 'Operating cash flow is positive',
         'Return on assets rose from the prior year', 'Operating cash flow exceeds net income',
         'Long-term debt relative to assets fell', 'Current ratio rose',
-        'No net new shares issued', 'Gross margin rose', 'Asset turnover rose'
+        'No net new shares issued', 'Gross margin rose from the prior year', 'Asset turnover rose from the prior year'
     ];
     const BENEISH_INDICES = [
         ['DSRI', 'Days sales in receivables', 0.920], ['GMI', 'Gross margin', 0.528],
@@ -4148,6 +4330,7 @@ def _js_workings() -> str:
         if (f === 'price') return '$' + Number(v).toFixed(2);
         if (f === 'pct') return (v * 100).toFixed(1) + '%';
         if (f === 'ratio') return Number(v).toFixed(2);
+        if (f === 'num' && typeof v === 'number' && !Number.isInteger(v)) return Number(v.toPrecision(4)).toString();
         return String(v);
     }
 
@@ -4214,6 +4397,34 @@ def _js_workings() -> str:
             h += `<div class="wk-k">The nine signals</div><ol class="wk-parts">` + sig.map((c, i) =>
                 `<li class="wk-part wk-part-${c === '1' ? 'pass' : c === '0' ? 'fail' : 'na'}"><span class="wk-mark">${c === '1' ? '&#10003;' : c === '0' ? '&#10007;' : '&ndash;'}</span>${PIO_SIGNALS[i]}<span class="wk-part-val">${c === '1' ? 'pass' : c === '0' ? 'fail' : 'not testable'}</span></li>`).join('') +
                 `</ol><div class="wk-sum">${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}</div>`;
+        }
+        if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && s.eq4 && s.eq4.length) {
+            const q = s.eq4;
+            const sp = v => (v === null || v === undefined) ? '&ndash;' : (v >= 0 ? '+' : '&minus;') + Math.abs(v * 100).toFixed(1) + '%';
+            const eps = v => (v === null || v === undefined) ? '&ndash;' : '$' + Number(v).toFixed(2);
+            const valid = q.map((r, i) => [i, r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+            h += `<div class="wk-k">The last ${q.length} quarters, oldest first</div><table class="wk-mini"><thead><tr><th>Quarter</th><th class="wk-num">Actual EPS</th><th class="wk-num">Estimate</th><th class="wk-num">Surprise</th></tr></thead><tbody>` +
+                q.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${escapeHtml(r[0])}${r[3] === null ? ' <span class="wk-dim">&middot; skipped</span>' : ''}</td><td class="wk-num">${eps(r[1])}</td><td class="wk-num">${eps(r[2])}</td><td class="wk-num">${sp(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-dim">Surprise = (actual &minus; estimate) &divide; the larger of |estimate| and $0.10.</div>`;
+            const vs = valid.map(x => x[1]);
+            let sum = '';
+            if (m === 'analyst_surprise') sum = `Median of the ${vs.length} valid surprises (${vs.map(sp).join(', ')}) = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            const L = q.length;
+            if (m === 'earnings_acceleration' && L >= 2 && q[L - 1][3] !== null && q[L - 2][3] !== null) sum = `Latest surprise ${sp(q[L - 1][3])} &minus; the quarter before ${sp(q[L - 2][3])} = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            if (m === 'consecutive_beat_streak') {
+                const pos = q.map((r, i) => [4 - (L - 1 - i), r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+                const beatW = pos.filter(x => x[1] > 0).map(x => x[0]), allW = pos.map(x => x[0]);
+                sum = (beatW.length ? `Beating quarters weigh ${beatW.join(' + ')} (newest 4, then 3, 2, 1)` : 'No quarter with data beat its estimate') +
+                    ` of ${allW.join(' + ')} with data, &times; 10 = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            }
+            if (s.raw[m] === null || s.raw[m] === undefined) sum = '';
+            if (sum) h += `<div class="wk-sum">${sum}</div>`;
+        }
+        if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
+            const pc = v => (v === null || v === undefined) ? '&ndash;' : (v * 100).toFixed(1) + '%';
+            h += `<div class="wk-k">Return on equity, last five fiscal years (the company&rsquo;s 10-K filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
+                s.roe5.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${r[0]}${r[3] === null ? ' <span class="wk-dim">&middot; ' + (r[2] !== null && r[2] <= 0 ? 'equity not positive' : 'not reported') + '</span>' : ''}</td><td class="wk-num">${r[1] === null ? '&ndash;' : fmtBig(r[1])}</td><td class="wk-num">${r[2] === null ? '&ndash;' : fmtBig(r[2])}</td><td class="wk-num">${pc(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-sum">${s.raw[m] === null || s.raw[m] === undefined ? 'Needs all five years - not computed for this stock' : 'Sample standard deviation of the five ROEs = ' + fmtMetric(s.raw[m], meta.fmt)}</div>`;
         }
         if (m === 'beneish_m_score' && s.bn) {
             const parts = s.bn.split('|');
@@ -4545,7 +4756,9 @@ def _js_table() -> str:
 
     function universeRowHtml(row, i) {
         const t = escapeHtml(row.Ticker);
-        const rd = rankDelta(row.Ticker);
+        // The change since the last run belongs to the published ranking; under another
+        // weighting it would sit beside a rank it does not describe, so it is left blank.
+        const rd = (typeof PROFILE !== 'undefined' && PROFILE !== 'balanced') ? 0 : rankDelta(row.Ticker);
         const rdCell = rd == null
             ? '<td class="num delta-cell muted">&mdash;</td>'
             : (rd === 0
@@ -4703,6 +4916,12 @@ def _css() -> str:
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+        .profile-note strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note[hidden] { display: none; }
+        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
+        .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
         .mover-row {
             display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
@@ -8589,12 +8808,54 @@ def _js_context() -> str:
             '</svg><div class="pc-legend"><span><i class="pc-k pc-k-c"></i>Weekly close</span><span><i class="pc-k pc-k-50"></i>50-day average</span><span><i class="pc-k pc-k-200"></i>200-day average</span></div>';
     }
 
+    // ---- valuation against the stock's own history (valuation_history.py) ----------
+    // One yield's 60 month-ends (basis points) with today's value as the last point and the
+    // five-year median as a dashed line.
+    function vhChartSvg(y, m0, label) {
+        const s = (y.s || []).map(v => v === null || v === undefined ? null : v / 10000).concat([y.now]);
+        const vals = s.filter(v => v !== null);
+        if (vals.length < 4) return '';
+        const W = Math.round(window.innerWidth <= 760 ? Math.max(260, window.innerWidth - 64) : 380), Hh = 112, L = 6, R = 52, T = 10, B = 20;
+        const lo = Math.min(...vals, y.med), hi = Math.max(...vals, y.med), pad = (hi - lo) * 0.08 || 0.001;
+        const y0 = lo - pad, y1 = hi + pad, n = s.length - 1;
+        const X = i => L + i / n * (W - L - R), Y = v => T + (y1 - v) / (y1 - y0) * (Hh - T - B);
+        let p = '', pen = false;
+        s.forEach((v, i) => { if (v === null) { pen = false; return; } p += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; });
+        const zero = (y0 < 0 && y1 > 0) ? '<path d="M' + L + ' ' + Y(0).toFixed(1) + 'H' + (W - R) + '" class="vh-zero"/>' : '';
+        return '<svg class="pc-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="' + escapeHtml(label) + ' at each month-end for five years, and today">' + zero +
+            '<path d="M' + L + ' ' + Y(y.med).toFixed(1) + 'H' + (W - R) + '" class="vh-med"/>' +
+            '<path d="' + p + '" class="pc-c"/>' +
+            '<circle cx="' + X(n).toFixed(1) + '" cy="' + Y(y.now).toFixed(1) + '" r="3.5" class="pc-dot"/>' +
+            '<text x="' + (X(n) + 7).toFixed(1) + '" y="' + (Y(y.now) + 4).toFixed(1) + '" class="pc-last">' + cPlain(y.now) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - 4) + '" class="pc-x">' + escapeHtml(new Date(m0 + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - 4) + '" class="pc-x" text-anchor="end">today</text></svg>';
+    }
+
+    function vhRow(y, m0, label, what) {
+        const above = Math.round(y.pct);
+        return '<div class="vh-row"><div class="ctx-chart">' + vhChartSvg(y, m0, label) + '</div><div class="ctx-facts">' +
+            '<div class="ctx-fact"><span class="ctx-fk">' + label + '</span><span class="ctx-fv">' + cPlain(y.now) + '</span>' +
+            '<span class="ctx-fs">' + (y.now > y.hi ? 'above every one' : y.now < y.lo ? 'below every one' : y.now === y.hi ? 'the highest' : y.now === y.lo ? 'the lowest' : 'higher than at <b>' + above + '%</b>') + ' of its past ' + y.n + ' month-ends</span></div>' +
+            '<div class="ctx-fact"><span class="ctx-fk">Five-year range</span><span class="ctx-fv vh-range">' + cPlain(y.lo) + ' &ndash; ' + cPlain(y.hi) + '</span>' +
+            '<span class="ctx-fs">median ' + cPlain(y.med) + ' (dashed line). ' + what + '</span></div></div></div>';
+    }
+
+    function vhCard(c) {
+        const b = c && c.vh;
+        if (!b || !(b.ey || b.fy)) return '';
+        let h = '<div class="ctx-card ctx-wide"><div class="ctx-h"><span>Against its own five years</span></div>';
+        if (b.ey) h += vhRow(b.ey, b.m0, 'Earnings yield', 'Net income over market value; a higher yield means a lower price for each dollar of earnings.');
+        if (b.fy) h += vhRow(b.fy, b.m0, 'Free-cash-flow yield', 'Operating cash flow minus capital spending, over market value.');
+        h += '<p class="ctx-why">The valuation percentiles in the score compare this stock with its sector. This compares it with itself. Most of the gap between two companies&rsquo; valuations persists for years: Cohen, Polk &amp; Vuolteenaho (2003) attribute only 20&ndash;25% of the cross-sectional spread in book-to-market to temporary differences in expected returns, the rest to profitability and lasting valuation levels. Whether a yield that is high <i>for this stock</i> has gone on to predict its returns is not established &mdash; a yield can sit high because earnings are about to fall. This screener records the reading every run to test it, and does not score it.</p>' +
+             '<p class="ctx-why">Built from the company&rsquo;s SEC filings as first reported: trailing-twelve-month figures at each month-end, using only what had been filed by then, over the month-end price times diluted shares (adjusted for stock splits). Shown only where today&rsquo;s figures reproduce the market value within 15%.' + (b.fy ? '' : ' No free-cash-flow yield for banks and insurers, or where the filings do not carry five years of it.') + '</p></div>';
+        return h;
+    }
+
     // ---- the teaser under "Why it ranks here" ------------------------------------
-    function renderCtxTeaser(s) {
-        const el = document.getElementById('modal-ctx-teaser');
-        if (!el) return;
-        const c = s.ctx;
-        if (!c) { el.innerHTML = ''; el.hidden = true; return; }
+    // The one-line context summary, shared by the drilldown teaser and each My Holdings card.
+    function ctxBits(s) {
+        const c = s && s.ctx;
+        if (!c) return [];
         const bits = [];
         const tr = trendOf(c);
         if (tr) bits.push('<span><b>' + TREND_WORD[tr] + '</b> ' + cPct(c.px / c.s200 - 1) + ' vs 200-day</span>');
@@ -8602,6 +8863,12 @@ def _js_context() -> str:
         const ins = c.ins;
         if (ins && ins.buy_n) bits.push('<span><b>' + ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ' bought</b> in 90 days</span>');
         else if (ins && ins.sell_n) bits.push('<span>Insiders: ' + ins.sell_n + ' sale' + (ins.sell_n === 1 ? '' : 's') + ', no buys in 90 days</span>');
+        return bits;
+    }
+    function renderCtxTeaser(s) {
+        const el = document.getElementById('modal-ctx-teaser');
+        if (!el) return;
+        const bits = ctxBits(s);
         if (!bits.length) { el.innerHTML = ''; el.hidden = true; return; }
         el.hidden = false;
         el.innerHTML = '<button type="button" class="ctx-teaser-btn" onclick="goToModal(\'section-context\')"><span class="ctx-teaser-k">Before you decide</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '<span class="ctx-teaser-go" aria-hidden="true">&rsaquo;</span></button>';
@@ -8627,7 +8894,7 @@ def _js_context() -> str:
         }
         if (c.s50) t += '<div class="ctx-fact"><span class="ctx-fk">vs 50-day average</span><span class="ctx-fv">' + cPct(c.px / c.s50 - 1) + '</span><span class="ctx-fs">' + cPrice(c.s50) + (c.s200 ? ', ' + (c.s50 >= c.s200 ? 'above' : 'below') + ' the 200-day' : '') + '</span></div>';
         if (c.hi) t += '<div class="ctx-fact"><span class="ctx-fk">From 52-week high</span><span class="ctx-fv">' + cPct(c.px / c.hi - 1) + '</span><span class="ctx-fs">high ' + cPrice(c.hi) + (c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '') + ', low ' + cPrice(c.lo) + '</span></div>';
-        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice; a long-only rule of holding only above it has historically cut drawdowns more than it raised returns (Faber 2007). It describes the trend; it does not predict the next move.</p></div>';
+        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice. On broad market indices, a rule of holding only above it (Faber 2007 uses the 10-month average) has historically cut drawdowns far more than it raised returns. For single stocks, the gap between the 21-day and 200-day averages has predicted returns across US stocks (Avramov, Kaplanski &amp; Subrahmanyam 2021); this screener records that gap every run to test it here, and does not score it.</p></div>';
         h += t;
 
         // 2. Recent move
@@ -8639,8 +8906,11 @@ def _js_context() -> str:
             '<tr><td>3 months</td><td class="num">' + cPct(c.r3m) + '</td></tr>' +
             (c.vr ? '<tr><td>Volume, 20 days vs 3 months</td><td class="num">' + Number(c.vr).toFixed(2) + '&times;</td></tr>' : '') +
             '</tbody></table>';
-        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; Lehmann 1990). The screener\'s own momentum signal skips the latest month for this reason.</p>';
+        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. The screener\'s own momentum signal skips the latest month for this reason.</p>';
         h += m + '</div>';
+
+        // 2b. Against its own history
+        h += vhCard(c);
 
         // 3. Options
         let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
@@ -8653,7 +8923,7 @@ def _js_context() -> str:
             if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
             if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns (Xing, Zhang &amp; Zhao 2010). ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns - stocks with the steepest skew trailed those with the flattest by about 11% a year, risk-adjusted, in 1996-2005 (Xing, Zhang &amp; Zhao 2010), with smaller gaps in later data. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -8678,7 +8948,7 @@ def _js_context() -> str:
                     '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
                     '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + (r.plan ? '<span class="ctx-plan" title="The filing says this trade was made under a Rule 10b5-1 plan set up in advance">plan</span>' : '') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
             }
-            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). Grants, gifts and option exercises are left out.' +
+            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). The evidence is strongest in smaller companies: among the largest - which includes the whole S&amp;P 500 - Lakonishok &amp; Lee found the market barely reacted to insider trades and the signal was weak. Grants, gifts and option exercises are left out.' +
                  (ins.src === 'sec' ? ' <b>Plan</b> marks a sale the filing reports under a Rule 10b5-1 trading plan, arranged months ahead - the least informative kind. Source: each Form 4 at the SEC; the date opens the filing.' : ' Source: Yahoo Finance, compiled from Form 4 (no plan flag).') +
                  (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">All Form 4 filings at the SEC</a>' : '') + '</p>';
         } else {
@@ -8811,6 +9081,10 @@ def _js_context() -> str:
             '</tbody></table></div></details>';
         h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
             (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
+            (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
+                ? 'A few picks are left out because the free price source no longer serves them - usually companies taken private or acquired (' +
+                  escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
+                  '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
             'Equal weights, entry at the close of the first trading day after each run, dividends included, no trading costs or taxes. This record is not used to set the methodology.</div>';
         host.innerHTML = h;
     }
@@ -8868,13 +9142,13 @@ def _js_context() -> str:
             h += '<p class="rp-empty">' + (RP.scope === 'held' ? 'None of your saved holdings reports within ' + RP.days + ' days of this run.' : 'No scored company reports within ' + RP.days + ' days of this run.') + '</p>';
         } else {
             h += '<div class="rp-wrap"><table class="rp-table"><thead><tr><th>Company</th><th class="num">Rank</th><th class="num">Score</th>' +
-                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th>Insiders, 90 days</th></tr></thead><tbody>';
+                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th class="num" title="The latest reported quarter: actual EPS against the estimate, as a share of the estimate">Last quarter</th><th>Insiders, 90 days</th></tr></thead><tbody>';
             let day = null;
             rows.forEach(x => {
                 if (x.s.earn.d !== day) {
                     day = x.s.earn.d;
                     const n = rows.filter(y => y.s.earn.d === day).length;
-                    h += '<tr class="rp-day"><td colspan="5"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
+                    h += '<tr class="rp-day"><td colspan="6"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
                          (x.d === 0 ? 'the day of this run' : x.d + ' day' + (x.d === 1 ? '' : 's') + ' after this run') + ' · ' + n + ' compan' + (n === 1 ? 'y' : 'ies') + '</span></td></tr>';
                 }
                 const c = x.s.ctx || {};
@@ -8883,16 +9157,20 @@ def _js_context() -> str:
                 else if ((c.os === 'ok' || c.os === 'partial') && c.oe && c.om !== undefined) mv = '&plusmn;' + cPlain(c.om);
                 const ins = c.ins;
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
+                // The last reported quarter's surprise, from the four quarters behind the surprise
+                // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
+                const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
+                const lqTxt = lq ? (lq[3] >= 0 ? '+' : '&minus;') + Math.abs(lq[3] * 100).toFixed(1) + '%' : '<span class="rp-none">&ndash;</span>';
                 h += '<tr class="rp-row" tabindex="0" onclick="openStockDetail(\'' + x.r.Ticker + '\')" onkeydown="if(event.key===\'Enter\')openStockDetail(\'' + x.r.Ticker + '\')">' +
                      '<td><span class="rp-tk">' + escapeHtml(x.r.Ticker) + '</span><span class="rp-co">' + escapeHtml(x.r.Company || '') + '</span>' +
                      (x.s.earn.est ? '<span class="rp-tag" title="The data provider\'s estimate, not a date the company has announced">est. date</span>' : '') +
                      (x.held ? '<span class="rp-tag rp-held">held</span>' : '') + '</td>' +
-                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td>' + insTxt + '</td></tr>';
+                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td class="num" title="' + (lq ? 'Quarter ended ' + lq[0] : '') + '">' + lqTxt + '</td><td>' + insTxt + '</td></tr>';
             });
             h += '</tbody></table></div>';
         }
         h += '<p class="rp-note">Ordered by date, then by rank - never by the size of the expected move. A report is when the inputs to Valuation, Quality and Growth are actually replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
-             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Insiders</b>: people who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
+             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Last quarter</b>: the latest reported quarter&rsquo;s EPS against the analysts&rsquo; estimate - a beat or miss, not a forecast of the next one. <b>Insiders</b>: officers and directors who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
         host.innerHTML = h;
     }
     (function wrapReporting() {
@@ -8939,6 +9217,7 @@ def _js_context() -> str:
             if (sel && sel.value !== 'all') applyFilters();
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
             if (RP_DONE) renderReporting();
+            if (typeof renderHoldings === 'function') renderHoldings();
             ['sec-market', 'sec-track'].forEach(id => {
                 const el2 = document.getElementById(id);
                 if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
@@ -9015,6 +9294,8 @@ def _css_context() -> str:
         .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
         .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
         .ctx-sell { color: var(--text-secondary) !important; }
+        .holding-ctx { margin: 8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .holding-ctx-k { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
         .rp-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .rp-wrap { overflow-x: auto; }
         .rp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
@@ -9037,7 +9318,7 @@ def _css_context() -> str:
         .rp-note { margin-top: 14px; font-size: 12.5px; line-height: 1.55; color: var(--text-muted); max-width: 72ch; }
         @media (max-width: 640px) {
             .rp-co { display: block; font-size: 12px; }
-            .rp-table th:nth-child(5), .rp-table td:nth-child(5) { display: none; }
+            .rp-table th:nth-child(5), .rp-table td:nth-child(5), .rp-table th:nth-child(6), .rp-table td:nth-child(6) { display: none; }
             .rp-table td, .rp-table th { padding-left: 6px; padding-right: 6px; }
         }
         .ctx-plan { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10.5px; font-weight: 500; letter-spacing: .02em; color: var(--text-muted); vertical-align: 1px; }
@@ -9051,6 +9332,12 @@ def _css_context() -> str:
         .pc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
         .pc-k { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
         .pc-k-c { background: var(--text-primary); } .pc-k-50 { background: var(--accent); } .pc-k-200 { background: var(--text-muted); }
+        .vh-med { fill: none; stroke: var(--text-muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+        .vh-zero { fill: none; stroke: var(--border); stroke-width: 1; }
+        .vh-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; padding: 6px 0 10px; }
+        .vh-row + .vh-row { border-top: 1px solid var(--border); padding-top: 12px; }
+        .vh-range { font-size: inherit; }
+        @media (max-width: 760px) { .vh-row { grid-template-columns: 1fr; gap: 8px; } }
 
         /* market backdrop */
         .mk-readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; margin-bottom: 20px; }

@@ -13,6 +13,39 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Added 2026-10-09 (owner-run)
+
+- **Weighting selector** on the rankings table (`#filter-profile`): Balanced (published) / Value /
+  Growth / Momentum. Rankings for each come from `D.profiles` - computed at build time by the engine
+  (`generate_dashboard._profiles_block`), never reweighted in the page. Under a non-published
+  weighting a note (`#profile-note`) states the weights and that the sheet is Balanced, and the
+  Delta column is blank. `tests/test_investor_profiles.py`, browser test in
+  `test_dashboard_navigation.py`.
+- **What Changed overview** (`#changed-overview`): two or three build-time sentences per baseline
+  from `history.overview` (`run_overview.py`, claim `history.run_overview`).
+- **Column tooltips** for the six weighted categories fill their weights at load from
+  `D.weights.profiles` (`weightList`) - no weight is typed into the page any more
+  (`tests/test_header_weights.py`).
+- **Workings additions:** beta, Jensen's alpha and volatility now print exact equations
+  (engine-published inputs); the three surprise metrics show their four quarters (`eq4`);
+  earnings variability (a weight-0 candidate) shows its five years of ROE (`roe5`).
+- **Labels:** "6-1M Return", "Max Drawdown (13M)". **Company Snapshot** "YoY" lines compare periods
+  exactly a year apart and say which; its EBITDA is the engine's.
+- **My Holdings** cards carry the drilldown's context line (trend, options, insiders - `ctxBits`, shared
+  with the teaser), re-rendered when the context file lands; the composite tooltip no longer calls the
+  composite "a universe percentile" (false since Phase 13).
+- **Context panel** research sentences scoped and dated (Faber on indices; Lehmann weekly; XZZ
+  1996-2005). **Track Record** caveats name picks the price source no longer serves.
+- **Trap flags narrowed to what they name** (no surface change): a value-trap flag now requires the
+  cheapest 30% on Valuation, a growth-trap flag the top 30% on Growth. The KPI card, table column,
+  Analytics trap chart, Top 5 exclusion and holdings badges read the same two booleans, so all of them
+  follow (122/125 -> 43/74 on the morning run). `research/2026-10-09-trap-flags.md`.
+- **Against its own five years** (Before you decide, after Recent move; `vhCard`): earnings yield
+  and FCF yield at each of the past 60 month-ends from SEC filings, today's percentile in that range,
+  a chart with the median dashed. Payload `ctx[t].vh` (`valuation_history.py`, ~456 stocks, +0.25 MB
+  to the context file); claim `context.valuation_history`; `tests/test_valuation_history.py`.
+  `research/2026-10-09-valuation-vs-own-history.md`.
+
 ## The context layer (2026-10-08) - `plan/context-layer.md`
 
 Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx").
@@ -667,7 +700,9 @@ Confirmed against the above, not guessed:
    still has one test (top 25) where the evidence says entry and continued
    holding should use different, asymmetric tests. Blocked on measurement, not
    on design - re-measure the band at 60+ comparable runs (32 today).
-3. **Time-series valuation context.** `pct` is cross-sectional only.
+3. ~~Time-series valuation context.~~ **SHIPPED 2026-10-09** - "Against its own five years" in
+   Before you decide (earnings and FCF yield; context, not scored). EV-based multiples are not in it:
+   enterprise value needs debt and cash per month-end, a second set of tags.
 4. ~~Catalyst/earnings-date proximity.~~ **SHIPPED 2026-09-29** - see the
    "Next earnings date" section above. What is *still* missing on this axis is
    a **run-level** view of it: nothing answers "which of my candidates report

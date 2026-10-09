@@ -148,21 +148,45 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    separate *routine* from *opportunistic* insiders by each person's own trading calendar; the
    180-day cache is too short for their three-year rule, so it needs a longer retention before it can
    be built.
-4. **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
+4. **Step one done 2026-10-09 (owner-run):** every research sentence the panel prints was checked against
+   its source and three were corrected (`research/2026-10-09-context-panel-claims.md`). Still to do -
+   **One research note per signal - covered 2026-10-09 (owner-run):** insider purchases
+   (`research/2026-10-09-insider-purchases.md` - weakest in large caps, now said on the page), one-month
+   reversal (`research/2026-10-09-short-term-reversal.md` - faded in plain form, survives sector-relative;
+   the harness now tracks both), trend (21/200-day distance, AKS 2021, now recorded), put skew and the
+   rates note (addenda in `research/2026-10-09-context-panel-claims.md`). What stays open: each signal's
+   *measured* record, which `context_eval.py` starts reporting after 2026-11-07. Original text:
+   **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
    200-day trend (Faber 2007; Brock, Lakonishok & LeBaron 1992), one-month reversal (Jegadeesh 1990;
    Lehmann 1990), implied-volatility skew (Xing, Zhang & Zhao 2010; Cremers & Weinbaum 2010 on put-call
    IV spreads), insider purchases (Lakonishok & Lee 2001; Jeng, Metrick & Zeckhauser 2003; Cohen, Malloy
    & Pomorski 2012), macro regimes and factors (Asness, Frazzini & Pedersen 2019; Daniel & Moskowitz
    2016). Each note checks the page's sentence about it is fair, and records whether the signal is a
    **candidate** for the score.
-5. **The evaluation harness.** Join `data/context_log/` to forward returns; report each signal's IC and
-   effective observations in the morning brief once there are 3+ months. Reporting only - see the rule.
+5. **The evaluation harness - BUILT 2026-10-09 (owner-run).** `context_eval.py`: for every log date,
+   the forward price return to the first log 30-40 days later (from the logs' own closes - no extra
+   download), and per signal the Spearman IC across stocks; effective observations are the
+   improvement engine's own non-overlapping count, and a t-statistic appears only from 3 effective
+   observations, computed on those alone. 13 signals (trend distances, recent returns, 52-week
+   position, volume, three option readings, insider buyers and value, rate sensitivity). Runs at the
+   end of every full run, writes `data/context_eval.json` (committed by the data loop) and one line
+   in the morning brief. **First one-month window closes 2026-11-07; the gate (8 effective) is about
+   eight months of daily logs away.** `tests/test_context_eval.py`. Nightly: nothing to do until
+   November except keep the logs complete; then read the brief line monthly.
 6. **Track record hardening.** Prices for names that left the index (some tickers fail to download -
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25); a turnover/cost
    estimate; whether RSP is the right benchmark after cap-weighted leadership; never list current
    holdings (the Model Portfolio decision, 2026-08-26).
-7. **Macro.** Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
+7. **Macro - Sahm DONE 2026-10-09 (owner-run):** the backdrop reads FRED's `SAHMREALTIME` (unemployment
+   as first published) and says so, falling back to the revised computation with a note. Remaining:
+   Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
    latest vintage) - say so or use ALFRED. Consider the dollar and oil for sector context.
+8. **Valuation against its own history - BUILT 2026-10-09 (owner-run).** `valuation_history.py`:
+   earnings and FCF yield at 60 month-ends from SEC filings (as first filed, split-adjusted), shown
+   for ~456 stocks that pass a market-value self-check; logged as `_ctx_vh_ey_pct` / `_ctx_vh_fy_pct`
+   and evaluated by `context_eval.py`. Next: EV/EBITDA on the same spine (needs debt and cash per
+   month-end), and a look at the 47 not shown once a month of logs exists.
+   `research/2026-10-09-valuation-vs-own-history.md`.
 
 ## Things not to do
 

@@ -492,6 +492,11 @@ class TestPiotroskiFScore:
             sharesBS=1e9, sharesBS_prior=1.02e9,
             grossProfit=25e9, grossProfit_prior=22e9,
             totalRevenue=50e9, totalRevenue_prior=45e9,
+            # Signals 3, 8, 9 read the two latest fiscal years (2026-10-09), with ROA and
+            # turnover on beginning-of-year assets: 10/75 > 9/74, 25/50 > 22/45, 50/75 > 45/74.
+            _ni_a0=10e9, _ni_a1=9e9, _gp_a0=25e9, _gp_a1=22e9,
+            totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9,
+            _ta_a1=75e9, _ta_a2=74e9,
         ))
         assert row["piotroski_f_score"] == 9
 
@@ -511,6 +516,8 @@ class TestPiotroskiFScore:
             sharesBS=1e9, sharesBS_prior=1.02e9,
             totalRevenue=50e9, totalRevenue_prior=45e9,
             totalAssets=80e9, totalAssets_prior=75e9,
+            _ni_a0=10e9, _ni_a1=9e9, totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9,
+            _ta_a1=75e9, _ta_a2=74e9, _gp_a0=np.nan, _gp_a1=np.nan,
             # Disable remaining signals
             longTermDebt=np.nan, longTermDebt_prior=np.nan,
             currentAssets=np.nan, currentAssets_prior=np.nan,
@@ -544,6 +551,8 @@ class TestPiotroskiFScore:
             sharesBS=1e9, sharesBS_prior=1.02e9,
             totalRevenue=50e9, totalRevenue_prior=45e9,
             totalAssets=80e9, totalAssets_prior=75e9,
+            totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9, _ta_a1=75e9, _ta_a2=74e9,
+            _ni_a0=np.nan, _ni_a1=np.nan, _gp_a0=np.nan, _gp_a1=np.nan,
             # 5 testable: NI>0, OCF>0, OCF>NI, Shares↓, ATO↑
             netIncome_prior=np.nan,
             longTermDebt=np.nan, longTermDebt_prior=np.nan,
@@ -651,19 +660,32 @@ class TestPEGRatio:
 
 
 class TestRevenueGrowth:
-    def test_normal(self):
-        row = _compute_one(_make_rec(
-            totalRevenue=50e9, totalRevenue_prior=45e9))
-        expected = (50 - 45) / 45
-        assert abs(row["revenue_growth"] - expected) < 0.001
+    """Since 2026-10-09: the latest quarter over the same quarter a year earlier, else the latest
+    fiscal year over the one before - never the TTM over the fiscal year before last
+    (research/2026-10-09-revenue-growth-window.md)."""
+
+    def test_quarter_on_same_quarter(self):
+        row = _compute_one(_make_rec(_rev_q0=13e9, _rev_q4=12e9,
+                                     totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9))
+        assert abs(row["revenue_growth"] - (13 - 12) / 12) < 1e-9
+        assert row["_revg_basis"] == "quarter"
+
+    def test_falls_back_to_fiscal_year_on_fiscal_year(self):
+        row = _compute_one(_make_rec(totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9))
+        assert abs(row["revenue_growth"] - (50 - 45) / 45) < 1e-9
+        assert row["_revg_basis"] == "annual"
+
+    def test_ttm_against_the_year_before_last_is_never_used(self):
+        row = _compute_one(_make_rec(totalRevenue=50e9, totalRevenue_prior=45e9,
+                                     totalRevenue_annual=np.nan, totalRevenue_annual_prior=np.nan))
+        assert np.isnan(row["revenue_growth"])
 
     def test_zero_prior(self):
-        row = _compute_one(_make_rec(totalRevenue_prior=0))
+        row = _compute_one(_make_rec(_rev_q0=1e9, _rev_q4=0, totalRevenue_annual_prior=0))
         assert np.isnan(row["revenue_growth"])
 
     def test_declining_revenue(self):
-        row = _compute_one(_make_rec(
-            totalRevenue=40e9, totalRevenue_prior=50e9))
+        row = _compute_one(_make_rec(_rev_q0=10e9, _rev_q4=12e9))
         assert row["revenue_growth"] < 0
 
 

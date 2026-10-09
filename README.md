@@ -33,14 +33,17 @@ companies) use a bank-specific metric set within Valuation and Quality.
 
 ### Metric Registry
 
-The metric registry (`METRIC_COLS` in `factor_engine.py`) has **45 entries**:
+The metric registry (`METRIC_COLS` in `factor_engine.py`) has **46 entries**:
 
-- **29 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
+- **27 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
 - **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — substituted for
-  certain generic metrics on financial companies.
-- **12 candidate metrics at weight 0** — pre-implemented but inactive; the
-  self-improvement engine may activate them over time based on live
-  information-coefficient evidence.
+  certain generic metrics on financial companies (24 weighted metrics in all for a bank).
+- **15 candidate metrics at weight 0** — computed and shown, but unscored. A
+  candidate joins the score only with a research note and a changelog entry.
+
+*(2026-10-09: `operating_leverage` and `earnings_acceleration` moved to weight 0 and
+`earnings_variability` was added as a candidate. Re-derive these counts from `config.yaml` with
+`factor_engine.weighted_metric_sets(cfg)` rather than editing them by hand.)*
 
 *(Counts corrected 2026-09-10. The total was right but the split had read
 32/4/8 since before `sharpe_ratio` and `sortino_ratio` were moved to weight 0
@@ -107,12 +110,29 @@ All tuneable parameters live in **`config.yaml`**:
 The live dashboard is hosted at: https://calebsmit.github.io/screener-dashboard/
 
 `generate_dashboard.py` writes a lightweight `dashboard.html` plus a
-`dashboard_data.js` payload (lazy-loaded). To publish the latest version to
-GitHub Pages:
+`dashboard_data.js` payload (lazy-loaded) and a separate context file. Never
+edit those outputs by hand. The scheduled data loop (`scripts/data-run.ps1`)
+publishes them after its gates pass; see `CLAUDE.md` for the gates.
 
-```powershell
-git add -A; git commit -m "Update dashboard"; git push
-```
+What the page holds (full list: `plan/dashboard-inventory.md`):
+
+- **Rankings** for every S&P 500 stock, with a **Weighting** menu (Balanced,
+  Value, Growth, Momentum). The engine computes each one at build time with
+  the run's own momentum regime.
+- **Stock sheet**: open any row (or press Ctrl/Cmd+K) to see each category
+  score. Every metric opens to its formula, the stock's own inputs, and its
+  rank among sector peers. Every score is rebuilt from the published inputs
+  before the page is allowed to publish.
+- **What Changed**: a short overview of what moved across the whole run,
+  plus the movers since the last run and since a month ago.
+- **Reporting Soon**: companies reporting within 7 or 14 days, with last
+  quarter's earnings surprise.
+- **My Holdings**: names you save, kept in your browser only. No cost
+  basis and no share counts.
+- **Before you decide**: trend, options, insider-trading and market-backdrop
+  context. It is shown beside the score and never enters it.
+- **Track Record**: how past top-ranked lists did afterwards. This is
+  illustration, not evidence for the method.
 
 ## CLI Flags
 

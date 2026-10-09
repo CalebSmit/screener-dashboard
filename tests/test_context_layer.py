@@ -441,6 +441,22 @@ def test_context_log_writes_one_file_per_date(tmp_path, monkeypatch):
     assert "marketCap" not in df.columns and "_ctx_weekly" not in df.columns and "_ctx_ins_buy_n" in df.columns
 
 
+def test_context_log_takes_the_gics_sector_from_the_scored_table(tmp_path, monkeypatch):
+    """The fetch carries only the provider's lowercase ``sector``; the log must carry the GICS
+    ``Sector`` the evaluation groups by, or every sector-relative signal is NaN (review, 2026-10-09)."""
+    run = tmp_path / "run"
+    run.mkdir()
+    pd.DataFrame({"Ticker": ["A", "B"], "sector": ["Technology", "Healthcare"],
+                  "_ctx_ret_1m": [0.1, -0.2]}).to_parquet(run / "00_raw_fetch.parquet")
+    pd.DataFrame({"Ticker": ["B", "A"], "Sector": ["Health Care", "Information Technology"],
+                  "Composite": [1, 2]}).to_parquet(run / "05_final_scored.parquet")
+    monkeypatch.setattr(cs, "CONTEXT_LOG_DIR", tmp_path / "log")
+    cs.write_context_log(run, "2026-10-09")
+    df = pd.read_parquet(tmp_path / "log" / "2026-10-09.parquet").set_index("Ticker")
+    assert df.loc["A", "Sector"] == "Information Technology" and df.loc["B", "Sector"] == "Health Care"
+    assert "Composite" not in df.columns
+
+
 # ---------------------------------------------------------------------------
 # the rule: context never reaches a score, and never reads as advice
 # ---------------------------------------------------------------------------
@@ -577,3 +593,64 @@ def test_context_pass_stops_when_rate_limited(monkeypatch):
     raw = [{"Ticker": f"T{i}", "price_latest": 1} for i in range(40)]
     st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None, options_live=True)
     assert st["stopped"] == "rate limited" and st["done"] == 0
+
+
+def test_a_thin_cached_price_column_is_downloaded_again(tmp_path, monkeypatch):
+    """A column that exists is not a column that is complete: a ticker with closes for under
+    80% of the window's trading days is fetched again from the start (2026-10-09, PSKY)."""
+    monkeypatch.setattr(tr, "PRICE_CACHE", tmp_path / "prices.parquet")
+    idx = pd.bdate_range("2026-02-02", "2026-04-30")
+    cached = pd.DataFrame({"AAA": 1.0, "BBB": np.nan}, index=idx)
+    cached.loc[idx[-5:], "BBB"] = 2.0                         # 5 of ~64 days
+    cached.to_parquet(tr.PRICE_CACHE)
+    calls = []
+
+    def fake(tks, s, e):
+        calls.append((tuple(tks), s))
+        rng = pd.bdate_range(s, e)
+        return pd.DataFrame({t: 3.0 for t in tks}, index=rng)
+
+    out = tr.load_prices(["AAA", "BBB"], date(2026, 2, 2), date(2026, 4, 30), download=fake)
+    assert any(t == ("BBB",) and s == date(2026, 2, 2) for t, s in calls)   # repaired from the start
+    assert out.loc[out.index >= "2026-02-02", "BBB"].notna().mean() > 0.95
+    assert not any(t == ("AAA",) for t, _ in calls[1:])                    # complete columns left alone
+
+
+def test_sahm_prefers_the_real_time_series_and_says_which(monkeypatch, tmp_path):
+    monkeypatch.setattr(mc, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(mc, "OUT_PATH", tmp_path / "market_context.json", raising=False)
+    idx = pd.date_range("2024-01-01", periods=30, freq="MS")
+
+    def fake(sid, session=None, today=None):
+        if sid == "SAHMREALTIME":
+            return pd.Series([0.1] * 29 + [0.42], index=idx)
+        if sid == "UNRATE":
+            return pd.Series([4.0] * 30, index=idx)
+        return pd.Series([1.0] * 30, index=idx)
+
+    monkeypatch.setattr(mc, "fetch_series", fake)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    assert out["sahm"] == 0.42 and out["sahm_basis"] == "real-time"
+    jobs = next(r for r in out["readings"] if r["k"] == "jobs")
+    assert "first published" in jobs["text"]
+
+    def fail_rt(sid, session=None, today=None):
+        if sid == "SAHMREALTIME":
+            raise RuntimeError("down")
+        return fake(sid)
+
+    monkeypatch.setattr(mc, "fetch_series", fail_rt)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    assert out["sahm_basis"] == "revised" and out["sahm"] == 0.0
+    assert "revised" in next(r for r in out["readings"] if r["k"] == "jobs")["text"]
+
+    # The real-time series alone, UNRATE down: no "Unemployment is nan%" (review, 2026-10-09).
+    def no_unrate(sid, session=None, today=None):
+        if sid == "UNRATE":
+            raise RuntimeError("down")
+        return fake(sid)
+
+    monkeypatch.setattr(mc, "fetch_series", no_unrate)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    jobs = next(r for r in out["readings"] if r["k"] == "jobs")
+    assert out["sahm"] == 0.42 and "nan" not in jobs["text"].lower() and jobs["text"].startswith("The Sahm indicator")

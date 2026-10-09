@@ -1,0 +1,18 @@
+stocks in both: 501
+Spearman of composite ranks: 0.935
+top 5: 3 in both
+top 25: 19 in both
+top 50: 42 in both
+rank moves: median 24, 90th pct 78, >=50 places: 118
+  valuation   score Spearman 0.979
+  quality     score Spearman 0.928
+  growth      score Spearman 0.703
+  momentum    score Spearman 0.991
+  risk        score Spearman 0.998
+  revisions   score Spearman 0.927
+  size        score Spearman 0.999
+  investment  score Spearman 1.000
+Value_Trap_Flag: 122 -> 46
+Growth_Trap_Flag: 125 -> 66
+largest rises: GILD 349->41, LYB 391->92, XYZ 389->146, PFE 390->219, DOW 464->303, TRMB 456->299, ABBV 346->190, BXP 327->174
+largest falls: SOLV 140->373, FTV 167->345, VMRK 190->346, HON 215->370, BRO 311->453, COO 291->423, MGM 258->389, PLD 294->421

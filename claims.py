@@ -304,7 +304,9 @@ CLAIMS: tuple[Claim, ...] = (
             "3 were discounted. The engine now emits applicable coverage "
             "(`factor_engine.applicable_coverage`) and the page publishes it as "
             "`stock_detail[t].cov`; `metric_count`/`metric_total` carry the same two "
-            "numbers."
+            "numbers. Since 2026-10-09 the count is of metrics that carry weight in the "
+            "stock's table (`factor_engine.weighted_metric_sets`), not every registered one, "
+            "less the Beneish score for Financials, which never receive it."
         ),
     ),
     Claim(
@@ -500,6 +502,22 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="history.run_overview",
+        surface=DRILLDOWN,
+        asserts=(
+            "The What Changed overview counts stocks that moved the panel's material threshold or "
+            "more; attributes the movement in scores to categories by summing each stock's "
+            "category score change times that category's composite weight, without regard to "
+            "direction; and counts today's top 25 that were also in the top 25 at the baseline."
+        ),
+        made_true_by="run_overview:overview",
+        checked_by=(
+            "tests/test_run_overview.py::test_movers_are_the_panels_own_counts",
+            "tests/test_run_overview.py::test_category_shares_weight_absolute_changes",
+            "tests/test_run_overview.py::test_top_kept_counts_names_in_both_top_lists",
+        ),
+    ),
+    Claim(
         id="context.track_record",
         surface=DRILLDOWN,
         asserts=(
@@ -515,9 +533,28 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="context.valuation_history",
+        surface=DRILLDOWN,
+        asserts=("Against its own five years: earnings yield is trailing-twelve-month net income (free-cash-flow "
+                 "yield: operating cash flow minus capital spending) over the month-end price times diluted "
+                 "shares adjusted for splits, at each month-end using only figures filed with the SEC by then, "
+                 "as first reported; the percentile is the share of the past month-ends with a lower yield; a "
+                 "stock is shown only where today's figures reproduce its market value within 15%."),
+        made_true_by="valuation_history:for_ticker",
+        checked_by=(
+            "tests/test_valuation_history.py::test_ttm_is_last_year_plus_this_ytd_minus_last_ytd",
+            "tests/test_valuation_history.py::test_only_what_had_been_filed_by_then",
+            "tests/test_valuation_history.py::test_shares_filed_before_a_split_are_scaled_to_todays_units",
+            "tests/test_valuation_history.py::test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown",
+            "tests/test_valuation_history.py::test_the_percentile_is_against_the_stocks_own_month_ends",
+        ),
+    ),
+    Claim(
         id="context.sahm",
         surface=DRILLDOWN,
-        asserts="The Sahm indicator is the 3-month average unemployment rate minus its low over the prior 12 months.",
+        asserts=("The Sahm indicator is the 3-month average unemployment rate minus its low over the prior "
+                 "12 months, read from FRED's real-time series (unemployment as first published) when "
+                 "available and otherwise computed on the revised history, and the page says which."),
         made_true_by="market_context:sahm_indicator",
         checked_by=("tests/test_context_layer.py::test_sahm_indicator_definition",),
     ),

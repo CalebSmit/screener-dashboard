@@ -88,8 +88,10 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
         resp = requests.get(_GITHUB_URL, timeout=10)
         resp.raise_for_status()
         gh = pd.read_csv(StringIO(resp.text))
-        df = gh[["Symbol", "Security", "GICS Sector"]].copy()
-        df.columns = ["Ticker", "Company", "Sector"]
+        # GICS sub-industry kept since 2026-10-09: it decides which financials are scored with
+        # the bank metric set (_is_bank_like; research/2026-10-09-bank-like-financials.md).
+        df = gh[["Symbol", "Security", "GICS Sector", "GICS Sub-Industry"]].copy()
+        df.columns = ["Ticker", "Company", "Sector", "SubIndustry"]
         df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
         print(f"  Loaded S&P 500 list from GitHub ({len(df)} tickers)")
     except Exception as e:
@@ -100,8 +102,8 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
         try:
             url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
             tables = pd.read_html(url)
-            df = tables[0][["Symbol", "Security", "GICS Sector"]].copy()
-            df.columns = ["Ticker", "Company", "Sector"]
+            df = tables[0][["Symbol", "Security", "GICS Sector", "GICS Sub-Industry"]].copy()
+            df.columns = ["Ticker", "Company", "Sector", "SubIndustry"]
             df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
             print(f"  Loaded S&P 500 list from Wikipedia ({len(df)} tickers)")
         except Exception as e:
@@ -128,7 +130,7 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
                     f"Universe drift {drift_pct:.1f}% exceeds 10% threshold."
                 )
         # Auto-update local fallback so it stays current
-        fresh = df[["Ticker", "Company", "Sector"]].to_dict(orient="records")
+        fresh = df[[c for c in ("Ticker", "Company", "Sector", "SubIndustry") if c in df.columns]].to_dict(orient="records")
         with open(fallback, "w") as f:
             json.dump(fresh, f, indent=2)
         print(f"  Updated sp500_tickers.json ({len(fresh)} tickers)")
@@ -369,6 +371,58 @@ def _find_stmt_label(stmt, label):
     return None
 
 
+def _estimate(v) -> float:
+    """A consensus EPS estimate from Yahoo's eps_trend, or NaN.
+
+    Yahoo fills a period it has no estimate for with exactly 0.0. Read as a number, that made
+    AMCR's 90-days-ago consensus zero and its three-month revision +9.6% of price (100th
+    percentile in its sector), and LIN's current consensus zero (-3.7%, 4th percentile) - about
+    2 composite points each (2026-10-09 audit). A real consensus is an average of analysts'
+    figures and is never exactly zero to the cent, so exact zero is treated as missing."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return np.nan
+    return np.nan if (not np.isfinite(f) or f == 0.0) else f
+
+
+def _populated_columns(stmt) -> list:
+    """The statement's periods, newest first, leaving out any column Yahoo lists without data.
+
+    Yahoo sometimes adds a period's column before filling it (AMZN listed 2026-06-30 while its
+    figures ended 2026-03-31), so a column counts only if it holds at least half as many values
+    as the fullest column. A blank cell in a populated column stays blank: it is that period's
+    value, missing - not a reason to read the next period in its place (2026-10-09 audit:
+    BRK-B's trailing net income summed Q2'25 for a blank Q3'25 and came out 21% low)."""
+    try:
+        cols = sorted(stmt.columns, key=lambda c: pd.Timestamp(c), reverse=True)
+    except (TypeError, ValueError):
+        cols = list(stmt.columns)
+    counts = stmt[cols].notna().sum()
+    top = counts.max() if len(counts) else 0
+    if not top:
+        return []
+    return [c for c in cols if counts[c] >= 0.5 * top]
+
+
+def _period_row(stmt, matched_idx) -> pd.Series:
+    """The matched line item's value for each populated period, newest first (NaN kept)."""
+    cols = _populated_columns(stmt)
+    row = stmt.loc[matched_idx, cols]
+    if isinstance(row, pd.DataFrame):          # a duplicated label: first non-null per period
+        row = row.bfill().iloc[0]
+    return row
+
+
+def _quarters_adjacent(cols, start: int, n: int) -> bool:
+    """True when the n period-end dates from ``start`` are consecutive quarters (75-105 days apart)."""
+    try:
+        d = [pd.Timestamp(c) for c in cols[start:start + n]]
+    except (TypeError, ValueError):
+        return True                             # undated columns: nothing to check against
+    return len(d) == n and all(75 <= (d[i] - d[i + 1]).days <= 105 for i in range(n - 1))
+
+
 def _stmt_val(stmt, label, col=0, default=np.nan):
     """Pull a value from a yfinance financial-statement DataFrame.
 
@@ -395,9 +449,10 @@ def _stmt_val(stmt, label, col=0, default=np.nan):
                     "available_labels": [str(i) for i in stmt.index[:15]],
                 })
             return default
-        vals = stmt.loc[matched_idx].dropna()
+        vals = _period_row(stmt, matched_idx)
         if len(vals) > col:
-            return float(vals.iloc[col])
+            v = vals.iloc[col]
+            return float(v) if pd.notna(v) else default
         # Miss: column index out of range
         if _STMT_VAL_STRICT:
             _STMT_VAL_MISSES.append({
@@ -463,18 +518,20 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
                 })
             return default
 
-        row = stmt.loc[matched_idx].dropna()
-        needed = offset + n_quarters
-        if len(row) >= needed:
-            return sum(float(row.iloc[offset + i]) for i in range(n_quarters))
+        row = _period_row(stmt, matched_idx)
+        cols = list(row.index)
+        # n consecutive quarters with a value each, from ``offset`` - by period, never by
+        # skipping a blank one (2026-10-09 audit).
+        if (len(row) >= offset + n_quarters and row.iloc[offset:offset + n_quarters].notna().all()
+                and _quarters_adjacent(cols, offset, n_quarters)):
+            return float(row.iloc[offset:offset + n_quarters].sum())
 
-        # Partial data: if 3 of 4 quarters available at offset=0, annualize
-        available = len(row) - offset
-        if available >= 3 and n_quarters == 4 and offset == 0:
-            partial = sum(float(row.iloc[offset + i]) for i in range(available))
+        # Partial data: the latest 3 consecutive quarters at offset=0, annualized
+        if (n_quarters == 4 and offset == 0 and len(row) >= 3 and row.iloc[:3].notna().all()
+                and _quarters_adjacent(cols, 0, 3)):
             if partial_labels is not None:
                 partial_labels.append(label)
-            return partial * (4 / available)
+            return float(row.iloc[:3].sum()) * (4 / 3)
 
         if _STMT_VAL_STRICT:
             _STMT_VAL_MISSES.append({
@@ -857,6 +914,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # after the close. Nothing sits near a date boundary, so reading the
         # UTC date and reading the Eastern date disagree for 0 of 503.
         rec["earningsTimestampStart"] = _safe(info, "earningsTimestampStart")
+        # End of the current (not yet reported) fiscal year, for the 12-month-forward EPS blend.
+        rec["_next_fy_end"] = _safe(info, "nextFiscalYearEnd")
         rec["earningsTimestampEnd"]   = _safe(info, "earningsTimestampEnd")
         # 209 of the 492 future dates (42.5%) are the provider's estimate
         # rather than a confirmed schedule, and the flag was present on every
@@ -926,9 +985,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["totalRevenue_prior"]     = _stmt_val_ltm(q_fins, "Total Revenue", offset=4)
         rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial)
         rec["grossProfit_prior"]      = _stmt_val_ltm(q_fins, "Gross Profit", offset=4)
-        rec["ebit"]                   = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
+        # Operating income first (2026-10-09 audit): Yahoo's "EBIT" row is pretax income plus
+        # interest expense, so it carries non-operating gains - GOOGL's read $301.5B against
+        # $147.6B of operating income, doubling its ROIC. ROIC, EV/EBITDA and net debt / EBITDA
+        # are all operating measures (Greenblatt 2006; Koller et al., *Valuation*). "EBIT" only
+        # where no operating-income line exists.
+        rec["ebit"]                   = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
         if np.isnan(rec["ebit"]):
-            rec["ebit"]               = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
+            rec["ebit"]               = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
         rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial)
         rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial)
         rec["netIncome_prior"]        = _stmt_val_ltm(q_fins, "Net Income", offset=4)
@@ -949,9 +1013,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["totalRevenue_prior"]     = _stmt_val(fins, "Total Revenue", 1)
             rec["grossProfit"]            = _stmt_val(fins, "Gross Profit")
             rec["grossProfit_prior"]      = _stmt_val(fins, "Gross Profit", 1)
-            rec["ebit"]                   = _stmt_val(fins, "EBIT")
+            rec["ebit"]                   = _stmt_val(fins, "Operating Income")
             if np.isnan(rec["ebit"]):
-                rec["ebit"]               = _stmt_val(fins, "Operating Income")
+                rec["ebit"]               = _stmt_val(fins, "EBIT")
             rec["ebitda"]                 = _stmt_val(fins, "EBITDA")
             rec["netIncome"]              = _stmt_val(fins, "Net Income")
             rec["netIncome_prior"]        = _stmt_val(fins, "Net Income", 1)
@@ -975,6 +1039,24 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             if np.isnan(rec["netIncome_prior"]):
                 rec["netIncome_prior"]    = _stmt_val(fins, "Net Income", 1)
 
+        # Revenue growth on a true 12-month window (2026-10-09, CLAUDE.md 0.9(b)): the latest
+        # quarter against the same quarter a year earlier - the seasonal comparison quarterly
+        # revenue is modelled on (Jegadeesh & Livnat 2006). Kept only when the two quarters
+        # really are a year apart. research/2026-10-09-revenue-growth-window.md
+        try:
+            if q_fins is not None and "Total Revenue" in q_fins.index:
+                _qr = q_fins.loc["Total Revenue"]
+                _qc = sorted([c for c in _qr.index if pd.notna(_qr[c])], reverse=True)
+                if len(_qc) >= 5:
+                    _gap = (pd.Timestamp(_qc[0]) - pd.Timestamp(_qc[4])).days
+                    if 350 <= _gap <= 380 and float(_qr[_qc[4]]) > 0:
+                        rec["_rev_q0"] = float(_qr[_qc[0]])
+                        rec["_rev_q4"] = float(_qr[_qc[4]])
+                        rec["_rev_q0_date"] = str(pd.Timestamp(_qc[0]).date())
+                        rec["_rev_q4_date"] = str(pd.Timestamp(_qc[4]).date())
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
+            warnings.warn(f"{ticker_str}: quarterly revenue YoY unavailable: {type(e).__name__}: {e}")
+
         # Revenue 3 years ago from annual financials (col=3) for 3-year CAGR.
         # Annual financials typically provides 4 columns (indices 0-3).
         rec["totalRevenue_3yr_ago"] = _stmt_val(fins, "Total Revenue", 3)
@@ -984,13 +1066,25 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["totalRevenue_annual"] = _stmt_val(fins, "Total Revenue", 0)
 
         # EBIT prior year from annual financials (col=1) for operating leverage (DOL).
-        rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
+        rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
         # Phase 13 (F22): matching ANNUAL current EBIT (col=0) so DOL uses
         # same-basis endpoints (annual vs annual) instead of LTM vs annual.
-        rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
+        # Operating income first, as for the trailing figure (2026-10-09).
+        rec["ebit_annual"] = _stmt_val(fins, "Operating Income", 0)
+        if np.isnan(rec["ebit_annual"]):
+            rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
         rec["totalRevenue_annual_prior"] = _stmt_val(fins, "Total Revenue", 1)
+        # Annual figures for Piotroski's three year-on-year signals (2026-10-09): net income
+        # and gross profit for the latest two fiscal years, total assets at the end of the
+        # latest three - Piotroski (2000) scales ROA and turnover by BEGINNING-of-year assets.
+        rec["_ni_a0"] = _stmt_val(fins, "Net Income", 0)
+        rec["_ni_a1"] = _stmt_val(fins, "Net Income", 1)
+        rec["_gp_a0"] = _stmt_val(fins, "Gross Profit", 0)
+        rec["_gp_a1"] = _stmt_val(fins, "Gross Profit", 1)
+        rec["_ta_a1"] = _stmt_val(bs, "Total Assets", 1)
+        rec["_ta_a2"] = _stmt_val(bs, "Total Assets", 2)
         if np.isnan(rec["ebit_prior"]):
-            rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
+            rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
 
         # ---- Balance sheet: MRQ (most recent quarter) ----
         # Use quarterly BS for current values; col=4 for year-ago MRQ.
@@ -999,6 +1093,21 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         _bs_is_quarterly = (_bs_src is q_bs)
         _bs_prior_col = 4 if (_bs_is_quarterly and _bs_src is not None
                                and len(_bs_src.columns) >= 5) else 1
+        # The "prior" balance sheet must be a year earlier: with a four-column quarterly sheet
+        # column 1 is the previous QUARTER, and asset growth / Piotroski 5-7 would compare three
+        # months while calling it a year. Then no prior is used (2026-10-09; latent - measured
+        # 40 of 40 sampled sheets had 5+ columns). research/2026-10-09-revenue-growth-window.md
+        try:
+            # judged on the populated periods, which are what _stmt_val reads
+            _bs_cols = _populated_columns(_bs_src) if _bs_src is not None else []
+            if len(_bs_cols) <= _bs_prior_col:
+                _bs_prior_col = 10_000
+            else:
+                _gap = (pd.Timestamp(_bs_cols[0]) - pd.Timestamp(_bs_cols[_bs_prior_col])).days
+                if not 330 <= _gap <= 400:
+                    _bs_prior_col = 10_000          # out of range: every *_prior reads NaN
+        except (TypeError, ValueError):
+            pass
 
         rec["totalAssets"]            = _stmt_val(_bs_src, "Total Assets")
         rec["totalAssets_prior"]      = _stmt_val(_bs_src, "Total Assets", _bs_prior_col)
@@ -1016,6 +1125,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["currentAssets_prior"]    = _stmt_val(_bs_src, "Current Assets", _bs_prior_col)
         rec["currentLiabilities_prior"] = _stmt_val(_bs_src, "Current Liabilities", _bs_prior_col)
         rec["cash_bs"]                = _stmt_val(_bs_src, "Cash And Cash Equivalents")
+        # Cash plus short-term investments on the same balance sheet - what enterprise value
+        # nets off (Yahoo's totalCash), and so what net debt nets off too (2026-10-09).
+        rec["cash_sti_bs"]            = _stmt_val(_bs_src, "Cash Cash Equivalents And Short Term Investments")
         rec["sharesBS"]               = _stmt_val(_bs_src, "Ordinary Shares Number")
         rec["sharesBS_prior"]         = _stmt_val(_bs_src, "Ordinary Shares Number", _bs_prior_col)
         if np.isnan(rec["sharesBS"]):
@@ -1038,6 +1150,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation", partial_labels=_ltm_partial)
         if np.isnan(rec["da_cf"]):
             rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion", partial_labels=_ltm_partial)
+        # No quarterly D&A (DAL, UAL, MAS on 2026-10-09): the last fiscal year's, from the annual
+        # cash-flow statement. D&A moves slowly, and without it EBITDA fell back to Yahoo's
+        # "EBITDA" row, which for these companies equals EBIT (2026-10-09 audit).
+        if np.isnan(rec["da_cf"]):
+            for _da_label in ("Depreciation And Amortization", "Reconciled Depreciation",
+                              "Depreciation Amortization Depletion"):
+                rec["da_cf"] = _stmt_val(cf, _da_label)
+                if not np.isnan(rec["da_cf"]):
+                    rec["_da_annual"] = True
+                    break
 
         # Fallback: if quarterly CF produced all NaN, try annual
         if all(np.isnan(rec.get(k, np.nan)) for k in ["operatingCashFlow", "capex"]):
@@ -1121,7 +1243,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 ("cashflow", q_cf if (q_cf is not None and not q_cf.empty) else cf),
             ]:
                 if stmt_obj is not None and not stmt_obj.empty:
-                    most_recent = stmt_obj.columns[0]
+                    _pc = _populated_columns(stmt_obj)
+                    most_recent = _pc[0] if _pc else stmt_obj.columns[0]
                     rec[f"_stmt_date_{stmt_name}"] = str(most_recent.date()) if hasattr(most_recent, "date") else str(most_recent)
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: data freshness check failed: {type(e).__name__}: {e}")
@@ -1166,6 +1289,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                             rec[label] = np.nan
 
                     rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
+                    # The daily figure it is annualised from, kept so the page can show
+                    # "daily sd x 252^0.5" (metric_lineage.EQUATIONS["volatility"]).
+                    rec["_vol_daily_sd"] = float(daily_ret.std()) if len(daily_ret) >= 200 else np.nan
                     rec["_daily_returns"] = {
                         dt.strftime("%Y-%m-%d"): v
                         for dt, v in zip(daily_ret.index, daily_ret.values)
@@ -1192,10 +1318,27 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # ---- earnings surprises ----
         try:
             eh = t.earnings_history
+            # Oldest first by quarter date: Yahoo does not always return them in order (ACN's
+            # came back shuffled on 2026-10-09), and every metric below reads positions.
+            if eh is not None and not eh.empty:
+                try:
+                    eh = eh.loc[sorted(eh.index, key=lambda x: pd.Timestamp(x))]
+                except (TypeError, ValueError):
+                    pass
+            # A history whose newest quarter is long past is stale, not current: AMCR's ended
+            # Dec-2025 while it had reported Jun-2026 (2026-10-09 audit). Kept for display,
+            # not scored.
+            _eh_stale = False
+            if eh is not None and not eh.empty:
+                try:
+                    _eh_stale = (pd.Timestamp.now().normalize() - pd.Timestamp(eh.index[-1]).tz_localize(None)).days > EH_MAX_AGE_DAYS
+                except (TypeError, ValueError):
+                    _eh_stale = False
             if eh is not None and not eh.empty:
                 surs = []
                 ordered_surs = []  # Per-quarter surprises in chronological order
-                for _, row in eh.tail(4).iterrows():
+                _quarters = []     # [date, actual, estimate, surprise] - published, see below
+                for _qd, row in eh.tail(4).iterrows():
                     a, e = row.get("epsActual", np.nan), row.get("epsEstimate", np.nan)
                     if pd.notna(a) and pd.notna(e) and abs(e) > 0.001:
                         # Floor denominator at $0.10 to prevent near-zero
@@ -1204,29 +1347,39 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                         surs.append(sur)
                         ordered_surs.append(sur)
                     else:
+                        sur = None
                         ordered_surs.append(np.nan)
+                    _quarters.append([str(_qd)[:10],
+                                      float(a) if pd.notna(a) else None,
+                                      float(e) if pd.notna(e) else None,
+                                      float(sur) if sur is not None else None])
+                # The four quarters the three surprise metrics are made from, so the page
+                # can show them (CLAUDE.md 0.10(d)); the surprises are this loop's own.
+                rec["_eps_quarters"] = json.dumps(_quarters, separators=(",", ":"))
+                if _eh_stale:
+                    rec["_eps_quarters_stale"] = True
+                    surs, ordered_surs = [], [np.nan] * len(ordered_surs)
                 # Median is robust to a single outlier quarter.
                 rec["analyst_surprise"] = float(np.median(surs)) if len(surs) >= 2 else np.nan
 
                 # --- Earnings Acceleration ---
-                # Continuous: delta between most recent and prior quarter surprise %.
-                # Positive = accelerating beats, negative = decelerating.
-                valid_ordered = [s for s in ordered_surs if pd.notna(s)]
-                if len(valid_ordered) >= 2:
-                    rec["earnings_acceleration"] = valid_ordered[-1] - valid_ordered[-2]
+                # The latest quarter's surprise minus the quarter before's - both must be
+                # there; with one missing, "the one before" would be from half a year earlier.
+                if len(ordered_surs) >= 2 and pd.notna(ordered_surs[-1]) and pd.notna(ordered_surs[-2]):
+                    rec["earnings_acceleration"] = ordered_surs[-1] - ordered_surs[-2]
                 else:
                     rec["earnings_acceleration"] = np.nan
 
-                # --- Recency-Weighted Beat Score ---
-                # Each quarter's beat weighted by recency: Q1(oldest)=1, Q2=2, Q3=3, Q4(newest)=4.
-                # Beat = weight, miss = 0. Range: 0 to 10 (=1+2+3+4) for 4 quarters.
-                # More granular than the old 0-4 streak counter.
-                if len(valid_ordered) >= 2:
-                    n = len(valid_ordered)
-                    weights = list(range(1, n + 1))
-                    score = sum(w * (1.0 if s > 0 else 0.0)
-                                for w, s in zip(weights, valid_ordered))
-                    rec["consecutive_beat_streak"] = float(score)
+                # --- Recency-Weighted Beat Score, 0-10 ---
+                # Each quarter's position counted back from the newest (newest 4, then 3, 2, 1)
+                # is its weight; the score is the beating quarters' share of the weight of the
+                # quarters with data, times 10. With four quarters this is exactly the old
+                # 1+2+3+4 sum; with fewer it no longer caps the score (three beats out of three
+                # quarters read 6 before 2026-10-09, the same as missing the newest of four).
+                _pos = [(4 - (len(ordered_surs) - 1 - i), s) for i, s in enumerate(ordered_surs) if pd.notna(s)]
+                if len(_pos) >= 2:
+                    rec["consecutive_beat_streak"] = float(
+                        10.0 * sum(w for w, s in _pos if s > 0) / sum(w for w, _ in _pos))
                 else:
                     rec["consecutive_beat_streak"] = np.nan
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
@@ -1251,8 +1404,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 for _col, _key in [("current", "_fy1_eps_current"),
                                    ("90daysAgo", "_fy1_eps_90d_ago")]:
                     if _col in _row.index:
-                        _v = _row[_col]
-                        rec[_key] = float(_v) if pd.notna(_v) else np.nan
+                        rec[_key] = _estimate(_row[_col])
+            # Next fiscal year's consensus (FY2), for MSCI's 12-month forward EPS (2026-10-09).
+            if et is not None and not et.empty and "+1y" in et.index and "current" in et.columns:
+                rec["_fy2_eps_current"] = _estimate(et.loc["+1y", "current"])
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: eps_trend extraction failed: {type(e).__name__}: {e}")
 
@@ -1330,20 +1485,33 @@ def fetch_all_tickers(tickers: list, batch_size: int = 30,
 
 
 def fetch_market_returns(max_retries: int = 3) -> pd.Series:
-    """Fetch S&P 500 daily returns for beta calculation.
+    """Fetch S&P 500 daily returns for beta and Jensen's alpha.
+
+    The total-return index (^SP500TR, dividends reinvested) first: each stock's return here is
+    dividend-adjusted, so a price-only index tilted every alpha up by beta x the index's
+    dividend return - 1.37pp over the year to 2026-10-09, up to ~5.5pp for a beta-4 stock, and
+    it moved 167 stocks' alpha percentile (2026-10-09 audit). The price index (^GSPC) only if the
+    total-return series cannot be fetched; the series' ``attrs["source"]`` says which.
 
     Implements exponential backoff retry (1s / 2s / 4s) per §10.3.
     """
-    for attempt in range(max_retries):
-        try:
-            import yfinance as yf
-            hist = yf.Ticker("^GSPC").history(period="1y", auto_adjust=True)
-            closes = hist["Close"].dropna()
-            return np.log(closes / closes.shift(1)).dropna()
-        except Exception as e:
-            warnings.warn(f"Market returns fetch attempt {attempt+1}/{max_retries} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+    for symbol in ("^SP500TR", "^GSPC"):
+        for attempt in range(max_retries):
+            try:
+                import yfinance as yf
+                hist = yf.Ticker(symbol).history(period="1y", auto_adjust=True)
+                closes = hist["Close"].dropna()
+                if len(closes) < 200:
+                    raise ValueError(f"only {len(closes)} closes")
+                out = np.log(closes / closes.shift(1)).dropna()
+                out.attrs["source"] = symbol
+                if symbol != "^SP500TR":
+                    warnings.warn("Market returns: total-return index unavailable; using the price index ^GSPC")
+                return out
+            except Exception as e:
+                warnings.warn(f"Market returns ({symbol}) fetch attempt {attempt+1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
     return pd.Series(dtype=float)
 
 
@@ -1508,6 +1676,7 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
             "short_pct_float": round(max(0.0, tn(0.03, 0.03, high=0.30)), 4),
             "analyst_rating": round(tn(2.3, 0.6, low=1.0, high=5.0), 2),
             "interest_coverage": round(tn(8.0, 6.0, low=-2.0, high=40.0), 2),
+            "earnings_variability": round(abs(tn(0.06, 0.05, low=0.0, high=1.0)), 4),
         }
 
         # Bank-specific metrics for Financials sector
@@ -1552,6 +1721,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
     ptu_lo, ptu_hi = clamps.get("price_target_upside", [-0.50, 1.0])
     peg_max_cap = clamps.get("peg_max_cap", 50)
     records = []
+    # The day the metrics describe - for the months left in each fiscal year (forward EPS).
+    _as_of = pd.Timestamp(datetime.now(timezone.utc).date())
 
     # Market 12-month total return (computed once, reused for all tickers).
     # Convert cumulative log returns to simple return.
@@ -1628,7 +1799,15 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # Pre-compute bank classification (needed early for Beneish exclusion)
         _sector = rec["Sector"]
         _industry = d.get("industry", "")
-        _is_bank = _is_bank_like(ticker, _sector, _industry)
+        _is_bank = _is_bank_like(ticker, d.get("_gics_sector") or _sector, _industry, d.get("_gics_sub"))
+        # Beneish's M-score and its receivables index were estimated on non-financial companies:
+        # his sample excluded financial firms, whose sales and receivables mean something else
+        # (an insurance broker's receivables are premiums it holds for insurers - AON's DSRI read
+        # 3.52). So neither the M-score nor the channel-stuffing flag is applied to any Financials
+        # stock, bank-like or not (2026-10-09, with the GICS bank-like rule).
+        _beneish_applies = (not _is_bank) and ((d.get("_gics_sector") or _sector) not in _FINANCIAL_SECTORS)
+        # ...and so it is not "missing" for them either: applicable_coverage reads this.
+        rec["_beneish_na"] = (not _is_bank) and not _beneish_applies
 
         # -- Valuation metrics (1-4) --
         try:
@@ -1646,6 +1825,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 ebitda = _ebit_for_ebitda + abs(_da)
             else:
                 ebitda = d.get("ebitda", np.nan)  # fallback to reported
+                # ...unless the reported "EBITDA" is just EBIT again - Yahoo's row equalled its
+                # EBIT for all six stocks that reached this fallback on 2026-10-09.
+                _ebit_raw = d.get("ebit", np.nan)
+                if pd.notna(ebitda) and pd.notna(_ebit_raw) and abs(ebitda - _ebit_raw) <= 0.005 * abs(ebitda):
+                    ebitda = np.nan
             rec["ev_ebitda"] = (ev / ebitda) if (pd.notna(ev) and pd.notna(ebitda) and ebitda > 0 and ev > 0) else np.nan
 
             # 2. FCF Yield
@@ -1754,15 +1938,21 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # Guard: negative EBITDA makes the ratio uninterpretable → NaN.
             # Banks: skip (return NaN, weight redistributes to other metrics).
             if not _is_bank:
-                _ebit_nd = d.get("ebit", np.nan)
-                _da_nd = d.get("da_cf", np.nan)
-                if pd.notna(_ebit_nd) and pd.notna(_da_nd) and _da_nd >= 0:
-                    _ebitda_nd = _ebit_nd + _da_nd
-                else:
-                    _ebitda_nd = d.get("ebitda", np.nan)
+                # The SAME EBITDA EV/EBITDA uses (2026-10-09, CLAUDE.md 0.9(c)): this block
+                # had its own copy with the old `D&A >= 0` gate that Phase 13 (F36) removed
+                # from the valuation block, so a stock whose D&A row carried a negative sign
+                # was measured on two different EBITDAs. Identical for all 442 stocks with
+                # both on 2026-10-09; one definition so they cannot drift apart.
+                _ebitda_nd = rec.get("_ebitda_used", np.nan)
+                if _ebitda_nd is None:
+                    _ebitda_nd = np.nan
                 rec["_ebitda_nd_used"] = _ebitda_nd
+                # Net debt nets cash AND short-term investments, as enterprise value does
+                # (2026-10-09 audit: with cash alone, 14 non-banks - MSFT, NVDA, GOOGL among
+                # them - were net cash by the EV definition and net debt by this one).
+                _cash_nd = _coalesce(d, "cash_sti_bs", "cash_bs", "totalCash")
                 if pd.notna(_debt_bs) and pd.notna(_ebitda_nd) and _ebitda_nd > 0:
-                    _net_debt = _debt_bs - (_cash_bs if pd.notna(_cash_bs) else 0.0)
+                    _net_debt = _debt_bs - (_cash_nd if pd.notna(_cash_nd) else 0.0)
                     if _net_debt <= 0:
                         rec["net_debt_to_ebitda"] = 0.0  # Net cash position
                     else:
@@ -1827,8 +2017,17 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 _sig[0] = int(ni > 0)
             if pd.notna(ocfv):
                 _sig[1] = int(ocfv > 0)
-            if all(pd.notna(x) for x in [ni, ni_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                _sig[2] = int((ni/ta) > (ni_p/ta_p))
+            # Signals 3, 8 and 9 compare the latest FISCAL YEAR with the one before, as
+            # Piotroski (2000) defines them; ROA and turnover use beginning-of-year assets.
+            # Until 2026-10-09 they compared TTM flows with the fiscal year before last - a
+            # 12-23 month span (research/2026-10-09-revenue-growth-window.md). Missing annual
+            # inputs leave the signal untestable rather than falling back to that mix.
+            _ni0, _ni1 = d.get("_ni_a0", np.nan), d.get("_ni_a1", np.nan)
+            _gp0, _gp1 = d.get("_gp_a0", np.nan), d.get("_gp_a1", np.nan)
+            _ta1, _ta2 = d.get("_ta_a1", np.nan), d.get("_ta_a2", np.nan)
+            _rv0, _rv1 = d.get("totalRevenue_annual", np.nan), d.get("totalRevenue_annual_prior", np.nan)
+            if all(pd.notna(x) for x in [_ni0, _ni1, _ta1, _ta2]) and _ta1 > 0 and _ta2 > 0:
+                _sig[2] = int((_ni0 / _ta1) > (_ni1 / _ta2))
             if pd.notna(ocfv) and pd.notna(ni):
                 _sig[3] = int(ocfv > ni)
             if all(pd.notna(x) for x in [ltd, ltd_p, ta, ta_p]) and ta > 0 and ta_p > 0:
@@ -1837,10 +2036,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 _sig[5] = int((ca_c/cl_c) > (ca_p/cl_p))
             if pd.notna(sh) and pd.notna(sh_p):
                 _sig[6] = int(sh <= sh_p)
-            if all(pd.notna(x) for x in [gp_v, gp_p, rev_c, rev_p]) and rev_c > 0 and rev_p > 0:
-                _sig[7] = int((gp_v/rev_c) > (gp_p/rev_p))
-            if all(pd.notna(x) for x in [rev_c, rev_p, ta, ta_p]) and ta > 0 and ta_p > 0:
-                _sig[8] = int((rev_c/ta) > (rev_p/ta_p))
+            if all(pd.notna(x) for x in [_gp0, _gp1, _rv0, _rv1]) and _rv0 > 0 and _rv1 > 0:
+                _sig[7] = int((_gp0 / _rv0) > (_gp1 / _rv1))
+            if all(pd.notna(x) for x in [_rv0, _rv1, _ta1, _ta2]) and _ta1 > 0 and _ta2 > 0:
+                _sig[8] = int((_rv0 / _ta1) > (_rv1 / _ta2))
             n_testable = sum(x is not None for x in _sig)
             f = sum(x for x in _sig if x is not None)
             rec["_pio_signals"] = "".join("-" if x is None else str(x) for x in _sig)
@@ -1858,7 +2057,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # 10. Beneish M-Score (earnings manipulation detection)
             # Non-bank only; uses ANNUAL statements (t vs t-1), not LTM.
             # Banks excluded: no COGS, no PPE, Beneish assumptions break.
-            if (cfg or {}).get("enable_beneish", True) and not _is_bank:
+            if (cfg or {}).get("enable_beneish", True) and _beneish_applies:
                 _mscore, _mflag = _compute_beneish_mscore(d)
                 rec["beneish_m_score"] = _mscore
                 rec["_beneish_flag"] = _mflag
@@ -1874,27 +2073,37 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: quality metrics failed: {type(e).__name__}: {e}")
 
-        # -- Receivables-to-revenue growth divergence (channel-stuffing flag) --
-        # If receivables are growing significantly faster than revenue, it may
-        # indicate aggressive revenue recognition or channel stuffing.
+        # -- Receivables outgrowing revenue (channel-stuffing flag) --
+        # If receivables grow much faster than revenue, it may indicate aggressive revenue
+        # recognition or channel stuffing. Both sides come from the same two annual statements
+        # (fiscal year-end receivables, fiscal-year revenue); until 2026-10-09 revenue was the
+        # trailing twelve months against usually the prior fiscal year - a 12-21 month window
+        # beside a 12-month one. The flag is Beneish's (1999) days-sales-in-receivables index,
+        # DSRI = (receivables / revenue) over the prior year's: its mean was 1.465 among his
+        # earnings manipulators and 1.031 among the rest, so the flag fires at 1.465. It replaced
+        # an unsourced "receivables growth more than 15pp above revenue growth" rule. Not for
+        # bank-like stocks (receivables mean something else on a bank's balance sheet - the
+        # reason Beneish skips them too). research/2026-10-09-trap-flags.md
         try:
             _recv_t = d.get("_beneish_net_receivables", np.nan)
             _recv_p = d.get("_beneish_net_receivables_p", np.nan)
-            _rev_t = d.get("totalRevenue", np.nan)
-            _rev_p = d.get("totalRevenue_prior", np.nan)
-            if (pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
-                    and pd.notna(_rev_t) and pd.notna(_rev_p) and _rev_p > 0):
+            _rev_t = d.get("_beneish_revenue", np.nan)
+            _rev_p = d.get("_beneish_revenue_p", np.nan)
+            if (_beneish_applies and pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
+                    and pd.notna(_rev_t) and _rev_t > 0 and pd.notna(_rev_p) and _rev_p > 0):
                 _recv_growth = (_recv_t / _recv_p) - 1
                 _rev_growth = (_rev_t / _rev_p) - 1
-                _divergence = _recv_growth - _rev_growth
-                rec["_recv_rev_divergence"] = _divergence
-                # Flag if receivables growth exceeds revenue growth by >15pp
-                rec["_channel_stuffing_flag"] = _divergence > 0.15
+                rec["_recv_rev_divergence"] = _recv_growth - _rev_growth
+                rec["_recv_growth"], rec["_rev_growth_fy"] = _recv_growth, _rev_growth
+                rec["_dsri"] = (_recv_t / _rev_t) / (_recv_p / _rev_p)
+                rec["_channel_stuffing_flag"] = bool(rec["_dsri"] >= DSRI_FLAG)
             else:
                 rec["_recv_rev_divergence"] = np.nan
+                rec["_dsri"] = np.nan
                 rec["_channel_stuffing_flag"] = False
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
             rec["_recv_rev_divergence"] = np.nan
+            rec["_dsri"] = np.nan
             rec["_channel_stuffing_flag"] = False
 
         # -- Growth metrics (10-12) --
@@ -1905,9 +2114,50 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # as the analyst_surprise $0.10 floor).  Clamp to configured
             # bounds (default [-75%, +300%]) because yfinance mixes GAAP
             # trailing EPS with normalised forward consensus.
+            # Since 2026-10-09: MSCI's short-term forward EPS growth (Fundamental Data
+            # Methodology, EGRSF): (EPS12F - EPS12B) / |EPS12B|, where EPS12F blends the
+            # current- and next-fiscal-year consensus by the months M left in the current
+            # fiscal year, (M*FY1 + (12-M)*FY2)/12, and EPS12B is the last four reported
+            # quarters' actual EPS on the same (consensus) basis. Every company is measured
+            # over the next 12 months. The old form - Yahoo's forwardEps (the year AFTER the
+            # current one) over GAAP trailingEps - spanned 13-24 months by fiscal calendar and
+            # mixed accounting bases (research/2026-10-09-forward-eps-growth.md). It remains
+            # the fallback only where the consensus inputs are missing, with its F5 guard.
+            _e1, _e2 = _estimate(d.get("_fy1_eps_current", np.nan)), _estimate(d.get("_fy2_eps_current", np.nan))
+            _nfy = d.get("_next_fy_end", np.nan)
+            _b12 = np.nan
+            try:
+                _q = json.loads(d["_eps_quarters"]) if isinstance(d.get("_eps_quarters"), str) else []
+                _acts = [r[1] for r in _q[-4:]]
+                # a stale history (newest quarter > EH_MAX_AGE_DAYS old) is not "the last four
+                # quarters" - AMCR's ended Dec-2025 (2026-10-09 review)
+                if len(_acts) == 4 and all(a is not None for a in _acts) and not d.get("_eps_quarters_stale"):
+                    _b12 = float(sum(_acts))
+            except (TypeError, ValueError, IndexError, KeyError):
+                _b12 = np.nan
+            _M = np.nan
+            if pd.notna(_nfy):
+                try:
+                    _M = min(12.0, max(0.0, (datetime.fromtimestamp(int(_nfy), tz=timezone.utc).replace(tzinfo=None)
+                                             - _as_of).days / 30.4375))
+                except (TypeError, ValueError, OSError, OverflowError):
+                    _M = np.nan
             fwd = d.get("forwardEps", np.nan)
             trail = d.get("trailingEps", np.nan)
-            if pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
+            if all(pd.notna(x) for x in (_e1, _e2, _b12, _M)):
+                _f12 = (_M * _e1 + (12.0 - _M) * _e2) / 12.0
+                rec["_feg_f12"], rec["_feg_b12"], rec["_feg_m"] = float(_f12), float(_b12), float(_M)
+                if _b12 <= 0:
+                    # A growth rate from a loss has no meaning: its sign flips and its size is set
+                    # by how small the loss was. GILD's last four quarters summed to -$0.39 (a
+                    # one-off acquired-R&D charge) and scored +150%, the cap (2026-10-09; 8 stocks).
+                    rec["forward_eps_growth"] = np.nan
+                    rec["_feg_basis"] = "loss_base"
+                else:
+                    rec["forward_eps_growth"] = float(np.clip((_f12 - _b12) / max(abs(_b12), 1.0), feg_lo, feg_hi))
+                    rec["_feg_basis"] = "msci_12m"
+            elif pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
+                rec["_feg_basis"] = "fy2_over_trailing"
                 # Phase 13 (F5): trailingEps is GAAP, forwardEps is normalized
                 # consensus. When the two bases diverge extremely (ratio >2x or
                 # <0.3x — the signature of large restructuring/impairment items
@@ -1939,8 +2189,23 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             else:
                 rec["peg_ratio"] = np.nan
 
-            # 11. Revenue Growth (1-year)
-            rec["revenue_growth"] = ((rev_c - rev_p) / rev_p) if (pd.notna(rev_c) and pd.notna(rev_p) and rev_p > 0) else np.nan
+            # 11. Revenue Growth (1-year), on a window that really is one year (2026-10-09).
+            # Until then: TTM revenue over `totalRevenue_prior`, which for 502 of 502 stocks
+            # fell back to the fiscal year *before* the latest one - a span of 12 to 23 months
+            # depending on the fiscal calendar (median 18). Now: the latest quarter over the
+            # same quarter a year earlier; where those are missing, the latest fiscal year
+            # over the one before. Both are exactly 12 months. `_revg_basis` records which.
+            _q0, _q4 = d.get("_rev_q0", np.nan), d.get("_rev_q4", np.nan)
+            _a0, _a1 = d.get("totalRevenue_annual", np.nan), d.get("totalRevenue_annual_prior", np.nan)
+            if pd.notna(_q0) and pd.notna(_q4) and _q4 > 0:
+                rec["revenue_growth"] = (_q0 - _q4) / _q4
+                rec["_revg_basis"] = "quarter"
+            elif pd.notna(_a0) and pd.notna(_a1) and _a1 > 0:
+                rec["revenue_growth"] = (_a0 - _a1) / _a1
+                rec["_revg_basis"] = "annual"
+            else:
+                rec["revenue_growth"] = np.nan
+                rec["_revg_basis"] = None
 
             # 11b. 3-Year Revenue CAGR — smoothed growth signal from annual filings.
             # Phase 13 (F20): use ANNUAL current (col=0) vs annual 3yr-ago (col=3)
@@ -2060,6 +2325,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         try:
             # 15. Volatility
             rec["volatility"] = d.get("volatility_1y", np.nan)
+            # Published beside it as the engine's own figure (ENGINE_KEYS "vol_sd").
+            rec["_vol_sd"] = d.get("_vol_daily_sd", np.nan)
 
             # 16. Beta (date-aligned with overlap validation)
             dr = d.get("_daily_returns")
@@ -2075,6 +2342,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     cov = np.cov(sr, mr)[0, 1]
                     var = np.var(mr, ddof=1)
                     rec["beta"] = cov / var if var > 0 else np.nan
+                    # The two numbers the slope is, published so the page can show
+                    # the division (metric_lineage.EQUATIONS["beta"]). Annualised
+                    # (x252) only so they read as percentages-squared rather than
+                    # 0.0001s; the ratio is unchanged by the common factor.
+                    if var > 0:
+                        rec["_beta_cov"] = float(cov * 252)
+                        rec["_beta_var"] = float(var * 252)
                 else:
                     rec["beta"] = np.nan
             elif dr and isinstance(dr, list):
@@ -2198,6 +2472,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     and pd.notna(market_12m_return)):
                 expected_return = risk_free_rate + _beta_ja * (market_12m_return - risk_free_rate)
                 rec["jensens_alpha"] = _ret_12m_ja - expected_return
+                # Every term of the CAPM line, from this one computation, so the
+                # page prints the arithmetic instead of describing it
+                # (metric_lineage.EQUATIONS["jensens_alpha"], CLAUDE.md 0.10a).
+                rec["_ja_ret12"] = float(_ret_12m_ja)
+                rec["_ja_rf"] = float(risk_free_rate)
+                rec["_ja_beta"] = float(_beta_ja)
+                rec["_ja_mkt"] = float(market_12m_return)
             else:
                 rec["jensens_alpha"] = np.nan
                 logging.debug(f"{ticker}: jensens_alpha skipped — beta or return NaN")
@@ -2210,6 +2491,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["analyst_surprise"] = d.get("analyst_surprise", np.nan)
             rec["earnings_acceleration"] = d.get("earnings_acceleration", np.nan)
             rec["consecutive_beat_streak"] = d.get("consecutive_beat_streak", np.nan)
+            rec["_eps_q"] = d.get("_eps_quarters")
 
             # FY1 consensus EPS revision over 90 days, scaled by price.
             # This is the category's only actual *revision* metric and, since
@@ -2226,8 +2508,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # every one carries ~0.32-0.43.  That overlap is economic
             # (Novy-Marx 2015), not an artifact of this formula; do not try to
             # "fix" it with a cleverer denominator without re-running SS8.3.
-            _fy1_now = d.get("_fy1_eps_current", np.nan)
-            _fy1_then = d.get("_fy1_eps_90d_ago", np.nan)
+            _fy1_now = _estimate(d.get("_fy1_eps_current", np.nan))
+            _fy1_then = _estimate(d.get("_fy1_eps_90d_ago", np.nan))
             # `_coalesce`, not `d.get(a, d.get(b))` - see its docstring.  This
             # site was guarded by hand on 2026-09-10; the helper generalised
             # that fix to the other eight two-source inputs on 2026-09-25.
@@ -2345,6 +2627,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 )
             else:
                 rec["interest_coverage"] = np.nan
+
+            # C9. Earnings variability (Quality candidate, 2026-10-09): standard deviation
+            # of five fiscal years of ROE from each company's 10-K (SEC companyfacts), attached to the raw
+            # record by run_screener (sec_fundamentals). Banks included - ROE is their
+            # native profitability measure. research/2026-10-09-operating-leverage.md.
+            rec["earnings_variability"] = d.get("_evol", np.nan)
+            rec["_roe5"] = d.get("_roe5")
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: candidate metrics failed: {type(e).__name__}: {e}")
 
@@ -2489,6 +2778,7 @@ METRIC_COLS = [
     "short_pct_float",                                               # revisions candidate
     "analyst_rating",                                                # revisions candidate
     "interest_coverage",                                             # quality candidate
+    "earnings_variability",                                          # quality candidate (2026-10-09)
 ]
 
 # Metrics that only apply to bank-like or non-bank stocks.
@@ -2581,6 +2871,7 @@ METRIC_DIR = {
     "short_pct_float": False,        # lower short interest = less bearish = better
     "analyst_rating": False,         # lower = more bullish (1=Strong Buy, 5=Sell)
     "interest_coverage": True,       # higher = more interest payment cushion = better
+    "earnings_variability": False,   # lower = steadier ROE over five years = better (MSCI EVAR, AQR EVOL)
 }
 
 
@@ -2588,6 +2879,20 @@ METRIC_DIR = {
 # ranked within the sector; below it the stock is ranked against the whole universe
 # instead. Shared with the dashboard so the page states the rule the scorer applied.
 SECTOR_MIN_PEERS = 10
+
+
+def _directed_pct(s: pd.Series, higher_is_better: bool) -> pd.Series:
+    """Percentile rank 0-100 with the same centre whichever way the metric points.
+
+    ``rank(pct=True)`` runs from 1/n to 1, so flipping it for a lower-is-better metric gave 0 to
+    1 - 1/n: a higher-is-better metric averaged 50 + 50/n and a lower-is-better one 50 - 50/n.
+    With n the size of a sector, that tilted every composite by the sector's size and the
+    weighted balance of metric directions - ~1.0 point for Energy against ~0.3 for Industrials
+    (2026-10-09 audit). The midpoint rank, (rank - 0.5) / n, is symmetric: both directions
+    average exactly 50, and flipping it is exact."""
+    r = s.rank(method="average", na_option="keep")
+    p = (r - 0.5) / s.notna().sum() * 100
+    return p if higher_is_better else 100 - p
 
 
 def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
@@ -2604,10 +2909,7 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
     for col in METRIC_COLS:
         if col not in df.columns:
             continue
-        ranks = df[col].rank(pct=True, na_option="keep") * 100
-        if not METRIC_DIR.get(col, True):
-            ranks = 100 - ranks
-        universe_ranks[col] = ranks
+        universe_ranks[col] = _directed_pct(df[col], METRIC_DIR.get(col, True))
 
     for _, grp in df.groupby("Sector"):
         for col in METRIC_COLS:
@@ -2623,9 +2925,7 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
                 else:
                     df.loc[grp.index, pc] = 50.0
                 continue
-            ranks = grp[col].rank(pct=True, na_option="keep") * 100
-            if not METRIC_DIR.get(col, True):
-                ranks = 100 - ranks
+            ranks = _directed_pct(grp[col], METRIC_DIR.get(col, True))
             # NaN raw values → NaN percentile (not imputed to 50th).
             # The category score function handles per-row weight
             # redistribution for missing metrics.
@@ -2681,7 +2981,8 @@ CAT_METRICS = {
     "quality":   ["roic", "gross_profit_assets", "net_debt_to_ebitda",
                   "piotroski_f_score", "accruals", "operating_leverage",
                   "beneish_m_score", "roe", "roa", "equity_ratio",
-                  "operating_margin", "current_ratio", "insider_ownership", "interest_coverage"],
+                  "operating_margin", "current_ratio", "insider_ownership", "interest_coverage",
+                  "earnings_variability"],
     "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
     "momentum":  ["return_12_1", "return_6m", "jensens_alpha", "proximity_52w_high"],
     "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],
@@ -2863,6 +3164,42 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # H½. Volatility-scaled momentum weight (adaptive regime)
 # =========================================================================
+MOMENTUM_REGIME_SCALE = {"HIGH VOL": 0.70, "LOW VOL": 1.15}
+
+
+def apply_momentum_regime(fw: dict, regime: str) -> dict:
+    """The volatility-regime rule on a set of factor weights, as one pure function.
+
+    HIGH VOL: momentum x0.70, the freed weight split between quality and valuation.
+    LOW VOL: momentum x1.15, funded from valuation. NORMAL: unchanged. Used by
+    ``adjust_momentum_weight`` for the run, and by the dashboard's investor profiles so
+    a profile is weighted exactly as ``run_screener.py --preset <name>`` would weight it
+    on the same day (2026-10-09, plan/investor-profiles.md)."""
+    fw = dict(fw)
+    mom_w = fw.get("momentum", 0)
+    if regime == "HIGH VOL":
+        scale = MOMENTUM_REGIME_SCALE[regime]
+        freed = mom_w * (1 - scale)
+        fw["momentum"] = round(mom_w * scale, 2)
+        fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
+        fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
+    elif regime == "LOW VOL":
+        scale = MOMENTUM_REGIME_SCALE[regime]
+        added = mom_w * (scale - 1)
+        fw["momentum"] = round(mom_w * scale, 2)
+        fw["valuation"] = round(fw.get("valuation", 0) - added, 2)
+    return fw
+
+
+def infer_momentum_regime(base: dict, adjusted: dict) -> str:
+    """Which regime turned ``base`` into ``adjusted`` (the run records both, not the name)."""
+    for regime in MOMENTUM_REGIME_SCALE:
+        if all(abs(apply_momentum_regime(base, regime).get(k, 0) - adjusted.get(k, 0)) < 1e-6
+               for k in set(base) | set(adjusted)):
+            return regime
+    return "NORMAL"
+
+
 def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     """Adjust momentum factor weight based on realized momentum-score volatility.
 
@@ -2930,6 +3267,18 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
         warnings.warn(f"[MOM-VOL] Could not append vol history {hist_path}: "
                       f"{type(e).__name__}: {e}")
 
+    # Switched off 2026-10-09 (config ``momentum_regime.enabled``). ``current_vol`` is the spread
+    # of momentum_score ACROSS STOCKS, and momentum_score is built from within-sector percentile
+    # ranks whose spread is fixed by construction: it moves only with how closely the three
+    # momentum metrics' ranks agree, not with how volatile the market is (rank-predicted 25.03
+    # against 25.07 measured; correlation with the S&P 500's realised volatility +0.37). It
+    # called 30 of the 33 runs it acted on "LOW VOL" and never "HIGH VOL", so in practice it
+    # raised momentum's weight 13 -> 14.95 most days. The history is still recorded.
+    # research/2026-10-09-momentum-regime.md
+    if not (cfg.get("momentum_regime") or {}).get("enabled", False):
+        print(f"  [MOM-VOL] Score dispersion={current_vol:.2f} recorded; the regime rule is off (config momentum_regime.enabled).")
+        return cfg
+
     # Need >= 20 historical observations to establish regime thresholds
     if len(hist_vols) < 20:
         print(f"  [MOM-VOL] Current vol={current_vol:.2f}, history={len(hist_vols)} runs (need 20+). Skipping regime scaling.")
@@ -2939,26 +3288,14 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     p75 = float(np.percentile(hist_vols, 75))
 
     cfg = copy.deepcopy(cfg)
-    fw = cfg["factor_weights"]
-    mom_w = fw.get("momentum", 0)
-
     if current_vol > p75:
-        # HIGH VOL regime: reduce momentum, boost quality + valuation
-        scale = 0.70
-        freed = mom_w * (1 - scale)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
         regime = "HIGH VOL"
     elif current_vol < p25:
-        # LOW VOL regime: increase momentum, reduce valuation
-        scale = 1.15
-        added = mom_w * (scale - 1)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) - added, 2)
         regime = "LOW VOL"
     else:
         regime = "NORMAL"
+    cfg["factor_weights"] = apply_momentum_regime(cfg["factor_weights"], regime)
+    fw = cfg["factor_weights"]
 
     print(f"  [MOM-VOL] vol={current_vol:.2f} | p25={p25:.2f} p75={p75:.2f} | Regime: {regime}")
     if regime != "NORMAL":
@@ -3044,26 +3381,53 @@ def neutralize_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # I. Composite score (SS3.2)
 # =========================================================================
-def applicable_coverage(df: pd.DataFrame):
-    """Per stock: (metrics present, metrics applicable to that stock's type).
+def weighted_metric_sets(cfg: dict) -> tuple[set, set]:
+    """(metrics with weight for most stocks, metrics with weight for bank-like stocks).
 
-    Bank-only metrics apply to banks, the non-bank-only set to everyone else, the
-    rest to all. This is the coverage the composite's discount reads, and it is
-    published as-is: the page used to show "N of 18" from a hard-coded list while
-    the discount used 35 (bank-like) or 41, so 62 stocks looked under-covered and
-    only 3 were actually discounted (``plan/calculation-transparency.md``).
+    Read from ``metric_weight_profiles`` - the one place weights are resolved - so a
+    metric counts exactly when it can move a score. A category with no bank table
+    scores banks on the generic weights, as ``compute_category_scores`` does."""
+    gen, bank = set(), set()
+    for cat in CAT_METRICS:
+        prof = metric_weight_profiles(cfg, cat)
+        g = {m for m, w in prof["generic"].items() if w > 0}
+        gen |= g
+        bank |= ({m for m, w in prof["bank"].items() if w > 0} if "bank" in prof else g)
+    return gen, bank
+
+
+def applicable_coverage(df: pd.DataFrame, cfg: dict | None = None):
+    """Per stock: (metrics present, metrics that apply to it).
+
+    **Since 2026-10-09 "apply" means "carry weight in the table this stock is scored
+    with"** (``weighted_metric_sets``). Before, it was every entry in ``METRIC_COLS``
+    less the bank-only or non-bank-only ones - which counted 12 metrics that carry no
+    weight at all (candidates, and Sharpe, Sortino, PEG, D/E), so a stock could be
+    discounted for missing data that never enters its score (Loews, 2026-10-09), and
+    adding a weight-0 candidate moved composites. Without ``cfg`` the old rule applies.
+
+    This is the coverage the composite's discount reads, published as-is (the page
+    used to show "N of 18" from a hard-coded list; ``plan/calculation-transparency.md``).
     """
     all_metrics = [c for c in METRIC_COLS if c in df.columns]
     is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False).astype(bool)
     present = pd.Series(0, index=df.index)
     applicable = pd.Series(0, index=df.index)
+    sets = weighted_metric_sets(cfg) if (cfg and cfg.get("metric_weights")) else None
     for m in all_metrics:
-        if m in _BANK_ONLY_METRICS:
+        if sets is not None:
+            gen, bank = sets
+            applies = pd.Series(np.where(is_bank, m in bank, m in gen), index=df.index)
+        elif m in _BANK_ONLY_METRICS:
             applies = is_bank
         elif m in _NONBANK_ONLY_METRICS:
             applies = ~is_bank
         else:
             applies = pd.Series(True, index=df.index)
+        if m == "beneish_m_score" and "_beneish_na" in df.columns:
+            # Beneish is not computed for Financials (2026-10-09), so a generic-set financial
+            # is not short of it.
+            applies = applies & ~df["_beneish_na"].fillna(False).astype(bool)
         applicable += applies.astype(int)
         present += (df[m].notna() & applies).astype(int)
     return present, applicable
@@ -3104,7 +3468,7 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     cov_cfg = cfg.get("data_quality", {}).get("coverage_discount", {})
     # Always recorded, whether or not the discount is enabled, so the page can
     # state the coverage figure and the discount actually applied.
-    _cov_present, _cov_applicable = applicable_coverage(df)
+    _cov_present, _cov_applicable = applicable_coverage(df, cfg)
     df["_cov_present"] = _cov_present
     df["_cov_applicable"] = _cov_applicable
     df["_cov_discount"] = 0.0
@@ -3359,6 +3723,17 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     qual_floor = vtf.get("quality_floor_percentile", 30) / 100.0
     mom_floor = vtf.get("momentum_floor_percentile", 30) / 100.0
     rev_floor = vtf.get("revisions_floor_percentile", 30) / 100.0
+    cheap_floor = vtf.get("valuation_percentile", 70) / 100.0
+
+    # Layer 0 - the stock must be cheap. A value trap is a cheap stock that is cheap for a
+    # reason: Piotroski (2000) separates winners from losers *within* the highest
+    # book-to-market stocks. Until 2026-10-09 this layer did not exist and the flag fired on
+    # any broadly weak stock - 122 of 501, with a median valuation percentile of 0.51
+    # (research/2026-10-09-trap-flags.md).
+    if "valuation_score" in df.columns:
+        cheap = df["valuation_score"].ge(df["valuation_score"].quantile(cheap_floor)).fillna(False)
+    else:
+        cheap = pd.Series(False, index=df.index)
 
     # Layer 1 - Quality: below quality floor percentile
     # NaN values should NOT trigger flags (missing data != poor quality)
@@ -3391,7 +3766,7 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # flagged ~60% of the universe.  Majority logic catches stocks
     # with genuinely broad weakness while tolerating a single weak
     # dimension (e.g. a quality stock with one bad momentum quarter).
-    df["Value_Trap_Flag"] = (l1.astype(int) + l2.astype(int) + l3.astype(int)) >= 2
+    df["Value_Trap_Flag"] = cheap & ((l1.astype(int) + l2.astype(int) + l3.astype(int)) >= 2)
 
     # Continuous severity score (0-100): how deeply a stock is in trap territory.
     # For each dimension, severity = max(0, (threshold - score) / threshold) * 100.
@@ -3427,9 +3802,8 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Flag high-growth stocks with weak fundamentals (growth traps).
 
-    Mirror of value-trap logic but for the opposite scenario: stocks with
-    high growth scores but poor quality and/or revisions.
-    Uses 2-of-3 majority logic (growth ceiling + quality floor + revisions floor).
+    Mirror of value-trap logic but for the opposite scenario: a growth score above the
+    ceiling percentile AND quality or revisions below its floor.
     """
     gtf = cfg.get("growth_trap_filters", {})
     if not gtf.get("enabled", False):
@@ -3464,8 +3838,12 @@ def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     else:
         g3 = pd.Series(False, index=df.index)
 
-    # Majority logic (2-of-3): flag only if at least 2 dimensions breach
-    df["Growth_Trap_Flag"] = (g1.astype(int) + g2.astype(int) + g3.astype(int)) >= 2
+    # High growth is the defining condition, with weak quality or weak revisions beside it -
+    # Mohanram (2005) separates winners from losers *within* low book-to-market (growth)
+    # stocks. Until 2026-10-09 this was 2-of-3 with growth as one of the three, so a stock with
+    # low growth, low quality and low revisions was called a growth trap: 34 of 125 flagged
+    # were in the bottom half on growth (research/2026-10-09-trap-flags.md).
+    df["Growth_Trap_Flag"] = g1 & (g2 | g3)
 
     # Continuous severity score (0-100): how deeply in growth-trap territory.
     # Growth dimension: how far above the ceiling. Quality/revisions: how far below floors.
@@ -3505,6 +3883,14 @@ def compute_factor_correlation(df: pd.DataFrame) -> pd.DataFrame:
 
 _FINANCIAL_SECTORS = {"Financials", "Financial Services", "Financial"}
 
+# An earnings history whose newest quarter ended longer ago than this is not scored: a quarter
+# reports within ~90 days of its end, so 200 days means at least one report is missing.
+EH_MAX_AGE_DAYS = 200
+
+# Beneish (1999): mean days-sales-in-receivables index among the earnings manipulators in his
+# sample (1.031 among non-manipulators). The channel-stuffing flag fires at or above it.
+DSRI_FLAG = 1.465
+
 # Industries within Financials that should use bank-specific metrics.
 # These companies have balance sheets where deposits are liabilities,
 # lending is the core business, and EV/EBITDA/ROIC/D-E are meaningless.
@@ -3531,19 +3917,71 @@ _NON_BANK_FINANCIALS = {
 }
 
 
-def _is_bank_like(ticker: str, sector: str, industry: str) -> bool:
-    """Determine if a stock should use bank-specific metrics.
+# GICS sub-industries scored with the bank set: balance sheets whose liabilities are an operating
+# input (deposits, insurance float, customer funds), where EV, EBITDA, ROIC and gross profit /
+# assets lose their meaning and P/B against ROE is the practitioner standard (Damodaran,
+# *Investment Valuation* ch. 21; Fama & French 1992 exclude financials for the same reason).
+_BANK_SUBINDUSTRIES = {
+    "Diversified Banks", "Regional Banks", "Consumer Finance",
+    "Commercial & Residential Mortgage Finance", "Life & Health Insurance",
+    "Multi-line Insurance", "Property & Casualty Insurance", "Reinsurance",
+    "Multi-Sector Holdings", "Investment Banking & Brokerage", "Diversified Capital Markets",
+}
+# Fee businesses with conventional P&Ls, valued in practice on EV/EBITDA and P/E.
+_GENERIC_FIN_SUBINDUSTRIES = {
+    "Insurance Brokers", "Asset Management & Custody Banks", "Financial Exchanges & Data",
+    "Transaction & Payment Processing Services",
+}
+# Inside "Asset Management & Custody Banks", the ones whose balance sheets are a bank's or an
+# insurer's. Each needs its reason.
+_BANK_OVERRIDE_TICKERS = {
+    "BNY": "custody bank taking deposits",
+    "BK": "custody bank taking deposits (the symbol before BNY)",
+    "STT": "custody bank taking deposits",
+    "NTRS": "custody bank taking deposits",
+    "APO": "consolidates the insurer Athene",
+    "KKR": "consolidates the insurer Global Atlantic",
+    "AMP": "owns a bank and a life insurer; equity 3% of assets",
+}
+# Yahoo-only fallback (no GICS sub-industry): Yahoo files these under Asset Management.
+_YAHOO_BANK_OVERRIDES = {"PFG", "RJF"}
+_YAHOO_GENERIC_FIN_INDUSTRIES = {"Insurance Brokers", "Asset Management", "Financial Data & Stock Exchanges"}
+# Tickers that reached the bank set only by the default for an unrecognised financial - logged
+# by the run, and a test holds the current universe at none (26 did, silently, until 2026-10-09).
+BANK_DEFAULTED: set = set()
 
-    Priority: explicit override list > industry name > sector fallback.
+
+def _is_bank_like(ticker: str, sector: str, industry: str, sub_industry: str | None = None) -> bool:
+    """Whether a stock is scored with the bank metric set.
+
+    With the GICS sub-industry (the run attaches it from the S&P 500 list, since 2026-10-09):
+    the override tickers, then the sub-industry lists. Without it, Yahoo's industry, as before
+    but with dashes normalised and fee businesses sent to the generic set. Either way an
+    unrecognised Financials stock defaults to the bank set - the safer guess for an unseen
+    lender - and is recorded in ``BANK_DEFAULTED``.
+    research/2026-10-09-bank-like-financials.md
     """
-    if ticker in _NON_BANK_FINANCIALS:
-        return False
     if sector not in _FINANCIAL_SECTORS:
         return False
-    if industry and industry in _BANK_LIKE_INDUSTRIES:
+    if isinstance(sub_industry, str) and sub_industry:
+        if ticker in _BANK_OVERRIDE_TICKERS:
+            return True
+        if sub_industry in _BANK_SUBINDUSTRIES:
+            return True
+        if sub_industry in _GENERIC_FIN_SUBINDUSTRIES:
+            return False
+        BANK_DEFAULTED.add(ticker)
         return True
-    # Default: unknown Financials use bank metrics (conservative —
-    # P/B + ROE is better than EV/EBITDA for an unknown financial).
+    if ticker in _NON_BANK_FINANCIALS:
+        return False
+    ind = (industry or "").replace("\u2014", " - ").strip()
+    if ticker in _BANK_OVERRIDE_TICKERS or ticker in _YAHOO_BANK_OVERRIDES:
+        return True
+    if ind in _YAHOO_GENERIC_FIN_INDUSTRIES:
+        return False
+    if ind in _BANK_LIKE_INDUSTRIES or ind in ("Capital Markets", "Insurance - Reinsurance"):
+        return True
+    BANK_DEFAULTED.add(ticker)
     return True
 
 

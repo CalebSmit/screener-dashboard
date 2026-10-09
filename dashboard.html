@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=2c213f730ec5" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=cf33eb730233" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -83,6 +83,12 @@
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+        .profile-note strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note[hidden] { display: none; }
+        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
+        .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
         .mover-row {
             display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
@@ -3122,6 +3128,8 @@
         .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
         .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
         .ctx-sell { color: var(--text-secondary) !important; }
+        .holding-ctx { margin: 8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        .holding-ctx-k { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
         .rp-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .rp-wrap { overflow-x: auto; }
         .rp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
@@ -3144,7 +3152,7 @@
         .rp-note { margin-top: 14px; font-size: 12.5px; line-height: 1.55; color: var(--text-muted); max-width: 72ch; }
         @media (max-width: 640px) {
             .rp-co { display: block; font-size: 12px; }
-            .rp-table th:nth-child(5), .rp-table td:nth-child(5) { display: none; }
+            .rp-table th:nth-child(5), .rp-table td:nth-child(5), .rp-table th:nth-child(6), .rp-table td:nth-child(6) { display: none; }
             .rp-table td, .rp-table th { padding-left: 6px; padding-right: 6px; }
         }
         .ctx-plan { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10.5px; font-weight: 500; letter-spacing: .02em; color: var(--text-muted); vertical-align: 1px; }
@@ -3158,6 +3166,12 @@
         .pc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
         .pc-k { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
         .pc-k-c { background: var(--text-primary); } .pc-k-50 { background: var(--accent); } .pc-k-200 { background: var(--text-muted); }
+        .vh-med { fill: none; stroke: var(--text-muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+        .vh-zero { fill: none; stroke: var(--border); stroke-width: 1; }
+        .vh-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; padding: 6px 0 10px; }
+        .vh-row + .vh-row { border-top: 1px solid var(--border); padding-top: 12px; }
+        .vh-range { font-size: inherit; }
+        @media (max-width: 760px) { .vh-row { grid-template-columns: 1fr; gap: 8px; } }
 
         /* market backdrop */
         .mk-readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -3295,7 +3309,7 @@
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
                 <li><span class="guide-n">1</span><div><strong>Eight scores per stock.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The rank is just the composite in order &mdash; a description of the numbers, not a verdict on the company.</div></li>
+                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The weights are a choice &mdash; the rankings&rsquo; Weighting menu shows the order with a Value, Growth or Momentum emphasis. The rank is a description of the numbers, not a verdict on the company.</div></li>
                 <li><span class="guide-n">3</span><div><strong>Every number is checkable.</strong> Open any stock to see the inputs, formulas and peers behind each score, and the arithmetic that adds them up.</div></li>
             </ol>
             <div class="guide-foot">
@@ -3362,6 +3376,7 @@
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
                 </div>
+                <p class="changed-overview" id="changed-overview"></p>
                 <div class="movers-grid">
                     <div class="movers-col">
                         <h3 class="chart-title">Moved up the rankings</h3>
@@ -3478,6 +3493,7 @@
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
+                <p class="profile-note" id="profile-note" hidden></p>
                 <div class="filters-bar" role="search">
                     <div class="filter-search">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
@@ -3506,6 +3522,12 @@
                             <option value="down">Downtrend</option>
                             <option value="insider">Insider buying, 90 days</option>
                             <option value="earn14">Reports within 14 days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-profile">Weighting</label>
+                        <select id="filter-profile" title="See the ranking under another investment style. The published ranking, and every number in a stock's sheet, is Balanced.">
+                            <option value="balanced">Balanced (published)</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -3539,12 +3561,12 @@
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
                             <th data-sort="Composite" title="The weighted blend of all eight category scores below. This is the ranking key. Higher is better; 0-100.">Composite</th>
-                            <th data-sort="valuation_score" title="Valuation - is it cheap? FCF yield (45%), EV/EBITDA (25%), earnings yield (20%), EV/Sales (10%). Banks are scored instead on P/B (60%) and earnings yield (40%), because enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
-                            <th data-sort="quality_score" title="Quality - is the business sound? ROIC (27%), gross profit/assets (20%), net debt/EBITDA (18%), Piotroski F-Score (15%), operating leverage (8%), Beneish M-Score (7%), accruals (5%). Banks use ROE (35%), ROA (25%), equity ratio (15%), Piotroski (15%) and accruals (10%). Higher score = better quality; 0-100.">Qual</th>
-                            <th data-sort="growth_score" title="Growth - is it expanding? Forward EPS growth (45%), revenue growth (25%), 3-year revenue CAGR (15%), sustainable growth (15%). PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
-                            <th data-sort="momentum_score" title="Momentum - has the price been rising? 12-month return excluding the last month (40%), 6-month return (35%), Jensen's alpha (25%). The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
-                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? Volatility (42.9%), beta (28.6%), max 1-year drawdown (28.6%). Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
-                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? 90-day FY1 EPS revision (35%), earnings acceleration (20%), earnings surprise (15%), price-target upside (10%), beat streak (10%), short interest (10%). Higher score = improving expectations; 0-100.">Rev</th>
+                            <th data-sort="valuation_score" title="Valuation - is it cheap? @W@. @BANK@ - enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100." data-wcat="valuation">Val</th>
+                            <th data-sort="quality_score" title="Quality - is the business sound? @W@. @BANK@. Higher score = better quality; 0-100." data-wcat="quality">Qual</th>
+                            <th data-sort="growth_score" title="Growth - is it expanding? @W@. PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100." data-wcat="growth">Grow</th>
+                            <th data-sort="momentum_score" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100." data-wcat="momentum">Mom</th>
+                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100." data-wcat="risk">Risk</th>
+                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100." data-wcat="revisions">Rev</th>
                             <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
@@ -3704,8 +3726,8 @@
 <p><strong>A plain-language guide to what the screener does, why it does it, and how it arrives at its picks.</strong></p>
 <hr />
 <h2>What Is This?</h2>
-<p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 33 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.</p>
-<p>Not every stock sees all 33 metrics. The screener uses 29 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 29 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 45 entries: 33 carry scoring weight today (29 generic + 4 bank-specific) plus 12 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
+<p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 31 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.</p>
+<p>Not every stock sees all 31 metrics. The screener uses 27 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 27 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 46 entries: 31 carry scoring weight today (27 generic + 4 bank-specific) plus 15 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
 <p>The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.</p>
 <hr />
 <h2>Where Does the Data Come From?</h2>
@@ -3793,22 +3815,22 @@
 <tbody>
 <tr>
 <td><strong>ROIC</strong></td>
-<td>27%</td>
+<td>29%</td>
 <td>Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital.</td>
 </tr>
 <tr>
 <td><strong>Gross Profit / Assets</strong></td>
-<td>20%</td>
+<td>22%</td>
 <td>Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor).</td>
 </tr>
 <tr>
 <td><strong>Net Debt / EBITDA</strong></td>
-<td>18%</td>
-<td>(Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).</td>
+<td>20%</td>
+<td>(Total Debt - Cash and short-term investments) / EBITDA, the same cash enterprise value nets off. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).</td>
 </tr>
 <tr>
 <td><strong>Piotroski F-Score</strong></td>
-<td>15%</td>
+<td>16%</td>
 <td>A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals.</td>
 </tr>
 <tr>
@@ -3817,14 +3839,9 @@
 <td>(Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996).</td>
 </tr>
 <tr>
-<td><strong>Operating Leverage</strong></td>
-<td>8%</td>
-<td>Degree of Operating Leverage (%Δ EBIT / %Δ Revenue). Lower = more durable earnings (less sensitivity to revenue swings). Banks skip this metric.</td>
-</tr>
-<tr>
 <td><strong>Beneish M-Score</strong></td>
-<td>7%</td>
-<td>8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only.</td>
+<td>8%</td>
+<td>8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Not computed for Financials stocks (Beneish's sample excluded financial firms).</td>
 </tr>
 </tbody>
 </table>
@@ -3881,7 +3898,7 @@
 <tr>
 <td><strong>Forward EPS Growth</strong></td>
 <td>45%</td>
-<td>(Forward EPS - Trailing EPS) / Trailing EPS. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth.</td>
+<td>Expected EPS over the next 12 months (current- and next-fiscal-year consensus, weighted by the months left in the current year - MSCI's construction) versus the last four reported quarters, on the same basis. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth. Since 2026-10-09; before, it compared a fiscal year 13-24 months out with GAAP trailing EPS.</td>
 </tr>
 <tr>
 <td><strong>Revenue Growth</strong></td>
@@ -3900,7 +3917,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Why these?</strong> Growth without overpaying is the sweet spot. Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). The PEG Ratio bridges valuation and growth into a single number — it penalizes stocks with high P/E ratios relative to their growth, preventing the screener from chasing expensive growers. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up.</p>
+<p><strong>Why these?</strong> Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). Revenue growth and the three-year revenue CAGR measure what has already happened, at two horizons. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up. The PEG ratio is computed and shown but carries no weight: it divides a valuation by a growth rate, so it would count Valuation a second time inside Growth.</p>
 <hr />
 <h3>4. Momentum (13% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>Has the market been rewarding this stock recently?</em></p>
@@ -3931,7 +3948,7 @@
 </tbody>
 </table>
 <p><strong>Why these?</strong> Decades of academic research (Jegadeesh &amp; Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal — the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.</p>
-<p><strong>Volatility-regime adjustment:</strong> The screener tracks market-wide volatility across runs (stored in <code>cache/vol_history.csv</code>). Once 20+ historical observations are available, it classifies the current volatility environment as HIGH, NORMAL, or LOW (using 25th/75th percentile thresholds of historical volatility). In HIGH-vol regimes, momentum weight is reduced by 30% (freed weight goes to Quality + Valuation), because momentum crashes are most common during volatile markets. In LOW-vol regimes, momentum weight is increased by 15% (taken from Valuation), because calm markets are where momentum works best. This adaptive scaling requires at least 20 screener runs before activating.</p>
+<p><strong>Momentum regime rule - currently off.</strong> Momentum strategies crash most often in volatile markets (Daniel &amp; Moskowitz 2016), and scaling momentum down when its own volatility is high improves it (Barroso &amp; Santa-Clara 2015). Until 2026-10-09 the screener tried to do this, but the input it used was the spread of the momentum score across stocks (<code>factor_vol_history.csv</code>), which is fixed by the percentile construction and does not measure market volatility: it called 30 of 33 runs "low volatility" and raised momentum's weight most days. The rule is switched off until it is rebuilt on a real volatility measure; the spread is still recorded each run.</p>
 <hr />
 <h3>5. Risk (10% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>How bumpy is the ride?</em></p>
@@ -3947,7 +3964,7 @@
 <tr>
 <td><strong>Volatility</strong></td>
 <td>42.86%</td>
-<td>Annualized standard deviation of daily returns over the past year. Lower = smoother ride.</td>
+<td>Annualized standard deviation of daily returns over about 13 months of trading (the same price history the momentum signals use). Lower = smoother ride.</td>
 </tr>
 <tr>
 <td><strong>Beta</strong></td>
@@ -3955,14 +3972,15 @@
 <td>Covariance of stock returns with S&amp;P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk.</td>
 </tr>
 <tr>
-<td><strong>Max Drawdown (1Y)</strong></td>
+<td><strong>Max Drawdown (13M)</strong></td>
 <td>28.57%</td>
-<td>Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss.</td>
+<td>Largest peak-to-trough fall in the closing price over about 13 months. Less negative = smaller worst-case loss.</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Why these?</strong> All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are <em>dispersion</em> measures: they describe how much a stock moves, not how well it did.</p>
 <p><strong>Why not Sharpe and Sortino?</strong> They were scored here until 2026-09-02, at 15% each. Both are <code>(12-month return − risk-free rate) ÷ some measure of dispersion</code>, so they share their numerator with the momentum signal. Across the S&amp;P 500 the spread in returns is far wider than the spread in volatility, so the numerator dominates: measured on the published payload, Sharpe correlates <strong>+0.944</strong> with the 12-1 month return but only <strong>+0.025</strong> with volatility. Scoring them inside Risk meant a stock was rated safer because it had gone up — which pushed the Risk and Momentum category scores to a <strong>+0.516</strong> correlation, the highest of any pair in the screener. Removing them drops that to <strong>+0.150</strong>. Both ratios are still computed and shown on each stock's detail page; they are simply no longer scored as risk. See <code>METHODOLOGY_CHANGELOG.md</code> 2026-09-02.</p>
+<p><strong>Why not operating leverage?</strong> It was 8% of Quality until 2026-10-09, scored lower-is-better as "more durable earnings". As built it was one year's percentage change in operating profit divided by one year's percentage change in revenue, and that ratio does not measure cost structure: when profit and revenue move in opposite directions it goes negative, and on the 2026-10-09 run <strong>85 of its 95 negative values were companies whose revenue grew while operating profit fell</strong> - shrinking margins - which the score ranked at the 84th percentile of their sectors. A small revenue change also inflates it. The research points the other way too: firms with more operating leverage have historically earned <em>higher</em> returns as compensation for the risk (Novy-Marx 2011), and neither MSCI's nor AQR's published quality definitions use it - both measure durability as how variable earnings have been over several years. Its weight went to the other Quality metrics in proportion; it is still computed and shown. See <code>research/2026-10-09-operating-leverage.md</code>.</p>
 <hr />
 <h3>6. Analyst Revisions (10% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>What do Wall Street analysts think — and are they getting more or less optimistic?</em></p>
@@ -3977,7 +3995,7 @@
 <tbody>
 <tr>
 <td><strong>FY1 EPS Revision (3-month)</strong></td>
-<td>35%</td>
+<td>48%</td>
 <td>Change in the consensus current-fiscal-year EPS estimate over the last 90 days, divided by the share price — so it reads in <strong>basis points of price</strong> and is comparable across a $20 stock and a $400 one. Positive = analysts have raised their forecast. This is the category's only true <em>revision</em> metric: it measures analysts changing their minds, not companies beating a past estimate.</td>
 </tr>
 <tr>
@@ -3987,28 +4005,23 @@
 </tr>
 <tr>
 <td><strong>Price Target Upside</strong></td>
-<td>10%</td>
+<td>13.5%</td>
 <td>(Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism.</td>
-</tr>
-<tr>
-<td><strong>Earnings Acceleration</strong></td>
-<td>20%</td>
-<td>Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched.</td>
 </tr>
 <tr>
 <td><strong>Beat Score</strong></td>
 <td>10%</td>
-<td>Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4.</td>
+<td>Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4. With fewer quarters on record the score is the beating quarters' share of the weight of those that are, times 10, so missing data does not cap it; a history whose newest quarter ended over 200 days ago is not scored.</td>
 </tr>
 <tr>
 <td><strong>Short Interest Ratio</strong></td>
-<td>10%</td>
+<td>13.5%</td>
 <td>Days to cover (short interest shares / average daily volume). Lower = less bearish sentiment from short sellers. Contrarian signal.</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Why these?</strong> Estimate revisions and analyst targets are among the most powerful short-term return predictors. <strong>FY1 EPS Revision (3-month) gets the highest weight</strong> because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh &amp; Lakonishok (1996, <em>Journal of Finance</em> 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a <strong>+7.7% six-month decile spread</strong> on IBES data 1977–93.</p>
-<p>The surprise family — Analyst Surprise, Earnings Acceleration, Beat Score — is <em>backward</em>-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, <em>Critical Finance Review</em> 11(4)) finds it has been <strong>absent in large caps since 2006</strong>, with a significantly <em>negative</em> coefficient over 2016–19. Since this is an S&amp;P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10 and why the revision metric now outweighs any single member of it.</p>
+<p>The surprise family — Analyst Surprise and Beat Score — is <em>backward</em>-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, <em>Critical Finance Review</em> 11(4)) finds it has been <strong>absent in large caps since 2006</strong>, with a significantly <em>negative</em> coefficient over 2016–19. Since this is an S&amp;P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10, and to 25% on 2026-10-09 when Earnings Acceleration (the latest surprise minus the one before) left the score: it marked a stock down for having beaten the previous quarter, though surprises tend to repeat. The revision metric now carries nearly half the category.</p>
 <p>This category is weighted at only 10% of the composite because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.</p>
 <p><em>Note on the limits of this data: yfinance's estimate history reaches back only </em><em>90 days</em><em>, so the screener can see a one-quarter revision but not whether a revision trend has </em><em>persisted</em><em>. Chan, Jegadeesh &amp; Lakonishok's strongest result used a six-month window, which remains out of reach without a paid consensus feed (FactSet, Refinitiv I/B/E/S). The metric itself is not out of reach and has been live since 2026-09-10 — an earlier version of this page said otherwise.</em></p>
 <hr />
@@ -4058,12 +4071,13 @@
 <hr />
 <h2>Bank-Specific Scoring</h2>
 <p>Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningless for banks, insurers, and credit companies. Their "debt" is deposits (the raw material of their business), they don't have conventional capital expenditures, and enterprise value metrics break down when liabilities include customer deposits.</p>
-<p>The screener detects bank-like stocks using a three-tier classification:</p>
+<p>The screener decides by <strong>GICS sub-industry</strong> (since 2026-10-09), from the S&amp;P 500 list itself:</p>
 <ol>
-<li><strong>Explicit exclusion list</strong> — Payment processors and financial data companies (V, MA, PYPL, FIS, FISV, SPGI, MCO, ICE, CME, etc.) have conventional P&amp;Ls and use generic metrics despite being in the Financials sector.</li>
-<li><strong>Industry matching</strong> — Companies in banking, insurance, credit services, or mortgage finance industries use bank metrics.</li>
-<li><strong>Sector fallback</strong> — Unknown Financials-sector companies default to bank metrics (conservative — P/B + ROE is a safer default than EV/EBITDA for an unknown financial).</li>
+<li><strong>Bank set</strong> — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life &amp; Health / Multi-line / Property &amp; Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire) and Investment Banking &amp; Brokerage: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.</li>
+<li><strong>Generic set</strong> — Insurance Brokers, Asset Management, Financial Exchanges &amp; Data, and Payment Processing: fee businesses with conventional profit and loss statements, valued in practice on EV/EBITDA and P/E.</li>
+<li><strong>Named exceptions</strong> inside Asset Management &amp; Custody Banks use the bank set, each for a stated reason: the custody banks BNY, State Street and Northern Trust (they take deposits), Apollo and KKR (they consolidate the insurers Athene and Global Atlantic) and Ameriprise (it owns a bank and a life insurer).</li>
 </ol>
+<p>A Financials stock in a sub-industry on neither list defaults to the bank set — the safer guess for an unseen lender — and the run logs it by name; a test keeps the current universe at none. Until 2026-10-09 the rule read Yahoo's industry names, and 26 of the 59 stocks scored as banks — asset managers and insurance brokers among them — reached the bank set only through that default. Detail: <code>research/2026-10-09-bank-like-financials.md</code>.</p>
 <p>Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.</p>
 <p>All financial-sector stocks receive a <code>Financial_Sector_Caveat</code> flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.</p>
 <hr />
@@ -4077,7 +4091,7 @@
 <p>Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.</p>
 <h3>Step 3: Rank Within Sectors</h3>
 <p>Each metric is converted to a <strong>sector-relative percentile</strong> (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.</p>
-<p>For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better."</p>
+<p>For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better." The percentile uses the midpoint rule - the k-th lowest of n stocks scores (k - 0.5) / n x 100 - so a metric averages exactly 50 whichever way it points. (Until 2026-10-09 it was k / n, which averaged 50 + 50/n for higher-is-better metrics and 50 - 50/n once flipped, a tilt that grew in small sectors.)</p>
 <p><strong>Small-sector fallback:</strong> When a sector has fewer than 10 stocks with valid data for a metric, ranking within that tiny group produces noisy percentiles. In these cases, the screener falls back to universe-wide percentile ranking for that metric, which provides a more stable signal than the previous approach of assigning a flat 50th percentile.</p>
 <p><strong>Optional percentile transform:</strong> Currently <strong>disabled</strong> (default). Percentile ranks are used as-is without non-linear transformation.</p>
 <h3>Step 4: Combine Into Category Scores</h3>
@@ -4096,11 +4110,11 @@
 <p>The same missing-data redistribution logic applies: if a category score is NaN (e.g., all revisions data missing for a stock), its weight is redistributed to available categories rather than producing a NaN composite.</p>
 <p><strong>The weights above are the configured defaults, and an individual run may not use them.</strong> Two rules move them, both described in this document:</p>
 <ol>
-<li><strong>The volatility-regime adjustment</strong> changes the momentum weight for the whole run (see the Momentum section). It is funded from Valuation in calm markets and paid back into Quality and Valuation in turbulent ones.</li>
+<li><strong>The momentum regime rule</strong>, when switched on, changes the momentum weight for the whole run (see the Momentum section). It is off since 2026-10-09.</li>
 <li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
 </ol>
 <p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
-<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 45 weighted metrics less the ones its type does not use, so 35 for a bank-like stock and 41 for every other. The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
+<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that carry weight in that stock's score</strong> - 24 for a bank-like stock and 27 for every other (26 for other financials, which are never given the Beneish score); a metric with no weight (a candidate, or one shown for reference) cannot lower it (since 2026-10-09). The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
 <h3>Step 6: Apply Trap Filters &amp; Rank</h3>
 <p>After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.</p>
 <hr />
@@ -4114,7 +4128,7 @@
 <ul>
 <li><strong>Denominator floors:</strong> Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.</li>
 <li><strong>Output clamping (configurable):</strong> Forward EPS growth is clamped to [-75%, +150%]; price target upside is clamped to [-50%, +100%]. These bounds are configurable in <code>config.yaml</code> under <code>metric_clamps</code>. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.</li>
-<li><strong>Coverage filter:</strong> Stocks with fewer than 60% of their applicable metrics available are excluded from the ranking entirely.</li>
+<li><strong>Coverage filter:</strong> Stocks with fewer than 60% of the metrics that carry weight in their score available are excluded from the ranking entirely - the same coverage the composite's discount reads.</li>
 <li><strong>Coverage discount:</strong> Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below 80% metric coverage, the composite is reduced by up to 15% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. <strong>Currently enabled.</strong></li>
 <li><strong>Auto-disable (category-level):</strong> If the Revisions or Investment category has fewer than 30% of its metrics populated, the entire category's weight is zeroed and redistributed proportionally to the remaining categories.</li>
 <li><strong>Auto-reduce (metric-level):</strong> If any individual metric has more than 70% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.</li>
@@ -4122,33 +4136,33 @@
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
 <li><strong>EV cross-validation:</strong> The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (<code>_ev_flag</code>). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).</li>
 <li><strong>LTM partial annualization tracking:</strong> When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with <code>_ltm_annualized = True</code> and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.</li>
-<li><strong>Channel-stuffing detection:</strong> Compares receivables growth vs. revenue growth. When receivables growth exceeds revenue growth by more than 15 percentage points, the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality.</li>
+<li><strong>Channel-stuffing detection:</strong> Compares receivables with revenue over the last fiscal year, both from the same two annual statements, using Beneish's days-sales-in-receivables index (receivables / revenue, over the prior year's). At <strong>1.465 or more</strong> - the average among the earnings manipulators in Beneish (1999), against 1.031 among the rest - the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality. Not applied to any Financials stock: Beneish's sample excluded financial firms.</li>
 <li><strong>Beta overlap validation:</strong> Beta computation requires at least 80% date overlap between the stock's daily returns and the S&amp;P 500 market returns. Stocks with insufficient overlap get <code>beta = NaN</code> rather than a potentially misleading value. The overlap percentage is recorded in <code>_beta_overlap_pct</code>.</li>
 <li><strong>Data quality log:</strong> Every data issue (missing fields, stale data, rate-limit failures) is logged to <code>validation/data_quality_log.csv</code> with ticker, severity, description, and action taken.</li>
 <li><strong>Structured pipeline logging:</strong> A Python <code>logging</code>-based structured logger (<code>screener.pipeline</code>) records coverage statistics, filter actions, and scoring stage completions for machine-parseable diagnostics.</li>
 </ul>
 <hr />
 <h2>Value Trap Detection</h2>
-<p>A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. The screener uses <strong>majority logic (2-of-3)</strong> to flag potential value traps: a stock is flagged only if it falls in the bottom 30% of <strong>at least two</strong> of these three categories:</p>
+<p>A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. A stock is flagged as a potential value trap only if it is <strong>cheap</strong> — a Valuation score in the top 30% of the universe — <strong>and</strong> it falls in the bottom 30% of <strong>at least two</strong> of these three categories:</p>
 <ul>
 <li>Quality Score (floor: 30th percentile)</li>
 <li>Momentum Score (floor: 30th percentile)</li>
 <li>Revisions Score (floor: 30th percentile)</li>
 </ul>
-<p>This is more balanced than the alternative "any 1 breach" approach, which flagged roughly 60% of the universe — too aggressive to be useful. The 2-of-3 majority logic catches stocks with genuinely broad weakness while tolerating a single weak dimension (e.g., a quality stock with one bad momentum quarter). About 30% of stocks are typically flagged.</p>
+<p>The cheapness condition is what makes it a <em>value</em> trap: Piotroski (2000) separates the cheap stocks that go on to do well from those that do not using exactly this kind of fundamental weakness, within the cheapest stocks. Without it (before 2026-10-09) the flag fired on about a quarter of the universe, whatever the valuation. The 2-of-3 majority logic tolerates a single weak dimension (e.g., a quality stock with one bad momentum quarter); "any 1 breach" flagged roughly 60% of the universe.</p>
 <p>Missing data (NaN) in any of the three dimensions does <strong>not</strong> trigger a value trap flag — missing data is not the same as poor quality. These stocks receive a separate <code>Insufficient_Data_Flag</code>.</p>
-<p>Each flagged stock also receives a <strong>Value Trap Severity</strong> score (0-100), computed as the average of how far below each threshold the stock falls across the dimensions that triggered the flag. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.</p>
+<p>Each flagged stock also receives a <strong>Value Trap Severity</strong> score (0-100): for each of the three dimensions, how far below its threshold the stock falls (as a share of the threshold, zero if above it), averaged over the three. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.</p>
 <p>By default, value-trap-flagged stocks are <strong>excluded</strong> from the model portfolio (configurable to flag-only mode).</p>
 <hr />
 <h2>Growth Trap Detection</h2>
-<p>The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. The screener uses the same <strong>majority logic (2-of-3)</strong> to flag potential growth traps: a stock is flagged only if <strong>at least two</strong> of these three conditions are met:</p>
+<p>The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. A stock is flagged as a potential growth trap only if its Growth Score is <strong>above</strong> the 70th percentile (high growth) <strong>and</strong> at least one of these holds:</p>
 <ul>
-<li>Growth Score <strong>above</strong> the 70th percentile (high growth)</li>
 <li>Quality Score <strong>below</strong> the 35th percentile (low quality)</li>
 <li>Revisions Score <strong>below</strong> the 35th percentile (deteriorating sentiment)</li>
 </ul>
+<p>High growth is required (since 2026-10-09; it used to be one of three conditions, so a low-growth stock with low quality and low revisions could be called a growth trap). Mohanram (2005) separates winners from losers within growth stocks using fundamental strength, the mirror of Piotroski's test within value stocks.</p>
 <p>This catches "growth at any price" stocks — companies that are growing fast but burning cash, carrying deteriorating fundamentals, or losing analyst confidence.</p>
-<p>Each flagged stock also receives a <strong>Growth Trap Severity</strong> score (0-100), computed as the average of how far above/below each threshold the stock falls across the dimensions that triggered the flag. Higher severity means deeper in trap territory.</p>
+<p>Each flagged stock also receives a <strong>Growth Trap Severity</strong> score (0-100): how far beyond each of the three thresholds the stock falls (zero where it does not cross one), averaged over the three. Higher severity means deeper in trap territory.</p>
 <p>By default, growth-trap-flagged stocks are <strong>excluded</strong> from the model portfolio (configurable to flag-only mode).</p>
 <hr />
 <h2>Portfolio Construction</h2>
@@ -4179,7 +4193,7 @@ research use by the owner.</p>
 <h3>Sheet 3: Model Portfolio</h3>
 <p>The final portfolio with ticker, sector, composite score, position weights, and portfolio-level statistics (weighted average beta, dividend yield, sector allocation breakdown).</p>
 <h3>Sheet 4: DataValidation</h3>
-<p>The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.</p>
+<p>The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables rising much faster than revenue over the fiscal year), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.</p>
 <h3>Sheet 5: Weight Sensitivity (when available)</h3>
 <p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
 <h3>Sheet 6: Factor Correlation (when available)</h3>
@@ -4225,7 +4239,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p>Open any stock and <strong>The workings</strong> section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for <em>this</em> stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.</p>
 <p>The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; <code>scripts/audit_stock.py</code> repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.</p>
 <h3>DataValidation Sheet</h3>
-<p>The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by &gt;15pp), and beta overlap warnings (&lt;80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.</p>
+<p>The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (Beneish's receivables index at 1.465 or more), and beta overlap warnings (&lt;80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.</p>
 <hr />
 <h2>Key Design Decisions &amp; Why</h2>
 <table>
@@ -4289,24 +4303,24 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <td>Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught.</td>
 </tr>
 <tr>
-<td><strong>Value trap 2-of-3 majority logic</strong></td>
-<td>OR logic (any 1 breach) flagged ~60% of the universe — too aggressive. Majority logic catches genuinely weak stocks while tolerating one bad dimension.</td>
+<td><strong>Value trap: cheap, and weak on 2 of 3</strong></td>
+<td>A value trap is a cheap stock that is cheap for a reason (Piotroski 2000), so cheapness is required. OR logic (any 1 breach) flagged ~60% of the universe; majority logic tolerates one bad dimension.</td>
 </tr>
 <tr>
-<td><strong>Growth trap 2-of-3 majority logic</strong></td>
-<td>Mirror of value trap for the opposite scenario. Catches high-growth stocks with poor quality and/or deteriorating sentiment.</td>
+<td><strong>Growth trap: high growth, and weak quality or revisions</strong></td>
+<td>Mirror of value trap (Mohanram 2005). High growth is required, so a low-growth stock is never called a growth trap.</td>
 </tr>
 <tr>
 <td><strong>Liquidity filter</strong> ($10M daily dollar volume)</td>
 <td>Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively.</td>
 </tr>
 <tr>
-<td><strong>4-metric revisions category</strong> (Surprise + Target + Acceleration + Beat Score)</td>
-<td>Broadens the analyst sentiment signal beyond a single backward-looking and forward-looking metric. Earnings Acceleration (continuous delta) and Beat Score (recency-weighted) capture the trajectory and consistency of beats with much higher granularity than binary signals.</td>
+<td><strong>Revisions led by the estimate revision</strong> (FY1 revision + Surprise + Beat Score + Target + Short interest)</td>
+<td>The 90-day change in the consensus estimate carries the most weight because revisions, unlike surprises, still predict returns in large caps (Chan, Jegadeesh &amp; Lakonishok 1996; Martineau 2022 on the surprise drift's absence since 2006). Earnings Acceleration is computed but unweighted since 2026-10-09.</td>
 </tr>
 <tr>
-<td><strong>Volatility-regime momentum scaling</strong></td>
-<td>Momentum crashes in high-vol markets. Reducing momentum weight in turbulent conditions and boosting it in calm markets improves risk-adjusted returns (requires 20+ historical runs to activate).</td>
+<td><strong>Momentum regime rule: off</strong></td>
+<td>Momentum crashes in high-volatility markets, but the input the rule used (the spread of momentum scores across stocks) does not measure volatility. Off until rebuilt on a real volatility measure.</td>
 </tr>
 <tr>
 <td><strong>3-metric risk category</strong> (Vol + Beta + MaxDD), dispersion only</td>
@@ -4325,8 +4339,8 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <td>Stocks with limited trading history (IPOs, relisted) can produce misleading beta values from sparse overlap with the market index. The 80% threshold ensures the regression uses substantially the same time period as the market.</td>
 </tr>
 <tr>
-<td><strong>Channel-stuffing detection</strong> (receivables vs revenue divergence)</td>
-<td>When receivables growth exceeds revenue growth by &gt;15pp, it may indicate aggressive revenue recognition. The flag is informational (not used in scoring) but appears in the DataValidation sheet.</td>
+<td><strong>Channel-stuffing detection</strong> (Beneish's receivables index)</td>
+<td>Receivables rising far faster than revenue over the same fiscal year may indicate aggressive revenue recognition; the cut, 1.465, is the manipulators' average in Beneish (1999). The flag is informational (not used in scoring).</td>
 </tr>
 </tbody>
 </table>
@@ -4347,7 +4361,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>Analyst coverage:</strong> The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.</p>
 </li>
 <li>
-<p><strong>EPS revisions reach back only 90 days:</strong> the Revisions category <em>does</em> include a forward-EPS-consensus-change metric — FY1 EPS Revision (3-month), its heaviest at 35%, live since 2026-09-10. What is still missing is <strong>depth</strong>: yfinance's estimate history covers about 90 days, so the screener can see a recent revision but not whether the trend has persisted over the six-month window in which Chan, Jegadeesh &amp; Lakonishok (1996) measured the effect most strongly. That longer window would require a paid consensus feed (FactSet, Refinitiv I/B/E/S). <em>Corrected 2026-09-25: this limitation previously said the metric was not possible at all, which stopped being true on 2026-09-10.</em></p>
+<p><strong>EPS revisions reach back only 90 days:</strong> the Revisions category <em>does</em> include a forward-EPS-consensus-change metric — FY1 EPS Revision (3-month), its heaviest at 48%, live since 2026-09-10. What is still missing is <strong>depth</strong>: yfinance's estimate history covers about 90 days, so the screener can see a recent revision but not whether the trend has persisted over the six-month window in which Chan, Jegadeesh &amp; Lakonishok (1996) measured the effect most strongly. That longer window would require a paid consensus feed (FactSet, Refinitiv I/B/E/S). <em>Corrected 2026-09-25: this limitation previously said the metric was not possible at all, which stopped being true on 2026-09-10.</em></p>
 </li>
 <li>
 <p><strong>Rebalance frequency:</strong> The model portfolio is a snapshot. It should be re-run at the configured frequency (monthly or quarterly) to stay current.</p>
@@ -4389,10 +4403,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p>The screener answers one question: <strong>"Which S&amp;P 500 stocks look best when measured across valuation, quality, growth, momentum, risk, revisions, size, investment — all at once?"</strong></p>
 <p>It does this by:
 1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing up to 33 financial metrics across 8 categories (29 generic + 4 bank-specific, depending on company type)
+2. Computing up to 31 financial metrics across 8 categories (27 generic + 4 bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
-5. Flagging potential value traps and growth traps (2-of-3 majority logic)
+5. Flagging potential value traps (cheap and weak on 2 of 3) and growth traps (high growth and weak quality or revisions)
 6. Applying a liquidity filter to ensure tradeability
 7. Reporting how stable that ranking is when the weights are nudged</p>
 <p>The result is a disciplined, repeatable, multi-dimensional ranking that avoids the tunnel vision of looking at any single metric in isolation.</p>
@@ -4458,7 +4472,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>
                 <div>
                     <div class="footer-name">Multi-Factor Screener</div>
-                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-09 02:00 UTC</span> &middot; prices and filings from Yahoo Finance</div>
+                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-09 15:05 UTC</span> &middot; prices and filings from Yahoo Finance</div>
                 </div>
             </div>
             <nav class="footer-links" aria-label="Footer">
@@ -4470,7 +4484,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </footer>
     </div>
 
-    <script src="./dashboard_data.js?v=2c213f730ec5"></script>
+    <script src="./dashboard_data.js?v=cf33eb730233"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -4557,7 +4571,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const fw = (D.weights || {}).factor_weights || {}, bw = (D.weights || {}).base_factor_weights || {};
         if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {
             cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),
-                `${fw.momentum > bw.momentum ? 'raised' : 'cut'} from ${fmtWeight(bw.momentum)} by the volatility rule this run`));
+                `${fw.momentum > bw.momentum ? 'raised' : 'cut'} from ${fmtWeight(bw.momentum)} by the momentum regime rule this run`));
         } else {
             cards.push(kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
                 ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'));
@@ -5026,7 +5040,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
     function universeRowHtml(row, i) {
         const t = escapeHtml(row.Ticker);
-        const rd = rankDelta(row.Ticker);
+        // The change since the last run belongs to the published ranking; under another
+        // weighting it would sit beside a rank it does not describe, so it is left blank.
+        const rd = (typeof PROFILE !== 'undefined' && PROFILE !== 'balanced') ? 0 : rankDelta(row.Ticker);
         const rdCell = rd == null
             ? '<td class="num delta-cell muted">&mdash;</td>'
             : (rd === 0
@@ -5113,6 +5129,68 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             : s.filtered.length + ' of ' + s.data.length + ' stocks';
     }
 
+
+    // Investor profiles: the ranking under another named weighting, computed at build time
+    // by the engine (generate_dashboard._profiles_block). Switching only swaps which
+    // composite and rank the table shows; nothing is reweighted here.
+    let PROFILE = 'balanced';
+    function setProfile(key) {
+        const P = D.profiles || {};
+        const c = (P.c || {})[key];
+        PROFILE = c ? key : 'balanced';
+        tableState.data = !c ? D.table_data : D.table_data.map(r => {
+            const v = c[r.Ticker];
+            return Object.assign({}, r, { Composite: v ? v[0] : null, Rank: v ? v[1] : null });
+        });
+        const note = document.getElementById('profile-note');
+        if (note) {
+            const meta = (P.list || []).find(x => x.key === PROFILE);
+            if (c && meta) {
+                const w = meta.weights, CL = {valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment'};
+                const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
+                note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
+                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum adjusted for this run&rsquo;s ' + (P.regime === 'LOW VOL' ? 'calm' : 'volatile') + ' market, as every run is)' : '') +
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\'filter-profile\').value=\'balanced\';setProfile(\'balanced\')">Back to published</button>';
+                note.hidden = false;
+            } else {
+                note.hidden = true;
+            }
+        }
+        if (tableState.sortCol !== 'Rank' && tableState.sortCol !== 'Composite') { tableState.sortCol = 'Rank'; tableState.sortDir = 'asc'; }
+        applyFilters();
+    }
+    (function initProfiles() {
+        const P = D.profiles, sel = document.getElementById('filter-profile');
+        if (!sel) return;
+        if (!P || !P.list || P.list.length < 2) {
+            const grp = sel.closest ? sel.closest('.filter-group') : null;
+            if (grp) grp.hidden = true;
+            return;
+        }
+        sel.innerHTML = P.list.map(x => '<option value="' + x.key + '">' + escapeHtml(x.name) + (x.published ? ' (published)' : '') + '</option>').join('');
+        sel.value = 'balanced';
+        if (sel.addEventListener) sel.addEventListener('change', () => setProfile(sel.value));
+    })();
+
+    // Column tooltips state the weights the run actually used, read from the run's own
+    // published tables - never typed into the page, where they drift the day a weight
+    // changes (2026-10-09: the Quality tooltip still said operating leverage 8%).
+    function weightList(table) {
+        const meta = D.metric_meta || {};
+        const on = Object.entries(table || {}).filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
+        const tot = on.reduce((s, e) => s + e[1], 0);
+        return on.map(e => {
+            const pct = 100 * e[1] / tot;
+            return ((meta[e[0]] || {}).label || e[0]) + ' (' + (Math.abs(pct - Math.round(pct)) < 0.05 ? Math.round(pct) : pct.toFixed(1)) + '%)';
+        }).join(', ');
+    }
+    document.querySelectorAll('#universe-table th[data-wcat]').forEach(th => {
+        const P = ((D.weights || {}).profiles || {})[th.dataset.wcat] || {};
+        const bank = P.bank ? 'Banks and insurers: ' + weightList(P.bank) : '';
+        th.title = th.title.replace('@W@', weightList(P.generic) || 'see Methodology')
+                           .replace(' @BANK@ -', bank ? ' ' + bank + ' -' : '')
+                           .replace(' @BANK@.', bank ? ' ' + bank + '.' : '');
+    });
 
     // Sort click handler
     document.querySelectorAll('#universe-table th[data-sort]').forEach(th => {
@@ -5212,6 +5290,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             + (n.source === 'measured'
                 ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).`
                 : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+
+        // The run as a whole, in the build's own sentences (run_overview.py).
+        const ov = (H.overview || {})[changedRange];
+        const ovEl = document.getElementById('changed-overview');
+        if (ovEl) ovEl.textContent = ov ? ov.text.join(' ') : '';
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
@@ -5653,12 +5736,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
           +   trap
           +   '<span class="holding-spacer"></span>'
           +   deltaChip
-          +   '<span class="holding-composite" title="Composite score - a universe percentile">'
+          +   '<span class="holding-composite" title="Composite score - the weighted blend of the eight category scores, 0-100; the ranking key">'
           +     ((s.composite === null || s.composite === undefined) ? '--' : s.composite.toFixed(1)) + '</span>'
           +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
           + '</div>'
           + '<div class="holding-cats">' + strip + '</div>'
           + (notes ? '<div class="holding-notes">' + notes + '</div>' : '')
+          + (function() {
+                // Context, never part of the score: trend, options, insiders (the drilldown's teaser line).
+                const bits = (typeof ctxBits === 'function') ? ctxBits(s) : [];
+                return bits.length ? '<p class="holding-ctx"><span class="holding-ctx-k">Context</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '</p>' : '';
+            })()
           + '</div>';
     }
 
@@ -6132,9 +6220,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             ]},
             { label: 'Profitability', color: '#8e8c86', items: [
                 { label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
-                   sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' },
+                   sub: f.revenue_growth_yoy !== null && f.revenue_growth_yoy !== undefined ? fmtPctChg(f.revenue_growth_yoy) + (f.revenue_growth_basis === 'annual' ? ' fiscal year on year' : ' latest quarter on a year earlier') : '' },
                 { label: 'Net Income',      value: fmtBig(f.net_income),
-                   sub: f.ni_growth_yoy !== null ? fmtPctChg(f.ni_growth_yoy) + ' YoY' : '' },
+                   sub: f.ni_growth_yoy !== null && f.ni_growth_yoy !== undefined ? fmtPctChg(f.ni_growth_yoy) + ' fiscal year on year' : '' },
                 { label: 'EBITDA',          value: fmtBig(f.ebitda) },
                 { label: 'Gross Margin',    value: fmtPct2(f.gross_margin) },
                 { label: 'Net Margin',      value: fmtPct2(f.net_margin) },
@@ -6331,10 +6419,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
 
         if (fl.channel_stuffing) {
-            const div = fl.recv_rev_divergence;
-            badges.push(`<span class="flag-badge flag-warn">
+            const detail = (fl.recv_g !== null && fl.recv_g !== undefined && fl.rev_g !== null && fl.rev_g !== undefined)
+                ? 'receivables ' + (fl.recv_g >= 0 ? '+' : '') + (fl.recv_g * 100).toFixed(0) + '% vs revenue ' + (fl.rev_g >= 0 ? '+' : '') + (fl.rev_g * 100).toFixed(0) + '% over the fiscal year'
+                : (fl.dsri ? 'receivables-to-revenue index ' + fl.dsri.toFixed(2) : '');
+            badges.push(`<span class="flag-badge flag-warn" title="Beneish's days-sales-in-receivables index is 1.465 or more: receivables rose that much faster than revenue over the last fiscal year. 1.465 was the average among companies later found to have manipulated earnings (Beneish 1999).">
                 <span class="flag-icon">⚠️</span> Channel Stuffing Risk
-                ${div !== null ? '<span class="flag-detail">(' + (div * 100).toFixed(0) + '% divergence)</span>' : ''}
+                ${detail ? '<span class="flag-detail">(' + detail + ')</span>' : ''}
             </span>`);
         }
 
@@ -6405,8 +6495,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     `${CAT_LABELS[c]} ${fmtWeight(base[c] || 0)} &rarr; <strong>${fmtWeight(D.weights.factor_weights[c] || 0)}</strong>`
                 ).join(', ');
                 parts.push(`<strong>This run's weights differ from the published defaults.</strong> ` +
-                    `The screener scales momentum with the market's volatility regime &mdash; ` +
-                    `momentum is cut in turbulent markets, where momentum crashes cluster, and raised in calm ones. ` +
+                    `The momentum regime rule changed this run's momentum weight (see Methodology). ` +
                     `For this run: ${desc}.`);
             }
         }
@@ -6677,7 +6766,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         'Net income is positive', 'Operating cash flow is positive',
         'Return on assets rose from the prior year', 'Operating cash flow exceeds net income',
         'Long-term debt relative to assets fell', 'Current ratio rose',
-        'No net new shares issued', 'Gross margin rose', 'Asset turnover rose'
+        'No net new shares issued', 'Gross margin rose from the prior year', 'Asset turnover rose from the prior year'
     ];
     const BENEISH_INDICES = [
         ['DSRI', 'Days sales in receivables', 0.920], ['GMI', 'Gross margin', 0.528],
@@ -6692,6 +6781,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (f === 'price') return '$' + Number(v).toFixed(2);
         if (f === 'pct') return (v * 100).toFixed(1) + '%';
         if (f === 'ratio') return Number(v).toFixed(2);
+        if (f === 'num' && typeof v === 'number' && !Number.isInteger(v)) return Number(v.toPrecision(4)).toString();
         return String(v);
     }
 
@@ -6758,6 +6848,34 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             h += `<div class="wk-k">The nine signals</div><ol class="wk-parts">` + sig.map((c, i) =>
                 `<li class="wk-part wk-part-${c === '1' ? 'pass' : c === '0' ? 'fail' : 'na'}"><span class="wk-mark">${c === '1' ? '&#10003;' : c === '0' ? '&#10007;' : '&ndash;'}</span>${PIO_SIGNALS[i]}<span class="wk-part-val">${c === '1' ? 'pass' : c === '0' ? 'fail' : 'not testable'}</span></li>`).join('') +
                 `</ol><div class="wk-sum">${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}</div>`;
+        }
+        if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && s.eq4 && s.eq4.length) {
+            const q = s.eq4;
+            const sp = v => (v === null || v === undefined) ? '&ndash;' : (v >= 0 ? '+' : '&minus;') + Math.abs(v * 100).toFixed(1) + '%';
+            const eps = v => (v === null || v === undefined) ? '&ndash;' : '$' + Number(v).toFixed(2);
+            const valid = q.map((r, i) => [i, r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+            h += `<div class="wk-k">The last ${q.length} quarters, oldest first</div><table class="wk-mini"><thead><tr><th>Quarter</th><th class="wk-num">Actual EPS</th><th class="wk-num">Estimate</th><th class="wk-num">Surprise</th></tr></thead><tbody>` +
+                q.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${escapeHtml(r[0])}${r[3] === null ? ' <span class="wk-dim">&middot; skipped</span>' : ''}</td><td class="wk-num">${eps(r[1])}</td><td class="wk-num">${eps(r[2])}</td><td class="wk-num">${sp(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-dim">Surprise = (actual &minus; estimate) &divide; the larger of |estimate| and $0.10.</div>`;
+            const vs = valid.map(x => x[1]);
+            let sum = '';
+            if (m === 'analyst_surprise') sum = `Median of the ${vs.length} valid surprises (${vs.map(sp).join(', ')}) = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            const L = q.length;
+            if (m === 'earnings_acceleration' && L >= 2 && q[L - 1][3] !== null && q[L - 2][3] !== null) sum = `Latest surprise ${sp(q[L - 1][3])} &minus; the quarter before ${sp(q[L - 2][3])} = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            if (m === 'consecutive_beat_streak') {
+                const pos = q.map((r, i) => [4 - (L - 1 - i), r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+                const beatW = pos.filter(x => x[1] > 0).map(x => x[0]), allW = pos.map(x => x[0]);
+                sum = (beatW.length ? `Beating quarters weigh ${beatW.join(' + ')} (newest 4, then 3, 2, 1)` : 'No quarter with data beat its estimate') +
+                    ` of ${allW.join(' + ')} with data, &times; 10 = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            }
+            if (s.raw[m] === null || s.raw[m] === undefined) sum = '';
+            if (sum) h += `<div class="wk-sum">${sum}</div>`;
+        }
+        if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
+            const pc = v => (v === null || v === undefined) ? '&ndash;' : (v * 100).toFixed(1) + '%';
+            h += `<div class="wk-k">Return on equity, last five fiscal years (the company&rsquo;s 10-K filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
+                s.roe5.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${r[0]}${r[3] === null ? ' <span class="wk-dim">&middot; ' + (r[2] !== null && r[2] <= 0 ? 'equity not positive' : 'not reported') + '</span>' : ''}</td><td class="wk-num">${r[1] === null ? '&ndash;' : fmtBig(r[1])}</td><td class="wk-num">${r[2] === null ? '&ndash;' : fmtBig(r[2])}</td><td class="wk-num">${pc(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-sum">${s.raw[m] === null || s.raw[m] === undefined ? 'Needs all five years - not computed for this stock' : 'Sample standard deviation of the five ROEs = ' + fmtMetric(s.raw[m], meta.fmt)}</div>`;
         }
         if (m === 'beneish_m_score' && s.bn) {
             const parts = s.bn.split('|');
@@ -7769,12 +7887,54 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '</svg><div class="pc-legend"><span><i class="pc-k pc-k-c"></i>Weekly close</span><span><i class="pc-k pc-k-50"></i>50-day average</span><span><i class="pc-k pc-k-200"></i>200-day average</span></div>';
     }
 
+    // ---- valuation against the stock's own history (valuation_history.py) ----------
+    // One yield's 60 month-ends (basis points) with today's value as the last point and the
+    // five-year median as a dashed line.
+    function vhChartSvg(y, m0, label) {
+        const s = (y.s || []).map(v => v === null || v === undefined ? null : v / 10000).concat([y.now]);
+        const vals = s.filter(v => v !== null);
+        if (vals.length < 4) return '';
+        const W = Math.round(window.innerWidth <= 760 ? Math.max(260, window.innerWidth - 64) : 380), Hh = 112, L = 6, R = 52, T = 10, B = 20;
+        const lo = Math.min(...vals, y.med), hi = Math.max(...vals, y.med), pad = (hi - lo) * 0.08 || 0.001;
+        const y0 = lo - pad, y1 = hi + pad, n = s.length - 1;
+        const X = i => L + i / n * (W - L - R), Y = v => T + (y1 - v) / (y1 - y0) * (Hh - T - B);
+        let p = '', pen = false;
+        s.forEach((v, i) => { if (v === null) { pen = false; return; } p += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; });
+        const zero = (y0 < 0 && y1 > 0) ? '<path d="M' + L + ' ' + Y(0).toFixed(1) + 'H' + (W - R) + '" class="vh-zero"/>' : '';
+        return '<svg class="pc-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="' + escapeHtml(label) + ' at each month-end for five years, and today">' + zero +
+            '<path d="M' + L + ' ' + Y(y.med).toFixed(1) + 'H' + (W - R) + '" class="vh-med"/>' +
+            '<path d="' + p + '" class="pc-c"/>' +
+            '<circle cx="' + X(n).toFixed(1) + '" cy="' + Y(y.now).toFixed(1) + '" r="3.5" class="pc-dot"/>' +
+            '<text x="' + (X(n) + 7).toFixed(1) + '" y="' + (Y(y.now) + 4).toFixed(1) + '" class="pc-last">' + cPlain(y.now) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - 4) + '" class="pc-x">' + escapeHtml(new Date(m0 + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - 4) + '" class="pc-x" text-anchor="end">today</text></svg>';
+    }
+
+    function vhRow(y, m0, label, what) {
+        const above = Math.round(y.pct);
+        return '<div class="vh-row"><div class="ctx-chart">' + vhChartSvg(y, m0, label) + '</div><div class="ctx-facts">' +
+            '<div class="ctx-fact"><span class="ctx-fk">' + label + '</span><span class="ctx-fv">' + cPlain(y.now) + '</span>' +
+            '<span class="ctx-fs">' + (y.now > y.hi ? 'above every one' : y.now < y.lo ? 'below every one' : y.now === y.hi ? 'the highest' : y.now === y.lo ? 'the lowest' : 'higher than at <b>' + above + '%</b>') + ' of its past ' + y.n + ' month-ends</span></div>' +
+            '<div class="ctx-fact"><span class="ctx-fk">Five-year range</span><span class="ctx-fv vh-range">' + cPlain(y.lo) + ' &ndash; ' + cPlain(y.hi) + '</span>' +
+            '<span class="ctx-fs">median ' + cPlain(y.med) + ' (dashed line). ' + what + '</span></div></div></div>';
+    }
+
+    function vhCard(c) {
+        const b = c && c.vh;
+        if (!b || !(b.ey || b.fy)) return '';
+        let h = '<div class="ctx-card ctx-wide"><div class="ctx-h"><span>Against its own five years</span></div>';
+        if (b.ey) h += vhRow(b.ey, b.m0, 'Earnings yield', 'Net income over market value; a higher yield means a lower price for each dollar of earnings.');
+        if (b.fy) h += vhRow(b.fy, b.m0, 'Free-cash-flow yield', 'Operating cash flow minus capital spending, over market value.');
+        h += '<p class="ctx-why">The valuation percentiles in the score compare this stock with its sector. This compares it with itself. Most of the gap between two companies&rsquo; valuations persists for years: Cohen, Polk &amp; Vuolteenaho (2003) attribute only 20&ndash;25% of the cross-sectional spread in book-to-market to temporary differences in expected returns, the rest to profitability and lasting valuation levels. Whether a yield that is high <i>for this stock</i> has gone on to predict its returns is not established &mdash; a yield can sit high because earnings are about to fall. This screener records the reading every run to test it, and does not score it.</p>' +
+             '<p class="ctx-why">Built from the company&rsquo;s SEC filings as first reported: trailing-twelve-month figures at each month-end, using only what had been filed by then, over the month-end price times diluted shares (adjusted for stock splits). Shown only where today&rsquo;s figures reproduce the market value within 15%.' + (b.fy ? '' : ' No free-cash-flow yield for banks and insurers, or where the filings do not carry five years of it.') + '</p></div>';
+        return h;
+    }
+
     // ---- the teaser under "Why it ranks here" ------------------------------------
-    function renderCtxTeaser(s) {
-        const el = document.getElementById('modal-ctx-teaser');
-        if (!el) return;
-        const c = s.ctx;
-        if (!c) { el.innerHTML = ''; el.hidden = true; return; }
+    // The one-line context summary, shared by the drilldown teaser and each My Holdings card.
+    function ctxBits(s) {
+        const c = s && s.ctx;
+        if (!c) return [];
         const bits = [];
         const tr = trendOf(c);
         if (tr) bits.push('<span><b>' + TREND_WORD[tr] + '</b> ' + cPct(c.px / c.s200 - 1) + ' vs 200-day</span>');
@@ -7782,6 +7942,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const ins = c.ins;
         if (ins && ins.buy_n) bits.push('<span><b>' + ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ' bought</b> in 90 days</span>');
         else if (ins && ins.sell_n) bits.push('<span>Insiders: ' + ins.sell_n + ' sale' + (ins.sell_n === 1 ? '' : 's') + ', no buys in 90 days</span>');
+        return bits;
+    }
+    function renderCtxTeaser(s) {
+        const el = document.getElementById('modal-ctx-teaser');
+        if (!el) return;
+        const bits = ctxBits(s);
         if (!bits.length) { el.innerHTML = ''; el.hidden = true; return; }
         el.hidden = false;
         el.innerHTML = '<button type="button" class="ctx-teaser-btn" onclick="goToModal(\'section-context\')"><span class="ctx-teaser-k">Before you decide</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '<span class="ctx-teaser-go" aria-hidden="true">&rsaquo;</span></button>';
@@ -7807,7 +7973,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
         if (c.s50) t += '<div class="ctx-fact"><span class="ctx-fk">vs 50-day average</span><span class="ctx-fv">' + cPct(c.px / c.s50 - 1) + '</span><span class="ctx-fs">' + cPrice(c.s50) + (c.s200 ? ', ' + (c.s50 >= c.s200 ? 'above' : 'below') + ' the 200-day' : '') + '</span></div>';
         if (c.hi) t += '<div class="ctx-fact"><span class="ctx-fk">From 52-week high</span><span class="ctx-fv">' + cPct(c.px / c.hi - 1) + '</span><span class="ctx-fs">high ' + cPrice(c.hi) + (c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '') + ', low ' + cPrice(c.lo) + '</span></div>';
-        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice; a long-only rule of holding only above it has historically cut drawdowns more than it raised returns (Faber 2007). It describes the trend; it does not predict the next move.</p></div>';
+        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice. On broad market indices, a rule of holding only above it (Faber 2007 uses the 10-month average) has historically cut drawdowns far more than it raised returns. For single stocks, the gap between the 21-day and 200-day averages has predicted returns across US stocks (Avramov, Kaplanski &amp; Subrahmanyam 2021); this screener records that gap every run to test it here, and does not score it.</p></div>';
         h += t;
 
         // 2. Recent move
@@ -7819,8 +7985,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<tr><td>3 months</td><td class="num">' + cPct(c.r3m) + '</td></tr>' +
             (c.vr ? '<tr><td>Volume, 20 days vs 3 months</td><td class="num">' + Number(c.vr).toFixed(2) + '&times;</td></tr>' : '') +
             '</tbody></table>';
-        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; Lehmann 1990). The screener\'s own momentum signal skips the latest month for this reason.</p>';
+        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. The screener\'s own momentum signal skips the latest month for this reason.</p>';
         h += m + '</div>';
+
+        // 2b. Against its own history
+        h += vhCard(c);
 
         // 3. Options
         let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
@@ -7833,7 +8002,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
             if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns (Xing, Zhang &amp; Zhao 2010). ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns - stocks with the steepest skew trailed those with the flattest by about 11% a year, risk-adjusted, in 1996-2005 (Xing, Zhang &amp; Zhao 2010), with smaller gaps in later data. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -7858,7 +8027,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
                     '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + (r.plan ? '<span class="ctx-plan" title="The filing says this trade was made under a Rule 10b5-1 plan set up in advance">plan</span>' : '') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
             }
-            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). Grants, gifts and option exercises are left out.' +
+            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). The evidence is strongest in smaller companies: among the largest - which includes the whole S&amp;P 500 - Lakonishok &amp; Lee found the market barely reacted to insider trades and the signal was weak. Grants, gifts and option exercises are left out.' +
                  (ins.src === 'sec' ? ' <b>Plan</b> marks a sale the filing reports under a Rule 10b5-1 trading plan, arranged months ahead - the least informative kind. Source: each Form 4 at the SEC; the date opens the filing.' : ' Source: Yahoo Finance, compiled from Form 4 (no plan flag).') +
                  (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">All Form 4 filings at the SEC</a>' : '') + '</p>';
         } else {
@@ -7991,6 +8160,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '</tbody></table></div></details>';
         h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
             (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
+            (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
+                ? 'A few picks are left out because the free price source no longer serves them - usually companies taken private or acquired (' +
+                  escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
+                  '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
             'Equal weights, entry at the close of the first trading day after each run, dividends included, no trading costs or taxes. This record is not used to set the methodology.</div>';
         host.innerHTML = h;
     }
@@ -8048,13 +8221,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             h += '<p class="rp-empty">' + (RP.scope === 'held' ? 'None of your saved holdings reports within ' + RP.days + ' days of this run.' : 'No scored company reports within ' + RP.days + ' days of this run.') + '</p>';
         } else {
             h += '<div class="rp-wrap"><table class="rp-table"><thead><tr><th>Company</th><th class="num">Rank</th><th class="num">Score</th>' +
-                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th>Insiders, 90 days</th></tr></thead><tbody>';
+                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th class="num" title="The latest reported quarter: actual EPS against the estimate, as a share of the estimate">Last quarter</th><th>Insiders, 90 days</th></tr></thead><tbody>';
             let day = null;
             rows.forEach(x => {
                 if (x.s.earn.d !== day) {
                     day = x.s.earn.d;
                     const n = rows.filter(y => y.s.earn.d === day).length;
-                    h += '<tr class="rp-day"><td colspan="5"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
+                    h += '<tr class="rp-day"><td colspan="6"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
                          (x.d === 0 ? 'the day of this run' : x.d + ' day' + (x.d === 1 ? '' : 's') + ' after this run') + ' · ' + n + ' compan' + (n === 1 ? 'y' : 'ies') + '</span></td></tr>';
                 }
                 const c = x.s.ctx || {};
@@ -8063,16 +8236,20 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 else if ((c.os === 'ok' || c.os === 'partial') && c.oe && c.om !== undefined) mv = '&plusmn;' + cPlain(c.om);
                 const ins = c.ins;
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
+                // The last reported quarter's surprise, from the four quarters behind the surprise
+                // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
+                const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
+                const lqTxt = lq ? (lq[3] >= 0 ? '+' : '&minus;') + Math.abs(lq[3] * 100).toFixed(1) + '%' : '<span class="rp-none">&ndash;</span>';
                 h += '<tr class="rp-row" tabindex="0" onclick="openStockDetail(\'' + x.r.Ticker + '\')" onkeydown="if(event.key===\'Enter\')openStockDetail(\'' + x.r.Ticker + '\')">' +
                      '<td><span class="rp-tk">' + escapeHtml(x.r.Ticker) + '</span><span class="rp-co">' + escapeHtml(x.r.Company || '') + '</span>' +
                      (x.s.earn.est ? '<span class="rp-tag" title="The data provider\'s estimate, not a date the company has announced">est. date</span>' : '') +
                      (x.held ? '<span class="rp-tag rp-held">held</span>' : '') + '</td>' +
-                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td>' + insTxt + '</td></tr>';
+                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td class="num" title="' + (lq ? 'Quarter ended ' + lq[0] : '') + '">' + lqTxt + '</td><td>' + insTxt + '</td></tr>';
             });
             h += '</tbody></table></div>';
         }
         h += '<p class="rp-note">Ordered by date, then by rank - never by the size of the expected move. A report is when the inputs to Valuation, Quality and Growth are actually replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
-             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Insiders</b>: people who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
+             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Last quarter</b>: the latest reported quarter&rsquo;s EPS against the analysts&rsquo; estimate - a beat or miss, not a forecast of the next one. <b>Insiders</b>: officers and directors who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
         host.innerHTML = h;
     }
     (function wrapReporting() {
@@ -8119,6 +8296,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (sel && sel.value !== 'all') applyFilters();
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
             if (RP_DONE) renderReporting();
+            if (typeof renderHoldings === 'function') renderHoldings();
             ['sec-market', 'sec-track'].forEach(id => {
                 const el2 = document.getElementById(id);
                 if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
@@ -8152,6 +8330,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // has none (0.0% ties measured on all 502 names).
         if (type === 'bp') return (v * 10000).toFixed(0) + ' bp';
         if (type === 'int') return Math.round(v).toString();
+        // whole when whole, else one decimal (the beat score is rescaled to 0-10, 2026-10-09)
+        if (type === 'score') return Math.abs(v - Math.round(v)) < 1e-9 ? Math.round(v).toString() : v.toFixed(1);
         if (type === 'ratio') return v.toFixed(2);
         return v.toString();
     }
@@ -8486,7 +8666,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         applyFilters();
         renderDefensibility();
         initUX();
-        loadContext("./dashboard_context.js?v=2c213f730ec5");
+        loadContext("./dashboard_context.js?v=330166b007bb");
     }
 
     </script>

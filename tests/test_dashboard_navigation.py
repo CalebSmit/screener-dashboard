@@ -251,7 +251,9 @@ def test_compare_lines_up_scores_and_reconciles_the_gap(browser):
             .map(e => parseFloat(e.textContent.replace('\\u2212', '-')))""")
         total = page.evaluate("""() => parseFloat(document.querySelector('#cmp-body .gap-total .num').textContent.replace('\\u2212', '-'))""")
         assert len(lines) >= 8
-        assert abs(sum(lines) - total) < 0.1, (lines, total)
+        # each line and the total are shown to 0.1, so the shown figures can differ by up to half a
+        # tenth per line - the page says "rounding aside"
+        assert abs(sum(lines) - total) <= 0.05 * (len(lines) + 1) + 1e-9, (lines, total)
         assert not page.is_visible("#cmp-tray")  # the tray never covers the comparison
         page.keyboard.press("Escape")
         assert not page.is_visible("#compare-modal .cmp-content")
@@ -536,6 +538,57 @@ def test_reporting_soon_is_a_calendar_not_a_leaderboard(browser):
         assert first in page.inner_text("#stock-modal .modal-header, #stock-modal")
         from stock_summary import advice_terms_in
         assert advice_terms_in(page.inner_text("#reporting-body")) == []
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_column_tooltips_state_the_published_weights(browser):
+    """Each category header lists exactly the metrics with weight in the run's own table."""
+    ctx, page, errors = _open(browser)
+    try:
+        bad = page.evaluate("""(() => {
+            const out = [];
+            document.querySelectorAll('#universe-table th[data-wcat]').forEach(th => {
+                const t = th.title;
+                if (t.indexOf('@') >= 0) out.push(th.dataset.wcat + ': placeholder left');
+                const g = D.weights.profiles[th.dataset.wcat].generic;
+                Object.entries(g).forEach(([m, w]) => {
+                    const lab = (D.metric_meta[m] || {}).label || m;
+                    const listed = t.indexOf(lab + ' (') >= 0;
+                    if (w > 0 && !listed) out.push(th.dataset.wcat + ': missing ' + lab);
+                });
+            });
+            return out;
+        })()""")
+        assert bad == []
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_a_weighting_reorders_the_table_and_back_restores_it(browser):
+    """The Weighting selector shows another profile's engine-computed ranking, blanks the
+    run-to-run deltas that belong to the published ranking, and never touches table_data."""
+    ctx, page, errors = _open(browser)
+    try:
+        if not page.evaluate("!!(D.profiles && D.profiles.c && D.profiles.c.value)"):
+            pytest.skip("payload predates investor profiles")
+        pub = page.evaluate("D.table_data.map(r => r.Ticker + ':' + r.Rank).join(',')")
+        page.select_option("#filter-profile", "value")
+        page.wait_for_timeout(200)
+        got = page.evaluate("tableState.filtered.slice(0, 20).map(r => [r.Ticker, r.Rank])")
+        want = page.evaluate("Object.entries(D.profiles.c.value).sort((a, b) => a[1][1] - b[1][1]).slice(0, 20).map(e => [e[0], e[1][1]])")
+        assert [r for _, r in got] == sorted(r for _, r in got)
+        assert {t for t, _ in got} == {t for t, _ in want}
+        assert "Value weighting" in page.inner_text("#profile-note")
+        assert page.evaluate("document.querySelectorAll('#universe-tbody .delta-cell.pos, #universe-tbody .delta-cell.neg').length") == 0
+        assert page.evaluate("D.table_data.map(r => r.Ticker + ':' + r.Rank).join(',')") == pub
+        page.click("#profile-note .link-btn")
+        page.wait_for_timeout(200)
+        assert page.evaluate("tableState.data === D.table_data") and page.evaluate("document.getElementById('profile-note').hidden")
         assert errors == []
     finally:
         ctx.close()

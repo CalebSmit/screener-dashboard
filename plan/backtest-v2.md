@@ -39,6 +39,10 @@ leave it stale:
 | Needs point-in-time filings/estimates | **49.0%** | the expensive half; 9.0pp of it is analyst estimates with no free retrospective source |
 | **Held constant, total** | **83.1%** | |
 
+*Re-derived 2026-10-09 after the Revisions reweight (earnings_acceleration to 0): price-restatable
+**28.35**, needs point-in-time **48.65**, so **34.45** free points; the table keeps the 2026-10-01
+figures it was measured with. `lookahead.weight_buckets(cfg)` is always current.*
+
 **34.1 of those 83.1 points need no vendor, no licence and no permission.** That
 is the cheapest honest improvement available to v2 and it should come first.
 
@@ -61,7 +65,17 @@ is the cheapest honest improvement available to v2 and it should come first.
   regime** - the current call reads the current run's regime, which is a third
   look-ahead vector, living in the weights rather than the metrics.
 
-### The one thing in step 1 still unmeasured
+### The fundamentals half - MEASURED 2026-10-09 (owner-run)
+
+`research/2026-10-09-pit-fundamentals-census.md`: from SEC XBRL `companyfacts` (503 requests, 1.17M
+facts, each with its filed date), the inputs for most of the 49.0pp are knowable point-in-time for
+**~95-97% of name-months** (net income, assets, equity, revenue, operating cash flow), 68-85% for
+operating income / D&A / debt / cash / capex, and only **39%** for a gross-profit tag (59% can derive
+it from cost of revenue). Median first-filing lag: **33 days** after a quarter, **54** after a year.
+Analyst estimates (9.0pp) and short interest have no free history, as expected. Facts cache:
+`data/sec/pit/facts.parquet` (gitignored; rebuild with the measurement script).
+
+### What step 1 said was unmeasured (kept for the record)
 
 The **49.0pp fundamentals half**. SEC EDGAR's XBRL `companyconcept` endpoint is
 free and carries a `filed` date per fact, so both the reporting lag and the drift
@@ -370,7 +384,12 @@ system talks itself into noise.
    costed and chosen ($199/yr, Sharadar), and the decision is to buy it *after*
    step 3, not before. Free data covers 57% of the needed name-months, not the 40%
    previously recorded.
-3. Point-in-time fundamentals with reporting lags. **Now ahead of step 2.** Start
+3. Point-in-time fundamentals with reporting lags. **Data layer BUILT 2026-10-09 (owner-run):**
+   `pit_fundamentals.PointInTime` answers instant / annual / quarter "as filed by date d" from the
+   census's XBRL facts cache (restatements count from their filing date; comparatives in later
+   filings change nothing; tag switches keep the series). Not imported by v1 or production
+   (`tests/test_pit_fundamentals.py`). Next: the 34.1 price points, then v2 recomputing each
+   fundamentals metric per month from this layer - in one piece. **Now ahead of step 2.** Start
    with the 34.1pp that needs no data source; then size the 49.0pp fundamentals
    half via SEC EDGAR XBRL `companyconcept` (free, carries a `filed` date per
    fact); expect the 9.0pp of analyst-estimate metrics to be reportable only as

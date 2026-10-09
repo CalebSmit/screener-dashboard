@@ -115,6 +115,11 @@ SERIES_METRICS_WITH_AN_EXACT_EQUATION = {
     # (`_mdd_peak` / `_mdd_trough`), so the row shows that division and nothing is
     # re-derived. Added 2026-10-08 with the price-path fix.
     "max_drawdown_1y",
+    # Beta: the covariance and variance the slope is (`_beta_cov` / `_beta_var`), and Jensen's
+    # alpha: its four CAPM terms (`_ja_*`), all published from the one computation. 2026-10-09.
+    "beta", "jensens_alpha",
+    # Volatility: the daily standard deviation it is annualised from (`_vol_sd`). 2026-10-09.
+    "volatility",
 }
 
 
@@ -283,10 +288,11 @@ def test_beneish_indices_rebuild_the_m_score(payload):
 # ---------------------------------------------------------------------------
 
 def _avg_rank_pct(values, mine):
-    """pandas rank(pct=True, method='average') for one value among a list."""
+    """The midpoint percentile (average rank - 0.5) / n for one value among a list - the engine's
+    rule since 2026-10-09 (factor_engine._directed_pct)."""
     below = sum(1 for v in values if v < mine)
     equal = sum(1 for v in values if v == mine)
-    return ((below + (equal + 1) / 2.0) / len(values)) * 100.0
+    return ((below + equal / 2.0) / len(values)) * 100.0
 
 
 def test_percentiles_reproduce_from_the_published_peer_values(payload):
@@ -466,3 +472,41 @@ def test_not_used_reasons_carry_no_advice_language():
 
 def test_the_payload_carries_the_reasons(payload):
     assert payload.get("not_used") == ml.published_not_used()
+
+
+# ---------------------------------------------------------------------------
+# the three surprise metrics rebuild from the four quarters published beside them
+# (CLAUDE.md 0.10(d), 2026-10-09). The page lists the quarters and states each metric's
+# arithmetic over them; this holds that statement to the scored values.
+# ---------------------------------------------------------------------------
+
+def _surprise_metrics(q):
+    import statistics
+    vs = [r[3] for r in q if r[3] is not None]
+    med = statistics.median(vs) if len(vs) >= 2 else None
+    # adjacent quarters only (2026-10-09)
+    acc = q[-1][3] - q[-2][3] if len(q) >= 2 and q[-1][3] is not None and q[-2][3] is not None else None
+    # position counted back from the newest (4, 3, 2, 1), share of the weight with data x 10
+    pos = [(4 - (len(q) - 1 - i), r[3]) for i, r in enumerate(q) if r[3] is not None]
+    beat = 10.0 * sum(w for w, v in pos if v > 0) / sum(w for w, _ in pos) if len(pos) >= 2 else None
+    return {"analyst_surprise": med, "earnings_acceleration": acc, "consecutive_beat_streak": beat}
+
+
+def test_the_published_quarters_rebuild_the_three_surprise_metrics(payload):
+    with_q = [s for s in payload["stock_detail"].values() if s.get("eq4")]
+    if not with_q:
+        pytest.skip("payload predates the published quarters (eq4)")
+    for m in ("analyst_surprise", "earnings_acceleration", "consecutive_beat_streak"):
+        ok = total = 0
+        bad = []
+        for s in with_q:
+            pub = s["raw"].get(m)
+            if pub is None:
+                continue
+            total += 1
+            v = _surprise_metrics(s["eq4"])[m]
+            if v is not None and abs(v - pub) <= _tol(v):
+                ok += 1
+            else:
+                bad.append((pub, v))
+        assert total and ok / total >= 0.99, (m, ok, total, bad[:3])

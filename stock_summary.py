@@ -27,8 +27,9 @@ Two rules govern the wording, and both are enforced by tests:
    club rather than a teaching tool.
 2. **Metric percentiles are sector-relative** (``factor_engine.compute_sector_percentiles``),
    so the text says "sector percentile" and never implies a universe ranking.
-   The composite *is* a universe percentile, and the text says so once,
-   because that is a thing a student needs told.
+   The composite is **not** a percentile: it is the cardinal weighted blend of the
+   category scores (Phase 13), and the text says so once, because a student needs
+   told - until 2026-10-07 this note said the opposite and the page followed it.
 3. **Metric percentiles are also direction-adjusted**, added 2026-09-11. The
    same function does ``100 - rank`` wherever ``METRIC_DIR`` is ``False``, so
    for 13 of the 37 published metrics the percentile runs *opposite* to the raw
@@ -115,9 +116,10 @@ def _ordinal(n: int) -> str:
 def _pctile_phrase(p: float) -> str:
     """"the 97th", "the lowest", "the highest".
 
-    A sector percentile is ``rank(pct=True) * 100``, so its extremes really do
-    land on 0 and 100 - and "the 0th sector percentile" reads like a bug rather
-    than like "worst in its sector", which is what it means.
+    A sector percentile is the midpoint rank, (rank - 0.5) / n x 100 (since 2026-10-09), so
+    the best and worst in a sector read 50/n from the ends - near 100 and 0 but not on them; a
+    value that rounds to 0 or 100 still reads as "the lowest" / "the highest" rather than as
+    "the 0th", which looks like a bug.
     """
     n = round(p)
     if n <= 0:
@@ -137,6 +139,8 @@ def _fmt_metric(value, fmt: str) -> str:
         return f"{value * 10000:.0f} bp"
     if fmt == "int":
         return f"{round(value):.0f}"
+    if fmt == "score":
+        return f"{value:.0f}" if abs(value - round(value)) < 1e-9 else f"{value:.1f}"
     return f"{value:.2f}"
 
 

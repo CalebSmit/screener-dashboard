@@ -68,6 +68,10 @@ def price_context(closes: pd.Series, volume: pd.Series | None = None) -> dict:
 
     if len(c) >= SMA_SHORT:
         out["_ctx_sma50"] = float(c.tail(SMA_SHORT).mean())
+        # 21-day average: with the 200-day it is the "moving average distance" Avramov,
+        # Kaplanski & Subrahmanyam (2021) find predicts returns across stocks. Recorded so
+        # context_eval.py can keep its record here; not scored.
+        out["_ctx_sma21"] = float(c.tail(21).mean())
     if len(c) >= SMA_LONG:
         sma200 = c.rolling(SMA_LONG).mean()
         out["_ctx_sma200"] = float(sma200.iloc[-1])
@@ -286,8 +290,22 @@ def write_context_log(run_dir, run_day: str) -> int:
     if not raw_path.exists():
         return 0                      # a run that did not fetch has nothing new to record
     raw = pd.read_parquet(raw_path)
-    keep = ["Ticker"] + [c for c in raw.columns if c.startswith("_ctx_")
-                         and c not in ("_ctx_weekly", "_ctx_insider")]
+    # Sector rides along so the evaluation can form sector-relative signals (2026-10-09). The
+    # fetch holds only the provider's lowercase ``sector``; the GICS ``Sector`` the rest of the
+    # screener groups by is added by scoring, so it is read from the scored table (review,
+    # 2026-10-09: the first version looked for ``Sector`` in the fetch and never found it).
+    if "Sector" not in raw.columns:
+        for name in ("05_final_scored.parquet", "01_raw_metrics.parquet"):
+            p = Path(run_dir) / name
+            if p.exists():
+                try:
+                    sec = pd.read_parquet(p, columns=["Ticker", "Sector"]).drop_duplicates("Ticker")
+                except (KeyError, ValueError):
+                    continue
+                raw = raw.merge(sec, on="Ticker", how="left")
+                break
+    keep = ["Ticker"] + (["Sector"] if "Sector" in raw.columns else []) + [c for c in raw.columns if c.startswith("_ctx_")
+                         and c not in ("_ctx_weekly", "_ctx_insider", "_ctx_valhist")]
     log = raw[keep].copy()
     if "_ctx_insider" in raw.columns:
         from insider_activity import summarise_rows

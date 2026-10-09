@@ -44,6 +44,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import generate_dashboard as g  # noqa: E402
+ROOT = Path(__file__).resolve().parent.parent
 import stock_summary as s  # noqa: E402
 from factor_engine import METRIC_DIR  # noqa: E402
 
@@ -260,8 +261,11 @@ def test_category_tooltips_name_only_metrics_that_carry_weight(html):
     P/B is still legitimately named in the Valuation tooltip, but only in the
     sentence about how *banks* are scored, where it carries 60%.
     """
-    val = html.split('data-sort="valuation_score" title="', 1)[1].split('"', 1)[0]
-    growth = html.split('data-sort="growth_score" title="', 1)[1].split('"', 1)[0]
+    # Since 2026-10-09 the weights are filled at load from the run's own published tables
+    # (``weightList`` in the page; tests/test_header_weights.py). Fill them here the same way.
+    w = payload_weights()
+    val = _filled(html.split('data-sort="valuation_score" title="', 1)[1].split('"', 1)[0], "valuation", w)
+    growth = _filled(html.split('data-sort="growth_score" title="', 1)[1].split('"', 1)[0], "growth", w)
 
     # PEG must not be presented as a scored growth input.
     assert "PEG carries no weight" in growth
@@ -273,6 +277,29 @@ def test_category_tooltips_name_only_metrics_that_carry_weight(html):
         "P/B is named as a general valuation input, but it carries zero weight "
         "outside bank_metric_weights"
     )
+
+
+def payload_weights():
+    import json
+    t = (ROOT / "dashboard_data.js").read_text(encoding="utf-8", errors="replace")
+    d = json.loads(t[t.find("{"):t.rfind("}") + 1])
+    return d["weights"]["profiles"], d["metric_meta"]
+
+
+def _filled(title, cat, w):
+    """The page's ``weightList`` fill, in Python, for the static checks above."""
+    profiles, meta = w
+
+    def lst(table):
+        on = sorted(((m, v) for m, v in (table or {}).items() if v > 0), key=lambda e: -e[1])
+        tot = sum(v for _, v in on)
+        return ", ".join(f"{(meta.get(m) or {}).get('label', m)} ({round(100 * v / tot)}%)" for m, v in on)
+
+    p = profiles.get(cat, {})
+    bank = ("Banks and insurers: " + lst(p["bank"])) if p.get("bank") else ""
+    return (title.replace("@W@", lst(p.get("generic")))
+                 .replace(" @BANK@ -", (" " + bank + " -") if bank else "")
+                 .replace(" @BANK@.", (" " + bank + ".") if bank else ""))
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +356,9 @@ def test_bank_carve_out_is_disclosed_where_it_changes_the_metrics(html):
     A student comparing JPM with AAPL on 'Qual' is not comparing like with
     like, and the page should say so at the column rather than only in the
     methodology document 30 headings down."""
+    w = payload_weights()
     for key in ["valuation_score", "quality_score"]:
         tip = html.split(f'data-sort="{key}" title="', 1)[1].split('"', 1)[0]
+        assert "@BANK@" in tip                                  # the page fills it from the bank table
+        tip = _filled(tip, key.split("_")[0], w)
         assert "Bank" in tip or "banks" in tip

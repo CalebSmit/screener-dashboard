@@ -1,0 +1,7 @@
+history 1988-01-04 .. 2026-10-09; 126-day vol 80th pct = 20.6%
+month-ends evaluated: 442; panic state: 33 (7.5%)
+  2001-03 .. 2001-09 (7 months)
+  2002-07 .. 2003-05 (11 months)
+  2008-09 .. 2009-09 (13 months)
+  2010-07 .. 2010-08 (2 months)
+in the state today (2026-10): False

@@ -81,10 +81,10 @@ def _write_config(tmp_path):
             # reads like a bug in apply_metric_changes rather than a stale
             # fixture.
             "revisions": {
-                "fy1_revision_3m": 35,
-                "analyst_surprise": 15, "price_target_upside": 10,
-                "earnings_acceleration": 20, "consecutive_beat_streak": 10,
-                "short_interest_ratio": 10, "short_pct_float": 0, "analyst_rating": 0,
+                "fy1_revision_3m": 48,
+                "analyst_surprise": 15, "price_target_upside": 13.5,
+                "earnings_acceleration": 0, "consecutive_beat_streak": 10,
+                "short_interest_ratio": 13.5, "short_pct_float": 0, "analyst_rating": 0,
             },
             "size": {"size_log_mcap": 100},
             "investment": {"asset_growth": 100},
@@ -626,11 +626,12 @@ class TestSchemaValidation:
         assert ic.candidate_ic_threshold == 0.02
 
     def test_candidate_metrics_constant(self):
-        """CANDIDATE_METRICS should contain exactly the 8 candidates."""
-        assert len(ie.CANDIDATE_METRICS) == 8
+        """CANDIDATE_METRICS should contain exactly the 9 candidates
+        (earnings_variability added 2026-10-09, research/2026-10-09-operating-leverage.md)."""
+        assert len(ie.CANDIDATE_METRICS) == 9
         expected = {
             "proximity_52w_high", "operating_margin", "current_ratio",
             "dividend_yield", "insider_ownership", "short_pct_float",
-            "analyst_rating", "interest_coverage",
+            "analyst_rating", "interest_coverage", "earnings_variability",
         }
         assert ie.CANDIDATE_METRICS == expected

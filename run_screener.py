@@ -254,21 +254,20 @@ def build_screener_overview(cfg: dict) -> str:
     # same document's Limitation 8 already contradicted.
     _cov_thr = int(cov_disc.get("threshold", 0.80) * 100)
     _cov_rate = int(cov_disc.get("penalty_rate", 0.15) * 100)
-    # Counted from the engine's own lists so the page cannot drift from them.
-    from factor_engine import (METRIC_COLS, _BANK_ONLY_METRICS,
-                               _NONBANK_ONLY_METRICS)
+    # Counted from the engine's own weight tables so the page cannot drift from them.
+    from factor_engine import weighted_metric_sets
+    _w_gen, _w_bank = weighted_metric_sets(cfg)
     cov_step = (
         f" One adjustment is applied after that weighted average: a stock below "
         f"{_cov_thr}% metric coverage has its composite multiplied by "
         f"`1 - (({_cov_thr}% - coverage) x {_cov_rate}%)` - the coverage discount "
         f"described under Data Quality Safeguards below - so for those stocks the "
         f"composite sits slightly below the sum of the category contributions. "
-        f"**\"Coverage\" here means the share of the metrics that apply to that "
-        f"stock** - all {len(METRIC_COLS)} weighted metrics less the ones its type "
-        f"does not use, so {len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])} "
-        f"for a bank-like stock and "
-        f"{len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])} for every "
-        f"other. The drilldown's \"Metrics: n/m\" badge and its \"The score rests on "
+        f"**\"Coverage\" here means the share of the metrics that carry weight "
+        f"in that stock's score** - {len(_w_bank)} for a bank-like stock and "
+        f"{len(_w_gen)} for every other ({len(_w_gen) - 1} for other financials, which are "
+        f"never given the Beneish score); a metric with no weight (a candidate, or "
+        f"one shown for reference) cannot lower it (since 2026-10-09). The drilldown's \"Metrics: n/m\" badge and its \"The score rests on "
         f"n of m metrics\" sentence read **this same figure**, taken from the engine "
         f"rather than recounted (until 2026-10-07 they counted a fixed 18-metric "
         f"list, which made 62 stocks look under-covered when only 3 were "
@@ -420,6 +419,8 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     vt_mom_floor = vtf.get("momentum_floor_percentile", 30)
     vt_rev_floor = vtf.get("revisions_floor_percentile", 30)
     vt_flag_only = vtf.get("flag_only", False)
+    vt_cheap = vtf.get("valuation_percentile", 70)
+    regime_state = "on" if (cfg.get("momentum_regime") or {}).get("enabled") else "off"
     vt_action = "**flagged but not excluded**" if vt_flag_only else "**excluded**"
 
     # Growth trap text
@@ -532,7 +533,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(grow_w, _GROWTH_DESCRIPTIONS)}
 
-**Why these?** Growth without overpaying is the sweet spot. Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). The PEG Ratio bridges valuation and growth into a single number — it penalizes stocks with high P/E ratios relative to their growth, preventing the screener from chasing expensive growers. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up.
+**Why these?** Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). Revenue growth and the three-year revenue CAGR measure what has already happened, at two horizons. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up. The PEG ratio is computed and shown but carries no weight: it divides a valuation by a growth rate, so it would count Valuation a second time inside Growth.
 
 ---
 
@@ -546,7 +547,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 
 **Why these?** Decades of academic research (Jegadeesh & Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal — the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.
 
-**Volatility-regime adjustment:** The screener tracks market-wide volatility across runs (stored in `cache/vol_history.csv`). Once 20+ historical observations are available, it classifies the current volatility environment as HIGH, NORMAL, or LOW (using 25th/75th percentile thresholds of historical volatility). In HIGH-vol regimes, momentum weight is reduced by 30% (freed weight goes to Quality + Valuation), because momentum crashes are most common during volatile markets. In LOW-vol regimes, momentum weight is increased by 15% (taken from Valuation), because calm markets are where momentum works best. This adaptive scaling requires at least 20 screener runs before activating.
+**Momentum regime rule - currently {regime_state}.** Momentum strategies crash most often in volatile markets (Daniel & Moskowitz 2016), and scaling momentum down when its own volatility is high improves it (Barroso & Santa-Clara 2015). Until 2026-10-09 the screener tried to do this, but the input it used was the spread of the momentum score across stocks (`factor_vol_history.csv`), which is fixed by the percentile construction and does not measure market volatility: it called 30 of 33 runs "low volatility" and raised momentum's weight most days. The rule is switched off until it is rebuilt on a real volatility measure; the spread is still recorded each run.
 
 ---
 
@@ -562,6 +563,8 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 
 **Why not Sharpe and Sortino?** They were scored here until 2026-09-02, at 15% each. Both are `(12-month return − risk-free rate) ÷ some measure of dispersion`, so they share their numerator with the momentum signal. Across the S&P 500 the spread in returns is far wider than the spread in volatility, so the numerator dominates: measured on the published payload, Sharpe correlates **+0.944** with the 12-1 month return but only **+0.025** with volatility. Scoring them inside Risk meant a stock was rated safer because it had gone up — which pushed the Risk and Momentum category scores to a **+0.516** correlation, the highest of any pair in the screener. Removing them drops that to **+0.150**. Both ratios are still computed and shown on each stock's detail page; they are simply no longer scored as risk. See `METHODOLOGY_CHANGELOG.md` 2026-09-02.
 
+**Why not operating leverage?** It was 8% of Quality until 2026-10-09, scored lower-is-better as "more durable earnings". As built it was one year's percentage change in operating profit divided by one year's percentage change in revenue, and that ratio does not measure cost structure: when profit and revenue move in opposite directions it goes negative, and on the 2026-10-09 run **85 of its 95 negative values were companies whose revenue grew while operating profit fell** - shrinking margins - which the score ranked at the 84th percentile of their sectors. A small revenue change also inflates it. The research points the other way too: firms with more operating leverage have historically earned *higher* returns as compensation for the risk (Novy-Marx 2011), and neither MSCI's nor AQR's published quality definitions use it - both measure durability as how variable earnings have been over several years. Its weight went to the other Quality metrics in proportion; it is still computed and shown. See `research/2026-10-09-operating-leverage.md`.
+
 ---
 
 ### 6. Analyst Revisions ({fw.get('revisions', 0)}% of final score)
@@ -574,7 +577,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 
 **Why these?** Estimate revisions and analyst targets are among the most powerful short-term return predictors. **{rev_heaviest} gets the highest weight** because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh & Lakonishok (1996, *Journal of Finance* 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a **+7.7% six-month decile spread** on IBES data 1977–93.
 
-The surprise family — Analyst Surprise, Earnings Acceleration, Beat Score — is *backward*-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, *Critical Finance Review* 11(4)) finds it has been **absent in large caps since 2006**, with a significantly *negative* coefficient over 2016–19. Since this is an S&P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10 and why the revision metric now outweighs any single member of it.
+The surprise family — Analyst Surprise and Beat Score — is *backward*-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, *Critical Finance Review* 11(4)) finds it has been **absent in large caps since 2006**, with a significantly *negative* coefficient over 2016–19. Since this is an S&P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10, and to 25% on 2026-10-09 when Earnings Acceleration (the latest surprise minus the one before) left the score: it marked a stock down for having beaten the previous quarter, though surprises tend to repeat. The revision metric now carries nearly half the category.
 
 This category is weighted at only {fw.get('revisions', 0)}% of the composite because coverage can be sparse (not all stocks have active analyst coverage), and when coverage drops below usable levels, the weight automatically redistributes to the other categories.
 
@@ -618,11 +621,13 @@ When coverage drops below 30% (e.g., many stocks lack prior-year asset data), th
 
 Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningless for banks, insurers, and credit companies. Their "debt" is deposits (the raw material of their business), they don't have conventional capital expenditures, and enterprise value metrics break down when liabilities include customer deposits.
 
-The screener detects bank-like stocks using a three-tier classification:
+The screener decides by **GICS sub-industry** (since 2026-10-09), from the S&P 500 list itself:
 
-1. **Explicit exclusion list** — Payment processors and financial data companies (V, MA, PYPL, FIS, FISV, SPGI, MCO, ICE, CME, etc.) have conventional P&Ls and use generic metrics despite being in the Financials sector.
-2. **Industry matching** — Companies in banking, insurance, credit services, or mortgage finance industries use bank metrics.
-3. **Sector fallback** — Unknown Financials-sector companies default to bank metrics (conservative — P/B + ROE is a safer default than EV/EBITDA for an unknown financial).
+1. **Bank set** — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life & Health / Multi-line / Property & Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire) and Investment Banking & Brokerage: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.
+2. **Generic set** — Insurance Brokers, Asset Management, Financial Exchanges & Data, and Payment Processing: fee businesses with conventional profit and loss statements, valued in practice on EV/EBITDA and P/E.
+3. **Named exceptions** inside Asset Management & Custody Banks use the bank set, each for a stated reason: the custody banks BNY, State Street and Northern Trust (they take deposits), Apollo and KKR (they consolidate the insurers Athene and Global Atlantic) and Ameriprise (it owns a bank and a life insurer).
+
+A Financials stock in a sub-industry on neither list defaults to the bank set — the safer guess for an unseen lender — and the run logs it by name; a test keeps the current universe at none. Until 2026-10-09 the rule read Yahoo's industry names, and 26 of the 59 stocks scored as banks — asset managers and insurance brokers among them — reached the bank set only through that default. Detail: `research/2026-10-09-bank-like-financials.md`.
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
@@ -647,7 +652,7 @@ Until 2026-09-01 it did clip them, and that was a mistake in two directions. Cli
 ### Step 3: Rank Within Sectors
 Each metric is converted to a **sector-relative percentile** (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.
 
-For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better."
+For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better." The percentile uses the midpoint rule - the k-th lowest of n stocks scores (k - 0.5) / n x 100 - so a metric averages exactly 50 whichever way it points. (Until 2026-10-09 it was k / n, which averaged 50 + 50/n for higher-is-better metrics and 50 - 50/n once flipped, a tilt that grew in small sectors.)
 
 **Small-sector fallback:** When a sector has fewer than 10 stocks with valid data for a metric, ranking within that tiny group produces noisy percentiles. In these cases, the screener falls back to universe-wide percentile ranking for that metric, which provides a more stable signal than the previous approach of assigning a flat 50th percentile.
 
@@ -681,7 +686,7 @@ The same missing-data redistribution logic applies: if a category score is NaN (
 
 **The weights above are the configured defaults, and an individual run may not use them.** Two rules move them, both described in this document:
 
-1. **The volatility-regime adjustment** changes the momentum weight for the whole run (see the Momentum section). It is funded from Valuation in calm markets and paid back into Quality and Valuation in turbulent ones.
+1. **The momentum regime rule**, when switched on, changes the momentum weight for the whole run (see the Momentum section). It is off since 2026-10-09.
 2. **Missing-data redistribution** changes them for one stock, whenever a category could not be scored for it.
 
 So a stock's momentum score may be multiplied by something other than the {fw.get("momentum", 0)}% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows **the weight each score was actually multiplied by**, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to `runs/<run_id>/effective_weights.json`.
@@ -701,7 +706,7 @@ The screener includes several layers of data quality protection:
 
 - **Denominator floors:** Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.
 - **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.50, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.50, 1.0])[1] * 100)}%]. These bounds are configurable in `config.yaml` under `metric_clamps`. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.
-- **Coverage filter:** Stocks with fewer than {min_coverage}% of their applicable metrics available are excluded from the ranking entirely.
+- **Coverage filter:** Stocks with fewer than {min_coverage}% of the metrics that carry weight in their score available are excluded from the ranking entirely - the same coverage the composite's discount reads.
 - **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is reduced by up to {int(cov_disc.get('penalty_rate', 0.15) * 100)}% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
 - **Auto-disable (category-level):** If the Revisions or Investment category has fewer than 30% of its metrics populated, the entire category's weight is zeroed and redistributed proportionally to the remaining categories.
 - **Auto-reduce (metric-level):** If any individual metric has more than {auto_reduce_thresh}% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.
@@ -709,7 +714,7 @@ The screener includes several layers of data quality protection:
 - **LTM / MRQ data freshness:** All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (< 8 quarters).
 - **EV cross-validation:** The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (`_ev_flag`). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).
 - **LTM partial annualization tracking:** When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with `_ltm_annualized = True` and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.
-- **Channel-stuffing detection:** Compares receivables growth vs. revenue growth. When receivables growth exceeds revenue growth by more than 15 percentage points, the stock is flagged with `_channel_stuffing_flag = True`. This can indicate aggressive revenue recognition or deteriorating collection quality.
+- **Channel-stuffing detection:** Compares receivables with revenue over the last fiscal year, both from the same two annual statements, using Beneish's days-sales-in-receivables index (receivables / revenue, over the prior year's). At **1.465 or more** - the average among the earnings manipulators in Beneish (1999), against 1.031 among the rest - the stock is flagged with `_channel_stuffing_flag = True`. This can indicate aggressive revenue recognition or deteriorating collection quality. Not applied to any Financials stock: Beneish's sample excluded financial firms.
 - **Beta overlap validation:** Beta computation requires at least 80% date overlap between the stock's daily returns and the S&P 500 market returns. Stocks with insufficient overlap get `beta = NaN` rather than a potentially misleading value. The overlap percentage is recorded in `_beta_overlap_pct`.
 - **Data quality log:** Every data issue (missing fields, stale data, rate-limit failures) is logged to `validation/data_quality_log.csv` with ticker, severity, description, and action taken.
 - **Structured pipeline logging:** A Python `logging`-based structured logger (`screener.pipeline`) records coverage statistics, filter actions, and scoring stage completions for machine-parseable diagnostics.
@@ -718,17 +723,17 @@ The screener includes several layers of data quality protection:
 
 ## Value Trap Detection
 
-A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. The screener uses **majority logic (2-of-3)** to flag potential value traps: a stock is flagged only if it falls in the bottom {vt_quality_floor}% of **at least two** of these three categories:
+A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. A stock is flagged as a potential value trap only if it is **cheap** — a Valuation score in the top {100 - vt_cheap}% of the universe — **and** it falls in the bottom {vt_quality_floor}% of **at least two** of these three categories:
 
 - Quality Score (floor: {vt_quality_floor}th percentile)
 - Momentum Score (floor: {vt_mom_floor}th percentile)
 - Revisions Score (floor: {vt_rev_floor}th percentile)
 
-This is more balanced than the alternative "any 1 breach" approach, which flagged roughly 60% of the universe — too aggressive to be useful. The 2-of-3 majority logic catches stocks with genuinely broad weakness while tolerating a single weak dimension (e.g., a quality stock with one bad momentum quarter). About 30% of stocks are typically flagged.
+The cheapness condition is what makes it a *value* trap: Piotroski (2000) separates the cheap stocks that go on to do well from those that do not using exactly this kind of fundamental weakness, within the cheapest stocks. Without it (before 2026-10-09) the flag fired on about a quarter of the universe, whatever the valuation. The 2-of-3 majority logic tolerates a single weak dimension (e.g., a quality stock with one bad momentum quarter); "any 1 breach" flagged roughly 60% of the universe.
 
 Missing data (NaN) in any of the three dimensions does **not** trigger a value trap flag — missing data is not the same as poor quality. These stocks receive a separate `Insufficient_Data_Flag`.
 
-Each flagged stock also receives a **Value Trap Severity** score (0-100), computed as the average of how far below each threshold the stock falls across the dimensions that triggered the flag. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.
+Each flagged stock also receives a **Value Trap Severity** score (0-100): for each of the three dimensions, how far below its threshold the stock falls (as a share of the threshold, zero if above it), averaged over the three. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.
 
 By default, value-trap-flagged stocks are {vt_action} from the model portfolio (configurable to flag-only mode).
 
@@ -736,15 +741,16 @@ By default, value-trap-flagged stocks are {vt_action} from the model portfolio (
 
 ## Growth Trap Detection
 
-The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. The screener uses the same **majority logic (2-of-3)** to flag potential growth traps: a stock is flagged only if **at least two** of these three conditions are met:
+The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. A stock is flagged as a potential growth trap only if its Growth Score is **above** the {gt_growth_ceil}th percentile (high growth) **and** at least one of these holds:
 
-- Growth Score **above** the {gt_growth_ceil}th percentile (high growth)
 - Quality Score **below** the {gt_quality_floor}th percentile (low quality)
 - Revisions Score **below** the {gt_rev_floor}th percentile (deteriorating sentiment)
 
+High growth is required (since 2026-10-09; it used to be one of three conditions, so a low-growth stock with low quality and low revisions could be called a growth trap). Mohanram (2005) separates winners from losers within growth stocks using fundamental strength, the mirror of Piotroski's test within value stocks.
+
 This catches "growth at any price" stocks — companies that are growing fast but burning cash, carrying deteriorating fundamentals, or losing analyst confidence.
 
-Each flagged stock also receives a **Growth Trap Severity** score (0-100), computed as the average of how far above/below each threshold the stock falls across the dimensions that triggered the flag. Higher severity means deeper in trap territory.
+Each flagged stock also receives a **Growth Trap Severity** score (0-100): how far beyond each of the three thresholds the stock falls (zero where it does not cross one), averaged over the three. Higher severity means deeper in trap territory.
 
 By default, growth-trap-flagged stocks are {gt_action} from the model portfolio (configurable to flag-only mode).
 
@@ -787,7 +793,7 @@ The top 50 stocks, formatted for quick review. Includes rank, composite score (q
 The final portfolio with ticker, sector, composite score, position weights, and portfolio-level statistics (weighted average beta, dividend yield, sector allocation breakdown).
 
 ### Sheet 4: DataValidation
-The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables growth diverging from revenue growth), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.
+The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables rising much faster than revenue over the fiscal year), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.
 
 ### Sheet 5: Weight Sensitivity (when available)
 Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
@@ -857,7 +863,7 @@ Open any stock and **The workings** section rebuilds its score from the bottom. 
 The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; `scripts/audit_stock.py` repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.
 
 ### DataValidation Sheet
-The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (receivables growth outpacing revenue growth by >15pp), and beta overlap warnings (<80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.
+The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (Beneish's receivables index at 1.465 or more), and beta overlap warnings (<80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.
 
 ---
 
@@ -878,16 +884,16 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Calendar-based lookbacks** | Using calendar dates (e.g., 182 days ago) instead of fixed index offsets ensures consistent lookback periods regardless of holidays. |
 | **Denominator floors** ($0.10 for surprise, $1.00 for EPS growth) | Near-zero denominators produce extreme ratios that dominate rankings. Floors bound the maximum possible ratio. |
 | **Outliers flagged, never clipped** ({out_lo}%/{out_hi}% tails) | Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught. |
-| **Value trap 2-of-3 majority logic** | OR logic (any 1 breach) flagged ~60% of the universe — too aggressive. Majority logic catches genuinely weak stocks while tolerating one bad dimension. |
-| **Growth trap 2-of-3 majority logic** | Mirror of value trap for the opposite scenario. Catches high-growth stocks with poor quality and/or deteriorating sentiment. |
+| **Value trap: cheap, and weak on 2 of 3** | A value trap is a cheap stock that is cheap for a reason (Piotroski 2000), so cheapness is required. OR logic (any 1 breach) flagged ~60% of the universe; majority logic tolerates one bad dimension. |
+| **Growth trap: high growth, and weak quality or revisions** | Mirror of value trap (Mohanram 2005). High growth is required, so a low-growth stock is never called a growth trap. |
 | **Liquidity filter** (${min_adv_m:.0f}M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
-| **4-metric revisions category** (Surprise + Target + Acceleration + Beat Score) | Broadens the analyst sentiment signal beyond a single backward-looking and forward-looking metric. Earnings Acceleration (continuous delta) and Beat Score (recency-weighted) capture the trajectory and consistency of beats with much higher granularity than binary signals. |
-| **Volatility-regime momentum scaling** | Momentum crashes in high-vol markets. Reducing momentum weight in turbulent conditions and boosting it in calm markets improves risk-adjusted returns (requires 20+ historical runs to activate). |
+| **Revisions led by the estimate revision** (FY1 revision + Surprise + Beat Score + Target + Short interest) | The 90-day change in the consensus estimate carries the most weight because revisions, unlike surprises, still predict returns in large caps (Chan, Jegadeesh & Lakonishok 1996; Martineau 2022 on the surprise drift's absence since 2006). Earnings Acceleration is computed but unweighted since 2026-10-09. |
+| **Momentum regime rule: off** | Momentum crashes in high-volatility markets, but the input the rule used (the spread of momentum scores across stocks) does not measure volatility. Off until rebuilt on a real volatility measure. |
 | **3-metric risk category** (Vol + Beta + MaxDD), dispersion only | Volatility captures total risk, Beta systematic risk, Max Drawdown tail risk. Sharpe and Sortino were dropped from scoring on 2026-09-02: both divide the *same* trailing return by a dispersion measure, so they correlated +0.993 with each other and +0.944 with the momentum signal, but only +0.025 with volatility. They were five metrics in name and three in substance, and the two extras were momentum wearing a risk label. Institutional risk models are built the same way — the Barra US Equity Model's volatility style factors use dispersion descriptors (daily standard deviation, cumulative range, residual sigma), not return/risk ratios. |
 | **Quartile-based Excel coloring** | Absolute thresholds (e.g., >80 = green) assume a stable score distribution. Quartile-based coloring adapts to the actual distribution, ensuring roughly 25% of cells in each color band regardless of market conditions. |
 | **Trap severity scores** (0-100 continuous) | Binary flags lose information. Severity scores quantify how deep in trap territory a stock is — severity 80 is much worse than severity 20, but both would be flagged as True. |
 | **Beta overlap validation** (≥80% required) | Stocks with limited trading history (IPOs, relisted) can produce misleading beta values from sparse overlap with the market index. The 80% threshold ensures the regression uses substantially the same time period as the market. |
-| **Channel-stuffing detection** (receivables vs revenue divergence) | When receivables growth exceeds revenue growth by >15pp, it may indicate aggressive revenue recognition. The flag is informational (not used in scoring) but appears in the DataValidation sheet. |
+| **Channel-stuffing detection** (Beneish's receivables index) | Receivables rising far faster than revenue over the same fiscal year may indicate aggressive revenue recognition; the cut, 1.465, is the manipulators' average in Beneish (1999). The flag is informational (not used in scoring). |
 
 ---
 
@@ -949,7 +955,7 @@ It does this by:
 2. Computing up to {n_total} financial metrics across {n_factors} categories ({n_generic} generic + {n_bank_only} bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
-5. Flagging potential value traps and growth traps (2-of-3 majority logic)
+5. Flagging potential value traps (cheap and weak on 2 of 3) and growth traps (high growth and weak quality or revisions)
 6. Applying a liquidity filter to ensure tradeability
 7. Reporting how stable that ranking is when the weights are nudged
 
@@ -983,7 +989,7 @@ _METRIC_LABELS = {
     "return_12_1": "12-1 Month Return", "return_6m": "6-1 Month Return",
     "volatility": "Volatility", "beta": "Beta",
     "sharpe_ratio": "Sharpe Ratio", "sortino_ratio": "Sortino Ratio",
-    "max_drawdown_1y": "Max Drawdown (1Y)",
+    "max_drawdown_1y": "Max Drawdown (13M)",
     "fy1_revision_3m": "FY1 EPS Revision (3-month)",
     "analyst_surprise": "Analyst Surprise", "price_target_upside": "Price Target Upside",
     "earnings_acceleration": "Earnings Acceleration", "consecutive_beat_streak": "Beat Score",
@@ -1008,18 +1014,18 @@ _QUAL_DESCRIPTIONS = {
     "roic": "Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital.",
     "gross_profit_assets": "Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor).",
     "debt_equity": "Total debt divided by shareholder equity. Lower = less financial leverage and risk.",
-    "net_debt_to_ebitda": "(Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).",
+    "net_debt_to_ebitda": "(Total Debt - Cash and short-term investments) / EBITDA, the same cash enterprise value nets off. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).",
     "piotroski_f_score": "A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals.",
     "accruals": "(Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996).",
-    "operating_leverage": "Degree of Operating Leverage (%Δ EBIT / %Δ Revenue). Lower = more durable earnings (less sensitivity to revenue swings). Banks skip this metric.",
-    "beneish_m_score": "8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only.",
+    "operating_leverage": "Degree of Operating Leverage (%Δ EBIT / %Δ Revenue), one year. Recorded but given no weight since 2026-10-09 - see 'Why not operating leverage?'. Banks skip this metric.",
+    "beneish_m_score": "8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Not computed for Financials stocks (Beneish's sample excluded financial firms).",
     "roe": "Return on equity — the key bank profitability metric. Higher = better.",
     "roa": "Return on assets — key bank efficiency metric. Higher = better.",
     "equity_ratio": "Total equity divided by total assets. Solvency measure — higher = more capital = safer.",
 }
 
 _GROWTH_DESCRIPTIONS = {
-    "forward_eps_growth": "(Forward EPS - Trailing EPS) / Trailing EPS. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth.",
+    "forward_eps_growth": "Expected EPS over the next 12 months (current- and next-fiscal-year consensus, weighted by the months left in the current year - MSCI's construction) versus the last four reported quarters, on the same basis. Denominator floored at $1.00. Clamped to [-75%, +150%]. Higher = faster expected growth. Since 2026-10-09; before, it compared a fiscal year 13-24 months out with GAAP trailing EPS.",
     "revenue_growth": "Year-over-year revenue increase from financial statements. Higher = growing top line.",
     "revenue_cagr_3yr": "3-year compound annual revenue growth rate from annual filings. Smooths lumpy single-year revenue growth.",
     "peg_ratio": "P/E ratio divided by forward EPS growth. A PEG of 1.0 means fairly valued relative to growth. Lower = better.",
@@ -1033,11 +1039,11 @@ _MOM_DESCRIPTIONS = {
 }
 
 _RISK_DESCRIPTIONS = {
-    "volatility": "Annualized standard deviation of daily returns over the past year. Lower = smoother ride.",
+    "volatility": "Annualized standard deviation of daily returns over about 13 months of trading (the same price history the momentum signals use). Lower = smoother ride.",
     "beta": "Covariance of stock returns with S&P 500 returns divided by variance of market returns. Requires ≥80% date overlap with market. Lower = less market-driven risk.",
     "sharpe_ratio": "(12-month return - risk-free rate) / volatility. Risk-adjusted return per unit of total risk. Higher = more efficient risk-taking.",
     "sortino_ratio": "(12-month return - risk-free rate) / downside deviation. Like Sharpe but only penalizes downside volatility. Higher = better downside-adjusted return.",
-    "max_drawdown_1y": "Maximum peak-to-trough decline from cumulative daily return series over the past year. Less negative = smaller worst-case loss.",
+    "max_drawdown_1y": "Largest peak-to-trough fall in the closing price over about 13 months. Less negative = smaller worst-case loss.",
 }
 
 _REV_DESCRIPTIONS = {
@@ -1045,7 +1051,7 @@ _REV_DESCRIPTIONS = {
     "analyst_surprise": "Median of (Actual - Estimated EPS) / max(|Estimated|, $0.10) over last 4 quarters. Positive = beat expectations.",
     "price_target_upside": "(Mean Analyst Price Target - Current Price) / Current Price. Clamped to [-50%, +100%]. Higher = more analyst optimism.",
     "earnings_acceleration": "Difference between most recent quarter's surprise % and prior quarter's surprise %. Positive = accelerating beats, negative = decelerating. Continuous; extreme values are flagged in the data-quality log but scored as fetched.",
-    "consecutive_beat_streak": "Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4.",
+    "consecutive_beat_streak": "Recency-weighted beat score: each of the last 4 quarters' beats weighted by recency (Q1=1, Q2=2, Q3=3, Q4=4). Range 0-10. A stock beating all 4 quarters scores 10; beating only the most recent scores 4. With fewer quarters on record the score is the beating quarters' share of the weight of those that are, times 10, so missing data does not cap it; a history whose newest quarter ended over 200 days ago is not scored.",
     "short_interest_ratio": "Days to cover (short interest shares / average daily volume). Lower = less bearish sentiment from short sellers. Contrarian signal.",
 }
 
@@ -1099,6 +1105,17 @@ def _init_pipeline_logger():
         logger.addHandler(handler)
         logger.setLevel(logging.DEBUG)
     return logger
+
+
+def should_write_score_cache(args) -> bool:
+    """A ``--tickers`` run must not write the scored cache.
+
+    The cache is keyed by config and date, not by universe, and a full run the same day reads
+    the newest file for its key as a HOT cache. On 2026-10-09 a 32-ticker trial run wrote
+    ``factor_scores_<hash>_20261009.parquet``; the evening's full run would have loaded it and
+    published a 32-stock dashboard. Reading already skipped the cache for ``--tickers``; writing
+    did not."""
+    return not getattr(args, "tickers", None)
 
 
 def run_factor_engine(cfg, args, ctx=None):
@@ -1285,7 +1302,8 @@ def run_factor_engine(cfg, args, ctx=None):
         # Live fetch with retry resilience
         print(f"\nFetching market returns...")
         market_returns = fetch_market_returns()
-        print(f"  {len(market_returns)} daily observations")
+        stats["market_series"] = market_returns.attrs.get("source")
+        print(f"  {len(market_returns)} daily observations ({stats['market_series'] or 'unavailable'})")
 
         fetch_cfg = cfg.get("fetch", {})
         print(f"\nFetching data for {universe_size} tickers...")
@@ -1319,6 +1337,52 @@ def run_factor_engine(cfg, args, ctx=None):
                     print(f"  Retry pass: no additional tickers recovered")
 
         stats["tickers_api"] = len(raw)
+
+        # GICS sector and sub-industry from the S&P 500 list, on each raw record before anything
+        # reads it: scoring decides the bank metric set from the sub-industry (2026-10-09,
+        # research/2026-10-09-bank-like-financials.md), and Yahoo's own sector names differ.
+        _gics = universe_df.set_index("Ticker").to_dict("index") if "Ticker" in universe_df.columns else {}
+        for _r in raw:
+            _m = _gics.get(_r.get("Ticker")) or {}
+            if _m.get("Sector"):
+                _r["_gics_sector"] = _m["Sector"]
+            if isinstance(_m.get("SubIndustry"), str) and _m["SubIndustry"]:
+                _r["_gics_sub"] = _m["SubIndustry"]
+
+        # Earnings variability (Quality candidate, weight 0): five years of annual ROE
+        # from each company's own 10-K figures (SEC companyfacts) - Yahoo carries four years.
+        # A --tickers run reads the cache but never rewrites it (it would hold only the subset).
+        # ~25 cached requests for the whole universe. research/2026-10-09-operating-leverage.md
+        try:
+            import json as _json_ev
+            import sec_fundamentals as _sf
+            _roe = _sf.roe_history([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r],
+                                   refresh=should_write_score_cache(args))
+            _n_ev = 0
+            for _r in raw:
+                _rows = _roe.get(_r.get("Ticker"))
+                if _rows:
+                    _r["_roe5"] = _json_ev.dumps(_rows, separators=(",", ":"))
+                    _ev = _sf.earnings_variability(_rows)
+                    if _ev is not None:
+                        _r["_evol"] = _ev
+                        _n_ev += 1
+            if _roe:
+                print(f"  Earnings variability: 5 years of ROE for {_n_ev} of {len(raw)} stocks (SEC XBRL)")
+        except Exception as e:  # noqa: BLE001 - a candidate metric must never stop a run
+            print(f"  WARNING: earnings variability unavailable: {e}")
+
+        # Valuation against the stock's own five-year history (display only, context): earnings
+        # and free-cash-flow yield at each month-end from the SEC filings cache and one batched
+        # monthly price download. research/2026-10-09-valuation-vs-own-history.md
+        if cfg.get("context", {}).get("enabled", True):
+            try:
+                import valuation_history
+                _n_vh = valuation_history.attach(raw, refresh=should_write_score_cache(args))
+                stats["context_valuation_history"] = _n_vh
+                print(f"  Context: valuation against its own 5-year history for {_n_vh} of {len(raw)} stocks")
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: valuation history unavailable: {e}")
 
         # Context layer (display only, plan/context-layer.md). Runs only now that the core data
         # is fetched: option chains and insider trades in their own paced, time-budgeted pass
@@ -1404,7 +1468,13 @@ def run_factor_engine(cfg, args, ctx=None):
                       f"max={max(ft_arr)}ms  p95={int(sorted(ft_arr)[int(len(ft_arr)*0.95)])}ms")
 
         print("Computing metrics...")
+        from factor_engine import BANK_DEFAULTED as _bank_defaulted
+        _bank_defaulted.clear()
         df = compute_metrics(raw, market_returns, cfg, risk_free_rate=risk_free_rate)
+        if _bank_defaulted:
+            stats["bank_set_by_default"] = sorted(_bank_defaulted)
+            print(f"  WARNING: {len(_bank_defaulted)} financials reached the bank metric set only by default: "
+                  f"{sorted(_bank_defaulted)[:12]} - add their sub-industry to factor_engine's lists")
 
         # ---- Log _stmt_val() misses (strict mode) ----
         if stmt_strict:
@@ -1439,23 +1509,12 @@ def run_factor_engine(cfg, args, ctx=None):
         skipped_tickers += df.loc[skip_mask, "Ticker"].tolist()
         df = df[~skip_mask].copy()
 
-        # Coverage filter — count only metrics applicable to each stock type.
-        # Bank-only metrics are structurally NaN for non-banks and vice versa;
-        # including them in the denominator would penalize stocks unfairly.
-        present = [c for c in METRIC_COLS if c in df.columns]
-        is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False)
-        applicable_count = pd.Series(0, index=df.index)
-        metric_count = pd.Series(0, index=df.index)
-        for c in present:
-            # Determine which rows this metric applies to
-            if c in _BANK_ONLY_METRICS:
-                applies = is_bank
-            elif c in _NONBANK_ONLY_METRICS:
-                applies = ~is_bank
-            else:
-                applies = pd.Series(True, index=df.index)
-            applicable_count += applies.astype(int)
-            metric_count += (df[c].notna() & applies).astype(int)
+        # Coverage filter - the same coverage the composite's discount reads: the metrics that
+        # carry weight in the table this stock is scored with (factor_engine.applicable_coverage,
+        # since 2026-10-09). Until then it counted every registered metric, so a stock could be
+        # dropped from the universe for missing candidates that never enter a score.
+        from factor_engine import applicable_coverage
+        metric_count, applicable_count = applicable_coverage(df, cfg)
         coverage_pct = cfg["data_quality"]["min_data_coverage_pct"] / 100
         df["_mc"] = metric_count
         min_needed = (applicable_count * coverage_pct).apply(lambda x: max(1, int(x)))
@@ -1792,11 +1851,14 @@ def run_factor_engine(cfg, args, ctx=None):
             print(f"  LTM partial annualization (3-of-4 quarters): {n_ltm} tickers flagged")
 
     # ---- Write Parquet cache (config-aware) ----
-    print("Writing cache Parquet...")
-    try:
-        write_scores_parquet(df, config_hash=cfg_hash)
-    except Exception as e:
-        print(f"  WARNING: Failed to write Parquet cache: {e}")
+    if should_write_score_cache(args):
+        print("Writing cache Parquet...")
+        try:
+            write_scores_parquet(df, config_hash=cfg_hash)
+        except Exception as e:
+            print(f"  WARNING: Failed to write Parquet cache: {e}")
+    else:
+        print("Not writing the score cache: a --tickers run scores a subset, not the universe.")
 
     return df, stats
 
@@ -2476,6 +2538,10 @@ def main():
     # The market backdrop, the ranking's track record, and a dated log of every context signal
     # so each one builds an out-of-sample record. None of it touches a score; any failure here
     # leaves the page with the previous day's context rather than stopping the run.
+    # The track record, the signal log and its evaluation are records of the whole universe: a
+    # --tickers run must not replace today's with 32 names (2026-10-09; data/context_log is
+    # committed evidence). The market backdrop is universe-free and is still refreshed.
+    _universe_run = should_write_score_cache(args)
     if cfg.get("context", {}).get("enabled", True):
         run_day = datetime.now().strftime("%Y-%m-%d")
         try:
@@ -2484,6 +2550,9 @@ def main():
             print("  Context: market backdrop refreshed (FRED)")
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: market backdrop unavailable: {e}")
+    if cfg.get("context", {}).get("enabled", True) and not _universe_run:
+        print("  Context: subset run - track record, signal log and evaluation left as they were")
+    elif cfg.get("context", {}).get("enabled", True):
         try:
             import track_record
             live = dict(zip(df["Ticker"], df["Rank"])) if "Rank" in df.columns else None
@@ -2496,6 +2565,15 @@ def main():
             context_signals.write_context_log(ctx.run_dir, run_day)
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: context log not written: {e}")
+        # The record each context signal is building (plan/context-layer.md item 5):
+        # one-month ICs from the logs themselves, reporting only.
+        try:
+            import context_eval
+            from datetime import date as _d_ev
+            _ev = context_eval.evaluate(today=_d_ev.fromisoformat(run_day))
+            print("  " + context_eval.summary_line(_ev))
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: context evaluation unavailable: {e}")
 
     # ---- 12. Generate interactive dashboard ----
     try:

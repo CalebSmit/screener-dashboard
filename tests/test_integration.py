@@ -88,6 +88,12 @@ class TestFactorCorrelation:
 # =====================================================================
 
 class TestRunContext:
+    @pytest.fixture(autouse=True)
+    def _runs_in_tmp(self, tmp_path, monkeypatch):
+        # Four of these tests left their run folders in the real runs/ (found 2026-10-09).
+        import run_context
+        monkeypatch.setattr(run_context, "RUNS_DIR", tmp_path / "runs")
+
     def test_config_hash_deterministic(self, cfg):
         """Same config should always produce the same hash."""
         ctx = RunContext(run_id="test_hash_1")

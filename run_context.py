@@ -121,7 +121,17 @@ class RunContext:
             # start served the 02:00 table, which both carried the old drawdown
             # and lacked those columns, so the dashboard refused to publish -
             # correctly, but for a reason that reads as a scoring bug.
-            "scoring_schema": 3,
+            # 4 = beta's covariance/variance and every term of Jensen's alpha
+            # recorded (`_beta_cov`, `_beta_var`, `_ja_*`, 2026-10-09).
+            # 5 = revenue-growth window, Piotroski 3/8/9 annual, one EBITDA, weighted-only
+            # coverage (2026-10-09) - all scoring changes a same-day cache must not hide.
+            # 6 = forward EPS growth on MSCI's 12-month basis and the balance-sheet prior guard.
+            # 7 = the 2026-10-09 metric audit: operating income, period-indexed statements,
+            # zero-estimate placeholder, total-return market, midpoint percentiles, surprises.
+            # 8 = no forward EPS growth from a loss base (2026-10-09, after the rehearsals).
+            # 9 = bank-like financials by GICS sub-industry; 10 = Beneish skips all Financials.
+            # 11 = Beneish not counted as missing for Financials; stale history not a FEG base.
+            "scoring_schema": 11,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

@@ -320,7 +320,9 @@ class TestTheExplanationIsRendered:
 
     def test_the_regime_adjustment_is_explained(self, html):
         assert "function weightNote(" in html
-        assert "volatility regime" in html
+        # 2026-10-09: the rule's input was found not to measure market volatility and the rule
+        # is off; the note names the rule without claiming what it no longer does
+        assert "momentum regime rule" in html
 
     def test_the_renormalisation_is_explained(self, html):
         assert "shares its weight across the rest" in html
@@ -365,7 +367,7 @@ class TestTheMethodologyDocumentSaysSo:
 
     def test_it_names_both_rules_that_move_a_weight(self):
         text = self._overview()
-        assert "volatility-regime adjustment" in text.lower()
+        assert "momentum regime rule" in text.lower()      # renamed 2026-10-09; off since then
         assert "Missing-data redistribution" in text
 
     def test_it_points_the_reader_at_where_the_real_weights_are(self):

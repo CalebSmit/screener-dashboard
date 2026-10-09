@@ -368,10 +368,12 @@ class TestValueTrapFlags:
         assert not df["Value_Trap_Flag"].any()
 
     def test_majority_logic_requires_two_breaches(self, cfg):
-        """2-of-3 logic: one low dimension should NOT trigger flag."""
+        """2-of-3 logic: one low dimension should NOT trigger flag (all four equally cheap, so
+        the cheapness condition added 2026-10-09 holds for each)."""
         df = pd.DataFrame({
             "Ticker": ["A", "B", "C", "D"],
             "Sector": ["Tech"] * 4,
+            "valuation_score": [90.0] * 4,
             "quality_score": [10.0, 10.0, 10.0, 80.0],
             "momentum_score": [80.0, 10.0, 80.0, 80.0],
             "revisions_score": [80.0, 80.0, 10.0, 80.0],

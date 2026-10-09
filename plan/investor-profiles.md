@@ -1,7 +1,20 @@
 # Investor Profile Selector — client-side reweighting
 
 **Owner:** Wednesday nightly sessions
-**Status:** Not started
+**Status:** M1-M3 SHIPPED 2026-10-09 (owner-run), in a different shape from the milestones below -
+read this first. The rankings table has a **Weighting** selector (Balanced (published) / Value /
+Growth / Momentum). The profiles come from `presets.py` - one definition - and their composites and
+ranks are computed **at build time by the engine's own `compute_composite`**, coverage discount
+included, with the run's own volatility-regime adjustment applied through
+`factor_engine.apply_momentum_regime` (now the single implementation of that rule). So "Value" on
+the page is exactly what `run_screener.py --preset value` would publish from the same scores, and
+the page never reweights anything (CLAUDE.md row 0.8). Balanced is recomputed only as a check: if
+it does not reproduce the published composites and ranks, the profiles are withheld. Under a
+non-published profile the Delta column is blank and a note says the sheet is Balanced.
+`generate_dashboard._profiles_block`; `tests/test_investor_profiles.py`;
+`tests/test_dashboard_navigation.py::test_a_weighting_reorders_the_table_and_back_restores_it`.
+**Still open:** M4 (custom sliders) - and before it, whether a client-side reweight could ever
+meet the "engine's numbers only" rule; a Long-term/Quality preset (needs its own argument).
 **Decide before shipping:** `presets.py` already defines server-side Value /
 Growth / Momentum weight vectors, and they differ from the profile weights
 originally sketched (e.g. Value is 30/25/8/10/10/8/5/4 in code vs

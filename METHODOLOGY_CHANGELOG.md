@@ -2998,3 +2998,660 @@ rule `compute_forward_returns` already applied to snapshots.
 **Applied by:** morning session (manual), 2026-10-08.
 **Rollback:** tag `good/2026-10-07`. Reverting restores a 72-row file in which
 28% of rows are repeated days; it would not change today's published weights.
+
+---
+
+## 2026-10-09 (owner-run) - `operating_leverage` leaves the Quality score; its 8 points go to the other six in proportion
+
+**Area:** metric weights (Quality, non-bank)
+**Changed:** `metric_weights.quality.operating_leverage` 8 -> **0** (candidate: still computed,
+published and shown, with a "why not used" line). The freed points are redistributed in
+proportion to the existing weights and rounded to whole numbers, because `schemas.py` requires
+each category to sum to 100: ROIC 27 -> **29**, gross profit / assets 20 -> **22**, net debt /
+EBITDA 18 -> **20**, Piotroski 15 -> **16**, accruals 5 -> **5**, Beneish 7 -> **8**. Bank
+weights are untouched (banks never carried it). The metric's definition is unchanged.
+
+**Evidence** (`research/2026-10-09-operating-leverage.md`; CLAUDE.md open item 0.9(a)):
+- *Measured on this system, run `a2d76219dc0a`* (`research/measurements/2026-10-09-operating-leverage.py`):
+  95 of 392 values are negative and **85 of those are margin squeezes** (revenue up, operating
+  profit down); they averaged the **84th** sector percentile against **37th** for the rest. 49
+  values exceed +/-10. For the 31.9% of companies whose revenue moved less than 5%, the median
+  magnitude is 4.47 against 1.64 where revenue moved more than 10% - the denominator, not cost
+  structure. Rank correlation with the other six Quality metrics: -0.09 to +0.15.
+- *Literature:* DOL is an elasticity; the two-point ratio is its crudest estimator, and even
+  multi-year time-series estimates are imprecise and biased below one (Lord 1998, *Financial
+  Review* 33(2)). On direction, Novy-Marx (2011, *Review of Finance* 15(1)) finds a cost-based
+  operating-leverage measure *predicts higher* returns and that sorts on it earn significant
+  excess returns; later work finds the relation conditional or non-monotonic (García-Feijóo et
+  al. 2024; Kogan, Li, Zhang & Zhu 2025 working paper). No source found supports scoring lower
+  operating leverage as better in a return-oriented ranking.
+- *Practice:* MSCI's Quality Indexes use ROE, debt/equity and **earnings variability** (5-year
+  standard deviation of EPS growth); AQR's Quality Minus Junk (Asness, Frazzini & Pedersen 2019)
+  uses profitability, growth and safety, with safety's fundamental leg the **volatility of ROE**
+  over 60 quarters. Neither uses operating leverage. The durability the config comment intended
+  is measured in practice by earnings variability, which the screener does not yet have.
+
+**Expected effect:** small. Re-scoring the run's own table with the engine's own functions:
+rank Spearman **0.9976**, **1** change in the top 25, 4 in the top 50, median move 5 places
+(largest 36); Quality scores move 1.9 points on average. The change removes a metric that
+rewarded deteriorating margins rather than adding a new bet.
+
+**Validated by:** the measurement script above; `tests/test_golden.py` regenerated with only
+`quality_score` and `Composite` changing on the fixture; the full suite; the dashboard build's
+own reproduction of every published score (`calc_trace`) on the first run with the new weights.
+
+**Backtest observation (not decision-grade, rule 5):** none used.
+
+**Follow-up opened:** an `earnings_variability` candidate (weight 0) from SEC XBRL `companyfacts`,
+which carries the 5+ years both MSCI and AQR require and the run can now reach.
+
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** tag `good/2026-10-08-owner-4` (restores 27/20/18/15/5/8/7).
+
+---
+
+## 2026-10-09 (owner-run) - `earnings_variability` joins Quality as a weight-0 candidate (five years of ROE from SEC filings)
+
+**Area:** metric registry (new candidate, Quality)
+**Changed:** new metric `earnings_variability` = sample standard deviation of annual ROE (net
+income / year-end shareholders' equity) over the last five complete calendar years, from the
+SEC's XBRL frames API (`sec_fundamentals.py`); all five years required and equity must be
+positive. Lower is better. **Weight 0** in both the generic and bank tables; listed in
+`improvement_engine.CANDIDATE_METRICS`. `METRIC_COLS` 45 -> 46. The drilldown shows the five
+years and the arithmetic.
+
+**Evidence:** the gap found by `research/2026-10-09-operating-leverage.md` section 6. Both
+published practitioner definitions of quality measure durability by earnings variability -
+MSCI's Quality Indexes (5-year standard deviation of EPS growth) and AQR's Quality Minus Junk
+(Asness, Frazzini & Pedersen 2019: standard deviation of ROE, 60 quarters, or five fiscal years of
+annual ROE where quarterly data is unavailable - the rule used here). Yahoo's statements carry
+four annual years, so neither could be computed until the run had SEC access (2026-10-08).
+
+**Why a candidate, not weighted:** no note yet weighs it against what Quality already holds
+(ROIC and gross profit / assets are levels of the same profitability this measures the
+stability of), and ROE with a small equity base is large and volatile - Apple's ROE runs
+127-176% after buybacks, so its variability is 0.20 against Coca-Cola's 0.013. Those are
+questions for a research note before any weight, per rule 4.
+
+**Expected effect:** none on category scores. One indirect effect, measured: the composite's
+coverage discount counts every applicable metric, candidates included, so the applicable set
+grows 41 -> 42 (35 -> 36 for banks). On run `a2d76219dc0a` that changes the discount for **2**
+stocks - Loews +0.05 and FDXF -0.10 composite points; no other stock is below the 80% threshold
+either side. Coverage, measured the same day: 442 of 503 stocks have all five years; 59 do not
+(159 company-years of non-positive equity, 33 with no net-income tag in the frames, Exxon under a
+new registrant CIK with two years of history).
+
+**Validated by:** `tests/test_sec_fundamentals.py` (fixture frames; the published five ROEs
+rebuild the published value for every stock once a run carries them).
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; the metric is weight 0, so scores are unaffected either way except
+the two coverage-discount changes above.
+
+---
+
+## 2026-10-09 (owner-run) - `revenue_growth` compares periods exactly one year apart
+
+**Area:** metric definition (Growth)
+**Changed:** `revenue_growth` from TTM revenue / `totalRevenue_prior` - which for **502 of 502**
+stocks fell back to the fiscal year *before* the latest completed one - to **the latest quarter
+over the same quarter a year earlier** (kept only when the two are 350-380 days apart), falling
+back to **the latest fiscal year over the one before**. `_revg_basis` records which. Weight
+unchanged (25% of Growth). The page shows the two quarters and their dates.
+
+**Evidence** (`research/2026-10-09-revenue-growth-window.md`):
+- *Measured:* the old comparison spanned 12 to 23 months depending on the fiscal calendar - 18 for
+  December year-ends (363 of 466 with a known year-end), 12 for May-July, 21 for August-October -
+  so companies in the same sector were compared over different spans on the same day, and the
+  median "YoY" growth read 11.0% against 6.95% fiscal-year-on-fiscal-year.
+- *Literature:* quarterly revenue is modelled as a seasonal random walk whose benchmark is the
+  same quarter a year earlier (Jegadeesh & Livnat 2006, *JAE* 41, SURGE).
+- *Practice:* "quarterly revenue growth (yoy)" is the vendor convention; the new figure equals
+  Yahoo's own `revenueGrowth` field for Alphabet (0.242) and Microsoft (0.177).
+
+**Expected effect:** Growth-category reordering within sectors; against the fiscal-year
+alternative 13.5% of stocks would move more than 20 sector-percentile points, and the
+quarter definition is expected to move a similar share. **Measured effect on the first run:**
+recorded below by the session that runs it.
+
+**Not changed (same defect, own fix next):** Piotroski signals 3/8/9 and the Company Snapshot's
+YoY lines still compare TTM with the fiscal-year-before-last; Piotroski defines them on annual
+data, so their fix is fiscal year vs fiscal year.
+
+**Validated by:** live smoke test (GOOGL and MSFT on the quarter basis, KIM falling back to annual);
+`metric_lineage.EQUATIONS["revenue_growth"]` and `RECOMPUTE` updated in the same commit, so the
+equation tests hold the page to the engine at a 99% bar on the first run.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (restores the TTM / fallback comparison).
+
+---
+
+## 2026-10-09 (owner-run) - Piotroski signals 3, 8 and 9 compare two fiscal years, as Piotroski defines them
+
+**Area:** metric definition (Quality, `piotroski_f_score`)
+**Changed:** signal 3 (ROA rose), 8 (gross margin rose) and 9 (asset turnover rose) from TTM
+figures against the fiscal year before last (12-23 months apart; see the revenue-growth entry
+above) to **the latest fiscal year against the one before**, with ROA and turnover on
+**beginning-of-year total assets**. New fetch fields `_ni_a0/_ni_a1`, `_gp_a0/_gp_a1`,
+`_ta_a1/_ta_a2` (annual statements). Missing annual inputs make the signal untestable. Signals
+1, 2, 4 (current-period levels) and 5-7 (quarter-end balance sheet vs the same quarter a year
+earlier) are unchanged. Weight unchanged (16% of Quality since this morning).
+
+**Evidence:** Piotroski, J. (2000), *Journal of Accounting Research* 38 (supplement), 1-41: every
+change signal is defined on annual Compustat data, year t against t-1, with ROA = net income
+before extraordinary items / beginning-of-year total assets and turnover = sales / beginning
+total assets. The old comparison's window is measured in
+`research/2026-10-09-revenue-growth-window.md` (18 months for December year-ends, 12 for May-July).
+
+**Expected effect:** a minority of F-scores move by one or two points; on the 10-stock fixture 2 of
+10 changed (JNJ 8 -> 7, PG 8 -> 6). **Measured effect on the first live run:** recorded below by
+the session that runs it.
+
+**Validated by:** `tests/test_metrics.py::TestPiotroskiFScore` (inputs extended to the annual
+fields); golden fixture regenerated with the annual fields mapped from the existing ones.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - One EBITDA; labels that say what is measured
+
+**Area:** metric definition (Quality: `net_debt_to_ebitda`), display labels
+**Changed:** (1) `net_debt_to_ebitda` now uses the EBITDA `ev_ebitda` resolves (EBIT + |D&A|,
+Yahoo's reported EBITDA only when a component is missing) instead of its own copy, which kept the
+`D&A >= 0` gate Phase 13 (F36) had removed from the valuation block. The Company Snapshot's
+EBITDA is that same figure, not Yahoo's reported one. (2) Labels: `return_6m` "6M Return" ->
+**"6-1M Return"** (it has always been six months ago to one month ago, like 12-1);
+`max_drawdown_1y` "Max Drawdown (1Y)" -> **"Max Drawdown (13M)"**; the methodology page's
+volatility and drawdown descriptions say "about 13 months". CLAUDE.md 0.9(c) and (d).
+
+**Evidence:** a *documented defect*, not a research claim: two definitions of one quantity
+inside one score, and labels that disagree with the code - both found by the 2026-10-07 lineage
+audit. Measured on run `a2d76219dc0a`: the two EBITDAs were identical for all 442 stocks that had
+both, so the merge prevents divergence rather than correcting a live difference.
+
+**Expected effect:** none on today's scores (identical EBITDAs; labels only). The windows behind
+the 13-month labels are unchanged - shortening them to exactly 252 days would be a methodology
+change of its own and is not justified by anything found here.
+**Validated by:** full suite; the dashboard build's score reproduction on the next run.
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, evening) - Measured: the day's changes on the first full run
+
+**Area:** all of the 2026-10-09 entries above, together
+**Measured on:** evening run `0786662988b8` (fresh fetch after the close) against the 02:00 run
+`a2d76219dc0a`. Data and method both changed between them, so this is the combined effect; the
+per-change figures are in each entry. `research/measurements/2026-10-09-day-effect.py` (output beside it).
+- Composite-rank Spearman **0.935**; top 25: 19 in both; median rank move 24 places.
+- Category score Spearman: Growth **0.703**, Revisions 0.927, Quality 0.928, Valuation 0.979, Momentum
+  0.991, Risk 0.998, Size 0.999, Investment 1.000.
+- Trap flags: value 122 -> 46, growth 125 -> 66. Momentum weight 13% (the regime rule is off; it was
+  14.95% this morning).
+- Largest moves, each traced to a documented change: GILD 349 -> 41 (operating income without a one-off
+  acquired-R&D charge; ROIC -2.6% -> 32%), FTV 167 -> 345 and COO 291 -> 423 (forward EPS growth 71% and
+  61% -> one-basis 5.9% and 1.6%), TROW 131 -> 65 (generic metric set), AMCR 49 -> 165 (zero-estimate
+  placeholder and stale surprises no longer scored).
+
+**Not evidence for any change** (rule 4): this records what the changes did, not whether they predict
+returns. The first `1m` IC observation that includes tonight's ranking matures around 2026-11-09.
+
+---
+
+## 2026-10-09 (owner-run, third review) - Corrections before publishing
+
+**Area:** coverage count, forward_eps_growth, the valuation-history context card, the audit script
+**Changed:**
+- **Beneish is not counted as missing for Financials** (`_beneish_na`; `applicable_coverage`). Since the
+  same day's restriction it is never computed for them, so all 30 generic-set financials were short one
+  of 27 applicable metrics on the "N of 27" badge and ERIE's coverage discount rose (1.4% -> 2.0%).
+- **A stale earnings history is not a forward-EPS base.** The surprise metrics already skipped a history
+  whose newest quarter is >200 days old; `forward_eps_growth` still summed it (AMCR: next 12 months
+  against calendar 2025, ~21 months - the span the morning's change removed). 1 stock.
+- **Valuation history (context):** free-cash-flow yield takes operating cash flow and capex for the
+  *same* period (VLO paired cash flow to 2026-06 with capex to 2025-09; 8 stocks today, 237 historical
+  points); "today" must rest on a period ended within 200 days (VTRS showed a fiscal-year-old -17.1%
+  against Yahoo's -2.0%); the monthly price cache never stores the current part-month bar, which it
+  would later have used as that month's close.
+- **`scripts/audit_stock.py`** uses the engine's midpoint percentile; it had reported 0 of 501
+  reproducing against a payload built with the day's code (now 501 of 501). A test pins it to
+  `factor_engine._directed_pct`.
+- The beat score, fractional since its rescale (FDX 8.33), displays as such; its description says so.
+
+**Evidence / reasoning:** a third independent review of the afternoon's commits, each item measured on
+the 12:24 rehearsal run against the SEC facts cache.
+**Validated by:** `tests/test_valuation_history.py` (3 new), `tests/test_audit_stock_matches_engine.py`,
+the suite.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - The Beneish score and channel-stuffing flag skip every Financials stock
+
+**Area:** beneish_m_score (8% of non-bank Quality), the Beneish and channel-stuffing flags
+**Changed:** neither is computed for a GICS Financials stock, bank-like or not. Before, only bank-like
+stocks were skipped, so payment processors and exchanges were scored on it, and the GICS bank-like
+rule (same day) would have extended it to insurance brokers and asset managers.
+
+**Evidence / reasoning:** Beneish's 1999 model was estimated on a sample that excluded financial
+firms, whose sales and receivables mean something different - reported consistently by secondary
+sources (Wikipedia; CBIZ; GuruFocus; Seeking Alpha); the original paper (*FAJ* 55(5)) is paywalled and
+its sample section was not read directly. The case in point: an insurance broker's receivables are
+premiums it collects for insurers, and AON's receivables index read 3.52 - a "manipulation" signal
+from the business model. `research/2026-10-09-bank-like-financials.md`.
+**Expected effect:** Financials on the generic set (30 stocks) score Quality without Beneish (its
+weight redistributes within the category); none can carry the Beneish or channel-stuffing badge.
+**Validated by:** `tests/test_bank_like.py::test_beneish_and_the_channel_flag_skip_every_financial`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - Which financials are scored as banks is decided by GICS sub-industry
+
+**Area:** the metric set (bank or generic) for Financials stocks - Valuation and Quality
+**Changed:** `_is_bank_like` classifies on the GICS sub-industry from the S&P 500 list, which the
+universe loader now keeps (`sp500_tickers.json` carries it) and the run attaches to each stock before
+scoring. Bank set: banks, consumer finance, mortgage finance, insurers, reinsurance, multi-sector
+holdings, investment banking & brokerage. Generic set: insurance brokers, asset management,
+exchanges & data, payment processing. Bank-set exceptions inside Asset Management & Custody Banks,
+each with a stated reason: BNY, STT, NTRS (custody banks with deposits), APO, KKR (consolidated
+insurers), AMP (owns a bank and a life insurer). The rule also reads the GICS sector instead of
+Yahoo's, so XYZ, CPAY, JKHY, FIS, GPN and FISV now reach it by design rather than by accident.
+Without a sub-industry it falls back to Yahoo's industry (dashes normalised; EG's "Insurance -
+Reinsurance" no longer missed). A stock reaching the bank set only by default is logged by name.
+
+**Evidence / reasoning:** `research/2026-10-09-bank-like-financials.md`. 26 of the 59 bank-set stocks
+got there only by the default for an unlisted Yahoo industry - asset managers, insurance brokers,
+broker-dealers - putting TROW's 72% equity ratio at the 99th percentile and AON's goodwill-driven 6.1x
+P/B at the 9th. The dividing line, from Damodaran (*Investment Valuation* ch. 21) and practice
+(insurance brokers and asset managers on EV/EBITDA and P/E; banks, insurers and broker-dealers on P/B
+against ROE): whether liabilities are an operating input. Fama & French (1992) exclude financials
+because their leverage "probably does not have the same meaning".
+**Expected effect:** 13 stocks move to the generic set (TROW, BLK, BEN, IVZ, BX, ARES, AON, AJG, BRO,
+WTW, MRSH, ERIE, COIN), none the other way; 46 bank set, 30 generic, 0 by default. Measured offline on
+run a2d76219dc0a: TROW 130 -> 89, AON Valuation 25 -> 51, ERIE 328 -> 454 (Yahoo gives it no EBITDA or
+gross profit, so it is scored on 21 metrics); 346 ranks move by a mean of 2.8 places. Measured again on
+the first full run after the change.
+**Validated by:** `tests/test_bank_like.py` (20 tests, including that no constituent reaches the
+default and that scoring reads the GICS fields).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; without `_gics_sub` the rule falls back to Yahoo's industry.
+
+---
+
+## 2026-10-09 (owner-run, same day) - Correction: no forward EPS growth from a loss base
+
+**Area:** forward_eps_growth (45% of Growth)
+**Changed:** when the last four reported quarters sum to zero or a loss, `forward_eps_growth` is
+missing (`_feg_basis = "loss_base"`) instead of (next 12 months - base) / max(|base|, $1).
+
+**Evidence / reasoning:** found by measuring the first full rehearsal of the MSCI construction shipped
+earlier the same day. **8 of 490** stocks had a loss base, and every one with a positive forward figure
+hit the +150% cap: GILD (four quarters -$0.39 after a one-off acquired-R&D charge) went from Growth 29
+to 81 and rank 349 to 157; IP, TTWO, LYV, ECHO, COIN likewise; ARE and MRNA, losses narrowing, read as
+growth. A growth rate from a negative base has no meaning - its sign flips and its size is set by how
+small the loss was - which is why practice reports it as not meaningful. The old construction's F5
+ratio guard had excluded these; the new one had no guard for them. A ratio guard was considered and
+rejected: of the 13 stocks with forward / base above 2, most are genuine cyclical growth (AMD, STX,
+WDC, SNDK). MRK (base depressed by a one-off charge, +143%) is a known residual of the construction.
+`research/2026-10-09-forward-eps-growth.md` (addendum).
+**Expected effect:** 8 stocks lose the metric (weight redistributes within Growth).
+**Validated by:** `tests/test_forward_eps_growth.py` (7 tests - the first unit tests of the 12-month
+blend itself).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Net debt nets the same cash as enterprise value
+
+**Area:** net_debt_to_ebitda (Quality)
+**Changed:** net debt = balance-sheet debt minus cash, cash equivalents **and short-term investments**
+(the balance sheet's combined line; cash alone where it has none). It was cash and equivalents only.
+
+**Evidence / reasoning:** enterprise value in the same screener nets Yahoo's `totalCash`, which includes
+short-term investments, so one company had two net debts: 14 non-banks (MSFT, NVDA, GOOGL among them)
+were net cash by the EV definition and net debt by this one; 34 ratios differed by more than 0.25x
+(audit, run a2d76219dc0a). Equity practitioners define net debt as debt less cash and marketable
+securities; within one tool the definition must be the same in both places.
+`research/2026-10-09-metric-audit.md`.
+**Expected effect:** lower net debt / EBITDA for cash-rich companies holding treasuries; some move to
+exactly 0.0 (net cash). Measured on the first run after the change.
+**Validated by:** `tests/test_metric_lineage.py` (the page's equation rebuilds the scored value from the
+published inputs).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - `earnings_acceleration` leaves the Revisions score
+
+**Area:** Revisions category weights (the category's 10% of the composite is unchanged)
+**Changed:** `earnings_acceleration` 20 -> **0** (a recorded, displayed candidate, with its reason on
+the page). Its 20 points go to the category's non-surprise metrics in proportion: `fy1_revision_3m`
+35 -> **48**, `price_target_upside` 10 -> **13.5**, `short_interest_ratio` 10 -> **13.5**. The surprise
+family (`analyst_surprise` 15, `consecutive_beat_streak` 10) stays at the 25 points it already had.
+
+**Evidence / reasoning:** `research/2026-10-09-metric-audit.md`. The metric is the latest quarter's
+surprise minus the prior quarter's. Measured on 496 stocks: Spearman **+0.40** with the latest surprise
+and **-0.54** with the prior one, while consecutive surprises correlate **+0.38** - so it marks a stock
+down for having beaten last quarter, though surprises persist (Bernard & Thomas 1990). A quarter of its
+extreme deciles involve a one-off surprise above 100% (5% overall) - REIT property sales, special items.
+No study supports the *change* in analyst surprise as a return predictor; He & Narayanamoorthy's
+"earnings acceleration" is a different quantity (the change in year-on-year EPS growth, six quarters of
+EPS). The 2026-09-10 reweight kept it at 20 as "genuinely independent" of the other surprise metrics;
+the independence turns out to be mostly the noise of differencing two volatile ratios. The freed
+weight goes to the non-surprise metrics, not back to the surprise family, because Martineau (2022)
+finds the surprise drift absent in large caps since 2006 - the reason that reweight cut it.
+
+**Expected effect:** Revisions = FY1 revision 48 / surprise 15 / target 13.5 / short interest 13.5 /
+beat 10. Weighted metric count 28 -> 27 (24 for banks), so the coverage discount's denominator follows.
+Look-ahead buckets move 0.35pp (`lookahead.weight_buckets`: 28.35 price-restatable, 48.65 point-in-time).
+**Validated by:** `tests/test_fy1_revision.py` (weights), `tests/test_overview_claims.py` (the page's
+table equals config), golden fixture; measured on the first run after the change.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** restore the five weights in `config.yaml` and `schemas.py`.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Operating income, not Yahoo's 'EBIT', in ROIC, EV/EBITDA and net debt / EBITDA
+
+**Area:** ROIC, EV/EBITDA, net debt / EBITDA (and the weight-0 operating leverage)
+**Changed:** The trailing and annual 'EBIT' inputs read Yahoo's "Operating Income" line first and its "EBIT" line only as a fallback (it was the other way round).
+
+**Evidence / reasoning:** Yahoo's EBIT row is pretax income plus interest expense, so it includes non-operating gains: GOOGL $301.5B against $147.6B of operating income in its SEC filings (re-measured), MSFT 169.0 vs 155.2; 80 of 317 non-banks were more than 10% above operating income. ROIC's label is 'after-tax operating profit'; Greenblatt (2006) and Koller et al. (*Valuation*) define it on operating income. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** ROIC sector percentile moves more than 10 points for about 44 stocks, EV/EBITDA for about 40 (audit estimate on run a2d76219dc0a); measured on the first run after the change.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The EBITDA fallback is no longer EBIT under another name
+
+**Area:** EV/EBITDA, net debt / EBITDA
+**Changed:** With no quarterly D&A, EBITDA = operating income + the last fiscal year's cash-flow D&A; Yahoo's reported 'EBITDA' is used only if that is missing too, and not when it equals EBIT.
+
+**Evidence / reasoning:** For all six stocks that reached the old fallback, Yahoo's 'EBITDA' row equalled its EBIT row (DAL, UAL, MAS have no quarterly depreciation line). Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** DAL EV/EBITDA 12.29 -> 8.52 (sector percentile ~78 -> 98), UAL 9.30 -> 6.05; 4 non-banks affected.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Statement figures are read by period, never by skipping a blank one
+
+**Area:** every statement-based input (TTM flows, prior-year comparisons, Beneish, Piotroski)
+**Changed:** `_stmt_val` / `_stmt_val_ltm` index the periods that hold data, newest first by date; a blank cell is that period, missing; a trailing twelve months needs four adjacent quarters (three, annualised, as before). Columns Yahoo lists without data are skipped. The statement date recorded for provenance is the newest period with data.
+
+**Evidence / reasoning:** Reading the k-th non-blank value put BRK-B's Q2'25 in place of a blank Q3'25: trailing net income $67.3B against $85.8B in its filings (-21%), feeding earnings yield, accruals and Piotroski. Beneish inputs came from the wrong year in 10 of 127 sampled non-banks. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Small in number (2 of 152 sampled had non-adjacent quarters), large where it bites; golden fixture regenerated.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Yahoo's 0.0 'no estimate' placeholder is not read as a consensus
+
+**Area:** fy1_revision_3m, forward_eps_growth
+**Changed:** An EPS estimate of exactly 0.0 from `eps_trend` is treated as missing, at fetch and in the scoring (and in the page's recomputation).
+
+**Evidence / reasoning:** AMCR's 90-days-ago FY1 estimate was 0.0 (re-measured), giving a revision of +9.6% of price and the 100th percentile in Materials; LIN's current estimate was 0.0 (-3.7%, 4th percentile); VMRK likewise. A consensus is an average of analysts' figures and is not exactly zero to the cent. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** 3 scored stocks, about 2 composite points each.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Jensen's alpha and beta use the S&P 500 with dividends reinvested
+
+**Area:** jensens_alpha, beta
+**Changed:** The market series is ^SP500TR (total return); ^GSPC only if it cannot be fetched, which the run log records.
+
+**Evidence / reasoning:** Each stock's return is dividend-adjusted, so a price index tilted every alpha up by beta x the index's dividend return - 1.37pp over the year to 2026-10-09, about 5.5pp for a beta-4 stock. The caveat had said 'roughly the dividend yield'. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Alpha percentile moves for 167 of 499 stocks (88 by 2+ points, up to 9.1); beta changes negligibly.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The momentum 'volatility regime' rule is switched off
+
+**Area:** category weights (momentum, valuation, quality) for the whole run
+**Changed:** `momentum_regime.enabled: false`. The run still records the dispersion it read, in `factor_vol_history.csv`.
+
+**Evidence / reasoning:** The rule's input was the cross-stock standard deviation of momentum_score, which is built from within-sector percentile ranks and so has a spread fixed by construction - it moves with how closely the three momentum metrics agree, not with market volatility (rank-predicted 25.03 vs measured 25.07; correlation with S&P 500 realised volatility +0.37). Replayed over its own history it called 30 of 33 runs LOW VOL and never HIGH (re-measured), raising momentum 13 -> 14.95 most days. The published methodology said it tracked market-wide volatility. Momentum crashes do cluster in volatile markets (Daniel & Moskowitz 2016; Barroso & Santa-Clara 2015), so a rebuilt rule on a real volatility input is a research item, not this one re-tuned. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Momentum back to 13% and valuation to 22% on most runs; the Weighting profiles follow.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Percentile ranks use the midpoint rule, so direction and sector size no longer tilt scores
+
+**Area:** every metric's sector percentile
+**Changed:** Percentile = (rank - 0.5) / n x 100, flipped as 100 - p for lower-is-better metrics (was rank / n, flipped as 100 - that).
+
+**Evidence / reasoning:** rank / n runs from 1/n to 1, so higher-is-better metrics averaged 50 + 50/n and lower-is-better ones 50 - 50/n (Energy 52.38 vs 47.62); with the weighted direction balance, small sectors gained about a point of composite (Energy ~1.0 vs Industrials ~0.3). The midpoint rule is the standard symmetric plotting position. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Every percentile shifts by at most 50/n points; composites shift by up to about a point by sector. Golden fixture regenerated.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The three surprise metrics read quarters in date order and skip stale histories
+
+**Area:** analyst_surprise, earnings_acceleration, consecutive_beat_streak
+**Changed:** Quarters are sorted by date; a history whose newest quarter ended more than 200 days ago is shown but not scored; acceleration needs the two latest quarters; the beat score is the beating quarters' share of the recency weight (4 newest .. 1) with data, x 10 - identical to the old sum when four quarters have data.
+
+**Evidence / reasoning:** ACN's quarters came back out of order; AMCR's newest quarter was Dec-2025 though it had reported Jun-2026; with three quarters the old beat score capped at 6 (CCL, FDX, FERG), penalising missing data against the engine's own rule. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** About 1-2% of stocks.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - The channel-stuffing flag compares one fiscal year on both sides, at Beneish's cut
+
+**Area:** an informational flag (drilldown badge, Excel DataValidation sheet) - not scored
+**Changed:** receivables growth and revenue growth now come from the same two annual statements (it
+was fiscal-year receivables against trailing-twelve-month revenue over usually the prior fiscal year),
+and the flag is Beneish's days-sales-in-receivables index at **1.465 or more** instead of an unsourced
+"receivables growth > revenue growth + 15pp". Bank-like stocks are excluded. The badge states both
+growth rates.
+
+**Evidence / reasoning:** `research/2026-10-09-trap-flags.md` (addendum). Beneish (1999): DSRI mean
+1.465 among earnings manipulators, 1.031 among non-manipulators. The window mismatch is the one
+`revenue_growth` had (changelog, same day).
+**Expected effect:** 60 -> 15 flagged on run `a2d76219dc0a`; no score changes.
+**Validated by:** `tests/test_trap_flags.py` (the DSRI arithmetic on one basis, the 1.465 cut, banks
+excluded).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - A value trap must be cheap and a growth trap must be growing
+
+**Area:** trap flags (labels, the Top 5's exclusion, the Excel model portfolio's exclusion) - no
+score, rank or composite changes
+**Changed:** `apply_value_trap_flags` now requires a Valuation score at or above the 70th
+percentile (the cheapest 30%; `value_trap_filters.valuation_percentile`) beside the existing
+2-of-3 weakness rule. `apply_growth_trap_flags` requires the growth score above its 70th-percentile
+ceiling, with quality **or** revisions below its 35th-percentile floor (it was 2-of-3 with growth as
+one of the three). The methodology page's description follows, and two false sentences on it are
+corrected ("about 30% of stocks are typically flagged" - it was 24%; severity averaged "across the
+dimensions that triggered the flag" - the code averages all three).
+
+**Evidence / reasoning:** `research/2026-10-09-trap-flags.md`. The value flag never consulted
+valuation: its 122 flagged stocks had a median valuation percentile of 0.51, and 74 stocks carried
+both flags. Piotroski (2000) defines the problem within the cheapest book-to-market quintile;
+Mohanram (2005) its mirror within growth stocks; practitioners use "value trap" for stocks that
+look cheap (Asness, Frazzini, Israel & Moskowitz 2015). A flag that fires on any weak stock repeats
+what the Quality, Momentum and Revisions scores already show.
+
+**Expected effect:** on run `a2d76219dc0a`, value flags 122 -> 43, growth flags 125 -> 74, both
+74 -> 5. Top 5 unchanged (EXPE, HST, APA, BBY, DLTR); 2 of the top 25 flagged before and after.
+**Validated by:** `tests/test_trap_flags.py` (every value-flagged stock is in the cheapest 30%, every
+growth-flagged stock above the growth ceiling, on fixtures and on the published payload);
+`tests/test_scoring.py::TestValueTrapFlags`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (or set `valuation_percentile: 0` to restore the old value rule).
+
+---
+
+## 2026-10-09 (owner-run) - Each stock's earnings and FCF yield against its own five years (context only)
+
+**Area:** dashboard context layer (no change to any score, rank or published metric)
+**Changed:** a new card in Before you decide, "Against its own five years": earnings yield and
+free-cash-flow yield at each of the past 60 month-ends, built from SEC filings as first reported
+and split-adjusted, with today's percentile in that range (`valuation_history.py`). The SEC
+companyfacts cache also keeps diluted share counts and the `PaymentsToAcquireProductiveAssets`
+capex tag. Two new context-log columns, `_ctx_vh_ey_pct` and `_ctx_vh_fy_pct`, are evaluated by
+`context_eval.py` like every other context signal.
+
+**Evidence / reasoning:** `research/2026-10-09-valuation-vs-own-history.md`. Cohen, Polk &
+Vuolteenaho (2003) attribute only 20-25% of the cross-sectional spread in book-to-market to
+transitory expected-return differences, so a stock's own range is a meaningful second reference
+point. That a yield high *in its own range* predicts returns is not established (Lewellen 1999:
+time-series B/M adds nothing beyond risk), so the card says so and it is not scored. It adds no new
+quantity to the screener: Valuation already scores both yields cross-sectionally.
+
+**Expected effect:** none on the ranking. 456 of 503 stocks get the card; the rest are named in the
+note with the reason (share counts by class, mis-scaled filings, no share tag, under 36 months).
+**Validated by:** our earnings yield vs Yahoo's trailing EPS / price, Spearman 0.991 (median gap
+0.04pp, n=452); today's market value reproduces Yahoo's within 15% for every stock shown (median
+0.98%); NVDA's 10:1 and WMT's 3:1 splits leave no break in the series.
+`tests/test_valuation_history.py`; claim `context.valuation_history`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; the context card disappears and nothing else changes.
+
+---
+
+## 2026-10-09 (owner-run) - The rankings table can show the Value, Growth and Momentum weightings (display only)
+
+**Area:** dashboard (no change to the published ranking)
+**Changed:** a Weighting selector on the rankings table. Each named weighting is `presets.py`'s
+(the single definition), with the run's own volatility-regime adjustment, and its composites and
+ranks are computed at build time by the engine's `compute_composite`. The regime rule moved into
+one pure function, `factor_engine.apply_momentum_regime`, which `adjust_momentum_weight` now
+calls - same weights, verified by test against the old arithmetic.
+
+**Evidence / reasoning:** `plan/investor-profiles.md` set the requirement that the CLI's
+`--preset value` and the page's "Value" must be the same ranking; computing the profiles with the
+engine and the CLI's own regime step satisfies it by construction, and a test re-derives each
+profile from the run's scored table. Showing how the order changes with emphasis is the weight-
+sensitivity defensibility feature in a form a student can use.
+
+**Expected effect:** none on the published ranking, Top 5, holdings or any stock's sheet. On run
+`a2d76219dc0a` the Value weighting puts HST first (Balanced: EXPE); Momentum puts AIZ first.
+**Validated by:** the build withholds the profiles unless Balanced reproduces the published
+composites and ranks; `tests/test_investor_profiles.py`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - The coverage discount counts only metrics that carry weight
+
+**Area:** composite (coverage discount), published coverage figure
+**Changed:** `applicable_coverage` - the coverage the composite's discount reads and the drilldown's
+"rests on N of M metrics" states - counted every entry in `METRIC_COLS` less the bank-only or
+non-bank-only ones (41 / 35). It now counts the metrics that **carry weight in the table the stock
+is scored with**, read from `metric_weight_profiles` (`weighted_metric_sets`): **28** for most
+stocks and **25** for bank-like ones today. Threshold (80%) and rate (15%) unchanged.
+
+**Evidence:** a documented defect. Twelve registered metrics carry no weight anywhere (eight
+candidates, plus Sharpe, Sortino, PEG and debt/equity), yet a stock missing them counted as less
+covered - so it could be discounted for data that never enters its score, and adding a weight-0
+candidate (earnings variability, this morning) moved composites. The discount's purpose, stated in
+`config.yaml` and on the methodology page, is to temper a score that **rests on** thin data.
+
+**Expected effect** (re-scored on run `a2d76219dc0a`): Loews (L) is no longer discounted (it was,
+at 0.43%, for missing unweighted metrics); Fox (FOX) is newly discounted 0.10% (79.3% of its
+weighted metrics present); FDXF's discount rises 2.12% -> 2.69%. No other stock is below 80% either
+way; median coverage reads 100% instead of 97.6%. It also makes the earnings-variability entry's
+coverage side effect (Loews/FDXF) moot: a weight-0 metric can no longer move a composite.
+**Validated by:** `tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage`
+now derives the expected counts from the run's own weights; the build's score reproduction reads
+the published coverage.
+**Not changed:** the separate *coverage filter* that excludes a stock below
+`min_data_coverage_pct` still counts registered metrics; aligning it would change who is in the
+universe and needs its own measurement.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (restores the 41 / 35 count).
+
+---
+
+## 2026-10-09 (owner-run, same day) - Correction: `earnings_variability` reads companies' own 10-K figures, not the XBRL frames
+
+**Area:** data source of the weight-0 candidate added earlier today (no score is affected).
+**Changed:** `sec_fundamentals` now builds the five years of ROE from each company's
+`companyfacts` (its 10-K net income for each fiscal year, and equity at that same fiscal-year end)
+instead of the XBRL *frames* API, cached weekly in `data/sec/pit/facts.parquet` - the cache the
+backtest's point-in-time layer also reads.
+**Why (a documented defect, found by a trial run):** the frames API's NetIncomeLoss CY2024 frame
+gave Con Edison **1,820,000** where its 10-K says **1,820,000,000** (ROE 0.009% instead of 8.3%),
+and frames pair a fiscal year's income with calendar-year-end equity, up to six months apart for
+non-December year-ends. Net income is now chosen per fiscal year (NetIncomeLoss, else ProfitLoss),
+because filers switch tags. Coverage: **444** of 503 (frames: 442); the remainder are years of
+non-positive equity (44) and companies with under five years of filings.
+**Also fixed, found the same way:** a `--tickers` run wrote the scored cache under the full run's
+key, so a later full run that day would have served a subset as the universe
+(`run_screener.should_write_score_cache`; test in `tests/test_cache_freshness.py`).
+The overlap measurements in `research/2026-10-09-earnings-variability-candidate.md` were taken on
+the frames data; the decision there (stay unweighted) does not depend on the handful of mis-scaled
+values.
+**Applied by:** owner-run session, 2026-10-09.
+
+---
+
+## 2026-10-09 (owner-run) - The coverage filter uses the same coverage as the discount
+
+**Area:** universe (the filter that excludes stocks below `min_data_coverage_pct`, 60%)
+**Changed:** it counted every registered metric applicable to the stock's type; it now reads
+`factor_engine.applicable_coverage(df, cfg)` - the metrics carrying weight in the stock's table -
+which the composite's coverage discount has used since this morning. One definition of coverage.
+**Evidence:** a documented defect class: a stock could be dropped from the universe for missing
+weight-0 candidates. **Measured on run `a2d76219dc0a`: no change** - the two stocks excluded (HONA,
+17 of 29 weighted metrics = 59%; VYLR, 8 of 29) are excluded under either rule.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - `forward_eps_growth` measures the next 12 months on one accounting basis
+
+**Area:** metric definition (Growth; 45% of the category)
+**Changed:** from Yahoo's `forwardEps` (the fiscal year *after* the current one) over GAAP
+`trailingEps`, to MSCI's short-term forward EPS growth: next-12-months EPS =
+(M x current-FY consensus + (12 - M) x next-FY consensus) / 12, over the last four reported quarters'
+actual EPS (consensus basis), with M the months left in the current fiscal year. $1 floor and
+-75%..+150% clip kept; the old form remains only as the fallback where consensus inputs are missing
+(`_feg_basis`). The page shows the blend, the four-quarter sum and M (`feg_*` engine keys); PEG
+(weight 0) follows through the same function.
+**Evidence:** `research/2026-10-09-forward-eps-growth.md` - measured horizon of 13-24 months by fiscal
+calendar and a GAAP-vs-adjusted basis mix; MSCI Fundamental Data Methodology section 2.2.5 (EGRSF).
+**Expected effect:** large within Growth - on a live sample of 35, rank correlation with the old values
+0.65, median 14.8% vs 34.5%. Measured effect on the first run: below, by the session that runs it.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.

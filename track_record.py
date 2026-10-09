@@ -82,6 +82,24 @@ def load_prices(tickers: list[str], start: date, end: date | None = None, downlo
     if cached is not None and not need_all:
         prices = pd.concat([cached.loc[cached.index < fresh.index.min()], fresh]).sort_index()
         prices = prices[~prices.index.duplicated(keep="last")]
+        # A column that exists is not a column that is complete (2026-10-09: PSKY had 9
+        # closes in the cache over a 160-day window while trading every day, so it dropped
+        # out of three bottom-fifth baskets). Availability is tested by coverage of the
+        # window the record reads, never by the column's presence: any ticker missing more
+        # than a fifth of the window's trading days is downloaded again from the start.
+        win = prices.loc[prices.index >= pd.Timestamp(start)]
+        if len(win) >= 20:
+            frac = win.reindex(columns=sorted(set(tickers))).notna().mean()
+            thin = sorted(t for t, f in frac.items() if f < 0.8)
+            if thin:
+                try:
+                    redo = download(thin, start, end)
+                    redo.index = pd.to_datetime(redo.index).tz_localize(None)
+                    for t in thin:
+                        if t in redo.columns and (redo[t].notna().sum() > (win[t].notna().sum() if t in win.columns else 0)):
+                            prices[t] = redo[t].reindex(prices.index).combine_first(prices[t]) if t in prices.columns else redo[t].reindex(prices.index)
+                except Exception:  # noqa: BLE001 - a failed repair keeps what we had
+                    pass
     else:
         prices = fresh.sort_index()
     PRICE_CACHE.parent.mkdir(parents=True, exist_ok=True)
@@ -148,6 +166,8 @@ def build(snapshots: list, prices: pd.DataFrame, today: date | None = None, chan
     values = {k: 100.0 for k in list(baskets) + list(bench)}
     periods = []
     prev_top = None
+    unpriced = {k: set() for k in baskets}     # picks with no price at entry, per basket
+    picks = {k: 0 for k in baskets}
     for i, d in enumerate(rebal):
         start = pd.Timestamp(d)
         nxt = pd.Timestamp(rebal[i + 1]) if i + 1 < len(rebal) else None
@@ -160,6 +180,8 @@ def build(snapshots: list, prices: pd.DataFrame, today: date | None = None, chan
         row = {"date": d, "entry": None}
         for k in baskets:
             v, info = run_basket(prices, port[k], start, end, values[k])
+            picks[k] += len(port[k])
+            unpriced[k] |= set(info.get("missing") or [])
             if v.empty:
                 continue
             baskets[k].append(v)
@@ -221,6 +243,11 @@ def build(snapshots: list, prices: pd.DataFrame, today: date | None = None, chan
         "periods_compared": len(beat),
         "series": series,
         "methodology_changes": marks,
+        # Names the ranking picked that the free price source no longer serves (taken
+        # private, acquired, renamed) - left out of their basket, which is a survivorship
+        # gap the page states rather than hides (plan/context-layer.md item 6).
+        "unpriced": {k: sorted(v) for k, v in unpriced.items()},
+        "picks": picks,
         "gaps": [p["date"] for i, p in enumerate(periods[1:], 1)
                  if (pd.Timestamp(p["date"]) - pd.Timestamp(periods[i - 1]["date"])).days > 45],
     }

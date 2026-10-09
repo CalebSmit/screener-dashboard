@@ -9088,3 +9088,143 @@ yesterday, because the ~1,000 wasted requests are gone and the page states the r
 **Tests: before 1936 passed / 3 failed; after 1997 passed / 0 failed.** Gates: 1 PASS, 2 PASS
 (dry-run), 3 PASS (`node --check` on both payloads, opening assignments, size floors, and the data
 loop's own `check_published_claims.py` at 363 passed), 4 PASS (clean tree).
+
+---
+
+## 2026-10-09 (owner-run, all day) - Every weighted metric audited and its defects fixed, financials classified by GICS, valuation against its own history, investor profiles; published from a full after-close run
+
+Owner: *"keep making any improvements you can right now ... dont stop until you are 100% sure it is
+as good as it can be, then the nightly sessions can do fine tuning."*
+
+**Health (rule 8):** last code session ran - **yes**, `logs/nightly-2026-10-09_060001.log` ends "shipped
+to main". Data loop published - **yes**, `logs/datarun-2026-10-09_020001.log` ends "Data loop complete",
+HEALTH: PASS, 501 scored. Evidence base at `1m` - **26 rows, newest 2026-09-09 (30 days, bound 40),
+4 effective**. Priority 0 - `allow_auto_apply` still `false`, 4 effective against a gate of 8. Top open
+roadmap item - **0.9 answered today**; open: **0.12 residuals** (age 0 days - only the momentum panic
+rule left, ready to build) and **3, backtest v2 step 3** (open since 2026-10-01, age 8 days).
+
+**Morning check of last night:** the SEC insider switch worked - 501 of 501 stocks on Form 4 data, the
+nightly top-up 579 requests / 76 new filings. The 06:00 session found the options panel empty at the
+02:00 hour (quotes zeroed overnight) and fixed it in code but could not register the 20:00 quote task
+(PowerShell blocked). **Registered here and verified** with `Get-ScheduledTask` (one weekly 20:00
+trigger, no logon trigger; loops still PT3M/PT20M); live smoke test at 08:46 CT wrote the cache.
+
+### Methodology (each with a `METHODOLOGY_CHANGELOG.md` entry and its evidence)
+1. **`operating_leverage` to weight 0** - 85 of its 95 negative values were margin squeezes ranked best;
+   Novy-Marx (2011) finds higher operating leverage earns *more*; neither MSCI nor AQR quality uses it.
+   Its 8 points spread in proportion (Quality 29/22/20/16/5/8). `research/2026-10-09-operating-leverage.md`.
+2. **`revenue_growth` compares periods a year apart** - the old comparison fell back for 502/502 stocks
+   to the fiscal year before last: 18 months for December year-ends, 12 for May-July, 21 for Aug-Oct.
+   Now the latest quarter vs the same quarter a year earlier (else FY vs FY); equals Yahoo's own
+   `revenueGrowth` for GOOGL/MSFT. `research/2026-10-09-revenue-growth-window.md`.
+3. **Piotroski signals 3/8/9 on two fiscal years with beginning-of-year assets**, as Piotroski defines them.
+4. **One EBITDA** for both ratios and the snapshot; labels "6-1M Return", "Max Drawdown (13M)".
+5. **The coverage discount counts only weighted metrics** (28 / 25 for banks) - a weight-0 candidate can
+   no longer move a composite; Loews undiscounted, FOX +0.10%, FDXF 2.12% -> 2.69%.
+6. **`forward_eps_growth` (45% of Growth) measures the next 12 months on one basis** - Yahoo's forward EPS
+   is the fiscal year *after* the current one, so the old ratio spanned 13-24 months and mixed GAAP with
+   adjusted EPS (Albemarle read +1,102% before clipping). Now MSCI's EGRSF construction
+   (`research/2026-10-09-forward-eps-growth.md`); live sample rho 0.65 vs old, median 14.8% vs 34.5%.
+7. **The coverage filter** reads the same weighted coverage as the discount (no stock changed today), and
+   the prior balance sheet must be a year earlier (latent: 0 of 288 misaligned).
+8. **Trap flags say what their names say.** The value-trap flag never consulted valuation (122 flagged,
+   median valuation percentile 0.51) and the growth flag fired on low-growth stocks; 74 carried both. Now
+   a value trap is in the cheapest 30% (Piotroski 2000) and a growth trap in the top 30% on growth
+   (Mohanram 2005): 122 -> 43 and 125 -> 74 on the morning run, Top 5 unchanged, no score moves.
+   Found by walking the live site at 375px. `research/2026-10-09-trap-flags.md`.
+9. **`earnings_variability`** joined Quality as a **weight-0 candidate** (5 fiscal years of ROE from the
+   SEC's own 10-K figures; 444 covered) - and **stays unweighted**: as built it rises with ROE's level and
+   overlaps Risk (`research/2026-10-09-earnings-variability-candidate.md`, ROA variant measured too).
+
+### Metric audit (every weighted metric, two read-only passes, then fixed)
+Nine defects, each verified in code and measured (`research/2026-10-09-metric-audit.md`): "EBIT" was
+pretax + interest (GOOGL $301.5B vs $147.6B operating income) - now operating income; the EBITDA fallback
+was EBIT again (DAL, UAL); statement lookups skipped blank periods (BRK-B trailing net income -21%);
+Yahoo's 0.0 "no estimate" read as a consensus (AMCR +9.6% revision, LIN -3.7%); alpha and beta against
+the price index - now ^SP500TR; the momentum "volatility regime" read a score spread fixed by
+construction (LOW in 30 of 33 runs, never HIGH) - **switched off**; percentile ranks tilted by direction
+and sector size - midpoint rule; surprise quarters unsorted and stale histories scored; four false page
+sentences. Also the **channel-stuffing flag** (one fiscal year on both sides, Beneish's DSRI 1.465: 60 ->
+15 flagged). Then the judgement calls: **`earnings_acceleration` to weight 0** (-0.54 with the prior
+surprise; its 20 points to the non-surprise Revisions metrics: FY1 revision 48, target 13.5, short
+interest 13.5); **net debt nets cash and short-term investments** as EV does; accruals overlap measured
+(no change); **bank-like financials decided by GICS sub-industry** (`research/2026-10-09-bank-like-financials.md`):
+26 of 59 bank-set stocks had got there only by default; 13 fee businesses (TROW, BLK, AON, AJG, ...) move to
+the generic set, custody banks and insurer-consolidating alt managers stay with named reasons, 0 by default
+(tested). The universe file now carries the GICS sub-industry.
+
+**Two full-pipeline rehearsals** before the close found one more defect in the day's own work: the MSCI
+forward-EPS construction scored growth from a **loss base** (8 stocks at the +150% cap; GILD Growth 29 ->
+81) - now missing, with the blend's first unit tests. The same rehearsal confirmed the construction's
+large moves are corrections (FTV 71% -> 5.9%, COO 61% -> 1.6%, ELV 31% -> -1%: adjusted forward EPS had
+been compared with depressed GAAP trailing EPS).
+
+### Transparency (CLAUDE.md 0.10 a-d - all built)
+Beta (cov / var), Jensen's alpha (four CAPM terms) and volatility (daily sd x 252^0.5) print exact,
+engine-published equations; the three surprise metrics show their four quarters with a test rebuilding
+each. `scoring_schema` 4.
+
+### Product
+- **Weighting selector** on the rankings (Balanced / Value / Growth / Momentum), computed by the engine at
+  build time with the run's own regime - equals `run_screener.py --preset` (priority 6 M1-M3).
+- **What Changed overview** - the run in three sentences (priority 4's residual, done).
+- **Column tooltips** fill weights from the run's tables (they were typed by hand and would have gone
+  stale with item 1). **Reporting Soon** gained a "Last quarter" surprise column.
+- Context panel research sentences checked against sources (Faber is about indices; Lehmann weekly;
+  XZZ dated; insider evidence weakest in large caps per Lakonishok & Lee's full text) and the trend card
+  cites the single-stock evidence (21/200-day moving-average distance, now recorded).
+- Market backdrop: Sahm from FRED's real-time series. Track record: thin cached price columns repaired;
+  unpriced picks named.
+
+- **My Holdings** cards show the context line; their composite tooltip no longer calls the composite a
+  percentile (a false claim the 2026-10-07 fix had missed).
+- **Against its own five years** (north-star gap 3, shipped): each stock's earnings and FCF yield at 60
+  month-ends from SEC filings, as first filed and split-adjusted, with today's percentile in that range -
+  context, logged for evaluation, never scored. 456 of 503 pass the market-value self-check; vs Yahoo's
+  trailing EPS yield Spearman 0.991, median gap 0.04pp. `research/2026-10-09-valuation-vs-own-history.md`.
+- Two review agents read the branch. The first found seven defects (subset runs rewriting the SEC cache, a
+  stale BKNG table published as current, three page sentences describing code that had changed, profiles
+  hidden on auto-reduce days, `scoring_schema`); the second three more (the context log never carried the
+  GICS sector, so the sector-relative signal was always empty - both committed logs repaired; a possible
+  "Unemployment is nan%"; `scoring_schema` 6). All fixed before publishing, plus one found while fixing
+  them: a `--tickers` run also rewrote the track record and the committed context log. A **third review** of the afternoon's
+  commits found five more, fixed before publishing: the public audit script still used the old percentile
+  (0 of 501 reproducing -> 501 of 501, now tested against the engine); Beneish counted as missing for
+  Financials that never get it; AMCR's stale history still feeding its forward-EPS base; valuation-history
+  FCF mixing periods and "today" resting on year-old figures; a part-month bar in the price cache.
+
+### Infrastructure
+- `context_eval.py` - the context signals' record (first one-month window closes 2026-11-07).
+- **Backtest v2's unmeasured half measured**: XBRL facts with filed dates cover ~95% of name-months for
+  the core inputs, 33/54-day median first-filing lags (`research/2026-10-09-pit-fundamentals-census.md`);
+  `pit_fundamentals.py` is the as-of data layer (not wired into v1).
+- **Test isolation (priority 8) done**: three tests wrote published files; isolated; `conftest.py` is now
+  a tripwire. A `--tickers` run no longer writes the universe's score cache (a 32-ticker trial run had
+  written one the evening's full run would have served as the whole market).
+
+### Published, and what it moved (measured)
+Evening run `0786662988b8` (fresh fetch after the close, 501 scored, 0 fetch failures, market series
+^SP500TR). **Gates:** full suite **2,108 passed, 0 failed**; `--dry-run` exit 0; both payloads parse
+(5,966 KB / 1,676 KB); the data loop's six publish gates PASS; `scripts/audit_stock.py --all` 501 of 501.
+Four full rehearsals during the day found five more defects before this one ran (one was the publish
+gate itself refusing a coverage sentence a same-day fix had made untrue).
+
+Against this morning's 02:00 run (`a2d76219dc0a`) - data *and* method changed, so this is the combined
+effect (`research/measurements/2026-10-09-day-effect.txt`): composite-rank Spearman **0.935**; top 5
+3 in both (tonight EXPE, HST, APA, CF, INCY), top 25 19, top 50 42; median move 24 places, 118 move 50+.
+By category, Growth moved most (Spearman 0.703 - forward EPS growth on one basis, revenue growth a year
+apart), then Revisions 0.927 and Quality 0.928; Investment, Size, Risk and Momentum barely (>= 0.991).
+Trap flags 122/125 -> **46/66**. Largest moves and their causes, checked: GILD 349 -> 41 (its old EBIT
+carried a one-off acquired-R&D charge: ROIC -2.6% -> 32%, net debt/EBITDA 12.8 -> 1.6; its loss-base
+forward growth is now blank), FTV 167 -> 345 and COO 291 -> 423 (forward EPS growth 71% and 61% had come
+from adjusted forward EPS over depressed GAAP EPS), TROW 131 -> 65 (now scored as the fee business it
+is), AMCR 49 -> 165 (its zero-placeholder revision and stale surprises no longer score).
+
+### Next
+- **0.12's last residual:** build the momentum panic rule (`research/2026-10-09-momentum-regime.md`;
+  evidence gate met, design and threshold fixed).
+- Re-measure the options `ok` share from Monday's 02:00 log (the 20:00 quote task's first weekday).
+- 41 stocks' Yahoo statements lag a quarter (now reported honestly as stale, display only); an SEC
+  fallback for the trailing figures is the fix and is not started.
+- Watch the first one-month context window (2026-11-07), now with two own-history signals and a
+  working sector-relative signal.

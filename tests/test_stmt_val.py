@@ -25,7 +25,8 @@ def _make_stmt(labels, values_per_label=2):
     for i, lbl in enumerate(labels):
         data[lbl] = [(i + 1) * 100 + j for j in range(values_per_label)]
     df = pd.DataFrame(data).T
-    df.columns = [f"2025-{c+1:02d}-01" for c in range(values_per_label)]
+    # newest first, as yfinance dates them (the lookups order periods by date since 2026-10-09)
+    df.columns = [f"2025-{12 - 3 * c:02d}-01" for c in range(values_per_label)]
     return df
 
 
@@ -239,3 +240,38 @@ class TestStmtValLtm:
         # offset=4 needs 4 quarters (cols 4,5,6,7) but only 3 available
         result = _stmt_val_ltm(stmt, "Total Revenue", offset=4)
         assert np.isnan(result)
+
+
+class TestByPeriod:
+    """2026-10-09 audit: lookups are by period, never by the k-th non-blank value."""
+
+    def _q(self, values, dates=("2026-06-30", "2026-03-31", "2025-12-31", "2025-09-30", "2025-06-30", "2025-03-31")):
+        # a second, complete line item: real statements have dozens, so one blank cell never
+        # empties a whole period
+        return pd.DataFrame([values, [1.0] * len(values)], index=["Net Income", "Total Revenue"],
+                            columns=pd.to_datetime(list(dates[:len(values)])))
+
+    def test_a_blank_period_is_missing_not_the_next_one(self):
+        stmt = self._q([10.0, np.nan, 30.0, 40.0])
+        assert _stmt_val(stmt, "Net Income", 0) == 10.0
+        assert np.isnan(_stmt_val(stmt, "Net Income", 1))
+        assert _stmt_val(stmt, "Net Income", 2) == 30.0
+
+    def test_ttm_never_skips_a_blank_quarter(self):
+        # BRK-B, 2026-10-09: Q3'25 blank; the old sum took Q2'25 in its place
+        stmt = self._q([10.0, 20.0, 30.0, np.nan, 50.0])
+        assert _stmt_val_ltm(stmt, "Net Income") == pytest.approx((10 + 20 + 30) * 4 / 3)
+
+    def test_ttm_needs_adjacent_quarters(self):
+        stmt = self._q([1.0, 2.0, 3.0, 4.0],
+                       dates=("2026-06-30", "2026-03-31", "2025-12-31", "2025-06-30"))   # Sep-25 column absent
+        assert _stmt_val_ltm(stmt, "Net Income") == pytest.approx((1 + 2 + 3) * 4 / 3)
+
+    def test_an_unfilled_newest_column_is_skipped(self):
+        # AMZN, 2026-10-09: a 2026-06-30 column listed with no figures in it
+        stmt = pd.DataFrame({pd.Timestamp("2026-06-30"): [np.nan, np.nan, np.nan],
+                             pd.Timestamp("2026-03-31"): [1.0, 2.0, 3.0],
+                             pd.Timestamp("2025-12-31"): [4.0, 5.0, 6.0]},
+                            index=["Total Revenue", "Net Income", "EBIT"])
+        assert _stmt_val(stmt, "Net Income", 0) == 2.0
+        assert _stmt_val(stmt, "Net Income", 1) == 5.0

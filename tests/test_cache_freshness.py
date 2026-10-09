@@ -203,7 +203,7 @@ class TestDailyLoopActuallyFetches:
             "changelog entry needs updating"
         )
         assert len(price_driven) == 19
-        assert len(METRIC_COLS) == 45
+        assert len(METRIC_COLS) == 46
 
     def test_same_day_rerun_still_warm_starts(self):
         """A manual re-run on the same day has no new close to fetch.
@@ -215,3 +215,22 @@ class TestDailyLoopActuallyFetches:
         max_age = factor_scores_cache_max_age_days(cfg)
         written = datetime(2026, 8, 13)
         assert cache_is_usable(written, max_age, now=datetime(2026, 8, 13, 7, 52)) is True
+
+
+def test_a_subset_run_never_writes_the_universe_cache():
+    """2026-10-09: a --tickers trial wrote a 32-stock table under the full run's cache key."""
+    import types
+    import run_screener
+    assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers=None)) is True
+    assert run_screener.should_write_score_cache(types.SimpleNamespace(tickers="AAPL,MSFT")) is False
+
+
+def test_a_subset_run_never_rewrites_the_universe_records():
+    """The track record, the context-signal log (committed evidence) and its evaluation are
+    whole-universe records; a --tickers run reached all three until 2026-10-09."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "run_screener.py").read_text(encoding="utf-8")
+    guard = src.index('elif cfg.get("context", {}).get("enabled", True):')
+    assert 'and not _universe_run:' in src[guard - 300:guard]
+    for call in ("track_record.build_from_disk(", "context_signals.write_context_log(", "context_eval.evaluate("):
+        assert src.count(call) == 1 and src.index(call) > guard, call
