@@ -3182,6 +3182,27 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, evening) - Measured: the day's changes on the first full run
+
+**Area:** all of the 2026-10-09 entries above, together
+**Measured on:** evening run `0786662988b8` (fresh fetch after the close) against the 02:00 run
+`a2d76219dc0a`. Data and method both changed between them, so this is the combined effect; the
+per-change figures are in each entry. `research/measurements/2026-10-09-day-effect.py` (output beside it).
+- Composite-rank Spearman **0.935**; top 25: 19 in both; median rank move 24 places.
+- Category score Spearman: Growth **0.703**, Revisions 0.927, Quality 0.928, Valuation 0.979, Momentum
+  0.991, Risk 0.998, Size 0.999, Investment 1.000.
+- Trap flags: value 122 -> 46, growth 125 -> 66. Momentum weight 13% (the regime rule is off; it was
+  14.95% this morning).
+- Largest moves, each traced to a documented change: GILD 349 -> 41 (operating income without a one-off
+  acquired-R&D charge; ROIC -2.6% -> 32%), FTV 167 -> 345 and COO 291 -> 423 (forward EPS growth 71% and
+  61% -> one-basis 5.9% and 1.6%), TROW 131 -> 65 (generic metric set), AMCR 49 -> 165 (zero-estimate
+  placeholder and stale surprises no longer scored).
+
+**Not evidence for any change** (rule 4): this records what the changes did, not whether they predict
+returns. The first `1m` IC observation that includes tonight's ranking matures around 2026-11-09.
+
+---
+
 ## 2026-10-09 (owner-run, third review) - Corrections before publishing
 
 **Area:** coverage count, forward_eps_growth, the valuation-history context card, the audit script

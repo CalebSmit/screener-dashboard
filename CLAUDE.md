@@ -642,9 +642,9 @@ negatives were margin squeezes ranked best; the literature finds higher operatin
 `research/2026-10-09-revenue-growth-window.md`; **(c)** one EBITDA for both ratios and the
 snapshot; **(d)** labels "6-1M Return" and "Max Drawdown (13M)". **Found the same day by the same lens:**
 `forward_eps_growth` (45% of Growth) spanned 13-24 months and mixed GAAP with adjusted EPS; it is now
-MSCI's 12-month forward construction (`research/2026-10-09-forward-eps-growth.md`). **Their measured effects on the
-first live run are recorded under those entries by the 2026-10-09 evening run** - read them before
-touching any of the four again.
+MSCI's 12-month forward construction (`research/2026-10-09-forward-eps-growth.md`). **Their combined measured effect on the
+first live run is the changelog's "Measured: the day's changes" entry (2026-10-09 evening)** - read it before
+touching any of them again.
 
 **T0a's standing constraint:** `claims.py` registers every sentence that says how a
 number is computed, with the code that makes it true and the test that checks it.
