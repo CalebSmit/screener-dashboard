@@ -150,7 +150,13 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    be built.
 4. **Step one done 2026-10-09 (owner-run):** every research sentence the panel prints was checked against
    its source and three were corrected (`research/2026-10-09-context-panel-claims.md`). Still to do -
-   **One research note per signal** (insider purchases DONE 2026-10-09: `research/2026-10-09-insider-purchases.md`) (Monday standard: literature with effect sizes *and* practice):
+   **One research note per signal - covered 2026-10-09 (owner-run):** insider purchases
+   (`research/2026-10-09-insider-purchases.md` - weakest in large caps, now said on the page), one-month
+   reversal (`research/2026-10-09-short-term-reversal.md` - faded in plain form, survives sector-relative;
+   the harness now tracks both), trend (21/200-day distance, AKS 2021, now recorded), put skew and the
+   rates note (addenda in `research/2026-10-09-context-panel-claims.md`). What stays open: each signal's
+   *measured* record, which `context_eval.py` starts reporting after 2026-11-07. Original text:
+   **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
    200-day trend (Faber 2007; Brock, Lakonishok & LeBaron 1992), one-month reversal (Jegadeesh 1990;
    Lehmann 1990), implied-volatility skew (Xing, Zhang & Zhao 2010; Cremers & Weinbaum 2010 on put-call
    IV spreads), insider purchases (Lakonishok & Lee 2001; Jeng, Metrick & Zeckhauser 2003; Cohen, Malloy
