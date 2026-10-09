@@ -3182,6 +3182,35 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run) - A value trap must be cheap and a growth trap must be growing
+
+**Area:** trap flags (labels, the Top 5's exclusion, the Excel model portfolio's exclusion) - no
+score, rank or composite changes
+**Changed:** `apply_value_trap_flags` now requires a Valuation score at or above the 70th
+percentile (the cheapest 30%; `value_trap_filters.valuation_percentile`) beside the existing
+2-of-3 weakness rule. `apply_growth_trap_flags` requires the growth score above its 70th-percentile
+ceiling, with quality **or** revisions below its 35th-percentile floor (it was 2-of-3 with growth as
+one of the three). The methodology page's description follows, and two false sentences on it are
+corrected ("about 30% of stocks are typically flagged" - it was 24%; severity averaged "across the
+dimensions that triggered the flag" - the code averages all three).
+
+**Evidence / reasoning:** `research/2026-10-09-trap-flags.md`. The value flag never consulted
+valuation: its 122 flagged stocks had a median valuation percentile of 0.51, and 74 stocks carried
+both flags. Piotroski (2000) defines the problem within the cheapest book-to-market quintile;
+Mohanram (2005) its mirror within growth stocks; practitioners use "value trap" for stocks that
+look cheap (Asness, Frazzini, Israel & Moskowitz 2015). A flag that fires on any weak stock repeats
+what the Quality, Momentum and Revisions scores already show.
+
+**Expected effect:** on run `a2d76219dc0a`, value flags 122 -> 43, growth flags 125 -> 74, both
+74 -> 5. Top 5 unchanged (EXPE, HST, APA, BBY, DLTR); 2 of the top 25 flagged before and after.
+**Validated by:** `tests/test_trap_flags.py` (every value-flagged stock is in the cheapest 30%, every
+growth-flagged stock above the growth ceiling, on fixtures and on the published payload);
+`tests/test_scoring.py::TestValueTrapFlags`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (or set `valuation_percentile: 0` to restore the old value rule).
+
+---
+
 ## 2026-10-09 (owner-run) - Each stock's earnings and FCF yield against its own five years (context only)
 
 **Area:** dashboard context layer (no change to any score, rank or published metric)

@@ -195,27 +195,28 @@ sector_neutral:
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
 # Value Trap Filters
-# Logic: MAJORITY (2-of-3) — a stock is flagged if at least 2 of the 3
-# dimensions (quality, momentum, revisions) breach their floor percentile.
-# Rationale: OR logic (any 1 breach) flagged ~60% of the universe, which
-# was too aggressive. Majority logic catches stocks with genuinely broad
-# weakness while tolerating a single weak dimension.
+# Logic: the stock must be CHEAP (valuation score at or above valuation_percentile -
+# the cheapest 30%) AND at least 2 of the 3 dimensions (quality, momentum,
+# revisions) breach their floor percentile. The cheapness condition was added
+# 2026-10-09 (Piotroski 2000 defines the problem within cheap stocks); without it
+# the flag fired on any broadly weak stock. research/2026-10-09-trap-flags.md
 value_trap_filters:
   enabled: true
+  valuation_percentile: 70      # cheap = valuation score in the top 30%
   quality_floor_percentile: 30  # Exclude bottom 30% quality
   momentum_floor_percentile: 30  # Exclude bottom 30% momentum
   revisions_floor_percentile: 30  # Exclude bottom 30% revisions
   flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
 
 # Growth Trap Filters
-# Logic: MAJORITY (2-of-3) — a stock is flagged if it has high growth but
-# at least 2 of the 3 dimensions (growth ceiling, quality floor, revisions floor)
-# breach their threshold. Catches "growth at any price" stocks.
+# Logic: HIGH GROWTH (above growth_ceiling_percentile) AND low quality OR low
+# revisions. Since 2026-10-09; it was 2-of-3 with growth as one of the three, which
+# flagged low-growth stocks as "growth traps". research/2026-10-09-trap-flags.md
 growth_trap_filters:
   enabled: true
   growth_ceiling_percentile: 70  # Flag stocks ABOVE 70th percentile growth
-  quality_floor_percentile: 35   # AND below 35th percentile quality
-  revisions_floor_percentile: 35 # AND below 35th percentile revisions
+  quality_floor_percentile: 35   # AND below 35th percentile quality ...
+  revisions_floor_percentile: 35 # ... OR below 35th percentile revisions
   flag_only: false  # If true, flag but don't exclude; if false, exclude from portfolio
 
 # Portfolio Construction

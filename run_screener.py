@@ -418,6 +418,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     vt_mom_floor = vtf.get("momentum_floor_percentile", 30)
     vt_rev_floor = vtf.get("revisions_floor_percentile", 30)
     vt_flag_only = vtf.get("flag_only", False)
+    vt_cheap = vtf.get("valuation_percentile", 70)
     vt_action = "**flagged but not excluded**" if vt_flag_only else "**excluded**"
 
     # Growth trap text
@@ -718,17 +719,17 @@ The screener includes several layers of data quality protection:
 
 ## Value Trap Detection
 
-A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. The screener uses **majority logic (2-of-3)** to flag potential value traps: a stock is flagged only if it falls in the bottom {vt_quality_floor}% of **at least two** of these three categories:
+A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. A stock is flagged as a potential value trap only if it is **cheap** — a Valuation score in the top {100 - vt_cheap}% of the universe — **and** it falls in the bottom {vt_quality_floor}% of **at least two** of these three categories:
 
 - Quality Score (floor: {vt_quality_floor}th percentile)
 - Momentum Score (floor: {vt_mom_floor}th percentile)
 - Revisions Score (floor: {vt_rev_floor}th percentile)
 
-This is more balanced than the alternative "any 1 breach" approach, which flagged roughly 60% of the universe — too aggressive to be useful. The 2-of-3 majority logic catches stocks with genuinely broad weakness while tolerating a single weak dimension (e.g., a quality stock with one bad momentum quarter). About 30% of stocks are typically flagged.
+The cheapness condition is what makes it a *value* trap: Piotroski (2000) separates the cheap stocks that go on to do well from those that do not using exactly this kind of fundamental weakness, within the cheapest stocks. Without it (before 2026-10-09) the flag fired on about a quarter of the universe, whatever the valuation. The 2-of-3 majority logic tolerates a single weak dimension (e.g., a quality stock with one bad momentum quarter); "any 1 breach" flagged roughly 60% of the universe.
 
 Missing data (NaN) in any of the three dimensions does **not** trigger a value trap flag — missing data is not the same as poor quality. These stocks receive a separate `Insufficient_Data_Flag`.
 
-Each flagged stock also receives a **Value Trap Severity** score (0-100), computed as the average of how far below each threshold the stock falls across the dimensions that triggered the flag. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.
+Each flagged stock also receives a **Value Trap Severity** score (0-100): for each of the three dimensions, how far below its threshold the stock falls (as a share of the threshold, zero if above it), averaged over the three. A severity of 80 means the stock is deep in trap territory; a severity of 20 means it barely crossed the thresholds. This provides more granularity than the binary flag alone.
 
 By default, value-trap-flagged stocks are {vt_action} from the model portfolio (configurable to flag-only mode).
 
@@ -736,15 +737,16 @@ By default, value-trap-flagged stocks are {vt_action} from the model portfolio (
 
 ## Growth Trap Detection
 
-The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. The screener uses the same **majority logic (2-of-3)** to flag potential growth traps: a stock is flagged only if **at least two** of these three conditions are met:
+The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. A stock is flagged as a potential growth trap only if its Growth Score is **above** the {gt_growth_ceil}th percentile (high growth) **and** at least one of these holds:
 
-- Growth Score **above** the {gt_growth_ceil}th percentile (high growth)
 - Quality Score **below** the {gt_quality_floor}th percentile (low quality)
 - Revisions Score **below** the {gt_rev_floor}th percentile (deteriorating sentiment)
 
+High growth is required (since 2026-10-09; it used to be one of three conditions, so a low-growth stock with low quality and low revisions could be called a growth trap). Mohanram (2005) separates winners from losers within growth stocks using fundamental strength, the mirror of Piotroski's test within value stocks.
+
 This catches "growth at any price" stocks — companies that are growing fast but burning cash, carrying deteriorating fundamentals, or losing analyst confidence.
 
-Each flagged stock also receives a **Growth Trap Severity** score (0-100), computed as the average of how far above/below each threshold the stock falls across the dimensions that triggered the flag. Higher severity means deeper in trap territory.
+Each flagged stock also receives a **Growth Trap Severity** score (0-100): how far beyond each of the three thresholds the stock falls (zero where it does not cross one), averaged over the three. Higher severity means deeper in trap territory.
 
 By default, growth-trap-flagged stocks are {gt_action} from the model portfolio (configurable to flag-only mode).
 
@@ -878,8 +880,8 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Calendar-based lookbacks** | Using calendar dates (e.g., 182 days ago) instead of fixed index offsets ensures consistent lookback periods regardless of holidays. |
 | **Denominator floors** ($0.10 for surprise, $1.00 for EPS growth) | Near-zero denominators produce extreme ratios that dominate rankings. Floors bound the maximum possible ratio. |
 | **Outliers flagged, never clipped** ({out_lo}%/{out_hi}% tails) | Sector ranking is a rank transform, so clipping cannot change any ordering — it can only create artificial ties and misreport the company's real figure. Extreme values are logged as a data-quality signal instead, which is also how a bad feed gets caught. |
-| **Value trap 2-of-3 majority logic** | OR logic (any 1 breach) flagged ~60% of the universe — too aggressive. Majority logic catches genuinely weak stocks while tolerating one bad dimension. |
-| **Growth trap 2-of-3 majority logic** | Mirror of value trap for the opposite scenario. Catches high-growth stocks with poor quality and/or deteriorating sentiment. |
+| **Value trap: cheap, and weak on 2 of 3** | A value trap is a cheap stock that is cheap for a reason (Piotroski 2000), so cheapness is required. OR logic (any 1 breach) flagged ~60% of the universe; majority logic tolerates one bad dimension. |
+| **Growth trap: high growth, and weak quality or revisions** | Mirror of value trap (Mohanram 2005). High growth is required, so a low-growth stock is never called a growth trap. |
 | **Liquidity filter** (${min_adv_m:.0f}M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
 | **4-metric revisions category** (Surprise + Target + Acceleration + Beat Score) | Broadens the analyst sentiment signal beyond a single backward-looking and forward-looking metric. Earnings Acceleration (continuous delta) and Beat Score (recency-weighted) capture the trajectory and consistency of beats with much higher granularity than binary signals. |
 | **Volatility-regime momentum scaling** | Momentum crashes in high-vol markets. Reducing momentum weight in turbulent conditions and boosting it in calm markets improves risk-adjusted returns (requires 20+ historical runs to activate). |
@@ -949,7 +951,7 @@ It does this by:
 2. Computing up to {n_total} financial metrics across {n_factors} categories ({n_generic} generic + {n_bank_only} bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
-5. Flagging potential value traps and growth traps (2-of-3 majority logic)
+5. Flagging potential value traps (cheap and weak on 2 of 3) and growth traps (high growth and weak quality or revisions)
 6. Applying a liquidity filter to ensure tradeability
 7. Reporting how stable that ranking is when the weights are nudged
 

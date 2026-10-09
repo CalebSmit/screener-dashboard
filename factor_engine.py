@@ -3551,6 +3551,17 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     qual_floor = vtf.get("quality_floor_percentile", 30) / 100.0
     mom_floor = vtf.get("momentum_floor_percentile", 30) / 100.0
     rev_floor = vtf.get("revisions_floor_percentile", 30) / 100.0
+    cheap_floor = vtf.get("valuation_percentile", 70) / 100.0
+
+    # Layer 0 - the stock must be cheap. A value trap is a cheap stock that is cheap for a
+    # reason: Piotroski (2000) separates winners from losers *within* the highest
+    # book-to-market stocks. Until 2026-10-09 this layer did not exist and the flag fired on
+    # any broadly weak stock - 122 of 501, with a median valuation percentile of 0.51
+    # (research/2026-10-09-trap-flags.md).
+    if "valuation_score" in df.columns:
+        cheap = df["valuation_score"].ge(df["valuation_score"].quantile(cheap_floor)).fillna(False)
+    else:
+        cheap = pd.Series(False, index=df.index)
 
     # Layer 1 - Quality: below quality floor percentile
     # NaN values should NOT trigger flags (missing data != poor quality)
@@ -3583,7 +3594,7 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     # flagged ~60% of the universe.  Majority logic catches stocks
     # with genuinely broad weakness while tolerating a single weak
     # dimension (e.g. a quality stock with one bad momentum quarter).
-    df["Value_Trap_Flag"] = (l1.astype(int) + l2.astype(int) + l3.astype(int)) >= 2
+    df["Value_Trap_Flag"] = cheap & ((l1.astype(int) + l2.astype(int) + l3.astype(int)) >= 2)
 
     # Continuous severity score (0-100): how deeply a stock is in trap territory.
     # For each dimension, severity = max(0, (threshold - score) / threshold) * 100.
@@ -3619,9 +3630,8 @@ def apply_value_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Flag high-growth stocks with weak fundamentals (growth traps).
 
-    Mirror of value-trap logic but for the opposite scenario: stocks with
-    high growth scores but poor quality and/or revisions.
-    Uses 2-of-3 majority logic (growth ceiling + quality floor + revisions floor).
+    Mirror of value-trap logic but for the opposite scenario: a growth score above the
+    ceiling percentile AND quality or revisions below its floor.
     """
     gtf = cfg.get("growth_trap_filters", {})
     if not gtf.get("enabled", False):
@@ -3656,8 +3666,12 @@ def apply_growth_trap_flags(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     else:
         g3 = pd.Series(False, index=df.index)
 
-    # Majority logic (2-of-3): flag only if at least 2 dimensions breach
-    df["Growth_Trap_Flag"] = (g1.astype(int) + g2.astype(int) + g3.astype(int)) >= 2
+    # High growth is the defining condition, with weak quality or weak revisions beside it -
+    # Mohanram (2005) separates winners from losers *within* low book-to-market (growth)
+    # stocks. Until 2026-10-09 this was 2-of-3 with growth as one of the three, so a stock with
+    # low growth, low quality and low revisions was called a growth trap: 34 of 125 flagged
+    # were in the bottom half on growth (research/2026-10-09-trap-flags.md).
+    df["Growth_Trap_Flag"] = g1 & (g2 | g3)
 
     # Continuous severity score (0-100): how deeply in growth-trap territory.
     # Growth dimension: how far above the ceiling. Quality/revisions: how far below floors.
