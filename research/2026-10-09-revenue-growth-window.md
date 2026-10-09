@@ -104,3 +104,9 @@ Measured 2026-10-09 on a random 40 of the 503: **all 40 have 5-6 quarterly colum
 does not fire today; it is latent. If a future check finds four-column sheets in numbers, the fix is
 the one applied to revenue growth: require the two balance sheets to be 350-380 days apart, else
 compare fiscal-year-end sheets.
+
+**Guard added the same day:** if the balance sheet used as "prior" is not 330-400 days before the
+current one, no prior is used (the comparison becomes missing rather than a three-month change).
+Also checked: `_stmt_val` picks a column *after* dropping missing values, so a blank quarter would
+shift "four columns back" to a different date - measured on 60 random companies x 5 balance-sheet
+lines, **0 of 288** were misaligned. Latent, recorded here.

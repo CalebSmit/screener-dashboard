@@ -1026,6 +1026,18 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         _bs_is_quarterly = (_bs_src is q_bs)
         _bs_prior_col = 4 if (_bs_is_quarterly and _bs_src is not None
                                and len(_bs_src.columns) >= 5) else 1
+        # The "prior" balance sheet must be a year earlier: with a four-column quarterly sheet
+        # column 1 is the previous QUARTER, and asset growth / Piotroski 5-7 would compare three
+        # months while calling it a year. Then no prior is used (2026-10-09; latent - measured
+        # 40 of 40 sampled sheets had 5+ columns). research/2026-10-09-revenue-growth-window.md
+        try:
+            if _bs_src is not None and len(_bs_src.columns) > _bs_prior_col:
+                _gap = (pd.Timestamp(sorted(_bs_src.columns, reverse=True)[0])
+                        - pd.Timestamp(sorted(_bs_src.columns, reverse=True)[_bs_prior_col])).days
+                if not 330 <= _gap <= 400:
+                    _bs_prior_col = 10_000          # out of range: every *_prior reads NaN
+        except (TypeError, ValueError):
+            pass
 
         rec["totalAssets"]            = _stmt_val(_bs_src, "Total Assets")
         rec["totalAssets_prior"]      = _stmt_val(_bs_src, "Total Assets", _bs_prior_col)
