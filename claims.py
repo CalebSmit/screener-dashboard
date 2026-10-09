@@ -500,6 +500,22 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="history.run_overview",
+        surface=DRILLDOWN,
+        asserts=(
+            "The What Changed overview counts stocks that moved the panel's material threshold or "
+            "more; attributes the movement in scores to categories by summing each stock's "
+            "category score change times that category's composite weight, without regard to "
+            "direction; and counts today's top 25 that were also in the top 25 at the baseline."
+        ),
+        made_true_by="run_overview:overview",
+        checked_by=(
+            "tests/test_run_overview.py::test_movers_are_the_panels_own_counts",
+            "tests/test_run_overview.py::test_category_shares_weight_absolute_changes",
+            "tests/test_run_overview.py::test_top_kept_counts_names_in_both_top_lists",
+        ),
+    ),
+    Claim(
         id="context.track_record",
         surface=DRILLDOWN,
         asserts=(

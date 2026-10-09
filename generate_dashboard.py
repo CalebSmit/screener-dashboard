@@ -616,6 +616,19 @@ def split_context(data: dict) -> dict:
     return out
 
 
+def _with_overview(history_block: dict, weights: dict) -> dict:
+    """The run-level sentences (``run_overview``), built here at build time and published
+    inside ``history`` beside the numbers they are made from."""
+    try:
+        import run_overview
+        ov = run_overview.overview(history_block, (weights or {}).get("factor_weights") or {})
+        if ov:
+            history_block = dict(history_block, overview=ov)
+    except Exception as exc:  # noqa: BLE001 - a missing sentence is not a failed build
+        print(f"WARNING: run overview unavailable ({type(exc).__name__}: {exc})")
+    return history_block
+
+
 def _track_block() -> dict | None:
     try:
         import track_record
@@ -1229,7 +1242,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
     dashboard_json = {
         "kpis": kpis,
         "cadence": _cadence_block(run_data.get("cfg") or {}),
-        "history": history_block,
+        "history": _with_overview(history_block, weights),
         "table_data": table_data,
         "stock_detail": stock_detail,
         "weights": weights,
@@ -1423,6 +1436,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
                 </div>
+                <p class="changed-overview" id="changed-overview"></p>
                 <div class="movers-grid">
                     <div class="movers-col">
                         <h3 class="chart-title">Moved up the rankings</h3>
@@ -2332,6 +2346,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             + (n.source === 'measured'
                 ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${{n.n_pairs}} paired runs (${{n.n_observations.toLocaleString()}} observations).`
                 : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+
+        // The run as a whole, in the build's own sentences (run_overview.py).
+        const ov = (H.overview || {{}})[changedRange];
+        const ovEl = document.getElementById('changed-overview');
+        if (ovEl) ovEl.textContent = ov ? ov.text.join(' ') : '';
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
@@ -4724,6 +4743,8 @@ def _css() -> str:
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
+        .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
         .mover-row {
             display: grid; grid-template-columns: minmax(0,1fr) auto 58px;

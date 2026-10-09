@@ -83,6 +83,8 @@
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
+        .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
         .mover-row {
             display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
@@ -3362,6 +3364,7 @@
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
                 </div>
+                <p class="changed-overview" id="changed-overview"></p>
                 <div class="movers-grid">
                     <div class="movers-col">
                         <h3 class="chart-title">Moved up the rankings</h3>
@@ -5228,6 +5231,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             + (n.source === 'measured'
                 ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).`
                 : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+
+        // The run as a whole, in the build's own sentences (run_overview.py).
+        const ov = (H.overview || {})[changedRange];
+        const ovEl = document.getElementById('changed-overview');
+        if (ovEl) ovEl.textContent = ov ? ov.text.join(' ') : '';
 
         const up = mv.up.map(moverRow).join('') || '<div class="mover-none">No material moves up.</div>';
         const down = mv.down.map(moverRow).join('') || '<div class="mover-none">No material moves down.</div>';
