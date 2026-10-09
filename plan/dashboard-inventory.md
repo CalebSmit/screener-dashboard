@@ -13,6 +13,27 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Added 2026-10-09 (owner-run)
+
+- **Weighting selector** on the rankings table (`#filter-profile`): Balanced (published) / Value /
+  Growth / Momentum. Rankings for each come from `D.profiles` - computed at build time by the engine
+  (`generate_dashboard._profiles_block`), never reweighted in the page. Under a non-published
+  weighting a note (`#profile-note`) states the weights and that the sheet is Balanced, and the
+  Delta column is blank. `tests/test_investor_profiles.py`, browser test in
+  `test_dashboard_navigation.py`.
+- **What Changed overview** (`#changed-overview`): two or three build-time sentences per baseline
+  from `history.overview` (`run_overview.py`, claim `history.run_overview`).
+- **Column tooltips** for the six weighted categories fill their weights at load from
+  `D.weights.profiles` (`weightList`) - no weight is typed into the page any more
+  (`tests/test_header_weights.py`).
+- **Workings additions:** beta, Jensen's alpha and volatility now print exact equations
+  (engine-published inputs); the three surprise metrics show their four quarters (`eq4`);
+  earnings variability (a weight-0 candidate) shows its five years of ROE (`roe5`).
+- **Labels:** "6-1M Return", "Max Drawdown (13M)". **Company Snapshot** "YoY" lines compare periods
+  exactly a year apart and say which; its EBITDA is the engine's.
+- **Context panel** research sentences scoped and dated (Faber on indices; Lehmann weekly; XZZ
+  1996-2005). **Track Record** caveats name picks the price source no longer serves.
+
 ## The context layer (2026-10-08) - `plan/context-layer.md`
 
 Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx").
