@@ -3179,3 +3179,27 @@ change of its own and is not justified by anything found here.
 **Backtest observation (not decision-grade, rule 5):** none used.
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - The rankings table can show the Value, Growth and Momentum weightings (display only)
+
+**Area:** dashboard (no change to the published ranking)
+**Changed:** a Weighting selector on the rankings table. Each named weighting is `presets.py`'s
+(the single definition), with the run's own volatility-regime adjustment, and its composites and
+ranks are computed at build time by the engine's `compute_composite`. The regime rule moved into
+one pure function, `factor_engine.apply_momentum_regime`, which `adjust_momentum_weight` now
+calls - same weights, verified by test against the old arithmetic.
+
+**Evidence / reasoning:** `plan/investor-profiles.md` set the requirement that the CLI's
+`--preset value` and the page's "Value" must be the same ranking; computing the profiles with the
+engine and the CLI's own regime step satisfies it by construction, and a test re-derives each
+profile from the run's scored table. Showing how the order changes with emphasis is the weight-
+sensitivity defensibility feature in a form a student can use.
+
+**Expected effect:** none on the published ranking, Top 5, holdings or any stock's sheet. On run
+`a2d76219dc0a` the Value weighting puts HST first (Balanced: EXPE); Momentum puts AIZ first.
+**Validated by:** the build withholds the profiles unless Balanced reproduces the published
+composites and ranks; `tests/test_investor_profiles.py`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.

@@ -564,3 +564,29 @@ def test_column_tooltips_state_the_published_weights(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_a_weighting_reorders_the_table_and_back_restores_it(browser):
+    """The Weighting selector shows another profile's engine-computed ranking, blanks the
+    run-to-run deltas that belong to the published ranking, and never touches table_data."""
+    ctx, page, errors = _open(browser)
+    try:
+        if not page.evaluate("!!(D.profiles && D.profiles.c && D.profiles.c.value)"):
+            pytest.skip("payload predates investor profiles")
+        pub = page.evaluate("D.table_data.map(r => r.Ticker + ':' + r.Rank).join(',')")
+        page.select_option("#filter-profile", "value")
+        page.wait_for_timeout(200)
+        got = page.evaluate("tableState.filtered.slice(0, 20).map(r => [r.Ticker, r.Rank])")
+        want = page.evaluate("Object.entries(D.profiles.c.value).sort((a, b) => a[1][1] - b[1][1]).slice(0, 20).map(e => [e[0], e[1][1]])")
+        assert [r for _, r in got] == sorted(r for _, r in got)
+        assert {t for t, _ in got} == {t for t, _ in want}
+        assert "Value weighting" in page.inner_text("#profile-note")
+        assert page.evaluate("document.querySelectorAll('#universe-tbody .delta-cell.pos, #universe-tbody .delta-cell.neg').length") == 0
+        assert page.evaluate("D.table_data.map(r => r.Ticker + ':' + r.Rank).join(',')") == pub
+        page.click("#profile-note .link-btn")
+        page.wait_for_timeout(200)
+        assert page.evaluate("tableState.data === D.table_data") and page.evaluate("document.getElementById('profile-note').hidden")
+        assert errors == []
+    finally:
+        ctx.close()

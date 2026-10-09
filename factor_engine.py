@@ -2956,6 +2956,42 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # H½. Volatility-scaled momentum weight (adaptive regime)
 # =========================================================================
+MOMENTUM_REGIME_SCALE = {"HIGH VOL": 0.70, "LOW VOL": 1.15}
+
+
+def apply_momentum_regime(fw: dict, regime: str) -> dict:
+    """The volatility-regime rule on a set of factor weights, as one pure function.
+
+    HIGH VOL: momentum x0.70, the freed weight split between quality and valuation.
+    LOW VOL: momentum x1.15, funded from valuation. NORMAL: unchanged. Used by
+    ``adjust_momentum_weight`` for the run, and by the dashboard's investor profiles so
+    a profile is weighted exactly as ``run_screener.py --preset <name>`` would weight it
+    on the same day (2026-10-09, plan/investor-profiles.md)."""
+    fw = dict(fw)
+    mom_w = fw.get("momentum", 0)
+    if regime == "HIGH VOL":
+        scale = MOMENTUM_REGIME_SCALE[regime]
+        freed = mom_w * (1 - scale)
+        fw["momentum"] = round(mom_w * scale, 2)
+        fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
+        fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
+    elif regime == "LOW VOL":
+        scale = MOMENTUM_REGIME_SCALE[regime]
+        added = mom_w * (scale - 1)
+        fw["momentum"] = round(mom_w * scale, 2)
+        fw["valuation"] = round(fw.get("valuation", 0) - added, 2)
+    return fw
+
+
+def infer_momentum_regime(base: dict, adjusted: dict) -> str:
+    """Which regime turned ``base`` into ``adjusted`` (the run records both, not the name)."""
+    for regime in MOMENTUM_REGIME_SCALE:
+        if all(abs(apply_momentum_regime(base, regime).get(k, 0) - adjusted.get(k, 0)) < 1e-6
+               for k in set(base) | set(adjusted)):
+            return regime
+    return "NORMAL"
+
+
 def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     """Adjust momentum factor weight based on realized momentum-score volatility.
 
@@ -3032,26 +3068,14 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     p75 = float(np.percentile(hist_vols, 75))
 
     cfg = copy.deepcopy(cfg)
-    fw = cfg["factor_weights"]
-    mom_w = fw.get("momentum", 0)
-
     if current_vol > p75:
-        # HIGH VOL regime: reduce momentum, boost quality + valuation
-        scale = 0.70
-        freed = mom_w * (1 - scale)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
         regime = "HIGH VOL"
     elif current_vol < p25:
-        # LOW VOL regime: increase momentum, reduce valuation
-        scale = 1.15
-        added = mom_w * (scale - 1)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) - added, 2)
         regime = "LOW VOL"
     else:
         regime = "NORMAL"
+    cfg["factor_weights"] = apply_momentum_regime(cfg["factor_weights"], regime)
+    fw = cfg["factor_weights"]
 
     print(f"  [MOM-VOL] vol={current_vol:.2f} | p25={p25:.2f} p75={p75:.2f} | Regime: {regime}")
     if regime != "NORMAL":

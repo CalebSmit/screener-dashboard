@@ -83,6 +83,10 @@
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+        .profile-note strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note[hidden] { display: none; }
+        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
         .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
@@ -3481,6 +3485,7 @@
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
+                <p class="profile-note" id="profile-note" hidden></p>
                 <div class="filters-bar" role="search">
                     <div class="filter-search">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
@@ -3509,6 +3514,12 @@
                             <option value="down">Downtrend</option>
                             <option value="insider">Insider buying, 90 days</option>
                             <option value="earn14">Reports within 14 days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-profile">Weighting</label>
+                        <select id="filter-profile" title="See the ranking under another investment style. The published ranking, and every number in a stock's sheet, is Balanced.">
+                            <option value="balanced">Balanced (published)</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -5112,6 +5123,44 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             : s.filtered.length + ' of ' + s.data.length + ' stocks';
     }
 
+
+    // Investor profiles: the ranking under another named weighting, computed at build time
+    // by the engine (generate_dashboard._profiles_block). Switching only swaps which
+    // composite and rank the table shows; nothing is reweighted here.
+    let PROFILE = 'balanced';
+    function setProfile(key) {
+        const P = D.profiles || {};
+        const c = (P.c || {})[key];
+        PROFILE = c ? key : 'balanced';
+        tableState.data = !c ? D.table_data : D.table_data.map(r => {
+            const v = c[r.Ticker];
+            return Object.assign({}, r, { Composite: v ? v[0] : null, Rank: v ? v[1] : null });
+        });
+        const note = document.getElementById('profile-note');
+        if (note) {
+            const meta = (P.list || []).find(x => x.key === PROFILE);
+            if (c && meta) {
+                const w = meta.weights, CL = {valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment'};
+                const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
+                note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
+                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum adjusted for this run&rsquo;s ' + (P.regime === 'LOW VOL' ? 'calm' : 'volatile') + ' market, as every run is)' : '') +
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\'filter-profile\').value=\'balanced\';setProfile(\'balanced\')">Back to published</button>';
+                note.hidden = false;
+            } else {
+                note.hidden = true;
+            }
+        }
+        if (tableState.sortCol !== 'Rank' && tableState.sortCol !== 'Composite') { tableState.sortCol = 'Rank'; tableState.sortDir = 'asc'; }
+        applyFilters();
+    }
+    (function initProfiles() {
+        const P = D.profiles, sel = document.getElementById('filter-profile');
+        if (!sel) return;
+        if (!P || !P.list || P.list.length < 2) { sel.closest('.filter-group').hidden = true; return; }
+        sel.innerHTML = P.list.map(x => '<option value="' + x.key + '">' + escapeHtml(x.name) + (x.published ? ' (published)' : '') + '</option>').join('');
+        sel.value = 'balanced';
+        sel.addEventListener('change', () => setProfile(sel.value));
+    })();
 
     // Column tooltips state the weights the run actually used, read from the run's own
     // published tables - never typed into the page, where they drift the day a weight

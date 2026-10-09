@@ -618,6 +618,47 @@ def split_context(data: dict) -> dict:
     return out
 
 
+def _profiles_block(df: pd.DataFrame, weights: dict, cfg: dict) -> dict | None:
+    """The ranking under each named weighting in ``presets.py``, computed here by the
+    engine's own ``compute_composite`` (coverage discount included) with the run's own
+    volatility-regime adjustment - so "Value" on the page is what
+    ``run_screener.py --preset value`` would publish from the same scores. The page
+    only switches between these; it never reweights (CLAUDE.md row 0.8).
+
+    Balanced is the published ranking itself; it is recomputed here only as a check,
+    and if it does not reproduce the published composites the profiles are withheld.
+    plan/investor-profiles.md."""
+    import copy as _copy
+    try:
+        from presets import PRESETS
+        from factor_engine import apply_momentum_regime, compute_composite, infer_momentum_regime
+        base = weights.get("base_factor_weights") or weights.get("factor_weights") or {}
+        regime = infer_momentum_regime(base, weights.get("factor_weights") or base)
+        out = {"regime": regime, "list": [], "c": {}}
+        for key, p in PRESETS.items():
+            fw = apply_momentum_regime(p["factor_weights"], regime)
+            c = _copy.deepcopy(cfg)
+            c["factor_weights"] = fw
+            d = compute_composite(df.copy(), c)
+            comp = d["Composite"]
+            rank = comp.rank(ascending=False, method="min")
+            if key == "balanced":
+                pub = df["Composite"]
+                if not ((comp - pub).abs().fillna(0) < 1e-6).all() or not (rank == df["Rank"]).all():
+                    print("WARNING: the Balanced profile does not reproduce the published ranking; profiles withheld")
+                    return None
+                out["list"].append({"key": key, "name": p["name"], "description": p["description"],
+                                    "weights": fw, "published": True})
+                continue
+            out["list"].append({"key": key, "name": p["name"], "description": p["description"], "weights": fw})
+            out["c"][key] = {t: [round(float(v), 2), int(r)]
+                             for t, v, r in zip(df["Ticker"], comp, rank) if v == v}
+        return out
+    except Exception as exc:  # noqa: BLE001 - a missing selector is not a failed build
+        print(f"WARNING: investor profiles unavailable ({type(exc).__name__}: {exc})")
+        return None
+
+
 def _with_overview(history_block: dict, weights: dict) -> dict:
     """The run-level sentences (``run_overview``), built here at build time and published
     inside ``history`` beside the numbers they are made from."""
@@ -1272,6 +1313,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "kpis": kpis,
         "cadence": _cadence_block(run_data.get("cfg") or {}),
         "history": _with_overview(history_block, weights),
+        "profiles": _profiles_block(df, weights, run_data.get("cfg") or {}),
         "table_data": table_data,
         "stock_detail": stock_detail,
         "weights": weights,
@@ -1582,6 +1624,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
+                <p class="profile-note" id="profile-note" hidden></p>
                 <div class="filters-bar" role="search">
                     <div class="filter-search">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
@@ -1610,6 +1653,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <option value="down">Downtrend</option>
                             <option value="insider">Insider buying, 90 days</option>
                             <option value="earn14">Reports within 14 days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-profile">Weighting</label>
+                        <select id="filter-profile" title="See the ranking under another investment style. The published ranking, and every number in a stock's sheet, is Balanced.">
+                            <option value="balanced">Balanced (published)</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -2256,6 +2305,44 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
 {_js_table()}
+
+    // Investor profiles: the ranking under another named weighting, computed at build time
+    // by the engine (generate_dashboard._profiles_block). Switching only swaps which
+    // composite and rank the table shows; nothing is reweighted here.
+    let PROFILE = 'balanced';
+    function setProfile(key) {{
+        const P = D.profiles || {{}};
+        const c = (P.c || {{}})[key];
+        PROFILE = c ? key : 'balanced';
+        tableState.data = !c ? D.table_data : D.table_data.map(r => {{
+            const v = c[r.Ticker];
+            return Object.assign({{}}, r, {{ Composite: v ? v[0] : null, Rank: v ? v[1] : null }});
+        }});
+        const note = document.getElementById('profile-note');
+        if (note) {{
+            const meta = (P.list || []).find(x => x.key === PROFILE);
+            if (c && meta) {{
+                const w = meta.weights, CL = {{valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment'}};
+                const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
+                note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
+                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum adjusted for this run&rsquo;s ' + (P.regime === 'LOW VOL' ? 'calm' : 'volatile') + ' market, as every run is)' : '') +
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\\'filter-profile\\').value=\\'balanced\\';setProfile(\\'balanced\\')">Back to published</button>';
+                note.hidden = false;
+            }} else {{
+                note.hidden = true;
+            }}
+        }}
+        if (tableState.sortCol !== 'Rank' && tableState.sortCol !== 'Composite') {{ tableState.sortCol = 'Rank'; tableState.sortDir = 'asc'; }}
+        applyFilters();
+    }}
+    (function initProfiles() {{
+        const P = D.profiles, sel = document.getElementById('filter-profile');
+        if (!sel) return;
+        if (!P || !P.list || P.list.length < 2) {{ sel.closest('.filter-group').hidden = true; return; }}
+        sel.innerHTML = P.list.map(x => '<option value="' + x.key + '">' + escapeHtml(x.name) + (x.published ? ' (published)' : '') + '</option>').join('');
+        sel.value = 'balanced';
+        sel.addEventListener('change', () => setProfile(sel.value));
+    }})();
 
     // Column tooltips state the weights the run actually used, read from the run's own
     // published tables - never typed into the page, where they drift the day a weight
@@ -4638,7 +4725,9 @@ def _js_table() -> str:
 
     function universeRowHtml(row, i) {
         const t = escapeHtml(row.Ticker);
-        const rd = rankDelta(row.Ticker);
+        // The change since the last run belongs to the published ranking; under another
+        // weighting it would sit beside a rank it does not describe, so it is left blank.
+        const rd = (typeof PROFILE !== 'undefined' && PROFILE !== 'balanced') ? 0 : rankDelta(row.Ticker);
         const rdCell = rd == null
             ? '<td class="num delta-cell muted">&mdash;</td>'
             : (rd === 0
@@ -4796,6 +4885,10 @@ def _css() -> str:
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
         .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+        .profile-note strong { color: var(--text-primary); font-weight: 600; }
+        .profile-note[hidden] { display: none; }
+        .profile-note .link-btn { background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
         .changed-overview { margin: 4px 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--text-primary); max-width: 78ch; }
         .changed-overview:empty { display: none; }
         .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
