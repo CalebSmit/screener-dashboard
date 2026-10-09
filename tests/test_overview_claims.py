@@ -128,8 +128,8 @@ class TestRevisionsSectionMatchesConfig:
         non-zero weights in `config.yaml`. Compared as a multiset because the
         display names differ from the config keys by design."""
         section = _section(overview, "Revisions")
-        listed = sorted(int(m) for m in
-                        re.findall(r"^\|[^|]+\|\s*(\d+)%\s*\|", section, re.M))
+        listed = sorted(float(m) for m in
+                        re.findall(r"^\|[^|]+\|\s*([\d.]+)%\s*\|", section, re.M))
         configured = sorted(v for v in cfg["metric_weights"]["revisions"].values() if v)
         assert listed == configured, (
             f"Revisions table lists {listed}, config has {configured}"

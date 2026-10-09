@@ -35,14 +35,14 @@ companies) use a bank-specific metric set within Valuation and Quality.
 
 The metric registry (`METRIC_COLS` in `factor_engine.py`) has **46 entries**:
 
-- **28 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
+- **27 scored generic metrics** — carry non-zero weight, applied to non-bank stocks.
 - **4 bank-specific metrics** — P/B, ROE, ROA, Equity Ratio — substituted for
-  certain generic metrics on financial companies (25 weighted metrics in all for a bank).
-- **14 candidate metrics at weight 0** — computed and shown, but unscored. A
+  certain generic metrics on financial companies (24 weighted metrics in all for a bank).
+- **15 candidate metrics at weight 0** — computed and shown, but unscored. A
   candidate joins the score only with a research note and a changelog entry.
 
-*(2026-10-09: `operating_leverage` moved to weight 0 and `earnings_variability`
-was added as a candidate. Re-derive these counts from `config.yaml` with
+*(2026-10-09: `operating_leverage` and `earnings_acceleration` moved to weight 0 and
+`earnings_variability` was added as a candidate. Re-derive these counts from `config.yaml` with
 `factor_engine.weighted_metric_sets(cfg)` rather than editing them by hand.)*
 
 *(Counts corrected 2026-09-10. The total was right but the split had read

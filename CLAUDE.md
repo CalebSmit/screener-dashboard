@@ -683,7 +683,7 @@ Two audit passes over every weighted metric fixed nine defects the same day
 judgement calls and need a Monday-style note before any change: **(a)** which financials are
 "bank-like" - 26 of 59 reach the bank metric set only by the default for an unlisted industry
 (asset managers, insurance brokers, broker-dealers; TROW 100th percentile on equity ratio, AON 8th on
-P/B); **(b)** `earnings_acceleration` (20% of Revisions) correlates -0.57 with the prior quarter's
+P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `earnings_acceleration` (20% of Revisions) correlated -0.54 with the prior quarter's
 surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
 1990); **(c)** accruals counted three times within Quality (the metric, Piotroski 4, Beneish TATA);
 **(d)** net debt subtracts cash only, enterprise value cash and short-term investments. Also: the
@@ -758,6 +758,8 @@ universe.** `lookahead.weight_buckets()` derives the decomposition from
 recomputed per rebalance, **34.1 points of the 83.1 held-constant points are free
 to fix** (28.0 restated exactly by one month-end price, 6.1 recomputed from a
 price history), and 49.0 genuinely needs point-in-time filings and estimates.
+*(Re-derived 2026-10-09 after the Revisions reweight: 34.45 free = 28.35 + 6.1; 48.65 needs
+point-in-time data. `lookahead.weight_buckets(cfg)` is the live figure.)*
 
 *Next:* the 34.1 free points first. Then size the 49.0pp fundamentals half via
 SEC EDGAR's XBRL `companyconcept` endpoint, which is free and carries a `filed`

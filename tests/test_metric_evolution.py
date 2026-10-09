@@ -81,10 +81,10 @@ def _write_config(tmp_path):
             # reads like a bug in apply_metric_changes rather than a stale
             # fixture.
             "revisions": {
-                "fy1_revision_3m": 35,
-                "analyst_surprise": 15, "price_target_upside": 10,
-                "earnings_acceleration": 20, "consecutive_beat_streak": 10,
-                "short_interest_ratio": 10, "short_pct_float": 0, "analyst_rating": 0,
+                "fy1_revision_3m": 48,
+                "analyst_surprise": 15, "price_target_upside": 13.5,
+                "earnings_acceleration": 0, "consecutive_beat_streak": 10,
+                "short_interest_ratio": 13.5, "short_pct_float": 0, "analyst_rating": 0,
             },
             "size": {"size_log_mcap": 100},
             "investment": {"asset_growth": 100},

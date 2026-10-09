@@ -30,7 +30,7 @@ income, AMCR's zero estimate, the regime replay).
   percentile; P/B puts AON at the 8th. Broker-dealers (GS, MS) arguably *are* bank-like; asset managers
   and brokers have conventional P&Ls. Needs a note on how practitioners split financials (MSCI/GICS
   sub-industries, Morningstar) before the list changes.
-* **`earnings_acceleration` (20% of Revisions) works against its own category.** Latest minus prior
+* **DONE the same session: `earnings_acceleration` to weight 0** (changelog entry; its points to the non-surprise metrics). The finding: **`earnings_acceleration` (20% of Revisions) works against its own category.** Latest minus prior
   surprise: Spearman +0.37 with the latest surprise but -0.57 with the prior one; surprises are
   positively autocorrelated (Bernard & Thomas 1990), so it penalises a stock that beat last quarter. Its
   extremes are mostly one-off GAAP items (REIT property sales). Candidates: the latest quarter's

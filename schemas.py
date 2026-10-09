@@ -271,12 +271,12 @@ class RiskWeights(_MetricWeightBase):
 class RevisionsWeights(_MetricWeightBase):
     # Reweighted 2026-09-10; see METHODOLOGY_CHANGELOG.md. The category's share
     # of the composite is unchanged - only the split within it moved.
-    fy1_revision_3m: float = 35        # 90-day change in FY1 consensus EPS / price
+    fy1_revision_3m: float = 48        # 90-day change in FY1 consensus EPS / price
     analyst_surprise: float = 15       # Backward-looking: did company beat estimates?
-    price_target_upside: float = 10    # Forward-looking: analyst consensus upside
-    earnings_acceleration: float = 20  # Most recent quarter surprise > prior quarter
+    price_target_upside: float = 13.5  # Forward-looking: analyst consensus upside
+    earnings_acceleration: float = 0   # Candidate since 2026-10-09 (was 20)
     consecutive_beat_streak: float = 10  # Recency-weighted beat score (0-10); higher = better
-    short_interest_ratio: float = 10   # Days to cover; lower = less bearish sentiment
+    short_interest_ratio: float = 13.5  # Days to cover; lower = less bearish sentiment
     short_pct_float: float = 0    # Candidate: activated by improvement engine
     analyst_rating: float = 0     # Candidate: activated by improvement engine
 

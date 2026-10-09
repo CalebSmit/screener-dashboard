@@ -3182,6 +3182,36 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, metric audit) - `earnings_acceleration` leaves the Revisions score
+
+**Area:** Revisions category weights (the category's 10% of the composite is unchanged)
+**Changed:** `earnings_acceleration` 20 -> **0** (a recorded, displayed candidate, with its reason on
+the page). Its 20 points go to the category's non-surprise metrics in proportion: `fy1_revision_3m`
+35 -> **48**, `price_target_upside` 10 -> **13.5**, `short_interest_ratio` 10 -> **13.5**. The surprise
+family (`analyst_surprise` 15, `consecutive_beat_streak` 10) stays at the 25 points it already had.
+
+**Evidence / reasoning:** `research/2026-10-09-metric-audit.md`. The metric is the latest quarter's
+surprise minus the prior quarter's. Measured on 496 stocks: Spearman **+0.40** with the latest surprise
+and **-0.54** with the prior one, while consecutive surprises correlate **+0.38** - so it marks a stock
+down for having beaten last quarter, though surprises persist (Bernard & Thomas 1990). A quarter of its
+extreme deciles involve a one-off surprise above 100% (5% overall) - REIT property sales, special items.
+No study supports the *change* in analyst surprise as a return predictor; He & Narayanamoorthy's
+"earnings acceleration" is a different quantity (the change in year-on-year EPS growth, six quarters of
+EPS). The 2026-09-10 reweight kept it at 20 as "genuinely independent" of the other surprise metrics;
+the independence turns out to be mostly the noise of differencing two volatile ratios. The freed
+weight goes to the non-surprise metrics, not back to the surprise family, because Martineau (2022)
+finds the surprise drift absent in large caps since 2006 - the reason that reweight cut it.
+
+**Expected effect:** Revisions = FY1 revision 48 / surprise 15 / target 13.5 / short interest 13.5 /
+beat 10. Weighted metric count 28 -> 27 (24 for banks), so the coverage discount's denominator follows.
+Look-ahead buckets move 0.35pp (`lookahead.weight_buckets`: 28.35 price-restatable, 48.65 point-in-time).
+**Validated by:** `tests/test_fy1_revision.py` (weights), `tests/test_overview_claims.py` (the page's
+table equals config), golden fixture; measured on the first run after the change.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** restore the five weights in `config.yaml` and `schemas.py`.
+
+---
+
 ## 2026-10-09 (owner-run, metric audit) - Operating income, not Yahoo's 'EBIT', in ROIC, EV/EBITDA and net debt / EBITDA
 
 **Area:** ROIC, EV/EBITDA, net debt / EBITDA (and the weight-0 operating leverage)

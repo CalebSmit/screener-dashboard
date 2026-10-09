@@ -95,12 +95,17 @@ metric_weights:
     # research/2026-09-07-revisions-category-has-no-revisions.md SS8.7.
     # The category's 10% share of the composite is UNCHANGED - this is a
     # within-category reweight only.
-    fy1_revision_3m: 35        # 90-day change in FY1 consensus EPS / price (was absent)
+    # 2026-10-09: earnings_acceleration to 0 (latest surprise minus the prior one; -0.54 with
+    # the prior surprise while surprises autocorrelate +0.38, so it penalised a stock that beat
+    # last quarter; no study supports the change in surprise). Its 20 points went to the
+    # non-surprise metrics in proportion (35/10/10 -> 48/13.5/13.5), leaving the surprise
+    # family at the 25 points the 2026-09-10 reweight set. research/2026-10-09-metric-audit.md
+    fy1_revision_3m: 48        # 90-day change in FY1 consensus EPS / price (35 until 2026-10-09)
     analyst_surprise: 15       # Backward-looking: did company beat estimates? (was 38)
-    price_target_upside: 10    # Forward-looking: analyst consensus upside (was 12)
-    earnings_acceleration: 20  # Most recent surprise % > prior quarter surprise % (unchanged)
+    price_target_upside: 13.5  # Forward-looking: analyst consensus upside (10 until 2026-10-09)
+    earnings_acceleration: 0   # Candidate since 2026-10-09 (was 20); computed and shown
     consecutive_beat_streak: 10  # Recency-weighted beat score (0-10) (was 20)
-    short_interest_ratio: 10   # Days to cover (shortRatio); lower = less bearish sentiment
+    short_interest_ratio: 13.5 # Days to cover (shortRatio); lower = less bearish (10 until 2026-10-09)
     short_pct_float: 0         # Candidate: shortPercentOfFloat; lower = less bearish
     analyst_rating: 0          # Candidate: recommendationMean (1=Strong Buy, 5=Sell)
     # The revisions category has now SPENT its independence budget: it goes from

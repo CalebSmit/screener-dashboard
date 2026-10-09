@@ -242,12 +242,13 @@ class TestRegistries:
 # 5. The reweight that shipped with it
 # =====================================================================
 EXPECTED = {
-    "fy1_revision_3m": 35,
+    # earnings_acceleration to 0 on 2026-10-09; its points to the non-surprise metrics
+    "fy1_revision_3m": 48,
     "analyst_surprise": 15,
-    "price_target_upside": 10,
-    "earnings_acceleration": 20,
+    "price_target_upside": 13.5,
+    "earnings_acceleration": 0,
     "consecutive_beat_streak": 10,
-    "short_interest_ratio": 10,
+    "short_interest_ratio": 13.5,
     "short_pct_float": 0,
     "analyst_rating": 0,
 }

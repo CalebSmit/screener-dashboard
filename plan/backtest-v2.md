@@ -39,6 +39,10 @@ leave it stale:
 | Needs point-in-time filings/estimates | **49.0%** | the expensive half; 9.0pp of it is analyst estimates with no free retrospective source |
 | **Held constant, total** | **83.1%** | |
 
+*Re-derived 2026-10-09 after the Revisions reweight (earnings_acceleration to 0): price-restatable
+**28.35**, needs point-in-time **48.65**, so **34.45** free points; the table keeps the 2026-10-01
+figures it was measured with. `lookahead.weight_buckets(cfg)` is always current.*
+
 **34.1 of those 83.1 points need no vendor, no licence and no permission.** That
 is the cheapest honest improvement available to v2 and it should come first.
 

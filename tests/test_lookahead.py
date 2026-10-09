@@ -113,10 +113,13 @@ def test_live_config_shares_are_the_ones_the_research_note_quotes(cfg):
     ``plan/backtest-v2.md`` with the new figures, then update this test.
     """
     b = la.weight_buckets(cfg)
+    # 2026-10-09: earnings_acceleration to 0 and its points to fy1_revision_3m /
+    # price_target_upside / short_interest_ratio moved 0.35pp from "needs point-in-time" to
+    # "price-restatable" (28.0 -> 28.35, 49.0 -> 48.65); plan/backtest-v2.md carries the update.
     assert b["recomputed"] == pytest.approx(16.893, abs=0.002)
-    assert b["price_restatable"] == pytest.approx(28.0, abs=0.002)
+    assert b["price_restatable"] == pytest.approx(28.35, abs=0.002)
     assert b["price_derived_held"] == pytest.approx(6.107, abs=0.002)
-    assert b["needs_point_in_time"] == pytest.approx(49.0, abs=0.002)
+    assert b["needs_point_in_time"] == pytest.approx(48.65, abs=0.002)
     assert b["held_constant"] == pytest.approx(83.107, abs=0.002)
 
 

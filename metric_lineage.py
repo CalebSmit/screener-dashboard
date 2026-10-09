@@ -595,6 +595,10 @@ NOT_USED_BECAUSE = {
                            "over one year's change in revenue ranked companies whose margins were "
                            "shrinking as the best, and research finds higher operating leverage is "
                            "paid for with higher returns, not a sign of weakness. Still recorded."),
+    "earnings_acceleration": ("Removed from the score 2026-10-09: the latest earnings surprise minus the "
+                              "one before it marks a stock down for having beaten last quarter, though "
+                              "surprises tend to repeat; its extremes were mostly one-off accounting "
+                              "items. Still recorded and shown."),
 }
 
 
