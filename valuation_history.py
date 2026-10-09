@@ -46,8 +46,10 @@ SPLIT_PATH = ROOT / "data" / "valhist" / "splits.json"
 
 NI = ("NetIncomeLoss", "ProfitLoss")                      # preference order, per period
 OCF = ("NetCashProvidedByUsedInOperatingActivities",)
-CAPEX = ("PaymentsToAcquirePropertyPlantAndEquipment",)
-SHARES = ("WeightedAverageNumberOfDilutedSharesOutstanding",)
+CAPEX = ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets")
+SHARES = ("WeightedAverageNumberOfDilutedSharesOutstanding",       # preference order
+          "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
+          "WeightedAverageNumberOfSharesOutstandingBasic")
 
 MONTHS = 60                 # five years of month-ends
 MIN_MONTHS = 36             # fewer and the range is not shown
@@ -57,86 +59,98 @@ ANNUAL = (340, 380)
 YTD = (80, 290)
 
 
+def _days(s: pd.Series) -> np.ndarray:
+    """Dates as integer days since 1970 (NaT -> a very small number)."""
+    return pd.to_datetime(s).values.astype("datetime64[D]").astype(np.int64)
+
+
+def _day(ts) -> int:
+    return int(np.datetime64(pd.Timestamp(ts).date(), "D").astype(np.int64))
+
+
 def _first_filed(f: pd.DataFrame, concepts: tuple) -> pd.DataFrame:
     """One row per (start, end): the first concept in preference order that reports it, at its
     first-filed value."""
-    g = f[f["concept"].isin(concepts)].copy()
+    g = f[f["concept"].isin(concepts)]
     if g.empty:
         return g
-    g["_pref"] = g["concept"].map({c: i for i, c in enumerate(concepts)})
-    g = g.sort_values(["start", "end", "_pref", "filed"])
-    g = g.drop_duplicates(["start", "end"], keep="first")
-    g["days"] = (g["end"] - g["start"]).dt.days
-    return g[["start", "end", "filed", "val", "days"]]
+    g = g.assign(_pref=g["concept"].map({c: i for i, c in enumerate(concepts)}))
+    g = g.sort_values(["start", "end", "_pref", "filed"]).drop_duplicates(["start", "end"], keep="first")
+    return g.assign(days=(g["end"] - g["start"]).dt.days)[["start", "end", "filed", "val", "days"]]
 
 
-def ttm_series(f: pd.DataFrame, concepts: tuple) -> pd.DataFrame:
-    """Every trailing-12-month value the filings allow: columns ``end``, ``avail`` (the date the
-    last of its components was filed), ``val``. Sorted by ``end``."""
+def ttm_series(f: pd.DataFrame, concepts: tuple) -> dict:
+    """Every trailing-12-month value the filings allow, as arrays ``end``, ``avail`` (the day the
+    last of its components was filed) and ``val``, in integer days, sorted by ``end``."""
     g = _first_filed(f, concepts)
+    g = g.dropna(subset=["start"]) if not g.empty else g
     if g.empty:
-        return pd.DataFrame(columns=["end", "avail", "val"])
-    g = g.dropna(subset=["start"])
-    ann = g[g["days"].between(*ANNUAL)]
-    ytd = g[g["days"].between(*YTD)]
-    out = [(r.end, r.filed, float(r.val)) for r in ann.itertuples()]
-    day = pd.Timedelta(days=1)
-    for r in ytd.itertuples():
-        fy = ann[(ann["end"] - (r.start - day)).abs() <= pd.Timedelta(days=10)]
-        prev = ytd[((ytd["end"] - (r.end - pd.Timedelta(days=365))).abs() <= pd.Timedelta(days=10))
-                   & ((ytd["days"] - r.days).abs() <= 10)]
-        if fy.empty or prev.empty:
+        return {"end": np.array([], dtype=np.int64), "avail": np.array([], dtype=np.int64), "val": np.array([])}
+    s, e, fl = _days(g["start"]), _days(g["end"]), _days(g["filed"])
+    v, d = g["val"].to_numpy(float), g["days"].to_numpy()
+    ann = (d >= ANNUAL[0]) & (d <= ANNUAL[1])
+    ytd = (d >= YTD[0]) & (d <= YTD[1])
+    ends, avail, vals = list(e[ann]), list(fl[ann]), list(v[ann])
+    ai, yi = np.flatnonzero(ann), np.flatnonzero(ytd)
+    for i in yi:
+        # the fiscal year ending the day before this year-to-date began ...
+        fy = ai[np.abs(e[ai] - (s[i] - 1)) <= 10]
+        # ... and the same year-to-date a year earlier
+        pv = yi[(np.abs(e[yi] - (e[i] - 365)) <= 10) & (np.abs(d[yi] - d[i]) <= 10)]
+        if len(fy) == 0 or len(pv) == 0:
             continue
-        a, p = fy.iloc[-1], prev.iloc[-1]
-        out.append((r.end, max(r.filed, a["filed"], p["filed"]), float(a["val"] + r.val - p["val"])))
-    s = pd.DataFrame(out, columns=["end", "avail", "val"]).sort_values(["end", "avail"])
-    return s.drop_duplicates("end", keep="first").reset_index(drop=True)
+        a, p = fy[-1], pv[-1]
+        ends.append(e[i]); avail.append(max(fl[i], fl[a], fl[p])); vals.append(v[a] + v[i] - v[p])
+    ends, avail, vals = np.array(ends), np.array(avail), np.array(vals)
+    # one value per period end: the earliest-available construction
+    o = np.lexsort((avail, ends))
+    ends, avail, vals = ends[o], avail[o], vals[o]
+    keep = np.r_[True, ends[1:] != ends[:-1]]
+    return {"end": ends[keep], "avail": avail[keep], "val": vals[keep]}
 
 
-def _as_of(series: pd.DataFrame, when: pd.Timestamp):
-    """The latest-ending value known by ``when``, or None if none or stale."""
-    if series.empty:
+def _as_of(series: dict, when: int):
+    """The latest-ending value known by day ``when``, or None if none or stale."""
+    k = series["avail"] <= when
+    if not k.any():
         return None
-    k = series[series["avail"] <= when]
-    if k.empty:
+    i = np.flatnonzero(k)[np.argmax(series["end"][k])]
+    if when - series["end"][i] > MAX_TTM_AGE_DAYS:
         return None
-    r = k.loc[k["end"].idxmax()]
-    if (when - r["end"]).days > MAX_TTM_AGE_DAYS:
-        return None
-    return float(r["val"])
+    return float(series["val"][i])
 
 
-def share_series(f: pd.DataFrame) -> pd.DataFrame:
-    """Diluted weighted-average shares per period: ``end``, ``filed``, ``val``, preferring the
-    three-month figure where a filing gives several for the same period end."""
+def share_series(f: pd.DataFrame) -> dict:
+    """Weighted-average shares per period end (diluted, else the fallbacks in ``SHARES``), as
+    arrays ``end``, ``avail`` (filed), ``val``; the three-month figure where a filing gives several
+    for the same period end."""
     g = _first_filed(f, SHARES)
     if g.empty:
-        return pd.DataFrame(columns=["end", "filed", "val"])
+        return {"end": np.array([], dtype=np.int64), "avail": np.array([], dtype=np.int64), "val": np.array([])}
     g = g.assign(_q=(~g["days"].between(80, 100)).astype(int)).sort_values(["end", "_q", "filed"])
-    return g.drop_duplicates("end", keep="first")[["end", "filed", "val"]].reset_index(drop=True)
+    g = g.drop_duplicates("end", keep="first")
+    return {"end": _days(g["end"]), "avail": _days(g["filed"]), "val": g["val"].to_numpy(float)}
 
 
-def split_factor(splits: list, after: pd.Timestamp, until: pd.Timestamp | None = None) -> float:
-    """Product of split ratios dated after ``after`` (and up to ``until``)."""
+def split_factor(splits: list, after: int, until: int | None = None) -> float:
+    """Product of split ratios dated after day ``after`` (and up to ``until``)."""
     k = 1.0
     for d, ratio in splits:
-        d = pd.Timestamp(d)
-        if d > after and (until is None or d <= until) and ratio and ratio > 0:
+        dd = _day(d)
+        if dd > after and (until is None or dd <= until) and ratio and ratio > 0:
             k *= float(ratio)
     return k
 
 
-def _shares_as_of(sh: pd.DataFrame, when: pd.Timestamp, splits: list):
-    if sh.empty:
+def _shares_as_of(sh: dict, when: int, splits: list):
+    k = sh["avail"] <= when
+    if not k.any():
         return None
-    k = sh[sh["filed"] <= when]
-    if k.empty:
-        return None
-    r = k.loc[k["end"].idxmax()]
-    if (when - r["end"]).days > MAX_TTM_AGE_DAYS:
+    i = np.flatnonzero(k)[np.argmax(sh["end"][k])]
+    if when - sh["end"][i] > MAX_TTM_AGE_DAYS:
         return None
     # In today's split-adjusted units, to match the split-adjusted price.
-    return float(r["val"]) * split_factor(splits, r["filed"])
+    return float(sh["val"][i]) * split_factor(splits, int(sh["avail"][i]))
 
 
 def _summary(now: float, hist: list) -> dict | None:
@@ -149,7 +163,8 @@ def _summary(now: float, hist: list) -> dict | None:
         "pct": round(float((arr < now).mean()) * 100, 1),     # month-ends with a lower yield
         "lo": round(float(arr.min()), 5), "med": round(float(np.median(arr)), 5),
         "hi": round(float(arr.max()), 5), "n": len(h),
-        "s": [None if x is None or not np.isfinite(x) else round(x, 4) for x in hist],
+        # the monthly series for the chart, in basis points (whole numbers keep the file small)
+        "s": [None if x is None or not np.isfinite(x) else int(round(x * 10000)) for x in hist],
     }
 
 
@@ -160,7 +175,8 @@ def for_ticker(f: pd.DataFrame, closes: pd.Series, splits: list, price_now: floa
     ``closes``: split-adjusted month-end closes indexed by month-end date, oldest first, the
     current (incomplete) month excluded."""
     sh = share_series(f)
-    shares_now = _shares_as_of(sh, today, splits)
+    td = _day(today)
+    shares_now = _shares_as_of(sh, td, splits)
     if not shares_now or not price_now or not mcap_now or mcap_now <= 0:
         return None
     check = price_now * shares_now / mcap_now - 1
@@ -171,24 +187,24 @@ def for_ticker(f: pd.DataFrame, closes: pd.Series, splits: list, price_now: floa
     months = closes.index[-MONTHS:]
     ey, fy = [], []
     for m in months:
-        px = closes.get(m)
-        s = _shares_as_of(sh, m, splits)
+        px, md = closes.get(m), _day(m)
+        s = _shares_as_of(sh, md, splits)
         mv = px * s if (px is not None and s and np.isfinite(px)) else None
-        n = _as_of(ni, m)
+        n = _as_of(ni, md)
         ey.append(n / mv if (mv and n is not None) else None)
         if fcf:
-            o, c = _as_of(ocf, m), _as_of(cx, m)
+            o, c = _as_of(ocf, md), _as_of(cx, md)
             fy.append((o - c) / mv if (mv and o is not None and c is not None) else None)
     mv_now = price_now * shares_now
     out = {"asof": str(months[-1].date()) if len(months) else None,
            "m0": str(months[0].date()) if len(months) else None,
            "chk": round(check, 4)}
-    n_now = _as_of(ni, today)
+    n_now = _as_of(ni, td)
     e = _summary(n_now / mv_now if n_now is not None else None, ey)
     if e:
         out["ey"] = e
     if fcf:
-        o, c = _as_of(ocf, today), _as_of(cx, today)
+        o, c = _as_of(ocf, td), _as_of(cx, td)
         x = _summary((o - c) / mv_now if (o is not None and c is not None) else None, fy)
         if x:
             out["fy"] = x
@@ -268,3 +284,37 @@ def monthly_prices(tickers: list[str], today: date | None = None, log=print,
     SPLIT_PATH.write_text(json.dumps(splits, indent=0), encoding="utf-8")
     log(f"  Valuation history: monthly prices for {got} stocks, {len(splits)} with splits")
     return close, splits
+
+
+def attach(raw: list[dict], refresh: bool = True, log=print) -> int:
+    """Compute the block for every fetched stock and set it on the raw records as context:
+    ``_ctx_valhist`` (the block, JSON, for the page) and ``_ctx_vh_ey_pct`` / ``_ctx_vh_fy_pct``
+    (today's place in its own range, scalars the context log records for the signal's
+    out-of-sample test). Returns how many stocks got a block. ``refresh=False`` (a --tickers run)
+    reads the caches but never rewrites them."""
+    from factor_engine import _is_bank_like
+    from sec_fundamentals import refresh_companyfacts
+    live = [r for r in raw if r.get("Ticker") and "_error" not in r]
+    tickers = [r["Ticker"] for r in live]
+    facts = refresh_companyfacts(tickers, log=log, allow_write=refresh)
+    if facts is None or facts.empty:
+        log("  Valuation history: no SEC facts cache - skipped")
+        return 0
+    monthly, splits = monthly_prices(tickers, log=log, allow_write=refresh)
+    if monthly.empty:
+        log("  Valuation history: no monthly prices - skipped")
+        return 0
+    # Free cash flow means little for a bank or an insurer, whose operating cash flow moves
+    # with loans, deposits and claims - the same reason the screener scores them differently.
+    no_fcf = {r["Ticker"] for r in live if _is_bank_like(r["Ticker"], r.get("sector") or "", r.get("industry") or "")}
+    out = build(live, facts, monthly, splits, no_fcf=no_fcf)
+    for r in live:
+        b = out.get(r["Ticker"])
+        if not b:
+            continue
+        r["_ctx_valhist"] = json.dumps(b, separators=(",", ":"))
+        if "ey" in b:
+            r["_ctx_vh_ey_pct"] = b["ey"]["pct"]
+        if "fy" in b:
+            r["_ctx_vh_fy_pct"] = b["fy"]["pct"]
+    return len(out)

@@ -36,6 +36,11 @@ leaving it wrong.
   composite "a universe percentile" (false since Phase 13).
 - **Context panel** research sentences scoped and dated (Faber on indices; Lehmann weekly; XZZ
   1996-2005). **Track Record** caveats name picks the price source no longer serves.
+- **Against its own five years** (Before you decide, after Recent move; `vhCard`): earnings yield
+  and FCF yield at each of the past 60 month-ends from SEC filings, today's percentile in that range,
+  a chart with the median dashed. Payload `ctx[t].vh` (`valuation_history.py`, ~456 stocks, +0.25 MB
+  to the context file); claim `context.valuation_history`; `tests/test_valuation_history.py`.
+  `research/2026-10-09-valuation-vs-own-history.md`.
 
 ## The context layer (2026-10-08) - `plan/context-layer.md`
 
@@ -691,7 +696,9 @@ Confirmed against the above, not guessed:
    still has one test (top 25) where the evidence says entry and continued
    holding should use different, asymmetric tests. Blocked on measurement, not
    on design - re-measure the band at 60+ comparable runs (32 today).
-3. **Time-series valuation context.** `pct` is cross-sectional only.
+3. ~~Time-series valuation context.~~ **SHIPPED 2026-10-09** - "Against its own five years" in
+   Before you decide (earnings and FCF yield; context, not scored). EV-based multiples are not in it:
+   enterprise value needs debt and cash per month-end, a second set of tags.
 4. ~~Catalyst/earnings-date proximity.~~ **SHIPPED 2026-09-29** - see the
    "Next earnings date" section above. What is *still* missing on this axis is
    a **run-level** view of it: nothing answers "which of my candidates report

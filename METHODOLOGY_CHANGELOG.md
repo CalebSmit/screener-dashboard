@@ -3182,6 +3182,34 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run) - Each stock's earnings and FCF yield against its own five years (context only)
+
+**Area:** dashboard context layer (no change to any score, rank or published metric)
+**Changed:** a new card in Before you decide, "Against its own five years": earnings yield and
+free-cash-flow yield at each of the past 60 month-ends, built from SEC filings as first reported
+and split-adjusted, with today's percentile in that range (`valuation_history.py`). The SEC
+companyfacts cache also keeps diluted share counts and the `PaymentsToAcquireProductiveAssets`
+capex tag. Two new context-log columns, `_ctx_vh_ey_pct` and `_ctx_vh_fy_pct`, are evaluated by
+`context_eval.py` like every other context signal.
+
+**Evidence / reasoning:** `research/2026-10-09-valuation-vs-own-history.md`. Cohen, Polk &
+Vuolteenaho (2003) attribute only 20-25% of the cross-sectional spread in book-to-market to
+transitory expected-return differences, so a stock's own range is a meaningful second reference
+point. That a yield high *in its own range* predicts returns is not established (Lewellen 1999:
+time-series B/M adds nothing beyond risk), so the card says so and it is not scored. It adds no new
+quantity to the screener: Valuation already scores both yields cross-sectionally.
+
+**Expected effect:** none on the ranking. 456 of 503 stocks get the card; the rest are named in the
+note with the reason (share counts by class, mis-scaled filings, no share tag, under 36 months).
+**Validated by:** our earnings yield vs Yahoo's trailing EPS / price, Spearman 0.991 (median gap
+0.04pp, n=452); today's market value reproduces Yahoo's within 15% for every stock shown (median
+0.98%); NVDA's 10:1 and WMT's 3:1 splits leave no break in the series.
+`tests/test_valuation_history.py`; claim `context.valuation_history`.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; the context card disappears and nothing else changes.
+
+---
+
 ## 2026-10-09 (owner-run) - The rankings table can show the Value, Growth and Momentum weightings (display only)
 
 **Area:** dashboard (no change to the published ranking)

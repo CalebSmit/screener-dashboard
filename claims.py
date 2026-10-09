@@ -532,6 +532,23 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="context.valuation_history",
+        surface=DRILLDOWN,
+        asserts=("Against its own five years: earnings yield is trailing-twelve-month net income (free-cash-flow "
+                 "yield: operating cash flow minus capital spending) over the month-end price times diluted "
+                 "shares adjusted for splits, at each month-end using only figures filed with the SEC by then, "
+                 "as first reported; the percentile is the share of the past month-ends with a lower yield; a "
+                 "stock is shown only where today's figures reproduce its market value within 15%."),
+        made_true_by="valuation_history:for_ticker",
+        checked_by=(
+            "tests/test_valuation_history.py::test_ttm_is_last_year_plus_this_ytd_minus_last_ytd",
+            "tests/test_valuation_history.py::test_only_what_had_been_filed_by_then",
+            "tests/test_valuation_history.py::test_shares_filed_before_a_split_are_scaled_to_todays_units",
+            "tests/test_valuation_history.py::test_a_stock_whose_shares_do_not_reproduce_its_market_value_is_not_shown",
+            "tests/test_valuation_history.py::test_the_percentile_is_against_the_stocks_own_month_ends",
+        ),
+    ),
+    Claim(
         id="context.sahm",
         surface=DRILLDOWN,
         asserts=("The Sahm indicator is the 3-month average unemployment rate minus its low over the prior "

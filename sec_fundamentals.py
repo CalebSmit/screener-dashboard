@@ -64,9 +64,13 @@ FACT_CONCEPTS = (
     "NetCashProvidedByUsedInOperatingActivities", "PaymentsToAcquirePropertyPlantAndEquipment",
     "DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "AssetsCurrent",
     "LiabilitiesCurrent",
+    # capital expenditure as NVDA, AMZN and V tag it (valuation_history.py)
+    "PaymentsToAcquireProductiveAssets",
 )
 # Concepts reported in shares rather than dollars (valuation_history.py's market value).
-SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",)
+SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
+                  "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
+                  "WeightedAverageNumberOfSharesOutstandingBasic")
 
 
 def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False,

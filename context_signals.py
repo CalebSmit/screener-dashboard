@@ -305,7 +305,7 @@ def write_context_log(run_dir, run_day: str) -> int:
                 raw = raw.merge(sec, on="Ticker", how="left")
                 break
     keep = ["Ticker"] + (["Sector"] if "Sector" in raw.columns else []) + [c for c in raw.columns if c.startswith("_ctx_")
-                         and c not in ("_ctx_weekly", "_ctx_insider")]
+                         and c not in ("_ctx_weekly", "_ctx_insider", "_ctx_valhist")]
     log = raw[keep].copy()
     if "_ctx_insider" in raw.columns:
         from insider_activity import summarise_rows

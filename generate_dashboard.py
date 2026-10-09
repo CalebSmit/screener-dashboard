@@ -550,6 +550,12 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
             out["wk"] = json.loads(wk)
         except ValueError:
             pass
+    vh = row.get("_ctx_valhist")
+    if isinstance(vh, str) and vh:
+        try:
+            out["vh"] = json.loads(vh)
+        except ValueError:
+            pass
     ins = row.get("_ctx_insider")
     if isinstance(ins, str):
         try:
@@ -8792,6 +8798,49 @@ def _js_context() -> str:
             '</svg><div class="pc-legend"><span><i class="pc-k pc-k-c"></i>Weekly close</span><span><i class="pc-k pc-k-50"></i>50-day average</span><span><i class="pc-k pc-k-200"></i>200-day average</span></div>';
     }
 
+    // ---- valuation against the stock's own history (valuation_history.py) ----------
+    // One yield's 60 month-ends (basis points) with today's value as the last point and the
+    // five-year median as a dashed line.
+    function vhChartSvg(y, m0, label) {
+        const s = (y.s || []).map(v => v === null || v === undefined ? null : v / 10000).concat([y.now]);
+        const vals = s.filter(v => v !== null);
+        if (vals.length < 4) return '';
+        const W = Math.round(window.innerWidth <= 760 ? Math.max(260, window.innerWidth - 64) : 380), Hh = 112, L = 6, R = 52, T = 10, B = 20;
+        const lo = Math.min(...vals, y.med), hi = Math.max(...vals, y.med), pad = (hi - lo) * 0.08 || 0.001;
+        const y0 = lo - pad, y1 = hi + pad, n = s.length - 1;
+        const X = i => L + i / n * (W - L - R), Y = v => T + (y1 - v) / (y1 - y0) * (Hh - T - B);
+        let p = '', pen = false;
+        s.forEach((v, i) => { if (v === null) { pen = false; return; } p += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; });
+        const zero = (y0 < 0 && y1 > 0) ? '<path d="M' + L + ' ' + Y(0).toFixed(1) + 'H' + (W - R) + '" class="vh-zero"/>' : '';
+        return '<svg class="pc-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="' + escapeHtml(label) + ' at each month-end for five years, and today">' + zero +
+            '<path d="M' + L + ' ' + Y(y.med).toFixed(1) + 'H' + (W - R) + '" class="vh-med"/>' +
+            '<path d="' + p + '" class="pc-c"/>' +
+            '<circle cx="' + X(n).toFixed(1) + '" cy="' + Y(y.now).toFixed(1) + '" r="3.5" class="pc-dot"/>' +
+            '<text x="' + (X(n) + 7).toFixed(1) + '" y="' + (Y(y.now) + 4).toFixed(1) + '" class="pc-last">' + cPlain(y.now) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - 4) + '" class="pc-x">' + escapeHtml(new Date(m0 + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - 4) + '" class="pc-x" text-anchor="end">today</text></svg>';
+    }
+
+    function vhRow(y, m0, label, what) {
+        const above = Math.round(y.pct);
+        return '<div class="vh-row"><div class="ctx-chart">' + vhChartSvg(y, m0, label) + '</div><div class="ctx-facts">' +
+            '<div class="ctx-fact"><span class="ctx-fk">' + label + '</span><span class="ctx-fv">' + cPlain(y.now) + '</span>' +
+            '<span class="ctx-fs">' + (y.now > y.hi ? 'above every one' : y.now < y.lo ? 'below every one' : y.now === y.hi ? 'the highest' : y.now === y.lo ? 'the lowest' : 'higher than at <b>' + above + '%</b>') + ' of its past ' + y.n + ' month-ends</span></div>' +
+            '<div class="ctx-fact"><span class="ctx-fk">Five-year range</span><span class="ctx-fv vh-range">' + cPlain(y.lo) + ' &ndash; ' + cPlain(y.hi) + '</span>' +
+            '<span class="ctx-fs">median ' + cPlain(y.med) + ' (dashed line). ' + what + '</span></div></div></div>';
+    }
+
+    function vhCard(c) {
+        const b = c && c.vh;
+        if (!b || !(b.ey || b.fy)) return '';
+        let h = '<div class="ctx-card ctx-wide"><div class="ctx-h"><span>Against its own five years</span></div>';
+        if (b.ey) h += vhRow(b.ey, b.m0, 'Earnings yield', 'Net income over market value; a higher yield means a lower price for each dollar of earnings.');
+        if (b.fy) h += vhRow(b.fy, b.m0, 'Free-cash-flow yield', 'Operating cash flow minus capital spending, over market value.');
+        h += '<p class="ctx-why">The valuation percentiles in the score compare this stock with its sector. This compares it with itself. Most of the gap between two companies&rsquo; valuations persists for years: Cohen, Polk &amp; Vuolteenaho (2003) attribute only 20&ndash;25% of the cross-sectional spread in book-to-market to temporary differences in expected returns, the rest to profitability and lasting valuation levels. Whether a yield that is high <i>for this stock</i> has gone on to predict its returns is not established &mdash; a yield can sit high because earnings are about to fall. This screener records the reading every run to test it, and does not score it.</p>' +
+             '<p class="ctx-why">Built from the company&rsquo;s SEC filings as first reported: trailing-twelve-month figures at each month-end, using only what had been filed by then, over the month-end price times diluted shares (adjusted for stock splits). Shown only where today&rsquo;s figures reproduce the market value within 15%.' + (b.fy ? '' : ' No free-cash-flow yield for banks and insurers, or where the filings do not carry five years of it.') + '</p></div>';
+        return h;
+    }
+
     // ---- the teaser under "Why it ranks here" ------------------------------------
     // The one-line context summary, shared by the drilldown teaser and each My Holdings card.
     function ctxBits(s) {
@@ -8849,6 +8898,9 @@ def _js_context() -> str:
             '</tbody></table>';
         if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. The screener\'s own momentum signal skips the latest month for this reason.</p>';
         h += m + '</div>';
+
+        // 2b. Against its own history
+        h += vhCard(c);
 
         // 3. Options
         let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
@@ -9270,6 +9322,12 @@ def _css_context() -> str:
         .pc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
         .pc-k { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
         .pc-k-c { background: var(--text-primary); } .pc-k-50 { background: var(--accent); } .pc-k-200 { background: var(--text-muted); }
+        .vh-med { fill: none; stroke: var(--text-muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+        .vh-zero { fill: none; stroke: var(--border); stroke-width: 1; }
+        .vh-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; padding: 6px 0 10px; }
+        .vh-row + .vh-row { border-top: 1px solid var(--border); padding-top: 12px; }
+        .vh-range { font-size: inherit; }
+        @media (max-width: 760px) { .vh-row { grid-template-columns: 1fr; gap: 8px; } }
 
         /* market backdrop */
         .mk-readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; margin-bottom: 20px; }

@@ -58,6 +58,10 @@ SIGNALS = {
     "insider_buyers": ("officers and directors buying in 90 days", "more insider buyers preceded better returns"),
     "insider_buy_value": ("dollar value of insider purchases, 90 days", "larger insider purchases preceded better returns"),
     "rate_sensitivity": ("return per +1pp in the 10-year yield", "rate-sensitive stocks did better"),
+    "earnings_yield_vs_own_history": ("today's earnings yield as a percentile of its own past 60 month-ends",
+                                      "stocks whose earnings yield sat higher in their own range did better"),
+    "fcf_yield_vs_own_history": ("today's free-cash-flow yield as a percentile of its own past 60 month-ends",
+                                 "stocks whose FCF yield sat higher in their own range did better"),
 }
 
 
@@ -99,6 +103,8 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
                                 else pd.Series(np.nan, index=log.index)).values
     out["rate_sensitivity"] = (_num(log["_ctx_rate_beta"]) if "_ctx_rate_beta" in log.columns
                                else pd.Series(np.nan, index=log.index)).values
+    for col, key in (("earnings_yield_vs_own_history", "_ctx_vh_ey_pct"), ("fcf_yield_vs_own_history", "_ctx_vh_fy_pct")):
+        out[col] = (_num(log[key]) if key in log.columns else pd.Series(np.nan, index=log.index)).values
     return out
 
 

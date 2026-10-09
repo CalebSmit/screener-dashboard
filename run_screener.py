@@ -1354,6 +1354,18 @@ def run_factor_engine(cfg, args, ctx=None):
         except Exception as e:  # noqa: BLE001 - a candidate metric must never stop a run
             print(f"  WARNING: earnings variability unavailable: {e}")
 
+        # Valuation against the stock's own five-year history (display only, context): earnings
+        # and free-cash-flow yield at each month-end from the SEC filings cache and one batched
+        # monthly price download. research/2026-10-09-valuation-vs-own-history.md
+        if cfg.get("context", {}).get("enabled", True):
+            try:
+                import valuation_history
+                _n_vh = valuation_history.attach(raw, refresh=should_write_score_cache(args))
+                stats["context_valuation_history"] = _n_vh
+                print(f"  Context: valuation against its own 5-year history for {_n_vh} of {len(raw)} stocks")
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: valuation history unavailable: {e}")
+
         # Context layer (display only, plan/context-layer.md). Runs only now that the core data
         # is fetched: option chains and insider trades in their own paced, time-budgeted pass
         # (context_fetch.py), then each stock's sensitivity to the 10-year yield, computed here

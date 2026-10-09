@@ -1,7 +1,9 @@
 # Valuation against the stock's own history (north-star gap 3) - design notes, 2026-10-09
 
-**Status: not built. Considered and deferred by the 2026-10-09 owner-run session**, which had the
-data within reach and stopped at one trap worth writing down first.
+**Status: BUILT 2026-10-09 (owner-run, later the same day)** - `valuation_history.py`, route 1's
+spirit with diluted weighted-average shares (split-adjusted by filing date) instead of per-share EPS.
+Evidence, construction and validation: `research/2026-10-09-valuation-vs-own-history.md`. The notes
+below are the design as first written.
 
 **The question it answers:** "is this stock's earnings yield (or FCF yield, EV/EBITDA) high or low
 *against its own past five years*?" - `pct` is cross-sectional only, so today the page can say a

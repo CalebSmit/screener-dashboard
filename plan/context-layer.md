@@ -181,6 +181,12 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    as first published) and says so, falling back to the revised computation with a note. Remaining:
    Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
    latest vintage) - say so or use ALFRED. Consider the dollar and oil for sector context.
+8. **Valuation against its own history - BUILT 2026-10-09 (owner-run).** `valuation_history.py`:
+   earnings and FCF yield at 60 month-ends from SEC filings (as first filed, split-adjusted), shown
+   for ~456 stocks that pass a market-value self-check; logged as `_ctx_vh_ey_pct` / `_ctx_vh_fy_pct`
+   and evaluated by `context_eval.py`. Next: EV/EBITDA on the same spine (needs debt and cash per
+   month-end), and a look at the 47 not shown once a month of logs exists.
+   `research/2026-10-09-valuation-vs-own-history.md`.
 
 ## Things not to do
 

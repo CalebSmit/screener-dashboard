@@ -23,6 +23,8 @@ data/market/
 data/track/
 data/sec/
 data/insider/
+# Monthly prices and split history for valuation_history.py; one download a month.
+data/valhist/
 # Option quotes, collected after the close because the source serves none at 02:00 and read back
 # by the run (2026-10-09). Rebuilt by scripts/refresh-option-quotes.ps1; never worth committing.
 data/options/
