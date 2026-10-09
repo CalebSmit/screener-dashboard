@@ -66,9 +66,52 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    report. Nightly: read the `Context pass:` line in `logs/datarun-*.log` and record the seconds and
    whether it stopped. If it ever stops on `rate limited` two nights running, lower `WORKERS` to 1
    before anything else. Core data first, always.
-2. **Option quotes at 2 AM** are the previous close; some chains have no bid/ask. Measure the share of
-   stocks with `os == "ok"` and decide whether that is good enough or the options pass belongs in a
-   market-hours run. Do not loosen `MAX_REL_SPREAD` or the IV bounds to raise the number.
+2. **Option quotes at 2 AM - MEASURED AND FIXED IN CODE 2026-10-09; one machine-level step is
+   outstanding.** The share with `os == "ok"` is not "some chains have no bid/ask", it is **none of
+   them**:
+
+   | When | Hour (ET) | n | `ok` | usable |
+   |---|---|---|---|---|
+   | 2026-10-08, owner-run | 21:27 | 503 | 394 | **78.3%** |
+   | 2026-10-09, the 02:00 data loop | 03:00 | 503 | **0** | **0.0%** |
+   | live probe, 2026-10-09 | 07:03 | 10 | 0 | **0.0%** |
+
+   484 of 503 were `stale-quotes`. Overnight Yahoo serves the chain with **`bid` and `ask` both 0.00
+   and `impliedVolatility` 0.000** on every strike; `lastPrice` and `openInterest` survive. So the
+   loop that publishes the site spent ~1,000 option requests a night and showed a number to nobody,
+   and the panel blamed quotes "missing or too wide at the time of the fetch" - which reads as a
+   transient glitch rather than the hour. The 06:00 code loop is in the same dead window. Reproduce
+   with `research/measurements/2026-10-09-option-quote-availability.py` (the record half needs no
+   network; `--probe N` re-runs the live half at whatever hour you run it).
+
+   **Not fixed by loosening a bar** - there is no quote to accept, and `lastPrice` is specifically
+   the wrong substitute: Battalio & Schultz (2006) show apparent option mispricings largely vanish
+   when quotes replace last trade prices. Fixed by fetching when quotes exist: `options_cache.py`
+   keeps usable readings with the date the quotes belong to, and `context_fetch` **probes** two or
+   three real chains before fetching 500 - quotes live, fetch as before; not live, skip the option
+   half and read the cache, labelled with its quote date, with `_ctx_opt_status = "quotes-closed"`
+   for a stock that has none. A probe rather than a hard-coded window, because a guessed clock goes
+   wrong the day the source changes and three requests cannot. 02:00 now costs **3** option
+   requests, not ~1,000.
+
+   **Outstanding, and it is the first thing to do next:** the scheduled task that fills the cache -
+   `Screener Option Quotes`, weekdays 20:00, defined in `scripts/register-tasks.ps1` - **was not
+   registered on the machine.** The 2026-10-09 session was hard-blocked: every PowerShell
+   invocation, including a read-only `Get-ScheduledTask`, is auto-denied in a non-interactive
+   session, so this was outside its reach rather than left out of caution (rule 11). Until it is
+   registered nothing fills the cache and every options panel says `quotes-closed` - still better
+   than today, because the requests are no longer wasted and the page states the real reason, but
+   the feature is empty. To finish: run
+   `powershell -ExecutionPolicy Bypass -File scripts\register-tasks.ps1` (idempotent; it
+   re-registers all three tasks), then confirm with `Get-ScheduledTask`/`Get-ScheduledTaskInfo`
+   that `Screener Option Quotes` exists, has **one** trigger (weekly 20:00, no logon trigger), and
+   has a `NextRunTime`; the two loops must still read PT3M and PT20M. Then read the next morning's
+   `logs/datarun-*.log` for `Options: skipped the fetch and read the cache - N of ~500` with N in
+   the high hundreds, and `logs/options-*.log` for what the 20:00 pass kept. Measure the `ok` share
+   again at that point and record it here - **78.3% is the number to beat, and it is itself only one
+   evening's observation.**
+
+   Still true: do not loosen `MAX_REL_SPREAD` or the IV bounds to raise the number.
 3. **Insider source - DONE 2026-10-08 (late, owner-run).** The owner gave a contact email; it lives in
    `data/sec/user_agent.txt` (gitignored) or `SEC_USER_AGENT`, **never in a tracked file**
    (`test_sec_identity_needs_an_email_and_never_lives_in_the_repo`). `run_screener` now refreshes every

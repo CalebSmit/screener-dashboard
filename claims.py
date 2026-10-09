@@ -438,13 +438,25 @@ CLAIMS: tuple[Claim, ...] = (
             "'Before you decide' gives the options-implied move as the at-the-money call plus "
             "put (mid quotes) divided by the price, on the first expiry after a report due "
             "within 60 days, else the expiry nearest 30 days; quotes that are missing or too "
-            "wide give no number."
+            "wide give no number. Where the quotes come from a session before the run, the "
+            "panel names that session's date and the days to expiry are counted from today."
         ),
         made_true_by="context_signals:options_context",
         checked_by=(
             "tests/test_context_layer.py::test_expected_move_is_the_atm_straddle_over_the_price",
             "tests/test_context_layer.py::test_expiry_spans_a_nearby_report",
             "tests/test_context_layer.py::test_stale_or_wide_quotes_give_no_move",
+            "tests/test_option_quote_hours.py::test_a_served_reading_carries_its_quote_date",
+            "tests/test_option_quote_hours.py::test_days_to_expiry_are_recounted_from_today",
+            "tests/test_option_quote_hours.py::test_the_page_names_the_quote_date_when_it_is_not_todays",
+        ),
+        caveat=(
+            "Fixed 2026-10-09. Measured that day: the 02:00 run produced a usable reading for "
+            "0 of 503 stocks against 394 of 503 at 21:27 ET, because the source serves the "
+            "chain overnight with every bid, ask and implied volatility at zero, and the panel "
+            "blamed the quotes rather than the hour. Quotes are now collected after the close "
+            "(options_cache) and the run reads them, so the session they belong to is named on "
+            "the page and the days to expiry are recounted from today."
         ),
     ),
     Claim(

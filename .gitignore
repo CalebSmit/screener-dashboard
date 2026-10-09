@@ -23,6 +23,9 @@ data/market/
 data/track/
 data/sec/
 data/insider/
+# Option quotes, collected after the close because the source serves none at 02:00 and read back
+# by the run (2026-10-09). Rebuilt by scripts/refresh-option-quotes.ps1; never worth committing.
+data/options/
 
 # Local SSL CA bundle (machine-specific, e.g. Avast/AV TLS interception root)
 .certs/

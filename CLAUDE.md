@@ -580,7 +580,7 @@ already shipped to the live public site.
 
 | # | The constraint | Enforced by |
 |---|---|---|
-| -1 | Scheduled-task definitions stay in version control (`scripts/register-tasks.ps1`). The two loops keep **different** logon delays (data `PT3M`, code `PT20M`), and the loser of the shared repo lock **waits** - it must never exit instead | `tests/test_loop_mutual_exclusion.py` |
+| -1 | Scheduled-task definitions stay in version control (`scripts/register-tasks.ps1`). The two loops keep **different** logon delays (data `PT3M`, code `PT20M`), and the loser of the shared repo lock **waits** - it must never exit instead. The third task, `Screener Option Quotes` (weekdays 20:00), **publishes nothing**: no repo lock, no mutating git command, writes only the gitignored `data/options/`, no logon trigger - that is what makes a third task safe without gates of its own | `tests/test_loop_mutual_exclusion.py`, `tests/test_option_quote_refresh_task.py` |
 | -1 | The watchdog runs **outside** the machine it watches, and must not alarm faster than two *consecutive* missed weekdays. A watchdog that cries wolf gets muted, and a muted watchdog still looks like coverage | `tests/test_loop_watchdog.py` |
 | -1 | The morning brief is published as a single-file commit built on `origin/main`. **Never go back to pushing a local ref** - from `finally`, that publishes work the gates just refused | `tests/test_brief_publish_safety.py` |
 | -1 | The `nightly/*` branch sweep keeps its `--merged origin/main` filter, and a failed delete stays non-fatal | `tests/test_branch_sweep.py` |
@@ -659,10 +659,23 @@ coverage discount uses (35 for a bank-like stock, 41 otherwise, out of `METRIC_C
 emit applicable coverage - which is also what the composite line needs for defect 2.
 
 **0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
-it now (age 0 days).** Technicals, options, insider trades, a market backdrop and the ranking's
-track record, all context-only (settled row "ctx"). `OWNER_FOCUS.md` has the open item and
-`plan/context-layer.md` the ordered queue. First to do: confirm the context pass costs the 02:00
-core fetch nothing (fetch time, failure rate, rate-limit backoffs, against the prior week).
+it now (opened 2026-10-08, age 1 day).** Technicals, options, insider trades, a market backdrop and
+the ranking's track record, all context-only (settled row "ctx"). `OWNER_FOCUS.md` has the open item
+and `plan/context-layer.md` the ordered queue. Queue items 1 and 3 are done; **item 2 was measured
+and fixed in code 2026-10-09** - the options panel was empty for every stock on every scheduled run
+(`ok` for **0 of 503** at the 02:00 loop's hour against **394 of 503** at 21:27 ET, because the
+source serves the chain overnight with bid, ask and implied volatility all zero), fixed by an
+after-close quote cache plus a probe instead of a guessed hour.
+
+***The one thing to do first next session:*** the task that fills that cache,
+`Screener Option Quotes`, **is defined in `scripts/register-tasks.ps1` but was never registered on
+the machine.** The 2026-10-09 session was hard-blocked, not cautious: every PowerShell call,
+including a read-only `Get-ScheduledTask`, is auto-denied in a non-interactive session. Until it
+runs, nothing fills the cache and every options panel reads `quotes-closed`. Run
+`scripts/register-tasks.ps1`, verify all three tasks with
+`Get-ScheduledTask`/`Get-ScheduledTaskInfo` (the refresh must have **one** trigger and no logon
+trigger; the loops must still read PT3M and PT20M), then re-measure the `ok` share from the next
+02:00 log. Then queue item 4, one research note per signal.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's

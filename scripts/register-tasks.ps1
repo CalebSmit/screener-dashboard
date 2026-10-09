@@ -10,15 +10,24 @@
     Task Scheduler entries. If that machine were rebuilt, the routine would be
     gone with no record of how it had been configured.
 
-    Creates two tasks:
+    Creates three tasks:
       Screener Data Run             02:00 Mon-Fri  -> scripts/data-run.ps1
       Nightly Screener Improvement  06:00 Mon-Fri  -> scripts/nightly-screener.ps1
+      Screener Option Quotes        20:00 Mon-Fri  -> scripts/refresh-option-quotes.ps1
 
-    Both also get an at-logon trigger so a run missed while the machine sat at
-    the login screen is picked up when the owner next signs in. That is safe
-    because both scripts write a once-per-day success marker and exit early if
-    the day already succeeded; a failed run leaves no marker and is correctly
+    The two loops also get an at-logon trigger so a run missed while the machine
+    sat at the login screen is picked up when the owner next signs in. That is
+    safe because both scripts write a once-per-day success marker and exit early
+    if the day already succeeded; a failed run leaves no marker and is correctly
     retried.
+
+    The option-quote refresh (added 2026-10-09) deliberately has neither a logon
+    trigger nor StartWhenAvailable: it is only useful between the close and
+    midnight ET, because the source serves the option chain with every bid, ask
+    and implied volatility at zero overnight - which is why the 02:00 loop got a
+    usable reading for 0 of 503 stocks. Running it late would do nothing but
+    write a log line. It touches no tracked file and takes no repo lock, so it
+    cannot collide with either loop.
 
     The logon delays are staggered - data 3 min, code 20 min. They were both
     3 min until 2026-08-29, when the two loops started in the same second and
@@ -82,6 +91,22 @@ $Specs = @(
         Limit       = (New-TimeSpan -Hours 4)
         Description = 'Autonomous Claude Code session. Re-verifies all four ship gates itself, merges to main on success and tags good/<date>. Never merges on a failing gate.'
     }
+    @{
+        Name        = 'Screener Option Quotes'
+        Script      = 'refresh-option-quotes.ps1'
+        At          = '8:00PM'
+        # No logon trigger and no StartWhenAvailable, unlike the two loops above. This task is
+        # only useful inside a window: measured 2026-10-09, the option chain carries quotes at
+        # 21:27 ET and comes back with every bid, ask and implied volatility at zero by 03:00 ET,
+        # so the 02:00 data loop got a usable reading for 0 of 503 stocks. A catch-up firing at
+        # an arbitrary hour would correctly do nothing, which is just noise in the log - and a
+        # missed evening is already covered, because options_cache serves a reading for up to
+        # three days and so carries a Friday close to Monday.
+        NoLogon     = $true
+        NoCatchUp   = $true
+        Limit       = (New-TimeSpan -Minutes 30)
+        Description = 'Collects option quotes after the close into data/options/quotes.json, which the 02:00 run reads because the source serves no quotes at that hour. Touches no tracked file, runs no git command, takes no repo lock, and can never change a score.'
+    }
 )
 
 Write-Host ""
@@ -104,7 +129,7 @@ foreach ($s in $Specs) {
         New-ScheduledTaskTrigger -Weekly `
             -DaysOfWeek Monday, Tuesday, Wednesday, Thursday, Friday -At $s.At
     )
-    if (-not $NoLogonCatchup) {
+    if (-not $NoLogonCatchup -and -not $s.NoLogon) {
         $logon = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
         $logon.Delay = $s.LogonDelay
         $triggers += $logon
@@ -115,9 +140,17 @@ foreach ($s in $Specs) {
 
     # StartWhenAvailable + WakeToRun let a sleeping machine still run; neither
     # helps when nobody is logged on, which is what the logon trigger covers.
-    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun `
-        -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries `
-        -ExecutionTimeLimit $s.Limit -MultipleInstances IgnoreNew
+    # A task marked NoCatchUp opts out: it is only useful inside a time window,
+    # so running it late is worse than not running it.
+    if ($s.NoCatchUp) {
+        $settings = New-ScheduledTaskSettingsSet -WakeToRun `
+            -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries `
+            -ExecutionTimeLimit $s.Limit -MultipleInstances IgnoreNew
+    } else {
+        $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun `
+            -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries `
+            -ExecutionTimeLimit $s.Limit -MultipleInstances IgnoreNew
+    }
 
     if (Get-ScheduledTask -TaskName $s.Name -ErrorAction SilentlyContinue) {
         Unregister-ScheduledTask -TaskName $s.Name -Confirm:$false

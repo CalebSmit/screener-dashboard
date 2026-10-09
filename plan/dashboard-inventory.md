@@ -21,8 +21,13 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   under "Why it ranks here": **Trend** (weekly price chart with the 50- and 200-day averages, distance
   from each, 52-week range), **Recent move** (5 days / 1 month vs sector median / 3 months, volume
   ratio, a reversal note past +/-15%), **What options imply** (expected move = ATM straddle / price on
-  the expiry after the next report, ATM IV vs realised, put skew, put/call OI; "no number" when quotes
-  are stale), **Insider trades** (90-day open-market buys and sales, cluster flag, the last five
+  the expiry after the next report, ATM IV vs realised, put skew, put/call OI; it names the session
+  the quotes came from where that is not the run date, and counts days to expiry from today -
+  `_ctx_opt_quote_date`, payload key `oqd`. Three ways it says "no number", each meaning something
+  different: `quotes-closed` - the run fetched at an hour when the source serves no quotes and the
+  after-close cache has nothing recent for this stock (2026-10-09); `stale-quotes` - quotes came back
+  but the at-the-money bid/ask were missing or too wide; `no-chain` / `no-atm` - no usable chain at
+  all), **Insider trades** (90-day open-market buys and sales, cluster flag, the last five
   trades, link to the SEC filings), **Sensitivity to interest rates** (return per +1pp in the 10-year,
   with R-squared and the sector median). Payload `stock_detail[t].ctx`, rendered by `renderContext()`
   in `_js_context()`.

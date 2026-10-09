@@ -554,12 +554,15 @@ def test_options_and_insider_calls_are_not_in_the_core_fetch():
 def test_context_pass_skips_failed_core_fetches_and_respects_the_budget(monkeypatch):
     import context_fetch as cf
     calls = []
-    monkeypatch.setattr(cf, "_context_for", lambda t, p, e, d: calls.append(t) or {"_ctx_opt_status": "ok"})
+    # options_live is given explicitly so no quote probe reaches the network from a unit test;
+    # the probe itself is covered in tests/test_option_quote_hours.py (2026-10-09).
+    monkeypatch.setattr(cf, "_context_for",
+                        lambda t, p, e, d, with_options=True: calls.append(t) or {"_ctx_opt_status": "ok"})
     monkeypatch.setattr(cf, "PACE_SECONDS", 0)
     raw = [{"Ticker": "A", "price_latest": 10}, {"Ticker": "B", "_error": "x"}, {"Ticker": "C", "price_latest": 5}]
-    st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None)
+    st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None, options_live=True)
     assert sorted(calls) == ["A", "C"] and st["done"] == 2 and "_ctx_opt_status" not in raw[1]
-    st = cf.enrich([{"Ticker": "Z"}], budget_seconds=-1, log=lambda *a: None)
+    st = cf.enrich([{"Ticker": "Z"}], budget_seconds=-1, log=lambda *a: None, options_live=True)
     assert st["stopped"] == "time budget" and st["done"] == 0
 
 
@@ -572,5 +575,5 @@ def test_context_pass_stops_when_rate_limited(monkeypatch):
     monkeypatch.setattr(cf, "PACE_SECONDS", 0)
     monkeypatch.setattr(cf.time, "sleep", lambda s: None)
     raw = [{"Ticker": f"T{i}", "price_latest": 1} for i in range(40)]
-    st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None)
+    st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None, options_live=True)
     assert st["stopped"] == "rate limited" and st["done"] == 0
