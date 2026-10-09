@@ -385,7 +385,7 @@ outcome.
 
 ### Scoring engine
 - `run_screener.py` - pipeline entry point
-- `factor_engine.py` - metric registry (`METRIC_COLS`, 45 entries), scoring
+- `factor_engine.py` - metric registry (`METRIC_COLS`, 46 entries), scoring
 - `portfolio_constructor.py` - sector-constrained portfolio construction
 - `improvement_engine.py` - **the methodology learning loop** (see below)
 - `backtest.py` - decile backtest + IC validation. Known-weak; see `plan/backtest-v2.md`
@@ -423,9 +423,8 @@ outcome.
 
 ### Tests
 - `tests/` (70+ modules) + `test_screener.py`. Run: `python -m pytest tests/ test_screener.py -q`
-- `conftest.py` at root protects published artifacts from test side effects.
-  **Deeper fix still open:** point offending tests at `tmp_path` and stub the
-  network call in `get_sp500_tickers`.
+- `conftest.py` at root is a **tripwire**: it restores published artifacts and fails the
+  session if any test wrote one (isolation landed 2026-10-09; priority 8).
 
 ### Routine
 - `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop)
@@ -633,15 +632,17 @@ the evening table where they overlap; start by testing what pass 2 shipped on th
 navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`); keep it that way, so every
 way of opening a stock keeps links and stepping.
 
-**0.9. Four methodology questions the transparency build surfaced - research, do not patch
-(opened 2026-10-07, age 0 days).** Read from the code, verified on the live payload, now stated
-on the page next to each metric (`METHODOLOGY_CHANGELOG.md` 2026-10-07 (owner-run)):
-**(a) `operating_leverage` ranks negative values best** (95 of 393; 84th percentile average vs
-37th) at 8% of non-bank Quality; **(b) "year-over-year" growth spans 12-21 months** (prior =
-the fiscal year before the latest completed one); **(c) two EBITDA definitions**; **(d) labels
-that disagree with the code** (`return_6m` is 6-1; "1Y" risk metrics use ~13 months). Each is a
-legitimate Monday research note with the literature and practice, then a changelog entry. (a) is
-the one with a measured effect on rankings and should go first.
+**0.9. Four methodology questions the transparency build surfaced - ANSWERED 2026-10-09
+(owner-run).** Each has a research note or a documented-defect entry in
+`METHODOLOGY_CHANGELOG.md` 2026-10-09: **(a)** `operating_leverage` to weight 0 (85 of its 95
+negatives were margin squeezes ranked best; the literature finds higher operating leverage earns
+*more*; MSCI and AQR quality do not use it) - `research/2026-10-09-operating-leverage.md`;
+**(b)** `revenue_growth` and Piotroski signals 3/8/9 now compare periods exactly a year apart
+(the old comparison spanned 12-23 months by fiscal calendar) -
+`research/2026-10-09-revenue-growth-window.md`; **(c)** one EBITDA for both ratios and the
+snapshot; **(d)** labels "6-1M Return" and "Max Drawdown (13M)". **Their measured effects on the
+first live run are recorded under those entries by the 2026-10-09 evening run** - read them before
+touching any of the four again.
 
 **T0a's standing constraint:** `claims.py` registers every sentence that says how a
 number is computed, with the code that makes it true and the test that checks it.
@@ -651,12 +652,11 @@ Defect 3 survived for months because **a test asserted it** - when you correct a
 published claim, grep the tests as well as the prose. `tests/test_claims_register.py`,
 24 tests, in the data loop's publish gate.
 
-**T0b also inherits a fourth defect, found 2026-10-07:** the drilldown's "rests on N
-of 18 metrics" and its provenance badge's 60/80% colours read `factor_engine`'s
-hard-coded 18-metric list, **not** the applicable-metric coverage the composite's
-coverage discount uses (35 for a bank-like stock, 41 otherwise, out of `METRIC_COLS`).
-62 stocks read under 80% on that badge; **3** were actually discounted. The engine must
-emit applicable coverage - which is also what the composite line needs for defect 2.
+**T0b's fourth defect is FIXED** (the "N of 18" badge reads the engine's applicable coverage).
+**Since 2026-10-09 that coverage counts only metrics that carry weight** (28 generic, 25 for
+banks; `factor_engine.weighted_metric_sets`), so a weight-0 candidate cannot move a composite.
+The separate *coverage filter* that excludes thin stocks still counts registered metrics -
+aligning it changes the universe and needs its own measurement.
 
 **0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
 it now (opened 2026-10-08, age 1 day).** Technicals, options, insider trades, a market backdrop and
@@ -667,15 +667,13 @@ and fixed in code 2026-10-09** - the options panel was empty for every stock on 
 source serves the chain overnight with bid, ask and implied volatility all zero), fixed by an
 after-close quote cache plus a probe instead of a guessed hour.
 
-***The one thing to do first next session:*** the task that fills that cache,
-`Screener Option Quotes`, **is defined in `scripts/register-tasks.ps1` but was never registered on
-the machine.** The 2026-10-09 session was hard-blocked, not cautious: every PowerShell call,
-including a read-only `Get-ScheduledTask`, is auto-denied in a non-interactive session. Until it
-runs, nothing fills the cache and every options panel reads `quotes-closed`. Run
-`scripts/register-tasks.ps1`, verify all three tasks with
-`Get-ScheduledTask`/`Get-ScheduledTaskInfo` (the refresh must have **one** trigger and no logon
-trigger; the loops must still read PT3M and PT20M), then re-measure the `ok` share from the next
-02:00 log. Then queue item 4, one research note per signal.
+**`Screener Option Quotes` IS REGISTERED** (2026-10-09, owner-run; `Get-ScheduledTask` read back:
+one weekly 20:00 trigger, no logon trigger; the loops still PT3M / PT20M). Smoke-tested live at
+08:46 CT: quotes live, cache written. **Item 5, the evaluation harness, is built**
+(`context_eval.py`, one line in the morning brief; first one-month window closes 2026-11-07).
+Item 4 step one (every research sentence on the panel checked against its source) is done -
+`research/2026-10-09-context-panel-claims.md`. Next: re-measure the options `ok` share from the
+first 02:00 log after a 20:00 refresh, then item 4's per-signal notes.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's
@@ -699,17 +697,12 @@ computation, published - never a second one in the generator or in JS (row 0.8).
 equation is also what exposed the log-return compounding error, which is the argument for
 doing the rest: *you cannot write a metric's arithmetic down without checking it.*
 
-*Next, in this order.* **(a) `jensens_alpha` (3.25%)** - everything it needs already exists
-in `compute_metrics` (`return_12m`, `beta`, `risk_free_rate`, `market_12m_return`); publish
-the run-level rate and market return beside the per-stock pair and the CAPM line becomes
-exact, verifiable today without a refetch. **(b) `beta` (2.86%)** - publish the `cov` and
-`var` the slope is taken from, which the block already computes. **(c) `volatility` (4.29%)**
-- needs the daily standard deviation kept **at fetch**, beside the one `std()` call that
-already makes `volatility_1y`; it therefore only lands on the next full fetch, so add the
-fetch field and its `EQUATIONS` entry in the *same* session as a run that refetches, or
-`test_nearly_every_scored_value_gets_a_line` fails on a payload that has no inputs for it.
-**(d) the three analyst-history metrics (4.50%)** - the per-quarter EPS actuals and estimates,
-also a fetch change, same constraint.
+**(a)-(d) ALL BUILT 2026-10-09 (owner-run)** and smoke-tested live (AAPL, JPM, NVDA reproduce to
+4dp): Jensen's alpha prints its four CAPM terms, beta its covariance / variance, volatility its daily
+standard deviation x 252^0.5 (all engine-published `_ja_*`, `_beta_cov/_var`, `_vol_sd`), and the
+three surprise metrics show their four quarters (`eq4`) with a test rebuilding each from them.
+`scoring_schema` is 4. **What remains is Sharpe and Sortino** (weight 0, shown for reference) - low
+value; do them only if a session has nothing better.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
 item asked for deduplication and a test, and both landed: `record_dispersion` now
@@ -776,14 +769,10 @@ publish. v2 must apply it **per rebalance month from that month's regime** -
 reading the current run's regime is a third look-ahead vector, inside the weights
 rather than the metrics.
 
-**4's residual: the run-level overview.** One or two sentences on what moved
-across the whole run - the last open piece of the 2026-08-10 owner directive.
-Most of it already exists as the What Changed movers panel, so the gap is narrow.
-**Its pair, the "reporting this week" view, SHIPPED 2026-10-08 (owner-run)** as
-Reporting Soon (`sec-reporting`): every stock reporting within 7/14 days of the
-run, by date then rank, never by expected move (23 and 103 on that run - earnings
-season). The overview sentence is still open and, if it states how a number is
-computed, must be registered in `claims.py`.
+**4's residual - DONE 2026-10-09 (owner-run).** The What Changed panel opens with a run-level
+overview (`run_overview.py`, claim `history.run_overview`): who moved past the noise threshold,
+which categories the movement came from (weighted, direction-free), how many of the top 25 held. Its
+pair, Reporting Soon, shipped 2026-10-08. The 2026-08-10 owner directive's pieces are all built.
 
 **5's residual: the hold band - settled 2026-09-16 as "not yet", with a date.**
 The strict top-25 rule wastes **31-47%** of the trades it implies at every
@@ -813,11 +802,16 @@ assumed** - 0 across 9,036 ticker-fetches over 18 logs to 2026-09-25, against a
 "10-25%" figure that was stale for months. Re-verify periodically and update the
 record here in either direction.
 
-**6. Investor profile selector** - `plan/investor-profiles.md`. Reconcile with
-`presets.py` first. Note `contrib` is Balanced-only.
+**6. Investor profile selector - M1-M3 SHIPPED 2026-10-09 (owner-run).** A Weighting selector on
+the rankings table; profiles from `presets.py`, composites computed at build time by the engine with
+the run's own regime (`apply_momentum_regime`), withheld unless Balanced reproduces the published
+ranking. M4 (custom sliders) is open and must first answer whether any client-side reweight can meet
+row 0.8. `plan/investor-profiles.md`.
 
 **7. Investment-club readiness** - can a student open this on a phone and
 understand what they're looking at?
 
-**8. Test isolation** - remove the need for the `conftest.py` guard. Point
-offending tests at `tmp_path` and stub the network call in `get_sp500_tickers`.
+**8. Test isolation - DONE 2026-10-09 (owner-run).** A per-test write detector found exactly three
+tests writing published files; all three now use `tmp_path` or the committed universe, and
+`conftest.py` is a tripwire that restores the files and **fails the session** if any test writes
+one.
