@@ -288,10 +288,11 @@ def test_beneish_indices_rebuild_the_m_score(payload):
 # ---------------------------------------------------------------------------
 
 def _avg_rank_pct(values, mine):
-    """pandas rank(pct=True, method='average') for one value among a list."""
+    """The midpoint percentile (average rank - 0.5) / n for one value among a list - the engine's
+    rule since 2026-10-09 (factor_engine._directed_pct)."""
     below = sum(1 for v in values if v < mine)
     equal = sum(1 for v in values if v == mine)
-    return ((below + (equal + 1) / 2.0) / len(values)) * 100.0
+    return ((below + equal / 2.0) / len(values)) * 100.0
 
 
 def test_percentiles_reproduce_from_the_published_peer_values(payload):

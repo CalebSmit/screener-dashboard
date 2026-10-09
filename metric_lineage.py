@@ -560,7 +560,9 @@ def choose_template(metric: str, inp: dict):
 def evaluate_template(template: str, inp: dict):
     """Read an exact template as arithmetic and return its value (or None)."""
     import re
-    expr = re.sub(r"\{([A-Za-z0-9_]+)\|[^}]*\}", lambda m: repr(float(inp[m.group(1)])), template)
+    # Fixed-point, never repr(): a small input such as an annualised covariance of 5e-05 would
+    # otherwise bring an 'e' into the expression and read as a word left over (2026-10-09).
+    expr = re.sub(r"\{([A-Za-z0-9_]+)\|[^}]*\}", lambda m: f"({float(inp[m.group(1)]):.20f})", template)
     expr = (expr.replace("÷", "/").replace("×", "*").replace("−", "-")
             .replace("^", "**").replace("ln(", "_ln("))
     if re.search(r"[A-Za-z]", expr.replace("_ln", "")):

@@ -251,7 +251,9 @@ def test_compare_lines_up_scores_and_reconciles_the_gap(browser):
             .map(e => parseFloat(e.textContent.replace('\\u2212', '-')))""")
         total = page.evaluate("""() => parseFloat(document.querySelector('#cmp-body .gap-total .num').textContent.replace('\\u2212', '-'))""")
         assert len(lines) >= 8
-        assert abs(sum(lines) - total) < 0.1, (lines, total)
+        # each line and the total are shown to 0.1, so the shown figures can differ by up to half a
+        # tenth per line - the page says "rounding aside"
+        assert abs(sum(lines) - total) <= 0.05 * (len(lines) + 1) + 1e-9, (lines, total)
         assert not page.is_visible("#cmp-tray")  # the tray never covers the comparison
         page.keyboard.press("Escape")
         assert not page.is_visible("#compare-modal .cmp-content")
