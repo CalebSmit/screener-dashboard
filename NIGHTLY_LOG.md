@@ -8805,3 +8805,69 @@ equations exposed an arithmetic error in `max_drawdown_1y`, which became the ses
 - Open item **0.9** is still untouched and is now **age 1 day** - `operating_leverage` ranking
   negative values best is the one with a measured effect on rankings, and it is a Monday
   research note, not a patch.
+
+
+## 2026-10-08 (evening) - OWNER-RUN: the context layer - technicals, options, insiders, macro and a track record (first draft)
+
+Owner, after a brainstorm: *"This is where I want people to come for all of their investing needs ...
+maybe we should take like technicals into account for timing of investments? Or macro data? Or options
+data? ... the goal is still long term ... if free somehow ... you would just build the first rough draft
+of it, then the nightly sessions would really drill into it."* He chose all four drafts and **"context
+only, track them"**. Health numbers are unchanged from the 06:00 entry above (same day).
+
+**For the next session:** there is now an **open owner item** - `OWNER_FOCUS.md`, brief
+`plan/context-layer.md`. Its queue starts with measuring that the new context pass costs the 02:00 core
+fetch nothing. It never moves a score (CLAUDE.md settled row "ctx").
+
+### What was built
+
+- **`context_signals.py`** (pure, tested): trend/range/recent-move/volume from the history the fetch
+  already pulls (no extra request); options expected move (ATM straddle / price), ATM IV, put skew,
+  put/call OI, with quality bars that report "no number" for stale 2 AM quotes; rate sensitivity
+  (slope of daily return on the daily change in the 10-year yield); the per-date context log.
+- **`context_fetch.py`**: option chains and insider trades in a **separate paced pass after the core
+  fetch**, with a time budget and a rate-limit stop. *Why separate - measured tonight:* the first draft
+  fetched them inside each stock's core fetch, and three extra requests per stock tripped Yahoo's rate
+  limiter at batch 9 of 17; the fetcher dropped to one worker and the scored data came in slower. Core
+  data first, always.
+- **`insider_activity.py`**: open-market buys and sales (grants, gifts, exercises excluded) from Yahoo's
+  Form 4 feed; 90-day summary with a cluster flag. An SEC EDGAR client and Form 4 parser are built and
+  tested, but `www.sec.gov` refuses any User-Agent without a contact email (measured: three identities,
+  all 403; `data.sec.gov` accepts a name). **The owner's email was not used** - that is his to give.
+- **`market_context.py`**: ten FRED series (no key), cached; readings that name their rule (Estrella &
+  Mishkin 1998 for the curve, Sahm 2019, 10-year percentiles); factor notes.
+- **`track_record.py`**: the ranking's top 25 (equal weight, monthly, entry at the first close on/after
+  each run) vs RSP and SPY, top fifth vs bottom fifth, from the 52 comparable snapshots since 2026-02-20 -
+  out of sample by construction. Lists no holdings.
+- **Pipeline:** `run_screener` runs the context pass and rate sensitivity after the fetch, and step 11.5
+  refreshes the backdrop, rebuilds the track record and writes `data/context_log/`. `data-run.ps1`
+  commits the outputs; the caches are git-ignored.
+- **Page:** "Before you decide" in every drilldown (+ a teaser line), Market Backdrop and Track Record
+  sections, a Context filter on the rankings. Renamed from "Before you buy" because the advice-language
+  test caught the word - the right call for a tool that never says buy.
+- **Claims:** five registered (`context.expected_move`, `.rate_sensitivity`, `.insider_trades`,
+  `.track_record`, `.sahm`).
+
+### Measured on the first full run (2026-10-08 evening, run 91fa11d3ae8e)
+
+- Coverage: trend context **501 of 502**; options **393 "ok"** (+56 partial, 25 stale quotes, 18 no
+  at-the-money strike, 9 no chain); insider data **502**, of which **55** had open-market buying in 90
+  days and **5** a cluster; rate sensitivity **501**. Market backdrop and track record built.
+- **Track record, Feb 20 -> Oct 8 (230 days): top 25 +5.7%, RSP +4.9%, SPY +13.6%; top fifth minus
+  bottom fifth +2.5pp; top 25 ahead of RSP in 4 of 7 periods.**
+- Payload **1.27 -> 1.68 MB gzipped** (+0.32 MB is `ctx`; the weekly chart series is 0.19 of it).
+  Sharing the weekly date axis saved little - dates compress well. The shell paints before the data
+  (LCP unaffected); **moving `ctx`/`market`/`track` to a second, deferred file is queued** in the plan.
+- **Scores untouched:** regenerated from the run, table_data and every stock's raw/pct/category
+  scores/composite identical to the run's own output; the build re-proved 4,013 category scores and 502
+  composites.
+- Two fixes found by looking: rows in the workings could visibly fail to add up at one decimal (JPM
+  Valuation 25.2 + 16.7 = 41.9 against a printed 42.0) - points and their total are now shown to two
+  decimals; the Market and Track sections now render on first open (first-paint DOM was 3,384 against
+  the 3,000 budget).
+- This evening run's side effects on the learning records (improvement snapshot, dispersion and
+  volatility histories, Excel and validation outputs) were reverted to the 02:00 run's; the 02:00 data
+  loop tonight is the first scheduled run of the new pipeline.
+
+**Tests 1894 -> 1929, 0 failed** (+35: 37 in `test_context_layer.py` less 2 skips, a browser test for
+the panels). Dry-run, `node --check` and the publish gate (363) pass.

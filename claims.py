@@ -430,6 +430,69 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
         ),
     ),
+    # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
+    Claim(
+        id="context.expected_move",
+        surface=DRILLDOWN,
+        asserts=(
+            "'Before you decide' gives the options-implied move as the at-the-money call plus "
+            "put (mid quotes) divided by the price, on the first expiry after a report due "
+            "within 60 days, else the expiry nearest 30 days; quotes that are missing or too "
+            "wide give no number."
+        ),
+        made_true_by="context_signals:options_context",
+        checked_by=(
+            "tests/test_context_layer.py::test_expected_move_is_the_atm_straddle_over_the_price",
+            "tests/test_context_layer.py::test_expiry_spans_a_nearby_report",
+            "tests/test_context_layer.py::test_stale_or_wide_quotes_give_no_move",
+        ),
+    ),
+    Claim(
+        id="context.rate_sensitivity",
+        surface=DRILLDOWN,
+        asserts=(
+            "A stock's sensitivity to interest rates is the slope of its daily return on the "
+            "daily change in the 10-year Treasury yield over the past ~13 months, per +1 "
+            "percentage point (shown per +0.10 point), with the share of daily swings it explains."
+        ),
+        made_true_by="context_signals:rate_sensitivity",
+        checked_by=("tests/test_context_layer.py::test_rate_beta_recovers_a_known_slope",),
+    ),
+    Claim(
+        id="context.insider_trades",
+        surface=DRILLDOWN,
+        asserts=(
+            "Insider buying and selling counts open-market purchases and sales only, over the "
+            "last 90 days; grants, gifts and option exercises are left out."
+        ),
+        made_true_by="insider_activity:summarise_rows",
+        checked_by=(
+            "tests/test_context_layer.py::test_grants_and_exercises_are_not_purchases",
+            "tests/test_context_layer.py::test_ninety_day_summary_and_cluster",
+        ),
+    ),
+    Claim(
+        id="context.track_record",
+        surface=DRILLDOWN,
+        asserts=(
+            "The track record holds the ranking's top 25 in equal weights, rebalanced at the "
+            "first comparable run of each month, entering at the close of the first trading "
+            "day on or after the run, with dividends and without costs; the benchmark is RSP."
+        ),
+        made_true_by="track_record:build",
+        checked_by=(
+            "tests/test_context_layer.py::test_basket_return_matches_hand_arithmetic",
+            "tests/test_context_layer.py::test_entry_is_never_before_the_run",
+            "tests/test_context_layer.py::test_rebalances_on_the_first_run_of_each_month",
+        ),
+    ),
+    Claim(
+        id="context.sahm",
+        surface=DRILLDOWN,
+        asserts="The Sahm indicator is the 3-month average unemployment rate minus its low over the prior 12 months.",
+        made_true_by="market_context:sahm_indicator",
+        checked_by=("tests/test_context_layer.py::test_sahm_indicator_definition",),
+    ),
     Claim(
         id="drilldown.row_equation",
         surface=DRILLDOWN,

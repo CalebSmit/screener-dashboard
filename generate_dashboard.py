@@ -189,6 +189,11 @@ def load_run_data(run_dir: Path) -> dict:
             if in_cols:
                 df = df.merge(raw_full[["Ticker"] + in_cols].rename(
                     columns={k: "_in_" + k for k in in_cols}), on="Ticker", how="left")
+            # Context layer (display only, plan/context-layer.md): its own prefix, so it can
+            # never collide with a scored column.
+            ctx_cols = [c for c in raw_full.columns if c.startswith("_ctx_") and c not in df.columns]
+            if ctx_cols:
+                df = df.merge(raw_full[["Ticker"] + ctx_cols], on="Ticker", how="left")
         except (OSError, ValueError):
             pass  # no inputs for this run: the page shows formulas without numbers
 
@@ -511,6 +516,92 @@ def _compact(v):
     return v
 
 
+# Context layer: payload key -> raw-fetch column. Short keys keep ~500 copies small.
+CTX_FIELDS = {
+    "px": "_ctx_last_close", "pd": "_ctx_last_date", "s50": "_ctx_sma50", "s200": "_ctx_sma200",
+    "s200p": "_ctx_sma200_prev", "hi": "_ctx_high_52w", "lo": "_ctx_low_52w", "hid": "_ctx_high_52w_date",
+    "r5": "_ctx_ret_5d", "r1m": "_ctx_ret_1m", "r3m": "_ctx_ret_3m", "vr": "_ctx_vol_ratio",
+    "ox": "_ctx_opt_expiry", "od": "_ctx_opt_days", "oe": "_ctx_opt_spans_earnings", "om": "_ctx_opt_move",
+    "ost": "_ctx_opt_straddle", "ok": "_ctx_opt_atm_strike", "oi": "_ctx_opt_iv", "osk": "_ctx_opt_skew",
+    "opc": "_ctx_opt_pc_oi", "os": "_ctx_opt_status",
+    "rb": "_ctx_rate_beta", "rr2": "_ctx_rate_r2", "rn": "_ctx_rate_n",
+}
+
+
+def _stock_context(row, ticker: str, run_date) -> dict | None:
+    """Display-only context for one stock: trend, options, rates, insiders. Never scored."""
+    out = {}
+    for key, col in CTX_FIELDS.items():
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and v != v):
+            continue
+        if isinstance(v, (bool, np.bool_)):
+            out[key] = bool(v)
+        elif isinstance(v, (int, float, np.integer, np.floating)):
+            fv = float(v)
+            out[key] = _compact(round(fv, 6) if abs(fv) < 1e6 else round(fv, 2))
+        else:
+            out[key] = str(v)
+    wk = row.get("_ctx_weekly")
+    if isinstance(wk, str) and wk:
+        try:
+            out["wk"] = json.loads(wk)
+        except ValueError:
+            pass
+    ins = row.get("_ctx_insider")
+    if isinstance(ins, str):
+        try:
+            from insider_activity import summarise_rows, edgar_link
+            out["ins"] = summarise_rows(json.loads(ins), run_date, link=edgar_link(ticker))
+        except (ValueError, TypeError):
+            pass
+    return out or None
+
+
+def _market_block(stock_detail: dict) -> dict | None:
+    """The market backdrop (written by the run's context step) plus each sector's median
+    sensitivity to the 10-year yield, from the per-stock values published beside it."""
+    try:
+        import market_context
+        m = market_context.load()
+    except Exception:  # noqa: BLE001 - no backdrop is a missing panel, not a failed build
+        m = None
+    if not m:
+        return None
+    by_sector: dict[str, list] = {}
+    for s in stock_detail.values():
+        rb = (s.get("ctx") or {}).get("rb")
+        if rb is not None:
+            by_sector.setdefault(s.get("sector") or "Unknown", []).append(rb)
+    m["sector_rate"] = {k: {"median": round(float(np.median(v)), 6), "n": len(v)}
+                        for k, v in sorted(by_sector.items()) if len(v) >= 5}
+    return m
+
+
+def _shared_weeks(stock_detail: dict) -> list | None:
+    """Every stock's weekly chart carries the same 53 dates; ship them once. A stock whose dates
+    differ (a shorter history) keeps its own. Saves ~320 KB raw per payload."""
+    from collections import Counter
+    seqs = Counter(tuple(((s.get("ctx") or {}).get("wk") or {}).get("d") or ()) for s in stock_detail.values())
+    seqs.pop((), None)
+    if not seqs:
+        return None
+    common = list(seqs.most_common(1)[0][0])
+    for s in stock_detail.values():
+        wk = (s.get("ctx") or {}).get("wk")
+        if wk and wk.get("d") == common:
+            del wk["d"]
+    return common
+
+
+def _track_block() -> dict | None:
+    try:
+        import track_record
+        return track_record.load()
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _stock_inputs(row) -> dict:
     """The reported figures behind this stock's metrics, as the scorer used them."""
     inp = {}
@@ -692,6 +783,13 @@ def prepare_dashboard_data(run_data: dict) -> str:
             peers.append(peer)
         return peers
 
+    # The context layer reads insider trades relative to the run's own date.
+    _rd = _run_date_for_history(meta)
+    try:
+        _ctx_run_date = datetime.strptime(_rd, "%Y-%m-%d").date() if _rd else datetime.now().date()
+    except ValueError:
+        _ctx_run_date = datetime.now().date()
+
     # --- Per-stock detail data (for drill-down) keyed by ticker ---
     stock_detail = {}
     for _, row in df.iterrows():
@@ -753,6 +851,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
         # The reported figures behind the metrics, the nine Piotroski signals and the
         # eight Beneish indices. Display only: none of it is scored here.
         detail["inp"] = _stock_inputs(row)
+        _ctxd = _stock_context(row, ticker, _ctx_run_date)
+        if _ctxd:
+            detail["ctx"] = _ctxd
         _pio = row.get("_pio_signals")
         if isinstance(_pio, str) and _pio:
             detail["pio"] = _pio
@@ -1110,6 +1211,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "table_data": table_data,
         "stock_detail": stock_detail,
         "weights": weights,
+        "ctx_weeks": _shared_weeks(stock_detail),
+        "market": _market_block(stock_detail),
+        "track": _track_block(),
         "lineage": published_lineage(),
         "not_used": published_not_used(),
         "lineage_check": _lineage_check(stock_detail),
@@ -1168,6 +1272,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     </style>
     <style>
 {_css_ux()}
+{_css_context()}
     </style>
 </head>
 <body>
@@ -1186,6 +1291,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <a href="#sec-universe" onclick="goToSection('sec-universe');return false">Rankings</a>
                 <a href="#sec-holdings" onclick="goToSection('sec-holdings');return false">Holdings</a>
                 <a href="#sec-changed" onclick="goToSection('sec-changed');return false" id="nav-changed">What changed</a>
+                <a href="#sec-market" onclick="goToSection('sec-market');return false">Market</a>
+                <a href="#sec-track" onclick="goToSection('sec-track');return false">Track record</a>
                 <a href="#sec-analytics" onclick="goToSection('sec-analytics');return false">Analytics</a>
                 <a href="#sec-defensibility" onclick="goToSection('sec-defensibility');return false">Diagnostics</a>
             </nav>
@@ -1307,6 +1414,26 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </section>
 
+        <!-- Market backdrop (context, never scored; plan/context-layer.md) -->
+        <section class="section collapsible-section collapsed" id="sec-market">
+            <div class="section-header" onclick="toggleSection('sec-market')">
+                <h2 class="section-title" style="margin:0">Market Backdrop</h2>
+                <span class="sec-meta" id="meta-market"></span>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body"><div id="market-body"></div></div>
+        </section>
+
+        <!-- Track record of the ranking (out of sample; plan/context-layer.md) -->
+        <section class="section collapsible-section collapsed" id="sec-track">
+            <div class="section-header" onclick="toggleSection('sec-track')">
+                <h2 class="section-title" style="margin:0">Track Record</h2>
+                <span class="sec-meta" id="meta-track"></span>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body"><div id="track-body"></div></div>
+        </section>
+
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section collapsed" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
@@ -1397,6 +1524,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label for="filter-ctx">Context</label>
+                        <select id="filter-ctx" title="Context filters read the Before you decide data; they never change the ranking">
+                            <option value="all">Any</option>
+                            <option value="up">Uptrend</option>
+                            <option value="down">Downtrend</option>
+                            <option value="insider">Insider buying, 90 days</option>
+                            <option value="earn14">Reports within 14 days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label for="filter-comp-min">Composite min</label>
                         <input type="number" id="filter-comp-min" min="0" max="100" value="0" step="5" inputmode="numeric">
                     </div>
@@ -1468,6 +1605,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
                     <a href="#section-contribution" onclick="goToModal('section-contribution');return false">How it adds up</a>
                     <a href="#section-categories" onclick="goToModal('section-categories');return false">The workings</a>
+                    <a href="#section-context" onclick="goToModal('section-context');return false">Before you decide</a>
                     <a href="#section-history" onclick="goToModal('section-history');return false" id="mnav-history">History</a>
                     <a href="#section-price-targets" onclick="goToModal('section-price-targets');return false">Price targets</a>
                     <a href="#section-peers" onclick="goToModal('section-peers');return false">Peers</a>
@@ -1484,6 +1622,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                         <div class="summary-body" id="modal-summary-body"></div>
                         <div class="summary-source">Assembled from this run's numbers by a fixed template &mdash; every figure appears somewhere below and is identical for every reader. It explains <em>where the stock ranks and why</em>. It is not investment advice and never says whether to buy, sell or hold.</div>
                     </div>
+
+                    <!-- One line pointing at Before you decide (context, not scored) -->
+                    <div class="ctx-teaser" id="modal-ctx-teaser" hidden></div>
 
                     <!-- What the company does (provider description, display only) -->
                     <div class="about-block" id="modal-about" style="display:none">
@@ -1520,6 +1661,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <span>The workings</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-categories"></div>
+                    </div>
+
+                    <!-- Before you decide: trend, options, insiders, rates. Context, never scored. -->
+                    <div class="collapsible" id="section-context">
+                        <div class="collapsible-header" onclick="toggleSection('section-context')">
+                            <span>Before you decide</span><span class="collapsible-chevron">&#9660;</span>
+                        </div>
+                        <div class="collapsible-body" id="modal-context"></div>
                     </div>
 
                     <!-- Rank history -->
@@ -2862,6 +3011,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // Category detail sections with metric breakdowns
         renderCategoryDetails(ticker, s, cats);
 
+        // Context: trend, options, insiders, rates (display only)
+        if (typeof renderContext === 'function') renderContext(ticker, s);
+
         modalReturnFocus = document.activeElement;
         document.getElementById('stock-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -3438,6 +3590,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
 {_js_workings()}
 {_js_ux()}
+{_js_context()}
 
     function fmtMetric(v, type) {{
         if (v === null || v === undefined) return '—';
@@ -3781,6 +3934,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         applyFilters();
         renderDefensibility();
         initUX();
+        initContext();
     }}
 
     </script>
@@ -3848,6 +4002,9 @@ def _js_workings() -> str:
         return { wp: wp, rows: rows, notUsed: notUsed, points: points };
     }
 
+    // Points are shown to two decimals and so is the category total beneath them: at one decimal,
+    // rounded rows could visibly fail to add up (JPM Valuation, 2026-10-08: 25.2 + 16.7 = 41.9
+    // printed against a total of 42.0) on the one surface whose job is "check the arithmetic".
     let WK_CURRENT = null;
 
     function renderCategoryDetails(ticker, s, cats) {
@@ -3904,14 +4061,14 @@ def _js_workings() -> str:
                         <td class="wk-pct"><div class="metric-pct-bar-container"><div class="metric-pct-bar">${has ? `<div class="metric-pct-fill" style="width:${Math.max(1, r.pct)}%"></div>` : ''}</div>
                             <span class="metric-pct-label">${has ? r.pct.toFixed(0) : '<span class="metric-na">&mdash;</span>'}</span></div></td>
                         <td class="wk-num metric-weight" title="${escapeHtml(tip)}">${has ? fmtWeight(r.share) : '<span class="metric-na">&mdash;</span>'}</td>
-                        <td class="wk-num wk-points">${has ? r.points.toFixed(1) : '<span class="metric-na">&mdash;</span>'}</td>
+                        <td class="wk-num wk-points">${has ? r.points.toFixed(2) : '<span class="metric-na">&mdash;</span>'}</td>
                         <td class="wk-more-c">${hasInfo ? `<button type="button" class="wk-info wk-more" aria-expanded="false" aria-label="Show how ${escapeHtml(meta.label)} is calculated"><span class="wk-more-t">Calculation</span><svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg></button>` : ''}</td></tr>`;
                 });
                 body += `</tbody>`;
                 if (scored) {
                     const ok = Math.abs(wk.points - catScore) < 0.06;
                     body += `<tfoot><tr class="wk-total"><td class="wk-metric">Category score</td><td></td><td></td>
-                        <td class="wk-num">100%</td><td class="wk-num wk-points" title="${ok ? 'The points add up to the category score.' : 'These points do not add up to the published category score.'}">${fmt(catScore,'score')}${ok ? '' : ' !'}</td><td></td></tr></tfoot>`;
+                        <td class="wk-num">100%</td><td class="wk-num wk-points" title="${ok ? 'The points add up to the category score.' : 'These points do not add up to the published category score.'}">${Number(catScore).toFixed(2)}${ok ? '' : ' !'}</td><td></td></tr></tfoot>`;
                 }
                 body += `</table>`;
                 if (wk.notUsed.length) body += notUsedHtml(cat, wk);
@@ -4003,7 +4160,7 @@ def _js_workings() -> str:
             h += `<div class="wk-line"><span class="wk-k">Rank</span><div class="wk-v">${rk}</div></div>`;
         }
         if (r && r.pct !== null && r.share !== null && r.points !== null) {
-            h += `<div class="wk-line"><span class="wk-k">Points</span><div class="wk-v"><span class="wk-n">${r.pct.toFixed(1)}</span> <span class="wk-l">percentile</span> <span class="wk-op">&times;</span> <span class="wk-n">${fmtWeight(r.share)}</span> <span class="wk-l">weight</span> <span class="wk-op">=</span> <span class="wk-n wk-res">${r.points.toFixed(1)}</span> <span class="wk-l">points toward the category score</span></div></div>`;
+            h += `<div class="wk-line"><span class="wk-k">Points</span><div class="wk-v"><span class="wk-n">${r.pct.toFixed(2)}</span> <span class="wk-l">percentile</span> <span class="wk-op">&times;</span> <span class="wk-n">${fmtWeight(r.share)}</span> <span class="wk-l">weight</span> <span class="wk-op">=</span> <span class="wk-n wk-res">${r.points.toFixed(2)}</span> <span class="wk-l">points toward the category score</span></div></div>`;
         }
         h += `</div><div class="wk-formula"><span class="wk-k">Definition</span>${escapeHtml(info.f)}</div>`;
         if (info.how) h += `<div class="wk-how">${escapeHtml(info.how)}</div>`;
@@ -4195,8 +4352,10 @@ def _js_table() -> str:
     }
 
     function filtersActive() {
+        const fc = document.getElementById('filter-ctx');
         return document.getElementById('filter-sector').value !== 'all' ||
             document.getElementById('filter-vt').value !== 'all' ||
+            (fc && fc.value !== 'all') ||
             (parseFloat(document.getElementById('filter-comp-min').value) || 0) > 0 ||
             document.getElementById('filter-search').value.trim() !== '';
     }
@@ -4204,6 +4363,8 @@ def _js_table() -> str:
     function clearFilters() {
         document.getElementById('filter-sector').value = 'all';
         document.getElementById('filter-vt').value = 'all';
+        const fc = document.getElementById('filter-ctx');
+        if (fc) fc.value = 'all';
         document.getElementById('filter-comp-min').value = '0';
         document.getElementById('filter-search').value = '';
         applyFilters();
@@ -4288,8 +4449,11 @@ def _js_table() -> str:
         const vt = document.getElementById('filter-vt').value;
         const compMin = parseFloat(document.getElementById('filter-comp-min').value) || 0;
         const search = document.getElementById('filter-search').value.toLowerCase().trim();
+        const ctxSel = document.getElementById('filter-ctx');
+        const ctxV = ctxSel ? ctxSel.value : 'all';
 
         tableState.filtered = tableState.data.filter(row => {
+            if (ctxV !== 'all' && typeof ctxFilterPass === 'function' && !ctxFilterPass(row, ctxV)) return false;
             if (sector !== 'all' && row.Sector !== sector) return false;
             const isVT = row.Value_Trap_Flag;
             const isGT = row.Growth_Trap_Flag;
@@ -7980,6 +8144,7 @@ def _css_ux() -> str:
         .hero-btn-primary:hover { background: #e7e6df; border-color: #e7e6df; }
         .hero-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .kpi-row { margin-bottom: 28px; }
+        @media (max-width: 1560px) { .run-info { display: none; } }
         .header-left { align-items: center; }
         .guide { margin-bottom: 28px; }
         .kpi-card { padding: 18px 22px; }
@@ -8295,6 +8460,495 @@ def _css_ux() -> str:
         }
         @media print {
             .cmp-tray, .toast, .pal-overlay, .guide, .cmdk-btn, .modal-tools { display: none !important; }
+        }
+"""
+
+
+def _js_context() -> str:
+    """JS for the context layer: Before you decide, Market backdrop, Track record.
+
+    A plain string, so braces are not doubled. Everything here is display: the page reads the
+    numbers the run published (``ctx`` per stock, ``D.market``, ``D.track``) and never feeds
+    anything back into a score. See plan/context-layer.md.
+    """
+    return r"""
+    // =====================================================================
+    // CONTEXT LAYER (2026-10-08, plan/context-layer.md)
+    // Shown beside the score, never in it. Every signal here is recorded each run
+    // (data/context_log/) so it builds an out-of-sample record; a signal joins the
+    // score only through research and METHODOLOGY_CHANGELOG.md.
+    // =====================================================================
+    const RATE_STEP = 0.10;   // show rate sensitivity per +0.10pp in the 10-year yield
+    const CTX_NOTE = 'Context, not part of the score. These readings help you judge timing for yourself; none of them is a signal to act on, and each is recorded every run so its record can be measured.';
+
+    function cPct(v, d) {
+        if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
+        const dd = d === undefined ? 1 : d;
+        const x = Number((v * 100).toFixed(dd));
+        return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(dd) + '%';
+    }
+    function cPlain(v, d) {
+        if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
+        return (v * 100).toFixed(d === undefined ? 1 : d) + '%';
+    }
+    function cMoney(v) {
+        if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
+        const a = Math.abs(v);
+        if (a >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+        if (a >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+        if (a >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+        return '$' + v.toFixed(0);
+    }
+    function cPrice(v) { return (v === null || v === undefined || !isFinite(v)) ? '&mdash;' : '$' + Number(v).toFixed(2); }
+    function cDate(d) {
+        if (!d) return '';
+        const t = new Date(d + 'T00:00:00');
+        return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    function daysUntil(d) {
+        if (!d) return null;
+        const run = new Date(String((D.kpis || {}).run_timestamp || '').slice(0, 10) + 'T00:00:00');
+        const t = new Date(d + 'T00:00:00');
+        return (isNaN(t) || isNaN(run)) ? null : Math.round((t - run) / 86400000);
+    }
+
+    function trendOf(c) {
+        if (!c || !c.px || !c.s200) return null;
+        const above = c.px >= c.s200;
+        if (c.s50 && above && c.s50 >= c.s200) return 'up';
+        if (c.s50 && !above && c.s50 < c.s200) return 'down';
+        return 'mixed';
+    }
+    const TREND_WORD = { up: 'Uptrend', down: 'Downtrend', mixed: 'Mixed trend' };
+
+    // Sector median one-month move, for "relative to its sector".
+    let SECTOR_R1M = null;
+    function sectorR1m(sector) {
+        if (!SECTOR_R1M) {
+            const by = {};
+            Object.values(D.stock_detail).forEach(s => { const v = (s.ctx || {}).r1m; if (v !== undefined && v !== null) (by[s.sector] = by[s.sector] || []).push(v); });
+            SECTOR_R1M = {};
+            Object.keys(by).forEach(k => { const v = by[k].sort((a, b) => a - b); const m = Math.floor(v.length / 2); SECTOR_R1M[k] = v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; });
+        }
+        return SECTOR_R1M[sector];
+    }
+
+    // ---- a small price chart: weekly close, 50-day and 200-day averages -------------
+    function priceChartSvg(wk) {
+        if (!wk || !wk.c || wk.c.length < 4) return '';
+        if (!wk.d) wk = Object.assign({ d: D.ctx_weeks || [] }, wk);
+        const W = Math.round(window.innerWidth <= 760 ? Math.max(260, window.innerWidth - 64) : 380), Hh = 132, L = 6, R = 52, T = 10, B = 20;
+        const all = [].concat(wk.c, wk.s50 || [], wk.s200 || []).filter(v => v !== null && v !== undefined);
+        const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.06 || 1;
+        const y0 = lo - pad, y1 = hi + pad, n = wk.c.length - 1;
+        const X = i => L + i / n * (W - L - R), Y = v => T + (y1 - v) / (y1 - y0) * (Hh - T - B);
+        const path = arr => { let p = '', pen = false; (arr || []).forEach((v, i) => { if (v === null || v === undefined) { pen = false; return; } p += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; }); return p; };
+        const last = wk.c[n];
+        return '<svg class="pc-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Weekly closing price over the past year with its 50-day and 200-day averages">' +
+            '<path d="' + path(wk.s200) + '" class="pc-s200"/><path d="' + path(wk.s50) + '" class="pc-s50"/><path d="' + path(wk.c) + '" class="pc-c"/>' +
+            '<circle cx="' + X(n).toFixed(1) + '" cy="' + Y(last).toFixed(1) + '" r="3.5" class="pc-dot"/>' +
+            '<text x="' + (X(n) + 7).toFixed(1) + '" y="' + (Y(last) + 4).toFixed(1) + '" class="pc-last">$' + Number(last).toFixed(0) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - 4) + '" class="pc-x">' + escapeHtml(cDate(wk.d[0])) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - 4) + '" class="pc-x" text-anchor="end">' + escapeHtml(cDate(wk.d[n])) + '</text>' +
+            '</svg><div class="pc-legend"><span><i class="pc-k pc-k-c"></i>Weekly close</span><span><i class="pc-k pc-k-50"></i>50-day average</span><span><i class="pc-k pc-k-200"></i>200-day average</span></div>';
+    }
+
+    // ---- the teaser under "Why it ranks here" ------------------------------------
+    function renderCtxTeaser(s) {
+        const el = document.getElementById('modal-ctx-teaser');
+        if (!el) return;
+        const c = s.ctx;
+        if (!c) { el.innerHTML = ''; el.hidden = true; return; }
+        const bits = [];
+        const tr = trendOf(c);
+        if (tr) bits.push('<span><b>' + TREND_WORD[tr] + '</b> ' + cPct(c.px / c.s200 - 1) + ' vs 200-day</span>');
+        if (c.om !== undefined && c.os === 'ok') bits.push('<span>Options price <b>&plusmn;' + cPlain(c.om) + '</b> by ' + escapeHtml(cDate(c.ox)) + (c.oe ? ' (spans the report)' : '') + '</span>');
+        const ins = c.ins;
+        if (ins && ins.buy_n) bits.push('<span><b>' + ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ' bought</b> in 90 days</span>');
+        else if (ins && ins.sell_n) bits.push('<span>Insiders: ' + ins.sell_n + ' sale' + (ins.sell_n === 1 ? '' : 's') + ', no buys in 90 days</span>');
+        if (!bits.length) { el.innerHTML = ''; el.hidden = true; return; }
+        el.hidden = false;
+        el.innerHTML = '<button type="button" class="ctx-teaser-btn" onclick="goToModal(\'section-context\')"><span class="ctx-teaser-k">Before you decide</span>' + bits.join('<i class="ctx-dot" aria-hidden="true"></i>') + '<span class="ctx-teaser-go" aria-hidden="true">&rsaquo;</span></button>';
+    }
+
+    // ---- the drilldown section ------------------------------------------------
+    function renderContext(ticker, s) {
+        const host = document.getElementById('modal-context');
+        if (!host) return;
+        renderCtxTeaser(s);
+        const c = s.ctx;
+        if (!c) { host.innerHTML = '<p class="modal-note">No context was recorded for this stock in this run.</p>'; return; }
+        let h = '<p class="ctx-note">' + CTX_NOTE + '</p><div class="ctx-grid">';
+
+        // 1. Trend
+        const tr = trendOf(c);
+        let t = '<div class="ctx-card ctx-wide"><div class="ctx-h"><span>Trend</span>' + (tr ? '<span class="ctx-chip ctx-' + tr + '">' + TREND_WORD[tr] + '</span>' : '') + '</div>';
+        t += '<div class="ctx-split"><div class="ctx-chart">' + priceChartSvg(c.wk) + '</div><div class="ctx-facts">';
+        if (c.s200) {
+            const rising = c.s200p ? c.s200 >= c.s200p : null;
+            t += '<div class="ctx-fact"><span class="ctx-fk">vs 200-day average</span><span class="ctx-fv">' + cPct(c.px / c.s200 - 1) + '</span><span class="ctx-fs">' + cPrice(c.s200) + (rising === null ? '' : ', ' + (rising ? 'rising' : 'falling') + ' over the last month') + '</span></div>';
+        }
+        if (c.s50) t += '<div class="ctx-fact"><span class="ctx-fk">vs 50-day average</span><span class="ctx-fv">' + cPct(c.px / c.s50 - 1) + '</span><span class="ctx-fs">' + cPrice(c.s50) + (c.s200 ? ', ' + (c.s50 >= c.s200 ? 'above' : 'below') + ' the 200-day' : '') + '</span></div>';
+        if (c.hi) t += '<div class="ctx-fact"><span class="ctx-fk">From 52-week high</span><span class="ctx-fv">' + cPct(c.px / c.hi - 1) + '</span><span class="ctx-fs">high ' + cPrice(c.hi) + (c.hid ? ' on ' + escapeHtml(cDate(c.hid)) : '') + ', low ' + cPrice(c.lo) + '</span></div>';
+        t += '</div></div><p class="ctx-why">The 200-day average is the trend line most often cited in practice; a long-only rule of holding only above it has historically cut drawdowns more than it raised returns (Faber 2007). It describes the trend; it does not predict the next move.</p></div>';
+        h += t;
+
+        // 2. Recent move
+        const sec = sectorR1m(s.sector);
+        let m = '<div class="ctx-card"><div class="ctx-h"><span>Recent move</span></div><table class="ctx-table"><tbody>' +
+            '<tr><td>5 days</td><td class="num">' + cPct(c.r5) + '</td></tr>' +
+            '<tr><td>1 month</td><td class="num">' + cPct(c.r1m) + '</td></tr>' +
+            (sec !== undefined ? '<tr class="ctx-sub"><td>' + escapeHtml(s.sector) + ' median, 1 month</td><td class="num">' + cPct(sec) + '</td></tr>' : '') +
+            '<tr><td>3 months</td><td class="num">' + cPct(c.r3m) + '</td></tr>' +
+            (c.vr ? '<tr><td>Volume, 20 days vs 3 months</td><td class="num">' + Number(c.vr).toFixed(2) + '&times;</td></tr>' : '') +
+            '</tbody></table>';
+        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; Lehmann 1990). The screener\'s own momentum signal skips the latest month for this reason.</p>';
+        h += m + '</div>';
+
+        // 3. Options
+        let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
+        if (c.os === 'ok' || c.os === 'partial') {
+            const earn = s.earn && s.earn.d;
+            o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. Direction is not implied - only size.</p>';
+            o += '<table class="ctx-table"><tbody>';
+            if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
+            const rv = (s.raw || {}).volatility;
+            if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
+            if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
+            if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns (Xing, Zhang &amp; Zhao 2010). Quotes are the previous close.</p>';
+        } else {
+            o += '<p class="ctx-line">' + (c.os === 'stale-quotes' ? 'Option quotes were missing or too wide at the time of the fetch, so no expected move is shown rather than a misleading one.' : 'No usable option chain this run.') + '</p>';
+        }
+        h += o + '</div>';
+
+        // 4. Insiders
+        const ins = c.ins;
+        let i = '<div class="ctx-card"><div class="ctx-h"><span>Insider trades</span>' + (ins && ins.cluster ? '<span class="ctx-chip ctx-up">Cluster buying</span>' : '') + '</div>';
+        if (ins) {
+            i += '<div class="ctx-pair"><div><span class="ctx-fk">Open-market buys, 90 days</span><span class="ctx-fv">' + (ins.buy_n ? cMoney(ins.buy_value) : 'None') + '</span><span class="ctx-fs">' + (ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;') + '</span></div>' +
+                 '<div><span class="ctx-fk">Open-market sales, 90 days</span><span class="ctx-fv">' + (ins.sell_n ? cMoney(ins.sell_value) : 'None') + '</span><span class="ctx-fs">' + (ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') : '&nbsp;') + '</span></div></div>';
+            if (ins.recent && ins.recent.length) {
+                i += '<table class="ctx-table ctx-ins"><tbody>' + ins.recent.slice(0, 5).map(r =>
+                    '<tr><td>' + escapeHtml(cDate(r.date)) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
+                    '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
+            }
+            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). Grants, gifts and option exercises are left out.' +
+                 (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">Form 4 filings at the SEC</a>' : '') + '</p>';
+        } else {
+            i += '<p class="ctx-line">No insider data this run.</p>';
+        }
+        h += i + '</div>';
+
+        // 5. Rates
+        if (c.rb !== undefined) {
+            const sr = ((D.market || {}).sector_rate || {})[s.sector];
+            h += '<div class="ctx-card"><div class="ctx-h"><span>Sensitivity to interest rates</span></div><div class="ctx-big">' + cPct(c.rb * RATE_STEP, 2) + '</div>' +
+                 '<p class="ctx-line">How the stock has typically moved for each <b>+0.10 percentage point</b> rise in the 10-year Treasury yield (a large day for the 10-year), from the past ' + Math.round(c.rn / 21) + ' months of daily moves' +
+                 (sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '') + '. Rate moves explained ' + cPlain(c.rr2, 0) + ' of its daily swings' + (c.rr2 < 0.05 ? ' - very little, so read this loosely' : '') + '.</p></div>';
+        }
+        h += '</div>';
+        host.innerHTML = h;
+    }
+
+    // ---- Market backdrop ---------------------------------------------------------
+    function sparkSvg(vals, w, h) {
+        const v = (vals || []).filter(x => x !== null && x !== undefined);
+        if (v.length < 3) return '';
+        const lo = Math.min(...v), hi = Math.max(...v), n = v.length - 1;
+        const X = i => 1 + i / n * (w - 2), Y = x => 2 + (hi - x) / ((hi - lo) || 1) * (h - 4);
+        return '<svg class="mk-spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><path d="' + v.map((x, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x).toFixed(1)).join('') + '"/></svg>';
+    }
+    function mkVal(sr) {
+        const u = sr.unit;
+        return (u === '%' || u === 'pp') ? Number(sr.last).toFixed(2) + (u === '%' ? '%' : 'pp') : (u === 'k' ? Math.round(sr.last) + 'k' : Number(sr.last).toFixed(1));
+    }
+    function mkChg(sr, key) {
+        const v = sr[key];
+        if (v === undefined || v === null) return '';
+        const u = sr.unit === '%' || sr.unit === 'pp' ? 'pp' : (sr.unit === 'k' ? 'k' : '');
+        return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(u === 'k' ? 0 : 2) + u;
+    }
+    function renderMarket() {
+        const host = document.getElementById('market-body');
+        const M = D.market;
+        const meta = document.getElementById('meta-market');
+        if (!host) return;
+        if (!M || !M.series) { host.innerHTML = '<p class="modal-note">The market backdrop was not available for this run.</p>'; return; }
+        const S = M.series;
+        if (meta) {
+            const bits = [];
+            if (S.T10Y3M) bits.push('10y-3m curve ' + (S.T10Y3M.last >= 0 ? '+' : '\u2212') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
+            if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
+            meta.textContent = bits.join(' · ');
+        }
+        let h = '<p class="section-desc">What kind of market these stocks are being ranked in. Public data from FRED, refreshed every run. <b>Context only</b> - nothing here enters a score, and none of it says when to buy or sell.</p>';
+        h += '<div class="mk-readings">' + (M.readings || []).map(r =>
+            '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p></div>').join('') + '</div>';
+        const order = ['DGS10', 'DGS2', 'T10Y3M', 'BAA10Y', 'VIXCLS', 'DFF', 'CPIAUCSL', 'UNRATE', 'ICSA', 'T10Y2Y'];
+        h += '<div class="mk-grid">' + order.filter(k => S[k]).map(k => {
+            const sr = S[k];
+            const pct = sr.pct_10y;
+            return '<div class="mk-card"><div class="mk-label">' + escapeHtml(sr.label) + '</div><div class="mk-row"><span class="mk-val">' + mkVal(sr) + '</span>' + sparkSvg(sr.spark, 120, 34) + '</div>' +
+                '<div class="mk-chg"><span>1m ' + (mkChg(sr, 'chg_1m') || '&mdash;') + '</span><span>1y ' + (mkChg(sr, 'chg_1y') || '&mdash;') + '</span></div>' +
+                (pct !== undefined ? '<div class="mk-pct" title="Where today sits in this series\' last ten years"><span class="mk-pct-track"><i style="left:' + pct + '%"></i></span><span class="mk-pct-t">' + Math.round(pct) + 'th percentile of 10 years</span></div>' : '') +
+                '<div class="mk-date">' + escapeHtml(sr.date) + (sr.freq !== 'daily' ? ' &middot; ' + sr.freq : '') + '</div></div>';
+        }).join('') + '</div>';
+        const sr = M.sector_rate || {};
+        const ks = Object.keys(sr).sort((a, b) => sr[a].median - sr[b].median);
+        if (ks.length) {
+            const mx = Math.max(...ks.map(k => Math.abs(sr[k].median)), 0.0001);
+            h += '<h3 class="chart-title mk-h3">How each sector has moved with the 10-year yield</h3><p class="chart-note">The typical move for each +0.10 percentage point rise in the 10-year Treasury yield, from the past ~13 months of daily moves: the median across the sector\'s stocks. Each stock\'s own figure is in its drilldown under Before you decide.</p><div class="mk-rates">' +
+                ks.map(k => { const v = sr[k].median, w = Math.abs(v) / mx * 50;
+                    return '<div class="mk-rate-row"><span class="mk-rate-n">' + escapeHtml(k) + '</span><span class="mk-rate-track"><i class="' + (v >= 0 ? 'pos' : 'neg') + '" style="width:' + w.toFixed(1) + '%"></i></span><span class="mk-rate-v">' + cPct(v * RATE_STEP, 2) + '</span></div>'; }).join('') + '</div>';
+        }
+        h += '<h3 class="chart-title mk-h3">How this connects to the factors</h3><div class="mk-notes">' + (M.factor_notes || []).map(n => '<div class="mk-note"><b>' + escapeHtml(n.title) + '.</b> ' + escapeHtml(n.text) + '</div>').join('') + '</div>';
+        h += '<p class="modal-note">Source: ' + escapeHtml(M.source || 'FRED') + '. As of ' + escapeHtml(M.as_of || '') + '.' + (M.errors && Object.keys(M.errors).length ? ' Unavailable this run: ' + Object.keys(M.errors).join(', ') + '.' : '') + '</p>';
+        host.innerHTML = h;
+    }
+
+    // ---- Track record --------------------------------------------------------------
+    const TR_SERIES = [['top', 'Top 25 of the ranking', 'tr-top'], ['RSP', 'S&P 500 equal-weight', 'tr-rsp'], ['SPY', 'S&P 500', 'tr-spy']];
+    function trackChartSvg(T, showQ) {
+        const S = T.series, n = S.d.length - 1;
+        if (n < 1) return '';
+        const keys = showQ ? [['q1', 'Top fifth', 'tr-q1'], ['q5', 'Bottom fifth', 'tr-q5'], ['RSP', 'S&P 500 equal-weight', 'tr-rsp']] : TR_SERIES;
+        const vals = [].concat(...keys.map(k => S[k[0]] || [])).filter(v => v !== null);
+        const lo = Math.min(...vals, 100), hi = Math.max(...vals, 100), pad = (hi - lo) * 0.08 || 1;
+        const W = Math.round(Math.min(1300, Math.max(300, (document.getElementById('track-body') || {}).clientWidth || 900))), Hh = 240, L = 44, R = 92, Tt = 12, B = 26;
+        const X = i => L + i / n * (W - L - R), Y = v => Tt + (hi + pad - v) / (hi - lo + 2 * pad) * (Hh - Tt - B);
+        let g = '';
+        [lo, 100, hi].forEach(v => { g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="tr-grid' + (v === 100 ? ' tr-base' : '') + '"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" class="tr-tick" text-anchor="end">' + (v - 100 >= 0 ? '+' : '−') + Math.abs(v - 100).toFixed(0) + '%</text>'; });
+        // methodology changes along the bottom
+        const dIdx = d => { let k = 0; S.d.forEach((x, i) => { if (x <= d) k = i; }); return k; };
+        const marks = (T.methodology_changes || []).map(m => '<line x1="' + X(dIdx(m.date)).toFixed(1) + '" x2="' + X(dIdx(m.date)).toFixed(1) + '" y1="' + (Hh - B) + '" y2="' + (Hh - B + 5) + '" class="tr-mark"><title>' + escapeHtml(m.date + ' - ' + m.title) + '</title></line>').join('');
+        let lines = '', labels = '';
+        const ends = [];
+        keys.forEach(k => {
+            const arr = S[k[0]] || [];
+            let p = '', pen = false;
+            arr.forEach((v, i) => { if (v === null) { pen = false; return; } p += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; });
+            lines += '<path d="' + p + '" class="tr-line ' + k[2] + '"/>';
+            const lv = arr[arr.length - 1];
+            if (lv !== null && lv !== undefined) ends.push({ y: Y(lv), v: lv, cls: k[2] });
+        });
+        ends.sort((a, b) => a.y - b.y);
+        for (let j = 1; j < ends.length; j++) if (ends[j].y - ends[j - 1].y < 14) ends[j].y = ends[j - 1].y + 14;
+        ends.forEach(e => { labels += '<text x="' + (W - R + 8) + '" y="' + (e.y + 4).toFixed(1) + '" class="tr-end ' + e.cls + '">' + (e.v - 100 >= 0 ? '+' : '−') + Math.abs(e.v - 100).toFixed(1) + '%</text>'; });
+        return '<svg class="tr-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Growth of 100 since ' + escapeHtml(T.start) + '">' + g + marks + lines + labels +
+            '<text x="' + L + '" y="' + (Hh - 6) + '" class="tr-tick">' + escapeHtml(cDate(S.d[0])) + '</text><text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="tr-tick" text-anchor="end">' + escapeHtml(cDate(S.d[n])) + '</text></svg>' +
+            '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology change (hover)</span></div>';
+    }
+    let TR_SHOW_Q = false;
+    function setTrackView(q) { TR_SHOW_Q = q; renderTrack(); }
+    function renderTrack() {
+        const host = document.getElementById('track-body');
+        const meta = document.getElementById('meta-track');
+        const T = D.track;
+        if (!host) return;
+        if (!T || !T.available) { host.innerHTML = '<p class="modal-note">The track record was not available for this run.</p>'; return; }
+        const tot = T.total || {};
+        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal-weight S&P 500 ' + cPct(tot.RSP) + ' since ' + cDate(T.start);
+        const kpi = (lab, v, sub) => '<div class="tr-kpi"><div class="tr-kpi-l">' + lab + '</div><div class="tr-kpi-v">' + v + '</div><div class="tr-kpi-s">' + sub + '</div></div>';
+        let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it happened - no backfill, no hindsight. It measures the ranking, not a portfolio to follow; it lists no holdings to copy.</p>';
+        h += '<div class="tr-kpis">' +
+            kpi('Top 25, total return', cPct(tot.top), 'equal-weight, rebalanced monthly') +
+            kpi('S&amp;P 500 equal-weight', cPct(tot.RSP), 'RSP, the like-for-like benchmark') +
+            kpi('S&amp;P 500', cPct(tot.SPY), 'SPY, weighted by size') +
+            kpi('Top fifth minus bottom fifth', cPct(T.spread), 'does the ranking separate stocks?') +
+            kpi('Periods ahead of RSP', T.beat_rsp + ' of ' + T.periods_compared, 'monthly holding periods') + '</div>';
+        h += '<div class="seg-control tr-seg"><button type="button" class="seg-btn' + (TR_SHOW_Q ? '' : ' active') + '" onclick="setTrackView(false)">Top 25 vs index</button><button type="button" class="seg-btn' + (TR_SHOW_Q ? ' active' : '') + '" onclick="setTrackView(true)">Top fifth vs bottom fifth</button></div>';
+        h += '<div class="tr-chart">' + trackChartSvg(T, TR_SHOW_Q) + '</div>';
+        h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th></tr></thead><tbody>' +
+            T.periods.map(p => '<tr><td>' + escapeHtml(p.date) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPct(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td></tr>').join('') +
+            '</tbody></table></div></details>';
+        h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
+            (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
+            'Equal weights, entry at the close of the first trading day after each run, dividends included, no trading costs or taxes. This record is not used to set the methodology.</div>';
+        host.innerHTML = h;
+    }
+
+    // ---- rankings filter ---------------------------------------------------------------
+    function ctxFilterPass(row, v) {
+        if (v === 'all') return true;
+        const s = D.stock_detail[row.Ticker] || {};
+        const c = s.ctx || {};
+        if (v === 'up' || v === 'down') return trendOf(c) === v;
+        if (v === 'insider') return !!(c.ins && c.ins.buy_n);
+        if (v === 'earn14') { const d = daysUntil(s.earn && s.earn.d); return d !== null && d >= 0 && d <= 14; }
+        return true;
+    }
+
+    let MK_DONE = false, TR_DONE = false;
+    function contextMetas() {
+        const M = D.market, T = D.track;
+        const mm = document.getElementById('meta-market');
+        if (mm && M && M.series) {
+            const S = M.series, bits = [];
+            if (S.T10Y3M) bits.push('10y-3m curve ' + (S.T10Y3M.last >= 0 ? '+' : '−') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
+            if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
+            mm.textContent = bits.join(' · ');
+        }
+        const mt = document.getElementById('meta-track');
+        if (mt && T && T.available) {
+            const tot = T.total || {};
+            const f = v => (v === null || v === undefined) ? '-' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
+            mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal-weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
+        }
+    }
+    function initContext() {
+        contextMetas();
+        // Render a section's body the first time it opens: collapsed, it costs nothing.
+        const _ts = toggleSection;
+        toggleSection = function(id) {
+            if (id === 'sec-market' && !MK_DONE) { MK_DONE = true; renderMarket(); }
+            if (id === 'sec-track' && !TR_DONE) { TR_DONE = true; renderTrack(); }
+            return _ts.apply(this, arguments);
+        };
+        const sel = document.getElementById('filter-ctx');
+        if (sel) sel.addEventListener('change', applyFilters);
+    }
+"""
+
+
+def _css_context() -> str:
+    """CSS for the context layer. Plain string; literal glyphs only."""
+    return """
+        /* ---- CONTEXT LAYER (plan/context-layer.md) ---- */
+        .ctx-teaser { margin: -12px 0 24px; }
+        .ctx-teaser[hidden] { display: none; }
+        .ctx-teaser-btn {
+            width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-align: left; cursor: pointer;
+            padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border-bright); background: var(--bg-card);
+            color: var(--text-secondary); font: 13px var(--font-body); font-variant-numeric: tabular-nums;
+            transition: border-color var(--t-fast) ease-out;
+        }
+        .ctx-teaser-btn:hover { border-color: var(--accent); }
+        .ctx-teaser-btn b { color: var(--text-primary); font-weight: 600; }
+        .ctx-teaser-k { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-text); margin-right: 2px; }
+        .ctx-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
+        .ctx-teaser-go { margin-left: auto; color: var(--text-muted); font-size: 18px; line-height: 1; }
+        .ctx-note { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; line-height: 1.55; }
+        .ctx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .ctx-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 14px 16px; min-width: 0; }
+        .ctx-wide { grid-column: 1 / -1; }
+        .ctx-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+        .ctx-h > span:first-child { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+        .ctx-chip { font-size: 11.5px; font-weight: 500; padding: 2px 9px; border-radius: var(--radius-pill); border: 1px solid var(--border-bright); color: var(--text-secondary); }
+        .ctx-chip.ctx-up { color: var(--text-primary); border-color: var(--accent); background: var(--accent-glow); }
+        .ctx-chip.ctx-down { color: var(--text-secondary); }
+        .ctx-split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+        .ctx-facts { display: flex; flex-direction: column; gap: 10px; }
+        .ctx-fact, .ctx-pair > div { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; }
+        .ctx-fk { font-size: 12.5px; color: var(--text-secondary); }
+        .ctx-fv { font-size: 15px; font-weight: 600; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+        .ctx-fs { grid-column: 1 / -1; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .ctx-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px; }
+        .ctx-pair > div { grid-template-columns: 1fr; }
+        .ctx-pair .ctx-fv { text-align: left; font-size: 18px; }
+        .ctx-big { font-size: 26px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+        .ctx-line { font-size: 13px; color: var(--text-secondary); line-height: 1.55; margin: 0 0 10px; }
+        .ctx-line b { color: var(--text-primary); font-weight: 600; }
+        .ctx-why { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin: 10px 0 0; }
+        .ctx-why a { color: var(--accent-text); }
+        .ctx-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+        .ctx-table td { padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+        .ctx-table td.num { text-align: right; color: var(--text-primary); font-weight: 500; }
+        .ctx-table tr.ctx-sub td { color: var(--text-muted); font-size: 12px; padding-left: 10px; }
+        .ctx-ins td { vertical-align: top; }
+        .ctx-ins td:first-child { color: var(--text-muted); white-space: nowrap; padding-right: 10px; }
+        .ctx-who { display: block; color: var(--text-primary); }
+        .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
+        .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
+        .ctx-sell { color: var(--text-secondary) !important; }
+        .pc-svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .pc-c { fill: none; stroke: var(--text-primary); stroke-width: 1.6; stroke-linejoin: round; }
+        .pc-s50 { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 4 3; }
+        .pc-s200 { fill: none; stroke: var(--text-muted); stroke-width: 1.4; }
+        .pc-dot { fill: var(--text-primary); }
+        .pc-last { fill: var(--text-primary); font: 600 11.5px var(--font-body); font-variant-numeric: tabular-nums; }
+        .pc-x { fill: var(--text-muted); font: 11px var(--font-body); }
+        .pc-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
+        .pc-k { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
+        .pc-k-c { background: var(--text-primary); } .pc-k-50 { background: var(--accent); } .pc-k-200 { background: var(--text-muted); }
+
+        /* market backdrop */
+        .mk-readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; margin-bottom: 20px; }
+        .mk-reading { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 14px 16px; }
+        .mk-r-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .mk-r-h > span:first-child { font-weight: 600; color: var(--text-primary); font-size: 14px; }
+        .mk-state { font-size: 11.5px; padding: 2px 9px; border-radius: var(--radius-pill); border: 1px solid var(--border-bright); color: var(--text-secondary); text-transform: capitalize; }
+        .mk-inverted, .mk-wide, .mk-elevated, .mk-triggered, .mk-above-target { color: var(--amber); border-color: rgba(250,178,25,.4); }
+        .mk-reading p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+        .mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 10px; }
+        .mk-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 12px 14px; }
+        .mk-label { font-size: 12px; color: var(--text-muted); min-height: 32px; }
+        .mk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .mk-val { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .mk-spark { width: 120px; height: 34px; flex: none; }
+        .mk-spark path { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+        .mk-chg { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .mk-pct { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .mk-pct-track { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--bg-elevated); }
+        .mk-pct-track i { position: absolute; top: -3px; width: 2px; height: 10px; margin-left: -1px; background: var(--text-primary); border-radius: 1px; }
+        .mk-pct-t { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .mk-date { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+        .mk-h3 { margin: 24px 0 6px; }
+        .mk-rates { display: flex; flex-direction: column; gap: 3px; max-width: 760px; }
+        .mk-rate-row { display: grid; grid-template-columns: 190px 1fr 64px; gap: 12px; align-items: center; font-size: 12.5px; min-height: 24px; }
+        .mk-rate-n { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mk-rate-track { position: relative; height: 8px; }
+        .mk-rate-track::before { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--border-bright); }
+        .mk-rate-track i { position: absolute; top: 0; height: 100%; border-radius: 3px; }
+        .mk-rate-track i.pos { left: 50%; background: var(--accent); opacity: .8; }
+        .mk-rate-track i.neg { right: 50%; background: var(--text-muted); }
+        .mk-rate-v { text-align: right; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .mk-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 10px; }
+        .mk-note { font-size: 13px; line-height: 1.6; color: var(--text-secondary); padding: 12px 14px; border-left: 2px solid var(--border-bright); }
+        .mk-note b { color: var(--text-primary); }
+
+        /* track record */
+        .tr-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); margin-bottom: 16px; }
+        .tr-kpi { padding: 14px 18px; border-right: 1px solid var(--border); min-width: 0; }
+        .tr-kpi:last-child { border-right: 0; }
+        .tr-kpi-l { font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+        .tr-kpi-v { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+        .tr-kpi-s { font-size: 11.5px; color: var(--text-muted); }
+        .tr-seg { margin-bottom: 10px; }
+        .tr-chart { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 14px 16px 10px; }
+        .tr-svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .tr-grid { stroke: var(--border); stroke-width: 1; }
+        .tr-grid.tr-base { stroke: var(--border-bright); stroke-dasharray: 3 3; }
+        .tr-tick { fill: var(--text-muted); font: 11px var(--font-body); font-variant-numeric: tabular-nums; }
+        .tr-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+        .tr-line.tr-top, .tr-line.tr-q1 { stroke: var(--accent); stroke-width: 2.4; }
+        .tr-line.tr-rsp { stroke: var(--text-secondary); }
+        .tr-line.tr-spy { stroke: var(--text-muted); stroke-dasharray: 5 4; }
+        .tr-line.tr-q5 { stroke: var(--text-muted); }
+        .tr-end { font: 600 12px var(--font-body); font-variant-numeric: tabular-nums; }
+        .tr-end.tr-top, .tr-end.tr-q1 { fill: var(--accent-text); } .tr-end.tr-rsp { fill: var(--text-secondary); } .tr-end.tr-spy, .tr-end.tr-q5 { fill: var(--text-muted); }
+        .tr-mark { stroke: var(--amber); stroke-width: 2; cursor: help; }
+        .tr-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        .tr-k { display: inline-block; width: 16px; height: 2px; vertical-align: middle; margin-right: 6px; }
+        .tr-k.tr-top, .tr-k.tr-q1 { background: var(--accent); } .tr-k.tr-rsp { background: var(--text-secondary); } .tr-k.tr-spy, .tr-k.tr-q5 { background: var(--text-muted); }
+        .tr-k.tr-k-mark { width: 2px; height: 10px; background: var(--amber); }
+        .tr-periods { margin-top: 14px; }
+        .tr-table-wrap { overflow-x: auto; }
+        .tr-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 640px; }
+        .tr-table th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); padding: 8px; border-bottom: 1px solid var(--border-bright); }
+        .tr-table td { padding: 8px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+        .tr-table .num { text-align: right; }
+        .tr-caveats { margin-top: 14px; font-size: 12.5px; line-height: 1.6; color: var(--text-muted); }
+        .tr-caveats b { color: var(--text-secondary); }
+
+        @media (max-width: 760px) {
+            .ctx-grid { grid-template-columns: 1fr; }
+            .ctx-split { grid-template-columns: 1fr; }
+            .tr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .tr-kpi { border-bottom: 1px solid var(--border); }
+            .mk-rate-row { grid-template-columns: 120px 1fr 56px; }
         }
 """
 

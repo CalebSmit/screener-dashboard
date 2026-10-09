@@ -16,6 +16,13 @@ htmlcov/
 # Cache & runs (large data files)
 cache/
 runs/
+# Context-layer caches: re-downloadable (FRED series, track-record prices, SEC lookups).
+# The outputs built from them (data/market_context.json, data/track_record.json,
+# data/context_log/) ARE tracked - the data loop commits them.
+data/market/
+data/track/
+data/sec/
+data/insider/
 
 # Local SSL CA bundle (machine-specific, e.g. Avast/AV TLS interception root)
 .certs/

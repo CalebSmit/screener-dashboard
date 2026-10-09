@@ -419,7 +419,10 @@ try {
         'SCREENER_OVERVIEW.md',
         'README.md',
         'improvement',
-        'validation'
+        'validation',
+        'data/market_context.json',
+        'data/track_record.json',
+        'data/context_log'
     )
     foreach ($a in $DataArtifacts) {
         if (Test-Path (Join-Path $RepoPath $a)) {
