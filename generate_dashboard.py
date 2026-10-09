@@ -895,6 +895,14 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _bn = row.get("_beneish_idx")
         if isinstance(_bn, str) and _bn:
             detail["bn"] = _bn
+        # The four quarters behind the three surprise metrics, as the fetch computed them:
+        # [date, actual EPS, estimate, surprise or null], oldest first.
+        _eq = row.get("_eps_q")
+        if isinstance(_eq, str) and _eq:
+            try:
+                detail["eq4"] = json.loads(_eq)
+            except ValueError:
+                pass
         _asof = {}
         for _k, _src in (("bs", "_stmt_date_balance_sheet"), ("cf", "_stmt_date_cashflow"),
                          ("is", "_stmt_date_financials")):
@@ -4254,6 +4262,24 @@ def _js_workings() -> str:
             h += `<div class="wk-k">The nine signals</div><ol class="wk-parts">` + sig.map((c, i) =>
                 `<li class="wk-part wk-part-${c === '1' ? 'pass' : c === '0' ? 'fail' : 'na'}"><span class="wk-mark">${c === '1' ? '&#10003;' : c === '0' ? '&#10007;' : '&ndash;'}</span>${PIO_SIGNALS[i]}<span class="wk-part-val">${c === '1' ? 'pass' : c === '0' ? 'fail' : 'not testable'}</span></li>`).join('') +
                 `</ol><div class="wk-sum">${sig.filter(c => c === '1').length} passed of ${sig.filter(c => c !== '-').length} testable = score ${fmtMetric(s.raw[m], 'int')}</div>`;
+        }
+        if (['analyst_surprise', 'earnings_acceleration', 'consecutive_beat_streak'].indexOf(m) >= 0 && s.eq4 && s.eq4.length) {
+            const q = s.eq4;
+            const sp = v => (v === null || v === undefined) ? '&ndash;' : (v >= 0 ? '+' : '&minus;') + Math.abs(v * 100).toFixed(1) + '%';
+            const eps = v => (v === null || v === undefined) ? '&ndash;' : '$' + Number(v).toFixed(2);
+            const valid = q.map((r, i) => [i, r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+            h += `<div class="wk-k">The last ${q.length} quarters, oldest first</div><table class="wk-mini"><thead><tr><th>Quarter</th><th class="wk-num">Actual EPS</th><th class="wk-num">Estimate</th><th class="wk-num">Surprise</th></tr></thead><tbody>` +
+                q.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${escapeHtml(r[0])}${r[3] === null ? ' <span class="wk-dim">&middot; skipped</span>' : ''}</td><td class="wk-num">${eps(r[1])}</td><td class="wk-num">${eps(r[2])}</td><td class="wk-num">${sp(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-dim">Surprise = (actual &minus; estimate) &divide; the larger of |estimate| and $0.10.</div>`;
+            const vs = valid.map(x => x[1]);
+            let sum = '';
+            if (m === 'analyst_surprise') sum = `Median of the ${vs.length} valid surprises (${vs.map(sp).join(', ')}) = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            if (m === 'earnings_acceleration' && vs.length >= 2) sum = `Latest valid surprise ${sp(vs[vs.length - 1])} &minus; the one before ${sp(vs[vs.length - 2])} = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            if (m === 'consecutive_beat_streak') {
+                const beats = vs.map((v, i) => v > 0 ? i + 1 : 0).filter(Boolean);
+                sum = (beats.length ? `Beats in valid quarters ${beats.join(', ')} (1 = oldest), added up: ${beats.join(' + ')}` : 'No valid quarter beat its estimate') + ` = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            }
+            if (sum) h += `<div class="wk-sum">${sum}</div>`;
         }
         if (m === 'beneish_m_score' && s.bn) {
             const parts = s.bn.split('|');

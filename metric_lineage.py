@@ -241,6 +241,12 @@ def _max_drawdown(i):
     return (tr - pk) / pk if _ok(pk, tr) and pk > 0 else None
 
 
+def _volatility(i):
+    """The daily standard deviation the engine annualised, times sqrt(252)."""
+    s = i.get("vol_sd")
+    return s * math.sqrt(252) if _ok(s) else None
+
+
 def _beta(i):
     """cov / var as the engine took them (both annualised; the factor cancels)."""
     c, v = i.get("beta_cov"), i.get("beta_var")
@@ -263,6 +269,7 @@ RECOMPUTE = {
     "asset_growth": _asset_growth, "equity_ratio": _equity_ratio, "roe": _roe, "roa": _roa,
     "return_12_1": _ret_12_1, "return_6m": _ret_6m, "fy1_revision_3m": _fy1_rev,
     "max_drawdown_1y": _max_drawdown, "beta": _beta, "jensens_alpha": _jensens_alpha,
+    "volatility": _volatility,
 }
 
 
@@ -381,7 +388,7 @@ LINEAGE = {
                         kind="series"),
     # ---- risk
     "volatility": _L("Annualised standard deviation of daily log returns",
-                     [("Volatility (as scored)", "volatility_1y", PCT)],
+                     [("Daily standard deviation", "vol_sd", PCT)],
                      how="About 13 months of daily adjusted closes, sample standard deviation x sqrt(252). Needs at least 200 daily returns.",
                      caveat="Labelled 1-year, but the window is about 13 months.", kind="series"),
     "beta": _L("Slope of the stock's daily log returns on the S&P 500's",
@@ -485,6 +492,7 @@ EQUATIONS = {
                                "({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {price_latest|price}"]),
     "max_drawdown_1y": (True, ["({mdd_trough|at the trough} − {mdd_peak|at the prior peak}) ÷ {mdd_peak|at the prior peak}"]),
     "beta": (True, ["{beta_cov|covariance with the S&P 500} ÷ {beta_var|variance of the S&P 500}"]),
+    "volatility": (True, ["{vol_sd|daily standard deviation} × 252 ^ 0.5"]),
     "jensens_alpha": (True, ["{ja_ret12|12-month return} − ({ja_rf|risk-free} + {ja_beta|beta} × ({ja_mkt|S&P 500} − {ja_rf|risk-free}))"]),
 }
 
@@ -492,7 +500,6 @@ EQUATIONS = {
 SOURCES = {
     "piotroski_f_score": "Pass/fail financial-health signals that passed",
     "beneish_m_score": "−4.84 plus eight weighted indices from the annual statements",
-    "volatility": "Daily price swings over about 13 months, annualised",
     "sharpe_ratio": "12-month return above the risk-free rate, per unit of volatility",
     "sortino_ratio": "12-month return above the risk-free rate, per unit of downside swing",
     "analyst_surprise": "Median beat or miss against the EPS estimate, last 4 quarters",
@@ -573,7 +580,7 @@ def published_not_used() -> dict:
 # computed them - the page must never re-derive them (CLAUDE.md priority 0.8).
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used",
                "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date",
-               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt")
+               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt", "vol_sd")
 
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.

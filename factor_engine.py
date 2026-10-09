@@ -1166,6 +1166,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                             rec[label] = np.nan
 
                     rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
+                    # The daily figure it is annualised from, kept so the page can show
+                    # "daily sd x 252^0.5" (metric_lineage.EQUATIONS["volatility"]).
+                    rec["_vol_daily_sd"] = float(daily_ret.std()) if len(daily_ret) >= 200 else np.nan
                     rec["_daily_returns"] = {
                         dt.strftime("%Y-%m-%d"): v
                         for dt, v in zip(daily_ret.index, daily_ret.values)
@@ -1195,7 +1198,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             if eh is not None and not eh.empty:
                 surs = []
                 ordered_surs = []  # Per-quarter surprises in chronological order
-                for _, row in eh.tail(4).iterrows():
+                _quarters = []     # [date, actual, estimate, surprise] - published, see below
+                for _qd, row in eh.tail(4).iterrows():
                     a, e = row.get("epsActual", np.nan), row.get("epsEstimate", np.nan)
                     if pd.notna(a) and pd.notna(e) and abs(e) > 0.001:
                         # Floor denominator at $0.10 to prevent near-zero
@@ -1204,7 +1208,15 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                         surs.append(sur)
                         ordered_surs.append(sur)
                     else:
+                        sur = None
                         ordered_surs.append(np.nan)
+                    _quarters.append([str(_qd)[:10],
+                                      float(a) if pd.notna(a) else None,
+                                      float(e) if pd.notna(e) else None,
+                                      float(sur) if sur is not None else None])
+                # The four quarters the three surprise metrics are made from, so the page
+                # can show them (CLAUDE.md 0.10(d)); the surprises are this loop's own.
+                rec["_eps_quarters"] = json.dumps(_quarters, separators=(",", ":"))
                 # Median is robust to a single outlier quarter.
                 rec["analyst_surprise"] = float(np.median(surs)) if len(surs) >= 2 else np.nan
 
@@ -2060,6 +2072,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         try:
             # 15. Volatility
             rec["volatility"] = d.get("volatility_1y", np.nan)
+            # Published beside it as the engine's own figure (ENGINE_KEYS "vol_sd").
+            rec["_vol_sd"] = d.get("_vol_daily_sd", np.nan)
 
             # 16. Beta (date-aligned with overlap validation)
             dr = d.get("_daily_returns")
@@ -2224,6 +2238,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["analyst_surprise"] = d.get("analyst_surprise", np.nan)
             rec["earnings_acceleration"] = d.get("earnings_acceleration", np.nan)
             rec["consecutive_beat_streak"] = d.get("consecutive_beat_streak", np.nan)
+            rec["_eps_q"] = d.get("_eps_quarters")
 
             # FY1 consensus EPS revision over 90 days, scaled by price.
             # This is the category's only actual *revision* metric and, since

@@ -118,6 +118,8 @@ SERIES_METRICS_WITH_AN_EXACT_EQUATION = {
     # Beta: the covariance and variance the slope is (`_beta_cov` / `_beta_var`), and Jensen's
     # alpha: its four CAPM terms (`_ja_*`), all published from the one computation. 2026-10-09.
     "beta", "jensens_alpha",
+    # Volatility: the daily standard deviation it is annualised from (`_vol_sd`). 2026-10-09.
+    "volatility",
 }
 
 
@@ -469,3 +471,38 @@ def test_not_used_reasons_carry_no_advice_language():
 
 def test_the_payload_carries_the_reasons(payload):
     assert payload.get("not_used") == ml.published_not_used()
+
+
+# ---------------------------------------------------------------------------
+# the three surprise metrics rebuild from the four quarters published beside them
+# (CLAUDE.md 0.10(d), 2026-10-09). The page lists the quarters and states each metric's
+# arithmetic over them; this holds that statement to the scored values.
+# ---------------------------------------------------------------------------
+
+def _surprise_metrics(q):
+    import statistics
+    vs = [r[3] for r in q if r[3] is not None]
+    med = statistics.median(vs) if len(vs) >= 2 else None
+    acc = vs[-1] - vs[-2] if len(vs) >= 2 else None
+    beat = float(sum(i + 1 for i, v in enumerate(vs) if v > 0)) if len(vs) >= 2 else None
+    return {"analyst_surprise": med, "earnings_acceleration": acc, "consecutive_beat_streak": beat}
+
+
+def test_the_published_quarters_rebuild_the_three_surprise_metrics(payload):
+    with_q = [s for s in payload["stock_detail"].values() if s.get("eq4")]
+    if not with_q:
+        pytest.skip("payload predates the published quarters (eq4)")
+    for m in ("analyst_surprise", "earnings_acceleration", "consecutive_beat_streak"):
+        ok = total = 0
+        bad = []
+        for s in with_q:
+            pub = s["raw"].get(m)
+            if pub is None:
+                continue
+            total += 1
+            v = _surprise_metrics(s["eq4"])[m]
+            if v is not None and abs(v - pub) <= _tol(v):
+                ok += 1
+            else:
+                bad.append((pub, v))
+        assert total and ok / total >= 0.99, (m, ok, total, bad[:3])
