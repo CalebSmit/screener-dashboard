@@ -593,6 +593,7 @@ already shipped to the live public site.
 | 5 | My Holdings renders **every** saved name every time, ordered **by rank and never by size of move**, and stores **no cost basis, share count or P&L**. The review cadence is read from the **run's own** config snapshot and stated, never enforced | `tests/test_holdings_panel.py`, `tests/test_review_cadence.py` |
 | 0.8 | **The page shows the engine's numbers and refuses to publish if they do not add up.** Metric weights are resolved in one place (`factor_engine.metric_weight_profiles`) and published, never re-derived; `generate_dashboard` rebuilds every score from its own payload (`calc_trace`) and raises `CalculationMismatch`; an equation is shown only if it reproduces (`metric_lineage.RECOMPUTE`); `scoring_schema` keys the scored cache. Do not widen the tolerances to pass a build | `tests/test_calculation_reproducibility.py`, `tests/test_metric_lineage.py`, `tests/test_dashboard_browser.py` |
 | 0.8c | **A scoring change ships with its frontend in the same commit** (owner, 2026-10-07). Opening any metric row shows the stock's figures through the formula (`metric_lineage.EQUATIONS`), and an unscored metric says why (`NOT_USED_BECAUSE`); the suite evaluates each exact equation against every stock's scored value at a 99% bar, and a weighted metric with no line fails. Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never satisfy it by loosening the bar or marking a template `exact=False` | `tests/test_metric_lineage.py` (equation tests), `tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers`; `prompts/nightly.md` section 3 |
+| ctx | **Context is shown beside the score, never in it** (owner, 2026-10-08: "context only, track them"). Trend, options, insider, rate-sensitivity, macro and track-record data live in `context_signals` / `context_fetch` / `insider_activity` / `market_context` / `track_record` and the payload's `ctx`, `market`, `track`; none may reach `raw`, `pct`, a category score or the composite, and no scoring module may read a `_ctx_` field. Option and insider requests run in a separate, time-budgeted pass **after** the core fetch (inside it they tripped the rate limiter). Every signal is logged per run in `data/context_log/`; one joins the score only with a research note **and** a measured `1m` record meeting the engine's own observation gate, then a changelog entry. The track record lists no current holdings (the Model Portfolio decision) and is not methodology evidence (rule 4) | `tests/test_context_layer.py`; `plan/context-layer.md` |
 | gates | Both publish paths parse the payload (`node --check`) and check its opening assignment; the data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`). Where node or pytest is absent both fall back with a `WARN` rather than jamming | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
 **One constraint with no test, kept here because it governs how you spend the
@@ -656,6 +657,12 @@ hard-coded 18-metric list, **not** the applicable-metric coverage the composite'
 coverage discount uses (35 for a bank-like stock, 41 otherwise, out of `METRIC_COLS`).
 62 stocks read under 80% on that badge; **3** were actually discounted. The engine must
 emit applicable coverage - which is also what the composite line needs for defect 2.
+
+**0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
+it now (age 0 days).** Technicals, options, insider trades, a market backdrop and the ranking's
+track record, all context-only (settled row "ctx"). `OWNER_FOCUS.md` has the open item and
+`plan/context-layer.md` the ordered queue. First to do: confirm the context pass costs the 02:00
+core fetch nothing (fetch time, failure rate, rate-limit backoffs, against the prior week).
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's

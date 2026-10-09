@@ -28,6 +28,20 @@ Add items below. Anything under this heading is unclaimed work.
 
 <!-- Add items here, newest at the top. Free text, one item per bullet. -->
 
+- **2026-10-08 - The context layer: technicals, options, insiders, macro and a track record.
+  First draft built by an owner-run session; the nightly sessions now own making it right.**
+  Owner, verbatim: *"This is where I want people to come for all of their investing needs ... maybe we should take like technicals into account for timing of investments? Or macro data? Or options data? ... the goal is still long term ... if free somehow ... you would just build the first rough draft of it, then the nightly sessions would really drill into it, and make sure that it is perfect moving forward."* He chose all four (track record, a per-stock "Before you
+  decide" panel, a market backdrop, insider buying) and chose **"context only, track them"**: shown
+  beside the score, never in it, recorded every run so each signal builds an out-of-sample record.
+
+  **The brief is `plan/context-layer.md` - read it first.** Its "Known limits of the draft" list is
+  the queue, in order: (1) measure that the context pass costs the core fetch nothing; (2) the share
+  of stocks with usable option quotes at 2 AM; (3) insider data from the SEC's own filings needs a
+  contact email - **ask the owner in the log, do not add one**; (4) one research note per signal;
+  (5) the evaluation harness over `data/context_log/`; (6) track-record hardening; (7) macro data
+  vintages. This is product and data work on the new layer - it does **not** reopen the closed
+  redesign, and it never moves a score (CLAUDE.md row "ctx").
+
 *(No open owner items. Calculation transparency and the premium redesign were finished on
 2026-10-07 in owner-run sessions; their text is archived under **Done**. Owner direction that
 night: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make

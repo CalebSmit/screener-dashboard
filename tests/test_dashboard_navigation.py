@@ -464,3 +464,38 @@ def test_tab_stays_inside_an_open_drilldown(browser):
             assert page.evaluate("document.querySelector('#stock-modal .modal-content').contains(document.activeElement)")
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_context_panels_render_without_errors(browser):
+    """Before you decide, Market Backdrop and Track Record render from the published payload,
+    and the context filter narrows the table without touching the ranking."""
+    ctx, page, errors = _open(browser)
+    try:
+        has_ctx = page.evaluate("Object.values(D.stock_detail).some(s => s.ctx)")
+        if not has_ctx:
+            pytest.skip("payload predates the context layer")
+        t = page.evaluate("Object.keys(D.stock_detail).find(k => (D.stock_detail[k].ctx || {}).s200)")
+        page.evaluate(f"openStockDetail('{t}')")
+        page.wait_for_selector("#stock-modal .modal-body", state="visible")
+        body = page.inner_text("#modal-context")
+        assert "Context, not part of the score" in body and "200-day" in body
+        assert page.evaluate("!!document.querySelector('#modal-context .pc-svg')")
+        page.keyboard.press("Escape")
+        if page.evaluate("!!(D.market && D.market.series)"):
+            page.evaluate("goToSection('sec-market')")
+            assert "FRED" in page.inner_text("#market-body")
+        if page.evaluate("!!(D.track && D.track.available)"):
+            page.evaluate("goToSection('sec-track')")
+            tb = page.inner_text("#track-body")
+            assert "not a portfolio to follow" in tb and "Read with care" in tb
+        before = page.evaluate("tableState.filtered.map(r => r.Rank)")
+        page.select_option("#filter-ctx", "up")
+        page.wait_for_timeout(200)
+        after = page.evaluate("tableState.filtered.map(r => r.Rank)")
+        assert 0 < len(after) < len(before)
+        assert after == sorted(after)                      # still in rank order; ranks unchanged
+        assert page.evaluate("tableState.filtered.every(r => trendOf((D.stock_detail[r.Ticker] || {}).ctx) === 'up')")
+        assert errors == []
+    finally:
+        ctx.close()

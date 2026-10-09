@@ -1320,6 +1320,31 @@ def run_factor_engine(cfg, args, ctx=None):
 
         stats["tickers_api"] = len(raw)
 
+        # Context layer (display only, plan/context-layer.md). Runs only now that the core data
+        # is fetched: option chains and insider trades in their own paced, time-budgeted pass
+        # (context_fetch.py), then each stock's sensitivity to the 10-year yield, computed here
+        # because the daily returns it needs are not saved.
+        if cfg.get("context", {}).get("enabled", True):
+            try:
+                import context_fetch
+                stats["context_pass"] = context_fetch.enrich(
+                    raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900))
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: context pass unavailable: {e}")
+            try:
+                from market_context import yield_changes
+                from context_signals import rate_sensitivity
+                _yc = yield_changes()
+                _n_rate = 0
+                for _r in raw:
+                    _rs = rate_sensitivity(_r.get("_daily_returns") or {}, _yc)
+                    if _rs:
+                        _r["_ctx_rate_beta"], _r["_ctx_rate_r2"], _r["_ctx_rate_n"] = _rs["beta"], _rs["r2"], _rs["n"]
+                        _n_rate += 1
+                print(f"  Context: rate sensitivity for {_n_rate} stocks")
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: rate sensitivity unavailable: {e}")
+
         # H5: Save raw API responses for reproducibility / debugging.
         # Exclude _daily_returns (large nested dict) to keep artifact lean.
         if ctx is not None:
@@ -2422,6 +2447,31 @@ def main():
         print("  SCREENER_OVERVIEW.md regenerated from live config")
     except Exception as e:
         print(f"  WARNING: Overview generation failed: {e}")
+
+    # ---- 11.5. Context layer (display only; plan/context-layer.md) ----
+    # The market backdrop, the ranking's track record, and a dated log of every context signal
+    # so each one builds an out-of-sample record. None of it touches a score; any failure here
+    # leaves the page with the previous day's context rather than stopping the run.
+    if cfg.get("context", {}).get("enabled", True):
+        run_day = datetime.now().strftime("%Y-%m-%d")
+        try:
+            import market_context
+            market_context.build()
+            print("  Context: market backdrop refreshed (FRED)")
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: market backdrop unavailable: {e}")
+        try:
+            import track_record
+            live = dict(zip(df["Ticker"], df["Rank"])) if "Rank" in df.columns else None
+            tr_out = track_record.build_from_disk(live=(run_day, live) if live else None)
+            print(f"  Context: track record {'built' if tr_out.get('available') else 'unavailable'}")
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: track record unavailable: {e}")
+        try:
+            import context_signals
+            context_signals.write_context_log(ctx.run_dir, run_day)
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARNING: context log not written: {e}")
 
     # ---- 12. Generate interactive dashboard ----
     try:

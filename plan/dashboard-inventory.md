@@ -13,6 +13,29 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## The context layer (2026-10-08) - `plan/context-layer.md`
+
+Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx").
+
+- **Before you decide** - a drilldown section (nav link after The workings) with a one-line teaser
+  under "Why it ranks here": **Trend** (weekly price chart with the 50- and 200-day averages, distance
+  from each, 52-week range), **Recent move** (5 days / 1 month vs sector median / 3 months, volume
+  ratio, a reversal note past +/-15%), **What options imply** (expected move = ATM straddle / price on
+  the expiry after the next report, ATM IV vs realised, put skew, put/call OI; "no number" when quotes
+  are stale), **Insider trades** (90-day open-market buys and sales, cluster flag, the last five
+  trades, link to the SEC filings), **Sensitivity to interest rates** (return per +1pp in the 10-year,
+  with R-squared and the sector median). Payload `stock_detail[t].ctx`, rendered by `renderContext()`
+  in `_js_context()`.
+- **Market Backdrop** (`sec-market`, collapsed) - readings for the yield curve, credit spreads, VIX,
+  inflation and the Sahm indicator, each naming its rule or source; ten FRED series with value,
+  1m/1y change, 3-year spark line and 10-year percentile; each sector's median rate sensitivity;
+  three factor notes. Payload `market` (from `data/market_context.json`).
+- **Track Record** (`sec-track`, collapsed) - the ranking's top 25 vs RSP and SPY since the first
+  comparable run, the top fifth vs bottom fifth view, every monthly holding period, methodology-change
+  ticks on the chart, and the caveats. No current holdings. Payload `track` (from `data/track_record.json`).
+- **Context filter** on the rankings: uptrend, downtrend, insider buying in 90 days, reports within 14
+  days. It filters; it never reorders or rescores.
+
 ## Final state, 2026-10-07 (the redesign is CLOSED - see `plan/dashboard-redesign-master.md`)
 
 Last owner-run pass, on top of everything below:

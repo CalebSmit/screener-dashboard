@@ -24,7 +24,7 @@ import os
 import sys
 import time
 import warnings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -752,6 +752,10 @@ def check_price_series_integrity(closes, splits=None) -> str | None:
 # via `_coalesce`.  Withholding `price_latest` would therefore also cost
 # `return_12m`, whose far endpoint is withheld anyway - so the conclusion
 # stands, for a different reason than the one written here before.
+# Context layer (2026-10-08): the option-chain and insider requests run in a separate pass
+# AFTER the core fetch (context_fetch.py) - inside it, they tripped the rate limiter and slowed
+# the scored data. Only the trend context, which needs no extra request, is computed here.
+
 PRICE_SERIES_DERIVED_FIELDS = (
     "price_1m_ago", "price_6m_ago", "price_12m_ago",
     "volatility_1y", "_daily_returns", "avg_daily_dollar_volume",
@@ -1174,6 +1178,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                         rec["avg_daily_dollar_volume"] = (
                             float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
                         )
+
+                    # Context only (2026-10-08, plan/context-layer.md): trend, range, recent
+                    # move and volume from the same history - no extra API call, never scored.
+                    try:
+                        from context_signals import price_context
+                        rec.update(price_context(closes, hist.get("Volume")))
+                    except Exception as e:  # noqa: BLE001 - display-only, must not fail a fetch
+                        warnings.warn(f"{ticker_str}: price context unavailable: {type(e).__name__}: {e}")
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: price history extraction failed: {type(e).__name__}: {e}")
 
