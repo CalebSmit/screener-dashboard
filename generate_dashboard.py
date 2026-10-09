@@ -1600,12 +1600,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
                             <th data-sort="Composite" title="The weighted blend of all eight category scores below. This is the ranking key. Higher is better; 0-100.">Composite</th>
-                            <th data-sort="valuation_score" title="Valuation - is it cheap? FCF yield (45%), EV/EBITDA (25%), earnings yield (20%), EV/Sales (10%). Banks are scored instead on P/B (60%) and earnings yield (40%), because enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
-                            <th data-sort="quality_score" title="Quality - is the business sound? ROIC (27%), gross profit/assets (20%), net debt/EBITDA (18%), Piotroski F-Score (15%), operating leverage (8%), Beneish M-Score (7%), accruals (5%). Banks use ROE (35%), ROA (25%), equity ratio (15%), Piotroski (15%) and accruals (10%). Higher score = better quality; 0-100.">Qual</th>
-                            <th data-sort="growth_score" title="Growth - is it expanding? Forward EPS growth (45%), revenue growth (25%), 3-year revenue CAGR (15%), sustainable growth (15%). PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
-                            <th data-sort="momentum_score" title="Momentum - has the price been rising? 12-month return excluding the last month (40%), 6-month return (35%), Jensen's alpha (25%). The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
-                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? Volatility (42.9%), beta (28.6%), max 1-year drawdown (28.6%). Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
-                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? 90-day FY1 EPS revision (35%), earnings acceleration (20%), earnings surprise (15%), price-target upside (10%), beat streak (10%), short interest (10%). Higher score = improving expectations; 0-100.">Rev</th>
+                            <th data-sort="valuation_score" data-wcat="valuation" title="Valuation - is it cheap? @W@. @BANK@ - enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
+                            <th data-sort="quality_score" data-wcat="quality" title="Quality - is the business sound? @W@. @BANK@. Higher score = better quality; 0-100.">Qual</th>
+                            <th data-sort="growth_score" data-wcat="growth" title="Growth - is it expanding? @W@. PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
+                            <th data-sort="momentum_score" data-wcat="momentum" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
+                            <th data-sort="risk_score" data-wcat="risk" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
+                            <th data-sort="revisions_score" data-wcat="revisions" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100.">Rev</th>
                             <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
@@ -2213,6 +2213,26 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     }}
 
 {_js_table()}
+
+    // Column tooltips state the weights the run actually used, read from the run's own
+    // published tables - never typed into the page, where they drift the day a weight
+    // changes (2026-10-09: the Quality tooltip still said operating leverage 8%).
+    function weightList(table) {{
+        const meta = D.metric_meta || {{}};
+        const on = Object.entries(table || {{}}).filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
+        const tot = on.reduce((s, e) => s + e[1], 0);
+        return on.map(e => {{
+            const pct = 100 * e[1] / tot;
+            return ((meta[e[0]] || {{}}).label || e[0]) + ' (' + (Math.abs(pct - Math.round(pct)) < 0.05 ? Math.round(pct) : pct.toFixed(1)) + '%)';
+        }}).join(', ');
+    }}
+    document.querySelectorAll('#universe-table th[data-wcat]').forEach(th => {{
+        const P = ((D.weights || {{}}).profiles || {{}})[th.dataset.wcat] || {{}};
+        const bank = P.bank ? 'Banks and insurers: ' + weightList(P.bank) : '';
+        th.title = th.title.replace('@W@', weightList(P.generic) || 'see Methodology')
+                           .replace(' @BANK@ -', bank ? ' ' + bank + ' -' : '')
+                           .replace(' @BANK@.', bank ? ' ' + bank + '.' : '');
+    }});
 
     // Sort click handler
     document.querySelectorAll('#universe-table th[data-sort]').forEach(th => {{

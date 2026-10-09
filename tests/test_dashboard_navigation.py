@@ -539,3 +539,28 @@ def test_reporting_soon_is_a_calendar_not_a_leaderboard(browser):
         assert errors == []
     finally:
         ctx.close()
+
+
+@needs_browser
+def test_column_tooltips_state_the_published_weights(browser):
+    """Each category header lists exactly the metrics with weight in the run's own table."""
+    ctx, page, errors = _open(browser)
+    try:
+        bad = page.evaluate("""(() => {
+            const out = [];
+            document.querySelectorAll('#universe-table th[data-wcat]').forEach(th => {
+                const t = th.title;
+                if (t.indexOf('@') >= 0) out.push(th.dataset.wcat + ': placeholder left');
+                const g = D.weights.profiles[th.dataset.wcat].generic;
+                Object.entries(g).forEach(([m, w]) => {
+                    const lab = (D.metric_meta[m] || {}).label || m;
+                    const listed = t.indexOf(lab + ' (') >= 0;
+                    if (w > 0 && !listed) out.push(th.dataset.wcat + ': missing ' + lab);
+                });
+            });
+            return out;
+        })()""")
+        assert bad == []
+        assert errors == []
+    finally:
+        ctx.close()

@@ -328,7 +328,7 @@ LINEAGE = {
                               ("Revenue (annual)", "totalRevenue_annual", USD),
                               ("Revenue (prior year)", "totalRevenue_annual_prior", USD)],
                              how="Missing when EBIT changes sign, prior EBIT is zero, or revenue moves less than 1%.",
-                             caveat="Lower is scored as better and negative values - EBIT falling while revenue rises, or the reverse - are not treated specially, so they rank at the top of the sector. This is recorded as an open research item."),
+                             caveat="A one-year ratio of changes, not a measure of cost structure: a negative value means profit and revenue moved in opposite directions, and a small revenue change inflates it. Given no weight since 2026-10-09 for that reason."),
     "beneish_m_score": _L("Beneish (1999) eight-index manipulation score",
                           how="M = -4.84 + 0.920 DSRI + 0.528 GMI + 0.404 AQI + 0.892 SGI + 0.115 DEPI - 0.172 SGAI + 4.679 TATA - 0.327 LVGI, from annual statements. Lower is better. Needs at least 5 of the 8 indices computed from real data; the rest default to neutral values.",
                           caveat="TATA uses the cash-flow form of accruals, not Beneish's original balance-sheet form.",
@@ -414,6 +414,7 @@ LINEAGE = {
                            how="Quarters with a missing figure or an estimate near zero are skipped; at least 2 valid quarters are needed."),
     "price_target_upside": _L("(Mean analyst target - price) / price",
                               [("Mean target", "targetMeanPrice", PRICE), ("Price", "currentPrice", PRICE),
+                               ("Last close", "price_latest", PRICE),
                                ("Analysts", "numberOfAnalystOpinions", NUM)],
                               how="Clipped to -50% .. +100%; needs at least 3 analysts."),
     "earnings_acceleration": _L("Latest quarter's surprise - previous quarter's surprise", kind="series",
@@ -555,6 +556,10 @@ NOT_USED_BECAUSE = {
                      "mostly repeated the momentum signal (correlation +0.94 with 12-1 return)."),
     "sortino_ratio": ("Removed from the score 2026-09-02, with Sharpe: return divided by downside "
                       "risk, so it mostly repeated the momentum signal."),
+    "operating_leverage": ("Removed from the score 2026-10-09: one year's change in operating profit "
+                           "over one year's change in revenue ranked companies whose margins were "
+                           "shrinking as the best, and research finds higher operating leverage is "
+                           "paid for with higher returns, not a sign of weakness. Still recorded."),
 }
 
 

@@ -34,13 +34,18 @@ metric_weights:
     dividend_yield: 0  # Candidate: improvement engine evaluates IC
 
   quality:
-    roic: 27           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
-    gross_profit_assets: 20  # Novy-Marx quality factor; above operating expenses
-    net_debt_to_ebitda: 18   # Net Debt/EBITDA; lower = better; replaces D/E (negative equity distorts D/E)
-    piotroski_f_score: 15    # Composite health; 9 binary signals
+    # 2026-10-09: operating_leverage's 8 points redistributed in proportion
+    # (27/20/18/15/5/7 -> 29/22/20/16/5/8; whole numbers, sum 100). See below.
+    roic: 29           # LTM NOPAT/IC; excess cash capped 50%, IC floored 10% TA
+    gross_profit_assets: 22  # Novy-Marx quality factor; above operating expenses
+    net_debt_to_ebitda: 20   # Net Debt/EBITDA; lower = better; replaces D/E (negative equity distorts D/E)
+    piotroski_f_score: 16    # Composite health; 9 binary signals
     accruals: 5              # Earnings quality; Sloan 1996
-    operating_leverage: 8    # Degree of Operating Leverage; lower = more durable; banks skip
-    beneish_m_score: 7       # Beneish (1999) earnings manipulation detection; non-bank only
+    operating_leverage: 0    # Candidate since 2026-10-09. One-year %chg EBIT / %chg revenue: 85 of its
+                             # 95 negative values were margin squeezes, ranked best; the return
+                             # literature finds higher OL earns MORE (Novy-Marx 2011); neither MSCI
+                             # nor AQR quality uses it. research/2026-10-09-operating-leverage.md
+    beneish_m_score: 8       # Beneish (1999) earnings manipulation detection; non-bank only
     roe: 0             # Bank-only; active weight in bank_metric_weights
     roa: 0             # Bank-only
     equity_ratio: 0    # Bank-only
@@ -296,7 +301,7 @@ enable_beneish: true
 enable_short_interest_ratio: true   # Days to cover (shortRatio); lower = less bearish sentiment
 enable_revenue_cagr_3yr: true       # 3-year revenue CAGR; smoothed growth signal
 enable_net_debt_ebitda: true        # Net Debt/EBITDA; replaces Debt/Equity in quality scoring
-enable_operating_leverage: true     # Degree of Operating Leverage (DOL); lower = more durable
+enable_operating_leverage: true     # DOL; computed and published as a weight-0 candidate (2026-10-09)
 enable_jensens_alpha: true          # Jensen's Alpha; risk-adjusted excess return above CAPM
 enable_sharpe_ratio: true           # Sharpe Ratio; risk-adjusted return per unit of total risk
 

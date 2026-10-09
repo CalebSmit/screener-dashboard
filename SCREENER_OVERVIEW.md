@@ -6,9 +6,9 @@
 
 ## What Is This?
 
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 33 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
+This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to 32 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
 
-Not every stock sees all 33 metrics. The screener uses 29 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 29 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has 45 entries: 33 carry scoring weight today (29 generic + 4 bank-specific) plus 12 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
+Not every stock sees all 32 metrics. The screener uses 28 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 28 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has 45 entries: 32 carry scoring weight today (28 generic + 4 bank-specific) plus 13 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
 
 The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.
 
@@ -65,13 +65,12 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-| **ROIC** | 27% | Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital. |
-| **Gross Profit / Assets** | 20% | Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor). |
-| **Net Debt / EBITDA** | 18% | (Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E). |
-| **Piotroski F-Score** | 15% | A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals. |
+| **ROIC** | 29% | Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital. |
+| **Gross Profit / Assets** | 22% | Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor). |
+| **Net Debt / EBITDA** | 20% | (Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E). |
+| **Piotroski F-Score** | 16% | A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals. |
 | **Accruals** | 5% | (Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996). |
-| **Operating Leverage** | 8% | Degree of Operating Leverage (%Δ EBIT / %Δ Revenue). Lower = more durable earnings (less sensitivity to revenue swings). Banks skip this metric. |
-| **Beneish M-Score** | 7% | 8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only. |
+| **Beneish M-Score** | 8% | 8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only. |
 
 **Bank-like stocks:**
 
@@ -131,6 +130,8 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 **Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly" is one of the most robust findings in finance. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are *dispersion* measures: they describe how much a stock moves, not how well it did.
 
 **Why not Sharpe and Sortino?** They were scored here until 2026-09-02, at 15% each. Both are `(12-month return − risk-free rate) ÷ some measure of dispersion`, so they share their numerator with the momentum signal. Across the S&P 500 the spread in returns is far wider than the spread in volatility, so the numerator dominates: measured on the published payload, Sharpe correlates **+0.944** with the 12-1 month return but only **+0.025** with volatility. Scoring them inside Risk meant a stock was rated safer because it had gone up — which pushed the Risk and Momentum category scores to a **+0.516** correlation, the highest of any pair in the screener. Removing them drops that to **+0.150**. Both ratios are still computed and shown on each stock's detail page; they are simply no longer scored as risk. See `METHODOLOGY_CHANGELOG.md` 2026-09-02.
+
+**Why not operating leverage?** It was 8% of Quality until 2026-10-09, scored lower-is-better as "more durable earnings". As built it was one year's percentage change in operating profit divided by one year's percentage change in revenue, and that ratio does not measure cost structure: when profit and revenue move in opposite directions it goes negative, and on the 2026-10-09 run **85 of its 95 negative values were companies whose revenue grew while operating profit fell** - shrinking margins - which the score ranked at the 84th percentile of their sectors. A small revenue change also inflates it. The research points the other way too: firms with more operating leverage have historically earned *higher* returns as compensation for the risk (Novy-Marx 2011), and neither MSCI's nor AQR's published quality definitions use it - both measure durability as how variable earnings have been over several years. Its weight went to the other Quality metrics in proportion; it is still computed and shown. See `research/2026-10-09-operating-leverage.md`.
 
 ---
 
@@ -530,7 +531,7 @@ The screener answers one question: **"Which S&P 500 stocks look best when measur
 
 It does this by:
 1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing up to 33 financial metrics across 8 categories (29 generic + 4 bank-specific, depending on company type)
+2. Computing up to 32 financial metrics across 8 categories (28 generic + 4 bank-specific, depending on company type)
 3. Ranking each metric within its sector (so comparisons are fair)
 4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
 5. Flagging potential value traps and growth traps (2-of-3 majority logic)

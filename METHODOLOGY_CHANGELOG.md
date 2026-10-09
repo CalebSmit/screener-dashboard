@@ -2998,3 +2998,52 @@ rule `compute_forward_returns` already applied to snapshots.
 **Applied by:** morning session (manual), 2026-10-08.
 **Rollback:** tag `good/2026-10-07`. Reverting restores a 72-row file in which
 28% of rows are repeated days; it would not change today's published weights.
+
+---
+
+## 2026-10-09 (owner-run) - `operating_leverage` leaves the Quality score; its 8 points go to the other six in proportion
+
+**Area:** metric weights (Quality, non-bank)
+**Changed:** `metric_weights.quality.operating_leverage` 8 -> **0** (candidate: still computed,
+published and shown, with a "why not used" line). The freed points are redistributed in
+proportion to the existing weights and rounded to whole numbers, because `schemas.py` requires
+each category to sum to 100: ROIC 27 -> **29**, gross profit / assets 20 -> **22**, net debt /
+EBITDA 18 -> **20**, Piotroski 15 -> **16**, accruals 5 -> **5**, Beneish 7 -> **8**. Bank
+weights are untouched (banks never carried it). The metric's definition is unchanged.
+
+**Evidence** (`research/2026-10-09-operating-leverage.md`; CLAUDE.md open item 0.9(a)):
+- *Measured on this system, run `a2d76219dc0a`* (`research/measurements/2026-10-09-operating-leverage.py`):
+  95 of 392 values are negative and **85 of those are margin squeezes** (revenue up, operating
+  profit down); they averaged the **84th** sector percentile against **37th** for the rest. 49
+  values exceed +/-10. For the 31.9% of companies whose revenue moved less than 5%, the median
+  magnitude is 4.47 against 1.64 where revenue moved more than 10% - the denominator, not cost
+  structure. Rank correlation with the other six Quality metrics: -0.09 to +0.15.
+- *Literature:* DOL is an elasticity; the two-point ratio is its crudest estimator, and even
+  multi-year time-series estimates are imprecise and biased below one (Lord 1998, *Financial
+  Review* 33(2)). On direction, Novy-Marx (2011, *Review of Finance* 15(1)) finds a cost-based
+  operating-leverage measure *predicts higher* returns and that sorts on it earn significant
+  excess returns; later work finds the relation conditional or non-monotonic (García-Feijóo et
+  al. 2024; Kogan, Li, Zhang & Zhu 2025 working paper). No source found supports scoring lower
+  operating leverage as better in a return-oriented ranking.
+- *Practice:* MSCI's Quality Indexes use ROE, debt/equity and **earnings variability** (5-year
+  standard deviation of EPS growth); AQR's Quality Minus Junk (Asness, Frazzini & Pedersen 2019)
+  uses profitability, growth and safety, with safety's fundamental leg the **volatility of ROE**
+  over 60 quarters. Neither uses operating leverage. The durability the config comment intended
+  is measured in practice by earnings variability, which the screener does not yet have.
+
+**Expected effect:** small. Re-scoring the run's own table with the engine's own functions:
+rank Spearman **0.9976**, **1** change in the top 25, 4 in the top 50, median move 5 places
+(largest 36); Quality scores move 1.9 points on average. The change removes a metric that
+rewarded deteriorating margins rather than adding a new bet.
+
+**Validated by:** the measurement script above; `tests/test_golden.py` regenerated with only
+`quality_score` and `Composite` changing on the fixture; the full suite; the dashboard build's
+own reproduction of every published score (`calc_trace`) on the first run with the new weights.
+
+**Backtest observation (not decision-grade, rule 5):** none used.
+
+**Follow-up opened:** an `earnings_variability` candidate (weight 0) from SEC XBRL `companyfacts`,
+which carries the 5+ years both MSCI and AQR require and the run can now reach.
+
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** tag `good/2026-10-08-owner-4` (restores 27/20/18/15/5/8/7).
