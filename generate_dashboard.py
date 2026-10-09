@@ -8657,7 +8657,7 @@ def _js_context() -> str:
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
-            o += '<p class="ctx-line">' + (c.os === 'stale-quotes' ? 'Option quotes were missing or too wide at the time of the fetch, so no expected move is shown rather than a misleading one.' : 'No usable option chain this run.') + '</p>';
+            o += '<p class="ctx-line">' + (c.os === 'stale-quotes' ? 'No expected move: the at-the-money bid and ask this run received were missing, or too far apart to price a straddle from. The number is left out rather than built from a quote that would not stand up.' : 'No usable option chain this run.') + '</p>';
         }
         h += o + '</div>';
 

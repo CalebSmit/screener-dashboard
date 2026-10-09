@@ -128,6 +128,12 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
         log(f"  Options: skipped the fetch and read the cache - {served} of {len(todo)} stocks have a "
             f"reading from an hour when quotes were being served"
             + (f" (quote date {qd})" if qd else "") + ".")
+        if not served:
+            # Says the remedy rather than only the symptom: an empty cache looks identical to a
+            # working one until someone notices every options panel is blank.
+            log("  Options: the cache is empty, so no stock shows an expected move. It is filled by "
+                "the 'Screener Option Quotes' task (weekdays 20:00, scripts/refresh-option-quotes.ps1); "
+                "register it with scripts/register-tasks.ps1 if Get-ScheduledTask does not list it.")
 
     i = 0
     while i < len(todo):

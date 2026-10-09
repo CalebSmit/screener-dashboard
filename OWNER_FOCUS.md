@@ -36,12 +36,28 @@ Add items below. Anything under this heading is unclaimed work.
 
   **The brief is `plan/context-layer.md` - read it first.** Its "Known limits of the draft" list is
   the queue, in order: (1) measure that the context pass costs the core fetch nothing; (2) the share
-  of stocks with usable option quotes at 2 AM; (3) insider data from the SEC's own filings - **done
+  of stocks with usable option quotes at 2 AM - **measured and fixed in code 2026-10-09**;
+  (3) insider data from the SEC's own filings - **done
   2026-10-08 (late)**: the owner gave a contact email for the SEC's User-Agent, which lives outside the
   repo in `data/sec/user_agent.txt` (gitignored); never copy it into a tracked file; (4) one research note per signal;
   (5) the evaluation harness over `data/context_log/`; (6) track-record hardening; (7) macro data
   vintages. This is product and data work on the new layer - it does **not** reopen the closed
   redesign, and it never moves a score (CLAUDE.md row "ctx").
+
+  **Progress (update this line each session):**
+  - **2026-10-09 - item 2 measured and fixed in code; one machine step outstanding.** The options
+    panel was empty for **every stock on every scheduled run**: `ok` for **0 of 503** at the 02:00
+    loop's hour against **394 of 503** at 21:27 ET the evening before, because the source serves the
+    chain overnight with every bid, ask and implied volatility at zero. Fixed by collecting quotes
+    after the close (`options_cache.py`, a new weekday-20:00 task defined in `register-tasks.ps1`)
+    and having the 02:00 pass **probe** rather than guess the hour - it now spends 3 option requests
+    instead of ~1,000, reads the cache, and the page names the session the quotes came from.
+    **Outstanding:** the task was not registered on the machine - every PowerShell call, including a
+    read-only `Get-ScheduledTask`, is auto-denied in a non-interactive session, so this was out of
+    reach rather than skipped (rule 11). Next session: run `scripts/register-tasks.ps1`, confirm all
+    three tasks with `Get-ScheduledTask`, then re-measure the `ok` share from the next 02:00 log.
+    **Then item 2 closes and item 4 (one research note per signal) is next.** The exact verification
+    steps are in `plan/context-layer.md` item 2.
 
 *(No open owner items. Calculation transparency and the premium redesign were finished on
 2026-10-07 in owner-run sessions; their text is archived under **Done**. Owner direction that

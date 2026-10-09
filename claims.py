@@ -451,11 +451,12 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_option_quote_hours.py::test_the_page_names_the_quote_date_when_it_is_not_todays",
         ),
         caveat=(
-            "Added 2026-10-09. Measured that day: the 02:00 run produced a usable reading for "
+            "Fixed 2026-10-09. Measured that day: the 02:00 run produced a usable reading for "
             "0 of 503 stocks against 394 of 503 at 21:27 ET, because the source serves the "
-            "chain overnight with every bid, ask and implied volatility at zero. Quotes are now "
-            "collected after the close (options_cache) and the run reads them, so the date they "
-            "belong to has to be on the page."
+            "chain overnight with every bid, ask and implied volatility at zero, and the panel "
+            "blamed the quotes rather than the hour. Quotes are now collected after the close "
+            "(options_cache) and the run reads them, so the session they belong to is named on "
+            "the page and the days to expiry are recounted from today."
         ),
     ),
     Claim(
