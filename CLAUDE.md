@@ -655,8 +655,8 @@ published claim, grep the tests as well as the prose. `tests/test_claims_registe
 **T0b's fourth defect is FIXED** (the "N of 18" badge reads the engine's applicable coverage).
 **Since 2026-10-09 that coverage counts only metrics that carry weight** (28 generic, 25 for
 banks; `factor_engine.weighted_metric_sets`), so a weight-0 candidate cannot move a composite.
-The separate *coverage filter* that excludes thin stocks still counts registered metrics -
-aligning it changes the universe and needs its own measurement.
+The *coverage filter* that excludes thin stocks reads the same weighted coverage (aligned the same
+day; measured: no stock's inclusion changed).
 
 **0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
 it now (opened 2026-10-08, age 1 day).** Technicals, options, insider trades, a market backdrop and
