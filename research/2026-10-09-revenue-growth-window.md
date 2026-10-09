@@ -94,3 +94,13 @@ noise proves to matter.
 - Piotroski, J. (2000). "Value Investing: The Use of Historical Financial Statement Information
   to Separate Winners from Losers." *Journal of Accounting Research* 38 (supplement), 1-41.
 - Measurement: `research/measurements/2026-10-09-revenue-growth-window.py`.
+
+## Addendum: the balance-sheet comparisons (asset growth, Piotroski 5-7)
+
+These compare the latest quarter-end balance sheet with column 4 of Yahoo's quarterly sheet (the same
+quarter a year earlier) when it has five or more columns, and otherwise fall back to column 1 - which
+for a four-column quarterly sheet is the *previous quarter*, a three-month change labelled as a year.
+Measured 2026-10-09 on a random 40 of the 503: **all 40 have 5-6 quarterly columns**, so the fallback
+does not fire today; it is latent. If a future check finds four-column sheets in numbers, the fix is
+the one applied to revenue growth: require the two balance sheets to be 350-380 days apart, else
+compare fiscal-year-end sheets.
