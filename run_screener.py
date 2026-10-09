@@ -2502,6 +2502,10 @@ def main():
     # The market backdrop, the ranking's track record, and a dated log of every context signal
     # so each one builds an out-of-sample record. None of it touches a score; any failure here
     # leaves the page with the previous day's context rather than stopping the run.
+    # The track record, the signal log and its evaluation are records of the whole universe: a
+    # --tickers run must not replace today's with 32 names (2026-10-09; data/context_log is
+    # committed evidence). The market backdrop is universe-free and is still refreshed.
+    _universe_run = should_write_score_cache(args)
     if cfg.get("context", {}).get("enabled", True):
         run_day = datetime.now().strftime("%Y-%m-%d")
         try:
@@ -2510,6 +2514,9 @@ def main():
             print("  Context: market backdrop refreshed (FRED)")
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: market backdrop unavailable: {e}")
+    if cfg.get("context", {}).get("enabled", True) and not _universe_run:
+        print("  Context: subset run - track record, signal log and evaluation left as they were")
+    elif cfg.get("context", {}).get("enabled", True):
         try:
             import track_record
             live = dict(zip(df["Ticker"], df["Rank"])) if "Rank" in df.columns else None

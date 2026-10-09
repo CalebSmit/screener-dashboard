@@ -441,6 +441,22 @@ def test_context_log_writes_one_file_per_date(tmp_path, monkeypatch):
     assert "marketCap" not in df.columns and "_ctx_weekly" not in df.columns and "_ctx_ins_buy_n" in df.columns
 
 
+def test_context_log_takes_the_gics_sector_from_the_scored_table(tmp_path, monkeypatch):
+    """The fetch carries only the provider's lowercase ``sector``; the log must carry the GICS
+    ``Sector`` the evaluation groups by, or every sector-relative signal is NaN (review, 2026-10-09)."""
+    run = tmp_path / "run"
+    run.mkdir()
+    pd.DataFrame({"Ticker": ["A", "B"], "sector": ["Technology", "Healthcare"],
+                  "_ctx_ret_1m": [0.1, -0.2]}).to_parquet(run / "00_raw_fetch.parquet")
+    pd.DataFrame({"Ticker": ["B", "A"], "Sector": ["Health Care", "Information Technology"],
+                  "Composite": [1, 2]}).to_parquet(run / "05_final_scored.parquet")
+    monkeypatch.setattr(cs, "CONTEXT_LOG_DIR", tmp_path / "log")
+    cs.write_context_log(run, "2026-10-09")
+    df = pd.read_parquet(tmp_path / "log" / "2026-10-09.parquet").set_index("Ticker")
+    assert df.loc["A", "Sector"] == "Information Technology" and df.loc["B", "Sector"] == "Health Care"
+    assert "Composite" not in df.columns
+
+
 # ---------------------------------------------------------------------------
 # the rule: context never reaches a score, and never reads as advice
 # ---------------------------------------------------------------------------
@@ -627,3 +643,14 @@ def test_sahm_prefers_the_real_time_series_and_says_which(monkeypatch, tmp_path)
     out = mc.build(today=date(2026, 10, 9), write=False)
     assert out["sahm_basis"] == "revised" and out["sahm"] == 0.0
     assert "revised" in next(r for r in out["readings"] if r["k"] == "jobs")["text"]
+
+    # The real-time series alone, UNRATE down: no "Unemployment is nan%" (review, 2026-10-09).
+    def no_unrate(sid, session=None, today=None):
+        if sid == "UNRATE":
+            raise RuntimeError("down")
+        return fake(sid)
+
+    monkeypatch.setattr(mc, "fetch_series", no_unrate)
+    out = mc.build(today=date(2026, 10, 9), write=False)
+    jobs = next(r for r in out["readings"] if r["k"] == "jobs")
+    assert out["sahm"] == 0.42 and "nan" not in jobs["text"].lower() and jobs["text"].startswith("The Sahm indicator")

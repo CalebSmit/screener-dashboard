@@ -290,7 +290,20 @@ def write_context_log(run_dir, run_day: str) -> int:
     if not raw_path.exists():
         return 0                      # a run that did not fetch has nothing new to record
     raw = pd.read_parquet(raw_path)
-    # Sector rides along so the evaluation can form sector-relative signals (2026-10-09).
+    # Sector rides along so the evaluation can form sector-relative signals (2026-10-09). The
+    # fetch holds only the provider's lowercase ``sector``; the GICS ``Sector`` the rest of the
+    # screener groups by is added by scoring, so it is read from the scored table (review,
+    # 2026-10-09: the first version looked for ``Sector`` in the fetch and never found it).
+    if "Sector" not in raw.columns:
+        for name in ("05_final_scored.parquet", "01_raw_metrics.parquet"):
+            p = Path(run_dir) / name
+            if p.exists():
+                try:
+                    sec = pd.read_parquet(p, columns=["Ticker", "Sector"]).drop_duplicates("Ticker")
+                except (KeyError, ValueError):
+                    continue
+                raw = raw.merge(sec, on="Ticker", how="left")
+                break
     keep = ["Ticker"] + (["Sector"] if "Sector" in raw.columns else []) + [c for c in raw.columns if c.startswith("_ctx_")
                          and c not in ("_ctx_weekly", "_ctx_insider")]
     log = raw[keep].copy()

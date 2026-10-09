@@ -166,9 +166,11 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
                             f"(measured there on a different index, PCE). Latest reading: {i['date'][:7]}."})
     if sahm is not None:
         state = "triggered" if sahm >= 0.5 else "not triggered"
-        u = summ.get("UNRATE", {})
+        u = summ.get("UNRATE") or {}
+        # The real-time Sahm series can arrive while the UNRATE fetch failed (review, 2026-10-09).
+        lead = f"Unemployment is {u['last']:.1f}%. " if u.get("last") is not None else ""
         out.append({"k": "jobs", "state": state, "title": "Labor market",
-                    "text": f"Unemployment is {u.get('last', float('nan')):.1f}%. The Sahm indicator - the 3-month average against "
+                    "text": lead + f"The Sahm indicator - the 3-month average against "
                             f"its 12-month low - reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
                             "since 1970 (Sahm 2019). "
                             + ("Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
