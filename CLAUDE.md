@@ -689,7 +689,9 @@ surprise, so it penalises a stock that beat last quarter (surprises autocorrelat
 **(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. Also: the
 momentum regime rule is **off** (its input did not measure volatility); `research/2026-10-09-momentum-regime.md`
 pre-registers a replacement (cut momentum only in Daniel & Moskowitz's panic state, from the index's own
-long history; no upward scaling) - build it with the replay its evidence gate asks for.
+long history; no upward scaling). **Its evidence gate is met** (replay: 7.5% of month-ends since 1988,
+not in force today) - **ready to build**: config `momentum_regime` mode + fixed 20.6% threshold, a
+3-year ^SP500TR fetch, a `PANIC` entry in `MOMENTUM_REGIME_SCALE`, and a changelog entry citing the replay.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's
