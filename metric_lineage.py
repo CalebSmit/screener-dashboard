@@ -145,6 +145,12 @@ def _op_leverage(i):
 
 
 def _feg(i):
+    # Since 2026-10-09: MSCI's 12-month forward over the last four quarters, from the engine's
+    # own blend (feg_f12 / feg_b12); the old forward-over-trailing form only as its fallback.
+    f12, b12 = i.get("feg_f12"), i.get("feg_b12")
+    if _ok(f12, b12):
+        g = (f12 - b12) / max(abs(b12), 1.0)
+        return min(max(g, FEG_CLAMP[0]), FEG_CLAMP[1])
     f, t = i.get("forwardEps"), i.get("trailingEps")
     if not (_ok(f, t) and abs(t) > 0.01):
         return None
@@ -361,10 +367,14 @@ LINEAGE = {
     "equity_ratio": _L("Equity / total assets (banks and insurers)",
                        [("Equity", "totalEquity", USD), ("Total assets", "totalAssets", USD)]),
     # ---- growth
-    "forward_eps_growth": _L("(Forward EPS - trailing EPS) / max(|trailing EPS|, $1)",
-                             [("Forward EPS", "forwardEps", PRICE), ("Trailing EPS", "trailingEps", PRICE)],
-                             how="Clipped to -75% .. +150%. Left out when the two EPS figures are on very different bases (forward / trailing above 2x or below 0.3x) or trailing EPS is near zero.",
-                             caveat="Trailing EPS is as reported (GAAP) while forward EPS is the analyst consensus, which is usually adjusted."),
+    "forward_eps_growth": _L("(EPS expected over the next 12 months - EPS over the last 4 quarters) / max(|last 4 quarters|, $1)",
+                             [("Next 12 months' EPS (consensus blend)", "feg_f12", PRICE),
+                              ("Last 4 quarters' EPS (reported, consensus basis)", "feg_b12", PRICE),
+                              ("Months left in the current fiscal year", "feg_m", NUM),
+                              ("Current fiscal year, consensus", "_fy1_eps_current", PRICE),
+                              ("Next fiscal year, consensus", "_fy2_eps_current", PRICE)],
+                             how="MSCI's short-term forward EPS growth: next 12 months = (M x current-year consensus + (12 - M) x next-year consensus) / 12, where M is the months left in the current fiscal year; compared with the sum of the last four reported quarters on the same basis. Clipped to -75% .. +150%.",
+                             caveat="Since 2026-10-09. It used to be Yahoo's forward EPS (the fiscal year after the current one) over GAAP trailing EPS - a 13-24 month span that depended on the fiscal calendar, on two accounting bases; that form is used only where the consensus inputs are missing."),
     "peg_ratio": _L("(Price / trailing EPS) / (forward EPS growth x 100)",
                     [("Price", "currentPrice", PRICE), ("Trailing EPS", "trailingEps", PRICE),
                      ("Forward EPS", "forwardEps", PRICE)],
@@ -483,7 +493,8 @@ EQUATIONS = {
     "net_debt_to_ebitda": (False, ["({totalDebt_bs|debt} − {cash_bs|cash}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",
                                    "net debt ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash"]),
     "operating_leverage": (False, ["EBIT change ({ebit_prior|prior} → {ebit_annual|latest}) ÷ revenue change ({totalRevenue_annual_prior|prior} → {totalRevenue_annual|latest})"]),
-    "forward_eps_growth": (False, ["({forwardEps|forward EPS} − {trailingEps|trailing EPS}) ÷ trailing EPS (at least $1), clipped"]),
+    "forward_eps_growth": (False, ["({feg_f12|next 12 months' EPS} − {feg_b12|last 4 quarters' EPS}) ÷ last 4 quarters (at least $1), clipped",
+                                   "({forwardEps|forward EPS} − {trailingEps|trailing EPS}) ÷ trailing EPS (at least $1), clipped"]),
     "peg_ratio": (False, ["({currentPrice|price} ÷ {trailingEps|trailing EPS}) ÷ (EPS growth × 100), capped at 50"]),
     "revenue_growth": (True, ["({_rev_q0|latest quarter} − {_rev_q4|same quarter a year earlier}) ÷ {_rev_q4|same quarter a year earlier}",
                               "({totalRevenue_annual|latest fiscal year} − {totalRevenue_annual_prior|the year before}) ÷ {totalRevenue_annual_prior|the year before}"]),
@@ -595,7 +606,8 @@ def published_not_used() -> dict:
 # computed them - the page must never re-derive them (CLAUDE.md priority 0.8).
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used",
                "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date",
-               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt", "vol_sd")
+               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt", "vol_sd",
+               "feg_f12", "feg_b12", "feg_m")
 
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.

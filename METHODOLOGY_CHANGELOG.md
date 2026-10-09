@@ -3270,3 +3270,21 @@ which the composite's coverage discount has used since this morning. One definit
 weight-0 candidates. **Measured on run `a2d76219dc0a`: no change** - the two stocks excluded (HONA,
 17 of 29 weighted metrics = 59%; VYLR, 8 of 29) are excluded under either rule.
 **Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - `forward_eps_growth` measures the next 12 months on one accounting basis
+
+**Area:** metric definition (Growth; 45% of the category)
+**Changed:** from Yahoo's `forwardEps` (the fiscal year *after* the current one) over GAAP
+`trailingEps`, to MSCI's short-term forward EPS growth: next-12-months EPS =
+(M x current-FY consensus + (12 - M) x next-FY consensus) / 12, over the last four reported quarters'
+actual EPS (consensus basis), with M the months left in the current fiscal year. $1 floor and
+-75%..+150% clip kept; the old form remains only as the fallback where consensus inputs are missing
+(`_feg_basis`). The page shows the blend, the four-quarter sum and M (`feg_*` engine keys); PEG
+(weight 0) follows through the same function.
+**Evidence:** `research/2026-10-09-forward-eps-growth.md` - measured horizon of 13-24 months by fiscal
+calendar and a GAAP-vs-adjusted basis mix; MSCI Fundamental Data Methodology section 2.2.5 (EGRSF).
+**Expected effect:** large within Growth - on a live sample of 35, rank correlation with the old values
+0.65, median 14.8% vs 34.5%. Measured effect on the first run: below, by the session that runs it.
+**Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.

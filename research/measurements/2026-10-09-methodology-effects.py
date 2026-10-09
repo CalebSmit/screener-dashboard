@@ -10,6 +10,7 @@ rank movement each change causes:
    a year earlier (else fiscal year over fiscal year)
 3. Piotroski signals 3/8/9: TTM vs the fiscal year before last -> two fiscal years, beginning-of-year assets
 4. coverage discount: all registered metrics -> weighted metrics only
+5. forward EPS growth: forwardEps over GAAP trailing -> MSCI's 12-month forward over the last 4 quarters
 
     python research/measurements/2026-10-09-methodology-effects.py [run_id]
 """
@@ -126,6 +127,18 @@ def main(run_id: str | None = None) -> dict:
     variants["3_piotroski_annual"] = score(m3, cfg)
     # 4. old coverage rule
     variants["4_coverage_weighted_only"] = score(base, cfg, coverage_cfg=False)
+    # 5. old forward EPS growth (forwardEps over GAAP trailing, F5 guard)
+    def _old_feg(r):
+        f, t = r.get("forwardEps"), r.get("trailingEps")
+        if not (pd.notna(f) and pd.notna(t) and abs(t) > 0.01):
+            return np.nan
+        ratio = f / t
+        if ratio > 2.0 or ratio < 0.3:
+            return np.nan
+        return float(np.clip((f - t) / max(abs(t), 1.0), -0.75, 1.50))
+    m5 = base.copy()
+    m5["forward_eps_growth"] = m5["Ticker"].map({t: _old_feg(r) for t, r in raw.iterrows()})
+    variants["5_forward_eps_growth_12m"] = score(m5, cfg)
     # all four undone
     m_all = base.copy()
     m_all["revenue_growth"] = m_all["Ticker"].map(old_revenue_growth(raw))

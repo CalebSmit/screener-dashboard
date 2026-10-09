@@ -857,6 +857,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # after the close. Nothing sits near a date boundary, so reading the
         # UTC date and reading the Eastern date disagree for 0 of 503.
         rec["earningsTimestampStart"] = _safe(info, "earningsTimestampStart")
+        # End of the current (not yet reported) fiscal year, for the 12-month-forward EPS blend.
+        rec["_next_fy_end"] = _safe(info, "nextFiscalYearEnd")
         rec["earningsTimestampEnd"]   = _safe(info, "earningsTimestampEnd")
         # 209 of the 492 future dates (42.5%) are the provider's estimate
         # rather than a confirmed schedule, and the flag was present on every
@@ -1304,6 +1306,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                     if _col in _row.index:
                         _v = _row[_col]
                         rec[_key] = float(_v) if pd.notna(_v) else np.nan
+            # Next fiscal year's consensus (FY2), for MSCI's 12-month forward EPS (2026-10-09).
+            if et is not None and not et.empty and "+1y" in et.index and "current" in et.columns:
+                _v2 = et.loc["+1y", "current"]
+                rec["_fy2_eps_current"] = float(_v2) if pd.notna(_v2) else np.nan
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: eps_trend extraction failed: {type(e).__name__}: {e}")
 
@@ -1604,6 +1610,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
     ptu_lo, ptu_hi = clamps.get("price_target_upside", [-0.50, 1.0])
     peg_max_cap = clamps.get("peg_max_cap", 50)
     records = []
+    # The day the metrics describe - for the months left in each fiscal year (forward EPS).
+    _as_of = pd.Timestamp(datetime.now(timezone.utc).date())
 
     # Market 12-month total return (computed once, reused for all tickers).
     # Convert cumulative log returns to simple return.
@@ -1968,9 +1976,41 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # as the analyst_surprise $0.10 floor).  Clamp to configured
             # bounds (default [-75%, +300%]) because yfinance mixes GAAP
             # trailing EPS with normalised forward consensus.
+            # Since 2026-10-09: MSCI's short-term forward EPS growth (Fundamental Data
+            # Methodology, EGRSF): (EPS12F - EPS12B) / |EPS12B|, where EPS12F blends the
+            # current- and next-fiscal-year consensus by the months M left in the current
+            # fiscal year, (M*FY1 + (12-M)*FY2)/12, and EPS12B is the last four reported
+            # quarters' actual EPS on the same (consensus) basis. Every company is measured
+            # over the next 12 months. The old form - Yahoo's forwardEps (the year AFTER the
+            # current one) over GAAP trailingEps - spanned 13-24 months by fiscal calendar and
+            # mixed accounting bases (research/2026-10-09-forward-eps-growth.md). It remains
+            # the fallback only where the consensus inputs are missing, with its F5 guard.
+            _e1, _e2 = d.get("_fy1_eps_current", np.nan), d.get("_fy2_eps_current", np.nan)
+            _nfy = d.get("_next_fy_end", np.nan)
+            _b12 = np.nan
+            try:
+                _q = json.loads(d["_eps_quarters"]) if isinstance(d.get("_eps_quarters"), str) else []
+                _acts = [r[1] for r in _q[-4:]]
+                if len(_acts) == 4 and all(a is not None for a in _acts):
+                    _b12 = float(sum(_acts))
+            except (TypeError, ValueError, IndexError, KeyError):
+                _b12 = np.nan
+            _M = np.nan
+            if pd.notna(_nfy):
+                try:
+                    _M = min(12.0, max(0.0, (datetime.fromtimestamp(int(_nfy), tz=timezone.utc).replace(tzinfo=None)
+                                             - _as_of).days / 30.4375))
+                except (TypeError, ValueError, OSError, OverflowError):
+                    _M = np.nan
             fwd = d.get("forwardEps", np.nan)
             trail = d.get("trailingEps", np.nan)
-            if pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
+            if all(pd.notna(x) for x in (_e1, _e2, _b12, _M)):
+                _f12 = (_M * _e1 + (12.0 - _M) * _e2) / 12.0
+                rec["forward_eps_growth"] = float(np.clip((_f12 - _b12) / max(abs(_b12), 1.0), feg_lo, feg_hi))
+                rec["_feg_f12"], rec["_feg_b12"], rec["_feg_m"] = float(_f12), float(_b12), float(_M)
+                rec["_feg_basis"] = "msci_12m"
+            elif pd.notna(fwd) and pd.notna(trail) and abs(trail) > 0.01:
+                rec["_feg_basis"] = "fy2_over_trailing"
                 # Phase 13 (F5): trailingEps is GAAP, forwardEps is normalized
                 # consensus. When the two bases diverge extremely (ratio >2x or
                 # <0.3x — the signature of large restructuring/impairment items
