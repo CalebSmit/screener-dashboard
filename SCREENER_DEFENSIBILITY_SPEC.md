@@ -265,7 +265,7 @@ generated `SCREENER_OVERVIEW.md` restates it every run; this block was last sync
 Valuation:   FCF Yield 45, EV/EBITDA 25 (EBIT+D&A), Earnings Yield 20 (LTM NI/MC), EV/Sales 10
 Quality:     ROIC 29, GP/Assets 22, Net Debt/EBITDA 20, Piotroski 16, Beneish M-Score 8, Accruals 5
              (Operating Leverage 0 and Earnings Variability 0 are tracked candidates)
-Growth:      Forward EPS 45, Revenue Growth 25 (latest quarter vs the same quarter a year earlier),
+Growth:      Forward EPS 45 (next 12 months vs last 4 quarters, MSCI construction), Revenue Growth 25 (latest quarter vs the same quarter a year earlier),
              Revenue CAGR 3Y 15, Sustainable Growth 15, PEG 0 (removed - double-counts valuation)
 Momentum:    12-1M Return 40, 6-1M Return 35, Jensen's Alpha 25
 Risk:        Volatility 42.86, Beta 28.57, Max Drawdown (13M) 28.57 (Sharpe and Sortino 0 since 2026-09-02)
