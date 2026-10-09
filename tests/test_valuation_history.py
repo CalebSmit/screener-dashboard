@@ -166,3 +166,19 @@ def test_the_published_blocks_are_internally_consistent():
                 lo_b = 100 * float((hist < y["now"] - 0.00005).mean())
                 hi_b = 100 * float((hist <= y["now"] + 0.00005).mean())
                 assert lo_b - 0.1 <= y["pct"] <= hi_b + 0.1, tk
+
+
+def test_a_filing_during_the_month_counts_at_that_month_end():
+    """Monthly bars are labelled with the 1st; the close is the month's last day."""
+    rows = [("X", SH, "2021-01-01", "2021-12-31", "2022-02-01", "10-K", "FY", 100.0)]
+    for y in range(2019, 2027):
+        rows.append(("X", NI, f"{y - 1}-01-01", f"{y - 1}-12-31", f"{y}-02-15", "10-K", "FY", float(y)))
+        rows.append(("X", SH, f"{y - 1}-01-01", f"{y - 1}-12-31", f"{y}-02-15", "10-K", "FY", 100.0))
+    f = _facts(rows)
+    idx = pd.date_range("2021-09-01", periods=60, freq="MS")
+    closes = pd.Series(10.0, index=idx)
+    b = vh.for_ticker(f, closes, [], 10.0, 1000.0, pd.Timestamp("2026-10-09"), fcf=False)
+    s = dict(zip(idx, b["ey"]["s"]))
+    # FY2023 (value 2024) was filed 2024-02-15: it is in the February 2024 month-end, not January's
+    assert s[pd.Timestamp("2024-01-01")] == round(2023 / 1000 * 10000)
+    assert s[pd.Timestamp("2024-02-01")] == round(2024 / 1000 * 10000)

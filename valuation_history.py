@@ -187,7 +187,9 @@ def for_ticker(f: pd.DataFrame, closes: pd.Series, splits: list, price_now: floa
     months = closes.index[-MONTHS:]
     ey, fy = [], []
     for m in months:
-        px, md = closes.get(m), _day(m)
+        # Yahoo labels a monthly bar with the month's first day; its close is the month's last
+        # trading day, so "filed by then" is judged at the month's end.
+        px, md = closes.get(m), _day(m + pd.offsets.MonthEnd(0))
         s = _shares_as_of(sh, md, splits)
         mv = px * s if (px is not None and s and np.isfinite(px)) else None
         n = _as_of(ni, md)
