@@ -63,6 +63,15 @@ cross-sectional dispersion of scores.
 4. **What would make it wrong:** if the state fires on more than ~15% of months in the replay, the
    thresholds are not describing panics and should not be used.
 
+**Replay, run the same day** (`research/measurements/2026-10-09-momentum-panic-replay.py`, output beside
+it): over ^SP500TR 1988-2026, the 126-day volatility 80th percentile is 20.6%, and the state holds at
+**33 of 442 month-ends (7.5%)** - 2001-03..09, 2002-07..2003-05, 2008-09..2009-09 (which contains
+Daniel & Moskowitz's March-May 2009 momentum crash) and 2010-07..08. It passes the 15% bound in
+point 4, and it is not in force today. Two cautions for the build: the 80th percentile is taken over
+the whole history, so the replay's early months use a threshold they could not have known (the live
+rule would use the fixed figure); and the state missed 2020 and 2022, when the 24-month market return
+stayed positive - consistent with Daniel & Moskowitz's definition, not a defect.
+
 Until then the rule stays off and `factor_vol_history.csv` keeps recording the dispersion figure
 (harmless, and the series that would show if the old input ever starts moving with markets).
 
