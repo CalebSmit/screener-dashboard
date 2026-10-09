@@ -4148,6 +4148,7 @@ def _js_workings() -> str:
         if (f === 'price') return '$' + Number(v).toFixed(2);
         if (f === 'pct') return (v * 100).toFixed(1) + '%';
         if (f === 'ratio') return Number(v).toFixed(2);
+        if (f === 'num' && typeof v === 'number' && !Number.isInteger(v)) return Number(v.toPrecision(4)).toString();
         return String(v);
     }
 

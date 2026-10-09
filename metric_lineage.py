@@ -241,6 +241,18 @@ def _max_drawdown(i):
     return (tr - pk) / pk if _ok(pk, tr) and pk > 0 else None
 
 
+def _beta(i):
+    """cov / var as the engine took them (both annualised; the factor cancels)."""
+    c, v = i.get("beta_cov"), i.get("beta_var")
+    return c / v if _ok(c, v) and v > 0 else None
+
+
+def _jensens_alpha(i):
+    """The CAPM line with the engine's own four terms."""
+    r, rf, b, m = i.get("ja_ret12"), i.get("ja_rf"), i.get("ja_beta"), i.get("ja_mkt")
+    return r - (rf + b * (m - rf)) if _ok(r, rf, b, m) else None
+
+
 RECOMPUTE = {
     "ev_ebitda": _ev_ebitda, "fcf_yield": _fcf_yield, "earnings_yield": _earnings_yield,
     "ev_sales": _ev_sales, "pb_ratio": _pb, "roic": _roic, "gross_profit_assets": _gpa,
@@ -250,7 +262,7 @@ RECOMPUTE = {
     "price_target_upside": _ptu, "short_interest_ratio": _short, "size_log_mcap": _size,
     "asset_growth": _asset_growth, "equity_ratio": _equity_ratio, "roe": _roe, "roa": _roa,
     "return_12_1": _ret_12_1, "return_6m": _ret_6m, "fy1_revision_3m": _fy1_rev,
-    "max_drawdown_1y": _max_drawdown,
+    "max_drawdown_1y": _max_drawdown, "beta": _beta, "jensens_alpha": _jensens_alpha,
 }
 
 
@@ -362,8 +374,9 @@ LINEAGE = {
                     [("Price ~6 months ago", "price_6m_ago", PRICE), ("Price ~1 month ago", "price_1m_ago", PRICE)],
                     caveat="Despite the '6M' label this is the return from about six months ago to about one month ago - it skips the latest month, like 12-1."),
     "jensens_alpha": _L("12-month return - [risk-free + beta x (market return - risk-free)]",
-                        [("Price now", "price_latest", PRICE), ("Price ~12 months ago", "price_12m_ago", PRICE)],
-                        how="Beta, the risk-free rate (13-week T-bill) and the S&P 500's 12-month return are shared inputs; the equation is not reproduced per stock.",
+                        [("12-month return", "ja_ret12", PCT), ("Risk-free rate", "ja_rf", PCT),
+                         ("Beta", "ja_beta", RATIO), ("S&P 500, 12 months", "ja_mkt", PCT)],
+                        how="The risk-free rate (13-week T-bill) and the S&P 500's 12-month return are the same for every stock in a run; beta is this stock's own, before any outlier trimming.",
                         caveat="The stock's return includes dividends; the market return is the S&P 500 price index, which does not - this tilts alpha upward by roughly the index's dividend yield.",
                         kind="series"),
     # ---- risk
@@ -372,6 +385,8 @@ LINEAGE = {
                      how="About 13 months of daily adjusted closes, sample standard deviation x sqrt(252). Needs at least 200 daily returns.",
                      caveat="Labelled 1-year, but the window is about 13 months.", kind="series"),
     "beta": _L("Slope of the stock's daily log returns on the S&P 500's",
+               [("Covariance with the S&P 500 (annualised)", "beta_cov", NUM),
+                ("Variance of the S&P 500 (annualised)", "beta_var", NUM)],
                how="cov(stock, market) / var(market) over about 13 months of common trading days; needs at least 200 and 80% overlap. Raw, not shrunk toward 1. Lower is scored as better.",
                kind="series"),
     "sharpe_ratio": _L("(12-month return - risk-free) / volatility", kind="series",
@@ -468,15 +483,15 @@ EQUATIONS = {
     "fy1_revision_3m": (True, ["({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {currentPrice|price}",
                                "({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {price_latest|price}"]),
     "max_drawdown_1y": (True, ["({mdd_trough|at the trough} − {mdd_peak|at the prior peak}) ÷ {mdd_peak|at the prior peak}"]),
+    "beta": (True, ["{beta_cov|covariance with the S&P 500} ÷ {beta_var|variance of the S&P 500}"]),
+    "jensens_alpha": (True, ["{ja_ret12|12-month return} − ({ja_rf|risk-free} + {ja_beta|beta} × ({ja_mkt|S&P 500} − {ja_rf|risk-free}))"]),
 }
 
 # Metrics with no per-stock equation: one plain line saying what the number is made of.
 SOURCES = {
     "piotroski_f_score": "Pass/fail financial-health signals that passed",
     "beneish_m_score": "−4.84 plus eight weighted indices from the annual statements",
-    "jensens_alpha": "12-month return minus the return its beta predicted",
     "volatility": "Daily price swings over about 13 months, annualised",
-    "beta": "How far it moves with the S&P 500, from about 13 months of daily returns",
     "sharpe_ratio": "12-month return above the risk-free rate, per unit of volatility",
     "sortino_ratio": "12-month return above the risk-free rate, per unit of downside swing",
     "analyst_surprise": "Median beat or miss against the EPS estimate, last 4 quarters",
@@ -552,7 +567,8 @@ def published_not_used() -> dict:
 # `_`-prefixed columns. These are the engine's own numbers, taken from the one place it
 # computed them - the page must never re-derive them (CLAUDE.md priority 0.8).
 ENGINE_KEYS = ("ev_used", "ebitda_used", "fcf_used", "ebitda_nd_used",
-               "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date")
+               "mdd_peak", "mdd_trough", "mdd_peak_date", "mdd_trough_date",
+               "beta_cov", "beta_var", "ja_ret12", "ja_rf", "ja_beta", "ja_mkt")
 
 # Fetch fields the page needs per stock, in a stable order. Derived from the table so a
 # new input cannot be named without being published.

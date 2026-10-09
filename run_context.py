@@ -121,7 +121,9 @@ class RunContext:
             # start served the 02:00 table, which both carried the old drawdown
             # and lacked those columns, so the dashboard refused to publish -
             # correctly, but for a reason that reads as a scoring bug.
-            "scoring_schema": 3,
+            # 4 = beta's covariance/variance and every term of Jensen's alpha
+            # recorded (`_beta_cov`, `_beta_var`, `_ja_*`, 2026-10-09).
+            "scoring_schema": 4,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

@@ -2075,6 +2075,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     cov = np.cov(sr, mr)[0, 1]
                     var = np.var(mr, ddof=1)
                     rec["beta"] = cov / var if var > 0 else np.nan
+                    # The two numbers the slope is, published so the page can show
+                    # the division (metric_lineage.EQUATIONS["beta"]). Annualised
+                    # (x252) only so they read as percentages-squared rather than
+                    # 0.0001s; the ratio is unchanged by the common factor.
+                    if var > 0:
+                        rec["_beta_cov"] = float(cov * 252)
+                        rec["_beta_var"] = float(var * 252)
                 else:
                     rec["beta"] = np.nan
             elif dr and isinstance(dr, list):
@@ -2198,6 +2205,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     and pd.notna(market_12m_return)):
                 expected_return = risk_free_rate + _beta_ja * (market_12m_return - risk_free_rate)
                 rec["jensens_alpha"] = _ret_12m_ja - expected_return
+                # Every term of the CAPM line, from this one computation, so the
+                # page prints the arithmetic instead of describing it
+                # (metric_lineage.EQUATIONS["jensens_alpha"], CLAUDE.md 0.10a).
+                rec["_ja_ret12"] = float(_ret_12m_ja)
+                rec["_ja_rf"] = float(risk_free_rate)
+                rec["_ja_beta"] = float(_beta_ja)
+                rec["_ja_mkt"] = float(market_12m_return)
             else:
                 rec["jensens_alpha"] = np.nan
                 logging.debug(f"{ticker}: jensens_alpha skipped — beta or return NaN")
