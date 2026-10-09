@@ -3182,6 +3182,39 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run) - Which financials are scored as banks is decided by GICS sub-industry
+
+**Area:** the metric set (bank or generic) for Financials stocks - Valuation and Quality
+**Changed:** `_is_bank_like` classifies on the GICS sub-industry from the S&P 500 list, which the
+universe loader now keeps (`sp500_tickers.json` carries it) and the run attaches to each stock before
+scoring. Bank set: banks, consumer finance, mortgage finance, insurers, reinsurance, multi-sector
+holdings, investment banking & brokerage. Generic set: insurance brokers, asset management,
+exchanges & data, payment processing. Bank-set exceptions inside Asset Management & Custody Banks,
+each with a stated reason: BNY, STT, NTRS (custody banks with deposits), APO, KKR (consolidated
+insurers), AMP (owns a bank and a life insurer). The rule also reads the GICS sector instead of
+Yahoo's, so XYZ, CPAY, JKHY, FIS, GPN and FISV now reach it by design rather than by accident.
+Without a sub-industry it falls back to Yahoo's industry (dashes normalised; EG's "Insurance -
+Reinsurance" no longer missed). A stock reaching the bank set only by default is logged by name.
+
+**Evidence / reasoning:** `research/2026-10-09-bank-like-financials.md`. 26 of the 59 bank-set stocks
+got there only by the default for an unlisted Yahoo industry - asset managers, insurance brokers,
+broker-dealers - putting TROW's 72% equity ratio at the 99th percentile and AON's goodwill-driven 6.1x
+P/B at the 9th. The dividing line, from Damodaran (*Investment Valuation* ch. 21) and practice
+(insurance brokers and asset managers on EV/EBITDA and P/E; banks, insurers and broker-dealers on P/B
+against ROE): whether liabilities are an operating input. Fama & French (1992) exclude financials
+because their leverage "probably does not have the same meaning".
+**Expected effect:** 13 stocks move to the generic set (TROW, BLK, BEN, IVZ, BX, ARES, AON, AJG, BRO,
+WTW, MRSH, ERIE, COIN), none the other way; 46 bank set, 30 generic, 0 by default. Measured offline on
+run a2d76219dc0a: TROW 130 -> 89, AON Valuation 25 -> 51, ERIE 328 -> 454 (Yahoo gives it no EBITDA or
+gross profit, so it is scored on 21 metrics); 346 ranks move by a mean of 2.8 places. Measured again on
+the first full run after the change.
+**Validated by:** `tests/test_bank_like.py` (20 tests, including that no constituent reaches the
+default and that scoring reads the GICS fields).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; without `_gics_sub` the rule falls back to Yahoo's industry.
+
+---
+
 ## 2026-10-09 (owner-run, same day) - Correction: no forward EPS growth from a loss base
 
 **Area:** forward_eps_growth (45% of Growth)

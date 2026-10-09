@@ -308,7 +308,9 @@ def attach(raw: list[dict], refresh: bool = True, log=print) -> int:
         return 0
     # Free cash flow means little for a bank or an insurer, whose operating cash flow moves
     # with loans, deposits and claims - the same reason the screener scores them differently.
-    no_fcf = {r["Ticker"] for r in live if _is_bank_like(r["Ticker"], r.get("sector") or "", r.get("industry") or "")}
+    no_fcf = {r["Ticker"] for r in live
+              if _is_bank_like(r["Ticker"], r.get("_gics_sector") or r.get("sector") or "",
+                               r.get("industry") or "", r.get("_gics_sub"))}
     out = build(live, facts, monthly, splits, no_fcf=no_fcf)
     for r in live:
         b = out.get(r["Ticker"])

@@ -88,8 +88,10 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
         resp = requests.get(_GITHUB_URL, timeout=10)
         resp.raise_for_status()
         gh = pd.read_csv(StringIO(resp.text))
-        df = gh[["Symbol", "Security", "GICS Sector"]].copy()
-        df.columns = ["Ticker", "Company", "Sector"]
+        # GICS sub-industry kept since 2026-10-09: it decides which financials are scored with
+        # the bank metric set (_is_bank_like; research/2026-10-09-bank-like-financials.md).
+        df = gh[["Symbol", "Security", "GICS Sector", "GICS Sub-Industry"]].copy()
+        df.columns = ["Ticker", "Company", "Sector", "SubIndustry"]
         df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
         print(f"  Loaded S&P 500 list from GitHub ({len(df)} tickers)")
     except Exception as e:
@@ -100,8 +102,8 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
         try:
             url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
             tables = pd.read_html(url)
-            df = tables[0][["Symbol", "Security", "GICS Sector"]].copy()
-            df.columns = ["Ticker", "Company", "Sector"]
+            df = tables[0][["Symbol", "Security", "GICS Sector", "GICS Sub-Industry"]].copy()
+            df.columns = ["Ticker", "Company", "Sector", "SubIndustry"]
             df["Ticker"] = df["Ticker"].str.replace(".", "-", regex=False)
             print(f"  Loaded S&P 500 list from Wikipedia ({len(df)} tickers)")
         except Exception as e:
@@ -128,7 +130,7 @@ def get_sp500_tickers(cfg: dict) -> pd.DataFrame:
                     f"Universe drift {drift_pct:.1f}% exceeds 10% threshold."
                 )
         # Auto-update local fallback so it stays current
-        fresh = df[["Ticker", "Company", "Sector"]].to_dict(orient="records")
+        fresh = df[[c for c in ("Ticker", "Company", "Sector", "SubIndustry") if c in df.columns]].to_dict(orient="records")
         with open(fallback, "w") as f:
             json.dump(fresh, f, indent=2)
         print(f"  Updated sp500_tickers.json ({len(fresh)} tickers)")
@@ -1797,7 +1799,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # Pre-compute bank classification (needed early for Beneish exclusion)
         _sector = rec["Sector"]
         _industry = d.get("industry", "")
-        _is_bank = _is_bank_like(ticker, _sector, _industry)
+        _is_bank = _is_bank_like(ticker, d.get("_gics_sector") or _sector, _industry, d.get("_gics_sub"))
 
         # -- Valuation metrics (1-4) --
         try:
@@ -3901,19 +3903,71 @@ _NON_BANK_FINANCIALS = {
 }
 
 
-def _is_bank_like(ticker: str, sector: str, industry: str) -> bool:
-    """Determine if a stock should use bank-specific metrics.
+# GICS sub-industries scored with the bank set: balance sheets whose liabilities are an operating
+# input (deposits, insurance float, customer funds), where EV, EBITDA, ROIC and gross profit /
+# assets lose their meaning and P/B against ROE is the practitioner standard (Damodaran,
+# *Investment Valuation* ch. 21; Fama & French 1992 exclude financials for the same reason).
+_BANK_SUBINDUSTRIES = {
+    "Diversified Banks", "Regional Banks", "Consumer Finance",
+    "Commercial & Residential Mortgage Finance", "Life & Health Insurance",
+    "Multi-line Insurance", "Property & Casualty Insurance", "Reinsurance",
+    "Multi-Sector Holdings", "Investment Banking & Brokerage", "Diversified Capital Markets",
+}
+# Fee businesses with conventional P&Ls, valued in practice on EV/EBITDA and P/E.
+_GENERIC_FIN_SUBINDUSTRIES = {
+    "Insurance Brokers", "Asset Management & Custody Banks", "Financial Exchanges & Data",
+    "Transaction & Payment Processing Services",
+}
+# Inside "Asset Management & Custody Banks", the ones whose balance sheets are a bank's or an
+# insurer's. Each needs its reason.
+_BANK_OVERRIDE_TICKERS = {
+    "BNY": "custody bank taking deposits",
+    "BK": "custody bank taking deposits (the symbol before BNY)",
+    "STT": "custody bank taking deposits",
+    "NTRS": "custody bank taking deposits",
+    "APO": "consolidates the insurer Athene",
+    "KKR": "consolidates the insurer Global Atlantic",
+    "AMP": "owns a bank and a life insurer; equity 3% of assets",
+}
+# Yahoo-only fallback (no GICS sub-industry): Yahoo files these under Asset Management.
+_YAHOO_BANK_OVERRIDES = {"PFG", "RJF"}
+_YAHOO_GENERIC_FIN_INDUSTRIES = {"Insurance Brokers", "Asset Management", "Financial Data & Stock Exchanges"}
+# Tickers that reached the bank set only by the default for an unrecognised financial - logged
+# by the run, and a test holds the current universe at none (26 did, silently, until 2026-10-09).
+BANK_DEFAULTED: set = set()
 
-    Priority: explicit override list > industry name > sector fallback.
+
+def _is_bank_like(ticker: str, sector: str, industry: str, sub_industry: str | None = None) -> bool:
+    """Whether a stock is scored with the bank metric set.
+
+    With the GICS sub-industry (the run attaches it from the S&P 500 list, since 2026-10-09):
+    the override tickers, then the sub-industry lists. Without it, Yahoo's industry, as before
+    but with dashes normalised and fee businesses sent to the generic set. Either way an
+    unrecognised Financials stock defaults to the bank set - the safer guess for an unseen
+    lender - and is recorded in ``BANK_DEFAULTED``.
+    research/2026-10-09-bank-like-financials.md
     """
-    if ticker in _NON_BANK_FINANCIALS:
-        return False
     if sector not in _FINANCIAL_SECTORS:
         return False
-    if industry and industry in _BANK_LIKE_INDUSTRIES:
+    if isinstance(sub_industry, str) and sub_industry:
+        if ticker in _BANK_OVERRIDE_TICKERS:
+            return True
+        if sub_industry in _BANK_SUBINDUSTRIES:
+            return True
+        if sub_industry in _GENERIC_FIN_SUBINDUSTRIES:
+            return False
+        BANK_DEFAULTED.add(ticker)
         return True
-    # Default: unknown Financials use bank metrics (conservative —
-    # P/B + ROE is better than EV/EBITDA for an unknown financial).
+    if ticker in _NON_BANK_FINANCIALS:
+        return False
+    ind = (industry or "").replace("\u2014", " - ").strip()
+    if ticker in _BANK_OVERRIDE_TICKERS or ticker in _YAHOO_BANK_OVERRIDES:
+        return True
+    if ind in _YAHOO_GENERIC_FIN_INDUSTRIES:
+        return False
+    if ind in _BANK_LIKE_INDUSTRIES or ind in ("Capital Markets", "Insurance - Reinsurance"):
+        return True
+    BANK_DEFAULTED.add(ticker)
     return True
 
 

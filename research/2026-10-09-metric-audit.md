@@ -24,7 +24,7 @@ income, AMCR's zero estimate, the regime replay).
 
 ## Deferred - each needs research before a change (rule 4), now on the queue
 
-* **RESEARCHED the same session - `research/2026-10-09-bank-like-financials.md`** recommends classifying on GICS sub-industry (13 of 59 move to the generic set, none the other way; TROW 130 -> 89, ERIE 328 -> 454). Not implemented the same day: it needs the universe loader to keep the GICS sub-industry column, and its effect should be measurable on its own run. The finding: **Which financials are "bank-like".** 26 of the 59 stocks scored on bank metrics get there only by
+* **RESEARCHED the same session - `research/2026-10-09-bank-like-financials.md`** recommends classifying on GICS sub-industry (13 of 59 move to the generic set, none the other way; TROW 130 -> 89, ERIE 328 -> 454). Built later the same day (changelog entry). The finding: **Which financials are "bank-like".** 26 of the 59 stocks scored on bank metrics get there only by
   the default for an unlisted Financials industry: asset managers (BLK, TROW, BEN, IVZ, ...), insurance
   brokers (AON, AJG, BRO, WTW, ...), broker-dealers and COIN. Equity ratio puts TROW at the 100th
   percentile; P/B puts AON at the 8th. Broker-dealers (GS, MS) arguably *are* bank-like; asset managers

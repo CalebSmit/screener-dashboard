@@ -1,5 +1,7 @@
 # Which financials should be scored with the bank metric set?
 
+**Status: BUILT the same day** (`factor_engine._is_bank_like`, `tests/test_bank_like.py`, changelog 2026-10-09).
+
 *2026-10-09. Data: run `a2d76219dc0a` (00/01/05 parquet), rescored offline with HEAD scoring code. No live requests.*
 
 ## 1. The question and the defect

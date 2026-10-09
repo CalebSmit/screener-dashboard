@@ -193,11 +193,13 @@ When coverage drops below 30% (e.g., many stocks lack prior-year asset data), th
 
 Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningless for banks, insurers, and credit companies. Their "debt" is deposits (the raw material of their business), they don't have conventional capital expenditures, and enterprise value metrics break down when liabilities include customer deposits.
 
-The screener detects bank-like stocks using a three-tier classification:
+The screener decides by **GICS sub-industry** (since 2026-10-09), from the S&P 500 list itself:
 
-1. **Explicit exclusion list** — Payment processors and financial data companies (V, MA, PYPL, FIS, FISV, SPGI, MCO, ICE, CME, etc.) have conventional P&Ls and use generic metrics despite being in the Financials sector.
-2. **Industry matching** — Companies in banking, insurance, credit services, or mortgage finance industries use bank metrics.
-3. **Sector fallback** — Unknown Financials-sector companies default to bank metrics (conservative — P/B + ROE is a safer default than EV/EBITDA for an unknown financial).
+1. **Bank set** — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life & Health / Multi-line / Property & Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire) and Investment Banking & Brokerage: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.
+2. **Generic set** — Insurance Brokers, Asset Management, Financial Exchanges & Data, and Payment Processing: fee businesses with conventional profit and loss statements, valued in practice on EV/EBITDA and P/E.
+3. **Named exceptions** inside Asset Management & Custody Banks use the bank set, each for a stated reason: the custody banks BNY, State Street and Northern Trust (they take deposits), Apollo and KKR (they consolidate the insurers Athene and Global Atlantic) and Ameriprise (it owns a bank and a life insurer).
+
+A Financials stock in a sub-industry on neither list defaults to the bank set — the safer guess for an unseen lender — and the run logs it by name; a test keeps the current universe at none. Until 2026-10-09 the rule read Yahoo's industry names, and 26 of the 59 stocks scored as banks — asset managers and insurance brokers among them — reached the bank set only through that default. Detail: `research/2026-10-09-bank-like-financials.md`.
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 

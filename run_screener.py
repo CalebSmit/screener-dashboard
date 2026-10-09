@@ -620,11 +620,13 @@ When coverage drops below 30% (e.g., many stocks lack prior-year asset data), th
 
 Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningless for banks, insurers, and credit companies. Their "debt" is deposits (the raw material of their business), they don't have conventional capital expenditures, and enterprise value metrics break down when liabilities include customer deposits.
 
-The screener detects bank-like stocks using a three-tier classification:
+The screener decides by **GICS sub-industry** (since 2026-10-09), from the S&P 500 list itself:
 
-1. **Explicit exclusion list** — Payment processors and financial data companies (V, MA, PYPL, FIS, FISV, SPGI, MCO, ICE, CME, etc.) have conventional P&Ls and use generic metrics despite being in the Financials sector.
-2. **Industry matching** — Companies in banking, insurance, credit services, or mortgage finance industries use bank metrics.
-3. **Sector fallback** — Unknown Financials-sector companies default to bank metrics (conservative — P/B + ROE is a safer default than EV/EBITDA for an unknown financial).
+1. **Bank set** — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life & Health / Multi-line / Property & Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire) and Investment Banking & Brokerage: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.
+2. **Generic set** — Insurance Brokers, Asset Management, Financial Exchanges & Data, and Payment Processing: fee businesses with conventional profit and loss statements, valued in practice on EV/EBITDA and P/E.
+3. **Named exceptions** inside Asset Management & Custody Banks use the bank set, each for a stated reason: the custody banks BNY, State Street and Northern Trust (they take deposits), Apollo and KKR (they consolidate the insurers Athene and Global Atlantic) and Ameriprise (it owns a bank and a life insurer).
+
+A Financials stock in a sub-industry on neither list defaults to the bank set — the safer guess for an unseen lender — and the run logs it by name; a test keeps the current universe at none. Until 2026-10-09 the rule read Yahoo's industry names, and 26 of the 59 stocks scored as banks — asset managers and insurance brokers among them — reached the bank set only through that default. Detail: `research/2026-10-09-bank-like-financials.md`.
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
@@ -1335,6 +1337,17 @@ def run_factor_engine(cfg, args, ctx=None):
 
         stats["tickers_api"] = len(raw)
 
+        # GICS sector and sub-industry from the S&P 500 list, on each raw record before anything
+        # reads it: scoring decides the bank metric set from the sub-industry (2026-10-09,
+        # research/2026-10-09-bank-like-financials.md), and Yahoo's own sector names differ.
+        _gics = universe_df.set_index("Ticker").to_dict("index") if "Ticker" in universe_df.columns else {}
+        for _r in raw:
+            _m = _gics.get(_r.get("Ticker")) or {}
+            if _m.get("Sector"):
+                _r["_gics_sector"] = _m["Sector"]
+            if isinstance(_m.get("SubIndustry"), str) and _m["SubIndustry"]:
+                _r["_gics_sub"] = _m["SubIndustry"]
+
         # Earnings variability (Quality candidate, weight 0): five years of annual ROE
         # from each company's own 10-K figures (SEC companyfacts) - Yahoo carries four years.
         # A --tickers run reads the cache but never rewrites it (it would hold only the subset).
@@ -1454,7 +1467,13 @@ def run_factor_engine(cfg, args, ctx=None):
                       f"max={max(ft_arr)}ms  p95={int(sorted(ft_arr)[int(len(ft_arr)*0.95)])}ms")
 
         print("Computing metrics...")
+        from factor_engine import BANK_DEFAULTED as _bank_defaulted
+        _bank_defaulted.clear()
         df = compute_metrics(raw, market_returns, cfg, risk_free_rate=risk_free_rate)
+        if _bank_defaulted:
+            stats["bank_set_by_default"] = sorted(_bank_defaulted)
+            print(f"  WARNING: {len(_bank_defaulted)} financials reached the bank metric set only by default: "
+                  f"{sorted(_bank_defaulted)[:12]} - add their sub-industry to factor_engine's lists")
 
         # ---- Log _stmt_val() misses (strict mode) ----
         if stmt_strict:
