@@ -8994,3 +8994,97 @@ reads as a transient glitch rather than the structural fact that the pipeline ru
 no option market data exists. The 06:00 code loop is in the same dead window.
 `research/measurements/2026-10-09-option-quote-availability.py` reproduces both halves (the record
 half needs no network; `--probe N` re-runs the live half at whatever hour you run it).
+
+**The fix, and the one piece outside this session's reach.** Not a looser quality bar - there is no
+quote to accept - and specifically not `lastPrice`, which survives the night intact and is the
+tempting substitute: Battalio & Schultz (2006) show that apparent option mispricings largely vanish
+when quotes replace last trade prices, so a straddle built from last trades is the wrong repair.
+Fixed by fetching when quotes exist, the same shape as `market_context` (FRED), `insider_activity`
+(Form 4s) and `track_record` (closes):
+
+- **`options_cache.py`** keeps usable readings with the date the quotes belong to - atomic write,
+  merge rather than replace, entries dropped once the expiry passes, and it **never overwrites a
+  good cache with an empty pass**.
+- **`context_fetch` probes** two or three real chains before fetching 500. Quotes live -> fetch as
+  before. Not live -> skip the option half, read the cache, label it with its quote date and recount
+  days to expiry from today; a stock with no recent reading gets `_ctx_opt_status = "quotes-closed"`.
+  A probe rather than a hard-coded window, because a guessed clock goes wrong the day the source
+  changes its behaviour and three requests cannot. **The 02:00 run now spends 3 option requests
+  instead of ~1,000.** Insider fetching is untouched - Form 4 data does not care what hour it is.
+- **The page says what happened.** `quotes-closed` explains the hour; the `stale-quotes` wording,
+  still reachable when quotes are live and one chain is unusable, was reworded so it no longer reads
+  as a transient glitch. Verified on the live page, EXPE at **1440 and 375px**: the card reads
+  cleanly at both, no horizontal overflow (scrollWidth 1440 and 375), no console errors. Regenerated
+  HTML only - `dashboard_data.js` and `dashboard_context.js` sha256 **unchanged**.
+- **Scheduled task `Screener Option Quotes`**, weekdays 20:00, defined in `register-tasks.ps1`
+  (settled row -1). It publishes nothing - no repo lock, no mutating git command, writes only the
+  gitignored `data/options/` - which is what makes a third task safe without gates of its own. No
+  logon trigger and no catch-up, so the PT3M/PT20M pair the two loops depend on stays a pair; a
+  dead-hour run exits 0 rather than training everyone to ignore a red task.
+
+**Outstanding, and it is the next session's first job:** the task **was not registered on the
+machine.** Rule 11 says apply machine-level fixes yourself, and I tried: `powershell` is
+*entirely* unavailable to this session - `register-tasks.ps1`, `schtasks /query` and even a
+read-only `Get-ScheduledTask` are all auto-denied in a non-interactive run, as is
+`powershell -Command "Write-Output ok"`. So this is the rule's stated exception - genuinely outside
+the session's reach - not caution of the kind the 2026-08-29 session was criticised for. It is
+recorded for the **next session**, not the owner, in three places a session reads
+(`CLAUDE.md` 0.11, `OWNER_FOCUS.md`, `plan/context-layer.md` item 2) with the exact verification
+steps, and the data loop now **logs the remedy** when the cache is empty rather than only the
+symptom. Until it runs, every options panel reads `quotes-closed` - still strictly better than
+yesterday, because the ~1,000 wasted requests are gone and the page states the real reason.
+
+### Evidence / research
+
+- **Measured, this system, 2026-10-09** (`research/measurements/2026-10-09-option-quote-availability.py`,
+  reproducible; the record half needs no network): `_ctx_opt_status == "ok"` for **394 of 503**
+  (78.3%) at 21:27 ET, **0 of 503** at 03:00 ET, **0 of 10** at 07:03 ET. At the dead hours every
+  strike carries `bid` 0.0, `ask` 0.0 and `impliedVolatility` 0.000 while `lastPrice` and
+  `openInterest` are intact - so the cause is the source clearing quotes, not a thin chain.
+- **Battalio, R. & Schultz, P. (2006), "Options and the Bubble", *Journal of Finance* 61(5),
+  2071-2102.** Using intraday *quotes* rather than last trade prices, the apparent put-call parity
+  violations and short-sale-constraint effects reported for internet-bubble stocks largely disappear;
+  the authors attribute the earlier findings to non-synchronous last trade prices. This is the
+  reason the fix is a different fetch hour and not a `lastPrice` fallback, and it is pinned by
+  `test_last_trade_prices_are_not_used_in_place_of_quotes`.
+- The existing page citations were left as they stand (Xing, Zhang & Zhao 2010 for put skew; Faber
+  2007 for the 200-day average). Queue item 4 - a research note per signal - is still open and is
+  the next item after the task is registered.
+
+### Methodology changed
+
+- **None.** Nothing here touches `raw`, `pct`, a category score or the composite; a test asserts no
+  scoring module imports `options_cache` (CLAUDE.md settled row "ctx"). No `METHODOLOGY_CHANGELOG.md`
+  entry is due. Claim `context.expected_move` was extended - the panel now names the session its
+  quotes came from - with three new registered checks.
+
+### Tried and rejected
+
+- **Using `lastPrice` for the straddle when bid/ask are cleared.** It is right there in the payload
+  and would have "fixed" the panel tonight with no new scheduled task. Ruled out by Battalio &
+  Schultz (2006) above: last trade prices on the two legs can be hours apart, and the whole point of
+  the card is a number a student can trust. A put-call-parity screen over last prices was considered
+  as a quality bar and rejected for the same reason - it would filter the worst cases while leaving
+  a straddle whose legs were struck at different moments.
+- **Moving the whole data loop later.** The core fetch needs the prior close and must publish before
+  morning; 02:00 is right for everything except this one sub-pass.
+- **A hard-coded "quotes are live between X and Y" window.** Cheaper than a probe and wrong the day
+  the source changes. Three requests buys the real answer every night.
+- **Having the 02:00 or 06:00 loop fill the cache.** Both sit inside the dead window, which is the
+  defect. A test pins that neither loop calls the refresh.
+
+### Next
+
+1. **Register `Screener Option Quotes`** - `powershell -ExecutionPolicy Bypass -File
+   scripts\register-tasks.ps1` (idempotent, re-registers all three), then confirm with
+   `Get-ScheduledTask` / `Get-ScheduledTaskInfo`: the refresh has **one** trigger (weekly 20:00, no
+   logon) and a `NextRunTime`; the two loops still read PT3M and PT20M. Then read the next
+   `logs/options-*.log` and the following `logs/datarun-*.log` for
+   `Options: skipped the fetch and read the cache - N of ~500`, and record the new `ok` share in
+   `plan/context-layer.md` item 2. **78.3% is the number to beat and is itself one evening's
+   observation.**
+2. Then queue item 4: one research note per signal, Monday standard.
+
+**Tests: before 1936 passed / 3 failed; after 1997 passed / 0 failed.** Gates: 1 PASS, 2 PASS
+(dry-run), 3 PASS (`node --check` on both payloads, opening assignments, size floors, and the data
+loop's own `check_published_claims.py` at 363 passed), 4 PASS (clean tree).
