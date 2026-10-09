@@ -677,6 +677,19 @@ Item 4 step one (every research sentence on the panel checked against its source
 `research/2026-10-09-context-panel-claims.md`. Next: re-measure the options `ok` share from the
 first 02:00 log after a 20:00 refresh, then item 4's per-signal notes.
 
+**0.12. Metric audit residuals - research, do not patch (opened 2026-10-09, age 0 days).**
+Two audit passes over every weighted metric fixed nine defects the same day
+(`research/2026-10-09-metric-audit.md`, changelog "metric audit" entries). Four findings are
+judgement calls and need a Monday-style note before any change: **(a)** which financials are
+"bank-like" - 26 of 59 reach the bank metric set only by the default for an unlisted industry
+(asset managers, insurance brokers, broker-dealers; TROW 100th percentile on equity ratio, AON 8th on
+P/B); **(b)** `earnings_acceleration` (20% of Revisions) correlates -0.57 with the prior quarter's
+surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
+1990); **(c)** accruals counted three times within Quality (the metric, Piotroski 4, Beneish TATA);
+**(d)** net debt subtracts cash only, enterprise value cash and short-term investments. Also: the
+momentum regime rule is **off** (its input did not measure volatility); rebuilding it on a real
+volatility measure (Barroso & Santa-Clara 2015; Daniel & Moskowitz 2016) is its own research item.
+
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's
 calculation is one click away on the page, but for volatility, beta, drawdown, Jensen's alpha,

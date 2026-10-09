@@ -126,7 +126,9 @@ class RunContext:
             # 5 = revenue-growth window, Piotroski 3/8/9 annual, one EBITDA, weighted-only
             # coverage (2026-10-09) - all scoring changes a same-day cache must not hide.
             # 6 = forward EPS growth on MSCI's 12-month basis and the balance-sheet prior guard.
-            "scoring_schema": 6,
+            # 7 = the 2026-10-09 metric audit: operating income, period-indexed statements,
+            # zero-estimate placeholder, total-return market, midpoint percentiles, surprises.
+            "scoring_schema": 7,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

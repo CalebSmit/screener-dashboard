@@ -237,7 +237,8 @@ def _ret_6m(i):
 
 def _fy1_rev(i):
     c, a, p = i.get("_fy1_eps_current"), i.get("_fy1_eps_90d_ago"), _first(i, "currentPrice", "price_latest")
-    return (c - a) / p if _ok(c, a, p) and p > 0 else None
+    # an exact 0.0 is Yahoo's placeholder for "no estimate" (factor_engine._estimate)
+    return (c - a) / p if _ok(c, a, p) and p > 0 and c != 0 and a != 0 else None
 
 
 def _max_drawdown(i):
@@ -302,8 +303,8 @@ LINEAGE = {
     # ---- valuation
     "ev_ebitda": _L("Enterprise value / EBITDA",
                     [("Enterprise value (used)", "ev_used", USD), ("EBITDA (used)", "ebitda_used", USD),
-                     ("EBIT", "ebit", USD), ("D&A (cash-flow)", "da_cf", USD)],
-                    how="EBITDA = trailing-12-month EBIT + depreciation & amortisation; Yahoo's reported EBITDA is used only when either is missing. Needs EBITDA > 0.",
+                     ("Operating income (EBIT)", "ebit", USD), ("D&A (cash-flow)", "da_cf", USD)],
+                    how="EBITDA = trailing-12-month operating income + depreciation & amortisation (the last fiscal year's D&A where the quarters do not report it); Yahoo's reported EBITDA only when one is missing, and not when it merely repeats EBIT. Needs EBITDA > 0.",
                     caveat=EV_NOTE),
     "fcf_yield": _L("Free cash flow / enterprise value",
                     [("Free cash flow (used)", "fcf_used", USD), ("Enterprise value (used)", "ev_used", USD),
@@ -322,11 +323,11 @@ LINEAGE = {
                    how="Yahoo's price-to-book when positive, otherwise price / book value per share. Banks and insurers only."),
     # ---- quality
     "roic": _L("After-tax operating profit / invested capital",
-               [("EBIT (TTM)", "ebit", USD), ("Income tax", "incomeTaxExpense", USD), ("Pre-tax income", "pretaxIncome", USD),
+               [("Operating income (TTM)", "ebit", USD), ("Income tax", "incomeTaxExpense", USD), ("Pre-tax income", "pretaxIncome", USD),
                 ("Equity", "totalEquity", USD), ("Debt (balance sheet)", "totalDebt_bs", USD),
                 ("Cash (balance sheet)", "cash_bs", USD), ("Revenue (TTM)", "totalRevenue", USD),
                 ("Total assets", "totalAssets", USD)],
-               how="NOPAT = EBIT x (1 - tax rate); the tax rate is tax / pre-tax income capped at 50%, zero for a loss, 21% if unreported. Invested capital = equity + debt - excess cash (cash above 2% of revenue, at most half of cash), floored at 10% of total assets."),
+               how="NOPAT = operating income x (1 - tax rate) - operating income, not Yahoo's 'EBIT', which adds non-operating gains (since 2026-10-09); the tax rate is tax / pre-tax income capped at 50%, zero for a loss, 21% if unreported. Invested capital = equity + debt - excess cash (cash above 2% of revenue, at most half of cash), floored at 10% of total assets."),
     "gross_profit_assets": _L("Gross profit / total assets",
                               [("Gross profit (TTM)", "grossProfit", USD), ("Total assets", "totalAssets", USD)],
                               how="Novy-Marx's gross profitability. Uses ending, not average, assets."),
@@ -334,10 +335,10 @@ LINEAGE = {
                              [("Debt (balance sheet)", "totalDebt_bs", USD), ("Cash (balance sheet)", "cash_bs", USD),
                               ("EBITDA (used)", "ebitda_nd_used", USD)],
                              how="Net debt = debt - cash, and a net-cash company is set to exactly 0.0. Needs EBITDA > 0.",
-                             caveat="The same EBITDA as EV/EBITDA and the Company Snapshot: trailing EBIT + D&A, Yahoo's reported EBITDA only when a component is missing (one definition since 2026-10-09)."),
+                             caveat="The same EBITDA as EV/EBITDA and the Company Snapshot: trailing operating income + D&A, Yahoo's reported EBITDA only when a component is missing and it is not just EBIT again (one definition since 2026-10-09)."),
     "piotroski_f_score": _L("Count of nine pass/fail financial-health signals",
                             how="Each signal is 1 (pass) or 0 (fail); a signal whose inputs are missing is not testable and is neither. A score needs at least 6 testable signals, so scores based on 6 and on 9 signals are not strictly comparable.",
-                            caveat="Signal 1 is 'net income > 0' (the published test uses ROA > 0, which has the same sign). Signals 3, 8 and 9 compare the latest fiscal year with the one before, as Piotroski (2000) defines them, with return on assets and asset turnover on beginning-of-year assets; signals 5-7 compare the latest quarter-end balance sheet with the same quarter a year earlier where Yahoo supplies five quarters (otherwise with the earliest it has, or the prior fiscal year). Until 2026-10-09 signals 3, 8 and 9 compared trailing-twelve-month figures with the fiscal year before last.",
+                            caveat="Signal 1 is 'net income > 0' (the published test uses ROA > 0, which has the same sign). Signals 3, 8 and 9 compare the latest fiscal year with the one before, as Piotroski (2000) defines them, with return on assets and asset turnover on beginning-of-year assets; signals 5-7 compare the latest quarter-end balance sheet with the same quarter a year earlier, and are not testable when no balance sheet a year earlier is available. Until 2026-10-09 signals 3, 8 and 9 compared trailing-twelve-month figures with the fiscal year before last.",
                             kind="components"),
     "accruals": _L("(Net income - operating cash flow) / total assets",
                    [("Net income (TTM)", "netIncome", USD), ("Operating cash flow (TTM)", "operatingCashFlow", USD),
@@ -406,8 +407,8 @@ LINEAGE = {
     "jensens_alpha": _L("12-month return - [risk-free + beta x (market return - risk-free)]",
                         [("12-month return", "ja_ret12", PCT), ("Risk-free rate", "ja_rf", PCT),
                          ("Beta", "ja_beta", RATIO), ("S&P 500, 12 months", "ja_mkt", PCT)],
-                        how="The risk-free rate (13-week T-bill) and the S&P 500's 12-month return are the same for every stock in a run; beta is this stock's own, before any outlier trimming.",
-                        caveat="The stock's return includes dividends; the market return is the S&P 500 price index, which does not - this tilts alpha upward by roughly the index's dividend yield.",
+                        how="The risk-free rate (13-week T-bill) and the S&P 500's 12-month total return (dividends reinvested, ^SP500TR) are the same for every stock in a run; beta is this stock's own, before any outlier trimming.",
+                        caveat="Both returns include dividends since 2026-10-09. Until then the market return was the price index, which tilted alpha up by beta x the index's dividend return (about 1.4pp x beta over that year). If the total-return index cannot be fetched the run falls back to the price index and its log says so.",
                         kind="series"),
     # ---- risk
     "volatility": _L("Annualised standard deviation of daily log returns",
@@ -417,7 +418,7 @@ LINEAGE = {
     "beta": _L("Slope of the stock's daily log returns on the S&P 500's",
                [("Covariance with the S&P 500 (annualised)", "beta_cov", NUM),
                 ("Variance of the S&P 500 (annualised)", "beta_var", NUM)],
-               how="cov(stock, market) / var(market) over about 13 months of common trading days; needs at least 200 and 80% overlap. Raw, not shrunk toward 1. Lower is scored as better.",
+               how="cov(stock, market) / var(market) over the past 12 months of common trading days, against the S&P 500 with dividends reinvested; needs at least 200 and 80% overlap. Raw, not shrunk toward 1. Lower is scored as better.",
                kind="series"),
     "sharpe_ratio": _L("(12-month return - risk-free) / volatility", kind="series",
                        how="Weight 0 in the composite since 2026-09-02; shown for reference."),
@@ -448,10 +449,11 @@ LINEAGE = {
                                ("Analysts", "numberOfAnalystOpinions", NUM)],
                               how="Clipped to -50% .. +100%; needs at least 3 analysts."),
     "earnings_acceleration": _L("Latest quarter's surprise - previous quarter's surprise", kind="series",
-                                caveat="A change in the surprise ratio between the two most recent valid quarters, not an acceleration of earnings growth."),
-    "consecutive_beat_streak": _L("Recency-weighted count of quarters that beat estimates", kind="series",
-                                  how="Each quarter that beat its estimate adds its position (1 oldest .. 4 newest).",
-                                  caveat="Not a streak length: a beat in the first and last quarters scores 1 + 4 = 5. The maximum depends on how many quarters were valid."),
+                                how="Both of the two latest quarters must have a surprise; quarters are put in date order first, and a history whose newest quarter ended more than 200 days ago is not scored.",
+                                caveat="A change in the surprise ratio between the two most recent quarters, not an acceleration of earnings growth."),
+    "consecutive_beat_streak": _L("Recency-weighted share of quarters that beat estimates, 0-10", kind="series",
+                                  how="Each quarter's weight is its position counted back from the newest (4, 3, 2, 1); the score is the beating quarters' weight over the weight of the quarters with data, times 10. Needs two quarters with data; not scored when the newest quarter ended more than 200 days ago.",
+                                  caveat="Not a streak length: beats in the oldest and newest of four quarters score (1 + 4) / 10 x 10 = 5. With four quarters it equals the plain sum 1 + 2 + 3 + 4 of beating positions."),
     "short_interest_ratio": _L("Days to cover (Yahoo 'short ratio')",
                                [("Short ratio", "shortRatio", RATIO)],
                                how="Shares sold short / average daily volume, passed through unchanged. Lower is scored as better."),
@@ -486,8 +488,8 @@ EQUATIONS = {
     "ev_sales": (True, ["{ev_used|enterprise value} ÷ {totalRevenue|revenue}"]),
     "pb_ratio": (True, ["{priceToBook|price-to-book, as reported}",
                         "{currentPrice|price} ÷ {bookValue|book value per share}"]),
-    "roic": (False, ["{ebit|EBIT} after tax ÷ ({totalEquity|equity} + {totalDebt_bs|debt} − excess cash)",
-                     "{ebit|EBIT} after tax ÷ invested capital"]),
+    "roic": (False, ["{ebit|operating income} after tax ÷ ({totalEquity|equity} + {totalDebt_bs|debt} − excess cash)",
+                     "{ebit|operating income} after tax ÷ invested capital"]),
     "gross_profit_assets": (True, ["{grossProfit|gross profit} ÷ {totalAssets|total assets}"]),
     "accruals": (True, ["({netIncome|net income} − {operatingCashFlow|operating cash flow}) ÷ {totalAssets|total assets}"]),
     "net_debt_to_ebitda": (False, ["({totalDebt_bs|debt} − {cash_bs|cash}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",

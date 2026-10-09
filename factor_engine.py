@@ -369,6 +369,58 @@ def _find_stmt_label(stmt, label):
     return None
 
 
+def _estimate(v) -> float:
+    """A consensus EPS estimate from Yahoo's eps_trend, or NaN.
+
+    Yahoo fills a period it has no estimate for with exactly 0.0. Read as a number, that made
+    AMCR's 90-days-ago consensus zero and its three-month revision +9.6% of price (100th
+    percentile in its sector), and LIN's current consensus zero (-3.7%, 4th percentile) - about
+    2 composite points each (2026-10-09 audit). A real consensus is an average of analysts'
+    figures and is never exactly zero to the cent, so exact zero is treated as missing."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return np.nan
+    return np.nan if (not np.isfinite(f) or f == 0.0) else f
+
+
+def _populated_columns(stmt) -> list:
+    """The statement's periods, newest first, leaving out any column Yahoo lists without data.
+
+    Yahoo sometimes adds a period's column before filling it (AMZN listed 2026-06-30 while its
+    figures ended 2026-03-31), so a column counts only if it holds at least half as many values
+    as the fullest column. A blank cell in a populated column stays blank: it is that period's
+    value, missing - not a reason to read the next period in its place (2026-10-09 audit:
+    BRK-B's trailing net income summed Q2'25 for a blank Q3'25 and came out 21% low)."""
+    try:
+        cols = sorted(stmt.columns, key=lambda c: pd.Timestamp(c), reverse=True)
+    except (TypeError, ValueError):
+        cols = list(stmt.columns)
+    counts = stmt[cols].notna().sum()
+    top = counts.max() if len(counts) else 0
+    if not top:
+        return []
+    return [c for c in cols if counts[c] >= 0.5 * top]
+
+
+def _period_row(stmt, matched_idx) -> pd.Series:
+    """The matched line item's value for each populated period, newest first (NaN kept)."""
+    cols = _populated_columns(stmt)
+    row = stmt.loc[matched_idx, cols]
+    if isinstance(row, pd.DataFrame):          # a duplicated label: first non-null per period
+        row = row.bfill().iloc[0]
+    return row
+
+
+def _quarters_adjacent(cols, start: int, n: int) -> bool:
+    """True when the n period-end dates from ``start`` are consecutive quarters (75-105 days apart)."""
+    try:
+        d = [pd.Timestamp(c) for c in cols[start:start + n]]
+    except (TypeError, ValueError):
+        return True                             # undated columns: nothing to check against
+    return len(d) == n and all(75 <= (d[i] - d[i + 1]).days <= 105 for i in range(n - 1))
+
+
 def _stmt_val(stmt, label, col=0, default=np.nan):
     """Pull a value from a yfinance financial-statement DataFrame.
 
@@ -395,9 +447,10 @@ def _stmt_val(stmt, label, col=0, default=np.nan):
                     "available_labels": [str(i) for i in stmt.index[:15]],
                 })
             return default
-        vals = stmt.loc[matched_idx].dropna()
+        vals = _period_row(stmt, matched_idx)
         if len(vals) > col:
-            return float(vals.iloc[col])
+            v = vals.iloc[col]
+            return float(v) if pd.notna(v) else default
         # Miss: column index out of range
         if _STMT_VAL_STRICT:
             _STMT_VAL_MISSES.append({
@@ -463,18 +516,20 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
                 })
             return default
 
-        row = stmt.loc[matched_idx].dropna()
-        needed = offset + n_quarters
-        if len(row) >= needed:
-            return sum(float(row.iloc[offset + i]) for i in range(n_quarters))
+        row = _period_row(stmt, matched_idx)
+        cols = list(row.index)
+        # n consecutive quarters with a value each, from ``offset`` - by period, never by
+        # skipping a blank one (2026-10-09 audit).
+        if (len(row) >= offset + n_quarters and row.iloc[offset:offset + n_quarters].notna().all()
+                and _quarters_adjacent(cols, offset, n_quarters)):
+            return float(row.iloc[offset:offset + n_quarters].sum())
 
-        # Partial data: if 3 of 4 quarters available at offset=0, annualize
-        available = len(row) - offset
-        if available >= 3 and n_quarters == 4 and offset == 0:
-            partial = sum(float(row.iloc[offset + i]) for i in range(available))
+        # Partial data: the latest 3 consecutive quarters at offset=0, annualized
+        if (n_quarters == 4 and offset == 0 and len(row) >= 3 and row.iloc[:3].notna().all()
+                and _quarters_adjacent(cols, 0, 3)):
             if partial_labels is not None:
                 partial_labels.append(label)
-            return partial * (4 / available)
+            return float(row.iloc[:3].sum()) * (4 / 3)
 
         if _STMT_VAL_STRICT:
             _STMT_VAL_MISSES.append({
@@ -928,9 +983,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["totalRevenue_prior"]     = _stmt_val_ltm(q_fins, "Total Revenue", offset=4)
         rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial)
         rec["grossProfit_prior"]      = _stmt_val_ltm(q_fins, "Gross Profit", offset=4)
-        rec["ebit"]                   = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
+        # Operating income first (2026-10-09 audit): Yahoo's "EBIT" row is pretax income plus
+        # interest expense, so it carries non-operating gains - GOOGL's read $301.5B against
+        # $147.6B of operating income, doubling its ROIC. ROIC, EV/EBITDA and net debt / EBITDA
+        # are all operating measures (Greenblatt 2006; Koller et al., *Valuation*). "EBIT" only
+        # where no operating-income line exists.
+        rec["ebit"]                   = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
         if np.isnan(rec["ebit"]):
-            rec["ebit"]               = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
+            rec["ebit"]               = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
         rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial)
         rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial)
         rec["netIncome_prior"]        = _stmt_val_ltm(q_fins, "Net Income", offset=4)
@@ -951,9 +1011,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["totalRevenue_prior"]     = _stmt_val(fins, "Total Revenue", 1)
             rec["grossProfit"]            = _stmt_val(fins, "Gross Profit")
             rec["grossProfit_prior"]      = _stmt_val(fins, "Gross Profit", 1)
-            rec["ebit"]                   = _stmt_val(fins, "EBIT")
+            rec["ebit"]                   = _stmt_val(fins, "Operating Income")
             if np.isnan(rec["ebit"]):
-                rec["ebit"]               = _stmt_val(fins, "Operating Income")
+                rec["ebit"]               = _stmt_val(fins, "EBIT")
             rec["ebitda"]                 = _stmt_val(fins, "EBITDA")
             rec["netIncome"]              = _stmt_val(fins, "Net Income")
             rec["netIncome_prior"]        = _stmt_val(fins, "Net Income", 1)
@@ -1004,10 +1064,13 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["totalRevenue_annual"] = _stmt_val(fins, "Total Revenue", 0)
 
         # EBIT prior year from annual financials (col=1) for operating leverage (DOL).
-        rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
+        rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
         # Phase 13 (F22): matching ANNUAL current EBIT (col=0) so DOL uses
         # same-basis endpoints (annual vs annual) instead of LTM vs annual.
-        rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
+        # Operating income first, as for the trailing figure (2026-10-09).
+        rec["ebit_annual"] = _stmt_val(fins, "Operating Income", 0)
+        if np.isnan(rec["ebit_annual"]):
+            rec["ebit_annual"] = _stmt_val(fins, "EBIT", 0)
         rec["totalRevenue_annual_prior"] = _stmt_val(fins, "Total Revenue", 1)
         # Annual figures for Piotroski's three year-on-year signals (2026-10-09): net income
         # and gross profit for the latest two fiscal years, total assets at the end of the
@@ -1019,7 +1082,7 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["_ta_a1"] = _stmt_val(bs, "Total Assets", 1)
         rec["_ta_a2"] = _stmt_val(bs, "Total Assets", 2)
         if np.isnan(rec["ebit_prior"]):
-            rec["ebit_prior"] = _stmt_val(fins, "Operating Income", 1)
+            rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
 
         # ---- Balance sheet: MRQ (most recent quarter) ----
         # Use quarterly BS for current values; col=4 for year-ago MRQ.
@@ -1033,9 +1096,12 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # months while calling it a year. Then no prior is used (2026-10-09; latent - measured
         # 40 of 40 sampled sheets had 5+ columns). research/2026-10-09-revenue-growth-window.md
         try:
-            if _bs_src is not None and len(_bs_src.columns) > _bs_prior_col:
-                _gap = (pd.Timestamp(sorted(_bs_src.columns, reverse=True)[0])
-                        - pd.Timestamp(sorted(_bs_src.columns, reverse=True)[_bs_prior_col])).days
+            # judged on the populated periods, which are what _stmt_val reads
+            _bs_cols = _populated_columns(_bs_src) if _bs_src is not None else []
+            if len(_bs_cols) <= _bs_prior_col:
+                _bs_prior_col = 10_000
+            else:
+                _gap = (pd.Timestamp(_bs_cols[0]) - pd.Timestamp(_bs_cols[_bs_prior_col])).days
                 if not 330 <= _gap <= 400:
                     _bs_prior_col = 10_000          # out of range: every *_prior reads NaN
         except (TypeError, ValueError):
@@ -1079,6 +1145,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation", partial_labels=_ltm_partial)
         if np.isnan(rec["da_cf"]):
             rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion", partial_labels=_ltm_partial)
+        # No quarterly D&A (DAL, UAL, MAS on 2026-10-09): the last fiscal year's, from the annual
+        # cash-flow statement. D&A moves slowly, and without it EBITDA fell back to Yahoo's
+        # "EBITDA" row, which for these companies equals EBIT (2026-10-09 audit).
+        if np.isnan(rec["da_cf"]):
+            for _da_label in ("Depreciation And Amortization", "Reconciled Depreciation",
+                              "Depreciation Amortization Depletion"):
+                rec["da_cf"] = _stmt_val(cf, _da_label)
+                if not np.isnan(rec["da_cf"]):
+                    rec["_da_annual"] = True
+                    break
 
         # Fallback: if quarterly CF produced all NaN, try annual
         if all(np.isnan(rec.get(k, np.nan)) for k in ["operatingCashFlow", "capex"]):
@@ -1162,7 +1238,8 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 ("cashflow", q_cf if (q_cf is not None and not q_cf.empty) else cf),
             ]:
                 if stmt_obj is not None and not stmt_obj.empty:
-                    most_recent = stmt_obj.columns[0]
+                    _pc = _populated_columns(stmt_obj)
+                    most_recent = _pc[0] if _pc else stmt_obj.columns[0]
                     rec[f"_stmt_date_{stmt_name}"] = str(most_recent.date()) if hasattr(most_recent, "date") else str(most_recent)
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: data freshness check failed: {type(e).__name__}: {e}")
@@ -1236,6 +1313,22 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # ---- earnings surprises ----
         try:
             eh = t.earnings_history
+            # Oldest first by quarter date: Yahoo does not always return them in order (ACN's
+            # came back shuffled on 2026-10-09), and every metric below reads positions.
+            if eh is not None and not eh.empty:
+                try:
+                    eh = eh.loc[sorted(eh.index, key=lambda x: pd.Timestamp(x))]
+                except (TypeError, ValueError):
+                    pass
+            # A history whose newest quarter is long past is stale, not current: AMCR's ended
+            # Dec-2025 while it had reported Jun-2026 (2026-10-09 audit). Kept for display,
+            # not scored.
+            _eh_stale = False
+            if eh is not None and not eh.empty:
+                try:
+                    _eh_stale = (pd.Timestamp.now().normalize() - pd.Timestamp(eh.index[-1]).tz_localize(None)).days > EH_MAX_AGE_DAYS
+                except (TypeError, ValueError):
+                    _eh_stale = False
             if eh is not None and not eh.empty:
                 surs = []
                 ordered_surs = []  # Per-quarter surprises in chronological order
@@ -1258,28 +1351,30 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 # The four quarters the three surprise metrics are made from, so the page
                 # can show them (CLAUDE.md 0.10(d)); the surprises are this loop's own.
                 rec["_eps_quarters"] = json.dumps(_quarters, separators=(",", ":"))
+                if _eh_stale:
+                    rec["_eps_quarters_stale"] = True
+                    surs, ordered_surs = [], [np.nan] * len(ordered_surs)
                 # Median is robust to a single outlier quarter.
                 rec["analyst_surprise"] = float(np.median(surs)) if len(surs) >= 2 else np.nan
 
                 # --- Earnings Acceleration ---
-                # Continuous: delta between most recent and prior quarter surprise %.
-                # Positive = accelerating beats, negative = decelerating.
-                valid_ordered = [s for s in ordered_surs if pd.notna(s)]
-                if len(valid_ordered) >= 2:
-                    rec["earnings_acceleration"] = valid_ordered[-1] - valid_ordered[-2]
+                # The latest quarter's surprise minus the quarter before's - both must be
+                # there; with one missing, "the one before" would be from half a year earlier.
+                if len(ordered_surs) >= 2 and pd.notna(ordered_surs[-1]) and pd.notna(ordered_surs[-2]):
+                    rec["earnings_acceleration"] = ordered_surs[-1] - ordered_surs[-2]
                 else:
                     rec["earnings_acceleration"] = np.nan
 
-                # --- Recency-Weighted Beat Score ---
-                # Each quarter's beat weighted by recency: Q1(oldest)=1, Q2=2, Q3=3, Q4(newest)=4.
-                # Beat = weight, miss = 0. Range: 0 to 10 (=1+2+3+4) for 4 quarters.
-                # More granular than the old 0-4 streak counter.
-                if len(valid_ordered) >= 2:
-                    n = len(valid_ordered)
-                    weights = list(range(1, n + 1))
-                    score = sum(w * (1.0 if s > 0 else 0.0)
-                                for w, s in zip(weights, valid_ordered))
-                    rec["consecutive_beat_streak"] = float(score)
+                # --- Recency-Weighted Beat Score, 0-10 ---
+                # Each quarter's position counted back from the newest (newest 4, then 3, 2, 1)
+                # is its weight; the score is the beating quarters' share of the weight of the
+                # quarters with data, times 10. With four quarters this is exactly the old
+                # 1+2+3+4 sum; with fewer it no longer caps the score (three beats out of three
+                # quarters read 6 before 2026-10-09, the same as missing the newest of four).
+                _pos = [(4 - (len(ordered_surs) - 1 - i), s) for i, s in enumerate(ordered_surs) if pd.notna(s)]
+                if len(_pos) >= 2:
+                    rec["consecutive_beat_streak"] = float(
+                        10.0 * sum(w for w, s in _pos if s > 0) / sum(w for w, _ in _pos))
                 else:
                     rec["consecutive_beat_streak"] = np.nan
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
@@ -1304,12 +1399,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
                 for _col, _key in [("current", "_fy1_eps_current"),
                                    ("90daysAgo", "_fy1_eps_90d_ago")]:
                     if _col in _row.index:
-                        _v = _row[_col]
-                        rec[_key] = float(_v) if pd.notna(_v) else np.nan
+                        rec[_key] = _estimate(_row[_col])
             # Next fiscal year's consensus (FY2), for MSCI's 12-month forward EPS (2026-10-09).
             if et is not None and not et.empty and "+1y" in et.index and "current" in et.columns:
-                _v2 = et.loc["+1y", "current"]
-                rec["_fy2_eps_current"] = float(_v2) if pd.notna(_v2) else np.nan
+                rec["_fy2_eps_current"] = _estimate(et.loc["+1y", "current"])
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: eps_trend extraction failed: {type(e).__name__}: {e}")
 
@@ -1387,20 +1480,33 @@ def fetch_all_tickers(tickers: list, batch_size: int = 30,
 
 
 def fetch_market_returns(max_retries: int = 3) -> pd.Series:
-    """Fetch S&P 500 daily returns for beta calculation.
+    """Fetch S&P 500 daily returns for beta and Jensen's alpha.
+
+    The total-return index (^SP500TR, dividends reinvested) first: each stock's return here is
+    dividend-adjusted, so a price-only index tilted every alpha up by beta x the index's
+    dividend return - 1.37pp over the year to 2026-10-09, up to ~5.5pp for a beta-4 stock, and
+    it moved 167 stocks' alpha percentile (2026-10-09 audit). The price index (^GSPC) only if the
+    total-return series cannot be fetched; the series' ``attrs["source"]`` says which.
 
     Implements exponential backoff retry (1s / 2s / 4s) per §10.3.
     """
-    for attempt in range(max_retries):
-        try:
-            import yfinance as yf
-            hist = yf.Ticker("^GSPC").history(period="1y", auto_adjust=True)
-            closes = hist["Close"].dropna()
-            return np.log(closes / closes.shift(1)).dropna()
-        except Exception as e:
-            warnings.warn(f"Market returns fetch attempt {attempt+1}/{max_retries} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)
+    for symbol in ("^SP500TR", "^GSPC"):
+        for attempt in range(max_retries):
+            try:
+                import yfinance as yf
+                hist = yf.Ticker(symbol).history(period="1y", auto_adjust=True)
+                closes = hist["Close"].dropna()
+                if len(closes) < 200:
+                    raise ValueError(f"only {len(closes)} closes")
+                out = np.log(closes / closes.shift(1)).dropna()
+                out.attrs["source"] = symbol
+                if symbol != "^SP500TR":
+                    warnings.warn("Market returns: total-return index unavailable; using the price index ^GSPC")
+                return out
+            except Exception as e:
+                warnings.warn(f"Market returns ({symbol}) fetch attempt {attempt+1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
     return pd.Series(dtype=float)
 
 
@@ -1706,6 +1812,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 ebitda = _ebit_for_ebitda + abs(_da)
             else:
                 ebitda = d.get("ebitda", np.nan)  # fallback to reported
+                # ...unless the reported "EBITDA" is just EBIT again - Yahoo's row equalled its
+                # EBIT for all six stocks that reached this fallback on 2026-10-09.
+                _ebit_raw = d.get("ebit", np.nan)
+                if pd.notna(ebitda) and pd.notna(_ebit_raw) and abs(ebitda - _ebit_raw) <= 0.005 * abs(ebitda):
+                    ebitda = np.nan
             rec["ev_ebitda"] = (ev / ebitda) if (pd.notna(ev) and pd.notna(ebitda) and ebitda > 0 and ev > 0) else np.nan
 
             # 2. FCF Yield
@@ -1995,7 +2106,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # current one) over GAAP trailingEps - spanned 13-24 months by fiscal calendar and
             # mixed accounting bases (research/2026-10-09-forward-eps-growth.md). It remains
             # the fallback only where the consensus inputs are missing, with its F5 guard.
-            _e1, _e2 = d.get("_fy1_eps_current", np.nan), d.get("_fy2_eps_current", np.nan)
+            _e1, _e2 = _estimate(d.get("_fy1_eps_current", np.nan)), _estimate(d.get("_fy2_eps_current", np.nan))
             _nfy = d.get("_next_fy_end", np.nan)
             _b12 = np.nan
             try:
@@ -2371,8 +2482,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             # every one carries ~0.32-0.43.  That overlap is economic
             # (Novy-Marx 2015), not an artifact of this formula; do not try to
             # "fix" it with a cleverer denominator without re-running SS8.3.
-            _fy1_now = d.get("_fy1_eps_current", np.nan)
-            _fy1_then = d.get("_fy1_eps_90d_ago", np.nan)
+            _fy1_now = _estimate(d.get("_fy1_eps_current", np.nan))
+            _fy1_then = _estimate(d.get("_fy1_eps_90d_ago", np.nan))
             # `_coalesce`, not `d.get(a, d.get(b))` - see its docstring.  This
             # site was guarded by hand on 2026-09-10; the helper generalised
             # that fix to the other eight two-source inputs on 2026-09-25.
@@ -2744,6 +2855,20 @@ METRIC_DIR = {
 SECTOR_MIN_PEERS = 10
 
 
+def _directed_pct(s: pd.Series, higher_is_better: bool) -> pd.Series:
+    """Percentile rank 0-100 with the same centre whichever way the metric points.
+
+    ``rank(pct=True)`` runs from 1/n to 1, so flipping it for a lower-is-better metric gave 0 to
+    1 - 1/n: a higher-is-better metric averaged 50 + 50/n and a lower-is-better one 50 - 50/n.
+    With n the size of a sector, that tilted every composite by the sector's size and the
+    weighted balance of metric directions - ~1.0 point for Energy against ~0.3 for Industrials
+    (2026-10-09 audit). The midpoint rank, (rank - 0.5) / n, is symmetric: both directions
+    average exactly 50, and flipping it is exact."""
+    r = s.rank(method="average", na_option="keep")
+    p = (r - 0.5) / s.notna().sum() * 100
+    return p if higher_is_better else 100 - p
+
+
 def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
     pct = {c: f"{c}_pct" for c in METRIC_COLS}
     for c in pct.values():
@@ -2758,10 +2883,7 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
     for col in METRIC_COLS:
         if col not in df.columns:
             continue
-        ranks = df[col].rank(pct=True, na_option="keep") * 100
-        if not METRIC_DIR.get(col, True):
-            ranks = 100 - ranks
-        universe_ranks[col] = ranks
+        universe_ranks[col] = _directed_pct(df[col], METRIC_DIR.get(col, True))
 
     for _, grp in df.groupby("Sector"):
         for col in METRIC_COLS:
@@ -2777,9 +2899,7 @@ def compute_sector_percentiles(df: pd.DataFrame) -> pd.DataFrame:
                 else:
                     df.loc[grp.index, pc] = 50.0
                 continue
-            ranks = grp[col].rank(pct=True, na_option="keep") * 100
-            if not METRIC_DIR.get(col, True):
-                ranks = 100 - ranks
+            ranks = _directed_pct(grp[col], METRIC_DIR.get(col, True))
             # NaN raw values → NaN percentile (not imputed to 50th).
             # The category score function handles per-row weight
             # redistribution for missing metrics.
@@ -3120,6 +3240,18 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     except OSError as e:
         warnings.warn(f"[MOM-VOL] Could not append vol history {hist_path}: "
                       f"{type(e).__name__}: {e}")
+
+    # Switched off 2026-10-09 (config ``momentum_regime.enabled``). ``current_vol`` is the spread
+    # of momentum_score ACROSS STOCKS, and momentum_score is built from within-sector percentile
+    # ranks whose spread is fixed by construction: it moves only with how closely the three
+    # momentum metrics' ranks agree, not with how volatile the market is (rank-predicted 25.03
+    # against 25.07 measured; correlation with the S&P 500's realised volatility +0.37). It
+    # called 30 of the 33 runs it acted on "LOW VOL" and never "HIGH VOL", so in practice it
+    # raised momentum's weight 13 -> 14.95 most days. The history is still recorded.
+    # research/2026-10-09-momentum-regime.md
+    if not (cfg.get("momentum_regime") or {}).get("enabled", False):
+        print(f"  [MOM-VOL] Score dispersion={current_vol:.2f} recorded; the regime rule is off (config momentum_regime.enabled).")
+        return cfg
 
     # Need >= 20 historical observations to establish regime thresholds
     if len(hist_vols) < 20:
@@ -3720,6 +3852,10 @@ def compute_factor_correlation(df: pd.DataFrame) -> pd.DataFrame:
 
 
 _FINANCIAL_SECTORS = {"Financials", "Financial Services", "Financial"}
+
+# An earnings history whose newest quarter ended longer ago than this is not scored: a quarter
+# reports within ~90 days of its end, so 200 days means at least one report is missing.
+EH_MAX_AGE_DAYS = 200
 
 # Beneish (1999): mean days-sales-in-receivables index among the earnings manipulators in his
 # sample (1.031 among non-manipulators). The channel-stuffing flag fires at or above it.

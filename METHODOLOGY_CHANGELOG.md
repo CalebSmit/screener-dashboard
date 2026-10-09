@@ -3182,6 +3182,118 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, metric audit) - Operating income, not Yahoo's 'EBIT', in ROIC, EV/EBITDA and net debt / EBITDA
+
+**Area:** ROIC, EV/EBITDA, net debt / EBITDA (and the weight-0 operating leverage)
+**Changed:** The trailing and annual 'EBIT' inputs read Yahoo's "Operating Income" line first and its "EBIT" line only as a fallback (it was the other way round).
+
+**Evidence / reasoning:** Yahoo's EBIT row is pretax income plus interest expense, so it includes non-operating gains: GOOGL $301.5B against $147.6B of operating income in its SEC filings (re-measured), MSFT 169.0 vs 155.2; 80 of 317 non-banks were more than 10% above operating income. ROIC's label is 'after-tax operating profit'; Greenblatt (2006) and Koller et al. (*Valuation*) define it on operating income. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** ROIC sector percentile moves more than 10 points for about 44 stocks, EV/EBITDA for about 40 (audit estimate on run a2d76219dc0a); measured on the first run after the change.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The EBITDA fallback is no longer EBIT under another name
+
+**Area:** EV/EBITDA, net debt / EBITDA
+**Changed:** With no quarterly D&A, EBITDA = operating income + the last fiscal year's cash-flow D&A; Yahoo's reported 'EBITDA' is used only if that is missing too, and not when it equals EBIT.
+
+**Evidence / reasoning:** For all six stocks that reached the old fallback, Yahoo's 'EBITDA' row equalled its EBIT row (DAL, UAL, MAS have no quarterly depreciation line). Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** DAL EV/EBITDA 12.29 -> 8.52 (sector percentile ~78 -> 98), UAL 9.30 -> 6.05; 4 non-banks affected.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Statement figures are read by period, never by skipping a blank one
+
+**Area:** every statement-based input (TTM flows, prior-year comparisons, Beneish, Piotroski)
+**Changed:** `_stmt_val` / `_stmt_val_ltm` index the periods that hold data, newest first by date; a blank cell is that period, missing; a trailing twelve months needs four adjacent quarters (three, annualised, as before). Columns Yahoo lists without data are skipped. The statement date recorded for provenance is the newest period with data.
+
+**Evidence / reasoning:** Reading the k-th non-blank value put BRK-B's Q2'25 in place of a blank Q3'25: trailing net income $67.3B against $85.8B in its filings (-21%), feeding earnings yield, accruals and Piotroski. Beneish inputs came from the wrong year in 10 of 127 sampled non-banks. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Small in number (2 of 152 sampled had non-adjacent quarters), large where it bites; golden fixture regenerated.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Yahoo's 0.0 'no estimate' placeholder is not read as a consensus
+
+**Area:** fy1_revision_3m, forward_eps_growth
+**Changed:** An EPS estimate of exactly 0.0 from `eps_trend` is treated as missing, at fetch and in the scoring (and in the page's recomputation).
+
+**Evidence / reasoning:** AMCR's 90-days-ago FY1 estimate was 0.0 (re-measured), giving a revision of +9.6% of price and the 100th percentile in Materials; LIN's current estimate was 0.0 (-3.7%, 4th percentile); VMRK likewise. A consensus is an average of analysts' figures and is not exactly zero to the cent. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** 3 scored stocks, about 2 composite points each.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Jensen's alpha and beta use the S&P 500 with dividends reinvested
+
+**Area:** jensens_alpha, beta
+**Changed:** The market series is ^SP500TR (total return); ^GSPC only if it cannot be fetched, which the run log records.
+
+**Evidence / reasoning:** Each stock's return is dividend-adjusted, so a price index tilted every alpha up by beta x the index's dividend return - 1.37pp over the year to 2026-10-09, about 5.5pp for a beta-4 stock. The caveat had said 'roughly the dividend yield'. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Alpha percentile moves for 167 of 499 stocks (88 by 2+ points, up to 9.1); beta changes negligibly.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The momentum 'volatility regime' rule is switched off
+
+**Area:** category weights (momentum, valuation, quality) for the whole run
+**Changed:** `momentum_regime.enabled: false`. The run still records the dispersion it read, in `factor_vol_history.csv`.
+
+**Evidence / reasoning:** The rule's input was the cross-stock standard deviation of momentum_score, which is built from within-sector percentile ranks and so has a spread fixed by construction - it moves with how closely the three momentum metrics agree, not with market volatility (rank-predicted 25.03 vs measured 25.07; correlation with S&P 500 realised volatility +0.37). Replayed over its own history it called 30 of 33 runs LOW VOL and never HIGH (re-measured), raising momentum 13 -> 14.95 most days. The published methodology said it tracked market-wide volatility. Momentum crashes do cluster in volatile markets (Daniel & Moskowitz 2016; Barroso & Santa-Clara 2015), so a rebuilt rule on a real volatility input is a research item, not this one re-tuned. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Momentum back to 13% and valuation to 22% on most runs; the Weighting profiles follow.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - Percentile ranks use the midpoint rule, so direction and sector size no longer tilt scores
+
+**Area:** every metric's sector percentile
+**Changed:** Percentile = (rank - 0.5) / n x 100, flipped as 100 - p for lower-is-better metrics (was rank / n, flipped as 100 - that).
+
+**Evidence / reasoning:** rank / n runs from 1/n to 1, so higher-is-better metrics averaged 50 + 50/n and lower-is-better ones 50 - 50/n (Energy 52.38 vs 47.62); with the weighted direction balance, small sectors gained about a point of composite (Energy ~1.0 vs Industrials ~0.3). The midpoint rule is the standard symmetric plotting position. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** Every percentile shifts by at most 50/n points; composites shift by up to about a point by sector. Golden fixture regenerated.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run, metric audit) - The three surprise metrics read quarters in date order and skip stale histories
+
+**Area:** analyst_surprise, earnings_acceleration, consecutive_beat_streak
+**Changed:** Quarters are sorted by date; a history whose newest quarter ended more than 200 days ago is shown but not scored; acceleration needs the two latest quarters; the beat score is the beating quarters' share of the recency weight (4 newest .. 1) with data, x 10 - identical to the old sum when four quarters have data.
+
+**Evidence / reasoning:** ACN's quarters came back out of order; AMCR's newest quarter was Dec-2025 though it had reported Jun-2026; with three quarters the old beat score capped at 6 (CCL, FDX, FERG), penalising missing data against the engine's own rule. Full audit: `research/2026-10-09-metric-audit.md`.
+
+**Expected effect:** About 1-2% of stocks.
+**Validated by:** the test suite (`tests/test_stmt_val.py`, `tests/test_trap_flags.py`, `tests/test_metric_lineage.py`, `tests/test_weight_transparency.py`, golden fixture); the first full run after the change is the measurement, recorded in `NIGHTLY_LOG.md` 2026-10-09.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run) - The channel-stuffing flag compares one fiscal year on both sides, at Beneish's cut
 
 **Area:** an informational flag (drilldown badge, Excel DataValidation sheet) - not scored

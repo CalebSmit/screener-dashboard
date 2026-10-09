@@ -483,8 +483,11 @@ def _surprise_metrics(q):
     import statistics
     vs = [r[3] for r in q if r[3] is not None]
     med = statistics.median(vs) if len(vs) >= 2 else None
-    acc = vs[-1] - vs[-2] if len(vs) >= 2 else None
-    beat = float(sum(i + 1 for i, v in enumerate(vs) if v > 0)) if len(vs) >= 2 else None
+    # adjacent quarters only (2026-10-09)
+    acc = q[-1][3] - q[-2][3] if len(q) >= 2 and q[-1][3] is not None and q[-2][3] is not None else None
+    # position counted back from the newest (4, 3, 2, 1), share of the weight with data x 10
+    pos = [(4 - (len(q) - 1 - i), r[3]) for i, r in enumerate(q) if r[3] is not None]
+    beat = 10.0 * sum(w for w, v in pos if v > 0) / sum(w for w, _ in pos) if len(pos) >= 2 else None
     return {"analyst_surprise": med, "earnings_acceleration": acc, "consecutive_beat_streak": beat}
 
 

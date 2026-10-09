@@ -2030,7 +2030,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fw = (D.weights || {{}}).factor_weights || {{}}, bw = (D.weights || {{}}).base_factor_weights || {{}};
         if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {{
             cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),
-                `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the volatility rule this run`));
+                `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the momentum regime rule this run`));
         }} else {{
             cards.push(kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
                 ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'));
@@ -3686,8 +3686,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     `${{CAT_LABELS[c]}} ${{fmtWeight(base[c] || 0)}} &rarr; <strong>${{fmtWeight(D.weights.factor_weights[c] || 0)}}</strong>`
                 ).join(', ');
                 parts.push(`<strong>This run's weights differ from the published defaults.</strong> ` +
-                    `The screener scales momentum with the market's volatility regime &mdash; ` +
-                    `momentum is cut in turbulent markets, where momentum crashes cluster, and raised in calm ones. ` +
+                    `The momentum regime rule changed this run's momentum weight (see Methodology). ` +
                     `For this run: ${{desc}}.`);
             }}
         }}
@@ -4408,11 +4407,15 @@ def _js_workings() -> str:
             const vs = valid.map(x => x[1]);
             let sum = '';
             if (m === 'analyst_surprise') sum = `Median of the ${vs.length} valid surprises (${vs.map(sp).join(', ')}) = ${fmtMetric(s.raw[m], meta.fmt)}`;
-            if (m === 'earnings_acceleration' && vs.length >= 2) sum = `Latest valid surprise ${sp(vs[vs.length - 1])} &minus; the one before ${sp(vs[vs.length - 2])} = ${fmtMetric(s.raw[m], meta.fmt)}`;
+            const L = q.length;
+            if (m === 'earnings_acceleration' && L >= 2 && q[L - 1][3] !== null && q[L - 2][3] !== null) sum = `Latest surprise ${sp(q[L - 1][3])} &minus; the quarter before ${sp(q[L - 2][3])} = ${fmtMetric(s.raw[m], meta.fmt)}`;
             if (m === 'consecutive_beat_streak') {
-                const beats = vs.map((v, i) => v > 0 ? i + 1 : 0).filter(Boolean);
-                sum = (beats.length ? `Beats in valid quarters ${beats.join(', ')} (1 = oldest), added up: ${beats.join(' + ')}` : 'No valid quarter beat its estimate') + ` = ${fmtMetric(s.raw[m], meta.fmt)}`;
+                const pos = q.map((r, i) => [4 - (L - 1 - i), r[3]]).filter(x => x[1] !== null && x[1] !== undefined);
+                const beatW = pos.filter(x => x[1] > 0).map(x => x[0]), allW = pos.map(x => x[0]);
+                sum = (beatW.length ? `Beating quarters weigh ${beatW.join(' + ')} (newest 4, then 3, 2, 1)` : 'No quarter with data beat its estimate') +
+                    ` of ${allW.join(' + ')} with data, &times; 10 = ${fmtMetric(s.raw[m], meta.fmt)}`;
             }
+            if (s.raw[m] === null || s.raw[m] === undefined) sum = '';
             if (sum) h += `<div class="wk-sum">${sum}</div>`;
         }
         if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
