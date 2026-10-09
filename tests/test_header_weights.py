@@ -20,8 +20,10 @@ CATS = ("valuation", "quality", "growth", "momentum", "risk", "revisions")
 
 
 def _headers(html: str) -> dict:
-    return {m.group(1): m.group(2) for m in
-            re.finditer(r'<th[^>]*data-wcat="([a-z]+)"[^>]*title="([^"]*)"', html)}
+    out = {}
+    for th in re.findall(r"<th [^>]*data-wcat=[^>]*>", html):
+        out[re.search(r'data-wcat="([a-z]+)"', th).group(1)] = re.search(r'title="([^"]*)"', th).group(1)
+    return out
 
 
 def test_every_weighted_category_header_takes_its_weights_from_the_payload():

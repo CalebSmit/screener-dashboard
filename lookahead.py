@@ -136,6 +136,7 @@ NEEDS_POINT_IN_TIME = (
     "current_ratio",
     "insider_ownership",
     "interest_coverage",
+    "earnings_variability",
     "forward_eps_growth",
     "revenue_growth",
     "revenue_cagr_3yr",

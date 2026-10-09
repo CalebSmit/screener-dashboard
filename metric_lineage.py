@@ -336,6 +336,9 @@ LINEAGE = {
                               ("Revenue (prior year)", "totalRevenue_annual_prior", USD)],
                              how="Missing when EBIT changes sign, prior EBIT is zero, or revenue moves less than 1%.",
                              caveat="A one-year ratio of changes, not a measure of cost structure: a negative value means profit and revenue moved in opposite directions, and a small revenue change inflates it. Given no weight since 2026-10-09 for that reason."),
+    "earnings_variability": _L("Standard deviation of annual ROE over five years", kind="series",
+                               how="Net income / year-end shareholders' equity for each of the last five complete calendar years, from the SEC's XBRL filings; sample standard deviation; all five years needed and equity must be positive. Lower is steadier.",
+                               caveat="A candidate with no weight yet (2026-10-09). For a company whose fiscal year does not end in December, the year's net income and its equity can be up to six months apart. A small equity base - often from buybacks - makes ROE, and so this, large."),
     "beneish_m_score": _L("Beneish (1999) eight-index manipulation score",
                           how="M = -4.84 + 0.920 DSRI + 0.528 GMI + 0.404 AQI + 0.892 SGI + 0.115 DEPI - 0.172 SGAI + 4.679 TATA - 0.327 LVGI, from annual statements. Lower is better. Needs at least 5 of the 8 indices computed from real data; the rest default to neutral values.",
                           caveat="TATA uses the cash-flow form of accruals, not Beneish's original balance-sheet form.",
@@ -503,6 +506,7 @@ SOURCES = {
     "sharpe_ratio": "12-month return above the risk-free rate, per unit of volatility",
     "sortino_ratio": "12-month return above the risk-free rate, per unit of downside swing",
     "analyst_surprise": "Median beat or miss against the EPS estimate, last 4 quarters",
+    "earnings_variability": "How much return on equity has swung over five years of SEC filings",
     "earnings_acceleration": "Latest quarter's surprise minus the one before it",
     "consecutive_beat_streak": "Quarters that beat the estimate, recent ones counting more",
 }

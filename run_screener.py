@@ -1322,6 +1322,27 @@ def run_factor_engine(cfg, args, ctx=None):
 
         stats["tickers_api"] = len(raw)
 
+        # Earnings variability (Quality candidate, weight 0): five years of annual ROE
+        # from the SEC's XBRL frames - Yahoo's statements carry four years at most.
+        # ~25 cached requests for the whole universe. research/2026-10-09-operating-leverage.md
+        try:
+            import json as _json_ev
+            import sec_fundamentals as _sf
+            _roe = _sf.roe_history([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r])
+            _n_ev = 0
+            for _r in raw:
+                _rows = _roe.get(_r.get("Ticker"))
+                if _rows:
+                    _r["_roe5"] = _json_ev.dumps(_rows, separators=(",", ":"))
+                    _ev = _sf.earnings_variability(_rows)
+                    if _ev is not None:
+                        _r["_evol"] = _ev
+                        _n_ev += 1
+            if _roe:
+                print(f"  Earnings variability: 5 years of ROE for {_n_ev} of {len(raw)} stocks (SEC XBRL)")
+        except Exception as e:  # noqa: BLE001 - a candidate metric must never stop a run
+            print(f"  WARNING: earnings variability unavailable: {e}")
+
         # Context layer (display only, plan/context-layer.md). Runs only now that the core data
         # is fetched: option chains and insider trades in their own paced, time-budgeted pass
         # (context_fetch.py), then each stock's sensitivity to the 10-year yield, computed here

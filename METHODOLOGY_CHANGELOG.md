@@ -3047,3 +3047,43 @@ which carries the 5+ years both MSCI and AQR require and the run can now reach.
 
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** tag `good/2026-10-08-owner-4` (restores 27/20/18/15/5/8/7).
+
+---
+
+## 2026-10-09 (owner-run) - `earnings_variability` joins Quality as a weight-0 candidate (five years of ROE from SEC filings)
+
+**Area:** metric registry (new candidate, Quality)
+**Changed:** new metric `earnings_variability` = sample standard deviation of annual ROE (net
+income / year-end shareholders' equity) over the last five complete calendar years, from the
+SEC's XBRL frames API (`sec_fundamentals.py`); all five years required and equity must be
+positive. Lower is better. **Weight 0** in both the generic and bank tables; listed in
+`improvement_engine.CANDIDATE_METRICS`. `METRIC_COLS` 45 -> 46. The drilldown shows the five
+years and the arithmetic.
+
+**Evidence:** the gap found by `research/2026-10-09-operating-leverage.md` section 6. Both
+published practitioner definitions of quality measure durability by earnings variability -
+MSCI's Quality Indexes (5-year standard deviation of EPS growth) and AQR's Quality Minus Junk
+(Asness, Frazzini & Pedersen 2019: standard deviation of ROE, 60 quarters, or five fiscal years of
+annual ROE where quarterly data is unavailable - the rule used here). Yahoo's statements carry
+four annual years, so neither could be computed until the run had SEC access (2026-10-08).
+
+**Why a candidate, not weighted:** no note yet weighs it against what Quality already holds
+(ROIC and gross profit / assets are levels of the same profitability this measures the
+stability of), and ROE with a small equity base is large and volatile - Apple's ROE runs
+127-176% after buybacks, so its variability is 0.20 against Coca-Cola's 0.013. Those are
+questions for a research note before any weight, per rule 4.
+
+**Expected effect:** none on category scores. One indirect effect, measured: the composite's
+coverage discount counts every applicable metric, candidates included, so the applicable set
+grows 41 -> 42 (35 -> 36 for banks). On run `a2d76219dc0a` that changes the discount for **2**
+stocks - Loews +0.05 and FDXF -0.10 composite points; no other stock is below the 80% threshold
+either side. Coverage, measured the same day: 442 of 503 stocks have all five years; 59 do not
+(159 company-years of non-positive equity, 33 with no net-income tag in the frames, Exxon under a
+new registrant CIK with two years of history).
+
+**Validated by:** `tests/test_sec_fundamentals.py` (fixture frames; the published five ROEs
+rebuild the published value for every stock once a run carries them).
+**Backtest observation (not decision-grade, rule 5):** none used.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit; the metric is weight 0, so scores are unaffected either way except
+the two coverage-discount changes above.

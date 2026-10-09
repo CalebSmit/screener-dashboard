@@ -147,6 +147,7 @@ class FactorScores(BaseModel):
     short_pct_float: Optional[float] = None
     analyst_rating: Optional[float] = None
     interest_coverage: Optional[float] = None
+    earnings_variability: Optional[float] = None
 
     # Category scores (0-100)
     valuation_score: Optional[float] = Field(None, ge=0, le=100)
@@ -197,13 +198,14 @@ class ValuationWeights(_MetricWeightBase):
 
 
 class QualityWeights(_MetricWeightBase):
-    roic: float = 27
-    gross_profit_assets: float = 20
-    net_debt_to_ebitda: float = 18   # Replaces Debt/Equity (negative equity distorts D/E)
-    piotroski_f_score: float = 15
+    # Mirrors config.yaml; operating_leverage moved to 0 on 2026-10-09 (changelog).
+    roic: float = 29
+    gross_profit_assets: float = 22
+    net_debt_to_ebitda: float = 20   # Replaces Debt/Equity (negative equity distorts D/E)
+    piotroski_f_score: float = 16
     accruals: float = 5
-    operating_leverage: float = 8    # Degree of Operating Leverage; banks skip
-    beneish_m_score: float = 7       # Beneish (1999) earnings manipulation; non-bank only
+    operating_leverage: float = 0    # Candidate since 2026-10-09; banks skip
+    beneish_m_score: float = 8       # Beneish (1999) earnings manipulation; non-bank only
     roe: float = 0             # Bank-only
     roa: float = 0             # Bank-only
     equity_ratio: float = 0    # Bank-only
@@ -211,6 +213,7 @@ class QualityWeights(_MetricWeightBase):
     current_ratio: float = 0      # Candidate: activated by improvement engine
     insider_ownership: float = 0  # Candidate: activated by improvement engine
     interest_coverage: float = 0  # Candidate: activated by improvement engine
+    earnings_variability: float = 0  # Candidate (2026-10-09): 5-year ROE stdev, SEC XBRL
 
 
 class BankValuationWeights(_MetricWeightBase):
@@ -236,6 +239,7 @@ class BankQualityWeights(_MetricWeightBase):
     current_ratio: float = 0      # Candidate: banks skip
     insider_ownership: float = 0  # Candidate: activated by improvement engine
     interest_coverage: float = 0  # Candidate: banks skip
+    earnings_variability: float = 0  # Candidate (2026-10-09)
 
 
 class GrowthWeights(_MetricWeightBase):

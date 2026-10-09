@@ -53,6 +53,7 @@ metric_weights:
     current_ratio: 0           # Candidate: MRQ Current Assets / Current Liabilities
     insider_ownership: 0       # Candidate: heldPercentInsiders from .info
     interest_coverage: 0       # Candidate: EBIT / Interest Expense (non-bank only)
+    earnings_variability: 0    # Candidate (2026-10-09): stdev of 5 annual ROEs, SEC XBRL; MSCI EVAR / AQR EVOL
 
   growth:
     forward_eps_growth: 45  # Highest: forward-looking consensus estimates; absorbs PEG's removed weight
@@ -143,6 +144,7 @@ bank_metric_weights:
     current_ratio: 0       # Candidate: banks skip
     insider_ownership: 0   # Candidate: improvement engine evaluates IC
     interest_coverage: 0   # Candidate: banks skip
+    earnings_variability: 0  # Candidate (2026-10-09)
 
 # Piotroski F-Score Conditional Weighting
 # When enabled, reduces Piotroski weight for stocks with LOW valuation scores

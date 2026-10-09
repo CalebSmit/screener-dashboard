@@ -203,7 +203,7 @@ class TestDailyLoopActuallyFetches:
             "changelog entry needs updating"
         )
         assert len(price_driven) == 19
-        assert len(METRIC_COLS) == 45
+        assert len(METRIC_COLS) == 46
 
     def test_same_day_rerun_still_warm_starts(self):
         """A manual re-run on the same day has no new close to fetch.

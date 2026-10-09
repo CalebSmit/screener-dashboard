@@ -3542,12 +3542,12 @@
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
                             <th data-sort="Composite" title="The weighted blend of all eight category scores below. This is the ranking key. Higher is better; 0-100.">Composite</th>
-                            <th data-sort="valuation_score" data-wcat="valuation" title="Valuation - is it cheap? @W@. @BANK@ - enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100.">Val</th>
-                            <th data-sort="quality_score" data-wcat="quality" title="Quality - is the business sound? @W@. @BANK@. Higher score = better quality; 0-100.">Qual</th>
-                            <th data-sort="growth_score" data-wcat="growth" title="Growth - is it expanding? @W@. PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100.">Grow</th>
-                            <th data-sort="momentum_score" data-wcat="momentum" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100.">Mom</th>
-                            <th data-sort="risk_score" data-wcat="risk" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100.">Risk</th>
-                            <th data-sort="revisions_score" data-wcat="revisions" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100.">Rev</th>
+                            <th data-sort="valuation_score" title="Valuation - is it cheap? @W@. @BANK@ - enterprise value and free cash flow do not mean the same thing for a bank. Higher score = cheaper than its sector; 0-100." data-wcat="valuation">Val</th>
+                            <th data-sort="quality_score" title="Quality - is the business sound? @W@. @BANK@. Higher score = better quality; 0-100." data-wcat="quality">Qual</th>
+                            <th data-sort="growth_score" title="Growth - is it expanding? @W@. PEG carries no weight: P/E divided by growth double-counts valuation. Higher score = faster growth; 0-100." data-wcat="growth">Grow</th>
+                            <th data-sort="momentum_score" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100." data-wcat="momentum">Mom</th>
+                            <th data-sort="risk_score" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100." data-wcat="risk">Risk</th>
+                            <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100." data-wcat="revisions">Rev</th>
                             <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
@@ -6801,6 +6801,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 sum = (beats.length ? `Beats in valid quarters ${beats.join(', ')} (1 = oldest), added up: ${beats.join(' + ')}` : 'No valid quarter beat its estimate') + ` = ${fmtMetric(s.raw[m], meta.fmt)}`;
             }
             if (sum) h += `<div class="wk-sum">${sum}</div>`;
+        }
+        if (m === 'earnings_variability' && s.roe5 && s.roe5.length) {
+            const pc = v => (v === null || v === undefined) ? '&ndash;' : (v * 100).toFixed(1) + '%';
+            h += `<div class="wk-k">Return on equity, five calendar years (SEC filings)</div><table class="wk-mini"><thead><tr><th>Year</th><th class="wk-num">Net income</th><th class="wk-num">Equity, year end</th><th class="wk-num">ROE</th></tr></thead><tbody>` +
+                s.roe5.map(r => `<tr class="${r[3] === null ? 'wk-nodata' : ''}"><td>${r[0]}${r[3] === null ? ' <span class="wk-dim">&middot; ' + (r[2] !== null && r[2] <= 0 ? 'equity not positive' : 'not reported') + '</span>' : ''}</td><td class="wk-num">${r[1] === null ? '&ndash;' : fmtBig(r[1])}</td><td class="wk-num">${r[2] === null ? '&ndash;' : fmtBig(r[2])}</td><td class="wk-num">${pc(r[3])}</td></tr>`).join('') +
+                `</tbody></table><div class="wk-sum">${s.raw[m] === null || s.raw[m] === undefined ? 'Needs all five years - not computed for this stock' : 'Sample standard deviation of the five ROEs = ' + fmtMetric(s.raw[m], meta.fmt)}</div>`;
         }
         if (m === 'beneish_m_score' && s.bn) {
             const parts = s.bn.split('|');

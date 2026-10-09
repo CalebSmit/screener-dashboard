@@ -1520,6 +1520,7 @@ def _generate_sample_data(universe_df: pd.DataFrame, seed: int = 42, risk_free_r
             "short_pct_float": round(max(0.0, tn(0.03, 0.03, high=0.30)), 4),
             "analyst_rating": round(tn(2.3, 0.6, low=1.0, high=5.0), 2),
             "interest_coverage": round(tn(8.0, 6.0, low=-2.0, high=40.0), 2),
+            "earnings_variability": round(abs(tn(0.06, 0.05, low=0.0, high=1.0)), 4),
         }
 
         # Bank-specific metrics for Financials sector
@@ -2374,6 +2375,13 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 )
             else:
                 rec["interest_coverage"] = np.nan
+
+            # C9. Earnings variability (Quality candidate, 2026-10-09): standard deviation
+            # of five years of annual ROE from the SEC's XBRL frames, attached to the raw
+            # record by run_screener (sec_fundamentals). Banks included - ROE is their
+            # native profitability measure. research/2026-10-09-operating-leverage.md.
+            rec["earnings_variability"] = d.get("_evol", np.nan)
+            rec["_roe5"] = d.get("_roe5")
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: candidate metrics failed: {type(e).__name__}: {e}")
 
@@ -2518,6 +2526,7 @@ METRIC_COLS = [
     "short_pct_float",                                               # revisions candidate
     "analyst_rating",                                                # revisions candidate
     "interest_coverage",                                             # quality candidate
+    "earnings_variability",                                          # quality candidate (2026-10-09)
 ]
 
 # Metrics that only apply to bank-like or non-bank stocks.
@@ -2610,6 +2619,7 @@ METRIC_DIR = {
     "short_pct_float": False,        # lower short interest = less bearish = better
     "analyst_rating": False,         # lower = more bullish (1=Strong Buy, 5=Sell)
     "interest_coverage": True,       # higher = more interest payment cushion = better
+    "earnings_variability": False,   # lower = steadier ROE over five years = better (MSCI EVAR, AQR EVOL)
 }
 
 
@@ -2710,7 +2720,8 @@ CAT_METRICS = {
     "quality":   ["roic", "gross_profit_assets", "net_debt_to_ebitda",
                   "piotroski_f_score", "accruals", "operating_leverage",
                   "beneish_m_score", "roe", "roa", "equity_ratio",
-                  "operating_margin", "current_ratio", "insider_ownership", "interest_coverage"],
+                  "operating_margin", "current_ratio", "insider_ownership", "interest_coverage",
+                  "earnings_variability"],
     "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "revenue_cagr_3yr", "sustainable_growth"],
     "momentum":  ["return_12_1", "return_6m", "jensens_alpha", "proximity_52w_high"],
     "risk":      ["volatility", "beta", "sharpe_ratio", "sortino_ratio", "max_drawdown_1y"],

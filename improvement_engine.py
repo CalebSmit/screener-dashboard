@@ -1539,6 +1539,7 @@ CANDIDATE_METRICS = {
     "short_pct_float",
     "analyst_rating",
     "interest_coverage",
+    "earnings_variability",
 }
 
 
