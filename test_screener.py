@@ -373,14 +373,18 @@ class TestDQLog:
         assert len(_DQ_LOG_ROWS) == 1
         assert _DQ_LOG_ROWS[0]["Ticker"] == "TEST"
 
-    def test_flush_writes_csv(self, tmp_path):
-        from run_screener import _DQ_LOG_ROWS, dq_log, flush_dq_log, VALIDATION_DIR
+    def test_flush_writes_csv(self, tmp_path, monkeypatch):
+        # Isolated (CLAUDE.md priority 8): the real validation/data_quality_log.csv is a
+        # published audit trail, not test scratch.
+        import run_screener
+        from run_screener import _DQ_LOG_ROWS, dq_log, flush_dq_log
+        monkeypatch.setattr(run_screener, "VALIDATION_DIR", tmp_path)
         _DQ_LOG_ROWS.clear()
         dq_log("A", "fetch_failure", "High", "test", "excluded")
         dq_log("B", "missing_metric", "Medium", "test", "median")
         path, n = flush_dq_log()
         assert n == 2
-        assert Path(path).exists()
+        assert Path(path).exists() and Path(path).parent == tmp_path
 
     def test_clear_on_new_run(self):
         from run_screener import _DQ_LOG_ROWS, dq_log
@@ -403,12 +407,21 @@ class TestLoadConfigSafe:
 # ===========================================================================
 
 class TestFullPipeline:
-    def test_end_to_end(self, scored_df, cfg):
-        """Verify the full pipeline produces valid output."""
+    def test_end_to_end(self, scored_df, cfg, tmp_path, monkeypatch):
+        """Verify the full pipeline produces valid output.
+
+        Writes go to ``tmp_path`` (CLAUDE.md priority 8): the published workbook and the real
+        score cache are not test scratch - a synthetic table in ``cache/`` is one config-hash
+        check away from being served as a live run."""
+        import copy
+        import factor_engine
         from portfolio_constructor import (
             construct_portfolio, compute_portfolio_stats, write_full_excel
         )
-        from factor_engine import write_scores_parquet, ROOT
+        from factor_engine import write_scores_parquet
+        monkeypatch.setattr(factor_engine, "CACHE_DIR", tmp_path)
+        cfg = copy.deepcopy(cfg)
+        cfg["output"]["excel_file"] = str(tmp_path / "factor_output.xlsx")
 
         # Portfolio
         port = construct_portfolio(scored_df, cfg)
@@ -456,7 +469,10 @@ class TestFullPipeline:
         )
         from portfolio_constructor import construct_portfolio, compute_portfolio_stats
 
-        univ = get_sp500_tickers(cfg).head(3)
+        # The committed universe, read directly: get_sp500_tickers() goes to the network and
+        # rewrites sp500_tickers.json when it succeeds (CLAUDE.md priority 8).
+        import json as _json
+        univ = pd.DataFrame(_json.loads((Path(__file__).resolve().parent / "sp500_tickers.json").read_text())).head(3)
         df = _generate_sample_data(univ, seed=99)
         df = compute_sector_percentiles(df)
 

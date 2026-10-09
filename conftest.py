@@ -22,9 +22,16 @@ test-generated rows into the audit trail.
 This fixture snapshots those files before the session and restores them after,
 so running the suite is side-effect-free on the repo.
 
-This is a guard, not isolation. The deeper fix is to point the offending tests
-at ``tmp_path`` fixtures and stub the network call in
-``get_sp500_tickers``. Until that lands, this keeps the tree honest.
+**Isolation landed 2026-10-09** (CLAUDE.md priority 8). Measured that day with a
+per-test write detector over the whole suite: exactly three tests wrote these files -
+``TestDQLog::test_flush_writes_csv`` (the log), ``TestFullPipeline::test_end_to_end``
+(the workbook, and a synthetic scored table into the real ``cache/``) and
+``TestFullPipeline::test_tiny_pipeline`` (``get_sp500_tickers`` over the network). All
+three now write to ``tmp_path`` or read the committed universe.
+
+So the guard is now a **tripwire**: it still restores the files, and then fails the
+session, naming the file, so a new test that writes a published artifact is caught the
+day it is written instead of being silently cleaned up for months.
 """
 
 from pathlib import Path
@@ -50,12 +57,18 @@ def preserve_published_artifacts():
 
     yield
 
+    written = []
     for path, original in saved.items():
         if original is None:
             # Did not exist before the run; remove it if a test created it.
             if path.exists():
                 path.unlink()
+                written.append(path.name)
             continue
         if not path.exists() or path.read_bytes() != original:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(original)
+            written.append(path.name)
+    if written:
+        pytest.fail("A test wrote published artifacts (restored, but the test must use tmp_path "
+                    f"or stub the network): {', '.join(written)}. See conftest.py.", pytrace=False)
