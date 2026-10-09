@@ -766,9 +766,11 @@ rather than the metrics.
 **4's residual: the run-level overview.** One or two sentences on what moved
 across the whole run - the last open piece of the 2026-08-10 owner directive.
 Most of it already exists as the What Changed movers panel, so the gap is narrow.
-Pairs naturally with a "reporting this week" view over the earnings dates
-shipped 2026-09-29 (8 of 503 qualified on that run); both are surfaces over data
-already in the payload and both answer *what should I look at*.
+**Its pair, the "reporting this week" view, SHIPPED 2026-10-08 (owner-run)** as
+Reporting Soon (`sec-reporting`): every stock reporting within 7/14 days of the
+run, by date then rank, never by expected move (23 and 103 on that run - earnings
+season). The overview sentence is still open and, if it states how a number is
+computed, must be registered in `claims.py`.
 
 **5's residual: the hold band - settled 2026-09-16 as "not yet", with a date.**
 The strict top-25 rule wastes **31-47%** of the trades it implies at every

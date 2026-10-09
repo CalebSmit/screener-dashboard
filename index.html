@@ -3122,6 +3122,32 @@
         .ctx-role { display: block; font-size: 11.5px; color: var(--text-muted); }
         .ctx-buy { color: var(--accent-text) !important; font-weight: 500; }
         .ctx-sell { color: var(--text-secondary) !important; }
+        .rp-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .rp-wrap { overflow-x: auto; }
+        .rp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+        .rp-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--text-muted); padding: 6px 10px; border-bottom: 1px solid var(--border); }
+        .rp-table th.num, .rp-table td.num { text-align: right; }
+        .rp-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+        .rp-day td { padding-top: 16px; border-bottom: none; }
+        .rp-date { font-weight: 600; color: var(--text-primary); margin-right: 10px; }
+        .rp-after { color: var(--text-muted); font-size: 12.5px; }
+        .rp-row { cursor: pointer; }
+        .rp-row:hover td, .rp-row:focus-visible td { background: var(--bg-hover, rgba(127,127,127,.06)); }
+        .rp-row:focus-visible { outline: none; }
+        .rp-tk { font-weight: 600; margin-right: 8px; }
+        .rp-co { color: var(--text-secondary); }
+        .rp-tag { display: inline-block; margin-left: 8px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10.5px; color: var(--text-muted); vertical-align: 1px; }
+        .rp-held { color: var(--text-secondary); }
+        .rp-none { color: var(--text-muted); }
+        .rp-ins { color: var(--text-secondary); }
+        .rp-empty { color: var(--text-muted); margin: 8px 0 4px; }
+        .rp-note { margin-top: 14px; font-size: 12.5px; line-height: 1.55; color: var(--text-muted); max-width: 72ch; }
+        @media (max-width: 640px) {
+            .rp-co { display: block; font-size: 12px; }
+            .rp-table th:nth-child(5), .rp-table td:nth-child(5) { display: none; }
+            .rp-table td, .rp-table th { padding-left: 6px; padding-right: 6px; }
+        }
+        .ctx-plan { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10.5px; font-weight: 500; letter-spacing: .02em; color: var(--text-muted); vertical-align: 1px; }
         .pc-svg { display: block; width: 100%; height: auto; overflow: visible; }
         .pc-c { fill: none; stroke: var(--text-primary); stroke-width: 1.6; stroke-linejoin: round; }
         .pc-s50 { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 4 3; }
@@ -3228,6 +3254,7 @@
                 <a href="#sec-universe" onclick="goToSection('sec-universe');return false">Rankings</a>
                 <a href="#sec-holdings" onclick="goToSection('sec-holdings');return false">Holdings</a>
                 <a href="#sec-changed" onclick="goToSection('sec-changed');return false" id="nav-changed">What changed</a>
+                <a href="#sec-reporting" onclick="goToSection('sec-reporting');return false">Reporting</a>
                 <a href="#sec-market" onclick="goToSection('sec-market');return false">Market</a>
                 <a href="#sec-track" onclick="goToSection('sec-track');return false">Track record</a>
                 <a href="#sec-analytics" onclick="goToSection('sec-analytics');return false">Analytics</a>
@@ -3349,6 +3376,17 @@
                     <div class="changed-footnote" id="changed-footnote"></div>
                 </details>
             </div>
+        </section>
+
+        <!-- Reporting soon: who reports in the next 7/14 days (earnings dates from the main payload;
+             options-implied moves and insider trades from the context file). Never scored, never ranked by move. -->
+        <section class="section collapsible-section collapsed" id="sec-reporting">
+            <div class="section-header" onclick="toggleSection('sec-reporting')">
+                <h2 class="section-title" style="margin:0">Reporting Soon</h2>
+                <span class="sec-meta" id="meta-reporting"></span>
+                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-body"><div id="reporting-body"></div></div>
         </section>
 
         <!-- Market backdrop (context, never scored; plan/context-layer.md) -->
@@ -7806,14 +7844,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         let i = '<div class="ctx-card"><div class="ctx-h"><span>Insider trades</span>' + (ins && ins.cluster ? '<span class="ctx-chip ctx-up">Cluster buying</span>' : '') + '</div>';
         if (ins) {
             i += '<div class="ctx-pair"><div><span class="ctx-fk">Open-market buys, 90 days</span><span class="ctx-fv">' + (ins.buy_n ? cMoney(ins.buy_value) : 'None') + '</span><span class="ctx-fs">' + (ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;') + '</span></div>' +
-                 '<div><span class="ctx-fk">Open-market sales, 90 days</span><span class="ctx-fv">' + (ins.sell_n ? cMoney(ins.sell_value) : 'None') + '</span><span class="ctx-fs">' + (ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') : '&nbsp;') + '</span></div></div>';
+                 '<div><span class="ctx-fk">Open-market sales, 90 days</span><span class="ctx-fv">' + (ins.sell_n ? cMoney(ins.sell_value) : 'None') + '</span><span class="ctx-fs">' + (ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;') + '</span></div></div>';
             if (ins.recent && ins.recent.length) {
                 i += '<table class="ctx-table ctx-ins"><tbody>' + ins.recent.slice(0, 5).map(r =>
-                    '<tr><td>' + escapeHtml(cDate(r.date)) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
-                    '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
+                    '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
+                    '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + (r.plan ? '<span class="ctx-plan" title="The filing says this trade was made under a Rule 10b5-1 plan set up in advance">plan</span>' : '') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
             }
             i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). Grants, gifts and option exercises are left out.' +
-                 (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">Form 4 filings at the SEC</a>' : '') + '</p>';
+                 (ins.src === 'sec' ? ' <b>Plan</b> marks a sale the filing reports under a Rule 10b5-1 trading plan, arranged months ahead - the least informative kind. Source: each Form 4 at the SEC; the date opens the filing.' : ' Source: Yahoo Finance, compiled from Form 4 (no plan flag).') +
+                 (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">All Form 4 filings at the SEC</a>' : '') + '</p>';
         } else {
             i += '<p class="ctx-line">No insider data this run.</p>';
         }
@@ -7959,6 +7998,83 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         return true;
     }
 
+    // ---- Reporting soon -------------------------------------------------------------------
+    // Every scored stock whose next report falls within RP.days of this run, ordered by date and
+    // then by rank - never by the size of the expected move (a big implied move is not news about
+    // direction, and ordering by it would turn a calendar into a leaderboard).
+    const RP = { days: 7, scope: 'all' };
+    let RP_DONE = false;
+    function reportingRows(days, scope) {
+        const held = new Set(typeof loadHoldings === 'function' ? loadHoldings() : []);
+        const out = [];
+        (D.table_data || []).forEach(r => {
+            const s = D.stock_detail[r.Ticker] || {};
+            const d = daysUntil(s.earn && s.earn.d);
+            if (d === null || d < 0 || d > days) return;
+            if (scope === 'top' && !(r.Rank <= 100)) return;
+            if (scope === 'held' && !held.has(r.Ticker)) return;
+            out.push({ r: r, s: s, d: d, held: held.has(r.Ticker) });
+        });
+        out.sort((a, b) => (a.s.earn.d < b.s.earn.d ? -1 : a.s.earn.d > b.s.earn.d ? 1 : a.r.Rank - b.r.Rank));
+        return out;
+    }
+    function reportingMeta() {
+        const el = document.getElementById('meta-reporting');
+        if (!el) return;
+        const a = reportingRows(7, 'all').length, b = reportingRows(14, 'all').length;
+        el.textContent = a + ' report within 7 days of this run · ' + b + ' within 14';
+    }
+    function setReporting(k, v) {
+        RP[k] = (k === 'days') ? Number(v) : v;
+        renderReporting();
+    }
+    function renderReporting() {
+        const host = document.getElementById('reporting-body');
+        if (!host) return;
+        const rows = reportingRows(RP.days, RP.scope);
+        const seg = (k, opts) => '<div class="seg-control" role="group">' + opts.map(o =>
+            '<button type="button" class="seg-btn' + (String(RP[k]) === String(o[0]) ? ' active' : '') + '" onclick="setReporting(\'' + k + '\',\'' + o[0] + '\')">' + o[1] + '</button>').join('') + '</div>';
+        let h = '<div class="rp-controls">' + seg('days', [[7, 'Next 7 days'], [14, 'Next 14 days']]) +
+                seg('scope', [['all', 'All 500'], ['top', 'Top 100'], ['held', 'My holdings']]) + '</div>';
+        if (!rows.length) {
+            h += '<p class="rp-empty">' + (RP.scope === 'held' ? 'None of your saved holdings reports within ' + RP.days + ' days of this run.' : 'No scored company reports within ' + RP.days + ' days of this run.') + '</p>';
+        } else {
+            h += '<div class="rp-wrap"><table class="rp-table"><thead><tr><th>Company</th><th class="num">Rank</th><th class="num">Score</th>' +
+                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th>Insiders, 90 days</th></tr></thead><tbody>';
+            let day = null;
+            rows.forEach(x => {
+                if (x.s.earn.d !== day) {
+                    day = x.s.earn.d;
+                    const n = rows.filter(y => y.s.earn.d === day).length;
+                    h += '<tr class="rp-day"><td colspan="5"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
+                         (x.d === 0 ? 'the day of this run' : x.d + ' day' + (x.d === 1 ? '' : 's') + ' after this run') + ' · ' + n + ' compan' + (n === 1 ? 'y' : 'ies') + '</span></td></tr>';
+                }
+                const c = x.s.ctx || {};
+                let mv = '<span class="rp-none">&ndash;</span>';
+                if (!CTX_LOADED) mv = '<span class="rp-none">&hellip;</span>';
+                else if ((c.os === 'ok' || c.os === 'partial') && c.oe && c.om !== undefined) mv = '&plusmn;' + cPlain(c.om);
+                const ins = c.ins;
+                const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
+                h += '<tr class="rp-row" tabindex="0" onclick="openStockDetail(\'' + x.r.Ticker + '\')" onkeydown="if(event.key===\'Enter\')openStockDetail(\'' + x.r.Ticker + '\')">' +
+                     '<td><span class="rp-tk">' + escapeHtml(x.r.Ticker) + '</span><span class="rp-co">' + escapeHtml(x.r.Company || '') + '</span>' +
+                     (x.s.earn.est ? '<span class="rp-tag" title="The data provider\'s estimate, not a date the company has announced">est. date</span>' : '') +
+                     (x.held ? '<span class="rp-tag rp-held">held</span>' : '') + '</td>' +
+                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td>' + insTxt + '</td></tr>';
+            });
+            h += '</tbody></table></div>';
+        }
+        h += '<p class="rp-note">Ordered by date, then by rank - never by the size of the expected move. A report is when the inputs to Valuation, Quality and Growth are actually replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
+             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Insiders</b>: people who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
+        host.innerHTML = h;
+    }
+    (function wrapReporting() {
+        const _ts = toggleSection;
+        toggleSection = function(id) {
+            if (id === 'sec-reporting' && !RP_DONE) { RP_DONE = true; renderReporting(); }
+            return _ts.apply(this, arguments);
+        };
+    })();
+
     let MK_DONE = false, TR_DONE = false;
     function contextMetas() {
         const M = D.market, T = D.track;
@@ -7980,6 +8096,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // The context file loads after the page is usable; until it lands, context surfaces say so.
     let CTX_LOADED = false, CTX_FAILED = false;
     function loadContext(src) {
+        reportingMeta();
         const el = document.createElement('script');
         el.src = src;
         el.async = true;
@@ -7993,6 +8110,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const sel = document.getElementById('filter-ctx');
             if (sel && sel.value !== 'all') applyFilters();
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
+            if (RP_DONE) renderReporting();
             ['sec-market', 'sec-track'].forEach(id => {
                 const el2 = document.getElementById(id);
                 if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }

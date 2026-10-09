@@ -35,6 +35,17 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   ticks on the chart, and the caveats. No current holdings. Payload `track` (from `data/track_record.json`).
 - **Context filter** on the rankings: uptrend, downtrend, insider buying in 90 days, reports within 14
   days. It filters; it never reorders or rescores.
+- **Reporting Soon** (`sec-reporting`, collapsed, nav "Reporting") - every scored stock whose next
+  report (`stock_detail[t].earn.d`) falls within 7 or 14 days **of the run date**, grouped by date and
+  ordered by date then rank - **never by the size of the expected move**. Scope: all / top 100 / My
+  Holdings. Columns: rank, composite, options-implied move where the chosen expiry spans the report
+  (from the context file; "..." until it loads), insiders who bought in 90 days; "est. date" and
+  "held" tags. Rows open the sheet. Rendered on first open (`renderReporting`, in `_js_context()`);
+  the header meta counts both windows at load. It closes the north-star gap-4 residual "which of my
+  candidates report this week". `tests/test_dashboard_navigation.py::test_reporting_soon_is_a_calendar_not_a_leaderboard`.
+- **Insider trades from the SEC** (2026-10-08 late): each trade's date links to its Form 4; a sale made
+  under a Rule 10b5-1 plan carries a **plan** tag and the sales total states the share on pre-set
+  plans; the note names the source (SEC, or Yahoo as a per-stock fallback with "no plan flag").
 - **Its own file.** All of the above ships in `dashboard_context.js` (`window.SCREENER_CONTEXT`), loaded
   after the page is usable and merged into `D` by `loadContext()`; `dashboard_data.js` carries no `ctx`,
   `market`, `track` or `ctx_weeks`. Anything that reads them must wait for `CTX_LOADED`.
