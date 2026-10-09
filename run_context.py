@@ -129,7 +129,8 @@ class RunContext:
             # 7 = the 2026-10-09 metric audit: operating income, period-indexed statements,
             # zero-estimate placeholder, total-return market, midpoint percentiles, surprises.
             # 8 = no forward EPS growth from a loss base (2026-10-09, after the rehearsals).
-            "scoring_schema": 8,
+            # 9 = bank-like financials by GICS sub-industry (2026-10-09).
+            "scoring_schema": 9,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]
