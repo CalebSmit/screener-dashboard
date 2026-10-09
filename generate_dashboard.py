@@ -8665,6 +8665,12 @@ def _js_context() -> str:
         if (ins) {
             i += '<div class="ctx-pair"><div><span class="ctx-fk">Open-market buys, 90 days</span><span class="ctx-fv">' + (ins.buy_n ? cMoney(ins.buy_value) : 'None') + '</span><span class="ctx-fs">' + (ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;') + '</span></div>' +
                  '<div><span class="ctx-fk">Open-market sales, 90 days</span><span class="ctx-fv">' + (ins.sell_n ? cMoney(ins.sell_value) : 'None') + '</span><span class="ctx-fs">' + (ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;') + '</span></div></div>';
+            if (ins.holder_buy_n || ins.holder_sell_n) {
+                const hb = [];
+                if (ins.holder_buy_n) hb.push('bought ' + cMoney(ins.holder_buy_value));
+                if (ins.holder_sell_n) hb.push('sold ' + cMoney(ins.holder_sell_value));
+                i += '<p class="ctx-line">Holders of 10% or more who are not officers or directors - usually another company or a fund - ' + hb.join(' and ') + ' in 90 days. They are listed below and not counted above.</p>';
+            }
             if (ins.recent && ins.recent.length) {
                 i += '<table class="ctx-table ctx-ins"><tbody>' + ins.recent.slice(0, 5).map(r =>
                     '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +

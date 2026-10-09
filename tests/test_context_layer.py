@@ -243,16 +243,16 @@ def test_ninety_day_summary_and_cluster():
 def _sec_entry(today):
     d = lambda n: (today - timedelta(days=n)).isoformat()
     return {"cik": 123, "checked": today.isoformat(), "filings": {
-        "0001-26-000001": {"filed": d(5), "plan": True, "owners": [{"name": "COOK TIMOTHY D", "role": "CEO"}],
+        "0001-26-000001": {"filed": d(5), "plan": True, "issuer": 123, "owners": [{"name": "COOK TIMOTHY D", "role": "CEO"}],
                            "trades": [{"date": d(6), "code": "M", "shares": 10, "value": None},
                                       {"date": d(6), "code": "F", "shares": 4, "value": 40.0},
                                       {"date": d(6), "code": "S", "shares": 6, "value": 600.0}]},
-        "0001-26-000002": {"filed": d(10), "plan": False, "owners": [{"name": "Doe Jane", "role": "Director"}],
+        "0001-26-000002": {"filed": d(10), "plan": False, "issuer": 123, "owners": [{"name": "Doe Jane", "role": "Director"}],
                            "trades": [{"date": d(11), "code": "P", "shares": 100, "value": 10000.0},
                                       {"date": d(11), "code": "S", "shares": 2, "value": 200.0}]},
-        "0001-26-000003": {"filed": d(10), "plan": False, "owners": [{"name": "Roe Rick", "role": "Director"}],
+        "0001-26-000003": {"filed": d(10), "plan": False, "issuer": 123, "owners": [{"name": "Roe Rick", "role": "Director"}],
                            "trades": [{"date": d(11), "code": "A", "shares": 50, "value": 0.0}]},
-        "0001-25-000004": {"filed": d(200), "plan": False, "owners": [{"name": "Old Ann", "role": "CFO"}],
+        "0001-25-000004": {"filed": d(200), "plan": False, "issuer": 123, "owners": [{"name": "Old Ann", "role": "CFO"}],
                            "trades": [{"date": d(201), "code": "P", "shares": 1, "value": 1.0}]},
         "0001-26-000005": {"filed": d(3), "error": "ParseError"},
     }}
@@ -266,6 +266,50 @@ def test_sec_rows_keep_open_market_trades_with_plan_flag_and_filing_link():
     assert ceo["plan"] is True and ceo["name"] == "Cook Timothy D"   # surname-first order kept, capitals not
     assert ceo["url"] == "https://www.sec.gov/Archives/edgar/data/123/000126000001/0001-26-000001-index.htm"
     assert next(r for r in rows if r["code"] == "P")["plan"] is False
+
+
+def test_ten_percent_holders_are_shown_apart():
+    """A fund that owns 10%+ is listed but kept out of the officer-and-director counts; a
+    director who also owns 10%+ is still an insider."""
+    today = date(2026, 10, 8)
+    d = (today - timedelta(days=5)).isoformat()
+    rows = [{"date": d, "code": "P", "name": "Cascade Investment, L.L.C.", "role": "10% owner", "value": 1e9},
+            {"date": d, "code": "P", "name": "Big Holder", "role": "Beneficial Owner of more than 10% of a Class of Security", "value": 5.0},
+            {"date": d, "code": "P", "name": "Doe Jane", "role": "Director and Beneficial Owner of more than 10% of a Class of Security", "value": 100.0},
+            {"date": d, "code": "S", "name": "Fund", "role": "10% owner", "value": 7.0}]
+    s = ia.summarise_rows(rows, today)
+    assert s["buy_n"] == 1 and s["buy_value"] == 100.0 and s["buy_people"] == 1
+    assert s["holder_buy_n"] == 2 and s["holder_buy_value"] == 1e9 + 5.0
+    assert s["sell_n"] == 0 and s["holder_sell_value"] == 7.0
+    assert len(s["recent"]) == 4                        # still listed
+
+
+def test_a_company_buying_another_company_is_not_its_own_insider():
+    """Berkshire's list of filings holds its Form 4s for Lennar; only filings whose issuer is the
+    company itself count as its insiders' trades."""
+    today = date(2026, 10, 8)
+    e = _sec_entry(today)
+    e["cik"] = 1067983
+    for f in e["filings"].values():
+        f["issuer"] = 1067983
+    e["filings"]["0001-26-000001"]["issuer"] = 920760          # a filing about another issuer
+    rows = ia.rows_from_sec(e, today)
+    assert all(r["role"] != "CEO" for r in rows)
+    del e["filings"]["0001-26-000002"]["issuer"]               # parsed before the check existed
+    assert ia.sec_rows_for({"X": e}, "X", today) is None        # -> Yahoo until re-read
+
+
+def test_one_filing_one_day_one_direction_is_one_trade():
+    """Four price tiers of one sale in one Form 4 are one row, with the values summed."""
+    today = date(2026, 10, 8)
+    d = (today - timedelta(days=6)).isoformat()
+    e = {"cik": 320193, "checked": today.isoformat(), "filings": {"0001-26-000009": {
+        "filed": d, "plan": True, "issuer": 320193, "owners": [{"name": "COOK TIMOTHY D", "role": "Executive Chair"}],
+        "trades": [{"date": d, "code": "S", "shares": s, "value": v} for s, v in
+                   ((10, 1000.0), (20, 2010.0), (5, 505.5))] + [{"date": d, "code": "M", "shares": 35, "value": None}]}}}
+    rows = ia.rows_from_sec(e, today)
+    assert len(rows) == 1 and rows[0]["shares"] == 35 and rows[0]["value"] == 3515.5
+    assert ia.summarise_rows(rows, today)["sell_n"] == 1
 
 
 def test_planned_sales_are_summarised_and_unknown_stays_unknown():

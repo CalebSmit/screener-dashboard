@@ -8895,3 +8895,45 @@ the calls out cost no coverage. 206 s against a 900 s budget is ample headroom; 
 
 Still open for the owner, unchanged: the SEC EDGAR source needs a contact email in the User-Agent;
 that is his to give (`plan/context-layer.md` item 3).
+
+## 2026-10-08 (night) - OWNER-RUN: Reporting Soon; insider trades from the SEC, with two defects caught before publishing
+
+Owner gave a contact email for the SEC's User-Agent (*"yes you can do that"*). It is stored **outside the
+repo** - `data/sec/user_agent.txt`, gitignored, or `SEC_USER_AGENT` - and a test fails if it appears in
+any file on the nightly data path. (It already sits in two older tracked files, a 2026-10-05 measurement
+script and the owner's setup script; those were left alone.)
+
+**1. Reporting Soon** (`sec-reporting`, nav "Reporting") - every scored stock reporting within 7 or 14
+days of the run, by date then rank, never by expected move; options-implied move where the expiry spans
+the report; officer/director buyers; est./held tags; scope all / top 100 / My Holdings. **23** and
+**103** companies on this run (earnings season). Checked live at 1440 and 375 px: no horizontal scroll,
+nav still fits at 1440. Shipped as `good/2026-10-08-owner-3`.
+
+**2. Insider trades from SEC Form 4s.** `run_screener` refreshes every Form 4 filed in 180 days after the
+context pass (900 s budget; cache `data/insider/filings.json`), and a stock whose record is fresh uses it;
+the rest keep Yahoo's rows. The card tags **plan** sales (the Form 4's Rule 10b5-1 checkbox), states the
+share of sale value on plans, links each trade's date to its filing and names its source. First fill:
+14,643 filings, 0 failures, 43 min.
+
+**Two defects found in the first fill and fixed before any of it published** (the 02:00 run is the first
+to publish SEC data):
+- **Wrong issuer.** A company's EDGAR list also holds Form 4s it filed as an *owner of another company* -
+  Berkshire's Lennar purchases showed as Berkshire insider buying; Goldman and Prudential likewise.
+  `parse_form4` keeps `issuerCik`; only filings whose issuer is the company count; the cache was re-read
+  (14,643 filings, 0 failures, 39 min). This removed **$6.6bn** of misattributed sales.
+- **10%+ holders.** Cascade Investment's $1.38bn of Republic Services read as "insider buying". Holders
+  who are neither officers nor directors are now listed but counted on their own line
+  (`holder_only`): **92 of 189** purchase lines, all in **3** stocks. Whether the literature supports
+  treating them differently is **not settled** - `plan/context-layer.md` item 3 has it as a research
+  question; no citation was added to the page for it.
+- Also: one filing's sale split across price tiers is one trade now (Apple's executive chair had four
+  rows for one sale).
+
+**Measured after the fixes** (`research/measurements/2026-10-08-insider-sec-vs-yahoo.py`): SEC record for
+502 of 503; officer/director buying at **60** stocks (SEC) vs **54** (Yahoo); sales at 338 vs 318; sale
+value $17.8bn, **72.4% on 10b5-1 plans**. Rendered from a copy of the run into scratch: main payload
+byte-identical, 501 stocks with SEC insider data, plan tags and filing links present.
+
+**For the next session:** read the 02:00 data log for `insider refresh:` (should be ~500 requests plus
+the day's new filings, well inside 900 s) and `insider trades from SEC Form 4 for N stocks` (N ~ 500), and
+open one drilldown on the live site to confirm the SEC source line.
