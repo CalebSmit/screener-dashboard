@@ -8832,7 +8832,7 @@ def _js_context() -> str:
             '<tr><td>3 months</td><td class="num">' + cPct(c.r3m) + '</td></tr>' +
             (c.vr ? '<tr><td>Volume, 20 days vs 3 months</td><td class="num">' + Number(c.vr).toFixed(2) + '&times;</td></tr>' : '') +
             '</tbody></table>';
-        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). The screener\'s own momentum signal skips the latest month for this reason.</p>';
+        if (c.r1m !== undefined && Math.abs(c.r1m) >= 0.15) m += '<p class="ctx-why">A one-month move this large is worth a second look: short-term winners and losers have historically tended to partly reverse the following month (Jegadeesh 1990; over a week, Lehmann 1990), most strongly when markets are stressed (Nagel 2012). In large companies the plain effect has largely faded since 2000; what survives is the move relative to the stock&rsquo;s industry (Da, Liu &amp; Schaumburg 2014) - compare it with the sector median above. The screener\'s own momentum signal skips the latest month for this reason.</p>';
         h += m + '</div>';
 
         // 3. Options
