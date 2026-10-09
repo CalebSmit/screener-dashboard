@@ -305,7 +305,8 @@ CLAIMS: tuple[Claim, ...] = (
             "(`factor_engine.applicable_coverage`) and the page publishes it as "
             "`stock_detail[t].cov`; `metric_count`/`metric_total` carry the same two "
             "numbers. Since 2026-10-09 the count is of metrics that carry weight in the "
-            "stock's table (`factor_engine.weighted_metric_sets`), not every registered one."
+            "stock's table (`factor_engine.weighted_metric_sets`), not every registered one, "
+            "less the Beneish score for Financials, which never receive it."
         ),
     ),
     Claim(

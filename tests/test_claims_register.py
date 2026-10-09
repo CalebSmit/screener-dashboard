@@ -311,7 +311,10 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     for s in stocks:
         assert s["metric_count"] == s["cov"]["n"]
         assert s["metric_total"] == s["cov"]["of"]
-        expected = bank if s["flags"]["is_bank"] else other
+        # Financials on the generic table never get the Beneish score (2026-10-09), so it is
+        # not counted as applicable to them
+        fin_generic = (not s["flags"]["is_bank"]) and s.get("sector") == "Financials"
+        expected = bank if s["flags"]["is_bank"] else (other - 1 if fin_generic else other)
         assert s["cov"]["of"] == expected, (
             f"{s['cov']} for a {'bank' if s['flags']['is_bank'] else 'non-bank'} stock; "
             f"expected an applicable set of {expected}")
