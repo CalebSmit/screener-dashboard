@@ -38,7 +38,7 @@ income, AMCR's zero estimate, the regime replay).
   acceleration.
 * **Accruals counted three times within Quality** (the accruals metric, Piotroski signal 4, Beneish
   TATA all use net income minus operating cash flow).
-* **Net debt** subtracts cash only while enterprise value subtracts cash and short-term investments
+* **DONE the same session (changelog entry): net debt** now nets cash and short-term investments. The finding: **net debt** subtracts cash only while enterprise value subtracts cash and short-term investments
   (14 non-banks net cash by one definition, net debt by the other).
 
 ## Checked and correct

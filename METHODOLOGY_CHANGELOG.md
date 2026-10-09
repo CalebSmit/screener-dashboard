@@ -3182,6 +3182,27 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run, metric audit) - Net debt nets the same cash as enterprise value
+
+**Area:** net_debt_to_ebitda (Quality)
+**Changed:** net debt = balance-sheet debt minus cash, cash equivalents **and short-term investments**
+(the balance sheet's combined line; cash alone where it has none). It was cash and equivalents only.
+
+**Evidence / reasoning:** enterprise value in the same screener nets Yahoo's `totalCash`, which includes
+short-term investments, so one company had two net debts: 14 non-banks (MSFT, NVDA, GOOGL among them)
+were net cash by the EV definition and net debt by this one; 34 ratios differed by more than 0.25x
+(audit, run a2d76219dc0a). Equity practitioners define net debt as debt less cash and marketable
+securities; within one tool the definition must be the same in both places.
+`research/2026-10-09-metric-audit.md`.
+**Expected effect:** lower net debt / EBITDA for cash-rich companies holding treasuries; some move to
+exactly 0.0 (net cash). Measured on the first run after the change.
+**Validated by:** `tests/test_metric_lineage.py` (the page's equation rebuilds the scored value from the
+published inputs).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run, metric audit) - `earnings_acceleration` leaves the Revisions score
 
 **Area:** Revisions category weights (the category's 10% of the composite is unchanged)

@@ -686,7 +686,7 @@ judgement calls and need a Monday-style note before any change: **(a)** which fi
 P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `earnings_acceleration` (20% of Revisions) correlated -0.54 with the prior quarter's
 surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
 1990); **(c)** accruals counted three times within Quality (the metric, Piotroski 4, Beneish TATA);
-**(d)** net debt subtracts cash only, enterprise value cash and short-term investments. Also: the
+**(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. Also: the
 momentum regime rule is **off** (its input did not measure volatility); rebuilding it on a real
 volatility measure (Barroso & Santa-Clara 2015; Daniel & Moskowitz 2016) is its own research item.
 

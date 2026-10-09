@@ -67,7 +67,7 @@ Every stock is evaluated in 8 categories. Each category captures a different dim
 |--------|--------|-----------------|
 | **ROIC** | 29% | Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital. |
 | **Gross Profit / Assets** | 22% | Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor). |
-| **Net Debt / EBITDA** | 20% | (Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E). |
+| **Net Debt / EBITDA** | 20% | (Total Debt - Cash and short-term investments) / EBITDA, the same cash enterprise value nets off. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E). |
 | **Piotroski F-Score** | 16% | A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals. |
 | **Accruals** | 5% | (Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996). |
 | **Beneish M-Score** | 8% | 8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Non-bank only. |

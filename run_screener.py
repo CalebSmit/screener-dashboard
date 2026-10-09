@@ -1011,7 +1011,7 @@ _QUAL_DESCRIPTIONS = {
     "roic": "Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess cash). Excess cash is cash beyond 2% of revenue. Tax rate: actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss positions (negative pretax); 21% default when data is missing. Higher = better use of capital.",
     "gross_profit_assets": "Gross profit divided by total assets. Measures asset-light profitability (Novy-Marx quality factor).",
     "debt_equity": "Total debt divided by shareholder equity. Lower = less financial leverage and risk.",
-    "net_debt_to_ebitda": "(Total Debt - Cash) / EBITDA. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).",
+    "net_debt_to_ebitda": "(Total Debt - Cash and short-term investments) / EBITDA, the same cash enterprise value nets off. Measures leverage relative to earnings power. Lower = less leveraged = better. Replaces Debt/Equity (negative equity from buybacks distorts D/E).",
     "piotroski_f_score": "A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals.",
     "accruals": "(Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996).",
     "operating_leverage": "Degree of Operating Leverage (%Δ EBIT / %Δ Revenue), one year. Recorded but given no weight since 2026-10-09 - see 'Why not operating leverage?'. Banks skip this metric.",

@@ -126,7 +126,7 @@ def _net_debt_ebitda(i):
     e = i.get("ebitda_nd_used")
     if not (_ok(debt) and _ok(e) and e > 0):
         return None
-    cash = _first(i, "cash_bs", "totalCash") or 0.0
+    cash = _first(i, "cash_sti_bs", "cash_bs", "totalCash") or 0.0   # as the engine, since 2026-10-09
     nd = debt - cash
     return 0.0 if nd <= 0 else nd / e
 
@@ -332,9 +332,11 @@ LINEAGE = {
                               [("Gross profit (TTM)", "grossProfit", USD), ("Total assets", "totalAssets", USD)],
                               how="Novy-Marx's gross profitability. Uses ending, not average, assets."),
     "net_debt_to_ebitda": _L("Net debt / EBITDA",
-                             [("Debt (balance sheet)", "totalDebt_bs", USD), ("Cash (balance sheet)", "cash_bs", USD),
+                             [("Debt (balance sheet)", "totalDebt_bs", USD),
+                              ("Cash and short-term investments (balance sheet)", "cash_sti_bs", USD),
+                              ("Cash (balance sheet)", "cash_bs", USD),
                               ("EBITDA (used)", "ebitda_nd_used", USD)],
-                             how="Net debt = debt - cash, and a net-cash company is set to exactly 0.0. Needs EBITDA > 0.",
+                             how="Net debt = debt - cash and short-term investments (cash alone where the balance sheet has no such line), the same cash enterprise value nets off; a net-cash company is set to exactly 0.0. Needs EBITDA > 0.",
                              caveat="The same EBITDA as EV/EBITDA and the Company Snapshot: trailing operating income + D&A, Yahoo's reported EBITDA only when a component is missing and it is not just EBIT again (one definition since 2026-10-09)."),
     "piotroski_f_score": _L("Count of nine pass/fail financial-health signals",
                             how="Each signal is 1 (pass) or 0 (fail); a signal whose inputs are missing is not testable and is neither. A score needs at least 6 testable signals, so scores based on 6 and on 9 signals are not strictly comparable.",
@@ -492,7 +494,8 @@ EQUATIONS = {
                      "{ebit|operating income} after tax ÷ invested capital"]),
     "gross_profit_assets": (True, ["{grossProfit|gross profit} ÷ {totalAssets|total assets}"]),
     "accruals": (True, ["({netIncome|net income} − {operatingCashFlow|operating cash flow}) ÷ {totalAssets|total assets}"]),
-    "net_debt_to_ebitda": (False, ["({totalDebt_bs|debt} − {cash_bs|cash}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",
+    "net_debt_to_ebitda": (False, ["({totalDebt_bs|debt} − {cash_sti_bs|cash and short-term investments}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",
+                                   "({totalDebt_bs|debt} − {cash_bs|cash}) ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash",
                                    "net debt ÷ {ebitda_nd_used|EBITDA}, and 0 for net cash"]),
     "operating_leverage": (False, ["EBIT change ({ebit_prior|prior} → {ebit_annual|latest}) ÷ revenue change ({totalRevenue_annual_prior|prior} → {totalRevenue_annual|latest})"]),
     "forward_eps_growth": (False, ["({feg_f12|next 12 months' EPS} − {feg_b12|last 4 quarters' EPS}) ÷ last 4 quarters (at least $1), clipped",

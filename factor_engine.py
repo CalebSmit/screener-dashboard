@@ -1123,6 +1123,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["currentAssets_prior"]    = _stmt_val(_bs_src, "Current Assets", _bs_prior_col)
         rec["currentLiabilities_prior"] = _stmt_val(_bs_src, "Current Liabilities", _bs_prior_col)
         rec["cash_bs"]                = _stmt_val(_bs_src, "Cash And Cash Equivalents")
+        # Cash plus short-term investments on the same balance sheet - what enterprise value
+        # nets off (Yahoo's totalCash), and so what net debt nets off too (2026-10-09).
+        rec["cash_sti_bs"]            = _stmt_val(_bs_src, "Cash Cash Equivalents And Short Term Investments")
         rec["sharesBS"]               = _stmt_val(_bs_src, "Ordinary Shares Number")
         rec["sharesBS_prior"]         = _stmt_val(_bs_src, "Ordinary Shares Number", _bs_prior_col)
         if np.isnan(rec["sharesBS"]):
@@ -1934,8 +1937,12 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 if _ebitda_nd is None:
                     _ebitda_nd = np.nan
                 rec["_ebitda_nd_used"] = _ebitda_nd
+                # Net debt nets cash AND short-term investments, as enterprise value does
+                # (2026-10-09 audit: with cash alone, 14 non-banks - MSFT, NVDA, GOOGL among
+                # them - were net cash by the EV definition and net debt by this one).
+                _cash_nd = _coalesce(d, "cash_sti_bs", "cash_bs", "totalCash")
                 if pd.notna(_debt_bs) and pd.notna(_ebitda_nd) and _ebitda_nd > 0:
-                    _net_debt = _debt_bs - (_cash_bs if pd.notna(_cash_bs) else 0.0)
+                    _net_debt = _debt_bs - (_cash_nd if pd.notna(_cash_nd) else 0.0)
                     if _net_debt <= 0:
                         rec["net_debt_to_ebitda"] = 0.0  # Net cash position
                     else:
