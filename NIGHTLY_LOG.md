@@ -8871,3 +8871,27 @@ fetch nothing. It never moves a score (CLAUDE.md settled row "ctx").
 
 **Tests 1894 -> 1929, 0 failed** (+35: 37 in `test_context_layer.py` less 2 skips, a browser test for
 the panels). Dry-run, `node --check` and the publish gate (363) pass.
+
+## 2026-10-08 (late) - OWNER-RUN: the context layer gets its own file; the context pass measured
+
+Owner: *"Do whatever you need to do to keep improving this!"* Two things, both about the context layer
+shipped earlier this evening not costing the core product anything.
+
+**1. Payload split.** Inline, the context layer grew `dashboard_data.js` from **1.27 to 1.68 MB
+gzipped** - a third more for every visitor's first paint, for panels nobody needs in the first second.
+`generate_dashboard.split_context()` now moves each stock's `ctx` and the top-level `market`, `track`
+and `ctx_weeks` into **`dashboard_context.js`** (`window.SCREENER_CONTEXT`), which the page loads after
+it is usable (`loadContext`, `CTX_LOADED`). Measured on run `91fa11d3ae8e`: main **1.29 MB** gz, context
+**0.31 MB** gz; scores, summaries and table **identical** to the inline build. `run_screener` step 12
+copies the new file and `data-run.ps1` stages it - **both publish paths now carry two data files**.
+Tests: `test_the_main_payload_carries_no_context`, `test_split_context_moves_every_context_key`, the
+artifact test now requires `dashboard_context.js`, and the browser test waits for `CTX_LOADED`.
+
+**2. The context pass, measured in isolation on the full universe** (`context_fetch.enrich` on the
+latest raw records): **503 of 503 in 206 s, 0 rate limits, 0 failures.** Options `ok` 394, `partial`
+56, `stale-quotes` 25, `no-atm` 18, `no-chain` 9 - the same shape as the in-fetch first draft, so moving
+the calls out cost no coverage. 206 s against a 900 s budget is ample headroom; no change to pace.
+`plan/context-layer.md` item 1 is marked done with what to watch nightly.
+
+Still open for the owner, unchanged: the SEC EDGAR source needs a contact email in the User-Agent;
+that is his to give (`plan/context-layer.md` item 3).

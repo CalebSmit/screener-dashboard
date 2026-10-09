@@ -2497,6 +2497,10 @@ def main():
         src_data_js = ctx.run_dir / "dashboard_data.js"
         if src_data_js.exists():
             shutil.copy2(src_data_js, ROOT / "dashboard_data.js")
+        # The context layer's own file (plan/context-layer.md) travels with it.
+        src_ctx_js = ctx.run_dir / "dashboard_context.js"
+        if src_ctx_js.exists():
+            shutil.copy2(src_ctx_js, ROOT / "dashboard_context.js")
         print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")

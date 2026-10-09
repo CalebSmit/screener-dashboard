@@ -35,6 +35,9 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   ticks on the chart, and the caveats. No current holdings. Payload `track` (from `data/track_record.json`).
 - **Context filter** on the rankings: uptrend, downtrend, insider buying in 90 days, reports within 14
   days. It filters; it never reorders or rescores.
+- **Its own file.** All of the above ships in `dashboard_context.js` (`window.SCREENER_CONTEXT`), loaded
+  after the page is usable and merged into `D` by `loadContext()`; `dashboard_data.js` carries no `ctx`,
+  `market`, `track` or `ctx_weeks`. Anything that reads them must wait for `CTX_LOADED`.
 
 ## Final state, 2026-10-07 (the redesign is CLOSED - see `plan/dashboard-redesign-master.md`)
 
