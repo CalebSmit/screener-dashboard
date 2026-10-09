@@ -3708,7 +3708,7 @@
 <hr />
 <h2>What Is This?</h2>
 <p>This is a quantitative stock screener. It takes every company in the S&amp;P 500 (roughly 500 stocks), measures each one across up to 32 financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.</p>
-<p>Not every stock sees all 32 metrics. The screener uses 28 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 28 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 45 entries: 32 carry scoring weight today (28 generic + 4 bank-specific) plus 13 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
+<p>Not every stock sees all 32 metrics. The screener uses 28 generic metrics for most stocks and a separate set of 4 bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about 28 metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (<code>METRIC_COLS</code>) has 46 entries: 32 carry scoring weight today (28 generic + 4 bank-specific) plus 14 candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.</p>
 <p>The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — valuation, quality, growth, momentum, risk, revisions, size, investment — the screener surfaces companies that are strong across the board, not just on one axis.</p>
 <hr />
 <h2>Where Does the Data Come From?</h2>
@@ -4099,7 +4099,7 @@
 <li><strong>Missing-data redistribution</strong> changes them for one stock, whenever a category could not be scored for it.</li>
 </ol>
 <p>So a stock's momentum score may be multiplied by something other than the 13% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows <strong>the weight each score was actually multiplied by</strong>, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to <code>runs/&lt;run_id&gt;/effective_weights.json</code>.</p>
-<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 45 weighted metrics less the ones its type does not use, so 35 for a bank-like stock and 41 for every other. The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
+<p><strong>The composite is cardinal, and it is not a percentile.</strong> The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100. One adjustment is applied after that weighted average: a stock below 80% metric coverage has its composite multiplied by <code>1 - ((80% - coverage) x 15%)</code> - the coverage discount described under Data Quality Safeguards below - so for those stocks the composite sits slightly below the sum of the category contributions. <strong>"Coverage" here means the share of the metrics that apply to that stock</strong> - all 46 weighted metrics less the ones its type does not use, so 36 for a bank-like stock and 42 for every other. The drilldown's "Metrics: n/m" badge and its "The score rests on n of m metrics" sentence read <strong>this same figure</strong>, taken from the engine rather than recounted (until 2026-10-07 they counted a fixed 18-metric list, which made 62 stocks look under-covered when only 3 were discounted). The drilldown shows the discount as its own line, so the category points, the discount and the composite add up on screen. The universe percentile is a <strong>separate</strong> column, <code>Composite_Pct</code> (<code>rank(pct=True) * 100</code>, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.</p>
 <h3>Step 6: Apply Trap Filters &amp; Rank</h3>
 <p>After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.</p>
 <hr />
@@ -6156,9 +6156,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             ]},
             { label: 'Profitability', color: '#8e8c86', items: [
                 { label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
-                   sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' },
+                   sub: f.revenue_growth_yoy !== null && f.revenue_growth_yoy !== undefined ? fmtPctChg(f.revenue_growth_yoy) + (f.revenue_growth_basis === 'annual' ? ' fiscal year on year' : ' latest quarter on a year earlier') : '' },
                 { label: 'Net Income',      value: fmtBig(f.net_income),
-                   sub: f.ni_growth_yoy !== null ? fmtPctChg(f.ni_growth_yoy) + ' YoY' : '' },
+                   sub: f.ni_growth_yoy !== null && f.ni_growth_yoy !== undefined ? fmtPctChg(f.ni_growth_yoy) + ' fiscal year on year' : '' },
                 { label: 'EBITDA',          value: fmtBig(f.ebitda) },
                 { label: 'Gross Margin',    value: fmtPct2(f.gross_margin) },
                 { label: 'Net Margin',      value: fmtPct2(f.net_margin) },
@@ -6701,7 +6701,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         'Net income is positive', 'Operating cash flow is positive',
         'Return on assets rose from the prior year', 'Operating cash flow exceeds net income',
         'Long-term debt relative to assets fell', 'Current ratio rose',
-        'No net new shares issued', 'Gross margin rose', 'Asset turnover rose'
+        'No net new shares issued', 'Gross margin rose from the prior year', 'Asset turnover rose from the prior year'
     ];
     const BENEISH_INDICES = [
         ['DSRI', 'Days sales in receivables', 0.920], ['GMI', 'Gross margin', 0.528],

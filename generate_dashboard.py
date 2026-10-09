@@ -153,6 +153,8 @@ def load_run_data(run_dir: Path) -> dict:
                          ("grossProfit", "_gross_profit"),
                          ("netIncome", "_net_income"),
                          ("netIncome_prior", "_net_income_prior"),
+                         ("_ni_a0", "_ni_fy0"),
+                         ("_ni_a1", "_ni_fy1"),
                          ("ebitda", "_ebitda_raw"),
                          ("operatingCashFlow", "_ocf"),
                          ("capex", "_capex"),
@@ -947,6 +949,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
         _rev_p = _safe(row.get("_total_revenue_prior"))
         _ni = _safe(row.get("_net_income"))
         _ni_p = _safe(row.get("_net_income_prior"))
+        _ni_fy0 = _safe(row.get("_ni_fy0"))
+        _ni_fy1 = _safe(row.get("_ni_fy1"))
         _gp = _safe(row.get("_gross_profit"))
         _ocf = _safe(row.get("_ocf"))
         _capex_v = _safe(row.get("_capex"))
@@ -961,9 +965,16 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "market_cap": _mcap,
             "enterprise_value": _safe(row.get("_ev_raw")),
             "revenue": _rev,
-            "revenue_growth_yoy": round((_rev - _rev_p) / abs(_rev_p), 4) if (_rev is not None and _rev_p is not None and abs(_rev_p) > 0) else None,
+            # Both "YoY" figures compare periods exactly a year apart (2026-10-09). Revenue's
+            # is the engine's own scored figure and says which comparison it used; net
+            # income's is the latest fiscal year against the one before. They used to compare
+            # the TTM with the fiscal year before last - 12 to 23 months
+            # (research/2026-10-09-revenue-growth-window.md).
+            "revenue_growth_yoy": _safe(row.get("revenue_growth")),
+            "revenue_growth_basis": row.get("_revg_basis") if isinstance(row.get("_revg_basis"), str) else None,
             "net_income": _ni,
-            "ni_growth_yoy": round((_ni - _ni_p) / abs(_ni_p), 4) if (_ni is not None and _ni_p is not None and abs(_ni_p) > 0) else None,
+            "ni_growth_yoy": (round((_ni_fy0 - _ni_fy1) / abs(_ni_fy1), 4)
+                              if (_ni_fy0 is not None and _ni_fy1 is not None and abs(_ni_fy1) > 0) else None),
             "ebitda": _safe(row.get("_ebitda_raw")),
             "gross_margin": round(_gp / _rev, 4) if (_gp is not None and _rev is not None and _rev > 0) else None,
             "net_margin": round(_ni / _rev, 4) if (_ni is not None and _rev is not None and _rev > 0) else None,
@@ -3287,9 +3298,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             ]}},
             {{ label: 'Profitability', color: '#8e8c86', items: [
                 {{ label: 'Revenue (LTM)',   value: fmtBig(f.revenue),
-                   sub: f.revenue_growth_yoy !== null ? fmtPctChg(f.revenue_growth_yoy) + ' YoY' : '' }},
+                   sub: f.revenue_growth_yoy !== null && f.revenue_growth_yoy !== undefined ? fmtPctChg(f.revenue_growth_yoy) + (f.revenue_growth_basis === 'annual' ? ' fiscal year on year' : ' latest quarter on a year earlier') : '' }},
                 {{ label: 'Net Income',      value: fmtBig(f.net_income),
-                   sub: f.ni_growth_yoy !== null ? fmtPctChg(f.ni_growth_yoy) + ' YoY' : '' }},
+                   sub: f.ni_growth_yoy !== null && f.ni_growth_yoy !== undefined ? fmtPctChg(f.ni_growth_yoy) + ' fiscal year on year' : '' }},
                 {{ label: 'EBITDA',          value: fmtBig(f.ebitda) }},
                 {{ label: 'Gross Margin',    value: fmtPct2(f.gross_margin) }},
                 {{ label: 'Net Margin',      value: fmtPct2(f.net_margin) }},
