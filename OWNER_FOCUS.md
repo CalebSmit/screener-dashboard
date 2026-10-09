@@ -45,6 +45,15 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-09 (owner-run, daytime) - the outstanding step is done, and items 4-6 moved.** The
+    `Screener Option Quotes` task is registered and verified (`Get-ScheduledTask`: one weekly 20:00
+    trigger, no logon trigger; loops still PT3M / PT20M) and a live smoke test wrote the cache at
+    08:46 CT. Item 5 (the evaluation harness) is built - `context_eval.py`, a line in the morning
+    brief, first window closes 2026-11-07. Item 4 step one: every research sentence on the panel was
+    checked against its source, three corrected (`research/2026-10-09-context-panel-claims.md`).
+    Item 6 progressed: thin cached price columns are repaired, and picks the price source no longer
+    serves are named on the page. **Next: confirm the `ok` share from the first 02:00 log after a
+    20:00 refresh, then item 4's per-signal research notes.**
   - **2026-10-09 - item 2 measured and fixed in code; one machine step outstanding.** The options
     panel was empty for **every stock on every scheduled run**: `ok` for **0 of 503** at the 02:00
     loop's hour against **394 of 503** at 21:27 ET the evening before, because the source serves the
