@@ -1,4 +1,4 @@
-# Morning Brief - Friday 09 October 2026, 02:21
+# Morning Brief - Friday 09 October 2026, 06:37
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,6 +18,12 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `3a14c2a log: 2026-10-09 - the fix, the evidence, and the one step out of reach`
+- `ef4b8ab options: say what actually happened, and record the outstanding step`
+- `1df4d0f options: fetch quotes when they exist, read them when they do not`
+- `07dcacf log: 2026-10-09 health, the red ship gate, and the 0.0% options measurement`
+- `ed40cb5 tests: stop pinning the universe size, which blocked the ship gate`
+- `8baad0f brief: data run 2026-10-09`
 - `e8991bc data: screener run 2026-10-09 - 501 scored, top: EXPE HST APA BBY DLTR`
 - `b8039f9 insiders: count only the company's own filings, keep 10%+ holders apart, one trade per filing-day`
 - `48066b2 Reporting Soon, and insider trades from the SEC's own Form 4 filings`
@@ -27,56 +33,55 @@ history is in `NIGHTLY_LOG.md`.
 - `bbe5758 log: 2026-10-08 session entry - gate results`
 - `576951b fix: factor_vol_history keeps one row per date; clearer drawdown input labels; docs`
 - `1077e83 wip: rescore with the drawdown fix; index.html is the dashboard, not a redirect stub`
-- `6fc0297 wip: changelog entry, scoring_schema bump to 3, log entry started`
-- `1b8613b fix: one observation per run date in the evidence base (priority 0.6)`
-- `d99c20d wip: max_drawdown_1y measures the price path, and publishes the two closes it measured between`
-- `f9582f7 measure: 22.6% of composite has no shown arithmetic; max_drawdown_1y compounds log returns as simple`
-- `8a8c195 brief: data run 2026-10-08`
-- `d704cc6 data: screener run 2026-10-08 - 502 scored, top: EXPE HST BBY APA DLTR`
 
 ## The session's own account
 
-> 2026-10-08 (night) - OWNER-RUN: Reporting Soon; insider trades from the SEC, with two defects caught before publishing
+> 2026-10-09 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
 > 
-> Owner gave a contact email for the SEC's User-Agent (*"yes you can do that"*). It is stored **outside the
-> repo** - `data/sec/user_agent.txt`, gitignored, or `SEC_USER_AGENT` - and a test fails if it appears in
-> any file on the nightly data path. (It already sits in two older tracked files, a 2026-10-05 measurement
-> script and the owner's setup script; those were left alone.)
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-08_060001.log`
+> ends "shipped to main", tagged `good/2026-10-08`. Data loop published? **yes** -
+> `logs/datarun-2026-10-09_020001.log` ends "Data loop complete", HEALTH: PASS, 501 scored.
+> Evidence base at `1m` = **26 rows, newest 2026-09-09 (30 days ago, bound 40), 4 effective**
+> (`_n_observations`; the whole file reads 75 rows / 2026-10-02 and is not the number to quote).
+> Priority 0 - `allow_auto_apply` still `false`, 4 effective against a gate of 8, still top of the
+> queue. Top open roadmap item: **0.9, the four methodology questions the transparency build
+> surfaced - age 2 days** (opened 2026-10-07); 0.10 and 0.11 are the same age.
+> **Tests:** before **1936 passed, 3 failed**; after - see the end of this entry.
+> **Owner queue / rotation:** took the open owner item (`OWNER_FOCUS.md` 2026-10-08, the context
+> layer, brief `plan/context-layer.md`) - but a **failing ship gate outranked it** and came first.
 > 
-> **1. Reporting Soon** (`sec-reporting`, nav "Reporting") - every scored stock reporting within 7 or 14
-> days of the run, by date then rank, never by expected move; options-implied move where the expiry spans
-> the report; officer/director buyers; est./held tags; scope all / top 100 / My Holdings. **23** and
-> **103** companies on this run (earnings season). Checked live at 1440 and 375 px: no horizontal scroll,
-> nav still fits at 1440. Shipped as `good/2026-10-08-owner-3`.
+> ### Did
 > 
-> **2. Insider trades from SEC Form 4s.** `run_screener` refreshes every Form 4 filed in 180 days after the
-> context pass (900 s budget; cache `data/insider/filings.json`), and a stock whose record is fresh uses it;
-> the rest keep Yahoo's rows. The card tags **plan** sales (the Form 4's Rule 10b5-1 checkbox), states the
-> share of sale value on plans, links each trade's date to its filing and names its source. First fill:
-> 14,643 filings, 0 failures, 43 min.
+> **1. The ship gate was red at 06:00, and would have blocked tonight's merge whatever I shipped.**
+> Baseline was 3 failed / 1936 passed, all three in `tests/test_dashboard_browser.py`. Cause: the
+> 02:00 run scored **501** stocks rather than the 502 of the days before - an ordinary S&P 500
+> membership change and a correct run - and three tests asserted the literals `502` / `503` against
+> the published payload.
 > 
-> **Two defects found in the first fill and fixed before any of it published** (the 02:00 run is the first
-> to publish SEC data):
-> - **Wrong issuer.** A company's EDGAR list also holds Form 4s it filed as an *owner of another company* -
->   Berkshire's Lennar purchases showed as Berkshire insider buying; Goldman and Prudential likewise.
->   `parse_form4` keeps `issuerCik`; only filings whose issuer is the company count; the cache was re-read
->   (14,643 filings, 0 failures, 39 min). This removed **$6.6bn** of misattributed sales.
-> - **10%+ holders.** Cascade Investment's $1.38bn of Republic Services read as "insider buying". Holders
->   who are neither officers nor directors are now listed but counted on their own line
->   (`holder_only`): **92 of 189** purchase lines, all in **3** stocks. Whether the literature supports
->   treating them differently is **not settled** - `plan/context-layer.md` item 3 has it as a research
->   question; no citation was added to the page for it.
-> - Also: one filing's sale split across price tiers is one trade now (Apple's executive chair had four
->   rows for one sale).
+> That is worse than three red tests. The runner's gate 1 is `pytest tests/ test_screener.py -q`
+> and it merges only on **exit code 0**, with no baseline (`scripts/nightly-screener.ps1`, "Gate 1:
+> tests") - deliberately, because a gate that tolerates yesterday's failures is not a gate. So a
+> literal the *data* can move on its own does not fail one test, it **halts every merge until a
+> human edits the number**. Index membership changes several times a year.
 > 
-> **Measured after the fixes** (`research/measurements/2026-10-08-insider-sec-vs-yahoo.py`): SEC record for
-> 502 of 503; officer/director buying at **60** stocks (SEC) vs **54** (Yahoo); sales at 338 vs 318; sale
-> value $17.8bn, **72.4% on 10b5-1 plans**. Rendered from a copy of the run into scratch: main payload
-> byte-identical, 501 stocks with SEC insider data, plan tags and filing links present.
+> Fixed by asserting the invariant rather than the count: the table's `aria-rowcount`, its last
+> rank and its "N stocks" text all agree with the payload's own universe, inside the **495-515**
+> band `universe_history.validate_membership` already enforces. That is stronger than the literal -
+> it catches an off-by-one or a truncated table at *any* universe size.
+> `tests/test_universe_size_is_not_pinned.py` (4 tests) is the tripwire so it cannot come back
+> anywhere else, including a test that the pattern still matches the exact line that failed today -
+> rule 8's "a tripwire wired to a number that cannot stand still is decoration", applied to its
+> opposite: one wired to a number that cannot move.
 > 
-> **For the next session:** read the 02:00 data log for `insider refresh:` (should be ~500 requests plus
-> the day's new filings, well inside 900 s) and `insider trades from SEC Form 4 for N stocks` (N ~ 500), and
-> open one drilldown on the live site to confirm the SEC source line.
+> **2. Owner item, `plan/context-layer.md` queue item 2: the options panel is empty for every stock
+> on every scheduled run.** Item 2 asked for the share of stocks with `_ctx_opt_status == "ok"` and
+> whether that is good enough. Measured, and it is not:
+> 
+> | When | Hour (ET) | n | `ok` | usable |
+> |---|---|---|---|---|
+> | 2026-10-08 owner-run | 21:27 | 503 | 394 | **78.3%** |
+> | 2026-10-09 **02:00 data loop** | 03:00 | 503 | **0** | **0.0%** |
+> ...
 
 ---
 
