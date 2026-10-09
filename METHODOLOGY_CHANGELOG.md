@@ -3182,6 +3182,26 @@ change of its own and is not justified by anything found here.
 
 ---
 
+## 2026-10-09 (owner-run) - The channel-stuffing flag compares one fiscal year on both sides, at Beneish's cut
+
+**Area:** an informational flag (drilldown badge, Excel DataValidation sheet) - not scored
+**Changed:** receivables growth and revenue growth now come from the same two annual statements (it
+was fiscal-year receivables against trailing-twelve-month revenue over usually the prior fiscal year),
+and the flag is Beneish's days-sales-in-receivables index at **1.465 or more** instead of an unsourced
+"receivables growth > revenue growth + 15pp". Bank-like stocks are excluded. The badge states both
+growth rates.
+
+**Evidence / reasoning:** `research/2026-10-09-trap-flags.md` (addendum). Beneish (1999): DSRI mean
+1.465 among earnings manipulators, 1.031 among non-manipulators. The window mismatch is the one
+`revenue_growth` had (changelog, same day).
+**Expected effect:** 60 -> 15 flagged on run `a2d76219dc0a`; no score changes.
+**Validated by:** `tests/test_trap_flags.py` (the DSRI arithmetic on one basis, the 1.465 cut, banks
+excluded).
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit.
+
+---
+
 ## 2026-10-09 (owner-run) - A value trap must be cheap and a growth trap must be growing
 
 **Area:** trap flags (labels, the Top 5's exclusion, the Excel model portfolio's exclusion) - no

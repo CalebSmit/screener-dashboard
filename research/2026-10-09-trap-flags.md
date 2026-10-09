@@ -67,3 +67,28 @@ contradicted by the others - which is the defensibility feature CLAUDE.md rule 7
 
 **Not changed, and why:** the 30%/35% floors are conventions, not estimates; nothing here measures
 whether a different cut is better, and the backtest cannot decide it before 2027-02-11 (rule 5).
+
+## Addendum, same session: the channel-stuffing flag
+
+The drilldown's "Channel Stuffing Risk" badge (60 of 501 stocks) compared **receivables growth**
+between the last two fiscal year-ends with **revenue growth** from trailing-twelve-month revenue
+against, usually, the prior fiscal year - the 12-21 month window that `revenue_growth` used until this
+morning, set beside a 12-month one. Its threshold, receivables growth more than 15 points above revenue
+growth, had no source.
+
+**Measured on run `a2d76219dc0a`:** the two revenue bases differ by a median 4.3 points (90th percentile
+15.6). Put on one basis (both from the same two annual statements), the 15-point rule would flag 93 of
+498 - every one of the 60 plus 33 the mismatch hid - which is 19% of the S&P 500 called a
+channel-stuffing risk.
+
+**Beneish (1999)** measures exactly this with the days-sales-in-receivables index, DSRI = (receivables /
+sales) over the prior year's, and reports a mean of **1.465** among his earnings manipulators against
+**1.031** among non-manipulators. The flag now fires at DSRI >= 1.465, on the annual basis Beneish
+uses, and not for bank-like stocks (receivables mean something else on a bank's balance sheet; the
+Beneish score skips them for the same reason). DSRI quantiles on the run: median 1.026, 90th 1.212,
+95th 1.330.
+
+**Effect:** 60 -> **15** flagged (18 at the cut, 3 of them bank-like). The badge now says what moved -
+"receivables +X% vs revenue +Y% over the fiscal year" - with the source in its tooltip. DSRI is also one
+of the eight Beneish indices already shown in the workings, so the flag and the M-score now read the
+same number.

@@ -95,3 +95,37 @@ def test_the_published_flags_follow_the_rule():
     v_cut, g_cut = rows["valuation_score"].quantile(0.70), rows["growth_score"].quantile(0.70)
     assert (rows.loc[vt, "valuation_score"] >= v_cut - 0.05).all()
     assert (rows.loc[gt, "growth_score"] >= g_cut - 0.05).all()
+
+
+# ---------------------------------------------------------------------------
+# Channel-stuffing flag: Beneish's DSRI on one fiscal-year basis (2026-10-09)
+# ---------------------------------------------------------------------------
+
+def _channel(**kw):
+    from tests.test_metrics import _compute_one, _make_rec
+    rec = _make_rec(_beneish_net_receivables=kw.get("rec", 10e9), _beneish_net_receivables_p=kw.get("rec_p", 8e9),
+                    _beneish_revenue=kw.get("rev", 50e9), _beneish_revenue_p=kw.get("rev_p", 45e9),
+                    # trailing-twelve-month revenue far above the fiscal year: must not be used
+                    totalRevenue=kw.get("ttm", 80e9), totalRevenue_prior=45e9,
+                    sector=kw.get("sector", "Information Technology"))
+    return _compute_one(rec)
+
+
+def test_channel_flag_uses_one_fiscal_year_on_both_sides():
+    r = _channel(rec=15e9, rec_p=8e9, rev=50e9, rev_p=45e9)
+    # receivables +87.5%, fiscal-year revenue +11.1%; DSRI = (15/50)/(8/45) = 1.6875
+    assert r["_dsri"] == pytest.approx(1.6875)
+    assert r["_recv_rev_divergence"] == pytest.approx(0.875 - 5 / 45)
+    assert bool(r["_channel_stuffing_flag"])
+
+
+def test_channel_flag_fires_at_beneishs_manipulator_mean():
+    from factor_engine import DSRI_FLAG
+    assert DSRI_FLAG == 1.465
+    assert not bool(_channel(rec=13e9, rec_p=8e9)["_channel_stuffing_flag"])     # DSRI 1.4625
+    assert bool(_channel(rec=13.05e9, rec_p=8e9)["_channel_stuffing_flag"])      # DSRI 1.468
+
+
+def test_channel_flag_is_not_applied_to_banks():
+    r = _channel(rec=30e9, rec_p=8e9, sector="Financials")
+    assert not bool(r["_channel_stuffing_flag"])

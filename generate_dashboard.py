@@ -1055,6 +1055,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "beneish_flag": bool(row.get("_beneish_flag")) if pd.notna(row.get("_beneish_flag")) else False,
             "channel_stuffing": bool(row.get("_channel_stuffing_flag")) if pd.notna(row.get("_channel_stuffing_flag")) else False,
             "recv_rev_divergence": _safe(row.get("_recv_rev_divergence")),
+            "dsri": _safe(row.get("_dsri")),
+            "recv_g": _safe(row.get("_recv_growth")),
+            "rev_g": _safe(row.get("_rev_growth_fy")),
             "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
             "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
             "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
@@ -3607,10 +3610,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
 
         if (fl.channel_stuffing) {{
-            const div = fl.recv_rev_divergence;
-            badges.push(`<span class="flag-badge flag-warn">
+            const detail = (fl.recv_g !== null && fl.recv_g !== undefined && fl.rev_g !== null && fl.rev_g !== undefined)
+                ? 'receivables ' + (fl.recv_g >= 0 ? '+' : '') + (fl.recv_g * 100).toFixed(0) + '% vs revenue ' + (fl.rev_g >= 0 ? '+' : '') + (fl.rev_g * 100).toFixed(0) + '% over the fiscal year'
+                : (fl.dsri ? 'receivables-to-revenue index ' + fl.dsri.toFixed(2) : '');
+            badges.push(`<span class="flag-badge flag-warn" title="Beneish's days-sales-in-receivables index is 1.465 or more: receivables rose that much faster than revenue over the last fiscal year. 1.465 was the average among companies later found to have manipulated earnings (Beneish 1999).">
                 <span class="flag-icon">\u26a0\ufe0f</span> Channel Stuffing Risk
-                ${{div !== null ? '<span class="flag-detail">(' + (div * 100).toFixed(0) + '% divergence)</span>' : ''}}
+                ${{detail ? '<span class="flag-detail">(' + detail + ')</span>' : ''}}
             </span>`);
         }}
 

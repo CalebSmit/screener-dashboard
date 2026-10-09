@@ -1945,27 +1945,37 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         except (KeyError, TypeError, ValueError, ZeroDivisionError) as e:
             warnings.warn(f"{ticker}: quality metrics failed: {type(e).__name__}: {e}")
 
-        # -- Receivables-to-revenue growth divergence (channel-stuffing flag) --
-        # If receivables are growing significantly faster than revenue, it may
-        # indicate aggressive revenue recognition or channel stuffing.
+        # -- Receivables outgrowing revenue (channel-stuffing flag) --
+        # If receivables grow much faster than revenue, it may indicate aggressive revenue
+        # recognition or channel stuffing. Both sides come from the same two annual statements
+        # (fiscal year-end receivables, fiscal-year revenue); until 2026-10-09 revenue was the
+        # trailing twelve months against usually the prior fiscal year - a 12-21 month window
+        # beside a 12-month one. The flag is Beneish's (1999) days-sales-in-receivables index,
+        # DSRI = (receivables / revenue) over the prior year's: its mean was 1.465 among his
+        # earnings manipulators and 1.031 among the rest, so the flag fires at 1.465. It replaced
+        # an unsourced "receivables growth more than 15pp above revenue growth" rule. Not for
+        # bank-like stocks (receivables mean something else on a bank's balance sheet - the
+        # reason Beneish skips them too). research/2026-10-09-trap-flags.md
         try:
             _recv_t = d.get("_beneish_net_receivables", np.nan)
             _recv_p = d.get("_beneish_net_receivables_p", np.nan)
-            _rev_t = d.get("totalRevenue", np.nan)
-            _rev_p = d.get("totalRevenue_prior", np.nan)
-            if (pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
-                    and pd.notna(_rev_t) and pd.notna(_rev_p) and _rev_p > 0):
+            _rev_t = d.get("_beneish_revenue", np.nan)
+            _rev_p = d.get("_beneish_revenue_p", np.nan)
+            if (not _is_bank and pd.notna(_recv_t) and pd.notna(_recv_p) and _recv_p > 0
+                    and pd.notna(_rev_t) and _rev_t > 0 and pd.notna(_rev_p) and _rev_p > 0):
                 _recv_growth = (_recv_t / _recv_p) - 1
                 _rev_growth = (_rev_t / _rev_p) - 1
-                _divergence = _recv_growth - _rev_growth
-                rec["_recv_rev_divergence"] = _divergence
-                # Flag if receivables growth exceeds revenue growth by >15pp
-                rec["_channel_stuffing_flag"] = _divergence > 0.15
+                rec["_recv_rev_divergence"] = _recv_growth - _rev_growth
+                rec["_recv_growth"], rec["_rev_growth_fy"] = _recv_growth, _rev_growth
+                rec["_dsri"] = (_recv_t / _rev_t) / (_recv_p / _rev_p)
+                rec["_channel_stuffing_flag"] = bool(rec["_dsri"] >= DSRI_FLAG)
             else:
                 rec["_recv_rev_divergence"] = np.nan
+                rec["_dsri"] = np.nan
                 rec["_channel_stuffing_flag"] = False
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
             rec["_recv_rev_divergence"] = np.nan
+            rec["_dsri"] = np.nan
             rec["_channel_stuffing_flag"] = False
 
         # -- Growth metrics (10-12) --
@@ -3710,6 +3720,10 @@ def compute_factor_correlation(df: pd.DataFrame) -> pd.DataFrame:
 
 
 _FINANCIAL_SECTORS = {"Financials", "Financial Services", "Financial"}
+
+# Beneish (1999): mean days-sales-in-receivables index among the earnings manipulators in his
+# sample (1.031 among non-manipulators). The channel-stuffing flag fires at or above it.
+DSRI_FLAG = 1.465
 
 # Industries within Financials that should use bank-specific metrics.
 # These companies have balance sheets where deposits are liabilities,
