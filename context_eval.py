@@ -47,6 +47,8 @@ SIGNALS = {
                            "stocks whose short average sat further above the long one did better"),
     "return_1m": ("last month's price return", "last month's winners kept winning (negative = reversal)"),
     "return_5d": ("last week's price return", "last week's winners kept winning (negative = reversal)"),
+    "return_1m_vs_sector": ("last month's return minus its sector's median (Da, Liu & Schaumburg 2014)",
+                            "sector-relative winners kept winning (negative = industry-relative reversal)"),
     "return_3m": ("last three months' price return", "three-month winners kept winning"),
     "position_in_52w_range": ("(close - 52-week low) / (52-week high - low)", "stocks nearer their 52-week high did better"),
     "volume_ratio": ("20-day / 3-month average volume", "heavier recent volume preceded better returns"),
@@ -74,6 +76,11 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
     out["ma_distance_21_200"] = (s21 / _num(log.get("_ctx_sma200")) - 1).values
     out["return_1m"] = _num(log.get("_ctx_ret_1m")).values
     out["return_5d"] = _num(log.get("_ctx_ret_5d")).values
+    r1 = _num(log.get("_ctx_ret_1m"))
+    if "Sector" in log.columns:
+        out["return_1m_vs_sector"] = (r1 - r1.groupby(log["Sector"]).transform("median")).values
+    else:
+        out["return_1m_vs_sector"] = np.nan
     out["return_3m"] = _num(log.get("_ctx_ret_3m")).values
     hi, lo = _num(log.get("_ctx_high_52w")), _num(log.get("_ctx_low_52w"))
     rng = (hi - lo).where((hi - lo) > 0)

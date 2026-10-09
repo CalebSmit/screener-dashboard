@@ -290,7 +290,8 @@ def write_context_log(run_dir, run_day: str) -> int:
     if not raw_path.exists():
         return 0                      # a run that did not fetch has nothing new to record
     raw = pd.read_parquet(raw_path)
-    keep = ["Ticker"] + [c for c in raw.columns if c.startswith("_ctx_")
+    # Sector rides along so the evaluation can form sector-relative signals (2026-10-09).
+    keep = ["Ticker"] + (["Sector"] if "Sector" in raw.columns else []) + [c for c in raw.columns if c.startswith("_ctx_")
                          and c not in ("_ctx_weekly", "_ctx_insider")]
     log = raw[keep].copy()
     if "_ctx_insider" in raw.columns:

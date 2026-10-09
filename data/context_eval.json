@@ -22,6 +22,14 @@
    "mean_ic_all_days": null,
    "meets_gate": false
   },
+  "ma_distance_21_200": {
+   "definition": "21-day average / 200-day average - 1 (Avramov, Kaplanski & Subrahmanyam 2021)",
+   "positive_ic_means": "stocks whose short average sat further above the long one did better",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
   "return_1m": {
    "definition": "last month's price return",
    "positive_ic_means": "last month's winners kept winning (negative = reversal)",
@@ -33,6 +41,14 @@
   "return_5d": {
    "definition": "last week's price return",
    "positive_ic_means": "last week's winners kept winning (negative = reversal)",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "return_1m_vs_sector": {
+   "definition": "last month's return minus its sector's median (Da, Liu & Schaumburg 2014)",
+   "positive_ic_means": "sector-relative winners kept winning (negative = industry-relative reversal)",
    "daily_observations": 0,
    "effective_observations": 0,
    "mean_ic_all_days": null,
