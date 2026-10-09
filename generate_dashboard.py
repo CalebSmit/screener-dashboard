@@ -2338,10 +2338,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     (function initProfiles() {{
         const P = D.profiles, sel = document.getElementById('filter-profile');
         if (!sel) return;
-        if (!P || !P.list || P.list.length < 2) {{ sel.closest('.filter-group').hidden = true; return; }}
+        if (!P || !P.list || P.list.length < 2) {{
+            const grp = sel.closest ? sel.closest('.filter-group') : null;
+            if (grp) grp.hidden = true;
+            return;
+        }}
         sel.innerHTML = P.list.map(x => '<option value="' + x.key + '">' + escapeHtml(x.name) + (x.published ? ' (published)' : '') + '</option>').join('');
         sel.value = 'balanced';
-        sel.addEventListener('change', () => setProfile(sel.value));
+        if (sel.addEventListener) sel.addEventListener('change', () => setProfile(sel.value));
     }})();
 
     // Column tooltips state the weights the run actually used, read from the run's own

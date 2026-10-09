@@ -3161,21 +3161,44 @@ def neutralize_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 # =========================================================================
 # I. Composite score (SS3.2)
 # =========================================================================
-def applicable_coverage(df: pd.DataFrame):
-    """Per stock: (metrics present, metrics applicable to that stock's type).
+def weighted_metric_sets(cfg: dict) -> tuple[set, set]:
+    """(metrics with weight for most stocks, metrics with weight for bank-like stocks).
 
-    Bank-only metrics apply to banks, the non-bank-only set to everyone else, the
-    rest to all. This is the coverage the composite's discount reads, and it is
-    published as-is: the page used to show "N of 18" from a hard-coded list while
-    the discount used 35 (bank-like) or 41, so 62 stocks looked under-covered and
-    only 3 were actually discounted (``plan/calculation-transparency.md``).
+    Read from ``metric_weight_profiles`` - the one place weights are resolved - so a
+    metric counts exactly when it can move a score. A category with no bank table
+    scores banks on the generic weights, as ``compute_category_scores`` does."""
+    gen, bank = set(), set()
+    for cat in CAT_METRICS:
+        prof = metric_weight_profiles(cfg, cat)
+        g = {m for m, w in prof["generic"].items() if w > 0}
+        gen |= g
+        bank |= ({m for m, w in prof["bank"].items() if w > 0} if "bank" in prof else g)
+    return gen, bank
+
+
+def applicable_coverage(df: pd.DataFrame, cfg: dict | None = None):
+    """Per stock: (metrics present, metrics that apply to it).
+
+    **Since 2026-10-09 "apply" means "carry weight in the table this stock is scored
+    with"** (``weighted_metric_sets``). Before, it was every entry in ``METRIC_COLS``
+    less the bank-only or non-bank-only ones - which counted 12 metrics that carry no
+    weight at all (candidates, and Sharpe, Sortino, PEG, D/E), so a stock could be
+    discounted for missing data that never enters its score (Loews, 2026-10-09), and
+    adding a weight-0 candidate moved composites. Without ``cfg`` the old rule applies.
+
+    This is the coverage the composite's discount reads, published as-is (the page
+    used to show "N of 18" from a hard-coded list; ``plan/calculation-transparency.md``).
     """
     all_metrics = [c for c in METRIC_COLS if c in df.columns]
     is_bank = df.get("_is_bank_like", pd.Series(False, index=df.index)).fillna(False).astype(bool)
     present = pd.Series(0, index=df.index)
     applicable = pd.Series(0, index=df.index)
+    sets = weighted_metric_sets(cfg) if (cfg and cfg.get("metric_weights")) else None
     for m in all_metrics:
-        if m in _BANK_ONLY_METRICS:
+        if sets is not None:
+            gen, bank = sets
+            applies = pd.Series(np.where(is_bank, m in bank, m in gen), index=df.index)
+        elif m in _BANK_ONLY_METRICS:
             applies = is_bank
         elif m in _NONBANK_ONLY_METRICS:
             applies = ~is_bank
@@ -3221,7 +3244,7 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     cov_cfg = cfg.get("data_quality", {}).get("coverage_discount", {})
     # Always recorded, whether or not the discount is enabled, so the page can
     # state the coverage figure and the discount actually applied.
-    _cov_present, _cov_applicable = applicable_coverage(df)
+    _cov_present, _cov_applicable = applicable_coverage(df, cfg)
     df["_cov_present"] = _cov_present
     df["_cov_applicable"] = _cov_applicable
     df["_cov_discount"] = 0.0

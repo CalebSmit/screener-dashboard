@@ -304,7 +304,8 @@ CLAIMS: tuple[Claim, ...] = (
             "3 were discounted. The engine now emits applicable coverage "
             "(`factor_engine.applicable_coverage`) and the page publishes it as "
             "`stock_detail[t].cov`; `metric_count`/`metric_total` carry the same two "
-            "numbers."
+            "numbers. Since 2026-10-09 the count is of metrics that carry weight in the "
+            "stock's table (`factor_engine.weighted_metric_sets`), not every registered one."
         ),
     ),
     Claim(

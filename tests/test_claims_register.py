@@ -295,11 +295,16 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     the stock (35 bank-like, 41 otherwise), so a bank read 12/18 = 67% and was not
     discounted at all. Now both come from `factor_engine.applicable_coverage`.
     """
-    from factor_engine import (METRIC_COLS, _BANK_ONLY_METRICS,
-                               _NONBANK_ONLY_METRICS)
+    # Since 2026-10-09: metrics that carry weight in the stock's table
+    # (factor_engine.weighted_metric_sets), read from the run's own config.
+    import yaml
+    from factor_engine import weighted_metric_sets
 
-    bank = len([m for m in METRIC_COLS if m not in _NONBANK_ONLY_METRICS])
-    other = len([m for m in METRIC_COLS if m not in _BANK_ONLY_METRICS])
+    run = max((d for d in (ROOT / "runs").iterdir() if (d / "config.yaml").exists()
+               and (d / "05_final_scored.parquet").exists()),
+              key=lambda d: (d / "05_final_scored.parquet").stat().st_mtime)
+    gen, bnk = weighted_metric_sets(yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8")))
+    bank, other = len(bnk), len(gen)
 
     stocks = payload["stock_detail"].values()
     assert all(s.get("cov") for s in stocks), "every stock must publish its coverage"

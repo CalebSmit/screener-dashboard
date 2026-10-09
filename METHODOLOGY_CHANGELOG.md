@@ -3203,3 +3203,34 @@ sensitivity defensibility feature in a form a student can use.
 composites and ranks; `tests/test_investor_profiles.py`.
 **Applied by:** owner-run session, 2026-10-09.
 **Rollback:** revert the commit.
+
+---
+
+## 2026-10-09 (owner-run) - The coverage discount counts only metrics that carry weight
+
+**Area:** composite (coverage discount), published coverage figure
+**Changed:** `applicable_coverage` - the coverage the composite's discount reads and the drilldown's
+"rests on N of M metrics" states - counted every entry in `METRIC_COLS` less the bank-only or
+non-bank-only ones (41 / 35). It now counts the metrics that **carry weight in the table the stock
+is scored with**, read from `metric_weight_profiles` (`weighted_metric_sets`): **28** for most
+stocks and **25** for bank-like ones today. Threshold (80%) and rate (15%) unchanged.
+
+**Evidence:** a documented defect. Twelve registered metrics carry no weight anywhere (eight
+candidates, plus Sharpe, Sortino, PEG and debt/equity), yet a stock missing them counted as less
+covered - so it could be discounted for data that never enters its score, and adding a weight-0
+candidate (earnings variability, this morning) moved composites. The discount's purpose, stated in
+`config.yaml` and on the methodology page, is to temper a score that **rests on** thin data.
+
+**Expected effect** (re-scored on run `a2d76219dc0a`): Loews (L) is no longer discounted (it was,
+at 0.43%, for missing unweighted metrics); Fox (FOX) is newly discounted 0.10% (79.3% of its
+weighted metrics present); FDXF's discount rises 2.12% -> 2.69%. No other stock is below 80% either
+way; median coverage reads 100% instead of 97.6%. It also makes the earnings-variability entry's
+coverage side effect (Loews/FDXF) moot: a weight-0 metric can no longer move a composite.
+**Validated by:** `tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage`
+now derives the expected counts from the run's own weights; the build's score reproduction reads
+the published coverage.
+**Not changed:** the separate *coverage filter* that excludes a stock below
+`min_data_coverage_pct` still counts registered metrics; aligning it would change who is in the
+universe and needs its own measurement.
+**Applied by:** owner-run session, 2026-10-09.
+**Rollback:** revert the commit (restores the 41 / 35 count).
