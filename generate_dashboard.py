@@ -9064,13 +9064,13 @@ def _js_context() -> str:
             h += '<p class="rp-empty">' + (RP.scope === 'held' ? 'None of your saved holdings reports within ' + RP.days + ' days of this run.' : 'No scored company reports within ' + RP.days + ' days of this run.') + '</p>';
         } else {
             h += '<div class="rp-wrap"><table class="rp-table"><thead><tr><th>Company</th><th class="num">Rank</th><th class="num">Score</th>' +
-                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th>Insiders, 90 days</th></tr></thead><tbody>';
+                 '<th class="num" title="At-the-money straddle on the first expiry after the report, divided by the price">Options imply</th><th class="num" title="The latest reported quarter: actual EPS against the estimate, as a share of the estimate">Last quarter</th><th>Insiders, 90 days</th></tr></thead><tbody>';
             let day = null;
             rows.forEach(x => {
                 if (x.s.earn.d !== day) {
                     day = x.s.earn.d;
                     const n = rows.filter(y => y.s.earn.d === day).length;
-                    h += '<tr class="rp-day"><td colspan="5"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
+                    h += '<tr class="rp-day"><td colspan="6"><span class="rp-date">' + escapeHtml(cDate(day)) + '</span><span class="rp-after">' +
                          (x.d === 0 ? 'the day of this run' : x.d + ' day' + (x.d === 1 ? '' : 's') + ' after this run') + ' · ' + n + ' compan' + (n === 1 ? 'y' : 'ies') + '</span></td></tr>';
                 }
                 const c = x.s.ctx || {};
@@ -9079,16 +9079,20 @@ def _js_context() -> str:
                 else if ((c.os === 'ok' || c.os === 'partial') && c.oe && c.om !== undefined) mv = '&plusmn;' + cPlain(c.om);
                 const ins = c.ins;
                 const insTxt = (ins && ins.buy_n) ? '<span class="rp-ins">' + ins.buy_people + ' bought</span>' : '';
+                // The last reported quarter's surprise, from the four quarters behind the surprise
+                // metrics (eq4: [date, actual, estimate, surprise]) - context for the next report.
+                const lq = (x.s.eq4 || []).filter(q => q[3] !== null && q[3] !== undefined).slice(-1)[0];
+                const lqTxt = lq ? (lq[3] >= 0 ? '+' : '&minus;') + Math.abs(lq[3] * 100).toFixed(1) + '%' : '<span class="rp-none">&ndash;</span>';
                 h += '<tr class="rp-row" tabindex="0" onclick="openStockDetail(\'' + x.r.Ticker + '\')" onkeydown="if(event.key===\'Enter\')openStockDetail(\'' + x.r.Ticker + '\')">' +
                      '<td><span class="rp-tk">' + escapeHtml(x.r.Ticker) + '</span><span class="rp-co">' + escapeHtml(x.r.Company || '') + '</span>' +
                      (x.s.earn.est ? '<span class="rp-tag" title="The data provider\'s estimate, not a date the company has announced">est. date</span>' : '') +
                      (x.held ? '<span class="rp-tag rp-held">held</span>' : '') + '</td>' +
-                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td>' + insTxt + '</td></tr>';
+                     '<td class="num">' + x.r.Rank + '</td><td class="num">' + Number(x.r.Composite).toFixed(1) + '</td><td class="num">' + mv + '</td><td class="num" title="' + (lq ? 'Quarter ended ' + lq[0] : '') + '">' + lqTxt + '</td><td>' + insTxt + '</td></tr>';
             });
             h += '</tbody></table></div>';
         }
         h += '<p class="rp-note">Ordered by date, then by rank - never by the size of the expected move. A report is when the inputs to Valuation, Quality and Growth are actually replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
-             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Insiders</b>: people who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
+             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Last quarter</b>: the latest reported quarter&rsquo;s EPS against the analysts&rsquo; estimate - a beat or miss, not a forecast of the next one. <b>Insiders</b>: officers and directors who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
         host.innerHTML = h;
     }
     (function wrapReporting() {
@@ -9233,7 +9237,7 @@ def _css_context() -> str:
         .rp-note { margin-top: 14px; font-size: 12.5px; line-height: 1.55; color: var(--text-muted); max-width: 72ch; }
         @media (max-width: 640px) {
             .rp-co { display: block; font-size: 12px; }
-            .rp-table th:nth-child(5), .rp-table td:nth-child(5) { display: none; }
+            .rp-table th:nth-child(5), .rp-table td:nth-child(5), .rp-table th:nth-child(6), .rp-table td:nth-child(6) { display: none; }
             .rp-table td, .rp-table th { padding-left: 6px; padding-right: 6px; }
         }
         .ctx-plan { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10.5px; font-weight: 500; letter-spacing: .02em; color: var(--text-muted); vertical-align: 1px; }
