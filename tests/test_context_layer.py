@@ -577,3 +577,24 @@ def test_context_pass_stops_when_rate_limited(monkeypatch):
     raw = [{"Ticker": f"T{i}", "price_latest": 1} for i in range(40)]
     st = cf.enrich(raw, budget_seconds=60, log=lambda *a: None, options_live=True)
     assert st["stopped"] == "rate limited" and st["done"] == 0
+
+
+def test_a_thin_cached_price_column_is_downloaded_again(tmp_path, monkeypatch):
+    """A column that exists is not a column that is complete: a ticker with closes for under
+    80% of the window's trading days is fetched again from the start (2026-10-09, PSKY)."""
+    monkeypatch.setattr(tr, "PRICE_CACHE", tmp_path / "prices.parquet")
+    idx = pd.bdate_range("2026-02-02", "2026-04-30")
+    cached = pd.DataFrame({"AAA": 1.0, "BBB": np.nan}, index=idx)
+    cached.loc[idx[-5:], "BBB"] = 2.0                         # 5 of ~64 days
+    cached.to_parquet(tr.PRICE_CACHE)
+    calls = []
+
+    def fake(tks, s, e):
+        calls.append((tuple(tks), s))
+        rng = pd.bdate_range(s, e)
+        return pd.DataFrame({t: 3.0 for t in tks}, index=rng)
+
+    out = tr.load_prices(["AAA", "BBB"], date(2026, 2, 2), date(2026, 4, 30), download=fake)
+    assert any(t == ("BBB",) and s == date(2026, 2, 2) for t, s in calls)   # repaired from the start
+    assert out.loc[out.index >= "2026-02-02", "BBB"].notna().mean() > 0.95
+    assert not any(t == ("AAA",) for t, _ in calls[1:])                    # complete columns left alone
