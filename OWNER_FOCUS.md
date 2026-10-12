@@ -45,6 +45,21 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-12 - queue item 2 is CLOSED, and closing it caught a false statement on the live site.**
+    Today's 02:00 run was the first scheduled one after a 20:00 refresh: options `ok` **397 of 503**,
+    `partial` 59, `quotes-closed` 47, against **0 of 503** before the fix. The after-close cache works.
+    But the quotes were stamped **Saturday 2026-10-10** and the page told readers of **455 of 501**
+    stocks "Quotes are the close of Oct 10" - the refresh runs at 21:00 ET, already the next UTC day,
+    and it stamped the UTC date, so every refresh had named the session *after* its quotes. Fixed
+    (`market_session_date`, plus one `is_session_date` predicate shared by the cache and the
+    generator), the cache and the run's copy repaired, and the site republished the same session:
+    `dashboard_data.js` **byte-identical**, `dashboard_context.js` 455 changes, **all of them the
+    date**, and no panel lost. **Queue item 4 advanced:** the options panel's per-signal note is done
+    (`research/2026-10-12-option-implied-signals.md`) and concludes the option signals are **not**
+    candidates for the score - every supported one decays faster than a monthly review cadence - with
+    three page-sentence corrections left open in `plan/context-layer.md` item 4.
+    **Next: item 4's remaining per-signal notes** (the macro backdrop and the track record have none),
+    then item 6, track-record hardening.
   - **2026-10-09 (owner-run, afternoon) - a new signal, and the evaluation's sector input repaired.**
     "Against its own five years" (each stock's earnings and FCF yield against its past 60 month-ends,
     from SEC filings; `valuation_history.py`) joined the panel and the context log as two signals

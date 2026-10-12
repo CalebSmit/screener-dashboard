@@ -681,8 +681,26 @@ one weekly 20:00 trigger, no logon trigger; the loops still PT3M / PT20M). Smoke
 08:46 CT: quotes live, cache written. **Item 5, the evaluation harness, is built**
 (`context_eval.py`, one line in the morning brief; first one-month window closes 2026-11-07).
 Item 4 step one (every research sentence on the panel checked against its source) is done -
-`research/2026-10-09-context-panel-claims.md`. Next: re-measure the options `ok` share from the
-first 02:00 log after a 20:00 refresh, then item 4's per-signal notes.
+`research/2026-10-09-context-panel-claims.md`.
+
+**Item 2 is CLOSED 2026-10-12.** The first 02:00 run after a 20:00 refresh gave options `ok` for
+**397 of 503** (plus 59 `partial`), against 0 of 503 before the fix. Closing it caught a live false
+statement: the refresh stamped the UTC date at 21:00 ET, so every stamp named the session *after* its
+quotes, and the page told readers of **455 of 501** stocks that the quotes closed on **Saturday
+2026-10-10**. Fixed by `options_cache.market_session_date`, with `is_session_date` as **one predicate
+shared by the cache and the generator**. The standing lesson: `context.expected_move` was a registered
+claim whose checks proved only that *a* date was carried through - **a claim whose check tests the
+plumbing instead of the assertion is an unchecked claim.**
+
+**The options panel's per-signal note is done** (`research/2026-10-12-option-implied-signals.md`) and
+settles a question the plan left open: **the option-implied signals are not candidates for the score,
+as a finding rather than a holding position** - every supported one decays faster than a monthly
+review cadence, which is also why index providers keep option-implied inputs out of factor selection
+while derivatives desks use them daily. Read a future `1m` record from `context_eval.py` with that
+prior. Three page-sentence corrections are left open in `plan/context-layer.md` item 4 (the skew
+effect size is attributed to a construction the page does not compute; the post-publication decay is
+omitted; put/call open interest is a bare *level* where the evidence supports the *change*).
+Next: item 4's remaining per-signal notes (macro backdrop, track record), then item 6.
 
 **0.12. Metric audit residuals - research, do not patch (opened 2026-10-09, age 0 days).**
 Two audit passes over every weighted metric fixed nine defects the same day
