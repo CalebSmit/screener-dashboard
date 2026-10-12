@@ -25,15 +25,20 @@ def _rec(fy1=5.0, fy2=6.0, quarters=(1.0, 1.0, 1.0, 1.0), months_left=6.0, **kw)
 
 def test_the_twelve_month_blend():
     r = _compute_one(_rec(fy1=5.0, fy2=6.0, quarters=(1.0, 1.0, 1.0, 1.0), months_left=6.0))
-    # F12 = (6 x 5 + 6 x 6) / 12 = 5.5 against B12 = 4.0
+    # F12 = (6 x 5 + 6 x 6) / 12 = 5.5 against B12 = 4.0. Months left are whole days from
+    # midnight / 30.4375, so "six months from now" is 6 give or take a day by the time of day
+    # the suite runs - a day moves F12 by (6 - 5) / 12 / 30.4 = 0.003 (this test failed at
+    # 23:25 on 2026-10-11 with a tolerance tighter than that).
     assert r["_feg_basis"] == "msci_12m"
-    assert r["_feg_f12"] == pytest.approx(5.5, rel=1e-3)
-    assert r["forward_eps_growth"] == pytest.approx((5.5 - 4.0) / 4.0, rel=1e-3)
+    assert r["_feg_m"] == pytest.approx(6.0, abs=2 / 30.4375)
+    assert r["_feg_f12"] == pytest.approx((r["_feg_m"] * 5.0 + (12 - r["_feg_m"]) * 6.0) / 12)
+    assert r["_feg_f12"] == pytest.approx(5.5, abs=0.01)
+    assert r["forward_eps_growth"] == pytest.approx((r["_feg_f12"] - 4.0) / 4.0)
 
 
 def test_months_left_weights_the_current_year():
     near_end = _compute_one(_rec(fy1=5.0, fy2=6.0, months_left=1.0))
-    assert near_end["_feg_f12"] == pytest.approx((1 * 5 + 11 * 6) / 12, rel=1e-2)
+    assert near_end["_feg_f12"] == pytest.approx((1 * 5 + 11 * 6) / 12, abs=0.01)
 
 
 def test_a_small_base_uses_the_one_dollar_floor():
