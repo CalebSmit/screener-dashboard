@@ -1,87 +1,66 @@
-# Morning Brief - Friday 09 October 2026, 06:37
+# Morning Brief - Monday 12 October 2026, 02:20
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Code session** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-10-09T02:00:03.566643 |
+| Code session (6 AM) | **completed** - last ran 2 days ago |
+| Dashboard data from | 2026-10-12T02:00:03.296811 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | EXPE, HST, APA, BBY, DLTR |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (26 rows, but overlapping windows are not independent; 75 rows across all horizons), newest 2026-10-02 |
+| Top 5 | EXPE, HST, APA, CF, BMY |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (28 rows, but overlapping windows are not independent; 78 rows across all horizons), newest 2026-10-05 |
+| Context signals | Context signals: 3 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
+| Context coverage | options usable 455/501 (46 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
 ## What changed in the repo
 
-- `3a14c2a log: 2026-10-09 - the fix, the evidence, and the one step out of reach`
-- `ef4b8ab options: say what actually happened, and record the outstanding step`
-- `1df4d0f options: fetch quotes when they exist, read them when they do not`
-- `07dcacf log: 2026-10-09 health, the red ship gate, and the 0.0% options measurement`
-- `ed40cb5 tests: stop pinning the universe size, which blocked the ship gate`
-- `8baad0f brief: data run 2026-10-09`
-- `e8991bc data: screener run 2026-10-09 - 501 scored, top: EXPE HST APA BBY DLTR`
-- `b8039f9 insiders: count only the company's own filings, keep 10%+ holders apart, one trade per filing-day`
-- `48066b2 Reporting Soon, and insider trades from the SEC's own Form 4 filings`
-- `88fa678 context layer: ship it in its own file, loaded after the page is usable; context pass measured`
-- `db38cf3 context layer, first draft: technicals, options, insider trades, market backdrop and the ranking's track record - shown beside the score, never in it`
-- `28237af brief: code session 2026-10-08`
-- `bbe5758 log: 2026-10-08 session entry - gate results`
-- `576951b fix: factor_vol_history keeps one row per date; clearer drawdown input labels; docs`
-- `1077e83 wip: rescore with the drawdown fix; index.html is the dashboard, not a redirect stub`
+- `c620c4b data: screener run 2026-10-12 - 501 scored, top: EXPE HST APA CF BMY`
+- `7cbc8e7 log: PR #1 gated on the PC and merged; a time-of-day test fixed`
+- `b7cda7f test: forward EPS blend check no longer depends on the time of day the suite runs`
 
 ## The session's own account
 
-> 2026-10-09 - HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?
+> 2026-10-11 (late, owner-run on the PC) - PR #1 gated and merged; one time-of-day test fixed
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-08_060001.log`
-> ends "shipped to main", tagged `good/2026-10-08`. Data loop published? **yes** -
-> `logs/datarun-2026-10-09_020001.log` ends "Data loop complete", HEALTH: PASS, 501 scored.
-> Evidence base at `1m` = **26 rows, newest 2026-09-09 (30 days ago, bound 40), 4 effective**
-> (`_n_observations`; the whole file reads 75 rows / 2026-10-02 and is not the number to quote).
-> Priority 0 - `allow_auto_apply` still `false`, 4 effective against a gate of 8, still top of the
-> queue. Top open roadmap item: **0.9, the four methodology questions the transparency build
-> surfaced - age 2 days** (opened 2026-10-07); 0.10 and 0.11 are the same age.
-> **Tests:** before **1936 passed, 3 failed**; after - see the end of this entry.
-> **Owner queue / rotation:** took the open owner item (`OWNER_FOCUS.md` 2026-10-08, the context
-> layer, brief `plan/context-layer.md`) - but a **failing ship gate outranked it** and came first.
+> **Health (rule 8):** last code session - `logs/nightly-2026-10-09_060001.log`, shipped. Data loop -
+> `logs/datarun-2026-10-09_020001.log`, complete, HEALTH: PASS (no weekend runs; next 2026-10-12 02:00).
+> Evidence base at `1m`: **26 rows, newest 2026-09-09 (32 days, bound 40), 4 effective**. Priority 0
+> unchanged (`allow_auto_apply` false). Top open roadmap item: **0.12's last residual, the momentum panic
+> rule** (opened 2026-10-09, age 2 days), then **3, backtest v2 step 3** (age 10 days).
 > 
-> ### Did
+> **PR #1** (`tests/test_bot_payload_contract.py`, the CLAUDE.md "Downstream consumer" note and the entry
+> above) was built in a cloud container that could not run gates 1 and 2. All four were run here on the PR
+> head: **gate 1 2,113 passed / 0 failed; gate 2 `--dry-run` exit 0; gate 3 `index.html` 542 KB and both
+> payload files pass `node --check`; gate 4 clean.** Merged with a merge commit (`951570d`), tagged
+> `good/2026-10-11-owner`. No methodology change, no generated file changed.
 > 
-> **1. The ship gate was red at 06:00, and would have blocked tonight's merge whatever I shipped.**
-> Baseline was 3 failed / 1936 passed, all three in `tests/test_dashboard_browser.py`. Cause: the
-> 02:00 run scored **501** stocks rather than the 502 of the days before - an ordinary S&P 500
-> membership change and a correct run - and three tests asserted the literals `502` / `503` against
-> the published payload.
+> **One thing gate 1 found that was not the PR's:** `tests/test_forward_eps_growth.py::test_the_twelve_month_blend`
+> failed on `main` too. The test (written 2026-10-09) builds a fiscal-year end "six months from now" while
+> the engine counts whole days from midnight, so months-left was 6 give or take a day by the time of day
+> the suite ran, and the tolerance was tighter than a day of the blend. It passed every daytime run and
+> failed at 23:25. Test-only fix: the arithmetic is checked against the engine's own published months-left.
+> The engine is unchanged.
 > 
-> That is worse than three red tests. The runner's gate 1 is `pytest tests/ test_screener.py -q`
-> and it merges only on **exit code 0**, with no baseline (`scripts/nightly-screener.ps1`, "Gate 1:
-> tests") - deliberately, because a gate that tolerates yesterday's failures is not a gate. So a
-> literal the *data* can move on its own does not fail one test, it **halts every merge until a
-> human edits the number**. Index membership changes several times a year.
-> 
-> Fixed by asserting the invariant rather than the count: the table's `aria-rowcount`, its last
-> rank and its "N stocks" text all agree with the payload's own universe, inside the **495-515**
-> band `universe_history.validate_membership` already enforces. That is stronger than the literal -
-> it catches an off-by-one or a truncated table at *any* universe size.
-> `tests/test_universe_size_is_not_pinned.py` (4 tests) is the tripwire so it cannot come back
-> anywhere else, including a test that the pattern still matches the exact line that failed today -
-> rule 8's "a tripwire wired to a number that cannot stand still is decoration", applied to its
-> opposite: one wired to a number that cannot move.
-> 
-> **2. Owner item, `plan/context-layer.md` queue item 2: the options panel is empty for every stock
-> on every scheduled run.** Item 2 asked for the share of stocks with `_ctx_opt_status == "ok"` and
-> whether that is good enough. Measured, and it is not:
-> 
-> | When | Hour (ET) | n | `ok` | usable |
-> |---|---|---|---|---|
-> | 2026-10-08 owner-run | 21:27 | 503 | 394 | **78.3%** |
-> | 2026-10-09 **02:00 data loop** | 03:00 | 503 | **0** | **0.0%** |
-> ...
+> **Standing consequence of the merge:** the seven fields the bot reads (`kpis.run_timestamp`;
+> `table_data[].Ticker/Rank/Composite/Sector/Value_Trap_Flag/Growth_Trap_Flag`; `stock_detail[t].price`)
+> must not be renamed or dropped. A change that has to updates `bot/signals.py` and its tests in
+> `CalebSmit/screener-bot` in the same piece of work. Nightly sessions here do not otherwise work on the bot.
 
 ---
 
