@@ -9249,3 +9249,29 @@ removed (`test_claims_register` ... `discount_coverage`, two in `test_investor_p
 `FileNotFoundError: .../runs` - the gitignored run directories exist only on the PC. Gate 2 fails
 here on Yahoo being unreachable from the container. Gate 3 untouched (no generated file changed).
 The runner re-runs all four on the PC before merging.
+
+## 2026-10-11 (late, owner-run on the PC) - PR #1 gated and merged; one time-of-day test fixed
+
+**Health (rule 8):** last code session - `logs/nightly-2026-10-09_060001.log`, shipped. Data loop -
+`logs/datarun-2026-10-09_020001.log`, complete, HEALTH: PASS (no weekend runs; next 2026-10-12 02:00).
+Evidence base at `1m`: **26 rows, newest 2026-09-09 (32 days, bound 40), 4 effective**. Priority 0
+unchanged (`allow_auto_apply` false). Top open roadmap item: **0.12's last residual, the momentum panic
+rule** (opened 2026-10-09, age 2 days), then **3, backtest v2 step 3** (age 10 days).
+
+**PR #1** (`tests/test_bot_payload_contract.py`, the CLAUDE.md "Downstream consumer" note and the entry
+above) was built in a cloud container that could not run gates 1 and 2. All four were run here on the PR
+head: **gate 1 2,113 passed / 0 failed; gate 2 `--dry-run` exit 0; gate 3 `index.html` 542 KB and both
+payload files pass `node --check`; gate 4 clean.** Merged with a merge commit (`951570d`), tagged
+`good/2026-10-11-owner`. No methodology change, no generated file changed.
+
+**One thing gate 1 found that was not the PR's:** `tests/test_forward_eps_growth.py::test_the_twelve_month_blend`
+failed on `main` too. The test (written 2026-10-09) builds a fiscal-year end "six months from now" while
+the engine counts whole days from midnight, so months-left was 6 give or take a day by the time of day
+the suite ran, and the tolerance was tighter than a day of the blend. It passed every daytime run and
+failed at 23:25. Test-only fix: the arithmetic is checked against the engine's own published months-left.
+The engine is unchanged.
+
+**Standing consequence of the merge:** the seven fields the bot reads (`kpis.run_timestamp`;
+`table_data[].Ticker/Rank/Composite/Sector/Value_Trap_Flag/Growth_Trap_Flag`; `stock_detail[t].price`)
+must not be renamed or dropped. A change that has to updates `bot/signals.py` and its tests in
+`CalebSmit/screener-bot` in the same piece of work. Nightly sessions here do not otherwise work on the bot.
