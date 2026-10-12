@@ -407,6 +407,13 @@ outcome.
   values, percentiles, per-category `contrib` attribution, peers, price
   targets, financials, provenance) and is ~90% of the payload weight. Check
   `plan/dashboard-inventory.md` before building anything "new".
+- **Downstream consumer: `CalebSmit/screener-bot`** (separate private repo,
+  2026-10-09) trades a simulated/paper account from `dashboard_data.js` as Pages
+  serves it. It reads `kpis.run_timestamp`, `table_data[].{Ticker, Rank,
+  Composite, Sector, Value_Trap_Flag, Growth_Trap_Flag}` and
+  `stock_detail[t].price`, and refuses to trade if any is missing.
+  `tests/test_bot_payload_contract.py` pins them. Nightly sessions here do not
+  work on the bot; it has its own `CLAUDE.md` and `ROADMAP.md`.
 
 ### Docs (public-facing - keep truthful)
 - `SCREENER_OVERVIEW.md` - canonical methodology reference. **Generated** by

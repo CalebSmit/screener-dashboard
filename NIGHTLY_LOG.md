@@ -9228,3 +9228,24 @@ is), AMCR 49 -> 165 (its zero-placeholder revision and stale surprises no longer
   fallback for the trailing figures is the fix and is not started.
 - Watch the first one-month context window (2026-11-07), now with two own-history signals and a
   working sector-relative signal.
+
+## 2026-10-09 (late, owner-run cloud session) - a payload contract for the new screener-bot repo
+
+**Health:** the 5-number table could not be read from a cloud container - `logs/` is gitignored and
+lives on the PC. Evidence base at `1m` from the committed file: **26 rows, newest 2026-09-09 (30 days,
+bound 40)**, effective count unchanged from the evening entry (4). No methodology change.
+
+**What and why.** The owner started a trading bot in a **separate private repo, `CalebSmit/screener-bot`**.
+It reads this site's published `dashboard_data.js` and trades a simulated account (and an Alpaca paper
+account once keys exist), from GitHub Actions - nothing new runs on the PC and nothing new appears on
+the public dashboard (the Model Portfolio decision stands: no holdings list on the public site). The
+only coupling is the payload format, so this session pinned the seven fields the bot reads in
+`tests/test_bot_payload_contract.py` (5 tests, against `prepare_dashboard_data`'s output per rule 10)
+and added a pointer under "Where things live" in `CLAUDE.md`. If a session here renames one of those
+fields on purpose, it changes `bot/signals.py` in screener-bot the same day.
+
+**Gates, in this container:** gate 1 = 3 failed / 2,042 passed; the same 3 fail with this change
+removed (`test_claims_register` ... `discount_coverage`, two in `test_investor_profiles`), all
+`FileNotFoundError: .../runs` - the gitignored run directories exist only on the PC. Gate 2 fails
+here on Yahoo being unreachable from the container. Gate 3 untouched (no generated file changed).
+The runner re-runs all four on the PC before merging.
