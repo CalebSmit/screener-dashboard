@@ -9439,3 +9439,16 @@ left open for a later session (each needs a registered claim; none touches a sco
 - Still waiting its turn, and now deferred twice: **0.12's momentum panic rule**, which is
   research-complete and ready to build (`research/2026-10-09-momentum-regime.md`). A third
   deferral triggers the streak rule - the next session carrying no owner item should take it.
+
+### Gates
+1. **2,137 passed / 0 failed** (baseline at session start 2,113 / 0 - the 24 new tests are this
+   session's). 2. `run_screener.py --dry-run` **DRY-RUN PASSED**, exit 0. 3. `index.html` 529 KB;
+`dashboard_data.js` and `dashboard_context.js` both pass `node --check`. 4. `git status --porcelain`
+clean.
+
+**Machine state, rule 11:** nothing left outstanding. The cache repair was applied and verified in
+the same session (`0 readings still naming a non-session day`), and the corrected artifacts are
+committed rather than left for the 02:00 run. No PowerShell was needed - the `Screener Option
+Quotes` task was already registered and verified on 2026-10-09, and today's log confirms it fired.
+Pre-repair copies of the cache and the run's parquet are kept beside them with a
+`.pre-session-date-repair` suffix (both in gitignored directories).
