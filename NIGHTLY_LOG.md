@@ -9346,3 +9346,96 @@ only the label was wrong.
 the trend chart, recent move and five-year valuation blocks rendering normally. (The element
 screenshot composites the modal over the page behind it - a quirk of shooting a sub-element of an
 overlay, not a page defect; the full-panel mobile shot renders cleanly.)
+
+**3. The day's focus: the options panel's research note (queue item 4).**
+`research/2026-10-12-option-implied-signals.md` - all four numbers the panel shows (expected
+move, ATM IV, put skew, put/call open interest), literature and documented practice, with
+effect sizes and the conditions they held under.
+
+The finding that matters, and it settles a question `plan/context-layer.md` had left open:
+**the option-implied signals are not candidates for the score, and that is a finding rather
+than a holding position.** Every one with real support decays faster than this screener acts -
+Pan & Poteshman one day to one week, Cremers & Weinbaum weekly, Fodor/Krieger/Doran a few
+weeks, Xing/Zhang/Zhao weekly rebalanced, An/Ang/Bali/Cakici the outlier at up to six months -
+against a review cadence that is monthly at its fastest. The standing rule for this layer says
+a signal may join the score with a research note *and* a measured `1m` record; for these
+signals **the research note is the argument against joining**, and a future `1m` reading should
+be read with that prior.
+
+Academia and practice look like they disagree here and do not. Index providers keep
+option-implied inputs out of stock selection (MSCI's factor scores come from Barra GEMLT -
+book-to-price, earnings and dividend yields, LT reversal, leverage, earnings variability, beta -
+plus analyst sentiment; option-implied data appears only in their derivative products, VIX and
+SKEW and buy-write indices). Sell-side derivatives desks use exactly these numbers daily. Both
+are right: a quarterly-rebalanced index cannot harvest a one-week signal after costs, and a desk
+trading daily can. **Horizon, not disagreement.**
+
+### Evidence / research
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3): steepest-smirk quintile underperformed the
+  flattest by ~**10.9%/yr risk-adjusted, 1996-2005**; strongest around earnings; predicts
+  earnings surprises. **Their skew is OTM put IV minus ATM *call* IV** (definition confirmed via
+  Fu, Arisoy, Shackleton & Umutlu's survey).
+- **Pan & Poteshman (2006)**, *RFS* 19(3), read in full from the author's copy: put-call ratios
+  from **non-public, signed, open-buy** volume predict >**40 bp** next day and >**1%** over the
+  next week. The **public** (Lee-Ready) version predicts "only the next one or two trade days",
+  then reverses - price pressure, not information - and in a bivariate regression has **no
+  predictability at all**. Verbatim: *"the publicly observed option volume has very little, if
+  any, predictability for future stock prices."*
+- **Fodor, Krieger & Doran (2011)**, *FMPM*: the **change** in the call-to-put open-interest
+  ratio predicts returns over the **following few weeks**; put-side increases precede poor
+  returns, the call side "considerably less pronounced".
+- **An, Ang, Bali & Cakici (2014)**, *JF* 69(5): decile sorts on the **change** in call implied
+  volatility give ~**1% a month**, persisting up to six months.
+- **Cremers & Weinbaum (2010)**, *JFQA* 45(2): expensive calls beat expensive puts by ~**50 bp a
+  week** (1996-2005), and the authors report the predictability **declined over the sample**.
+- **Carr & Wu (2009)**, *RFS* 22(3), with **Bakshi & Kapadia (2003)**: the variance risk premium
+  is strongly negative for the S&P 500 and Dow but **mostly insignificant for individual
+  stocks** - so a single name's high ATM IV is not a priced signal.
+- **Ang, Hodrick, Xing & Zhang (2006)**, *JF* 61(1): highest idiosyncratic-volatility quintile
+  underperformed the lowest by ~**-1.06% a month** - a realised-volatility result the Risk
+  category already carries.
+- **McLean & Pontiff (2016)**, *JF* 71(1): across 97 predictors, returns are **26% lower out of
+  sample and 58% lower post-publication** - the honest frame for quoting a 2010 effect in 2026.
+- **MSCI** factor index methodology (Core Multiple-Factor Indexes; "Foundations of Factor
+  Investing"): the published factor list is fundamentals, price history and analyst sentiment.
+
+**Where the evidence contradicts what this screener does** - three page-sentence findings, all
+left open for a later session (each needs a registered claim; none touches a score):
+1. the page attaches Xing/Zhang/Zhao's ~11%/yr to a skew it **does not compute** - ours
+   subtracts the *mean of ATM call and put* IV at 0.90 moneyness, which compresses the measure
+   against theirs. Direction is theirs; the number is not.
+2. it omits the decay where a figure exists (McLean & Pontiff).
+3. **put/call open interest is a bare number with no sentence attached**, and it is the *level*,
+   on one expiry, where the evidence supports the *change* over weeks - and Pan & Poteshman
+   specifically find the public unsigned version near-worthless. A number on a teaching tool with
+   no interpretation implies significance it has not earned. The note leans to dropping the row;
+   the context log keeps recording it either way.
+
+### Methodology changed
+- **None.** No weight, threshold, metric or score moved: `dashboard_data.js` is byte-identical.
+  Today's code change is a defect fix in a display-only layer, and the research concluded
+  *against* a methodology change, which is a result rather than a gap. No
+  `METHODOLOGY_CHANGELOG.md` entry is warranted.
+
+### Tried and rejected
+- **"The whole context layer is missing from the published payload."** First measurement of the
+  session said 0 of 501 stocks carried `ctx`, and `market` / `track` were absent - which looked
+  like the owner's flagship panel publishing nothing. It was a false lead: the 2026-10-08 session
+  split the context into **`dashboard_context.js`** deliberately, to keep 0.4 MB gzipped off the
+  first paint, and I had looked in the wrong file. `research/measurements/2026-10-12-context-layer-published.py`
+  is kept because it is the right tool pointed at the wrong artifact, and the next session to
+  wonder the same thing should be able to answer it in one command.
+- **Putting any option-implied signal into the score.** Ruled out by the horizon evidence above,
+  not by a backtest or by this system's IC series.
+- **Tolerating the red tripwire until tomorrow's 02:00 run.** The honest alternative was to let
+  the generator suppress the 455 mislabelled panels, which would have emptied the owner's
+  flagship surface for a day. Re-deriving the run's option columns through `reading_for` against
+  the corrected cache kept the data *and* fixed the label, which the diff proves.
+
+### Next
+- **Item 4's remaining per-signal notes** - the macro backdrop and the track record are the two
+  with no note. Then item 6, track-record hardening. The three page-sentence corrections above
+  are small and could ride along with either.
+- Still waiting its turn, and now deferred twice: **0.12's momentum panic rule**, which is
+  research-complete and ready to build (`research/2026-10-09-momentum-regime.md`). A third
+  deferral triggers the streak rule - the next session carrying no owner item should take it.
