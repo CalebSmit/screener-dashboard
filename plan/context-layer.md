@@ -94,22 +94,32 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    wrong the day the source changes and three requests cannot. 02:00 now costs **3** option
    requests, not ~1,000.
 
-   **Outstanding, and it is the first thing to do next:** the scheduled task that fills the cache -
-   `Screener Option Quotes`, weekdays 20:00, defined in `scripts/register-tasks.ps1` - **was not
-   registered on the machine.** The 2026-10-09 session was hard-blocked: every PowerShell
-   invocation, including a read-only `Get-ScheduledTask`, is auto-denied in a non-interactive
-   session, so this was outside its reach rather than left out of caution (rule 11). Until it is
-   registered nothing fills the cache and every options panel says `quotes-closed` - still better
-   than today, because the requests are no longer wasted and the page states the real reason, but
-   the feature is empty. To finish: run
-   `powershell -ExecutionPolicy Bypass -File scripts\register-tasks.ps1` (idempotent; it
-   re-registers all three tasks), then confirm with `Get-ScheduledTask`/`Get-ScheduledTaskInfo`
-   that `Screener Option Quotes` exists, has **one** trigger (weekly 20:00, no logon trigger), and
-   has a `NextRunTime`; the two loops must still read PT3M and PT20M. Then read the next morning's
-   `logs/datarun-*.log` for `Options: skipped the fetch and read the cache - N of ~500` with N in
-   the high hundreds, and `logs/options-*.log` for what the 20:00 pass kept. Measure the `ok` share
-   again at that point and record it here - **78.3% is the number to beat, and it is itself only one
-   evening's observation.**
+   **CLOSED 2026-10-12.** The task was registered and verified on 2026-10-09 (owner-run:
+   `Get-ScheduledTask` read back one weekly 20:00 trigger, no logon trigger; the loops still PT3M /
+   PT20M), and 2026-10-12 02:00 was the **first scheduled run after a 20:00 refresh**. Measured from
+   `data/context_log/2026-10-12.parquet`: options `ok` **397 of 503**, `partial` 59,
+   `quotes-closed` 47 - against **0 of 503** before the fix, and against the 394/503 (78.3%) owner-run
+   evening reading that was the number to beat. 456 readings came from the cache. The after-close
+   cache works end to end.
+
+   **Closing it found a live false statement, fixed the same day.** The quotes were stamped
+   **2026-10-10, a Saturday**, and the published page told readers of **455 of 501** stocks "Quotes
+   are the close of Oct 10 ... so the last session's close is used." `options_cache.refresh` stamped
+   `datetime.now(timezone.utc).date()`, and the task runs at 20:00 local = 21:00 ET, which is already
+   the next UTC day - so **every** refresh named the session after the one its quotes came from; the
+   Friday case is just the one that names a non-session. It also made `MAX_AGE_DAYS = 3` behave as
+   four. Fixed by `options_cache.market_session_date` (Eastern date, weekends rolled back; exchange
+   holidays are left to `quotes_are_live`, since a shut market serves no quote to accept) and
+   `is_session_date`, **one predicate shared by `reading_for` and the dashboard generator** so the
+   display cannot drift from its source. The generator drops the whole options block rather than only
+   the date, because dropping only the date falls through to "Quotes are the previous close" - a claim
+   about a session nobody checked. Measurement:
+   `research/measurements/2026-10-12-option-quote-session-date.py`; repair of the cache and the run's
+   copy: `scripts/repair_option_quote_session_dates.py`.
+
+   **The lesson to carry:** the claim `context.expected_move` already asserted the panel "names that
+   session's date", and its registered checks only proved that *a* date was carried through. **A
+   claim whose check tests the plumbing instead of the assertion is an unchecked claim.**
 
    Still true: do not loosen `MAX_REL_SPREAD` or the IV bounds to raise the number.
 3. **Insider source - DONE 2026-10-08 (late, owner-run).** The owner gave a contact email; it lives in
@@ -163,6 +173,30 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    & Pomorski 2012), macro regimes and factors (Asness, Frazzini & Pedersen 2019; Daniel & Moskowitz
    2016). Each note checks the page's sentence about it is fair, and records whether the signal is a
    **candidate** for the score.
+
+   **The options panel's own note is done - `research/2026-10-12-option-implied-signals.md`**, a full
+   Monday note on all four of its numbers (expected move, ATM IV, put skew, put/call open interest),
+   literature and practice, with effect sizes and conditions.
+
+   **Its verdict, which settles a question this plan left open: the option-implied signals are NOT
+   candidates for the score, and that is a finding rather than a holding position.** Every one with
+   real support decays faster than this screener acts - Pan & Poteshman (2006) one day to one week,
+   Cremers & Weinbaum (2010) weekly, Fodor, Krieger & Doran (2011) a few weeks, Xing, Zhang & Zhao
+   (2010) weekly rebalanced; An, Ang, Bali & Cakici (2014) is the outlier at up to six months - against
+   a review cadence that is monthly at its fastest. Index providers exclude option-implied inputs from
+   factor selection for the same reason (MSCI's factor list is Barra fundamentals, price history and
+   analyst sentiment); derivatives desks use them because they trade daily. **A future `1m` record from
+   `context_eval.py` should be read with that prior: at one month these signals are largely spent.**
+   The panel's job is timing and sizing, which is what the owner asked for.
+
+   Three page-sentence findings from that note, open for a later session (each needs a registered
+   claim; none touches a score): **(a)** the page attaches Xing, Zhang & Zhao's ~11%/yr to a skew it
+   does not compute - theirs is OTM put IV minus ATM *call* IV, ours subtracts the mean of ATM call
+   and put at 0.90 moneyness; **(b)** it omits the decay where a figure exists (McLean & Pontiff 2016:
+   58% post-publication, across 97 predictors); **(c)** put/call open interest is a bare number with no
+   sentence, and it is the *level*, where the evidence supports the *change* over weeks - Pan &
+   Poteshman find the public unsigned version carries "very little, if any" predictability. The note
+   leans to dropping that row, since the context log already records it for later study.
 5. **The evaluation harness - BUILT 2026-10-09 (owner-run).** `context_eval.py`: for every log date,
    the forward price return to the first log 30-40 days later (from the logs' own closes - no extra
    download), and per signal the Spearman IC across stocks; effective observations are the

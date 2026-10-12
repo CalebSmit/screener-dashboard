@@ -218,6 +218,174 @@ def test_a_refresh_drops_entries_that_can_no_longer_be_served(tmp_path):
     assert set(options_cache.load(tmp_path)["readings"]) == {"NEW"}
 
 
+# --------------------------------------------------------- which session the quotes belong to
+# Measured 2026-10-12 (research/measurements/2026-10-12-option-quote-session-date.py). The
+# refresh runs weekdays at 20:00 local = 21:00 ET, which is already the next UTC day, and the
+# stamp was `datetime.now(timezone.utc).date()`. So the Friday 2026-10-09 refresh wrote
+# `quote_date 2026-10-10` and the 02:00 run on 2026-10-12 published "Quotes are the close of
+# Oct 10" for **455 of 501** stocks. 2026-10-10 was a Saturday.
+_SESSIONS = [
+    # collected at (UTC)                              belongs to the session
+    (datetime.datetime(2026, 10, 10, 1, 3, 1), datetime.date(2026, 10, 9)),   # the real case
+    (datetime.datetime(2026, 10, 14, 1, 3, 0), datetime.date(2026, 10, 13)),  # a Tue evening
+    (datetime.datetime(2026, 10, 13, 0, 30, 0), datetime.date(2026, 10, 12)),  # just past midnight
+    (datetime.datetime(2026, 10, 12, 14, 0, 0), datetime.date(2026, 10, 12)),  # a Mon morning
+    (datetime.datetime(2026, 10, 10, 18, 0, 0), datetime.date(2026, 10, 9)),  # hand-run Saturday
+    (datetime.datetime(2026, 10, 11, 18, 0, 0), datetime.date(2026, 10, 9)),  # hand-run Sunday
+]
+
+
+@pytest.mark.parametrize("collected,session", _SESSIONS)
+def test_the_stamp_names_the_session_the_quotes_came_from(collected, session):
+    at = collected.replace(tzinfo=datetime.timezone.utc)
+    assert options_cache.market_session_date(at) == session
+
+
+def test_the_stamp_is_never_a_weekend():
+    """A hand-run weekend refresh must not invent a Saturday close."""
+    for hour in range(0, 24, 3):
+        for day in (10, 11):  # Sat, Sun
+            at = datetime.datetime(2026, 10, day, hour, tzinfo=datetime.timezone.utc)
+            assert options_cache.market_session_date(at).weekday() <= 4
+
+
+def test_an_evening_stamp_is_a_day_behind_the_utc_date():
+    """The defect in one line: the two disagree at the hour the task actually runs."""
+    at = datetime.datetime(2026, 10, 10, 1, 3, 1, tzinfo=datetime.timezone.utc)
+    assert options_cache.market_session_date(at) != at.date()
+    assert options_cache.market_session_date(at) == at.date() - datetime.timedelta(days=1)
+
+
+def test_a_naive_instant_is_read_as_utc_rather_than_raising():
+    naive = datetime.datetime(2026, 10, 10, 1, 3, 1)
+    assert options_cache.market_session_date(naive) == datetime.date(2026, 10, 9)
+
+
+def test_the_default_is_now_and_is_a_weekday():
+    got = options_cache.market_session_date()
+    assert isinstance(got, datetime.date) and got.weekday() <= 4
+
+
+def test_a_refresh_stamps_the_session_not_the_collecting_days_utc_date(tmp_path, monkeypatch):
+    """The integration: what lands in the file is the session, for every stock and the header."""
+    monkeypatch.setattr(options_cache, "market_session_date",
+                        lambda *_a: datetime.date(2026, 10, 9))
+    options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path,
+                          log=lambda *_a: None, probe=lambda _t: "ok",
+                          fetch=lambda *a, **k: {"_ctx_opt_status": "ok",
+                                                 "_ctx_opt_expiry": "2026-12-18"})
+    c = options_cache.load(tmp_path)
+    assert c["quote_date"] == "2026-10-09"
+    assert c["readings"]["AAA"]["_ctx_opt_quote_date"] == "2026-10-09"
+
+
+def test_the_refresh_dates_the_expiry_choice_from_the_session_too(tmp_path, monkeypatch):
+    """`choose_expiry` and the spans-a-report test are relative to this date, so it moves with
+    the stamp rather than being a day ahead of it."""
+    monkeypatch.setattr(options_cache, "market_session_date",
+                        lambda *_a: datetime.date(2026, 10, 9))
+    seen: list[datetime.date] = []
+
+    def fetch(_t, _p, _e, today):
+        seen.append(today)
+        return {"_ctx_opt_status": "ok", "_ctx_opt_expiry": "2026-12-18"}
+
+    options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path,
+                          log=lambda *_a: None, probe=lambda _t: "ok", fetch=fetch)
+    assert seen and set(seen) == {datetime.date(2026, 10, 9)}
+
+
+def test_a_weekend_quote_date_is_refused_rather_than_described(tmp_path):
+    """The tripwire that would have caught this live: the page states the session the quotes
+    closed in, so a stamp naming a day the market never opened makes that sentence false.
+    Showing nothing beats misdescribing something."""
+    saturday = "2026-10-10"
+    assert datetime.date.fromisoformat(saturday).weekday() == 5
+    cache = _cache(AAA=_reading(expiry="2026-12-18", quote_date=saturday))
+    assert options_cache.reading_for(cache, "AAA", datetime.date(2026, 10, 12)) is None
+    # the same reading stamped with the session it came from is served
+    ok = _cache(AAA=_reading(expiry="2026-12-18", quote_date="2026-10-09"))
+    assert options_cache.reading_for(ok, "AAA", datetime.date(2026, 10, 12)) is not None
+
+
+def test_the_staleness_bound_is_three_days_from_the_session(tmp_path):
+    """MAX_AGE_DAYS only means three days if the stamp names the session. While it ran a day
+    fast the window was four: a Tuesday close was still being served on the Saturday."""
+    tuesday, utc_stamp = "2026-10-13", "2026-10-14"
+    served = {}
+    for label, stamp in (("session", tuesday), ("utc", utc_stamp)):
+        days = [d for d in range(14, 20)
+                if options_cache.reading_for(
+                    _cache(AAA=_reading(expiry="2026-12-18", quote_date=stamp)),
+                    "AAA", datetime.date(2026, 10, d))]
+        served[label] = days
+    assert served["session"] == [14, 15, 16]
+    assert served["utc"] == [14, 15, 16, 17]
+    assert len(served["session"]) == options_cache.MAX_AGE_DAYS
+
+
+def _ctx_row(quote_date):
+    return {"_ctx_opt_status": "ok", "_ctx_opt_quote_date": quote_date,
+            "_ctx_opt_expiry": "2026-12-18", "_ctx_opt_days": 70, "_ctx_opt_move": 0.06,
+            "_ctx_opt_iv": 0.27, "_ctx_opt_atm_strike": 335.0, "_ctx_opt_straddle": 20.0,
+            "_ctx_last_close": 336.64, "_ctx_sma50": 322.36}
+
+
+def test_the_generator_refuses_to_publish_a_quote_date_that_was_not_a_session():
+    """Rule 10: assert against the generator, not the committed file. A weekend stamp loses the
+    whole options block - dropping only the date would fall through to "Quotes are the previous
+    close", which is a claim about a session nobody checked."""
+    import generate_dashboard as gd
+
+    got = gd._stock_context(_ctx_row("2026-10-10"), "AAA", datetime.date(2026, 10, 12))
+    assert got["os"] == options_cache.STATUS_CLOSED
+    leaked = [k for k, col in gd.CTX_FIELDS.items()
+              if col.startswith("_ctx_opt") and k != "os" and k in got]
+    assert not leaked, f"option fields published with a non-session quote date: {leaked}"
+    # the trend half of the panel is untouched - only what depends on the quote goes
+    assert got["px"] == 336.64 and got["s50"] == 322.36
+
+
+def test_the_generator_publishes_a_real_session_untouched():
+    import generate_dashboard as gd
+
+    got = gd._stock_context(_ctx_row("2026-10-09"), "AAA", datetime.date(2026, 10, 12))
+    assert got["os"] == "ok" and got["oqd"] == "2026-10-09" and got["om"] == 0.06
+
+
+def test_the_generator_and_the_cache_share_one_session_rule():
+    """Two copies of this rule is how a display and its source come to disagree."""
+    import generate_dashboard as gd
+
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    assert "options_cache.is_session_date" in src
+    assert gd.options_cache.is_session_date is options_cache.is_session_date
+
+
+@pytest.mark.parametrize("d,ok", [("2026-10-09", True), ("2026-10-12", True),
+                                  ("2026-10-10", False), ("2026-10-11", False),
+                                  (None, False), ("not-a-date", False)])
+def test_the_session_predicate(d, ok):
+    assert options_cache.is_session_date(d) is ok
+
+
+def test_the_published_context_never_names_a_non_trading_day():
+    """A tripwire on the real artifact. `dashboard_context.js` is generated, so this asserts
+    what the last publish actually said - which is how the Saturday was found."""
+    p = ROOT / "dashboard_context.js"
+    if not p.exists():
+        pytest.skip("dashboard_context.js not built")
+    d = json.loads(p.read_text(encoding="utf-8").split("=", 1)[1].strip().rstrip(";"))
+    bad = {}
+    for ticker, ctx in (d.get("ctx") or {}).items():
+        qd = ctx.get("oqd")
+        if qd and datetime.date.fromisoformat(qd).weekday() > 4:
+            bad.setdefault(qd, []).append(ticker)
+    assert not bad, (
+        "the published options panel names a day the market was closed: "
+        + ", ".join(f"{k} for {len(v)} stocks" for k, v in bad.items()))
+
+
 # --------------------------------------------------------------------------- the 02:00 pass
 def test_the_context_pass_skips_the_option_fetch_when_quotes_are_closed(tmp_path, monkeypatch):
     """The whole point: ~1,000 requests a night that produced nothing for anybody."""

@@ -50,7 +50,17 @@ CACHE_NAME = "quotes.json"
 
 #: A reading older than this is dropped rather than shown. Three calendar days carries a Friday
 #: close through the weekend to Monday's run; past that the quotes describe a different market.
+#: This bound only means three days if the stamp names the session - see
+#: :func:`market_session_date`; while the stamp ran a day fast the effective window was four.
 MAX_AGE_DAYS = 3
+
+#: The market whose session a reading belongs to.
+ET_ZONE = "America/New_York"
+
+#: Used only if the tz database is missing (Windows without ``tzdata``). Eastern is UTC-4 or
+#: UTC-5 and the refresh writes between 00:00 and 02:00 UTC, so either offset lands on the same
+#: session date; the constant cannot change that answer.
+ET_FALLBACK_OFFSET = timedelta(hours=-5)
 
 #: Probed to find out whether quotes are being served. Liquid, always-listed, and spread across
 #: sectors so one halted name cannot decide the night.
@@ -104,6 +114,52 @@ def save(readings: dict, quote_date: str, root: str | os.PathLike | None = None)
     return p
 
 
+# --------------------------------------------------------------------------- whose session?
+def market_session_date(now: datetime | None = None) -> date:
+    """The US market session the quotes collected at ``now`` belong to.
+
+    WHY THIS IS NOT ``date.today()`` - measured 2026-10-12. The refresh is scheduled at 20:00
+    local, which is 21:00 Eastern and **already the next day in UTC**. Stamping the UTC date
+    therefore named the session *after* the one the quotes came from: the Friday 2026-10-09
+    refresh wrote ``quote_date 2026-10-10``, and the live site told readers of **455 of 501**
+    stocks that the quotes were "the close of Oct 10" - a Saturday, on which nothing traded.
+    The same off-by-one loosened :data:`MAX_AGE_DAYS` to an effective four days.
+
+    ``now`` defaults to the present instant and is read as UTC if naive. The Eastern calendar
+    date is taken - an evening refresh is the same Eastern day as the close it followed - and a
+    Saturday or Sunday rolls back to Friday, so a hand-run weekend refresh cannot stamp a date
+    on which there was no session.
+
+    Exchange holidays are deliberately *not* resolved: a holiday refresh would name the holiday.
+    What prevents that is :func:`quotes_are_live` - with the market shut there is no quote to
+    accept, so the pass keeps the cache it has and writes nothing.
+    """
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+
+        et = now.astimezone(ZoneInfo(ET_ZONE))
+    except Exception:  # noqa: BLE001 - a missing tz database must not stop the refresh
+        et = now.astimezone(timezone(ET_FALLBACK_OFFSET))
+    d = et.date()
+    return d - timedelta(days=d.weekday() - 4) if d.weekday() > 4 else d
+
+
+def is_session_date(d: str | date | None) -> bool:
+    """Could ``d`` be a US market session? One predicate, used by every surface that names one.
+
+    Weekends only - exchange holidays are not resolved (see :func:`market_session_date`). It is
+    deliberately shared by :func:`reading_for` and the dashboard generator rather than
+    reimplemented in each: the page states the session a quote closed in, and a second copy of
+    this rule is how a display and its source come to disagree.
+    """
+    if isinstance(d, str):
+        d = _parse(d)
+    return d is not None and d.weekday() <= 4
+
+
 # --------------------------------------------------------------------------- read back
 def _parse(d: str | None) -> date | None:
     try:
@@ -116,16 +172,22 @@ def reading_for(cache: dict, ticker: str, today: date,
                 max_age_days: int = MAX_AGE_DAYS) -> dict | None:
     """A cached reading for ``ticker``, or ``None`` if there is nothing honest to show.
 
-    Refused when the quote date is missing, older than ``max_age_days``, in the future, or when
-    the expiry it priced has already passed. ``_ctx_opt_days`` is **recomputed against today**,
-    not served from the cache: the page prints "the average move options are paying for by
-    <date> (N days)", and N shrinks every day the reading is reused.
+    Refused when the quote date is missing, names a weekend, is older than ``max_age_days``, is
+    in the future, or when the expiry it priced has already passed. ``_ctx_opt_days`` is
+    **recomputed against today**, not served from the cache: the page prints "the average move
+    options are paying for by <date> (N days)", and N shrinks every day the reading is reused.
+
+    The weekend refusal is a tripwire rather than a routine path. The page states the session the
+    quotes closed in, so a stamp naming a day the market never opened makes that sentence false,
+    and this project would rather show nothing than a number it has to misdescribe. With
+    :func:`market_session_date` stamping the writes it cannot fire in normal operation; it is
+    here because for three published runs it would have.
     """
     entry = (cache.get("readings") or {}).get(ticker)
     if not isinstance(entry, dict):
         return None
     qd = _parse(entry.get("_ctx_opt_quote_date") or cache.get("quote_date"))
-    if qd is None:
+    if qd is None or not is_session_date(qd):
         return None
     age = (today - qd).days
     if age < 0 or age > max_age_days:
@@ -193,7 +255,11 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     started = time.time()
-    today = datetime.now(timezone.utc).date()
+    # The session the quotes belong to, not the collecting machine's calendar date: the pass runs
+    # in the evening, which is already tomorrow in UTC (:func:`market_session_date`). This date
+    # is what the page names, what the staleness bound measures, and what the expiry choice and
+    # the spans-a-report test are relative to, so all four move together.
+    today = market_session_date()
     fetch = fetch or _fetch_one
     probe = probe or (lambda t: (fetch(t, None, None, today) or {}).get("_ctx_opt_status"))
 

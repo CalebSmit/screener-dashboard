@@ -9275,3 +9275,180 @@ The engine is unchanged.
 `table_data[].Ticker/Rank/Composite/Sector/Value_Trap_Flag/Growth_Trap_Flag`; `stock_detail[t].price`)
 must not be renamed or dropped. A change that has to updates `bot/signals.py` and its tests in
 `CalebSmit/screener-bot` in the same piece of work. Nightly sessions here do not otherwise work on the bot.
+
+## 2026-10-12 - RESEARCH. One thing learned properly, from the literature and from documented practice. A dated note in research/, complete today.
+
+**Health (rule 8, all five):** last code session - `logs/nightly-2026-10-09_060001.log`, ends
+"shipped to main". Data loop - `logs/datarun-2026-10-12_020001.log`, ends "Data loop complete",
+HEALTH: PASS. Evidence base at `1m`: **28 rows, newest 2026-09-11 (31 days ago, bound 40), 4
+effective**. Priority 0 unchanged (`allow_auto_apply` false; 4 effective against a gate of 8).
+Top open roadmap item: **0.12's last residual, the momentum panic rule** (opened 2026-10-09,
+age 3 days) - deferred, see below.
+**Tests:** before 2,113 passed / 0 failed.
+**Owner queue / rotation:** took the open owner item (the context layer, `plan/context-layer.md`).
+Its Progress line set two next steps: confirm the options `ok` share from the first 02:00 log
+after a 20:00 refresh, then item 4's per-signal research notes. Both done. The momentum panic
+rule is deferred a second time - the owner item outranks it, and it is not yet a three-session
+streak.
+
+### Did
+
+**1. Queue item 2 is confirmed closed - and confirming it found a live false statement.**
+Today's 02:00 run was the first scheduled run after a 20:00 quote refresh. Options `ok` for
+**397 of 503**, `partial` 59, `quotes-closed` 47 - against **0 of 503** before the fix. The
+after-close cache works.
+
+But the quotes were stamped **2026-10-10, a Saturday**, and the live site told readers of
+**455 of 501** stocks "Quotes are the close of Oct 10; ... so the last session's close is used."
+The market was shut that day. Root cause: the refresh task runs weekdays at 20:00 local = 21:00
+ET, which is **already the next day in UTC**, and `options_cache.refresh` stamped
+`datetime.now(timezone.utc).date()`. Every refresh had named the session *after* the one its
+quotes came from; the Friday case is simply the one that names a non-session.
+
+A second consequence, measured: `MAX_AGE_DAYS = 3` behaved as **four** - a Tuesday close was
+still being served on the Saturday.
+
+Measurements, both reproducible:
+`research/measurements/2026-10-12-option-quote-session-date.py` (the stamp, the published
+dates, the staleness window) and `research/measurements/2026-10-12-context-layer-published.py`
+(written while chasing a false lead - see "Tried and rejected").
+
+**The fix** (`options_cache.py`, `generate_dashboard.py`, 26 tests):
+- `market_session_date()` stamps the Eastern date, weekends rolled back to Friday. Exchange
+  holidays are deliberately not resolved - `quotes_are_live` already covers them, because a shut
+  market serves no quote to accept.
+- `is_session_date()` is **one shared predicate**, used by `reading_for` *and* the generator.
+  The generator drops the whole options block rather than only the date: dropping only the date
+  falls through to "Quotes are the previous close", which is a claim about a session nobody
+  checked.
+- The expiry choice and the spans-a-report test now date from the session too.
+- The registered claim `context.expected_move` already asserted the panel "names that session's
+  date". It was checked by tests that only proved *a* date was carried through. That is the
+  general lesson here: **a claim whose check tests the plumbing instead of the assertion is an
+  unchecked claim.**
+
+**2. The live site is repaired, not left for the 02:00 run.**
+`scripts/repair_option_quote_session_dates.py --apply`: the cache's `written` field is a real UTC
+instant (`2026-10-10T01:03:01Z`), so the session is recoverable exactly - `quote_date` 2026-10-10
+-> 2026-10-09, 456 readings restamped. The run's `_ctx_opt_*` columns were then **re-derived
+through `options_cache.reading_for`** against the corrected cache, which is what the 02:00 pass
+would have produced - not a hand-edit of a provenance artifact.
+
+Regenerated and diffed before installing
+(`research/measurements/2026-10-12-regen-and-diff.py`): `dashboard_data.js` **0 of 220,373 leaves
+changed** - the file is byte-identical, so no score, rank or sentence moved. `dashboard_context.js`
+**455 changed, every one of them `oqd`**, 0 added, 0 removed. Statuses unchanged (ok 396, partial
+59, quotes-closed 46), so correcting the date **cost no panel** - the quotes were always Friday's;
+only the label was wrong.
+
+**Looked at the page** (`research/measurements/2026-10-12-shot-options-panel.py`, AAPL, 1440 and
+375px): the panel reads "Quotes are the close of **Oct 9**" at both widths, a real session, with
+the trend chart, recent move and five-year valuation blocks rendering normally. (The element
+screenshot composites the modal over the page behind it - a quirk of shooting a sub-element of an
+overlay, not a page defect; the full-panel mobile shot renders cleanly.)
+
+**3. The day's focus: the options panel's research note (queue item 4).**
+`research/2026-10-12-option-implied-signals.md` - all four numbers the panel shows (expected
+move, ATM IV, put skew, put/call open interest), literature and documented practice, with
+effect sizes and the conditions they held under.
+
+The finding that matters, and it settles a question `plan/context-layer.md` had left open:
+**the option-implied signals are not candidates for the score, and that is a finding rather
+than a holding position.** Every one with real support decays faster than this screener acts -
+Pan & Poteshman one day to one week, Cremers & Weinbaum weekly, Fodor/Krieger/Doran a few
+weeks, Xing/Zhang/Zhao weekly rebalanced, An/Ang/Bali/Cakici the outlier at up to six months -
+against a review cadence that is monthly at its fastest. The standing rule for this layer says
+a signal may join the score with a research note *and* a measured `1m` record; for these
+signals **the research note is the argument against joining**, and a future `1m` reading should
+be read with that prior.
+
+Academia and practice look like they disagree here and do not. Index providers keep
+option-implied inputs out of stock selection (MSCI's factor scores come from Barra GEMLT -
+book-to-price, earnings and dividend yields, LT reversal, leverage, earnings variability, beta -
+plus analyst sentiment; option-implied data appears only in their derivative products, VIX and
+SKEW and buy-write indices). Sell-side derivatives desks use exactly these numbers daily. Both
+are right: a quarterly-rebalanced index cannot harvest a one-week signal after costs, and a desk
+trading daily can. **Horizon, not disagreement.**
+
+### Evidence / research
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3): steepest-smirk quintile underperformed the
+  flattest by ~**10.9%/yr risk-adjusted, 1996-2005**; strongest around earnings; predicts
+  earnings surprises. **Their skew is OTM put IV minus ATM *call* IV** (definition confirmed via
+  Fu, Arisoy, Shackleton & Umutlu's survey).
+- **Pan & Poteshman (2006)**, *RFS* 19(3), read in full from the author's copy: put-call ratios
+  from **non-public, signed, open-buy** volume predict >**40 bp** next day and >**1%** over the
+  next week. The **public** (Lee-Ready) version predicts "only the next one or two trade days",
+  then reverses - price pressure, not information - and in a bivariate regression has **no
+  predictability at all**. Verbatim: *"the publicly observed option volume has very little, if
+  any, predictability for future stock prices."*
+- **Fodor, Krieger & Doran (2011)**, *FMPM*: the **change** in the call-to-put open-interest
+  ratio predicts returns over the **following few weeks**; put-side increases precede poor
+  returns, the call side "considerably less pronounced".
+- **An, Ang, Bali & Cakici (2014)**, *JF* 69(5): decile sorts on the **change** in call implied
+  volatility give ~**1% a month**, persisting up to six months.
+- **Cremers & Weinbaum (2010)**, *JFQA* 45(2): expensive calls beat expensive puts by ~**50 bp a
+  week** (1996-2005), and the authors report the predictability **declined over the sample**.
+- **Carr & Wu (2009)**, *RFS* 22(3), with **Bakshi & Kapadia (2003)**: the variance risk premium
+  is strongly negative for the S&P 500 and Dow but **mostly insignificant for individual
+  stocks** - so a single name's high ATM IV is not a priced signal.
+- **Ang, Hodrick, Xing & Zhang (2006)**, *JF* 61(1): highest idiosyncratic-volatility quintile
+  underperformed the lowest by ~**-1.06% a month** - a realised-volatility result the Risk
+  category already carries.
+- **McLean & Pontiff (2016)**, *JF* 71(1): across 97 predictors, returns are **26% lower out of
+  sample and 58% lower post-publication** - the honest frame for quoting a 2010 effect in 2026.
+- **MSCI** factor index methodology (Core Multiple-Factor Indexes; "Foundations of Factor
+  Investing"): the published factor list is fundamentals, price history and analyst sentiment.
+
+**Where the evidence contradicts what this screener does** - three page-sentence findings, all
+left open for a later session (each needs a registered claim; none touches a score):
+1. the page attaches Xing/Zhang/Zhao's ~11%/yr to a skew it **does not compute** - ours
+   subtracts the *mean of ATM call and put* IV at 0.90 moneyness, which compresses the measure
+   against theirs. Direction is theirs; the number is not.
+2. it omits the decay where a figure exists (McLean & Pontiff).
+3. **put/call open interest is a bare number with no sentence attached**, and it is the *level*,
+   on one expiry, where the evidence supports the *change* over weeks - and Pan & Poteshman
+   specifically find the public unsigned version near-worthless. A number on a teaching tool with
+   no interpretation implies significance it has not earned. The note leans to dropping the row;
+   the context log keeps recording it either way.
+
+### Methodology changed
+- **None.** No weight, threshold, metric or score moved: `dashboard_data.js` is byte-identical.
+  Today's code change is a defect fix in a display-only layer, and the research concluded
+  *against* a methodology change, which is a result rather than a gap. No
+  `METHODOLOGY_CHANGELOG.md` entry is warranted.
+
+### Tried and rejected
+- **"The whole context layer is missing from the published payload."** First measurement of the
+  session said 0 of 501 stocks carried `ctx`, and `market` / `track` were absent - which looked
+  like the owner's flagship panel publishing nothing. It was a false lead: the 2026-10-08 session
+  split the context into **`dashboard_context.js`** deliberately, to keep 0.4 MB gzipped off the
+  first paint, and I had looked in the wrong file. `research/measurements/2026-10-12-context-layer-published.py`
+  is kept because it is the right tool pointed at the wrong artifact, and the next session to
+  wonder the same thing should be able to answer it in one command.
+- **Putting any option-implied signal into the score.** Ruled out by the horizon evidence above,
+  not by a backtest or by this system's IC series.
+- **Tolerating the red tripwire until tomorrow's 02:00 run.** The honest alternative was to let
+  the generator suppress the 455 mislabelled panels, which would have emptied the owner's
+  flagship surface for a day. Re-deriving the run's option columns through `reading_for` against
+  the corrected cache kept the data *and* fixed the label, which the diff proves.
+
+### Next
+- **Item 4's remaining per-signal notes** - the macro backdrop and the track record are the two
+  with no note. Then item 6, track-record hardening. The three page-sentence corrections above
+  are small and could ride along with either.
+- Still waiting its turn, and now deferred twice: **0.12's momentum panic rule**, which is
+  research-complete and ready to build (`research/2026-10-09-momentum-regime.md`). A third
+  deferral triggers the streak rule - the next session carrying no owner item should take it.
+
+### Gates
+1. **2,137 passed / 0 failed** (baseline at session start 2,113 / 0 - the 24 new tests are this
+   session's). 2. `run_screener.py --dry-run` **DRY-RUN PASSED**, exit 0. 3. `index.html` 529 KB;
+`dashboard_data.js` and `dashboard_context.js` both pass `node --check`. 4. `git status --porcelain`
+clean.
+
+**Machine state, rule 11:** nothing left outstanding. The cache repair was applied and verified in
+the same session (`0 readings still naming a non-session day`), and the corrected artifacts are
+committed rather than left for the 02:00 run. No PowerShell was needed - the `Screener Option
+Quotes` task was already registered and verified on 2026-10-09, and today's log confirms it fired.
+Pre-repair copies of the cache and the run's parquet are kept beside them with a
+`.pre-session-date-repair` suffix (both in gitignored directories).

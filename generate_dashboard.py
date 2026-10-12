@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import options_cache
 from calc_trace import verify_payload
 from metric_lineage import (
     ENGINE_KEYS,
@@ -544,6 +545,16 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
             out[key] = _compact(round(fv, 6) if abs(fv) < 1e6 else round(fv, 2))
         else:
             out[key] = str(v)
+    # The options panel states the session a quote closed in ("Quotes are the close of <date>"),
+    # so a quote date that was never a session makes that sentence false. Measured 2026-10-12:
+    # the stamp ran a day fast and the live site named Saturday 2026-10-10 for 455 of 501 stocks
+    # (research/measurements/2026-10-12-option-quote-session-date.py). The write side is fixed,
+    # and this is the display side refusing to describe what it cannot date - one shared
+    # predicate with options_cache.reading_for, never a second copy of the rule.
+    if out.get("oqd") is not None and not options_cache.is_session_date(out["oqd"]):
+        out = {k: v for k, v in out.items() if not CTX_FIELDS[k].startswith("_ctx_opt")}
+        out["os"] = options_cache.STATUS_CLOSED
+
     wk = row.get("_ctx_weekly")
     if isinstance(wk, str) and wk:
         try:
