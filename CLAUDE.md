@@ -407,6 +407,14 @@ outcome.
   values, percentiles, per-category `contrib` attribution, peers, price
   targets, financials, provenance) and is ~90% of the payload weight. Check
   `plan/dashboard-inventory.md` before building anything "new".
+- `dashboard_context.js` - `window.SCREENER_CONTEXT`, **the second payload file**, written by
+  `generate_dashboard.split_context()` and loaded after the page is usable. The whole context
+  layer lives here: each stock's `ctx` plus the top-level `market`, `track` and `ctx_weeks`.
+  It was split out 2026-10-08 to keep ~0.4 MB gzipped off the first paint. **Both publish paths
+  carry two data files** - if you are looking for a context field and `dashboard_data.js` does
+  not have it, that is by design, not a bug (a 2026-10-12 session lost time concluding the
+  context layer published nothing). In a browser, wait on `window.SCREENER_CONTEXT`; the
+  `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
 - **Downstream consumer: `CalebSmit/screener-bot`** (separate private repo,
   2026-10-09) trades a simulated/paper account from `dashboard_data.js` as Pages
   serves it. It reads `kpis.run_timestamp`, `table_data[].{Ticker, Rank,
