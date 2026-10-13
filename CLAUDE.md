@@ -747,7 +747,11 @@ Experiment 3 (Fama & French 2015, the five factors) made it three: 20 of 21 with
 `research/2026-10-12-factor-lab-findings.md`** - the three results weakened after their samples ended
 and value and investment are largely one bet; neither is a reason to move a weight yet, and both are
 research questions for a Monday. Experiment 4 (Fama & French 1992, size) is the first that mostly **fails** - 3 of 11 within,
-because the paper's sample is a different set of companies - and is published that way.
+because the paper's sample is a different set of companies - and is published that way. Experiments
+5-7 (volatility, earnings yield, market beta) use a **generic sorted-portfolio layout**
+(`factor_lab.SORTS`, `kind: "sort"`): a new sort is a record and a file entry, no page work. The lab
+opens on an overview with a category map; adding an experiment means updating `TAKEAWAYS`,
+`CATEGORY_MAP` and the methodology's "Rerun the research" paragraph together (tests insist).
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.

@@ -9963,3 +9963,46 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (past midnight by the work, owner-run) - Factor Lab experiment 7 (market beta); the methodology links each category to its experiments
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,194 passed / 0 failed; after 2,196 passed / 0 failed.
+
+### Did
+- **Experiment 7:** Fama & French (1992), Table II Panel B, on the library's beta deciles.
+  **7 of 11 within tolerances written before the first run.** The paper's point - average
+  returns flat across beta - reproduces (-0.03% a month between the end groups here, +0.04% in
+  the paper), and every miss sits below the paper's figure, as experiment 4 found for the same
+  table. A record and a file entry; no page work.
+- **The methodology page links each category to its experiments** ("Rerun the research", in the
+  generator; `SCREENER_OVERVIEW.md` regenerated). The pipeline may not import the lab, so the
+  links are written out and a test compares them with the lab's category map.
+- Research note: a paragraph on beta under Risk.
+
+### Methodology changed
+- None. Two paragraphs were added to the methodology *page* tonight (limitation 11 and these
+  links); no weight, metric or threshold moved.
+
+### The night in one place
+Seven experiments shipped on 2026-10-12, in owner-run sessions: risk-managed momentum (13 of
+14), momentum crashes (9 of 15), the five factors (20 of 21), size (3 of 11), volatility (5 of
+11), earnings yield (7 of 11), market beta (7 of 11) - **64 of 94 figures within tolerance**,
+every miss on the page with its likely cause. What they mean for the screener is in
+`research/2026-10-12-factor-lab-findings.md`, sections 1-7. **None of it moved a weight**, and
+the note says which Monday questions it raises: value since 2007 first.
+
+### Next
+- **Tomorrow's 02:00 log first** - the `[MOM-REGIME]` line and `weights.momentum_regime` in the
+  published payload, and the Methodology view's run note, footer link and palette entry on the
+  live page.
+- Friday: profitability or cash-flow yield, on the generic layout.
+
+### Gates
+1. **2,196 passed / 0 failed** (baseline 2,194 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

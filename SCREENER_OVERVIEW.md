@@ -33,6 +33,8 @@ Data is fetched in batches of 30 tickers with 3 concurrent threads per batch and
 
 Every stock is evaluated in 8 categories. Each category captures a different dimension of investment merit.
 
+**Rerun the research.** The [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html) reruns published studies behind these categories on public data and shows how far each rerun lands from its paper: Valuation - [earnings yield](https://calebsmit.github.io/screener-dashboard/lab.html#earnings-yield), [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors); Quality - [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors); Momentum - [risk-managed momentum](https://calebsmit.github.io/screener-dashboard/lab.html#risk-managed-momentum), [momentum crashes](https://calebsmit.github.io/screener-dashboard/lab.html#momentum-crashes); Risk - [volatility](https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility), [market beta](https://calebsmit.github.io/screener-dashboard/lab.html#market-beta); Size - [the size effect](https://calebsmit.github.io/screener-dashboard/lab.html#size-effect), [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors); Investment - [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors). Growth and Analyst Revisions have nothing there yet, and the lab's front page says why.
+
 ### 1. Valuation (22% of final score)
 
 **Question it answers:** *Is this stock priced attractively relative to what the business generates?*
