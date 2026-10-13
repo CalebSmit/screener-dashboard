@@ -9626,7 +9626,9 @@ the next data run.
   the plan both say so, and the plan requires them first from experiment 2 on.
 - **For the owner:** whether publishing a series derived from the French library, with
   attribution, is acceptable to him. `plan/factor-lab.md` "Open, for the owner".
-- The dashboard has no navigation entry for the lab yet (Tuesday backlog).
+- ~~The dashboard has no navigation entry for the lab yet.~~ Added the same night, in a second
+  commit: a footer link and a search-palette entry (generator; they reach the live page on the
+  next data run). The header was left alone - its design is closed. Suite 2,175 / 0.
 
 ### Next
 - **Friday:** experiment 2, Daniel & Moskowitz (2016). Tomorrow's 02:00 log should still be read

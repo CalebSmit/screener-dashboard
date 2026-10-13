@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 15 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 16 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -133,7 +133,8 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
 - An index once there is a second experiment, and a way to keep one scene while switching method.
 - A link that opens a given scene (`#period=...`), like the dashboard's `#stock=`, so a club leader
   can send "look at this".
-- A "Factor Lab" entry in the dashboard's own navigation (today the link is in the methodology).
+- ~~A way into the lab from the dashboard~~ - done 2026-10-12: the footer and the search palette
+  (Ctrl/Cmd+K), plus the link in the methodology. The header's design is closed; leave it.
 - A light look at whether the first paint needs the fonts it waits for.
 
 ## Open, for the owner
