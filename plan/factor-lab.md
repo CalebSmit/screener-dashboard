@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 44 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 45 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -232,6 +232,14 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   category's weight from `config.yaml`, what the lab measured among large companies, what that
   leaves open. **"From the lab to the weights" above is the process and the ranked questions** -
   start a Monday there. Eight experiments, 76 of 112 figures within tolerance.
+  **Before the 02:00 run: experiment 9 shipped - Israel & Moskowitz (2013), the largest fifth.**
+  5 of 12 within tolerances written first; all four largest-fifth figures match and every miss
+  involves the smallest fifth. It reuses experiment 8's layout: **`kind: "split"` now takes an
+  optional `split` record** (`data`, `keys`, group names, presets), so another two-group
+  comparison is a record and a data function, no page work. Momentum in the largest fifth since
+  2000: 2.7% a year, t 0.54 - the flat stretch is there too. Nine experiments, 81 of 124
+  figures. **Friday 2026-10-16 is a retrospective, so the lab's next day is 2026-10-23**: the
+  paper's risk-adjusted figures, or Novy-Marx (2013).
   **After midnight: question 2 (value and momentum among large companies) was researched** from
   six more papers - `research/2026-10-12-value-and-momentum-among-large-companies.md`. No weight
   proposed to change; the methodology's Valuation and Momentum sections now state the

@@ -139,14 +139,15 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
                  if exp["kind"] == "crashes" else fl.reproduce_factors(published["factors"], exp)
                  if exp["kind"] == "factors" else fl.reproduce_size(published["size"], exp)
                  if exp["kind"] == "size" else fl.reproduce_sort(published["sorts"][exp["sort"]["data"]], exp)
-                 if exp["kind"] == "sort" else fl.reproduce_split(published["split"], exp)
+                 if exp["kind"] == "sort"
+                 else fl.reproduce_split(published[exp.get("split", {}).get("data", "split")], exp)
                  if exp["kind"] == "split" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -503,18 +504,22 @@ def test_the_browser_measures_the_halves_as_the_reference_does(published, tmp_pa
         "const E = require(process.argv[2]);\n"
         "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
         "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
-        "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.splitRun(D.split, o);\n"
-        "  return { n: r.months.length, factors: r.factors }; })));\n", encoding="utf-8")
+        "const one = data => JSON.parse(process.argv[4]).map(o => { const r = E.splitRun(data, o);\n"
+        "  return { n: r.months.length, factors: r.factors }; });\n"
+        "console.log(JSON.stringify({ split: one(D.split), quintiles: one(D.quintiles) }));\n", encoding="utf-8")
     res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(FACTOR_SETTINGS)],
                          capture_output=True, text=True, timeout=60)
     assert res.returncode == 0, res.stderr
-    for o, js in zip(FACTOR_SETTINGS, json.loads(res.stdout)):
-        py = fl.split_run(published["split"], **o)
-        assert js["n"] == len(py["months"]) > 100 and list(js["factors"]) == fl.SPLIT_KEYS == published["split_keys"]
-        for k in fl.SPLIT_KEYS:
-            for part in ("small", "big", "gap", "long", "short"):
-                for stat in ("mean", "std", "t"):
-                    assert js["factors"][k][part][stat] == pytest.approx(py["factors"][k][part][stat], rel=1e-8, abs=1e-12), (o, k, part)
+    got = json.loads(res.stdout)
+    assert list(got["split"][0]["factors"]) == fl.SPLIT_KEYS == published["split_keys"]
+    for name, keys in (("split", fl.SPLIT_KEYS), ("quintiles", fl.QUINT_KEYS)):
+        for o, js in zip(FACTOR_SETTINGS, got[name]):
+            py = fl.split_run(published[name], **o)
+            assert js["n"] == len(py["months"]) > 100 and list(js["factors"]) == keys
+            for k in keys:
+                for part in ("small", "big", "gap", "long", "short"):
+                    for stat in ("mean", "std", "t"):
+                        assert js["factors"][k][part][stat] == pytest.approx(py["factors"][k][part][stat], rel=1e-8, abs=1e-12), (name, o, k, part)
 
 
 CRASH_SETTINGS = [
@@ -643,6 +648,15 @@ def test_each_takeaway_is_what_the_data_shows(published):
     late = fl.split_run(sp, "200001", "209912")["factors"]
     assert late["profitability"]["big"]["t"] > 2
     assert all(abs(late[k]["big"]["t"]) < 2 for k in fl.SPLIT_KEYS if k != "profitability")
+    # 9. "nearly 8% a year from 1927 to 2011, as the paper found; since 2000 under 3% a year and not
+    #     distinguishable from zero; value there was never reliably different from zero"
+    qd = published["quintiles"]
+    rows = {r["key"]: r for r in published["experiments"][8]["result"]["rows"]}
+    assert 7.5 <= rows["mean_momentum_big"]["here"] < 8.0 and rows["mean_momentum_big"]["within"]
+    since = fl.split_run(qd, "200001", "209912")["factors"]
+    assert since["momentum"]["big"]["mean"] * 12 < 3 and abs(since["momentum"]["big"]["t"]) < 2
+    for a, b in (("192701", "201112"), ("192701", "209912"), ("200001", "209912")):
+        assert abs(fl.split_run(qd, a, b)["factors"]["value"]["big"]["t"]) < 2, (a, b)
 
 
 def test_the_factors_are_measured_within_each_half_of_the_market():
@@ -712,6 +726,36 @@ def test_a_big_company_factor_is_its_two_sides_added_together(published):
     assert "can keep only the first" in html and 'id="t-sides"' in html
 
 
+def test_the_largest_fifth_experiment_is_recorded_as_it_landed(published):
+    """Experiment 9: tolerances written first, most figures expected within. Five were. The
+    four that describe the largest fifth all match; every miss involves the smallest fifth, and
+    the sentence that says so is checked here."""
+    exp, built = fl.EXPERIMENTS[8], published["experiments"][8]["result"]
+    assert exp["id"] == "largest-fifth" and exp["kind"] == "split" and exp["split"]["data"] == "quintiles"
+    assert exp["reference"]["scale"] == 12                                  # the paper reports percent a year
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean_value_small": (11.22, 0.5), "t_value_small": (3.87, 0.25), "mean_value_big": (3.70, 0.5),
+        "t_value_big": (1.90, 0.25), "mean_value_gap": (7.13, 0.5), "t_value_gap": (2.10, 0.25),
+        "mean_momentum_small": (10.87, 0.5), "t_momentum_small": (4.50, 0.25), "mean_momentum_big": (7.49, 0.5),
+        "t_momentum_big": (2.95, 0.25), "mean_momentum_gap": (3.42, 0.5), "t_momentum_gap": (1.56, 0.25)}
+    rows = {r["key"]: r for r in built["rows"]}
+    for k in ("mean_value_big", "t_value_big", "mean_momentum_big", "t_momentum_big"):
+        assert rows[k]["within"], k                                          # "all four figures for the largest fifth match"
+    missed = {k for k, r in rows.items() if not r["within"]}
+    assert missed and all(k.endswith("_small") or k.endswith("_gap") for k in missed)   # "every miss involves the smallest fifth"
+    assert "All four figures for the largest fifth" in exp["verdict_note"]
+    # a year's figure is twelve average months, and the two sides add up to the spread
+    qd = published["quintiles"]
+    r = fl.split_run(qd, exp["reference"]["start"], exp["reference"]["end"])["factors"]
+    assert rows["mean_momentum_big"]["here"] == pytest.approx(12 * r["momentum"]["big"]["mean"])
+    assert list(k for k in qd if k != "months") == fl.QUINT_KEYS == exp["split"]["keys"]
+    for k in fl.QUINT_KEYS:
+        assert set(qd[k]) == set(fl.SPLIT_PARTS)
+        for big, held, shorted in zip(qd[k]["big"], qd[k]["long"], qd[k]["short"]):
+            assert big == pytest.approx(held + shorted, abs=2e-4)
+    assert fl.QUINT_COLS == {"small": (0, 4), "big": (20, 24)}
+
+
 def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(published):
     """The front page's table of where each category stands. Its weights are the config's - a
     weight change without a rebuild of the lab fails here - and every figure in it is rebuilt
@@ -752,7 +796,8 @@ def test_the_table_of_results_after_their_papers_is_computed(published):
     Rebuilt here from the published series; the page's sentence counts the rows itself."""
     built = published["after_the_paper"]
     again = fl.after_the_paper(published["momentum"], published["market"], published["factors"],
-                               published["size"], published["sorts"], published["split"])
+                               published["size"], published["sorts"], published["split"],
+                               published["quintiles"])
     assert [r["label"] for r in again] == [r["label"] for r in built] and len(built) >= 10
     assert {r["experiment"] for r in built} == {x["id"] for x in fl.EXPERIMENTS}
     for a, b in zip(again, built):
@@ -1008,6 +1053,21 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("location.hash").startswith("#big-and-small?start=200001")
                 assert page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean") < in_sample
                 assert "1 of the 4</strong> among big companies" in page.inner_html("#x-read")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+                # the same layout on the smallest and largest fifths
+                page.goto(PAGE.as_uri() + "#largest-fifth", wait_until="load", timeout=60000)
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'largest-fifth'", timeout=30000)
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 4
+                assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 2
+                assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 12
+                assert "among the largest fifth of companies" in page.inner_text("#x-read")
+                in_sample = page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean")
+                page.click("#c-preset button[data-i='2']")                # since 2000
+                assert page.evaluate("location.hash").startswith("#largest-fifth?start=200001")
+                assert page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean") < in_sample
+                assert "none</strong> among the largest fifth" in page.inner_html("#x-read")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 page.close()

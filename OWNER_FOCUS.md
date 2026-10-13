@@ -52,6 +52,15 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-13 (owner-run, before the 02:00 run) - the nightly sessions are set up to carry
+    this on, and a ninth experiment answers the question the review left open.**
+    `prompts/nightly.md` now tells each session about the lab, the route from a finding to a
+    weight, the proposal waiting for review, and how to read a paper so a note can be trusted.
+    The Growth proposal was **pre-flighted** in a throwaway checkout: eight tests trip, and the
+    note lists what each needs. A full rehearsal of the 02:00 publish with tonight's code passed
+    the whole suite. Experiment 9 reruns Israel & Moskowitz (2013) in the largest fifth of
+    companies: the paper's figures there reproduce, and momentum since 2000 is 2.7% a year
+    (t 0.54) - the flat stretch is in the largest fifth as well.
   - **2026-10-13 (owner-run, just after midnight) - the second question is researched too: value
     and momentum among large companies.**
     `research/2026-10-12-value-and-momentum-among-large-companies.md`. Value on book value was

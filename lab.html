@@ -196,8 +196,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=14"></script>
-<script src="lab_engine.js?v=14"></script>
+<script src="lab_data.js?v=15"></script>
+<script src="lab_engine.js?v=15"></script>
 <script>
 (function () {
     'use strict';
@@ -828,14 +828,17 @@ footer p { margin: 0 0 8px; }
         el.innerHTML = s + '</svg>';
     }
     function bigAndSmall(X, n, mount, init) {
-        const REF = X.reference, res0 = X.result, Z = D.split, KEYS = D.split_keys, NAME = D.split_names;
+        // One layout for any experiment that measures the same traits in two size groups. The
+        // experiment's record names the groups; without one it is the two halves of the market.
+        const G = X.split || {}, REF = X.reference, res0 = X.result, Z = D[G.data || 'split'], KEYS = G.keys || D.split_keys, NAME = D.split_names;
+        const BIG = G.big || 'big companies', SMALL = G.small || 'small companies';
         const Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
         const zyears = []; for (let y = +Z0.slice(0, 4); y <= +Z1.slice(0, 4); y++) zyears.push(y);
         const refState = () => ({ start: REF.start, end: REF.end });
         let S = applyScene(refState(), init, { start: 'month', end: 'month' }), last = null;
         const atRef = () => S.start === REF.start && S.end === REF.end;
-        const PRESETS = [['The paper · 1963–2013', REF.start, REF.end], ['After the paper · 2014–now', '201401', Z1],
-            ['Since 2000', '200001', Z1], ['Everything', Z0, Z1]];
+        const PRESETS = G.presets ? G.presets.map(p => [p[0], p[1] === 'FIRST' ? Z0 : p[1], p[2] === 'LAST' ? Z1 : p[2]])
+            : [['The paper · 1963–2013', REF.start, REF.end], ['After the paper · 2014–now', '201401', Z1], ['Since 2000', '200001', Z1], ['Everything', Z0, Z1]];
         const outside = res0.rows.filter(r => !r.within).length;
         mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
         <section aria-labelledby="x-run">
@@ -846,27 +849,27 @@ footer p { margin: 0 0 8px; }
                 <div class="row2"><div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div></div>
             </div>
             <p class="read" id="x-read" aria-live="polite"></p>
-            <div class="key" aria-hidden="true"><span class="a"><i></i>Among big companies, which are all the screener ranks</span><span class="b"><i></i>Among small companies</span></div>
-            <p class="chart-title"><strong>Average return a month</strong>, each factor among small and among big companies (%)</p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>${esc(G.key_big || 'Among big companies, which are all the screener ranks')}</span><span class="b"><i></i>${esc(G.key_small || 'Among small companies')}</span></div>
+            <p class="chart-title"><strong>Average return a month</strong>, each factor among ${esc(SMALL)} and among ${esc(BIG)} (%)</p>
             <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of four factors, each measured among small companies and among big ones. The figures are in the table below."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
-            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">Small</th><th scope="col">Big</th><th scope="col">Small − big</th></tr></thead><tbody></tbody></table></div>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">${esc(G.small_short || 'Small')}</th><th scope="col">${esc(G.big_short || 'Big')}</th><th scope="col">${G.data ? 'Smallest − largest' : 'Small − big'}</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
-            <h3 style="margin-top:26px">Among big companies, which side it comes from</h3>
+            <h3 style="margin-top:26px">Among ${esc(BIG)}, which side it comes from</h3>
             <p style="margin:0 0 12px;max-width:76ch">A factor is one group's return minus another's. Split at the market's return, it has two sides: how far the group it holds ran ahead of the market, and how far the group it is short fell behind. Someone who holds stocks and shorts nothing can keep only the first.</p>
             <div class="tablewrap"><table id="t-sides"><thead><tr><th scope="col">Factor</th><th scope="col">Held group − market</th><th scope="col">Market − shorted group</th><th scope="col">Factor</th></tr></thead><tbody></tbody></table></div>
             <p class="note">The two sides add up to the factor. The market is all US stocks, weighted by market value. This split is not in the paper's table.</p>
         </section>
         <section aria-labelledby="x-against">
             <h3 id="x-against">Against the paper</h3>
-            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today. Momentum is not in the paper's table, so it is not in this comparison.</p>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today. ${esc(G.against || "Momentum is not in the paper's table, so it is not in this comparison.")}</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
             <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
         </section>` + tail(X, `
-            <div class="eq">a factor among big companies &nbsp;=&nbsp; the big half's high group − its low group, each month<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small></div>
+            <div class="eq">a factor among ${esc(BIG)} &nbsp;=&nbsp; that group's high end − its low end, each month${G.data ? '' : '<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small>'}</div>
             <div class="eq">average month &nbsp;=&nbsp; mean of that series over the period<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>
-            <div class="eq">small minus big &nbsp;=&nbsp; mean of ( the factor among small − the factor among big ), month by month</div>
-            <div class="eq">the factor among big companies &nbsp;=&nbsp; ( held group − market ) + ( market − shorted group )<small>Each side is averaged over the period on its own, with its own t-statistic.</small></div>`);
+            <div class="eq">${G.data ? 'smallest minus largest' : 'small minus big'} &nbsp;=&nbsp; mean of ( the factor among ${esc(SMALL)} − the factor among ${esc(BIG)} ), month by month</div>
+            <div class="eq">the factor among ${esc(BIG)} &nbsp;=&nbsp; ( held group − market ) + ( market − shorted group )<small>Each side is averaged over the period on its own, with its own t-statistic.</small></div>`);
         document.getElementById('x-code').textContent = E.splitRun.toString();
 
         const now = E.splitRun(Z, refState());
@@ -887,12 +890,12 @@ footer p { margin: 0 0 8px; }
             }
             const F = r.factors, clears = part => KEYS.filter(k => F[k][part].mean > 0 && F[k][part].t >= 2).length;
             const of4 = c => c === KEYS.length ? 'all ' + c : c === 0 ? 'none' : c + ' of the ' + KEYS.length;
-            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, among <strong>big companies</strong> ` +
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, among <strong>${esc(BIG)}</strong> ` +
                 KEYS.map(k => `${esc(NAME[k].toLowerCase())} averaged <strong>${sf2(F[k].big.mean)}%</strong> a month (t-statistic ${f2(F[k].big.t)})`).join(', ') +
-                `. Factors above the usual bar of about 2: <strong>${of4(clears('big'))}</strong> among big companies, ${of4(clears('small'))} among small ones.`;
+                `. Factors above the usual bar of about 2: <strong>${of4(clears('big'))}</strong> among ${esc(BIG)}, ${of4(clears('small'))} among ${esc(SMALL)}.`;
             const cell = q => `${sf2(q.mean)}% <span class="muted">(${f2(q.t)})</span>`;
             body.innerHTML = KEYS.map(k => `<tr><td>${esc(NAME[k])} <span class="where">${esc(D.split_category[k])}</span></td><td>${cell(F[k].small)}</td><td>${cell(F[k].big)}</td><td>${cell(F[k].gap)}</td></tr>`).join('');
-            document.getElementById('x-live-note').textContent = 'Small and big are the two halves of the market by company size; under each factor is the screener category it stands behind. The figure in brackets is the t-statistic. ' + (atRef()
+            document.getElementById('x-live-note').textContent = (G.halves || 'Small and big are the two halves of the market by company size; under each factor is the screener category it stands behind.') + ' The figure in brackets is the t-statistic. ' + (atRef()
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.');
             document.querySelector('#t-sides tbody').innerHTML = KEYS.map(k => `<tr><td>${esc(NAME[k])}</td><td>${cell(F[k].long)}</td><td>${cell(F[k].short)}</td><td>${cell(F[k].big)}</td></tr>`).join('');

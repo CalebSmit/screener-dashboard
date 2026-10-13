@@ -59,7 +59,13 @@ FRENCH_FILES = {
     "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_momentum": ("6_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "quint_value": ("25_Portfolios_5x5_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "quint_momentum": ("25_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
 }
+# The 25 size-by-trait portfolios: five size groups, five trait groups inside each, in that
+# order. The lowest and highest trait group of the smallest and of the largest size group.
+QUINT_KEYS = ["value", "momentum"]
+QUINT_COLS = {"small": (0, 4), "big": (20, 24)}
 # Factors computed separately among small and big companies. Each file's columns are
 # small-low, small-middle, small-high, big-low, big-middle, big-high; the sign says which end
 # the factor is long (investment is conservative minus aggressive: low minus high).
@@ -92,8 +98,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs.
-ASSET_VERSION = 14
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment.
+ASSET_VERSION = 15
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -395,12 +401,35 @@ def split_data(raw_dir: Path = RAW_DIR) -> dict:
     return out
 
 
+def quintile_data(raw_dir: Path = RAW_DIR) -> dict:
+    """Value and momentum inside the smallest and the largest fifth of companies by size: the
+    highest trait group minus the lowest, monthly, in percent. Same shape as `split_data`, so
+    the same arithmetic and the same page serve both; "long" and "short" split the
+    largest-fifth spread at the market's return."""
+    mfile, mmark = FRENCH_FILES["factors_monthly"]
+    m_dates, m_rows, _ = read_table(raw_dir / mfile, mmark)
+    market = {d: r[0] + r[3] for d, r in zip(m_dates, m_rows)}              # Mkt-RF + RF
+    (s_lo, s_hi), (b_lo, b_hi) = QUINT_COLS["small"], QUINT_COLS["big"]
+    raw = {}
+    for key in QUINT_KEYS:
+        fname, mark = FRENCH_FILES["quint_" + key]
+        dates, rows, _ = read_table(raw_dir / fname, mark)
+        raw[key] = {d: (r[s_hi] - r[s_lo], r[b_hi] - r[b_lo], r[b_hi] - market[d], market[d] - r[b_lo])
+                    for d, r in zip(dates, rows)
+                    if d in market and all(r[c] > MISSING for c in (s_lo, s_hi, b_lo, b_hi))}
+    months = sorted(set.intersection(*(set(v) for v in raw.values())))
+    out = {"months": months}
+    for key in QUINT_KEYS:
+        out[key] = {part: [round(raw[key][m][i], 4) for m in months] for i, part in enumerate(SPLIT_PARTS)}
+    return out
+
+
 def split_run(split: dict, start: str, end: str) -> dict:
     """Each factor's average month and t-statistic among small companies, among big ones, the
     difference between the two month by month, and the two sides of the big-company factor."""
     idx = [i for i, m in enumerate(split["months"]) if start <= m <= end]
     out = {"months": [split["months"][i] for i in idx], "factors": {}}
-    for key in SPLIT_KEYS:
+    for key in (k for k in split if k != "months"):
         part = {p: [split[key][p][i] for i in idx] for p in SPLIT_PARTS}
         out["factors"][key] = {**{p: mean_t(v) for p, v in part.items()},
                                "gap": mean_t([a - b for a, b in zip(part["small"], part["big"])])}
@@ -1267,6 +1296,100 @@ EXPERIMENTS = [
             "it is the main input to the open questions about the screener's weights listed on the "
             "front page."),
     },
+    {
+        "id": "largest-fifth",
+        "kind": "split",
+        "topic": "Value and momentum in the largest fifth of companies",
+        "title": "Are value and momentum still there in the largest companies?",
+        "tab": "The largest fifth",
+        "paper": {
+            "authors": "Ronen Israel and Tobias J. Moskowitz",
+            "year": 2013,
+            "title": "The role of shorting, firm size, and time on market anomalies",
+            "journal": "Journal of Financial Economics 108(2), 275-301",
+            "doi": "10.1016/j.jfineco.2012.11.005",
+        },
+        "claim": ("Momentum, yes; value, barely. Sorting US stocks into fifths by size and then by each "
+                  "trait, from 1926 to 2011 the highest-value fifth of the largest companies earned 3.7% a "
+                  "year more than the lowest (t-statistic 1.90), against 11.2% among the smallest. Past "
+                  "winners beat past losers by 7.5% a year among the largest (t-statistic 2.95) and 10.9% "
+                  "among the smallest."),
+        "reference": {
+            "source": ("The published article, Table 3 (page 283): returns of the fifth-minus-first "
+                       "portfolios within the smallest and largest size quintiles, in percent a year."),
+            "start": "192701", "end": "201112", "scale": 12,
+            # Written 2026-10-13 BEFORE the comparison was run; nothing had been computed on these
+            # two files. Half a point a year on a spread and a quarter on a t-statistic. Expected:
+            # most within - the paper used this library's 2011 files - with value the likelier
+            # miss, because the paper's value sample starts six months earlier (July 1926) and
+            # the library has been rebuilt since. (It landed 5 of 12: all four figures for the
+            # largest fifth within, every miss involving the smallest fifth. The tolerances
+            # stay as written; verdict_note says where the misses are.)
+            "figures": [
+                {"key": "mean_value_small", "label": "Value in the smallest fifth: high minus low, % a year", "paper": 11.22, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_value_small", "label": "Value in the smallest fifth: t-statistic", "paper": 3.87, "tolerance": 0.25, "where": "Table 3"},
+                {"key": "mean_value_big", "label": "Value in the largest fifth: high minus low, % a year", "paper": 3.7, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_value_big", "label": "Value in the largest fifth: t-statistic", "paper": 1.9, "tolerance": 0.25, "where": "Table 3"},
+                {"key": "mean_value_gap", "label": "Value smallest minus largest: high minus low, % a year", "paper": 7.13, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_value_gap", "label": "Value smallest minus largest: t-statistic", "paper": 2.1, "tolerance": 0.25, "where": "Table 3"},
+                {"key": "mean_momentum_small", "label": "Momentum in the smallest fifth: high minus low, % a year", "paper": 10.87, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_momentum_small", "label": "Momentum in the smallest fifth: t-statistic", "paper": 4.5, "tolerance": 0.25, "where": "Table 3"},
+                {"key": "mean_momentum_big", "label": "Momentum in the largest fifth: high minus low, % a year", "paper": 7.49, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_momentum_big", "label": "Momentum in the largest fifth: t-statistic", "paper": 2.95, "tolerance": 0.25, "where": "Table 3"},
+                {"key": "mean_momentum_gap", "label": "Momentum smallest minus largest: high minus low, % a year", "paper": 3.42, "tolerance": 0.5, "where": "Table 3"},
+                {"key": "t_momentum_gap", "label": "Momentum smallest minus largest: t-statistic", "paper": 1.56, "tolerance": 0.25, "where": "Table 3"},
+            ],
+        },
+        "verdict_note": ("All four figures for the largest fifth, which is where the screener's "
+                         "companies are, match. Every miss involves the smallest fifth. The paper "
+                         "describes forming each trait's groups inside each size group; the library's "
+                         "files today form them independently of size, and have been rebuilt on a "
+                         "newer database."),
+        "split": {
+            "data": "quintiles", "keys": ["value", "momentum"],
+            "big": "the largest fifth of companies", "small": "the smallest fifth",
+            "big_short": "Largest fifth", "small_short": "Smallest fifth",
+            "key_big": "In the largest fifth of companies by size, where most of the screener's sit",
+            "key_small": "In the smallest fifth",
+            "halves": ("The smallest and largest fifths are by market value, on New York Stock Exchange "
+                       "breakpoints; under each trait is the screener category it stands behind."),
+            "against": ("The paper's figures are in percent a year, so each average month here is "
+                        "multiplied by twelve for the comparison. Its risk-adjusted figures are not "
+                        "rerun."),
+            "presets": [["The paper \u00b7 1927\u20132011", "192701", "201112"],
+                        ["After the paper \u00b7 2012\u2013now", "201201", "LAST"],
+                        ["Since 2000", "200001", "LAST"], ["1963\u20131999", "196307", "199912"],
+                        ["Everything", "FIRST", "LAST"]],
+        },
+        "conditions": [
+            ["Portfolios", "The library's 25 portfolios formed on size and book-to-market, and on size "
+                           "and prior return: five size groups on New York Stock Exchange breakpoints, "
+                           "five groups on the trait within them. The spread is the highest group minus "
+                           "the lowest, inside one size group."],
+            ["Momentum", "Return over the prior twelve months, leaving out the latest one."],
+            ["Weighting", "Value-weighted within each portfolio, as in the paper."],
+            ["Sample", "From January 1927, the first month both files cover. The paper's value sample "
+                       "starts in July 1926."],
+            ["The two sides", "In the largest fifth each spread is also split at the market's return: "
+                              "the high group minus the market, and the market minus the low group. "
+                              "The paper does this with a risk-adjusted return instead, so its long-side "
+                              "figures are not comparable with these and are not in the comparison."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper's risk-adjusted (market-model) figures, which are its headline, are not rerun "
+            "here: 2.2% a year for value and 10.2% for momentum in the largest fifth.",
+            "The library has been rebuilt on a newer database since the paper.",
+            "The largest fifth by New York Stock Exchange breakpoints averaged $36 billion in 2011 "
+            "by the paper's count. It is close to the upper part of the screener's universe, not "
+            "the same list.",
+        ],
+        "in_the_screener": (
+            "This is the nearest published test of the two traits where the screener's companies "
+            "are. Its \"After the paper\" and \"Since 2000\" settings are the ones to read: the "
+            "review of Valuation's and Momentum's weights rests on them, and on whether what "
+            "experiment 8 shows for the larger half of companies also shows in the largest fifth."),
+    },
 ]
 
 
@@ -1294,6 +1417,9 @@ TAKEAWAYS = {
     "big-and-small": ("Among big companies - all the screener ranks - value, profitability and investment "
                       "each earned roughly half what they did among small ones in the paper's sample. "
                       "Since 2000 only profitability has stayed distinguishable from zero there."),
+    "largest-fifth": ("In the largest fifth of companies, past winners beat past losers by nearly 8% a year "
+                      "from 1927 to 2011, as the paper found. Since 2000 the gap has averaged under 3% a year "
+                      "and cannot be told from zero. Value there was never reliably different from zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -1304,7 +1430,8 @@ TAKEAWAYS = {
 # have, and says what that data is. Kept honest by hand and by one test: every experiment id
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
-    {"category": "Valuation", "key": "valuation", "experiments": ["earnings-yield", "five-factors", "big-and-small"],
+    {"category": "Valuation", "key": "valuation",
+     "experiments": ["earnings-yield", "five-factors", "big-and-small", "largest-fifth"],
      "has": "Stocks sorted by earnings yield, and the value factor (book value against price).",
      "gap": "The screener's heaviest valuation measure is free cash flow against the value of the whole "
             "business. The library's sort on cash-flow yield is the nearest thing and is queued."},
@@ -1320,7 +1447,7 @@ CATEGORY_MAP = [
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
             "cites, needs company accounts."},
     {"category": "Momentum", "key": "momentum",
-     "experiments": ["risk-managed-momentum", "momentum-crashes", "big-and-small"],
+     "experiments": ["risk-managed-momentum", "momentum-crashes", "big-and-small", "largest-fifth"],
      "has": "Momentum's risk, when it crashes, and its size among big companies.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
@@ -1439,7 +1566,7 @@ def next_month(m: str) -> str:
 
 
 def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
-                    split: dict | None = None) -> list[dict]:
+                    split: dict | None = None, quintiles: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -1500,6 +1627,15 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         a, b = split_run(split, ref["start"], ref["end"]), split_run(split, next_month(ref["end"]), end)
         for k in SPLIT_KEYS:
             add("big-and-small", f"{SPLIT_NAMES[k]} among big companies: average month", "pct", 1,
+                cell(a["factors"][k]["big"]["mean"], len(a["months"]), a["factors"][k]["big"]["t"]),
+                cell(b["factors"][k]["big"]["mean"], len(b["months"]), b["factors"][k]["big"]["t"]))
+
+    if quintiles is not None and "largest-fifth" in exps:
+        ref = exps["largest-fifth"]["reference"]
+        a = split_run(quintiles, ref["start"], ref["end"])
+        b = split_run(quintiles, next_month(ref["end"]), end)
+        for k in QUINT_KEYS:
+            add("largest-fifth", f"{SPLIT_NAMES[k]} in the largest fifth: average month", "pct", 1,
                 cell(a["factors"][k]["big"]["mean"], len(a["months"]), a["factors"][k]["big"]["t"]),
                 cell(b["factors"][k]["big"]["mean"], len(b["months"]), b["factors"][k]["big"]["t"]))
     return rows
@@ -1587,13 +1723,15 @@ def reproduce_sort(data: dict, exp: dict) -> dict:
 
 
 def reproduce_split(split: dict, exp: dict) -> dict:
-    """Experiment 8 at the paper's sample, against its table."""
+    """A split experiment at the paper's sample, against its table. `scale` turns an average
+    month into the paper's unit (12 where the paper reports percent a year)."""
     ref = exp["reference"]
     r = split_run(split, ref["start"], ref["end"])
+    scale = ref.get("scale", 1)
     got = {}
     for key, parts in r["factors"].items():
         for part, s in parts.items():
-            got[f"mean_{key}_{part}"], got[f"t_{key}_{part}"] = s["mean"], s["t"]
+            got[f"mean_{key}_{part}"], got[f"t_{key}_{part}"] = s["mean"] * scale, s["t"]
     rows = []
     for f in ref["figures"]:
         here = got[f["key"]]
@@ -1622,9 +1760,11 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     size = size_data(raw_dir)
     sorts = {name: sort_data(name, raw_dir) for name in SORTS}
     split = split_data(raw_dir)
+    quintiles = quintile_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
-        result = (reproduce_split(split, exp) if exp["kind"] == "split"
+        result = (reproduce_split(quintiles if exp.get("split", {}).get("data") == "quintiles" else split, exp)
+                  if exp["kind"] == "split"
                   else reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce_size(size, exp) if exp["kind"] == "size"
@@ -1644,13 +1784,14 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split),
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles),
         "scorecard": scorecard(split, size, screener_weights()),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
         "size": {k: size[k] for k in ("months", "ew", "vw")},
         "sorts": sorts,
+        "quintiles": quintiles,
         "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "market": market,

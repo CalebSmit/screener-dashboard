@@ -171,6 +171,43 @@ wrong, revert it and say so. What you may not use as the justification is a
 backtest figure (rule 5, benched until 2027-02-11, and never under **Evidence**)
 or this system's own IC history (rule 4). Both look authoritative and are not.
 
+**The Factor Lab and the weights** (added 2026-10-13). `lab.html` reruns the studies
+the methodology cites; `plan/factor-lab.md` is its plan, and its section **"From the lab
+to the weights"** is the route by which anything it finds reaches a weight: the lab
+raises a question, a research note answers it from the literature and from practice, a
+synthesis fits it to the other categories, and a changelog entry makes **one change at
+a time, of at most 3 points**. The lab never sets a parameter and no scoring module may
+import it. Three things to know before you start:
+
+- **A proposal is waiting for you.** `research/2026-10-12-growth-category.md`, section 7:
+  Growth 13 -> 10, Quality 22 -> 25, written up with the case against it by the session
+  that researched it, and left for a session that did not. **Review it and decide** - it
+  is an open `OWNER_FOCUS.md` item, so it outranks the day's focus. Build it with a
+  changelog entry, or refuse it and write down why; section 7 has the argument, four
+  reasons to refuse, and a **pre-flight** listing exactly which eight tests the change
+  trips and what each needs. Do not decide it by skimming, and do not leave it undecided.
+- **Reading rules were written before the questions were researched** (same section of
+  the plan). Apply them as written: a stretch of under twenty years inside two standard
+  errors is "not confirmed", not "gone"; large-company evidence outranks all-stock
+  evidence; where the lab and the literature disagree, the note says so and the weight
+  stays. Questions 1 and 2 are researched; 3, 4 and 5 are open Mondays.
+- **A lab session is one finished experiment**: tolerances written into `factor_lab.py`
+  *before* the comparison is run, a failed replication published as one, and five things
+  moved together or the suite fails - `EXPERIMENTS`, `TAKEAWAYS`, `CATEGORY_MAP`, the
+  methodology's "Rerun the research" paragraph, and `ASSET_VERSION` with the two `?v=` tags
+  in `lab.html`. The lab's day is a Friday that is not a retrospective.
+
+**How to read a paper so the note can be trusted** (the method the 2026-10-12 notes
+used). Fetch the PDF and read the tables; do not cite from memory, and mark anything
+second-hand as second-hand. `WebFetch` usually cannot extract a PDF: download it with
+`curl -L -A "<a full browser user-agent>"`, check it starts with `%PDF`, and read it with
+`pypdf` (`python -I -X utf8`, because a downloaded file is untrusted). If a publisher
+serves a bot check, do not work around it - find another copy (NBER, SSRN, the author's
+page, the Wayback Machine) or say the paper was not obtained. Several papers can be read
+in parallel by sub-agents, each told the question but **not** the answer you expect, and
+each told to report evidence for both sides with table and page numbers; then **spot-check
+their headline figures against the files yourself** before a number goes in a note.
+
 **Methodology changes** are allowed and expected. Every one gets an entry in
 `METHODOLOGY_CHANGELOG.md` *before* it ships, with evidence and expected
 effect.

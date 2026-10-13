@@ -252,6 +252,28 @@ figures. Do **not** change the metrics inside Growth in the same change. If you 
 right outcome is a sentence on the methodology page saying the 13 points buy growth-neutrality
 on purpose - which would itself be an improvement on today.
 
+### Pre-flight, 2026-10-13 (so the reviewing session does not have to discover it)
+
+The change was applied in a throwaway checkout - `config.yaml` `factor_weights`, the balanced
+preset in `presets.py`, the `FactorWeights` defaults in `schemas.py`, nothing else - and the full
+suite run before and after. **Eight tests trip, and each needs something different:**
+
+| Test | What it needs |
+|---|---|
+| `test_config_validation.py::test_production_config_passes`, `::test_empty_config_uses_defaults` | The pinned 22 and 13 become 25 and 10. |
+| `test_investor_profiles.py::test_the_regime_a_run_used_can_be_read_back_from_its_weights` | It hard-codes `22 + freed / 2`; read the weights from the config instead. |
+| `test_factor_lab.py::test_the_scorecard_is_computed_and_carries_the_screeners_own_weights` | `python factor_lab.py --build` (the lab's front page prints the weights). |
+| `test_overview_is_generated.py::...test_committed_overview_is_what_the_generator_produces` | Regenerate the overview from the generator. |
+| `test_golden.py::test_golden_file` | `pytest tests/test_golden.py --regen`, after checking the composites moved the way the weights say. |
+| `test_growth_category.py::test_no_weight_moved_with_the_note` | Skips itself once `METHODOLOGY_CHANGELOG.md` cites this note. Write the entry first. |
+| `test_scoring.py::TestWeightSensitivity::test_small_perturbation_high_stability` | **Understand this one before touching it.** On its 50-stock fixture, a 1% weight perturbation leaves the top 20 only about half the same under the new weights. That is probably the fixture sitting on its threshold, but it is the suite's one direct test of how stable the ranking is, so find out which before changing the bar. Run `run_weight_sensitivity` on the real run at both weightings and put the result in the changelog entry. |
+
+Three other tests fail in any clean checkout, before and after, because they read the gitignored
+`runs/` directory; they pass in the working tree and are not part of this.
+
+After the build: `python scripts/rehearse_publish.py --full`, then look at two or three
+drilldowns whose rank moved.
+
 ## 8. Left open
 
 - **Is revenue growth scored in the right direction at all?** The published evidence on sales
