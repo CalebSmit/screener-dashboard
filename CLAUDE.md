@@ -294,6 +294,18 @@ and a session that hands the runner a broken tree has wasted the day.
 On success the runner tags the commit `good/YYYY-MM-DD`. That tag is the
 rollback point - see `ROLLBACK.md`.
 
+**The four gates cannot see a generator change - run `python scripts/rehearse_publish.py` when
+your diff touches one** (added 2026-10-12). Gates 1 and 3 read the *committed* `index.html` and
+payload, which only a full run rewrites; a change to `generate_dashboard.py` or the methodology
+generator alters what the 02:00 loop publishes next without altering anything the gates look
+at. That evening an owner-run session passed all four gates eleven times while the regenerated
+page sat 8 elements over its first-paint budget - the 06:00 baseline would have been red for a
+reason no gate had shown. The script regenerates the page from the newest full run with the
+working tree's code, installs it, runs the tests that read it plus the data loop's claims gate,
+and restores the published files byte for byte. `tests/test_rehearse_publish.py`, 5 tests.
+The fix that night is a constraint too: **the Methodology dialog is filled on first open**
+(`hydrateMethodology`); `.methodology-body` is empty before that by design.
+
 **Gate 3 became a real parse on 2026-09-18, on both publish paths** - it had
 claimed "`dashboard_data.js` parses" while only regex-matching the first line
 against a size floor, and a payload truncated to 50% is 2.5 MB, opens with the
