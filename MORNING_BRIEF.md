@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 13 October 2026, 02:19
+# Morning Brief - Tuesday 13 October 2026, 06:30
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,15 +18,12 @@ history is in `NIGHTLY_LOG.md`.
 | Context signals | Context signals: 4 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
 | Context coverage | options usable 484/501 (17 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **Growth 13% -> 10%, Quality 22% -> 25% (section 7 of this note)** - open 1 day - `research/2026-10-12-growth-category.md`
-
 ## What changed in the repo
 
+- `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
+- `99ec010 growth: record the decision on the page, the lab scorecard and the plan`
+- `a3d2726 growth: review the waiting proposal and refuse it, with the measurement that decided it`
+- `eeff9e2 brief: data run 2026-10-13`
 - `a5e84b8 data: screener run 2026-10-13 - 501 scored, top: EXPE HST INCY APA BMY`
 - `0bbd9c5 brief: list proposals waiting for a decision, with their age`
 - `97e7a29 Factor Lab experiment 9 (the largest fifth), and the nightly sessions set up to carry the work on`
@@ -38,44 +35,55 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `573fd30 methodology page: the Risk and Size sections say what the Factor Lab measured`
 - `e1eee1a scripts/rehearse_publish.py: see the next data run's page before the data run does`
 - `9280df1 dashboard: the methodology loads when it is opened - found by rehearsing tonight's 02:00 publish`
-- `d00a72e Factor Lab experiment 7: does market risk pay? (Fama & French 1992, Table II B); the methodology links each category to its experiments`
-- `cba877c Factor Lab experiment 6: does a high earnings yield pay? (Fama & French 1992, Table IV) - the nearest public sort to the Valuation category`
-- `5f8e7be Factor Lab experiment 5: do riskier stocks earn more? (Ang, Hodrick, Xing & Zhang 2006), on a generic sorted-portfolio layout`
-- `b985630 Factor Lab: a front page and a category map; the methodology page says what the factors have done since 2014`
 
 ## The session's own account
 
-> 2026-10-13 (owner-run, last before the 02:00 run) - open proposals in the morning brief
+> 2026-10-13 (06:00) - the Growth proposal: reviewed, refused, and the weight stated as deliberate
 > 
-> **Health (rule 8):** unchanged since the last entry - both loops ran 2026-10-12, HEALTH: PASS;
-> evidence base at `1m` **28 rows, newest 2026-09-11 (32 days, bound 40), 4 effective**; priority 0
-> unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 1 day).
-> **Tests:** before 2222 passed / 0 failed; after 2227 passed / 0 failed.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-12_060001.log`
+> ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-13_020001.log`
+> ends "Data loop complete", HEALTH: PASS, claims gate 371 passed. Evidence base at `1m`:
+> **28 rows, newest 2026-09-11 (32 days ago, bound 40), 4 effective** - inside the bound, and the
+> engine's own line in the data log agrees ("4 effective (28 rows) at the 1m horizon"). Priority 0:
+> unchanged, `allow_auto_apply` false, 4 of 8 effective observations. Top open roadmap item:
+> **0.13, the Factor Lab** (opened 2026-10-12, **age 1 day**).
+> **Tests:** before **2227 passed / 0 failed**, after **2235 passed / 0 failed**.
+> **Owner queue / rotation:** took the owner item - `OWNER_FOCUS.md`'s Factor Lab item and
+> `prompts/nightly.md` section 3 both say the waiting Growth proposal outranks the day's focus.
+> **Tuesday's product focus was therefore deferred**, deliberately and with the owner item named;
+> nothing in the dashboard was found broken on the way through.
 > 
 > ### Did
-> - **`MORNING_BRIEF.md` gains "Waiting for a decision"** (`write_brief.open_proposals`). A
->   research note that proposes a change and leaves it for review carries one line,
->   `**Proposal status: OPEN** - <what>`; the brief lists each with its age in days until the
->   line is rewritten. About two scheduled sessions in three did not start at all in August; a
->   proposal that only a session can see would have waited on that. The Growth note carries the
->   line. The function never raises - the brief is written from `finally`.
->   `tests/test_morning_brief.py::TestOpenProposals`, 5 tests.
-> - **The plan's questions 3 and 4 now point at the notes that already researched part of them**
->   (2026-08-31 on size, 2026-09-02 on category independence), so a Monday does not start from
->   scratch.
-> - **The bot's next run was rehearsed** against the published rankings (`python -m bot.rehearse
->   --date 2026-10-13`): no orders due, a second equity row per account, exit 0.
 > 
-> ### Methodology changed
-> - None.
+> **Reviewed the proposal in section 7 of `research/2026-10-12-growth-category.md` (Growth 13% ->
+> 10%, Quality 22% -> 25%) and refused it.** The decision and its reasoning are section 10 of that
+> note; the status line is rewritten, so the morning brief's "Waiting for a decision" list is now
+> empty (`write_brief.open_proposals()` returns `[]`).
 > 
-> ### Gates
-> 1. **2227 passed / 0 failed** (baseline 2222 / 0). 2. `run_screener.py --dry-run`
-> **DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
-> clean after the commit. No generator was touched in this commit; the full publish rehearsal
-> passed on the commit before it.
+> **What the review added.** Section 7 measured one point - the composite's Spearman with the Growth
+> score is -0.01 at weight 13 and -0.06 at weight 10 - and argued from the evidence that growth as
+> the category measures it earns nothing of its own. One point cannot separate the two readings of
+> that evidence, because they predict different *curves*:
 > 
-> **Machine state, rule 11:** nothing changed; the three tasks were read back earlier tonight.
+> - *"Weight belongs where evidence is"* - move the 3 points; the curve is irrelevant.
+> - *"A trait that earns nothing should be neither rewarded nor penalised"* - the right weight is
+>   whichever leaves the ranking neutral, and moving off it is a disimprovement.
+> 
+> `research/measurements/2026-10-13-growth-weight-sweep.py`, on the published run of 2026-10-13
+> 02:00 (501 stocks; the approximation reproduces the published ranking at Spearman 1.0000, 25 of
+> the top 25). Growth swept 0-26:
+> 
+> | Growth weight | 0 | 5 | 10 | **13** | 16 | 20 | 26 |
+> |---|---|---|---|---|---|---|---|
+> | composite's Spearman with the Growth score | -0.199 | -0.136 | **-0.060** | **-0.009** | +0.048 | +0.130 | +0.258 |
+> 
+> - Exposure is **not flat**: monotonic across the sweep, slope **+0.0181 of correlation per point**.
+> - **Zero exposure is at weight 13.5** (13.3 pro rata). The configured weight is 13.
+> - |exposure| <= 0.05 only over **weights 11-16**. The proposed 10 is just outside it.
+> - **Growth is the only category that runs against the composite's grain**: -0.388 against the mean
+>   of the other seven, where every other category is between -0.055 and +0.158. Nothing else does
+>   this job, so Growth's weight *is* the growth-exposure dial.
+> ...
 
 ---
 
