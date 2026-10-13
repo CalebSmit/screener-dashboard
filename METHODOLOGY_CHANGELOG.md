@@ -3655,3 +3655,71 @@ calendar and a GAAP-vs-adjusted basis mix; MSCI Fundamental Data Methodology sec
 **Expected effect:** large within Growth - on a live sample of 35, rank correlation with the old values
 0.65, median 14.8% vs 34.5%. Measured effect on the first run: below, by the session that runs it.
 **Applied by:** owner-run session, 2026-10-09. **Rollback:** revert the commit.
+
+## 2026-10-12 (evening, owner-run) - The momentum regime rule is rebuilt on the market's panic state
+
+**Area:** factor_weights (run-level adjustment), `momentum_regime` config
+
+**Changed:** `momentum_regime.enabled` false -> **true**, with a different rule behind it.
+- **Before (to 2026-10-09, then off):** momentum's weight x1.15 or x0.70 by where the
+  cross-stock spread of `momentum_score` sat in its own run history.
+- **Now:** momentum's weight x**0.70**, the freed weight split equally between Quality and
+  Valuation, **only** in the market's panic state: the S&P 500 total-return index's trailing
+  **24-month return is negative AND** its trailing **126-trading-day realised volatility is above
+  20.6%** a year. In every other state the weights are exactly as configured. **No state raises
+  momentum's weight.** With no reading (the index history could not be fetched) nothing changes
+  and the run warns.
+- `factor_engine.market_panic_state` (the state), `fetch_market_closes` (one extra request per
+  run, ^SP500TR, three years), `apply_momentum_regime` (PANIC only; the old `HIGH VOL` /
+  `LOW VOL` branches are removed), `adjust_momentum_weight(..., market_state=)`. The run's two
+  readings and the thresholds are saved in `effective_weights.json` and printed in the
+  dashboard's Methodology view on every run, including the days the rule changes nothing.
+
+**Evidence** (research and documented practice; `research/2026-10-09-momentum-regime.md`, where
+this design was written down on 2026-10-09 before it was built):
+- Daniel & Moskowitz (2016), "Momentum crashes", *JFE* 122(2): momentum's crashes cluster in
+  panic states - after market declines, when volatility is high - and coincide with market
+  rebounds. Their bear-market indicator is a negative trailing 24-month market return; that is
+  the first condition.
+- Barroso & Santa-Clara (2015), "Momentum has its moments", *JFE* 116(1): momentum's risk is
+  predictable from recent realised volatility over 126 trading days; that is the second
+  condition's window.
+- Cooper, Gutierrez & Hameed (2004), "Market states and momentum", *JF* 59(3): momentum profits
+  follow up-markets and vanish after down-markets.
+- **Why the cut and no raise:** the above-one scaling in Barroso & Santa-Clara is for a
+  long-short momentum portfolio; this is a 13% sleeve of a long-only composite, so only the
+  defensive half is taken.
+- **Where the freed weight goes:** half to Quality and half to Valuation, as the retired rule's
+  high-volatility branch did. Value is momentum's natural offset (Asness, Moskowitz & Pedersen
+  2013, "Value and momentum everywhere", *JF* 68(3), find the two negatively correlated), and
+  the crash Daniel & Moskowitz describe is a rebound of beaten-down stocks.
+- **The threshold is fixed, not fitted:** 20.6% is the 80th percentile of the index's 126-day
+  volatility over 1988-2026, from the index's own history and not from this screener's runs or
+  results. `tests/test_momentum_panic_rule.py` pins all three numbers.
+
+**How often it would act (a count, not a performance test - rule 5):** over ^SP500TR 1988-2026
+the state held at **33 of 442 month-ends (7.5%)**: 2001-03..09, 2002-07..2003-05,
+2008-09..2009-09 and 2010-07..08 (`research/measurements/2026-10-09-momentum-panic-replay.py`,
+output beside it). The note's own failure bound was 15%. It did not hold in 2020 or 2022, when
+the 24-month return stayed positive - consistent with the definition, and a known limit: the
+rule does nothing in a fast crash from a high.
+
+**Expected effect:** none today. The reading on this run was S&P 500 total return +37.6% over 24 months and 126-day volatility of 11.9% a year (closes to 2026-10-12), so the state is NORMAL
+and every weight is as configured. When the state holds, momentum 13 -> 9.1, Quality and
+Valuation 22 -> 23.95 each.
+
+**Validated by:** `tests/test_momentum_panic_rule.py` (the state needs both conditions; its
+arithmetic is the replay's; it only ever cuts; no reading changes nothing; the overview's numbers
+are read from the config). Full suite 2,137 -> 2,159 passed, 0 failed. Regenerating the
+dashboard from a scratch copy of today's published run with the reading added changed 0 leaves of
+`dashboard_data.js` and added 8 (the reading), with every score reproduced from the payload
+(`research/measurements/2026-10-12-momentum-regime-regen.py`). The first full run with the rule
+on is the 2026-10-13 02:00 data loop.
+
+**What would make it wrong:** if the state turns out to describe something other than panics on
+new data (holding well above the 15% bound), or if a study of long-only multi-factor portfolios
+finds the cut costs more in the rebound's leaders than it saves.
+
+**Applied by:** owner-run session (manual).
+**Rollback:** set `momentum_regime.enabled: false`; or the tag before this merge,
+`good/2026-10-12`.

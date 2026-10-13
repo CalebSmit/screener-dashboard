@@ -420,7 +420,11 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     vt_rev_floor = vtf.get("revisions_floor_percentile", 30)
     vt_flag_only = vtf.get("flag_only", False)
     vt_cheap = vtf.get("valuation_percentile", 70)
-    regime_state = "on" if (cfg.get("momentum_regime") or {}).get("enabled") else "off"
+    from factor_engine import MOMENTUM_REGIME_DEFAULTS, MOMENTUM_REGIME_SCALE
+    _mr = {**MOMENTUM_REGIME_DEFAULTS, **(cfg.get("momentum_regime") or {})}
+    regime_state = "on" if _mr.get("enabled") else "off"
+    mr_months, mr_days = int(_mr["return_window_months"]), int(_mr["vol_window_days"])
+    mr_thr, mr_scale = float(_mr["vol_threshold"]) * 100, MOMENTUM_REGIME_SCALE["PANIC"]
     vt_action = "**flagged but not excluded**" if vt_flag_only else "**excluded**"
 
     # Growth trap text
@@ -547,7 +551,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 
 **Why these?** Decades of academic research (Jegadeesh & Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal — the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.
 
-**Momentum regime rule - currently {regime_state}.** Momentum strategies crash most often in volatile markets (Daniel & Moskowitz 2016), and scaling momentum down when its own volatility is high improves it (Barroso & Santa-Clara 2015). Until 2026-10-09 the screener tried to do this, but the input it used was the spread of the momentum score across stocks (`factor_vol_history.csv`), which is fixed by the percentile construction and does not measure market volatility: it called 30 of 33 runs "low volatility" and raised momentum's weight most days. The rule is switched off until it is rebuilt on a real volatility measure; the spread is still recorded each run.
+**Momentum regime rule - currently {regime_state}.** Momentum strategies crash in what Daniel & Moskowitz (2016) call a panic state: after the market has fallen and while its volatility is still high, when the stocks that fell furthest - the ones a momentum ranking scores lowest - rebound hardest. Each run checks for that state from the S&P 500 total-return index alone, and **both** conditions must hold: the index's return over the past {mr_months} months is negative, and its realised volatility over the past {mr_days} trading days is above {mr_thr:.1f}% a year (the 80th percentile of that figure over 1988-2026, fixed in `config.yaml` rather than re-estimated). When they do, Momentum's weight is multiplied by {mr_scale:.2f} for that run and the freed weight is split equally between Quality and Valuation. Otherwise every weight is exactly as configured; the rule never raises Momentum's weight. Counted over 1988-2026, the state held at 33 of 442 month-ends (7.5%): in 2001, 2002-03, 2008-09 and mid-2010. It did not hold in 2020 or 2022, when the two-year return stayed positive. That count says how often the rule would act, not how well; it is not a performance test. The dashboard's Methodology view prints each run's two readings. An earlier version of this rule, in use until 2026-10-09, read the spread of momentum scores across stocks, which does not measure market volatility; it was switched off that day and this rule replaced it on 2026-10-12.
 
 ---
 
@@ -686,7 +690,7 @@ The same missing-data redistribution logic applies: if a category score is NaN (
 
 **The weights above are the configured defaults, and an individual run may not use them.** Two rules move them, both described in this document:
 
-1. **The momentum regime rule**, when switched on, changes the momentum weight for the whole run (see the Momentum section). It is off since 2026-10-09.
+1. **The momentum regime rule** cuts the Momentum weight for the whole run when the market is in a panic state (see the Momentum section). In every other state it changes nothing.
 2. **Missing-data redistribution** changes them for one stock, whenever a category could not be scored for it.
 
 So a stock's momentum score may be multiplied by something other than the {fw.get("momentum", 0)}% printed above. Rather than ask you to take that on trust, the dashboard's stock drilldown shows **the weight each score was actually multiplied by**, and explains any gap against this page — every row there is an equation you can check with a calculator. The run's own weights are also written to `runs/<run_id>/effective_weights.json`.
@@ -888,7 +892,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Growth trap: high growth, and weak quality or revisions** | Mirror of value trap (Mohanram 2005). High growth is required, so a low-growth stock is never called a growth trap. |
 | **Liquidity filter** (${min_adv_m:.0f}M daily dollar volume) | Ensures portfolio stocks are tradeable at scale. NaN volume is excluded conservatively. |
 | **Revisions led by the estimate revision** (FY1 revision + Surprise + Beat Score + Target + Short interest) | The 90-day change in the consensus estimate carries the most weight because revisions, unlike surprises, still predict returns in large caps (Chan, Jegadeesh & Lakonishok 1996; Martineau 2022 on the surprise drift's absence since 2006). Earnings Acceleration is computed but unweighted since 2026-10-09. |
-| **Momentum regime rule: off** | Momentum crashes in high-volatility markets, but the input the rule used (the spread of momentum scores across stocks) does not measure volatility. Off until rebuilt on a real volatility measure. |
+| **Momentum regime rule: a cut in the panic state only** | Momentum's crashes cluster after market declines while volatility is high (Daniel & Moskowitz 2016; Barroso & Santa-Clara 2015), so Momentum's weight is multiplied by {mr_scale:.2f} in that state and is never raised. The state is read from the S&P 500 itself, against thresholds fixed in advance from its own long history rather than fitted to this screener's results. |
 | **3-metric risk category** (Vol + Beta + MaxDD), dispersion only | Volatility captures total risk, Beta systematic risk, Max Drawdown tail risk. Sharpe and Sortino were dropped from scoring on 2026-09-02: both divide the *same* trailing return by a dispersion measure, so they correlated +0.993 with each other and +0.944 with the momentum signal, but only +0.025 with volatility. They were five metrics in name and three in substance, and the two extras were momentum wearing a risk label. Institutional risk models are built the same way — the Barra US Equity Model's volatility style factors use dispersion descriptors (daily standard deviation, cumulative range, residual sigma), not return/risk ratios. |
 | **Quartile-based Excel coloring** | Absolute thresholds (e.g., >80 = green) assume a stable score distribution. Quartile-based coloring adapts to the actual distribution, ensuring roughly 25% of cells in each color band regardless of market conditions. |
 | **Trap severity scores** (0-100 continuous) | Binary flags lose information. Severity scores quantify how deep in trap territory a stock is — severity 80 is much worse than severity 20, but both would be flagged as True. |
@@ -1125,6 +1129,7 @@ def run_factor_engine(cfg, args, ctx=None):
     from factor_engine import (
         get_sp500_tickers, fetch_single_ticker, fetch_all_tickers,
         fetch_market_returns, fetch_risk_free_rate, compute_metrics,
+        fetch_market_closes, market_panic_state,
         _generate_sample_data, _find_latest_cache,
         cache_age_days, cache_is_usable, factor_scores_cache_max_age_days,
         apply_universe_filters,
@@ -1304,6 +1309,12 @@ def run_factor_engine(cfg, args, ctx=None):
         market_returns = fetch_market_returns()
         stats["market_series"] = market_returns.attrs.get("source")
         print(f"  {len(market_returns)} daily observations ({stats['market_series'] or 'unavailable'})")
+
+        # The momentum regime rule's reading of the market (one request). No reading -> no change.
+        _rule = cfg.get("momentum_regime") or {}
+        if _rule.get("enabled"):
+            stats["momentum_regime"] = market_panic_state(fetch_market_closes(), _rule)
+            print(f"  Market state for the momentum rule: {stats['momentum_regime']['state']}")
 
         fetch_cfg = cfg.get("fetch", {})
         print(f"\nFetching data for {universe_size} tickers...")
@@ -1666,8 +1677,9 @@ def run_factor_engine(cfg, args, ctx=None):
         ctx.save_artifact("04_category_scores", df)
     pipeline_log.info("Category scores complete: %d stocks", len(df))
 
-    print("Adjusting momentum weight for vol regime...")
-    cfg = adjust_momentum_weight(df, cfg, str(ROOT))
+    print("Applying the momentum regime rule...")
+    cfg = adjust_momentum_weight(df, cfg, str(ROOT), market_state=stats.get("momentum_regime"),
+                                 record_spread=should_write_score_cache(args))
 
     # adjust_momentum_weight returns a deep copy, so from here on `cfg` is a
     # different object from the caller's. The revisions/investment auto-disables
@@ -2513,7 +2525,8 @@ def main():
                        excel_path, n_sheets, n_cache_files, total_time)
 
     # ---- 10. Save run metadata ----
-    ctx.save_effective_weights(cfg, factor_weights=effective_fw)
+    ctx.save_effective_weights(cfg, factor_weights=effective_fw,
+                               momentum_regime=fe_stats.get("momentum_regime"))
     ctx.save_metadata({
         "cli_flags": {
             "refresh": args.refresh,
@@ -2580,30 +2593,36 @@ def main():
         from generate_dashboard import generate_dashboard
         import shutil
         dash_path = generate_dashboard(ctx.run_dir)
-        # Copy to project root as the canonical dashboard location
-        main_dash = ROOT / "dashboard.html"
-        shutil.copy2(dash_path, main_dash)
-        # `index.html` is what GitHub Pages serves, so it gets the dashboard
-        # itself - the same copy `data-run.ps1` makes after this step.
-        #
-        # 2026-10-08: this used to write a ~350-byte `<meta refresh>` stub to
-        # `index.html` instead. The scheduled path never showed it, because
-        # `data-run.ps1` overwrites the file with `dashboard.html` immediately
-        # afterwards; a plain `python run_screener.py` left the published page
-        # as a redirect and the tree **failing ship gate 3**, which requires
-        # `index.html` to exceed 50,000 bytes. The weaker of two paths doing the
-        # same job was the bug, as usual. Keeping one line of Python do it means
-        # the two paths cannot disagree again - `tests/test_index_is_the_dashboard.py`.
-        shutil.copy2(dash_path, ROOT / "index.html")
-        # Copy companion data file (generated alongside the dashboard HTML)
-        src_data_js = ctx.run_dir / "dashboard_data.js"
-        if src_data_js.exists():
-            shutil.copy2(src_data_js, ROOT / "dashboard_data.js")
-        # The context layer's own file (plan/context-layer.md) travels with it.
-        src_ctx_js = ctx.run_dir / "dashboard_context.js"
-        if src_ctx_js.exists():
-            shutil.copy2(src_ctx_js, ROOT / "dashboard_context.js")
-        print(f"  Dashboard: {main_dash}")
+        if not _universe_run:
+            # A --tickers run scores a subset, so its page stays in the run folder. Installed
+            # at the project root it replaces the published 501-stock dashboard with a
+            # 50-stock one in the working tree (2026-10-12): one `git add` from the live site.
+            print(f"  Dashboard (subset run, left in the run folder): {dash_path}")
+        else:
+            # Copy to project root as the canonical dashboard location
+            main_dash = ROOT / "dashboard.html"
+            shutil.copy2(dash_path, main_dash)
+            # `index.html` is what GitHub Pages serves, so it gets the dashboard
+            # itself - the same copy `data-run.ps1` makes after this step.
+            #
+            # 2026-10-08: this used to write a ~350-byte `<meta refresh>` stub to
+            # `index.html` instead. The scheduled path never showed it, because
+            # `data-run.ps1` overwrites the file with `dashboard.html` immediately
+            # afterwards; a plain `python run_screener.py` left the published page
+            # as a redirect and the tree **failing ship gate 3**, which requires
+            # `index.html` to exceed 50,000 bytes. The weaker of two paths doing the
+            # same job was the bug, as usual. Keeping one line of Python do it means
+            # the two paths cannot disagree again - `tests/test_index_is_the_dashboard.py`.
+            shutil.copy2(dash_path, ROOT / "index.html")
+            # Copy companion data file (generated alongside the dashboard HTML)
+            src_data_js = ctx.run_dir / "dashboard_data.js"
+            if src_data_js.exists():
+                shutil.copy2(src_data_js, ROOT / "dashboard_data.js")
+            # The context layer's own file (plan/context-layer.md) travels with it.
+            src_ctx_js = ctx.run_dir / "dashboard_context.js"
+            if src_ctx_js.exists():
+                shutil.copy2(src_ctx_js, ROOT / "dashboard_context.js")
+            print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")
 
@@ -2612,7 +2631,12 @@ def main():
     # Phase 13 governance: honor the improvement.enabled kill switch. When the
     # engine is disabled, we record NOTHING (no snapshot, no dispersion) so an
     # operator who sets `enabled: false` genuinely turns the engine off.
-    if cfg.get("improvement", {}).get("enabled", True):
+    if cfg.get("improvement", {}).get("enabled", True) and not _universe_run:
+        # The snapshot is the evidence base's observation for the day, one per run date:
+        # recording a subset DELETES the universe's snapshot for today and puts 50 stocks in
+        # its place, with a dispersion row to match (2026-10-12, caught before any commit).
+        print("  Improvement snapshot: subset run - the day's snapshot and dispersion left as they were")
+    elif cfg.get("improvement", {}).get("enabled", True):
         try:
             from improvement_engine import record_run_snapshot
             record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg)

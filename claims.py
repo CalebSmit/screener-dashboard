@@ -626,6 +626,23 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="overview.momentum_regime",
+        surface=OVERVIEW,
+        asserts=(
+            "Momentum's weight is multiplied by 0.70, the freed weight split equally between "
+            "Quality and Valuation, only when the S&P 500 total-return index's 24-month return "
+            "is negative and its 126-day realised volatility is above the fixed threshold; "
+            "otherwise the weights are as configured, and the rule never raises momentum."
+        ),
+        made_true_by="factor_engine:market_panic_state",
+        checked_by=(
+            "tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
+            "tests/test_momentum_panic_rule.py::test_panic_needs_both_conditions",
+            "tests/test_momentum_panic_rule.py::test_the_rule_only_ever_cuts_momentum",
+        ),
+        detect=r"Momentum regime rule - currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
+    ),
+    Claim(
         id="drilldown.piotroski_beneish_parts",
         surface=DRILLDOWN,
         asserts=(

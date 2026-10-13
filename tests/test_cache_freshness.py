@@ -234,3 +234,38 @@ def test_a_subset_run_never_rewrites_the_universe_records():
     assert 'and not _universe_run:' in src[guard - 300:guard]
     for call in ("track_record.build_from_disk(", "context_signals.write_context_log(", "context_eval.evaluate("):
         assert src.count(call) == 1 and src.index(call) > guard, call
+
+
+def test_a_subset_run_never_replaces_the_days_evidence_or_the_published_page(tmp_path):
+    """2026-10-12: a 50-ticker trial run installed a 50-stock dashboard over the published
+    files in the working tree, deleted the universe's improvement snapshot for the day and
+    recorded its own, and replaced the day's dispersion and score-spread rows. Nothing was
+    committed, but every one of those is a tracked file a `git add` away from the live site
+    or the evidence base. The page now stays in the run folder and the records are left alone."""
+    from pathlib import Path
+    import pandas as pd
+    import factor_engine as fe
+    src = (Path(__file__).resolve().parent.parent / "run_screener.py").read_text(encoding="utf-8")
+
+    step12 = src[src.index("# ---- 12. Generate interactive dashboard"):src.index("# ---- 13. Improvement tracking snapshot")]
+    gen = step12.index("dash_path = generate_dashboard(ctx.run_dir)")
+    guard = step12.index("if not _universe_run:")
+    assert gen < guard < step12.index("else:", guard)
+    for target in ('ROOT / "dashboard.html"', 'ROOT / "index.html"', 'ROOT / "dashboard_data.js"',
+                   'ROOT / "dashboard_context.js"'):
+        assert step12.index(target) > step12.index("else:", guard), target      # only a universe run installs
+
+    step13 = src[src.index("# ---- 13. Improvement tracking snapshot"):]
+    snap = step13.index("record_run_snapshot(ctx.run_id")
+    assert 'get("enabled", True) and not _universe_run:' in step13[:snap]
+    assert 'elif cfg.get("improvement", {}).get("enabled", True):' in step13[:snap]
+
+    assert "record_spread=should_write_score_cache(args))" in src
+    # ...and the spread file really is left alone
+    hist = tmp_path / "factor_vol_history.csv"
+    hist.write_text("date,momentum_vol\n2026-10-09,25.0700\n")
+    df = pd.DataFrame({"momentum_score": [10.0, 50.0, 90.0]})
+    fe.adjust_momentum_weight(df, {"factor_weights": {"momentum": 13}}, str(tmp_path), record_spread=False)
+    assert hist.read_text() == "date,momentum_vol\n2026-10-09,25.0700\n"
+    fe.adjust_momentum_weight(df, {"factor_weights": {"momentum": 13}}, str(tmp_path))
+    assert len(hist.read_text().splitlines()) == 3

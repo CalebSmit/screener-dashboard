@@ -22,16 +22,17 @@ import factor_engine as fe  # noqa: E402
 from presets import PRESETS  # noqa: E402
 
 
-def test_the_regime_rule_is_unchanged_by_the_refactor():
+def test_the_regime_a_run_used_can_be_read_back_from_its_weights():
+    """The profiles are weighted under the run's own regime, which the run records as two
+    sets of weights, not a name. Since 2026-10-12 the only regime that moves a weight is the
+    market's panic state (tests/test_momentum_panic_rule.py)."""
     base = PRESETS["balanced"]["factor_weights"]
-    low = fe.apply_momentum_regime(base, "LOW VOL")
-    assert low["momentum"] == round(13 * 1.15, 2) and low["valuation"] == round(22 - 13 * 0.15, 2)
-    high = fe.apply_momentum_regime(base, "HIGH VOL")
+    panic = fe.apply_momentum_regime(base, "PANIC")
     freed = 13 * 0.30
-    assert high["momentum"] == round(13 * 0.70, 2)
-    assert high["quality"] == round(22 + freed / 2, 2) and high["valuation"] == round(22 + freed / 2, 2)
+    assert panic["momentum"] == round(13 * 0.70, 2)
+    assert panic["quality"] == round(22 + freed / 2, 2) and panic["valuation"] == round(22 + freed / 2, 2)
     assert fe.apply_momentum_regime(base, "NORMAL") == base
-    for r in ("LOW VOL", "HIGH VOL", "NORMAL"):
+    for r in ("PANIC", "NORMAL"):
         assert fe.infer_momentum_regime(base, fe.apply_momentum_regime(base, r)) == r
 
 

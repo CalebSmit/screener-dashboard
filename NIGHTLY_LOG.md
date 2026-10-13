@@ -9452,3 +9452,108 @@ committed rather than left for the 02:00 run. No PowerShell was needed - the `Sc
 Quotes` task was already registered and verified on 2026-10-09, and today's log confirms it fired.
 Pre-repair copies of the cache and the run's parquet are kept beside them with a
 `.pre-session-date-repair` suffix (both in gitignored directories).
+
+## 2026-10-12 (evening, owner-run) - the momentum regime rule rebuilt on the market's panic state; a subset run can no longer replace the day's evidence or the published page
+
+**Health (rule 8, all five):** last code session - `logs/nightly-2026-10-12_060001.log`, ends
+"shipped to main". Data loop - `logs/datarun-2026-10-12_020001.log`, ends "Data loop complete",
+HEALTH: PASS. Evidence base at `1m`: **28 rows, newest 2026-09-11 (31 days ago, bound 40), 4
+effective**. Priority 0 unchanged (`allow_auto_apply` false; 4 effective against a gate of 8).
+Top open roadmap item: **0.12's last residual, the momentum panic rule** (opened 2026-10-09, age
+3 days, deferred twice) - **built this session; 0.12 is closed.**
+**Tests:** before 2,137 passed / 0 failed; after 2,159 passed / 0 failed.
+**Owner queue:** the owner asked this evening for an update on the last day and for any
+improvements worth making now. No open owner item was displaced: the context layer's next steps
+(item 4's remaining notes) are untouched and still next.
+
+### Did
+
+**1. The momentum regime rule, as pre-registered** (`research/2026-10-09-momentum-regime.md`;
+changelog 2026-10-12 evening). Momentum's weight is multiplied by 0.70, the freed weight split
+equally between Quality and Valuation, **only** when the S&P 500 total-return index's 24-month
+return is negative **and** its 126-day realised volatility is above a fixed 20.6%. Never raised.
+No reading -> no change, with a warning. `factor_engine.market_panic_state`,
+`fetch_market_closes` (one extra request a run), `apply_momentum_regime` (PANIC only - the retired
+rule's HIGH VOL / LOW VOL branches are gone), `adjust_momentum_weight(..., market_state=)`.
+- **The reading tonight:** S&P 500 total return +37.6% over 24 months and 126-day volatility of 11.9% a year (closes to 2026-10-12). State NORMAL, so every weight is as configured and **no
+  score moved**.
+- **Frontend in the same commit (row 0.8c):** the run's reading is saved in
+  `effective_weights.json` and printed at the top of the Methodology view by
+  `methodologyRunNote()` on every run, including days the rule does nothing. Looked at 1440 and
+  375 px: one paragraph in the page's own style above the title, no overflow, no console errors.
+  The methodology text (generator, then `SCREENER_OVERVIEW.md` regenerated from it) states the
+  rule with its numbers read from the config, and `claims.py` registers it
+  (`overview.momentum_regime`).
+- **The scored cache** is now keyed on the `momentum_regime` block too, so a table scored
+  under one setting is not served under another.
+
+**2. Found while rehearsing: a `--tickers` run rewrote things it must not.** A 50-ticker trial
+run (the flag's help text says "for quick testing") installed a 50-stock `dashboard.html`,
+`index.html`, `dashboard_data.js` and `dashboard_context.js` over the published ones in the
+working tree, **deleted the universe's improvement snapshot for the day** and recorded its own
+(the one-per-date rule doing its job on the wrong input), and replaced the day's rows in
+`improvement/dispersion_history.csv` and `factor_vol_history.csv`. Nothing was committed or
+pushed; every file was restored with `git checkout` and checked. The 2026-10-09 guard covered the
+track record, the context log and the score cache; these four were the same defect one step
+further on. Fixed: a subset run's page stays in its run folder, it records no snapshot or
+dispersion row, and `adjust_momentum_weight(record_spread=False)` leaves the spread file alone.
+A second trial run confirmed it: the tree afterwards differed only in `factor_output.xlsx` and
+`validation/*`, which are the run's own outputs and were restored.
+
+### Evidence / research
+- Daniel & Moskowitz (2016) for the state; Barroso & Santa-Clara (2015) for the 126-day window;
+  Cooper, Gutierrez & Hameed (2004) for market states; Asness, Moskowitz & Pedersen (2013) for
+  sending freed weight to value. Citations and the argument are in the changelog entry.
+- The state's frequency (33 of 442 month-ends, 7.5%, 1988-2026) is a count of how often the rule
+  would act, from the index's own history. It is **not** a performance test and is not used as
+  one (rule 5).
+- **No score changed, shown two ways.** (a) By construction: in the NORMAL state the function
+  returns the configured weights. (b) Measured:
+  `research/measurements/2026-10-12-momentum-regime-regen.py` regenerated the dashboard from a
+  scratch copy of today's published run with the reading added - `dashboard_data.js` **0 leaves
+  changed, 8 added (the reading), 0 removed**; `dashboard_context.js` identical; 4,001 category
+  scores and 501 composites reproduced from the payload.
+
+### Methodology changed
+- `momentum_regime.enabled` false -> true on the new rule. `METHODOLOGY_CHANGELOG.md` 2026-10-12
+  (evening).
+
+### Tried and rejected
+- **A full after-close universe run as the rehearsal.** It would have rewritten today's context
+  log, track record and snapshot with after-close data to test a change that cannot move a
+  score. The run path was exercised with a 50-ticker run and the page with the scratch
+  regeneration instead; tonight's 02:00 loop is the first full run with the rule on.
+- **Falling back to the price index (^GSPC) when ^SP500TR cannot be fetched.** The threshold was
+  measured on the total-return series, and near a zero two-year return the price index can sit on
+  the other side of it. No reading means no change.
+- **Keeping the retired rule's names as aliases.** Two names for one transform made
+  `infer_momentum_regime` ambiguous; one state is easier to explain and to test.
+- **Sharing the freed weight pro rata across all seven other categories.** Considered as the
+  more neutral choice; kept Quality and Valuation because the crash being defended against is a
+  rebound of beaten-down stocks, which value holds and momentum does not.
+
+### Noticed, not fixed
+- A warm-cache run records no market reading (`effective_weights.json` has no
+  `momentum_regime`), so the page omits the note on that run. `_reconcile_factor_weights`
+  already publishes the weights the scores were built from, so the arithmetic stays right; the
+  note would simply be missing. The data loop does not take that path at 02:00.
+- `scripts/data-run.ps1 -Tickers` would now commit an unchanged dashboard rather than a subset
+  one. That is the safer failure, but the flag deserves its own "do not publish" check.
+- The rule does nothing in a fast fall from a high (2020, 2022): a stated limit, not a defect.
+
+### Next
+- **Read tomorrow's 02:00 log** for the `[MOM-REGIME]` line and confirm
+  `weights.momentum_regime` is in the published payload and the Methodology note shows on the
+  live page.
+- Then back to the owner item: `plan/context-layer.md` item 4's remaining per-signal notes (macro
+  backdrop, track record), then item 6.
+- `screener-bot` (separate repo, its own log): its first live rebalance ran today and tomorrow is
+  its first second mark; nothing here changed any field it reads
+  (`tests/test_bot_payload_contract.py` passes).
+
+### Gates
+1. **2,159 passed / 0 failed** (baseline 2,137 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**, exit 0. 3. `index.html` non-trivial; `dashboard_data.js` and
+`dashboard_context.js` pass `node --check`. 4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

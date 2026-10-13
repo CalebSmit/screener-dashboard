@@ -649,9 +649,13 @@ score cards, the contribution bars, and the category-detail badges.
 Two things move a weight away from the Methodology page's number, and both are
 now stated on the page by `weightNote()`:
 
-1. **The volatility-regime adjustment**, run-level. Baked into
+1. **The momentum regime rule**, run-level (since 2026-10-12 a cut in the market's
+   panic state only; it was a two-sided volatility-regime adjustment before). Baked into
    `weights.factor_weights`, with `weights.base_factor_weights` kept alongside
-   so the page can show `13% -> 15.0%` rather than just asserting 15.0%.
+   so the page can show `13% -> 9.1%` rather than just asserting 9.1%. The run's
+   reading (`weights.momentum_regime`: the index's 24-month return, its 126-day
+   volatility, the threshold, the state) is printed at the top of the Methodology
+   modal by `methodologyRunNote()` on every run, whether or not the rule acted.
 2. **Per-stock renormalisation**, when a category could not be scored. The
    category keeps its row, marked "no data", instead of disappearing - hiding
    it would leave the reader unable to see why the rest add to more than the
