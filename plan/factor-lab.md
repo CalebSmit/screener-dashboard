@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 43 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 44 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -101,7 +101,7 @@ Ranked by weight at stake times how little stands behind it. Each is a Monday.
 | 2 | **Momentum and value among large companies.** Momentum has averaged +0.08% a month among big companies since 2000; value 0.19% over the whole record, t 1.56. Decay, or a drought? | 13% + 22% | Experiment 8 | Israel & Moskowitz (2013), "The role of shorting, firm size, and time on market anomalies" - the published study of exactly this, and the next experiment to rerun (from memory; verify the tables) |
 | 3 | **Is Investment Valuation counted twice?** Correlation 0.70 across all stocks, 0.52 among big companies; the paper's own regression leaves value nothing once investment and profitability are in. | 5% (+22%) | Experiments 3 and 8 | Fama & French (2015) section 7; Hou, Xue & Zhang (2015) (from memory; verify) |
 | 4 | **Is Size worth 5%?** 0.10% a month between the two largest groups, distinguishable from zero only over a century. | 5% | Experiment 4 | Asness et al. (2018), "Size matters, if you control your junk" (from memory; verify) |
-| 5 | **Is Quality under-weighted?** Profitability is the one factor as strong among big companies as small, and the only one above the bar there since 2000. Only worth asking once 1-4 free any weight. | 22% | Experiments 3 and 8 | Novy-Marx (2013); Asness, Frazzini & Pedersen (2019) |
+| 5 | **What is Quality for?** Profitability is the one factor as strong among big companies as small, and the only one above the bar there since 2000 - but under half of it is the held side; most is unprofitable companies lagging. That reads as a screen that keeps weak names out, not one that lifts strong ones. Only worth asking about its weight once 1-4 free any. | 22% | Experiments 3 and 8 | Novy-Marx (2013); Asness, Frazzini & Pedersen (2019) |
 
 **What the lab cannot give a real-money methodology, and what does** (so nobody mistakes eight
 experiments for a validated strategy):
@@ -109,9 +109,11 @@ experiments for a validated strategy):
 - *The composite's own record, point in time.* `plan/backtest-v2.md`; look-ahead bias touches at
   least 63% of today's backtest and nothing decides on it until 2027-02-11.
 - *A live record.* The bot's paper accounts began 2026-10-12. A year is twelve observations.
-- *What a long-only investor keeps.* Every lab figure is long minus short. The next experiment
-  after Israel & Moskowitz should measure each factor's long side among big companies against
-  the market - the part a top-25, long-only portfolio can actually hold.
+- *What a long-only investor keeps.* Every headline lab figure is long minus short. Experiment 8
+  now splits each big-company factor at the market's return (`split[k]["long"]`, `["short"]`):
+  over 1963-2026 the held side is 0.20% a month for value, 0.13% for investment, 0.20% for
+  momentum and **0.09% for profitability, under half of that factor** - research note section 8.
+  This is still a value-weighted third of big companies, not a top-25 list.
 - *Costs, turnover and capacity.* None is in any lab figure.
 
 ## Rules that keep it honest
@@ -230,6 +232,9 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   category's weight from `config.yaml`, what the lab measured among large companies, what that
   leaves open. **"From the lab to the weights" above is the process and the ranked questions** -
   start a Monday there. Eight experiments, 76 of 112 figures within tolerance.
+  **Later the same night: experiment 8 also splits each big-company factor into its two sides**
+  (held group minus the market, market minus shorted group; they add up to the factor, and a
+  test checks it month by month). Not in the paper's table, so not in the comparison.
 
 - **2026-10-12 (owner-run, the last of the night) - experiment 7 shipped: market beta**, and
   **the methodology page now links each category to its experiments** (generator; a test keeps

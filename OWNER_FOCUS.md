@@ -59,7 +59,10 @@ Add items below. Anything under this heading is unclaimed work.
     be rerun). Experiment 8 shipped with it - the factors **among large companies**, which are
     all the screener ranks: value, investment and momentum are about half-size there, and
     profitability is the one that holds. The lab's front page now shows where each category's
-    weight stands on that evidence. **No weight changed.**
+    weight stands on that evidence. **No weight changed.** The same experiment also shows what
+    a holder who shorts nothing keeps of each factor among big companies: nearly all of value
+    and investment, about half of momentum, **under half of profitability** (the rest is weak
+    companies lagging, which a long-only portfolio benefits from only by not owning them).
   - **2026-10-12 (owner-run, the end of the night) - the front page compares every headline
     result inside its paper's sample with the years since** (9 of the 10 that claim a direction
     were weaker afterwards), and **two methodology sentences were corrected to what the lab

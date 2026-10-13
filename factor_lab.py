@@ -64,6 +64,7 @@ FRENCH_FILES = {
 # small-low, small-middle, small-high, big-low, big-middle, big-high; the sign says which end
 # the factor is long (investment is conservative minus aggressive: low minus high).
 SPLIT_KEYS = ["value", "profitability", "investment", "momentum"]
+SPLIT_PARTS = ["small", "big", "long", "short"]
 SPLIT_SIGN = {"value": 1, "profitability": 1, "investment": -1, "momentum": 1}
 SPLIT_NAMES = {"value": "Value", "profitability": "Profitability", "investment": "Investment",
                "momentum": "Momentum"}
@@ -89,8 +90,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
-# results inside and after their papers' samples; 11 = the eighth experiment and the scorecard.
-ASSET_VERSION = 11
+# results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
+# 12 = the two sides of each big-company factor.
+ASSET_VERSION = 12
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -367,32 +369,40 @@ def sort_run(data: dict, start: str, end: str, weighting: str = "vw") -> dict:
 
 def split_data(raw_dir: Path = RAW_DIR) -> dict:
     """Each factor among small companies and among big ones, monthly, in percent, over the
-    months all four files share."""
+    months all four files share.
+
+    The big-company factor is also split at the market's return into its two sides: "long" is
+    the group the factor holds minus the market, "short" the market minus the group it is
+    short. The two add up to the factor, month by month, and only the first is something a
+    holder who shorts nothing can keep."""
+    mfile, mmark = FRENCH_FILES["factors_monthly"]
+    m_dates, m_rows, _ = read_table(raw_dir / mfile, mmark)
+    market = {d: r[0] + r[3] for d, r in zip(m_dates, m_rows)}              # Mkt-RF + RF
     raw = {}
     for key in SPLIT_KEYS:
         fname, mark = FRENCH_FILES["split_" + key]
         dates, rows, _ = read_table(raw_dir / fname, mark)
         s = SPLIT_SIGN[key]
-        raw[key] = {d: (s * (r[2] - r[0]), s * (r[5] - r[3])) for d, r in zip(dates, rows)
-                    if all(v > MISSING for v in r[:6])}
+        held, shorted = (5, 3) if s > 0 else (3, 5)                         # big-high and big-low columns
+        raw[key] = {d: (s * (r[2] - r[0]), s * (r[5] - r[3]), r[held] - market[d], market[d] - r[shorted])
+                    for d, r in zip(dates, rows) if d in market and all(v > MISSING for v in r[:6])}
     months = sorted(set.intersection(*(set(v) for v in raw.values())))
     out = {"months": months}
     for key in SPLIT_KEYS:
-        out[key] = {"small": [round(raw[key][m][0], 4) for m in months],
-                    "big": [round(raw[key][m][1], 4) for m in months]}
+        out[key] = {part: [round(raw[key][m][i], 4) for m in months]
+                    for i, part in enumerate(SPLIT_PARTS)}
     return out
 
 
 def split_run(split: dict, start: str, end: str) -> dict:
-    """Each factor's average month and t-statistic among small companies, among big ones, and
-    the difference between the two, month by month."""
+    """Each factor's average month and t-statistic among small companies, among big ones, the
+    difference between the two month by month, and the two sides of the big-company factor."""
     idx = [i for i, m in enumerate(split["months"]) if start <= m <= end]
     out = {"months": [split["months"][i] for i in idx], "factors": {}}
     for key in SPLIT_KEYS:
-        small = [split[key]["small"][i] for i in idx]
-        big = [split[key]["big"][i] for i in idx]
-        out["factors"][key] = {"small": mean_t(small), "big": mean_t(big),
-                               "gap": mean_t([a - b for a, b in zip(small, big)])}
+        part = {p: [split[key][p][i] for i in idx] for p in SPLIT_PARTS}
+        out["factors"][key] = {**{p: mean_t(v) for p, v in part.items()},
+                               "gap": mean_t([a - b for a, b in zip(part["small"], part["big"])])}
     return out
 
 
@@ -1234,6 +1244,10 @@ EXPERIMENTS = [
             ["Momentum", "Shown beside the paper's three. It is not in the paper's table, so it has no "
                          "reference figure and is not counted in the comparison."],
             ["Weighting", "Value-weighted within each of the six portfolios, as in the paper."],
+            ["The two sides", "Each big-company factor is also split at the market's return: the group "
+                              "it holds minus the market, and the market minus the group it is short. "
+                              "The market is all US stocks, value-weighted. This split is not in the "
+                              "paper's table and is not counted in the comparison."],
             ["Costs", "None. These are paper portfolios."],
         ],
         "open_details": [
@@ -1385,7 +1399,10 @@ def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
         "quality": (f"Profitability is the factor that carries over best: {big(whole, 'profitability')['mean']:.2f}% "
                     f"a month among big companies since 1963 (t-statistic {big(whole, 'profitability')['t']:.2f}) "
                     f"against {small(whole, 'profitability')['mean']:.2f}% among small ones, and the only one of "
-                    f"the four still distinguishable from zero among big companies since 2000."),
+                    f"the four still distinguishable from zero among big companies since 2000. Under half of "
+                    f"it is profitable companies beating the market "
+                    f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
+                    f"unprofitable ones lagging it."),
         "growth": "Nothing. There is no published return premium for growth to rerun.",
         "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
                      f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "

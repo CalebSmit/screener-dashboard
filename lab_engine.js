@@ -218,7 +218,9 @@
     }
 
     // Each factor measured separately among small companies and among big ones over a period,
-    // and the difference between the two halves, month by month.
+    // the difference between the two halves month by month, and the two sides of the
+    // big-company factor: the group it holds minus the market ("long"), and the market minus
+    // the group it is short ("short").
     function splitRun(split, o) {
         const idx = [];
         for (let i = 0; i < split.months.length; i++) if (split.months[i] >= o.start && split.months[i] <= o.end) idx.push(i);
@@ -226,7 +228,8 @@
         Object.keys(split).forEach(k => {
             if (k === 'months') return;
             const small = idx.map(i => split[k].small[i]), big = idx.map(i => split[k].big[i]);
-            out.factors[k] = { small: meanT(small), big: meanT(big), gap: meanT(small.map((v, j) => v - big[j])) };
+            out.factors[k] = { small: meanT(small), big: meanT(big), gap: meanT(small.map((v, j) => v - big[j])),
+                               long: meanT(idx.map(i => split[k].long[i])), short: meanT(idx.map(i => split[k].short[i])) };
         });
         return out;
     }
