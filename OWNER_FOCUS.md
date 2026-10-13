@@ -52,6 +52,17 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, near midnight) - the first of the five questions is researched:
+    Growth's 13%.** `research/2026-10-12-growth-category.md`, from six papers and MSCI's and S&P's
+    methodology documents. No published return premium stands behind growth as the category
+    measures it; index providers treat it as a style, not a rewarded factor; and in this
+    screener it works as a counterweight - the published ranking does not lean toward growth at
+    all (correlation -0.01). The methodology page now says so. **FOR THE NEXT SESSION, ahead of
+    the rotation: review section 7 of that note - a proposal to move 3 points from Growth to
+    Quality - and decide it.** Build it with a changelog entry, or refuse it and write why; the
+    note lists both the build steps and the case against. It was not made the same night on
+    purpose: the 02:00 run was the first under the rebuilt momentum rule, and the note's author
+    should not be its only reviewer.
   - **2026-10-12 (owner-run, past 23:00) - your question, "will the lab be used to improve the
     methodology?", has a written answer: `plan/factor-lab.md`, "From the lab to the weights".**
     In short: yes, through research notes and the changelog, never through code; five questions
