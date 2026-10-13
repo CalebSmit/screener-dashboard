@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the same night) - experiment 5 shipped: do riskier stocks earn
+    more?** Ang, Hodrick, Xing & Zhang (2006), the study behind the Risk category, on the
+    library's volatility-sorted fifths. **5 of 11 figures within** tolerances written
+    beforehand. The calmest fifth earned about as much as the rest with half the volatility; the
+    paper's large penalty for the most volatile stocks does not appear on the public version of
+    the sort. Built on a generic layout, so the next sorted-portfolio experiments (profitability,
+    earnings and cash-flow yield, accruals) need only a record and a paper's table. Five
+    experiments now; six of the eight categories have something behind them.
   - **2026-10-12 (owner-run, the same night) - a front page, and an honest line on the
     methodology page.** The lab opens on an overview: four cards (verdict and one tested sentence
     each; 45 of 61 figures within tolerance across them) and a table of what stands behind each

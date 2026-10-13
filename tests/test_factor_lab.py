@@ -138,13 +138,14 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
         again = (fl.reproduce_crashes(published["momentum"], published["market"], exp)
                  if exp["kind"] == "crashes" else fl.reproduce_factors(published["factors"], exp)
                  if exp["kind"] == "factors" else fl.reproduce_size(published["size"], exp)
-                 if exp["kind"] == "size" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "size" else fl.reproduce_sort(published["sorts"][exp["sort"]["data"]], exp)
+                 if exp["kind"] == "sort" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -156,13 +157,19 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and exp["paper"]["doi"] and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors", "size"):
+        if exp["kind"] in ("crashes", "factors", "size", "sort"):
             figs = exp["reference"]["figures"]
             assert len({f["key"] for f in figs}) == len(figs) >= 10
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort")
+        if exp["kind"] == "sort":                                       # what the generic layout needs
+            g = exp["sort"]
+            assert g["data"] in fl.SORTS and len(g["groups"]) == len(fl.SORTS[g["data"]]["columns"])
+            assert len(g["ends"]) == 2 and g["low"] and g["high"] and g["spread"] and g["key_accent"] and g["key_rest"]
+            assert all(0 <= i < len(g["groups"]) for i in g["accent"]) and g["presets"] and g["weightings"]
+            assert exp["reference"]["weighting"] in [w[0] for w in g["weightings"]]
 
 
 def test_the_tolerances_are_the_recorded_ones():
@@ -211,6 +218,34 @@ def test_a_replication_that_mostly_fails_is_published_as_one(published):
         assert rows[f"dec{d}"]["here"] < rows[f"dec{d}"]["paper"] and not rows[f"dec{d}"]["within"]
     assert {k for k, r in rows.items() if r["within"]} <= {"dec7", "dec8", "dec9", "dec10"}
     assert "only matches are among the four largest groups" in exp["verdict_note"]
+
+
+def test_the_volatility_sort_misses_where_it_was_expected_to(published):
+    """Experiment 5's tolerances were written first, with the expectation that the most
+    volatile fifth would miss. They are pinned here, and so is the sentence about the misses."""
+    exp, built = fl.EXPERIMENTS[4], published["experiments"][4]["result"]
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean1": (1.06, 0.10), "mean2": (1.15, 0.10), "mean3": (1.22, 0.10), "mean4": (0.99, 0.10),
+        "mean5": (0.09, 0.10), "std1": (3.71, 0.40), "std2": (4.48, 0.40), "std3": (5.63, 0.40),
+        "std4": (7.15, 0.40), "std5": (8.30, 0.40), "spread": (-0.97, 0.20)}
+    rows = {r["key"]: r for r in built["rows"]}
+    # "every miss is in the more volatile groups"
+    assert {k for k, r in rows.items() if not r["within"]} <= {"mean4", "mean5", "std3", "std4", "std5", "spread"}
+    # "its most volatile fifth ... earned far more than the paper's"
+    assert rows["mean5"]["here"] > rows["mean5"]["paper"] + 0.3 and not rows["mean5"]["within"]
+
+
+def test_a_sort_is_measured_group_by_group_and_end_to_end():
+    months = [f"2000{m:02d}" for m in range(1, 13)]
+    lo = [1.0, 2.0, 0.0, 1.5, 0.5, 1.0, 2.0, 0.0, 1.5, 0.5, 1.0, 1.0]
+    hi = [4.0, -6.0, 5.0, -3.0, 2.0, 4.0, -6.0, 5.0, -3.0, 2.0, 0.0, 2.0]
+    data = {"months": months, "vw": [lo, [0.0] * 12, hi], "ew": [hi, [0.0] * 12, lo]}
+    r = fl.sort_run(data, "200001", "200012", "vw")
+    assert r["groups"][0]["mean"] == pytest.approx(1.0) and r["groups"][2]["mean"] == pytest.approx(0.5)
+    assert r["groups"][2]["std"] > r["groups"][0]["std"] * 4            # more risk, less return
+    assert r["spread"]["mean"] == pytest.approx(-0.5)                   # last group minus first
+    assert fl.sort_run(data, "200001", "200012", "ew")["spread"]["mean"] == pytest.approx(0.5)
+    assert fl.sort_run(data, "200001", "200004", "vw")["groups"][0] is None
 
 
 def test_the_size_groups_are_measured_as_differences_month_by_month():
@@ -404,6 +439,33 @@ def test_the_browser_measures_the_size_groups_as_the_reference_does(published, t
                 assert a[k] == pytest.approx(b[k], rel=1e-8, abs=1e-12), (o, k)
 
 
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_a_sort_as_the_reference_does(published, tmp_path):
+    settings = [{"start": "196307", "end": "200012", "weighting": "vw"}, {"start": "200101", "end": "209912", "weighting": "ew"},
+                {"start": "196307", "end": "209912", "weighting": "vw"}]
+    script = tmp_path / "sort.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "const out = {};\n"
+        "Object.keys(D.sorts).forEach(name => { out[name] = JSON.parse(process.argv[4]).map(o => { const r = E.sortRun(D.sorts[name], o);\n"
+        "  return { n: r.months.length, groups: r.groups, spread: r.spread }; }); });\n"
+        "console.log(JSON.stringify(out));\n", encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(settings)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    assert set(got) == set(fl.SORTS) == set(published["sorts"])
+    for name, runs in got.items():
+        for o, js in zip(settings, runs):
+            py = fl.sort_run(published["sorts"][name], **o)
+            assert js["n"] == len(py["months"]) > 100
+            for a, b in zip(js["groups"] + [js["spread"]], py["groups"] + [py["spread"]]):
+                for k in ("mean", "std", "t"):
+                    assert a[k] == pytest.approx(b[k], rel=1e-8, abs=1e-12), (name, o, k)
+
+
 CRASH_SETTINGS = [
     {"start": "192701", "end": "201303", "lookback": 24, "window": 126, "threshold": 0.206},   # the screener's rule
     {"start": "201304", "end": "209912", "lookback": 24, "window": 126, "threshold": 0.206},
@@ -443,10 +505,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     v = f"?v={fl.ASSET_VERSION}"                                    # one version on both, so they travel together
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
-    assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html
+    assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html and "E.sortRun(Z, S)" in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 4             # each experiment checks itself
+    assert html.count("disagrees with the build") == 5             # each kind of experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -501,6 +563,12 @@ def test_each_takeaway_is_what_the_data_shows(published):
     rows = {r["key"]: r for r in published["experiments"][3]["result"]["rows"]}
     assert 0 < rows["small_big"]["here"] < rows["small_big"]["paper"]
     assert abs(published["experiments"][3]["result"]["nine_ten"]["mean"]) < 0.15
+    # 5. "about as much as the rest, with half the volatility ... the paper's large penalty does not appear"
+    r = fl.sort_run(published["sorts"]["low-volatility"], "196307", "200012", "vw")
+    rest = sum(g["mean"] for g in r["groups"][1:]) / 4
+    assert abs(r["groups"][0]["mean"] - rest) < 0.15
+    assert 1.8 < r["groups"][4]["std"] / r["groups"][0]["std"] < 2.5
+    assert r["spread"]["mean"] > -0.97 + 0.5 and abs(r["spread"]["t"]) < 2
 
 
 def test_the_category_map_covers_the_screeners_eight_and_nothing_else():
@@ -629,7 +697,7 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("window.LAB_STATE().settings.threshold") == pytest.approx(0.30)
                 page.click("#c-reset")
                 assert page.evaluate("window.LAB_STATE().result.cells[3].n") == at_rule
-                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 5
+                assert page.evaluate("document.querySelectorAll('.tabs a').length") == len(fl.EXPERIMENTS) + 1
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 # the third
@@ -658,6 +726,17 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("window.LAB_STATE().result.small_big.mean") != ew
                 assert page.evaluate("location.hash") == "#size-effect?weighting=vw"
                 assert "Between the two largest groups" in page.inner_text("#x-read")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+                # the sorted-portfolio layout, by its first user
+                page.goto(PAGE.as_uri() + "#low-volatility", wait_until="load", timeout=60000)
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'low-volatility'", timeout=30000)
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 5
+                assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 6
+                assert "calmest fifth averaged" in page.inner_text("#x-read")
+                page.click("#c-preset button[data-i='1']")
+                assert page.evaluate("location.hash").startswith("#low-volatility?start=200101")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 page.close()

@@ -51,6 +51,10 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
 .tabs a span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 .tabs a:hover { background: var(--bg-card-hover); color: var(--text-primary); text-decoration: none; }
 .tabs a[aria-current="page"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
+/* On a phone the experiments are one row you swipe, not a stack that pushes the page down. */
+@media (max-width: 599px) { .tabs { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 6px;
+    scrollbar-width: none; scroll-snap-type: x proximity; } .tabs::-webkit-scrollbar { display: none; }
+    .tabs a { flex: none; white-space: nowrap; scroll-snap-align: start; } }
 .exp { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
 .cards { display: grid; gap: 12px; grid-template-columns: 1fr; }
 @media (min-width: 720px) { .cards { grid-template-columns: 1fr 1fr; } }
@@ -190,8 +194,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=6"></script>
-<script src="lab_engine.js?v=6"></script>
+<script src="lab_data.js?v=7"></script>
+<script src="lab_engine.js?v=7"></script>
 <script>
 (function () {
     'use strict';
@@ -650,7 +654,8 @@ footer p { margin: 0 0 8px; }
             if (W >= 520 || opt.accent(i) || i === 0) s += `<text class="val" x="${cx.toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${v.toFixed(2)}</text>`;
             s += `<text x="${cx.toFixed(1)}" y="${H - 18}" text-anchor="middle">${i + 1}</text>`;
         });
-        s += `<text x="${L}" y="${H - 3}" text-anchor="start">smallest</text><text x="${W - R}" y="${H - 3}" text-anchor="end">largest</text>`;
+        const ends = opt.ends || ['smallest', 'largest'];
+        s += `<text x="${L}" y="${H - 3}" text-anchor="start">${esc(ends[0])}</text><text x="${W - R}" y="${H - 3}" text-anchor="end">${esc(ends[1])}</text>`;
         el.innerHTML = s + '</svg>';
     }
     function sizeEffect(X, n, mount, init) {
@@ -726,6 +731,81 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ sorted-portfolio experiments
+    // One layout for any study that sorts stocks into groups on one trait and compares the
+    // groups. The experiment's record says what the groups are called and which to highlight.
+    function sorted(X, n, mount, init) {
+        const REF = X.reference, res0 = X.result, G = X.sort, Z = D.sorts[G.data], Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
+        const zyears = []; for (let y = +Z0.slice(0, 4); y <= +Z1.slice(0, 4); y++) zyears.push(y);
+        const refState = () => ({ start: REF.start, end: REF.end, weighting: REF.weighting });
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', weighting: G.weightings.map(w => w[0]) }), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end && S.weighting === REF.weighting;
+        const PRESETS = G.presets.map(p => [p[0], p[1] === 'FIRST' ? Z0 : p[1], p[2] === 'LAST' ? Z1 : p[2]]);
+        const outside = res0.rows.filter(r => !r.within).length, hi = G.groups.length - 1;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, zyears)}
+                <div class="row2">
+                    ${seg('weighting', 'Within each group, companies count', G.weightings.map(w => `<button type="button" data-v="${w[0]}">${esc(w[1])}</button>`).join(''))}
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>${esc(G.key_accent)}</span><span class="b"><i></i>${esc(G.key_rest)}</span></div>
+            <p class="chart-title"><strong>Average return a month</strong>, ${esc(G.chart)} (%)</p>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each group. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Group</th><th scope="col">Average month</th><th scope="col">Volatility, a month</th><th scope="col" class="tol">Average ÷ volatility</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+        </section>` + tail(X, `
+            <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>The groups are re-formed as the library's file says; this page reads them.</small></div>
+            <div class="eq">volatility, a month &nbsp;=&nbsp; standard deviation of those monthly returns<small>Average ÷ volatility is how much return each unit of risk came with.</small></div>
+            <div class="eq">difference between the end groups &nbsp;=&nbsp; mean of ( last group's return − first group's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
+        document.getElementById('x-code').textContent = E.sortRun.toString();
+
+        const now = E.sortRun(Z, refState());
+        const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0);
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+
+        function render() {
+            const r = last = E.sortRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            press('weighting', v => v === S.weighting);
+            document.getElementById('c-reset').hidden = atRef();
+            if (!r.groups[0]) {
+                read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const a = r.groups[0], b = r.groups[hi], sp = r.spread;
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, the ${esc(G.low)} averaged <strong>${f2(a.mean)}%</strong> a month with volatility of ${f2(a.std)}%, and the ${esc(G.high)} <strong>${f2(b.mean)}%</strong> with volatility of ${f2(b.std)}%. The difference is <strong>${sf2(sp.mean)}%</strong> a month, t-statistic <strong>${f2(sp.t)}</strong>. Beyond about 2 either way is the usual bar for a difference that can be told from zero.`;
+            body.innerHTML = r.groups.map((g, i) => `<tr${G.accent.indexOf(i) >= 0 ? ' class="focus"' : ''}><td>${esc(G.groups[i])}</td><td>${f2(g.mean)}%</td><td>${f2(g.std)}%</td><td class="tol">${f2(g.mean / g.std)}</td></tr>`).join('') +
+                `<tr><td>${esc(G.spread)}</td><td>${sf2(sp.mean)}%</td><td>${f2(sp.std)}%</td><td class="tol">t = ${f2(sp.t)}</td></tr>`;
+            document.getElementById('x-live-note').textContent = atRef()
+                ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
+                : 'These settings are yours, so there is no published figure to compare them with.';
+            drawBars(document.getElementById('ch-bars'), r.groups.map(g => g.mean), { accent: i => G.accent.indexOf(i) >= 0, ends: G.ends });
+            writeScene(X.id, S, refState());
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the front page
     function overview(mount) {
         const byId = {}; D.experiments.forEach((x, i) => { byId[x.id] = { x: x, n: i + 1 }; });
@@ -763,10 +843,10 @@ footer p { margin: 0 0 8px; }
     }
 
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted };
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = '<a href="#overview" data-id="overview"><span>Start here</span>Overview</a>' +
-        D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
+        D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.tab || x.title)}</a>`).join('');
     function show() {
         const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
@@ -777,6 +857,8 @@ footer p { margin: 0 0 8px; }
         }
         const X = D.experiments[i];
         current = KINDS[X.kind](X, i + 1, root.firstChild, scene.p);
+        const here = tabs.querySelector('a[data-id="' + X.id + '"]');
+        if (here) tabs.scrollLeft = Math.max(0, here.offsetLeft - tabs.offsetLeft - 16);      // keep it in view in the phone's row
         const reset = document.getElementById('c-reset');
         if (reset) {
             const copy = document.createElement('button'), label = 'Copy a link to this scene';

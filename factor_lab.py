@@ -52,6 +52,12 @@ FRENCH_FILES = {
     "factors_daily": ("F-F_Research_Data_Factors_daily_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
     "five_factors": ("F-F_Research_Data_5_Factors_2x3_CSV.zip", ",Mkt-RF,SMB,HML,RMW,CMA,RF"),
     "size_portfolios": ("Portfolios_Formed_on_ME_CSV.zip", "Average Value Weight Returns -- Monthly"),
+    "variance_portfolios": ("Portfolios_Formed_on_VAR_CSV.zip", "Value Weighted Returns -- Monthly"),
+}
+# Sorted-portfolio experiments (kind "sort"): which file, which two tables, which columns.
+SORTS = {
+    "low-volatility": {"file": "variance_portfolios", "ew": "Equal Weighted Returns -- Monthly",
+                       "columns": [0, 1, 2, 3, 4]},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -61,8 +67,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # one never runs it against this week's copy of the page. 2 = the second experiment;
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
-# experiment; 6 = the front page.
-ASSET_VERSION = 6
+# experiment; 6 = the front page; 7 = sorted-portfolio experiments.
+ASSET_VERSION = 7
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -310,6 +316,31 @@ def size_data(raw_dir: Path = RAW_DIR) -> dict:
     return {"months": [dates[i] for i in keep], "vintage": vintage,
             "vw": [[round(vw[i][-10 + d], 2) for i in keep] for d in range(10)],
             "ew": [[round(ew[i][-10 + d], 2) for i in keep] for d in range(10)]}
+
+
+def sort_data(name: str, raw_dir: Path = RAW_DIR) -> dict:
+    """Monthly returns (percent) of a sorted-portfolio file's groups, lowest first, value- and
+    equal-weighted."""
+    spec = SORTS[name]
+    fname, vw_mark = FRENCH_FILES[spec["file"]]
+    dates, vw, _ = read_table(raw_dir / fname, vw_mark)
+    dates_ew, ew, _ = read_table(raw_dir / fname, spec["ew"])
+    if dates != dates_ew:
+        raise ValueError(f"{fname}: the equal- and value-weighted tables cover different months")
+    cols = spec["columns"]
+    keep = [i for i in range(len(dates)) if all(vw[i][c] > MISSING and ew[i][c] > MISSING for c in cols)]
+    return {"months": [dates[i] for i in keep],
+            "vw": [[round(vw[i][c], 2) for i in keep] for c in cols],
+            "ew": [[round(ew[i][c], 2) for i in keep] for c in cols]}
+
+
+def sort_run(data: dict, start: str, end: str, weighting: str = "vw") -> dict:
+    """Each group's average month and volatility over a period, and the last group minus the
+    first, month by month, with its t-statistic."""
+    idx = [i for i, m in enumerate(data["months"]) if start <= m <= end]
+    groups = [[col[i] for i in idx] for col in data[weighting]]
+    return {"months": [data["months"][i] for i in idx], "groups": [mean_t(g) for g in groups],
+            "spread": mean_t([b - a for a, b in zip(groups[0], groups[-1])])}
 
 
 def mean_t(x: list[float]) -> dict | None:
@@ -744,6 +775,7 @@ EXPERIMENTS = [
         "kind": "size",
         "topic": "Size",
         "title": "The size effect, and whether it reaches large stocks",
+        "tab": "The size effect",
         "paper": {
             "authors": "Eugene F. Fama and Kenneth R. French",
             "year": 1992,
@@ -820,6 +852,93 @@ EXPERIMENTS = [
             "chosen. What follows for the Size weight is a question for a research note, not for "
             "this page."),
     },
+    {
+        "id": "low-volatility",
+        "kind": "sort",
+        "topic": "Risk",
+        "title": "Do riskier stocks earn more?",
+        "tab": "Risk and return",
+        "paper": {
+            "authors": "Andrew Ang, Robert J. Hodrick, Yuhang Xing and Xiaoyan Zhang",
+            "year": 2006,
+            "title": "The cross-section of volatility and expected returns",
+            "journal": "Journal of Finance 61(1), 259-299",
+            "doi": "10.1111/j.1540-6261.2006.00836.x",
+        },
+        "claim": ("They did not. Sorting US stocks each month into five groups by how volatile they had "
+                  "just been, the most volatile fifth earned about 0.1% a month from 1963 to 2000, "
+                  "against about 1.1% for the calmest fifth - a difference of nearly one percentage "
+                  "point a month, with more than twice the risk."),
+        "reference": {
+            "source": ("The authors' NBER working paper 10852 (October 2004), Table VI, Panel A (page 48): "
+                       "value-weighted portfolios sorted on total volatility, July 1963 to December "
+                       "2000. Monthly means and standard deviations of total returns."),
+            "start": "196307", "end": "200012", "weighting": "vw",
+            # Written 2026-10-12 BEFORE the comparison was run; nothing had been computed on this
+            # file. Expected beforehand: the most volatile fifth would miss, and the difference
+            # with it - the library measures volatility over 60 days where the paper uses one
+            # month, and draws its dividing lines differently, both of which make the library's
+            # extreme group less extreme.
+            "figures": [
+                {"key": "mean1", "label": "Calmest fifth: average month (%)", "paper": 1.06, "tolerance": 0.10, "where": "Table VI A"},
+                {"key": "mean2", "label": "Second fifth: average month (%)", "paper": 1.15, "tolerance": 0.10, "where": "Table VI A"},
+                {"key": "mean3", "label": "Middle fifth: average month (%)", "paper": 1.22, "tolerance": 0.10, "where": "Table VI A"},
+                {"key": "mean4", "label": "Fourth fifth: average month (%)", "paper": 0.99, "tolerance": 0.10, "where": "Table VI A"},
+                {"key": "mean5", "label": "Most volatile fifth: average month (%)", "paper": 0.09, "tolerance": 0.10, "where": "Table VI A"},
+                {"key": "std1", "label": "Calmest fifth: volatility, a month (%)", "paper": 3.71, "tolerance": 0.40, "where": "Table VI A"},
+                {"key": "std2", "label": "Second fifth: volatility, a month (%)", "paper": 4.48, "tolerance": 0.40, "where": "Table VI A"},
+                {"key": "std3", "label": "Middle fifth: volatility, a month (%)", "paper": 5.63, "tolerance": 0.40, "where": "Table VI A"},
+                {"key": "std4", "label": "Fourth fifth: volatility, a month (%)", "paper": 7.15, "tolerance": 0.40, "where": "Table VI A"},
+                {"key": "std5", "label": "Most volatile fifth: volatility, a month (%)", "paper": 8.30, "tolerance": 0.40, "where": "Table VI A"},
+                {"key": "spread", "label": "Most volatile fifth minus calmest, a month (%)", "paper": -0.97, "tolerance": 0.20, "where": "Table VI A"},
+            ],
+        },
+        "verdict_note": ("Every miss is in the more volatile groups. The library measures volatility over "
+                         "60 days and draws its dividing lines differently from the paper, so its most "
+                         "volatile fifth is a tamer set of stocks, and earned far more than the paper's."),
+        "sort": {
+            "data": "low-volatility",
+            "groups": ["Calmest fifth", "Second fifth", "Middle fifth", "Fourth fifth", "Most volatile fifth"],
+            "ends": ["calmest", "most volatile"],
+            "low": "calmest fifth", "high": "most volatile fifth",
+            "spread": "Most volatile fifth minus calmest",
+            "accent": [0],
+            "key_accent": "The calmest fifth - the end the screener's Risk category favours",
+            "key_rest": "The other four groups",
+            "chart": "by how volatile the stocks had been",
+            "presets": [["The paper \u00b7 1963\u20132000", "196307", "200012"],
+                        ["After the paper \u00b7 2001\u2013now", "200101", "LAST"],
+                        ["Since 2010", "201001", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["vw", "By market value \u00b7 paper"], ["ew", "Equally"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each month, every US-listed stock is put in one of five groups by the "
+                           "variance of its daily returns over the previous 60 trading days."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Variance\"."],
+            ["Weighting", "Value-weighted, as in the paper: bigger companies count for more within a "
+                          "group. The equal-weighted version is one click away."],
+            ["Returns", "Total returns, not returns above Treasury bills, as in the paper's table."],
+            ["Costs", "None. The most volatile group is also the costliest to trade."],
+        ],
+        "open_details": [
+            "The paper measures volatility over the previous month; the library uses 60 trading days. "
+            "The library also sets its dividing lines differently. Both make the library's most "
+            "volatile group less extreme than the paper's.",
+            "The reference figures are from the authors' 2004 working paper. The published article's "
+            "table has not been read here.",
+            "The paper's headline is about volatility left over after the market, size and value are "
+            "accounted for. This page reruns its simpler table, on total volatility; the library "
+            "publishes the other sort too.",
+            "Only the averages and standard deviations are reproduced, not the paper's risk-adjusted "
+            "returns.",
+        ],
+        "in_the_screener": (
+            "The screener's Risk category scores a company higher for moving less: lower volatility, "
+            "lower sensitivity to the market, a shallower worst fall. The methodology calls the "
+            "low-volatility anomaly one of the most robust findings in finance. This is that finding "
+            "on public data, and the controls show how it has held since. The screener ranks large "
+            "companies only, where the most volatile stocks are far tamer than the group shown here."),
+    },
 ]
 
 
@@ -838,6 +957,9 @@ TAKEAWAYS = {
                      "settle it."),
     "size-effect": ("Smaller companies earned more, but by less than the paper's table shows once every "
                     "listed stock is counted. Between the two largest groups the difference is small."),
+    "low-volatility": ("The calmest fifth of stocks earned about as much as the rest, with half the "
+                       "volatility of the most volatile fifth. The paper's large penalty for volatile "
+                       "stocks does not appear on the public version of the sort."),
 }
 
 # What the lab can and cannot put behind each of the screener's eight categories. "experiments"
@@ -865,11 +987,11 @@ CATEGORY_MAP = [
      "has": "Two experiments: momentum's risk, and when it crashes.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
-    {"category": "Risk", "key": "risk", "experiments": [],
-     "has": "Nothing yet.",
-     "gap": "The methodology rests this category on the low-volatility anomaly. The public library "
-            "publishes portfolios sorted on volatility and on market beta; an experiment on them is "
-            "queued."},
+    {"category": "Risk", "key": "risk", "experiments": ["low-volatility"],
+     "has": "Stocks sorted by how volatile they have been: the low-volatility anomaly the methodology "
+            "rests this category on.",
+     "gap": "Sensitivity to the market (beta) and the depth of the worst fall, the category's other two "
+            "measures. The library publishes a sort on beta; it is queued."},
     {"category": "Analyst revisions", "key": "revisions", "experiments": [],
      "has": "Nothing, and probably never.",
      "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
@@ -948,6 +1070,23 @@ def reproduce_size(size: dict, exp: dict) -> dict:
             "nine_ten": r["nine_ten"]}
 
 
+def reproduce_sort(data: dict, exp: dict) -> dict:
+    """A sorted-portfolio experiment at the paper's sample and weighting, against its table."""
+    ref = exp["reference"]
+    r = sort_run(data, ref["start"], ref["end"], ref["weighting"])
+    got = {"spread": r["spread"]["mean"]}
+    for g, s in enumerate(r["groups"], 1):
+        got[f"mean{g}"], got[f"std{g}"] = s["mean"], s["std"]
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "means": [g["mean"] for g in r["groups"]],
+            "spread": r["spread"]}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -964,11 +1103,13 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     market = market_data(data["months"], raw_dir)
     factors = factor_data(raw_dir)
     size = size_data(raw_dir)
+    sorts = {name: sort_data(name, raw_dir) for name in SORTS}
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce_size(size, exp) if exp["kind"] == "size"
+                  else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce(data, exp))
         exps.append({**exp, "takeaway": TAKEAWAYS[exp["id"]], "result": result})
     return {
@@ -988,6 +1129,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
         "size": {k: size[k] for k in ("months", "ew", "vw")},
+        "sorts": sorts,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "market": market,
         "experiments": exps,
