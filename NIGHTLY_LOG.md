@@ -10006,3 +10006,62 @@ the note says which Monday questions it raises: value since 2007 first.
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (the real last one, owner-run) - a red baseline for 06:00, found before 02:00 could cause it; the methodology now loads when opened
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,196 passed / 0 failed; after 2,198 passed / 0 failed.
+
+### Did
+**Rehearsed tonight's 02:00 publish with tonight's code, and it would have broken the 06:00
+session.** Every commit tonight passed all four gates - against the *committed* `index.html`,
+which the generator had not rewritten since the morning. Regenerating the page from a copy of
+today's run and installing it in the tree (then restoring it) showed what the data loop will
+publish: **3,008 elements at first paint against the budget of 3,000**
+(`test_first_paint_is_not_dominated_by_the_rankings_table`). The committed page had 2,988; the
+methodology text added tonight - the links to the Factor Lab and limitation 11 - added 20. The
+data loop's own narrower gate passed, so it would have published, and the next code session
+would have started on a red baseline it did not cause.
+
+This is CLAUDE.md rule 10's lesson again from the other side: **a test that reads a generated
+artifact says nothing about what the next run will generate.** Gate 1 was green all night and
+was not looking at tonight's page.
+
+**The fix is the budget's own intent, not a trim to squeak under it.** The methodology is some
+830 elements inside a dialog nobody has opened. It now waits in a `<template>` and
+`hydrateMethodology()` moves it in on first open. Regenerated first paint: **2,181 elements**.
+Opening the methodology shows all of it (850 elements, contents rail, the run's market-state
+note, 13 links to the lab), and reopening adds nothing.
+
+### Evidence
+- `research/measurements/2026-10-12-momentum-regime-regen.py` regenerates from a scratch copy of
+  the newest full run; with the result installed, `scripts/check_published_claims.py` passed and
+  129 dashboard tests passed (browser, navigation, surfaces, payload parse, the bot's contract).
+  Payload: 0 leaves changed, 8 added (the market reading); context file identical. The four
+  published files were then restored with `git checkout`.
+- `tests/test_dashboard_surfaces.py::test_the_methodology_waits_outside_the_document_until_it_is_opened`
+  asserts the structure on the generator's output; a browser test asserts the methodology is all
+  there when opened, and only once, in a form that holds on the old page and the new.
+
+### Methodology changed
+- None. How the methodology is delivered changed; its text did not.
+
+### Noticed, not fixed - and worth a retrospective's attention
+- **Gate 1 cannot see a generator change until a run happens.** A session that edits
+  `generate_dashboard.py` or the overview generator should regenerate into scratch and run the
+  browser tests against that before it calls the gates passed. Tonight that was done by hand,
+  late. `prompts/nightly.md` could require it; the script above is the tool.
+
+### Next
+- **Tomorrow's 02:00 log**: the `[MOM-REGIME]` line, `weights.momentum_regime` in the payload,
+  and on the live page the Methodology view (run note, links, contents rail), the footer's
+  Factor Lab link and the palette entry. Then confirm the 06:00 baseline is green.
+
+### Gates
+1. **2,198 passed / 0 failed** (baseline 2,196 / 0) - and, this time, the dashboard modules
+again against a freshly regenerated page. 2. `run_screener.py --dry-run` **DRY-RUN PASSED**.
+3. payload and lab files pass `node --check`. 4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

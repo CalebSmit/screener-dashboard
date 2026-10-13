@@ -112,6 +112,21 @@ def test_first_paint_is_not_dominated_by_the_rankings_table(desktop):
     assert nodes < 3000, f"{nodes} DOM nodes at first paint (budget 3,000)"
 
 
+def test_the_methodology_is_all_there_when_opened_and_only_once(desktop):
+    """Holds whether the page keeps the methodology in the document (as generated until
+    2026-10-12) or in a template that is moved in on first open (since): opening it shows the
+    whole document, and opening it again does not add a second copy."""
+    page, errors = desktop
+    page.evaluate("openMethodology()")
+    first = page.evaluate("""() => { const b = document.querySelector('#methodology-modal .methodology-body');
+        return { h2: b.querySelectorAll('h2').length, h1: b.querySelectorAll('h1').length, all: b.querySelectorAll('*').length }; }""")
+    assert first["h2"] >= 10 and first["h1"] == 1 and first["all"] > 500
+    page.evaluate("closeMethodology(); openMethodology()")
+    again = page.evaluate("document.querySelectorAll('#methodology-modal .methodology-body *').length")
+    assert again == first["all"]
+    assert _network_errors(errors) == []
+
+
 def test_table_renders_a_window_only_a_fraction_of_the_universe(desktop):
     page, _ = desktop
     n = _universe_size(page)

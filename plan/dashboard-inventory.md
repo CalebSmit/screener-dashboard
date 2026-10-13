@@ -649,6 +649,14 @@ score cards, the contribution bars, and the category-detail badges.
 Two things move a weight away from the Methodology page's number, and both are
 now stated on the page by `weightNote()`:
 
+0. **The Methodology modal is filled on first open** (2026-10-12). Its ~830 elements wait in
+   `<template id="methodology-src">` and `hydrateMethodology()` moves them into
+   `.methodology-body` when `openMethodology()` first runs. Anything that needs the methodology's
+   DOM must call it through `openMethodology()` or call `hydrateMethodology()` first; before
+   that, `.methodology-body` is empty **by design**. First paint went from 2,988 elements to
+   2,181 against a budget of 3,000 (`tests/test_dashboard_browser.py`). The footer and the
+   search palette (Ctrl/Cmd+K) both link to the Factor Lab (`lab.html`).
+
 1. **The momentum regime rule**, run-level (since 2026-10-12 a cut in the market's
    panic state only; it was a two-sided volatility-regime adjustment before). Baked into
    `weights.factor_weights`, with `weights.base_factor_weights` kept alongside
