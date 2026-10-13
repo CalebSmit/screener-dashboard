@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-12",
+ "as_of": "2026-10-13",
  "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
  "series": {
   "DGS10": {
@@ -1667,11 +1667,11 @@
    "label": "VIX (expected S&P 500 volatility)",
    "unit": "",
    "freq": "daily",
-   "last": 15.41,
-   "date": "2026-10-08",
-   "chg_1m": -0.31,
-   "chg_1y": -0.89,
-   "pct_10y": 36.5,
+   "last": 14.84,
+   "date": "2026-10-09",
+   "chg_1m": -1.62,
+   "chg_1y": -1.59,
+   "pct_10y": 32.0,
    "min_10y": 9.14,
    "max_10y": 82.69,
    "median_10y": 16.93,
@@ -1832,7 +1832,7 @@
     14.81,
     14.87,
     15.31,
-    15.41
+    14.84
    ],
    "spark_d": [
     "2023-10-13",
@@ -1991,7 +1991,7 @@
     "2026-09-18",
     "2026-09-25",
     "2026-10-02",
-    "2026-10-08"
+    "2026-10-09"
    ]
   },
   "DFF": {
@@ -2852,9 +2852,9 @@
   },
   {
    "k": "vol",
-   "state": "normal",
+   "state": "calm",
    "title": "Volatility",
-   "text": "The VIX is 15.4, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016), which is why this screener already cuts momentum's weight when the universe is turbulent and raises it when calm."
+   "text": "The VIX is 14.8, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016), which is why this screener already cuts momentum's weight when the universe is turbulent and raises it when calm."
   },
   {
    "k": "inflation",
