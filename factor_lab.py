@@ -53,11 +53,15 @@ FRENCH_FILES = {
     "five_factors": ("F-F_Research_Data_5_Factors_2x3_CSV.zip", ",Mkt-RF,SMB,HML,RMW,CMA,RF"),
     "size_portfolios": ("Portfolios_Formed_on_ME_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "variance_portfolios": ("Portfolios_Formed_on_VAR_CSV.zip", "Value Weighted Returns -- Monthly"),
+    "earnings_yield_portfolios": ("Portfolios_Formed_on_E-P_CSV.zip", "Value Weight Returns -- Monthly"),
 }
 # Sorted-portfolio experiments (kind "sort"): which file, which two tables, which columns.
 SORTS = {
     "low-volatility": {"file": "variance_portfolios", "ew": "Equal Weighted Returns -- Monthly",
                        "columns": [0, 1, 2, 3, 4]},
+    # the file's last ten columns are the deciles; the first is companies with losses
+    "earnings-yield": {"file": "earnings_yield_portfolios", "ew": "Equal Weight Returns -- Monthly",
+                       "columns": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -67,8 +71,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # one never runs it against this week's copy of the page. 2 = the second experiment;
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
-# experiment; 6 = the front page; 7 = sorted-portfolio experiments.
-ASSET_VERSION = 7
+# experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment.
+ASSET_VERSION = 8
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -939,6 +943,97 @@ EXPERIMENTS = [
             "on public data, and the controls show how it has held since. The screener ranks large "
             "companies only, where the most volatile stocks are far tamer than the group shown here."),
     },
+    {
+        "id": "earnings-yield",
+        "kind": "sort",
+        "topic": "Valuation",
+        "title": "Does a high earnings yield pay?",
+        "tab": "Earnings yield",
+        "paper": {
+            "authors": "Eugene F. Fama and Kenneth R. French",
+            "year": 1992,
+            "title": "The cross-section of expected stock returns",
+            "journal": "Journal of Finance 47(2), 427-465",
+            "doi": "10.1111/j.1540-6261.1992.tb04398.x",
+        },
+        "claim": ("Sorting companies with positive earnings into ten groups by earnings divided by share "
+                  "price, the group with the highest earnings yield averaged about 1.7% a month from "
+                  "1963 to 1990 and the group with the lowest about 1.0%, rising almost step by step "
+                  "in between."),
+        "reference": {
+            "source": ("The published article, Table IV, Panel B (page 443): average monthly returns of "
+                       "portfolios formed on earnings-price ratio, equal-weighted, July 1963 to December "
+                       "1990. The paper splits the lowest and highest tenths in half; those halves are "
+                       "combined here by the number of firms in each."),
+            "start": "196307", "end": "199012", "weighting": "ew",
+            # Written 2026-10-12 BEFORE the comparison was run; nothing had been computed on this
+            # file. The same sizes as experiment 4, which reruns another table of the same paper.
+            # Expected beforehand: the two end groups are the likeliest to miss - the paper draws
+            # its dividing lines across all its stocks and leaves out financial companies, the
+            # library draws them on New York Stock Exchange stocks and keeps financials. Unlike
+            # the size table, both samples need accounting data, so a closer match than
+            # experiment 4's was expected.
+            "figures": [
+                {"key": "mean1", "label": "Lowest earnings yield: average month (%)", "paper": 0.984, "tolerance": 0.05, "where": "Table IV B (its two halves, averaged by number of firms)"},
+                {"key": "mean2", "label": "Earnings-yield decile 2: average month (%)", "paper": 0.94, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean3", "label": "Earnings-yield decile 3: average month (%)", "paper": 1.03, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean4", "label": "Earnings-yield decile 4: average month (%)", "paper": 1.18, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean5", "label": "Earnings-yield decile 5: average month (%)", "paper": 1.22, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean6", "label": "Earnings-yield decile 6: average month (%)", "paper": 1.33, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean7", "label": "Earnings-yield decile 7: average month (%)", "paper": 1.42, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean8", "label": "Earnings-yield decile 8: average month (%)", "paper": 1.46, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean9", "label": "Earnings-yield decile 9: average month (%)", "paper": 1.57, "tolerance": 0.05, "where": "Table IV B"},
+                {"key": "mean10", "label": "Highest earnings yield: average month (%)", "paper": 1.73, "tolerance": 0.05, "where": "Table IV B (its two halves, averaged by number of firms)"},
+                {"key": "spread", "label": "Highest earnings yield minus lowest, a month (%)", "paper": 0.746, "tolerance": 0.08, "where": "Table IV B, derived"},
+            ],
+        },
+        "verdict_note": ("The misses are small and mostly at the two ends, where the paper and the library "
+                         "draw their dividing lines differently. The rise from group to group and the gap "
+                         "between the ends both match."),
+        "sort": {
+            "data": "earnings-yield",
+            "groups": ["Lowest earnings yield", "Decile 2", "Decile 3", "Decile 4", "Decile 5", "Decile 6", "Decile 7", "Decile 8", "Decile 9", "Highest earnings yield"],
+            "ends": ["lowest earnings yield", "highest"],
+            "low": "group with the lowest earnings yield", "high": "group with the highest",
+            "spread": "Highest earnings yield minus lowest",
+            "accent": [9],
+            "key_accent": "The highest earnings yield - the end the screener's Valuation category favours",
+            "key_rest": "The other nine groups",
+            "chart": "by earnings yield",
+            "presets": [["The paper \u00b7 1963\u20131990", "196307", "199012"],
+                        ["After the paper \u00b7 1991\u2013now", "199101", "LAST"],
+                        ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["ew", "Equally \u00b7 paper"], ["vw", "By market value"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, companies with positive earnings are put in one of ten groups by "
+                           "their earnings for the last fiscal year divided by their market value at "
+                           "the end of December."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Earnings/Price\"."],
+            ["Weighting", "Equal-weighted, as in the paper's table. The value-weighted version is one "
+                          "click away."],
+            ["Left out", "Companies with losses. The paper reports them as a separate group; so does "
+                         "the library, and they are not shown here."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper draws the lines between groups across all the stocks in its sample and "
+            "leaves out financial companies; the library draws them on New York Stock Exchange "
+            "stocks and keeps financials. The end groups are where that matters most.",
+            "The lowest and highest tenths are combined from the paper's halves by its own count "
+            "of firms, which approximates what it would have printed for the whole tenth.",
+            "The paper's main result on earnings yield is in its regressions: once size and "
+            "book-to-market are accounted for, earnings yield adds little. That is not reproduced "
+            "here.",
+        ],
+        "in_the_screener": (
+            "The screener's Valuation category is built from yields of this kind - free cash flow "
+            "and earnings set against what the whole business is priced at. This is the nearest "
+            "sort the public data carries: earnings against the share price. Two differences "
+            "matter. The screener compares each company with others in its own sector, which this "
+            "sort does not; and it ranks large companies only, where the spread between groups "
+            "has been narrower."),
+    },
 ]
 
 
@@ -960,6 +1055,9 @@ TAKEAWAYS = {
     "low-volatility": ("The calmest fifth of stocks earned about as much as the rest, with half the "
                        "volatility of the most volatile fifth. The paper's large penalty for volatile "
                        "stocks does not appear on the public version of the sort."),
+    "earnings-yield": ("Returns rose step by step with earnings yield, in the paper's sample and for "
+                       "decades after it. Since 2007 the gap has all but closed, and among large "
+                       "companies it reversed."),
 }
 
 # What the lab can and cannot put behind each of the screener's eight categories. "experiments"
@@ -967,11 +1065,10 @@ TAKEAWAYS = {
 # have, and says what that data is. Kept honest by hand and by one test: every experiment id
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
-    {"category": "Valuation", "key": "valuation", "experiments": ["five-factors"],
-     "has": "The value factor - companies priced low against their book value, minus those priced high.",
-     "gap": "The screener measures value on cash flow and earnings against enterprise value, not on "
-            "book value. The public library also publishes portfolios sorted on earnings yield and on "
-            "cash-flow yield, which are closer; an experiment on those is queued."},
+    {"category": "Valuation", "key": "valuation", "experiments": ["earnings-yield", "five-factors"],
+     "has": "Stocks sorted by earnings yield, and the value factor (book value against price).",
+     "gap": "The screener's heaviest valuation measure is free cash flow against the value of the whole "
+            "business. The library's sort on cash-flow yield is the nearest thing and is queued."},
     {"category": "Quality", "key": "quality", "experiments": ["five-factors"],
      "has": "The profitability factor - robustly profitable companies minus weakly profitable ones.",
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "

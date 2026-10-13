@@ -9926,3 +9926,40 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (around midnight, owner-run) - Factor Lab experiment 6: earnings yield, the nearest public sort to the Valuation category
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,193 passed / 0 failed; after 2,194 passed / 0 failed.
+
+### Did
+- **Experiment 6:** Fama & French (1992), Table IV Panel B, on the library's earnings-yield
+  deciles. **7 of 11 within tolerances written before the first run.** The misses are small
+  (all under 0.15% a month) and mostly at the two ends, as the comment beside the tolerances
+  expected; the step-by-step rise and the gap between the ends (0.70% against 0.75%) match.
+- **It cost a record and a file entry, no page work** - the first experiment added on the
+  generic sorted-portfolio layout rather than with it.
+- **Research note section 7.** The spread was +0.70% a month in the paper's sample and +0.43%
+  from 1991 to now; since 2007 it is +0.13% equal-weighted and **-0.23% value-weighted**. Framed
+  as the most important question the lab has raised for the screener's largest category, with
+  three things to do about it that are research and one thing not to do tonight.
+
+### Methodology changed
+- None.
+
+### Noticed, not fixed
+- The screener compares valuation within sectors and uses enterprise-value yields; this sort
+  does neither. Whether that difference protects it from what section 7 shows is unknown, and
+  is the question.
+
+### Next
+- Unchanged: tomorrow's 02:00 log first. Friday: profitability or the cash-flow-yield sort.
+
+### Gates
+1. **2,194 passed / 0 failed** (baseline 2,193 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

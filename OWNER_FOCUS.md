@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the same night) - experiment 6 shipped: does a high earnings yield
+    pay?** Fama & French (1992) on the library's earnings-yield deciles, the nearest public sort
+    to the screener's own valuation measures. **7 of 11 figures within** tolerances written
+    beforehand; returns rise step by step with earnings yield in the paper's sample and for
+    decades after. **Since 2007 the gap has all but closed, and among large companies it
+    reversed** - the finding that matters most for the screener's biggest category, written up
+    in the research note (section 7) as a question for a Monday, not acted on. Six experiments;
+    57 of 83 figures within tolerance across them.
   - **2026-10-12 (owner-run, the same night) - experiment 5 shipped: do riskier stocks earn
     more?** Ang, Hodrick, Xing & Zhang (2006), the study behind the Risk category, on the
     library's volatility-sorted fifths. **5 of 11 figures within** tolerances written
