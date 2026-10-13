@@ -196,8 +196,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=11"></script>
-<script src="lab_engine.js?v=11"></script>
+<script src="lab_data.js?v=12"></script>
+<script src="lab_engine.js?v=12"></script>
 <script>
 (function () {
     'use strict';
@@ -852,6 +852,10 @@ footer p { margin: 0 0 8px; }
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">Small</th><th scope="col">Big</th><th scope="col">Small − big</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
+            <h3 style="margin-top:26px">Among big companies, which side it comes from</h3>
+            <p style="margin:0 0 12px;max-width:76ch">A factor is one group's return minus another's. Split at the market's return, it has two sides: how far the group it holds ran ahead of the market, and how far the group it is short fell behind. Someone who holds stocks and shorts nothing can keep only the first.</p>
+            <div class="tablewrap"><table id="t-sides"><thead><tr><th scope="col">Factor</th><th scope="col">Held group − market</th><th scope="col">Market − shorted group</th><th scope="col">Factor</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">The two sides add up to the factor. The market is all US stocks, weighted by market value. This split is not in the paper's table.</p>
         </section>
         <section aria-labelledby="x-against">
             <h3 id="x-against">Against the paper</h3>
@@ -861,7 +865,8 @@ footer p { margin: 0 0 8px; }
         </section>` + tail(X, `
             <div class="eq">a factor among big companies &nbsp;=&nbsp; the big half's high group − its low group, each month<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small></div>
             <div class="eq">average month &nbsp;=&nbsp; mean of that series over the period<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>
-            <div class="eq">small minus big &nbsp;=&nbsp; mean of ( the factor among small − the factor among big ), month by month</div>`);
+            <div class="eq">small minus big &nbsp;=&nbsp; mean of ( the factor among small − the factor among big ), month by month</div>
+            <div class="eq">the factor among big companies &nbsp;=&nbsp; ( held group − market ) + ( market − shorted group )<small>Each side is averaged over the period on its own, with its own t-statistic.</small></div>`);
         document.getElementById('x-code').textContent = E.splitRun.toString();
 
         const now = E.splitRun(Z, refState());
@@ -877,7 +882,8 @@ footer p { margin: 0 0 8px; }
             document.getElementById('c-reset').hidden = atRef();
             if (!r.factors[KEYS[0]].big) {
                 read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
-                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = '';
+                document.querySelector('#t-sides tbody').innerHTML = ''; return;
             }
             const F = r.factors, clears = part => KEYS.filter(k => F[k][part].mean > 0 && F[k][part].t >= 2).length;
             const of4 = c => c === KEYS.length ? 'all ' + c : c === 0 ? 'none' : c + ' of the ' + KEYS.length;
@@ -889,6 +895,7 @@ footer p { margin: 0 0 8px; }
             document.getElementById('x-live-note').textContent = 'Small and big are the two halves of the market by company size; under each factor is the screener category it stands behind. The figure in brackets is the t-statistic. ' + (atRef()
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.');
+            document.querySelector('#t-sides tbody').innerHTML = KEYS.map(k => `<tr><td>${esc(NAME[k])}</td><td>${cell(F[k].long)}</td><td>${cell(F[k].short)}</td><td>${cell(F[k].big)}</td></tr>`).join('');
             drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })));
             writeScene(X.id, S, refState());
         }

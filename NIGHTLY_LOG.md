@@ -10234,3 +10234,32 @@ behind my hedge fund/real trading bot."*
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (owner-run, addendum) - what a holder who shorts nothing keeps of each factor
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2209 passed / 0 failed; after 2210 passed / 0 failed.
+
+### Did
+- **Experiment 8 now splits each big-company factor at the market's return**: the group it
+  holds minus the market, and the market minus the group it is short. The two add up to the
+  factor every month (tested). 1963-2026, average month: value 0.20 held / -0.01 shorted;
+  profitability **0.09 / 0.14**; investment 0.13 / 0.02; momentum 0.20 / 0.16.
+- The reading, in research note section 8: the best-supported factor among big companies is the
+  one a long-only holder keeps least of. Quality looks like a screen that keeps weak companies
+  out more than one that lifts strong ones - which reworded question 5 in the plan from "is
+  Quality under-weighted?" to "what is Quality for?".
+- The scorecard's Quality row says so in one sentence. `lab.html`, `lab_engine.js`,
+  `lab_data.js` and `factor_lab.py` only; no generator touched, so no publish rehearsal.
+
+### Methodology changed
+- None.
+
+### Gates
+1. **2210 passed / 0 failed** (baseline 2209 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

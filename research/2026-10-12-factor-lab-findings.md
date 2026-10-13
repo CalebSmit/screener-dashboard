@@ -220,6 +220,40 @@ So this is evidence about the traits among large companies, not a measurement of
 **Value and investment among big companies** correlate 0.52 (0.70 across all stocks, section 3):
 still largely one bet, a little less so.
 
+### What a holder who shorts nothing keeps
+
+Every figure above is one group minus another. The screener ranks; the bot holds the top of the
+ranking and shorts nothing. So each big-company factor was split at the market's return into the
+group it holds minus the market, and the market minus the group it is short. The two add up to
+the factor, month by month. July 1963 to August 2026, 758 months, average month (t-statistic):
+
+| Among big companies | Held group - market | Market - shorted group | Factor |
+|---|---|---|---|
+| Value | 0.20 (2.12) | -0.01 (-0.14) | 0.19 (1.56) |
+| Profitability | 0.09 (2.19) | 0.14 (2.12) | 0.22 (2.35) |
+| Investment | 0.13 (2.22) | 0.02 (0.32) | 0.15 (1.46) |
+| Momentum | 0.20 (2.96) | 0.16 (1.40) | 0.37 (2.13) |
+
+Read with section 8's first table, this changes the picture in one way that matters.
+**Profitability is the best-supported factor among big companies, and most of it is not
+available to a long-only holder**: 0.09% a month from profitable companies beating the market,
+0.14% from unprofitable ones lagging it. Value and investment are the reverse - almost entirely
+the held side - and their held sides clear a t-statistic of 2 over the whole record even where
+the factor does not. Momentum splits about evenly.
+
+For a ranking that feeds a long-only portfolio, that suggests Quality earns its weight mostly by
+keeping weak companies *out* of the top of the list rather than by lifting strong ones to it.
+That is a statement about what the category is for, which the methodology could say; it is
+question 5's real content, and it argues against simply moving weight to Quality because its
+factor has the best t-statistic.
+
+Since 2000 the held sides are: value 0.19 (1.07), profitability 0.12 (1.79), investment 0.16
+(1.52), momentum 0.04 (0.31). None clears 2 over 320 months.
+
+The market here is all US stocks, value-weighted, so it is mostly but not only big companies.
+The split is not in Fama & French's table and is not counted in the experiment's comparison;
+Israel & Moskowitz (2013) is the published version of it and is the paper to read against it.
+
 ### How any of this reaches a weight
 
 Written out in `plan/factor-lab.md`, "From the lab to the weights": the lab raises a question,

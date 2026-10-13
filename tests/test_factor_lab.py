@@ -512,7 +512,7 @@ def test_the_browser_measures_the_halves_as_the_reference_does(published, tmp_pa
         py = fl.split_run(published["split"], **o)
         assert js["n"] == len(py["months"]) > 100 and list(js["factors"]) == fl.SPLIT_KEYS == published["split_keys"]
         for k in fl.SPLIT_KEYS:
-            for part in ("small", "big", "gap"):
+            for part in ("small", "big", "gap", "long", "short"):
                 for stat in ("mean", "std", "t"):
                     assert js["factors"][k][part][stat] == pytest.approx(py["factors"][k][part][stat], rel=1e-8, abs=1e-12), (o, k, part)
 
@@ -651,7 +651,8 @@ def test_the_factors_are_measured_within_each_half_of_the_market():
     months = [f"2000{m:02d}" for m in range(1, 13)]
     split = {"months": months}
     for i, k in enumerate(fl.SPLIT_KEYS):
-        split[k] = {"small": [1.0 + i + 0.1 * j for j in range(12)], "big": [0.5 * i - 0.05 * j for j in range(12)]}
+        split[k] = {"small": [1.0 + i + 0.1 * j for j in range(12)], "big": [0.5 * i - 0.05 * j for j in range(12)],
+                    "long": [0.3 * i + 0.01 * j for j in range(12)], "short": [0.2 * i - 0.06 * j for j in range(12)]}
     r = fl.split_run(split, "200003", "200010")
     assert r["months"] == months[2:10]
     for i, k in enumerate(fl.SPLIT_KEYS):
@@ -659,6 +660,8 @@ def test_the_factors_are_measured_within_each_half_of_the_market():
         assert r["factors"][k]["small"]["mean"] == pytest.approx(sum(small) / 8)
         assert r["factors"][k]["big"]["mean"] == pytest.approx(sum(big) / 8)
         assert r["factors"][k]["gap"]["mean"] == pytest.approx(sum(a - b for a, b in zip(small, big)) / 8)
+        assert r["factors"][k]["long"]["mean"] == pytest.approx(sum(split[k]["long"][2:10]) / 8)
+        assert r["factors"][k]["short"]["mean"] == pytest.approx(sum(split[k]["short"][2:10]) / 8)
     assert fl.SPLIT_SIGN == {"value": 1, "profitability": 1, "investment": -1, "momentum": 1}
     assert set(fl.SPLIT_CATEGORY.values()) <= {c["category"] for c in fl.CATEGORY_MAP}
 
@@ -688,6 +691,25 @@ def test_the_large_company_experiment_is_recorded_as_it_landed(published):
     assert "Every miss is in value or profitability" in exp["verdict_note"]
     # momentum is shown but has no figure in the paper's table, so none in the comparison
     assert not any("momentum" in k for k in figs) and "momentum" in published["split"]
+
+
+def test_a_big_company_factor_is_its_two_sides_added_together(published):
+    """Held group minus the market, plus the market minus the shorted group, is the factor -
+    every month. The front page's sentence about profitability rests on the split."""
+    sp = published["split"]
+    for k in fl.SPLIT_KEYS:
+        assert set(sp[k]) == set(fl.SPLIT_PARTS)
+        for big, held, shorted in zip(sp[k]["big"], sp[k]["long"], sp[k]["short"]):
+            assert big == pytest.approx(held + shorted, abs=2e-4)                    # each is rounded to 4 places
+    whole = fl.split_run(sp, "196307", "209912")["factors"]
+    # "under half of it is profitable companies beating the market; the rest is unprofitable ones lagging it"
+    assert 0 < whole["profitability"]["long"]["mean"] < 0.5 * whole["profitability"]["big"]["mean"]
+    assert whole["profitability"]["short"]["mean"] > 0
+    # value and investment among big companies are almost entirely the held side
+    for k in ("value", "investment"):
+        assert whole[k]["long"]["mean"] > 0.8 * whole[k]["big"]["mean"]
+    html = PAGE.read_text(encoding="utf-8")
+    assert "can keep only the first" in html and 'id="t-sides"' in html
 
 
 def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(published):
@@ -980,6 +1002,7 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("document.querySelectorAll('#ch-bars rect.col-a').length") == 4
                 assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 4
                 assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 18
+                assert page.evaluate("document.querySelectorAll('#t-sides tbody tr').length") == 4
                 in_sample = page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean")
                 page.click("#c-preset button[data-i='2']")                # since 2000
                 assert page.evaluate("location.hash").startswith("#big-and-small?start=200001")
