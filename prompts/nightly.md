@@ -223,6 +223,17 @@ All four must pass before you push to `main`:
 Never weaken a test to pass a gate. If a gate fails and you cannot fix it
 cleanly, revert your change - the gate is doing its job.
 
+**If your diff touches anything the page is built from** - `generate_dashboard.py`, the
+methodology generator in `run_screener.py`, `stock_summary.py`, `metric_lineage.py`, `claims.py` -
+**also run `python scripts/rehearse_publish.py` and treat a failure as a failed gate.** The four
+gates above read the *committed* `index.html` and payload, which only a full screener run
+rewrites, so they cannot see what your change does to the page the 02:00 data loop will publish
+next. The script regenerates the page from the newest run with your code, runs the tests that
+read it, and restores the published files. On 2026-10-12 an owner-run session passed all four
+gates eleven times in an evening while the regenerated page sat 8 elements over its first-paint
+budget; the next session's baseline would have been red. (`--full` runs the whole suite against
+the regenerated page.)
+
 **Do not commit** `validation/data_quality_log.csv`, `factor_output.xlsx`, or
 `sp500_tickers.json` unless changing them *is* the work. Stage files explicitly;
 never `git add -A`.

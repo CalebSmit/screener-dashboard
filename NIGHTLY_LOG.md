@@ -10065,3 +10065,42 @@ again against a freshly regenerated page. 2. `run_screener.py --dry-run` **DRY-R
 3. payload and lab files pass `node --check`. 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (closing entry, owner-run) - `scripts/rehearse_publish.py`: the rehearsal that caught tonight's near-miss, as a tool and a rule
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,198 passed / 0 failed; after 2,203 passed / 0 failed.
+
+### Did
+- **`scripts/rehearse_publish.py`**: regenerate the page from the newest full run with the
+  working tree's code, install it, run the tests that read it and the data loop's claims gate,
+  restore the published files byte for byte (also when a test crashes - tested). Run tonight:
+  300 page tests passed, claims gate passed, files restored. `--full` runs the whole suite; that
+  was also done by hand earlier and passed 2,198 of 2,198 against the regenerated page.
+- **`prompts/nightly.md` section 4 and CLAUDE.md "Ship gates" now require it** whenever a diff
+  touches something the page is built from. The entry above this one explains why: the gates
+  read the committed page, and tonight's page was 8 elements over budget with every gate green.
+
+### Methodology changed
+- None.
+
+### Noticed, not fixed
+- `nightly-screener.ps1` does not run the rehearsal itself; the session is told to. Wiring it
+  into the runner is a retrospective's call (it adds about two minutes and a dependency on a
+  full run being present).
+- Tonight's commits used `git add -A` after checking `git status` each time. The nightly
+  prompt's rule is to stage explicitly; nothing unintended was committed, but the rule is
+  better than the check.
+
+### Next
+- **Tomorrow's 02:00 log and the live page**, as listed in the entry above. If the 06:00
+  baseline is red, start with `python scripts/rehearse_publish.py --full`.
+
+### Gates
+1. **2,203 passed / 0 failed** (baseline 2,198 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
