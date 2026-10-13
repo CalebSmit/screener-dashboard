@@ -9758,3 +9758,33 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (last entry of the night, owner-run) - the lab reads months off its charts and opens from a link
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,182 passed / 0 failed; after 2,183 passed / 0 failed.
+
+### Did
+- **A readout on every chart:** point at it, or touch it, and one sentence under the chart reads
+  that month ("Apr 1934: momentum returned -7.73%; going in, the state was market up, calm").
+- **Scene links:** the address carries the experiment and any setting that differs from its
+  opening ones, rewritten as the reader changes them, with a "Copy a link to this scene" button.
+  A link that asks for a setting that does not exist opens the experiment as it starts.
+- Three items struck off the plan's interface backlog. Looked at 800 px with a scene link:
+  settings restored, cursor line and sentence follow the pointer, no console errors.
+
+### Methodology changed
+- None. Presentation of `lab.html` only; `lab_data.js` and `lab_engine.js` are unchanged.
+
+### Next
+- Unchanged from the entry above. **Tomorrow's 02:00 log first** (the `[MOM-REGIME]` line and
+  `weights.momentum_regime` in the payload), then the lab's experiment 4 on Friday.
+
+### Gates
+1. **2,183 passed / 0 failed** (baseline 2,182 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

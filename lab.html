@@ -91,6 +91,10 @@ select { background: var(--bg-elevated); color: var(--text-primary); border: 1px
 .key .a i { background: var(--accent); } .key .b i { background: var(--text-muted); }
 .key .c i { height: 10px; width: 14px; background: var(--amber-dim); border: 1px solid rgba(250,178,25,.45); border-radius: 2px; }
 .chart .band { fill: rgba(250,178,25,.16); }
+.chart .cursor { stroke: var(--text-muted); stroke-width: 1; pointer-events: none; }
+.chart svg { touch-action: pan-y; cursor: crosshair; }
+.chart-read { margin: 6px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .where { display: block; font-size: 12px; color: var(--text-muted); }
 .muted { color: var(--text-muted); }
 tr.panic td { background: var(--amber-dim); }
@@ -166,8 +170,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=3"></script>
-<script src="lab_engine.js?v=3"></script>
+<script src="lab_data.js?v=4"></script>
+<script src="lab_engine.js?v=4"></script>
 <script>
 (function () {
     'use strict';
@@ -266,7 +270,47 @@ footer p { margin: 0 0 8px; }
         (opt.refs || []).forEach(v => { if (v > lo && v < hi) s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; });
         yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
         series.forEach(se => { let d = ''; se.v.forEach((v, i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }); s += `<path class="${se.cls}" d="${d}"/>`; });
+        s += `<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" style="visibility:hidden"/>`;
         el.innerHTML = s + '</svg>';
+        // Point at the chart (or touch it) to read one month, in words, under it.
+        let out = el.nextElementSibling;
+        if (!out || !out.classList.contains('chart-read')) { out = document.createElement('p'); out.className = 'chart-read'; el.parentNode.insertBefore(out, el.nextSibling); }
+        const idle = 'Point at the chart to read any month.';
+        out.textContent = idle;
+        if (!opt.read) return;
+        const svg = el.firstChild, cur = svg.querySelector('.cursor');
+        svg.addEventListener('pointermove', ev => {
+            const r = svg.getBoundingClientRect();
+            const i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1))));
+            cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible';
+            out.textContent = opt.read(i);
+        });
+        svg.addEventListener('pointerleave', () => { cur.style.visibility = 'hidden'; out.textContent = idle; });
+    }
+
+    // A scene is an experiment plus whatever settings differ from the ones it opens with. It is
+    // kept in the address, so the page you are looking at can be sent to someone else.
+    function parseScene() {
+        const h = location.hash.slice(1), k = h.indexOf('?'), p = {};
+        if (k >= 0) new URLSearchParams(h.slice(k + 1)).forEach((v, key) => { p[key] = v; });
+        return { id: k < 0 ? h : h.slice(0, k), p: p };
+    }
+    function applyScene(S, p, spec) {
+        const out = Object.assign({}, S);
+        Object.keys(spec).forEach(k => {
+            if (!(k in (p || {}))) return;
+            const v = p[k], rule = spec[k];
+            if (rule === 'month') { if (/^\d{6}$/.test(v)) out[k] = v; }
+            else if (Array.isArray(rule)) { if (rule.indexOf(v) >= 0) out[k] = v; }
+            else if (rule.nums) { const num = v === 'none' ? null : +v; if (rule.nums.some(a => a === num)) out[k] = num; }
+            else if (rule.range) { const num = +v; if (isFinite(num) && num >= rule.range[0] && num <= rule.range[1]) out[k] = num; }
+        });
+        if (out.start > out.end) return Object.assign({}, S);
+        return out;
+    }
+    function writeScene(id, S, ref) {
+        const query = Object.keys(S).filter(k => S[k] !== ref[k]).map(k => k + '=' + encodeURIComponent(S[k] === null ? 'none' : S[k])).join('&');
+        try { history.replaceState(null, '', '#' + id + (query ? '?' + query : '')); } catch (e) { /* a sandboxed page may refuse; the scene still works */ }
     }
     const logTicks = (lo, hi) => { const out = []; for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) out.push([p, dollars(Math.pow(10, p))]);
         if (out.length < 2) { out.length = 0; [lo + (hi - lo) * .1, (lo + hi) / 2, hi - (hi - lo) * .1].forEach(v => out.push([v, dollars(Math.pow(10, v))])); }
@@ -291,10 +335,11 @@ footer p { margin: 0 0 8px; }
     const press = (id, test) => document.querySelectorAll('#c-' + id + ' button').forEach(b => b.setAttribute('aria-pressed', String(test(b.dataset.v))));
 
     // ------------------------------------------------------------------ experiment 1
-    function riskManaged(X, n, mount) {
+    function riskManaged(X, n, mount, init) {
         const REF = X.reference, res0 = X.result;
         const refState = () => ({ start: REF.start, end: REF.end, window: REF.window, target: REF.target, cap: REF.cap });
-        let S = refState(), last = null;
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', window: { nums: [21, 63, 126, 252] },
+            target: { range: [0.06, 0.20] }, cap: { nums: [null, 2, 1.5, 1] } }), last = null;
         const atRef = () => S.start === REF.start && S.end === REF.end && S.window === REF.window && Math.abs(S.target - REF.target) < 1e-9 && S.cap === REF.cap;
         const PRESETS = [['The paper · 1927–2011', REF.start, REF.end], ['After the paper · 2012–now', '201201', LAST],
             ['1929–1939', '192901', '193912'], ['2000–2010', '200001', '201012'], ['Everything', FIRST, LAST]];
@@ -374,9 +419,12 @@ footer p { margin: 0 0 8px; }
             document.getElementById('x-live-note').textContent = atRef()
                 ? 'These are the paper\'s own settings; the comparison with its published figures is in the next section.'
                 : 'These settings differ from the paper\'s, so there is no published figure to compare them with. The two strategies also run at different risk: read the Sharpe ratio, not the height of the lines.';
-            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(E.growth(r.plain)) }, { cls: 'managed', v: lg(E.growth(r.managed)) }],
-                { height: 300, ticks: logTicks, refs: [0] });
-            draw(document.getElementById('ch-weight'), r.months, [{ cls: 'managed', v: r.weights }], { height: 150, ticks: linTicks, refs: [1], min: 0 });
+            const gp = E.growth(r.plain), gm = E.growth(r.managed);
+            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(gp) }, { cls: 'managed', v: lg(gm) }],
+                { height: 300, ticks: logTicks, refs: [0], read: i => `${mon(r.months[i])}: $1 had become ${dollars(gm[i])} risk-managed and ${dollars(gp[i])} plain.` });
+            draw(document.getElementById('ch-weight'), r.months, [{ cls: 'managed', v: r.weights }],
+                { height: 150, ticks: linTicks, refs: [1], min: 0, read: i => `${mon(r.months[i])}: exposure ${r.weights[i].toFixed(2)}; plain momentum returned ${sf2(r.plain[i])}% that month.` });
+            writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
         const syncPeriod = bindPeriod(PRESETS, () => S, set);
@@ -389,10 +437,11 @@ footer p { margin: 0 0 8px; }
     }
 
     // ------------------------------------------------------------------ experiment 2
-    function crashes(X, n, mount) {
+    function crashes(X, n, mount, init) {
         const REF = X.reference, res0 = X.result, NAMES = D.state_names;
         const refState = () => ({ start: REF.start, end: REF.end, lookback: REF.lookback, window: REF.window, threshold: REF.threshold });
-        let S = refState(), last = null;
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', lookback: { nums: D.bear_lookbacks },
+            window: { nums: D.market_vol_windows }, threshold: { range: [0.10, 0.40] } }), last = null;
         const atRef = () => S.start === REF.start && S.end === REF.end && S.lookback === REF.lookback && S.window === REF.window && Math.abs(S.threshold - REF.threshold) < 1e-9;
         const PRESETS = [['The paper · 1927–2013', REF.start, REF.end], ['After the paper · 2013–now', '201304', LAST],
             ['1929–1939', '192901', '193912'], ['2000–2010', '200001', '201012'], ['Everything', FIRST, LAST]];
@@ -470,8 +519,11 @@ footer p { margin: 0 0 8px; }
                 (S.lookback === REF.lookback && S.window === REF.window && Math.abs(S.threshold - REF.threshold) < 1e-9
                     ? 'These are the screener\'s own thresholds, over ' + (atRef() ? 'the paper\'s period.' : 'the period you chose.')
                     : 'These thresholds are yours. The screener\'s rule is the 24-month, 6-month, 20.6% setting.');
-            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'managed', v: lg(E.growth(r.wml)) }],
-                { height: 300, ticks: logTicks, refs: [0], bands: r.state.map(s => s === 3) });
+            const g = E.growth(r.wml);
+            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'managed', v: lg(g) }],
+                { height: 300, ticks: logTicks, refs: [0], bands: r.state.map(s => s === 3),
+                  read: i => `${mon(r.months[i])}: momentum returned ${sf2(r.wml[i])}%; going in, the state was “${NAMES[r.state[i]].toLowerCase()}”. $1 had become ${dollars(g[i])}.` });
+            writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
         const syncPeriod = bindPeriod(PRESETS, () => S, set);
@@ -484,12 +536,12 @@ footer p { margin: 0 0 8px; }
     }
 
     // ------------------------------------------------------------------ experiment 3
-    function factors(X, n, mount) {
+    function factors(X, n, mount, init) {
         const REF = X.reference, res0 = X.result, F = D.factors, KEYS = D.factor_keys, NAME = D.factor_names;
         const F0 = F.months[0], F1 = F.months[F.months.length - 1], ORDER = ['hml', 'rmw', 'cma', 'smb', 'mktrf'];
         const fyears = []; for (let y = +F0.slice(0, 4); y <= +F1.slice(0, 4); y++) fyears.push(y);
         const refState = () => ({ start: REF.start, end: REF.end, focus: 'hml' });
-        let S = refState(), last = null;
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', focus: KEYS }), last = null;
         const atRef = () => S.start === REF.start && S.end === REF.end;
         const PRESETS = [['The paper · 1963–2013', REF.start, REF.end], ['After the paper · 2014–now', '201401', F1],
             ['1963–1990', '196307', '199012'], ['2000–2010', '200001', '201012'], ['Everything', F0, F1]];
@@ -551,8 +603,11 @@ footer p { margin: 0 0 8px; }
                 ? 'This is a short period for a factor. One that truly averages 0.3% a month, with volatility like these, needs about thirty years to reach a t-statistic of 2 - so falling short over a shorter stretch is weak evidence either way. '
                 : '') + (atRef() ? 'This is the paper\'s own sample; the comparison with its figures is in the next section.' : 'This period is yours, so there is no published figure to compare it with.');
             const series = KEYS.filter(k => k !== S.focus).map(k => ({ cls: 'plain', v: lg(E.growth(r.series[k])) }));
-            series.push({ cls: 'managed', v: lg(E.growth(r.series[S.focus])) });
-            draw(document.getElementById('ch-growth'), r.months, series, { height: 300, ticks: logTicks, refs: [0] });
+            const gf = E.growth(r.series[S.focus]);
+            series.push({ cls: 'managed', v: lg(gf) });
+            draw(document.getElementById('ch-growth'), r.months, series, { height: 300, ticks: logTicks, refs: [0],
+                read: i => `${mon(r.months[i])}: the ${NAME[S.focus].toLowerCase()} factor returned ${sf2(r.series[S.focus][i])}%; $1 in it had become ${dollars(gf[i])}.` });
+            writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
         const syncPeriod = bindPeriod(PRESETS, () => S, set);
@@ -567,10 +622,21 @@ footer p { margin: 0 0 8px; }
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
     function show() {
-        const want = location.hash.slice(1), i = Math.max(0, D.experiments.findIndex(x => x.id === want));
+        const scene = parseScene(), i = Math.max(0, D.experiments.findIndex(x => x.id === scene.id));
         const X = D.experiments[i];
         root.innerHTML = '<article class="exp" aria-labelledby="x-title"></article>';
-        current = KINDS[X.kind](X, i + 1, root.firstChild);
+        current = KINDS[X.kind](X, i + 1, root.firstChild, scene.p);
+        const reset = document.getElementById('c-reset');
+        if (reset) {
+            const copy = document.createElement('button'), label = 'Copy a link to this scene';
+            copy.type = 'button'; copy.className = 'reset'; copy.id = 'c-copy'; copy.textContent = label;
+            reset.parentNode.classList.add('actions'); reset.parentNode.appendChild(copy);
+            copy.addEventListener('click', () => {
+                const done = () => { copy.textContent = 'Link copied'; setTimeout(() => { copy.textContent = label; }, 1600); };
+                const ask = () => window.prompt('Copy this link', location.href);
+                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(location.href).then(done, ask); else ask();
+            });
+        }
         tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === X.id ? 'page' : 'false'));
     }
     window.addEventListener('hashchange', () => { show(); window.scrollTo(0, tabs.offsetTop - 12); });

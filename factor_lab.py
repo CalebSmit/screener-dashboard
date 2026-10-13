@@ -57,8 +57,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # lab.html loads lab_data.js and lab_engine.js as ?v=ASSET_VERSION. Bump it (and the two
 # script tags) whenever either file's shape changes, so a browser holding last week's copy of
 # one never runs it against this week's copy of the page. 2 = the second experiment;
-# 3 = the third.
-ASSET_VERSION = 3
+# 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
+# but one number moving with every release of the page is simpler to keep true).
+ASSET_VERSION = 4
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
