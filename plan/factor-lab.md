@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 21 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 23 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -96,8 +96,8 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 1 | Barroso & Santa-Clara (2015), risk-managed momentum | Momentum | French momentum deciles, monthly + daily | **Shipped 2026-10-12.** 13 of 14 figures within tolerance; the risk-managed worst month is outside (-24.16% here, -28.40% in the paper). |
 | 2 | Daniel & Moskowitz (2016), momentum crashes | Momentum, and the screener's own regime rule | French momentum deciles + market factors | **Shipped 2026-10-12.** 9 of 15 figures within tolerances written beforehand. Every figure about what follows a market decline is within (183 bear months against 183; the beta change -1.11 against -1.13). The six outside all describe the portfolio itself: the paper builds its own deciles, which earn about three points a year more than the library's. |
 | 2b | Experiment 2 again, on the authors' own portfolios | Momentum | Kent Daniel's website publishes the paper's decile returns | **Check its terms first.** If usable, the six portfolio-level misses should close; if they do not, that is a finding. |
-| 3 | **Fama & French (2015), five factors** | Valuation, Quality (profitability), Investment, Size | French 5-factor file | **Next.** Reproduce the factors' average returns and t-statistics over the paper's sample; the "after the paper" preset shows value's weak decade. |
-| 4 | **Is there a size premium among large stocks?** | Size | French size deciles | The methodology page admits "No published study establishes a size premium within the largest two market-cap deciles." Measure it on the size deciles and say what is found. This one can end in a research note about the Size weight. |
+| 3 | Fama & French (2015), five factors | Valuation, Quality (profitability), Investment, Size | French 5-factor file (2x3) | **Shipped 2026-10-12.** 20 of 21 figures within tolerances written beforehand; profitability's volatility is outside by 0.01. After the paper's sample (2014 on) none of the four factors is distinguishable from zero - see `research/2026-10-12-factor-lab-findings.md` before reading anything into that. |
+| 4 | **Is there a size premium among large stocks?** | Size | French size deciles | **Next.** The methodology page admits "No published study establishes a size premium within the largest two market-cap deciles." Measure it on the size deciles and say what is found. Experiment 3 already shows the size factor as the weakest of the four in both periods. This one can end in a research note about the Size weight. |
 | 5 | Novy-Marx (2013), profitability | Quality | French operating-profitability portfolios | The library sorts on operating, not gross, profitability: that difference goes in "still needed". |
 | 6 | Low-risk: Frazzini & Pedersen (2014) or Baker, Bradley & Wurgler (2011) | Risk | French beta / variance portfolios, or AQR's library | **Check AQR's terms of use before publishing anything derived from it.** |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French HML and momentum factors | The correlation the 2026-10-12 changelog entry leans on for sending freed weight to Valuation. Verify it. |
@@ -149,6 +149,14 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-12 (owner-run, the same night) - experiment 3 shipped.** Fama & French (2015) on the
+  library's five factors: 20 of 21 within tolerances written before the first run. The page
+  follows one factor in the accent colour against the other four, with each factor's average
+  month, t-statistic and growth, and what the other four leave unexplained of the one followed.
+  **What the three experiments say for the screener is in
+  `research/2026-10-12-factor-lab-findings.md`** - read it before the next methodology session:
+  the results weakened after their samples, and value and investment are largely one bet.
 
 - **2026-10-12 (owner-run, later the same night) - experiment 2 shipped**, at the owner's
   "keep improving ... be creative". Daniel & Moskowitz (2016) on the library's momentum deciles

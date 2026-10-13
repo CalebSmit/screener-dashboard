@@ -119,6 +119,11 @@ def test_the_published_series_is_whole(published):
     assert sorted(mk["trail"]) == sorted(str(n) for n in fl.BEAR_LOOKBACKS)
     assert all(len(s) == len(months) for s in list(mk["vol"].values()) + list(mk["trail"].values()))
     assert mk["trail"]["24"][0] is not None and mk["vol"]["126"][0] is not None     # January 1927 has a reading
+    fa = published["factors"]
+    assert fa["months"][0] == "196307" and all(len(fa[k]) == len(fa["months"]) > 700 for k in fl.FACTOR_KEYS)
+    for a, b in zip(fa["months"], fa["months"][1:]):
+        ya, ma, yb, mb = int(a[:4]), int(a[4:]), int(b[:4]), int(b[4:])
+        assert (yb, mb) == ((ya, ma + 1) if ma < 12 else (ya + 1, 1)), (a, b)
     att = published["attribution"]
     assert "Kenneth R. French" in att["text"] and "Fama" in att["text"] and att["url"].startswith("https://")
 
@@ -128,13 +133,14 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
     for built, exp in zip(published["experiments"], fl.EXPERIMENTS):
         assert built["reference"] == json.loads(json.dumps(exp["reference"]))   # the paper's figures, as recorded
         again = (fl.reproduce_crashes(published["momentum"], published["market"], exp)
-                 if exp["kind"] == "crashes" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "crashes" else fl.reproduce_factors(published["factors"], exp)
+                 if exp["kind"] == "factors" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -146,13 +152,13 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and exp["paper"]["doi"] and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] == "crashes":
+        if exp["kind"] in ("crashes", "factors"):
             figs = exp["reference"]["figures"]
             assert len({f["key"] for f in figs}) == len(figs) >= 10
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["kind"] in ("risk-managed", "crashes")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors")
 
 
 def test_the_tolerances_are_the_recorded_ones():
@@ -167,6 +173,20 @@ def test_the_tolerances_are_the_recorded_ones():
         "beta_bear": (-1.131, 0.15), "alpha_bear": (-2.04, 0.35), "bear_months": (183, 5),
         "gamma0": (1.955, 0.15), "gamma_bear": (-2.626, 0.40), "worst1": (-74.36, 3.0),
         "worst2": (-60.98, 3.0), "worst_overlap": (15, 3)}
+    # experiment 3's too: one tolerance per kind of figure
+    kinds = {"mean": 0.03, "std": 0.10, "t": 0.25, "corr": 0.05}
+    for f in fl.EXPERIMENTS[2]["reference"]["figures"]:
+        want = kinds.get(f["key"].split("_")[0])
+        if want is None:
+            want = {"hml_intercept": 0.05, "hml_on_cma": 0.08, "hml_r2": 0.05,
+                    "rmw_intercept": 0.05, "cma_intercept": 0.05}[f["key"]]
+        assert f["tolerance"] == want, f["key"]
+    assert {f["key"]: f["paper"] for f in fl.EXPERIMENTS[2]["reference"]["figures"]} == {
+        "mean_mktrf": 0.50, "mean_smb": 0.29, "mean_hml": 0.37, "mean_rmw": 0.25, "mean_cma": 0.33,
+        "std_mktrf": 4.49, "std_smb": 3.07, "std_hml": 2.88, "std_rmw": 2.14, "std_cma": 2.01,
+        "t_mktrf": 2.74, "t_smb": 2.31, "t_hml": 3.20, "t_rmw": 2.92, "t_cma": 4.07,
+        "corr_hml_cma": 0.70, "hml_intercept": -0.04, "hml_on_cma": 1.04, "hml_r2": 0.51,
+        "rmw_intercept": 0.43, "cma_intercept": 0.28}
 
 
 def test_the_sentence_about_the_misses_is_true(published):
@@ -210,6 +230,30 @@ def test_months_are_sorted_into_four_states():
     # the threshold is strict, and a state nobody is in reports nothing rather than zero
     calm = fl.crash_run(mom, market, "200001", "200012", threshold=0.30)
     assert [c["n"] for c in calm["cells"]] == [2, 0, 2, 0] and calm["cells"][3]["mean"] is None
+
+
+def test_a_factor_the_others_fully_explain_has_nothing_left_over():
+    months = [f"2000{m:02d}" for m in range(1, 13)] + [f"2001{m:02d}" for m in range(1, 13)]
+    cma = [0.5, -1.0, 2.0, 0.0, 1.5, -0.5, 1.0, -2.0, 0.5, 1.0, -1.5, 2.5] * 2
+    rmw = [1.0, 0.5, -0.5, 2.0, -1.0, 0.0, 1.5, 0.5, -2.0, 1.0, 0.5, -0.5] * 2
+    smb = [-1.0, 2.0, 0.5, -0.5, 1.0, 1.5, -2.0, 0.0, 1.0, -1.5, 0.5, 2.0] * 2
+    mkt = [2.0, -3.0, 1.0, 4.0, -2.0, 0.5, 3.0, -1.0, -4.0, 2.5, 1.5, -0.5] * 2
+    mkt[13] += 0.7                                                  # so no column repeats another
+    hml = [0.25 + 1.5 * c - 0.5 * r for c, r in zip(cma, rmw)]      # value built from two of the others
+    f = {"months": months, "mktrf": mkt, "smb": smb, "hml": hml, "rmw": rmw, "cma": cma}
+    r = fl.factor_run(f, "200001", "200112")
+    sp = r["spanned"]["hml"]
+    assert sp["intercept"] == pytest.approx(0.25) and sp["r2"] == pytest.approx(1.0)
+    assert sp["slopes"]["cma"] == pytest.approx(1.5) and sp["slopes"]["rmw"] == pytest.approx(-0.5)
+    assert sp["slopes"]["smb"] == pytest.approx(0, abs=1e-9)
+    s = r["stats"]["cma"]
+    mean = sum(cma) / 24
+    sd = math.sqrt(sum((v - mean) ** 2 for v in cma) / 23)
+    assert s["mean"] == pytest.approx(mean) and s["t"] == pytest.approx(mean / (sd / math.sqrt(24)))
+    assert r["corr"]["cma"]["cma"] == pytest.approx(1.0)
+    # one year only: figures, but no regression on eleven months
+    assert fl.factor_run(f, "200001", "200011")["spanned"] == {}
+    assert fl.factor_run(f, "200001", "200003")["stats"]["hml"] is None
 
 
 def test_least_squares_recovers_a_known_line():
@@ -262,6 +306,37 @@ def test_the_browser_engine_reproduces_the_reference(published, tmp_path):
         assert js["within"] == built["within"] and js["here"] == pytest.approx(built["here"], rel=1e-9)
 
 
+FACTOR_SETTINGS = [{"start": "196307", "end": "201312"}, {"start": "201401", "end": "209912"},
+                   {"start": "200001", "end": "201012"}, {"start": "196307", "end": "209912"}]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_the_factors_as_the_reference_does(published, tmp_path):
+    script = tmp_path / "factors.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.factorRun(D.factors, D.factor_keys, o);\n"
+        "  return { n: r.months.length, stats: r.stats, corr: r.corr, spanned: r.spanned }; })));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(FACTOR_SETTINGS)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    for o, js in zip(FACTOR_SETTINGS, json.loads(res.stdout)):
+        py = fl.factor_run(published["factors"], **o)
+        assert js["n"] == len(py["months"]) > 100
+        for k in fl.FACTOR_KEYS:
+            for stat in ("mean", "std", "t", "growth"):
+                assert js["stats"][k][stat] == pytest.approx(py["stats"][k][stat], rel=1e-8), (o, k, stat)
+            assert js["spanned"][k]["intercept"] == pytest.approx(py["spanned"][k]["intercept"], rel=1e-6, abs=1e-9)
+            assert js["spanned"][k]["r2"] == pytest.approx(py["spanned"][k]["r2"], rel=1e-8)
+            for other, slope in py["spanned"][k]["slopes"].items():
+                assert js["spanned"][k]["slopes"][other] == pytest.approx(slope, rel=1e-6, abs=1e-9)
+            for other in fl.FACTOR_KEYS:
+                assert js["corr"][k][other] == pytest.approx(py["corr"][k][other], rel=1e-9)
+
+
 CRASH_SETTINGS = [
     {"start": "192701", "end": "201303", "lookback": 24, "window": 126, "threshold": 0.206},   # the screener's rule
     {"start": "201304", "end": "209912", "lookback": 24, "window": 126, "threshold": 0.206},
@@ -301,9 +376,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     v = f"?v={fl.ASSET_VERSION}"                                    # one version on both, so they travel together
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
+    assert "E.factorRun(F, KEYS, S)" in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 2             # each experiment checks itself
+    assert html.count("disagrees with the build") == 3             # each experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -392,7 +468,20 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("window.LAB_STATE().settings.threshold") == pytest.approx(0.30)
                 page.click("#c-reset")
                 assert page.evaluate("window.LAB_STATE().result.cells[3].n") == at_rule
-                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 2
+                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 3
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+                # the third
+                page.goto(PAGE.as_uri() + "#five-factors", wait_until="load", timeout=60000)
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'five-factors'", timeout=30000)
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert "value factor" in page.inner_text("#x-read")
+                page.click("#c-focus button[data-v='rmw']")
+                assert "profitability factor" in page.inner_text("#x-read")
+                assert page.evaluate("document.querySelectorAll('.chart svg path').length") == 5
+                page.click("#c-preset button[data-i='1']")
+                assert page.evaluate("window.LAB_STATE().result.months.length") < 200
+                assert "short period for a factor" in page.inner_text("#x-live-note")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 page.close()

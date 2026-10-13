@@ -96,6 +96,7 @@ select { background: var(--bg-elevated); color: var(--text-primary); border: 1px
 tr.panic td { background: var(--amber-dim); }
 tr.panic td:first-child { color: var(--text-primary); font-weight: 600; padding-left: 8px; }
 tr.panic td:last-child { padding-right: 8px; }
+tr.focus td:first-child { color: var(--text-primary); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); padding-left: 10px; }
 .chart { width: 100%; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { font-family: var(--font-body); font-size: 11.5px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -160,13 +161,13 @@ footer p { margin: 0 0 8px; }
 
     <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
     <main id="lab"><p class="fine">Loading the experiment…</p></main>
-    <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Next: the Fama and French factors behind the screener's value, profitability and investment categories.</p>
+    <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Some of the studies the screener cites cannot be rerun on free data; those will be listed here too, with what it would take.</p>
 
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=2"></script>
-<script src="lab_engine.js?v=2"></script>
+<script src="lab_data.js?v=3"></script>
+<script src="lab_engine.js?v=3"></script>
 <script>
 (function () {
     'use strict';
@@ -191,7 +192,7 @@ footer p { margin: 0 0 8px; }
             ? `<strong>All ${r.total} figures match the paper</strong> within the stated tolerances.`
             : `<strong>${r.within} of ${r.total} figures match the paper</strong> within the stated tolerances. <span class="out">${out} outside</span>, and marked below.`;
         return `<section>
-            <div class="eyebrow">Experiment ${n} · Momentum</div>
+            <div class="eyebrow">Experiment ${n} · ${esc(X.topic)}</div>
             <h2 id="x-title">${esc(X.title)}</h2>
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. <a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a></p>
             <h3 style="margin-top:22px">The claim being tested</h3>
@@ -273,10 +274,11 @@ footer p { margin: 0 0 8px; }
     const linTicks = (lo, hi) => { const step = [.25, .5, 1, 2, 5].find(s => (hi - lo) / s <= 5) || 5, out = [];
         for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push([v, v.toFixed(step < 1 ? 2 : 1)]); return out; };
     const lg = v => v.map(z => Math.log10(Math.max(z, 1e-9)));
-    function periodControl(presets) {
+    function periodControl(presets, ys) {
+        const opts = ys ? ys.map(y => `<option value="${y}">${y}</option>`).join('') : yopts;
         return `<div><span class="ctl-label" id="l-period">Period</span>
             <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${presets.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
-            <div class="years"><label for="c-from">From</label><select id="c-from">${yopts}</select><label for="c-to">to</label><select id="c-to">${yopts}</select></div></div>`;
+            <div class="years"><label for="c-from">From</label><select id="c-from">${opts}</select><label for="c-to">to</label><select id="c-to">${opts}</select></div></div>`;
     }
     function bindPeriod(presets, get, set) {
         document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
@@ -481,8 +483,87 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ experiment 3
+    function factors(X, n, mount) {
+        const REF = X.reference, res0 = X.result, F = D.factors, KEYS = D.factor_keys, NAME = D.factor_names;
+        const F0 = F.months[0], F1 = F.months[F.months.length - 1], ORDER = ['hml', 'rmw', 'cma', 'smb', 'mktrf'];
+        const fyears = []; for (let y = +F0.slice(0, 4); y <= +F1.slice(0, 4); y++) fyears.push(y);
+        const refState = () => ({ start: REF.start, end: REF.end, focus: 'hml' });
+        let S = refState(), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end;
+        const PRESETS = [['The paper · 1963–2013', REF.start, REF.end], ['After the paper · 2014–now', '201401', F1],
+            ['1963–1990', '196307', '199012'], ['2000–2010', '200001', '201012'], ['Everything', F0, F1]];
+        mount.innerHTML = head(X, n) + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, fyears)}
+                <div class="row2">
+                    ${seg('focus', 'Factor to follow', ORDER.map(k => `<button type="button" data-v="${k}">${esc(NAME[k])}</button>`).join(''))}
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's period</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i><span id="k-focus"></span></span><span class="b"><i></i>The other four factors</span></div>
+            <p class="chart-title"><strong>What $1 in each factor became</strong>, compounding each month's return (log scale)</p>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in each of the five factors. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Measured on this period</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col" class="tol">Behind the screener's</th><th scope="col">Average month</th><th scope="col" class="tol">Volatility</th><th scope="col">t-statistic</th><th scope="col" class="tol">$1 became</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+        </section>` + tail(X, `
+            <div class="eq">a factor's return in month <i>t</i> &nbsp;=&nbsp; return of the stocks with more of a trait − return of the stocks with less<small>For value: high book-to-market minus low, averaged over small and big companies. The library builds these; this page reads them.</small></div>
+            <div class="eq">t-statistic &nbsp;=&nbsp; average month ÷ ( volatility ÷ √months )<small>How many standard errors the average sits from zero.</small></div>
+            <div class="eq">value<sub>t</sub> &nbsp;=&nbsp; a + b·market<sub>t</sub> + s·size<sub>t</sub> + r·profitability<sub>t</sub> + c·investment<sub>t</sub> + e<sub>t</sub><small>The intercept a is what the other four leave unexplained. Near zero means the factor adds nothing they do not already carry.</small></div>`);
+        document.getElementById('x-code').textContent = E.factorRun.toString() + '\n\n' + E.ols.toString();
+
+        const now = E.factorRun(F, KEYS, { start: REF.start, end: REF.end });
+        const drift = KEYS.filter(k => Math.abs(now.stats[k].mean - res0.stats[k].mean) > 1e-9 || Math.abs(now.stats[k].t - res0.stats[k].t) > 1e-9).length +
+            (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0);
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+
+        function render() {
+            const r = last = E.factorRun(F, KEYS, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            press('focus', v => v === S.focus);
+            document.getElementById('c-reset').hidden = atRef();
+            document.getElementById('k-focus').textContent = NAME[S.focus] + ' (' + D.factor_long[S.focus] + ')';
+            const s = r.stats[S.focus];
+            if (!s) {
+                read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const sp = r.spanned[S.focus];
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, the ${esc(NAME[S.focus].toLowerCase())} factor averaged <strong>${sf2(s.mean)}%</strong> a month, a t-statistic of <strong>${f2(s.t)}</strong>. Above about 2 is the usual bar for an average that can be told from zero.` +
+                (sp ? ` The other four factors left <strong>${sf2(sp.intercept)}%</strong> a month of it unexplained.` : '');
+            body.innerHTML = ORDER.map(k => { const q = r.stats[k], cat = D.factor_category[k];
+                return `<tr${k === S.focus ? ' class="focus"' : ''}><td>${esc(NAME[k])} <span class="where">${esc(D.factor_long[k])}</span></td><td class="tol">${cat ? esc(cat) : '–'}</td><td>${sf2(q.mean)}%</td><td class="tol">${f2(q.std)}%</td><td>${f2(q.t)}</td><td class="tol">${dollars(q.growth)}</td></tr>`; }).join('');
+            document.getElementById('x-live-note').textContent = (r.months.length < 300
+                ? 'This is a short period for a factor. One that truly averages 0.3% a month, with volatility like these, needs about thirty years to reach a t-statistic of 2 - so falling short over a shorter stretch is weak evidence either way. '
+                : '') + (atRef() ? 'This is the paper\'s own sample; the comparison with its figures is in the next section.' : 'This period is yours, so there is no published figure to compare it with.');
+            const series = KEYS.filter(k => k !== S.focus).map(k => ({ cls: 'plain', v: lg(E.growth(r.series[k])) }));
+            series.push({ cls: 'managed', v: lg(E.growth(r.series[S.focus])) });
+            draw(document.getElementById('ch-growth'), r.months, series, { height: 300, ticks: logTicks, refs: [0] });
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-focus').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ focus: b.dataset.v }); });
+        document.getElementById('c-reset').addEventListener('click', () => { S = Object.assign(refState(), { focus: S.focus }); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors };
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
     function show() {

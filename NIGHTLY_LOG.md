@@ -9703,3 +9703,58 @@ plan's next item rather than waiting for Friday.
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (late night, owner-run) - Factor Lab experiment 3: Fama & French's five factors; what three reruns say for the screener
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,180 passed / 0 failed; after 2,182 passed / 0 failed.
+**Owner queue:** the same instruction as the entry above ("keep improving ... be creative").
+
+### Did
+- **Experiment 3:** the five factors, from the library's own 2x3 file over the paper's sample
+  (July 1963 to December 2013, 606 months). **20 of 21 figures within tolerances written before
+  the comparison was run.** All five averages, all five t-statistics, the value-investment
+  correlation (0.70 against 0.70) and the redundancy regression (value's unexplained part -0.01%
+  a month against the paper's -0.04%) are within. Outside: profitability's monthly volatility,
+  2.25% against 2.14%.
+- **The page:** follow one factor in the accent colour against the other four; a table of each
+  factor's average month, volatility, t-statistic and growth, with the screener category it
+  stands behind; and, live for any period, how much of the followed factor the other four leave
+  unexplained. A short period carries a note on how little it can show.
+- **`research/2026-10-12-factor-lab-findings.md`:** what the three experiments say and do not
+  say for the screener. Two things a methodology session should have in front of it: every result
+  weakened after its paper's sample (value -0.06% a month since 2014, t = -0.19; size -0.19%),
+  and value and investment are largely the same bet. Both are framed as research questions with
+  the short-sample arithmetic beside them, not as findings to act on.
+
+### Evidence / research
+- Reference figures from the published article (an open copy), Tables 4 and 6, page numbers in
+  `factor_lab.py`.
+- The expected t-statistic of a true 0.3%-a-month factor over 152 months is about 1.3, so the
+  post-2013 figures are weak evidence. Written on the page and in the note.
+
+### Methodology changed
+- None.
+
+### Tried and rejected
+- **Five coloured lines.** The design system allows one accent; the page follows one factor at
+  a time and leaves the other four in grey.
+- **Stating that the factors "stopped working".** The data cannot support it at this length.
+
+### Noticed, not fixed
+- The methodology page quotes long-run premia without saying what they have done since 2014.
+  That sentence belongs in the generator with a registered claim (research note, item 2).
+- The reference list in the research note's item 1 is from memory and is marked as such.
+
+### Next
+- Friday: experiment 4, a size premium among large stocks. A Monday: the note on what the value
+  and size premia are now worth. Tomorrow's 02:00 log first.
+
+### Gates
+1. **2,182 passed / 0 failed** (baseline 2,180 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. `index.html` non-trivial; payload and lab files pass `node --check`.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
