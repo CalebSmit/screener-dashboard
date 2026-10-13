@@ -75,8 +75,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # one never runs it against this week's copy of the page. 2 = the second experiment;
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
-# experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh.
-ASSET_VERSION = 9
+# experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
+# results inside and after their papers' samples.
+ASSET_VERSION = 10
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1198,6 +1199,69 @@ CATEGORY_MAP = [
 ]
 
 
+def next_month(m: str) -> str:
+    y, mo = int(m[:4]), int(m[4:])
+    return f"{y + (mo == 12)}{(mo % 12) + 1:02d}"
+
+
+def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict) -> list[dict]:
+    """Each experiment's headline result in its paper's sample and in the months since, side by
+    side - the lab's one table about what happens to a published result after publication
+    (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
+
+    `sign` is the direction the paper claims (+1, -1, or 0 where its claim is "no difference");
+    `weaker` says whether the later figure is smaller in that direction. Nothing here is a test
+    of significance: the later periods are short, and each row carries its months."""
+    exps = {x["id"]: x for x in EXPERIMENTS}
+    end = "209912"
+    rows = []
+
+    def add(exp_id, label, unit, sign, inside, after):
+        weaker = None if sign == 0 or after["value"] is None else sign * after["value"] < sign * inside["value"]
+        rows.append({"experiment": exp_id, "label": label, "unit": unit, "sign": sign,
+                     "inside": inside, "after": after, "weaker": weaker})
+
+    def cell(value, months, t=None):
+        return {"value": value, "t": t, "months": months}
+
+    ref = exps["risk-managed-momentum"]["reference"]
+    a, b = run(mom, ref["start"], ref["end"]), run(mom, next_month(ref["end"]), end)
+    for leg, name in (("plain", "Plain momentum"), ("managed", "Risk-managed momentum")):
+        add("risk-managed-momentum", f"{name}: Sharpe ratio", "ratio", 1,
+            cell(a[leg + "_stats"]["sharpe"], len(a["months"])), cell(b[leg + "_stats"]["sharpe"], len(b["months"])))
+
+    ref = exps["momentum-crashes"]["reference"]
+    a = crash_run(mom, market, ref["start"], ref["end"])
+    b = crash_run(mom, market, next_month(ref["end"]), end)
+    add("momentum-crashes", "Momentum's average month in the panic state", "pct", -1,
+        cell(a["cells"][3]["mean"], a["cells"][3]["n"]), cell(b["cells"][3]["mean"], b["cells"][3]["n"]))
+
+    ref = exps["five-factors"]["reference"]
+    a, b = factor_run(factors, ref["start"], ref["end"]), factor_run(factors, next_month(ref["end"]), end)
+    for k in ("hml", "rmw", "cma", "smb"):
+        add("five-factors", f"{FACTOR_NAMES[k]} factor: average month", "pct", 1,
+            cell(a["stats"][k]["mean"], len(a["months"]), a["stats"][k]["t"]),
+            cell(b["stats"][k]["mean"], len(b["months"]), b["stats"][k]["t"]))
+
+    ref = exps["size-effect"]["reference"]
+    a = size_run(size, ref["start"], ref["end"], ref["weighting"])
+    b = size_run(size, next_month(ref["end"]), end, ref["weighting"])
+    add("size-effect", "Smallest size group minus largest, a month", "pct", 1,
+        cell(a["small_big"]["mean"], len(a["months"]), a["small_big"]["t"]),
+        cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
+
+    for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0)):
+        x = exps[exp_id]
+        ref = x["reference"]
+        data = sorts[x["sort"]["data"]]
+        a = sort_run(data, ref["start"], ref["end"], ref["weighting"])
+        b = sort_run(data, next_month(ref["end"]), end, ref["weighting"])
+        add(exp_id, x["sort"]["spread"] + ", a month", "pct", sign,
+            cell(a["spread"]["mean"], len(a["months"]), a["spread"]["t"]),
+            cell(b["spread"]["mean"], len(b["months"]), b["spread"]["t"]))
+    return rows
+
+
 def compare(reference: dict, measured: dict, tolerances: dict = TOLERANCES) -> list[dict]:
     """One row per reported figure: the paper's, ours, the difference and whether it is
     inside the tolerance."""
@@ -1317,6 +1381,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},

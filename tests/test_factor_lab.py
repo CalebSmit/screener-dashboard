@@ -613,6 +613,31 @@ def test_each_takeaway_is_what_the_data_shows(published):
         assert 1.8 < r["groups"][9]["std"] / r["groups"][0]["std"] < 2.5
 
 
+def test_the_table_of_results_after_their_papers_is_computed(published):
+    """One row per headline result: its value in the paper's sample and in the months since.
+    Rebuilt here from the published series; the page's sentence counts the rows itself."""
+    built = published["after_the_paper"]
+    again = fl.after_the_paper(published["momentum"], published["market"], published["factors"],
+                               published["size"], published["sorts"])
+    assert [r["label"] for r in again] == [r["label"] for r in built] and len(built) >= 10
+    assert {r["experiment"] for r in built} == {x["id"] for x in fl.EXPERIMENTS}
+    for a, b in zip(again, built):
+        for side in ("inside", "after"):
+            assert a[side]["months"] == b[side]["months"] > 0
+            assert a[side]["value"] == pytest.approx(b[side]["value"])
+        assert a["weaker"] == b["weaker"]
+        if b["sign"] == 0:
+            assert b["weaker"] is None
+        else:
+            assert b["weaker"] == (b["sign"] * b["after"]["value"] < b["sign"] * b["inside"]["value"])
+    # the periods do not overlap: "since" starts the month after the paper's sample ends
+    assert fl.next_month("201112") == "201201" and fl.next_month("201303") == "201304"
+    rm = next(r for r in built if r["label"].startswith("Risk-managed"))
+    assert rm["inside"]["months"] == 1016 and rm["weaker"] is True
+    html = PAGE.read_text(encoding="utf-8")
+    assert "D.after_the_paper.filter(r => r.weaker !== null)" in html and "were weaker" in html
+
+
 def test_the_category_map_covers_the_screeners_eight_and_nothing_else():
     import yaml
     cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
@@ -645,6 +670,8 @@ def test_the_front_page_lists_every_experiment_and_opens_them():
                 page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
                 assert page.evaluate("document.querySelectorAll('.card').length") == len(fl.EXPERIMENTS)
                 assert page.evaluate("document.querySelectorAll('#t-map tbody tr').length") == 8
+                assert page.evaluate("document.querySelectorAll('#t-after tbody tr').length") >= 10
+                assert "were weaker" in page.inner_text("#o-after + p")
                 total = sum(len(x["reference"].get("figures", [])) or 14 for x in fl.EXPERIMENTS)
                 assert f"of {total} figures" in page.inner_text("#lab")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")

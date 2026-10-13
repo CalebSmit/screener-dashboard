@@ -52,6 +52,13 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the end of the night) - the front page compares every headline
+    result inside its paper's sample with the years since** (9 of the 10 that claim a direction
+    were weaker afterwards), and **two methodology sentences were corrected to what the lab
+    measured** (Risk: extra risk has not been paid for, rather than "one of the most robust
+    findings in finance"; Size: the measured ninth-minus-tenth difference beside the caveat).
+    Also new and not about the lab: `scripts/rehearse_publish.py` - see CLAUDE.md "Ship gates" -
+    after a rehearsal showed tonight's page would have made the 06:00 baseline red.
   - **2026-10-12 (owner-run, the last of the night) - experiment 7 shipped: does market risk
     pay?** Fama & French (1992) on the library's beta deciles: **7 of 11 within**, and the paper's
     point - returns flat from the lowest-beta group to the highest - reproduces, in its sample

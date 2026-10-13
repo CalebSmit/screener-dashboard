@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 37 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 39 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -103,7 +103,7 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. Still open: the cash-flow-yield sort (`_CF-P`), which is nearer the screener's heaviest valuation measure, and the book-to-market panel of the same table. |
 | 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` (confirmed present) | A partial stand-in for the accounting-quality studies that cannot be rerun. |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French HML and momentum factors | The correlation the 2026-10-12 changelog entry leans on for sending freed weight to Valuation. Verify it. |
-| 8 | Post-publication decay across all of the above (McLean & Pontiff 2016) | All | The experiments' own series | One table: each result in its paper's sample and after it. |
+| 8 | Results in their papers' samples and since (the question McLean & Pontiff 2016 study) | All | The experiments' own series | **Shipped 2026-10-12** as a table on the front page (`factor_lab.after_the_paper`): eleven headline results, each with its months. 9 of the 10 that claim a direction were weaker after their sample. A new experiment adds its row there. Still open: reproducing McLean & Pontiff's own figures, which needs their list of anomalies. |
 | - | **Cannot be rerun on free data:** Piotroski (2000), Beneish (1999), analyst revisions (Chan, Jegadeesh & Lakonishok 1996), post-earnings drift | Quality, Revisions, Growth | Needs stock-level fundamentals and estimates history | Give each a card saying exactly that and what data it would take. Check first whether the French library's accruals and net-issuance portfolios can stand in for Sloan (1996). |
 
 ## Dig deeper: replication as an audit of the screener's own citations
