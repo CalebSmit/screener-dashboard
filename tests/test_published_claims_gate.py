@@ -120,11 +120,23 @@ def test_list_prints_every_module(capsys):
 # ---------------------------------------------------------------------------
 # Membership tripwire. The 2026-09-28 regression was specifically a false claim
 # in SCREENER_OVERVIEW.md, so a test asserting on that file must be in the gate.
+#
+# Widened 2026-10-13. The detector looked only for the committed file's name,
+# but rule 10's own lesson is that the *better* way to assert on the methodology
+# page is to call the generator - a test reading the committed artifact passes on
+# a hand-edit and says nothing about what the next run publishes. So the better
+# way was exactly the way this tripwire could not see, and
+# tests/test_growth_category.py had been asserting on generated page text since
+# 2026-10-12 without the publish gate running it. Both routes now count.
 # ---------------------------------------------------------------------------
 
-# This module names the file in its own docstring; it is about the gate, not a
-# claim in the document. The only exemption, and it is stated rather than quiet.
+# These modules name the file or the generator in their own docstrings or
+# machinery; they are about the gate and the artifact, not a claim in the
+# document. Stated rather than quiet.
 _TRIPWIRE_EXEMPT = {"tests/test_published_claims_gate.py"}
+
+# Either route to the published methodology page's text.
+_OVERVIEW_ROUTES = ("SCREENER_OVERVIEW.md", "build_screener_overview")
 
 
 def test_every_test_asserting_on_the_overview_is_in_the_gate():
@@ -134,12 +146,20 @@ def test_every_test_asserting_on_the_overview_is_in_the_gate():
         rel = f"tests/{path.name}"
         if rel in listed or rel in _TRIPWIRE_EXEMPT:
             continue
-        if "SCREENER_OVERVIEW.md" in path.read_text(encoding="utf-8", errors="replace"):
+        body = path.read_text(encoding="utf-8", errors="replace")
+        if any(route in body for route in _OVERVIEW_ROUTES):
             offenders.append(rel)
     assert offenders == [], (
         "these modules assert on the published methodology page but the data loop "
         "does not run them before publishing it: " + ", ".join(offenders)
     )
+
+
+def test_the_tripwire_catches_a_test_that_reads_the_page_through_the_generator():
+    """The hole found on 2026-10-13: asserting on generated page text is the right way to do it
+    (rule 10) and was the way the detector missed. Pinned so it cannot narrow again."""
+    assert "build_screener_overview" in _OVERVIEW_ROUTES
+    assert "SCREENER_OVERVIEW.md" in _OVERVIEW_ROUTES
 
 
 def test_the_gate_speaks_for_artifacts_the_data_loop_actually_publishes():

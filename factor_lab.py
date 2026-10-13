@@ -1483,10 +1483,13 @@ SCORECARD_OPEN = {
                   "sectors, have still not been rerun here."),
     "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
                 "profitability among large companies. Neither can be rerun on public data."),
-    "growth": ("The research was read on 2026-10-12: index providers treat growth as a style, not a "
-               "rewarded factor, and the studies of sales growth and growth forecasts run flat to "
-               "negative. In the screener the category works as a counterweight to Valuation. A "
-               "3-point reduction is proposed and awaiting a second review."),
+    "growth": ("Researched 2026-10-12 and the weight reviewed 2026-10-13: index providers treat "
+               "growth as a style, not a rewarded factor, and the studies of sales growth and "
+               "growth forecasts run flat to negative. The 3-point reduction that followed was "
+               "refused - this is the one category whose score runs against the others, so its "
+               "weight is what keeps the ranking from leaning either way on growth, and the "
+               "evidence does not settle which way it should. The open question is now what the "
+               "category is made of, not what it is worth."),
     "momentum": ("Reviewed 2026-10-12: every published study finds momentum among large companies, "
                  "and none has data past 2014. Outside the panic state the crash rule watches for, it "
                  "has averaged about 0.3% a month since 2000. The lab and the literature disagree, so "

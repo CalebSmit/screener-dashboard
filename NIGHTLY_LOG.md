@@ -10456,3 +10456,156 @@ clean after the commit. No generator was touched in this commit; the full publis
 passed on the commit before it.
 
 **Machine state, rule 11:** nothing changed; the three tasks were read back earlier tonight.
+
+
+## 2026-10-13 (06:00) - the Growth proposal: reviewed, refused, and the weight stated as deliberate
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-12_060001.log`
+ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-13_020001.log`
+ends "Data loop complete", HEALTH: PASS, claims gate 371 passed. Evidence base at `1m`:
+**28 rows, newest 2026-09-11 (32 days ago, bound 40), 4 effective** - inside the bound, and the
+engine's own line in the data log agrees ("4 effective (28 rows) at the 1m horizon"). Priority 0:
+unchanged, `allow_auto_apply` false, 4 of 8 effective observations. Top open roadmap item:
+**0.13, the Factor Lab** (opened 2026-10-12, **age 1 day**).
+**Tests:** before **2227 passed / 0 failed**, after **2235 passed / 0 failed**.
+**Owner queue / rotation:** took the owner item - `OWNER_FOCUS.md`'s Factor Lab item and
+`prompts/nightly.md` section 3 both say the waiting Growth proposal outranks the day's focus.
+**Tuesday's product focus was therefore deferred**, deliberately and with the owner item named;
+nothing in the dashboard was found broken on the way through.
+
+### Did
+
+**Reviewed the proposal in section 7 of `research/2026-10-12-growth-category.md` (Growth 13% ->
+10%, Quality 22% -> 25%) and refused it.** The decision and its reasoning are section 10 of that
+note; the status line is rewritten, so the morning brief's "Waiting for a decision" list is now
+empty (`write_brief.open_proposals()` returns `[]`).
+
+**What the review added.** Section 7 measured one point - the composite's Spearman with the Growth
+score is -0.01 at weight 13 and -0.06 at weight 10 - and argued from the evidence that growth as
+the category measures it earns nothing of its own. One point cannot separate the two readings of
+that evidence, because they predict different *curves*:
+
+- *"Weight belongs where evidence is"* - move the 3 points; the curve is irrelevant.
+- *"A trait that earns nothing should be neither rewarded nor penalised"* - the right weight is
+  whichever leaves the ranking neutral, and moving off it is a disimprovement.
+
+`research/measurements/2026-10-13-growth-weight-sweep.py`, on the published run of 2026-10-13
+02:00 (501 stocks; the approximation reproduces the published ranking at Spearman 1.0000, 25 of
+the top 25). Growth swept 0-26:
+
+| Growth weight | 0 | 5 | 10 | **13** | 16 | 20 | 26 |
+|---|---|---|---|---|---|---|---|
+| composite's Spearman with the Growth score | -0.199 | -0.136 | **-0.060** | **-0.009** | +0.048 | +0.130 | +0.258 |
+
+- Exposure is **not flat**: monotonic across the sweep, slope **+0.0181 of correlation per point**.
+- **Zero exposure is at weight 13.5** (13.3 pro rata). The configured weight is 13.
+- |exposure| <= 0.05 only over **weights 11-16**. The proposed 10 is just outside it.
+- **Growth is the only category that runs against the composite's grain**: -0.388 against the mean
+  of the other seven, where every other category is between -0.055 and +0.158. Nothing else does
+  this job, so Growth's weight *is* the growth-exposure dial.
+
+**Why that refuses it.** The proposal's own premise is that growth as measured earns nothing. If
+that is right, the supported *exposure* is zero - and zero is what 13 points delivers. Weight on a
+category and exposure to the trait it measures are not the same thing when the category is the
+hedge. **Cutting an unrewarded-but-offsetting category does not remove a position on growth; it
+takes one**, at -0.06, in a direction the evidence does not establish: Da & Warachka (2011) and
+Bordalo et al. (2019) are flat after the controls the screener already applies, Lakonishok,
+Shleifer & Vishny (1994) is negative but on five-year market-wide growth in 1968-1990,
+equal-weighted, and MSCI FaCS's modern estimate (1995-2016) is slightly positive. Section 7's own
+case-against #4 says the sign is unsettled; it did not carry that through to the conclusion.
+
+**What survives of the proposal, and where it went.** The metric-by-metric critique in sections 2
+and 4 is sound and is *not* answered by refusing: `forward_eps_growth` (5.85 points) has no effect
+of its own beyond momentum and revisions, which carry 23 points; `revenue_growth` is +0.51 with
+`asset_growth`, which Investment scores the other way; `sustainable_growth` is 0.79 with ROIC.
+But every one of those is about the category's **composition**, not its weight - and a 3-point trim
+shrinks all four metrics including the only one pointing the way the evidence does, while leaving
+the duplication untouched. **The open Growth question is now composition** (note section 11, and
+`plan/factor-lab.md` question 1), which is a Monday.
+
+**Shipped instead of a weight change:** the methodology page's Growth section gains **"Why the
+weight stays at 13%"** (the generator, `build_screener_overview`) - that Growth is the only
+category running against the others, that its weight is therefore the growth-exposure dial, that
+at 13% the ranking leans neither way, that reducing it would take a position rather than remove
+one, and that the evidence does not settle the sign. `tests/test_growth_category.py` gains six
+tests, the important one being **the assertion rather than the plumbing**: the published ranking
+must stay within 0.05 of growth-neutral, so if a run ever stops being neutral the sentence fails
+rather than quietly going false. Another fails if the weight moves without the paragraph being
+rewritten. **Looked at it in place** at 1440 and 375px on the page `rehearse_publish.py`
+regenerates (`scripts/shot_methodology.py`, new - the gates read the *committed* index.html, so a
+generator change to the methodology text could not be looked at before): the paragraph renders
+under "What the research says", the two file paths render as inline code, and on the phone the
+block is 307px wide with no overflow. That also discharges the previous session's handoff item to
+read the new Valuation/Growth/Momentum paragraphs in place.
+
+**A gate hole found while wiring that up, and closed.** The publish gate's membership tripwire
+(`tests/test_published_claims_gate.py::test_every_test_asserting_on_the_overview_is_in_the_gate`)
+looked only for the literal `SCREENER_OVERVIEW.md` in a test file. But rule 10's own lesson is that
+asserting against the **generator** is the better way - a test reading the committed artifact
+passes on a hand-edit and says nothing about what the next run publishes. So the better way was
+precisely the way the tripwire could not see. Measured: besides the module added today, **three
+more modules were holding claims about the public methodology page that the loop which publishes
+it never ran** - `test_large_company_evidence.py`, `test_momentum_panic_rule.py` and
+`test_factor_lab.py`. The detector now counts both routes, all four modules are in the gate (83
+tests, 12.9s measured; the gate goes 371 -> 454 tests and stays under 25s), and a test pins the
+widened detector so it cannot narrow again.
+
+### Evidence / research
+- No new literature was read; the review re-read section 2's four strands **for sign rather than
+  size**, which is where the refusal comes from. Da & Warachka (2011, *JFE* 100(2)): one-year
+  forecast growth 0.0003 (t 1.46), -0.0009 (t -0.81) with revisions and surprise, 1983-2006.
+  Bordalo, Gennaioli, La Porta & Shleifer (2019, *JF* 74(6)): monthly alpha 0.03% (s.e. 0.18) after
+  value, momentum, BAB, profitability and investment, 1981-2015. Lakonishok, Shleifer & Vishny
+  (1994, *JF* 49(5)): among large stocks at fixed cash-flow-to-price, high-growth third 2.9-5.8
+  pts/yr below low-growth, but on **five-year** market-wide growth, 1968-1990, equal-weighted.
+  MSCI FaCS Methodology (January 2018, Exhibit 2): pure Growth 0.89%/yr, IR 0.80, 1995-2016.
+- The new measurement is structure only - category scores and weights off the published payload.
+  **No return, no IC series, no backtest number** is read anywhere in it (rules 4 and 5).
+
+### Methodology changed
+- **None.** No weight, metric or threshold moved, so there is no `METHODOLOGY_CHANGELOG.md` entry -
+  which also keeps `test_no_weight_moved_with_the_note` armed, since that guard skips itself only
+  once a changelog entry cites the note. The refusal is **not a lock**: a later session may still
+  move the weight, it just has to write the entry.
+
+### Tried and rejected
+- **Building the proposal.** Rejected on its own premise, as above - the measured curve says 13 is
+  the neutral point and the cut would take a position the evidence cannot direct.
+- **Neutralising growth with an exposure constraint instead of a score weight**, which is what
+  MSCI's Diversified Multiple-Factor indexes do (methodology May 2022, p. 3) and which would free
+  the 13 points. Rejected for now, and recorded in note section 11: bolting an optimiser constraint
+  onto an eight-category weighted average of percentiles would cost this tool the thing it is best
+  at - a reader can add the eight numbers up by hand. CLAUDE.md's trade applies.
+- **Printing the measured correlation (-0.01) on the methodology page.** `build_screener_overview`
+  takes only the config and cannot see the run, so a figure there would be a hand-written number
+  that drifts every morning with nothing recomputing it - the 2026-09-28 failure mode. The page
+  says "close to neutral", the exact figures live in the dated note, and the test holds the band.
+
+### Next
+- **The open Growth question is composition** (note section 11): the sign of `revenue_growth`
+  against `asset_growth` - two categories arguing about one fact in opposite directions - and
+  whether growth in profitability (Asness, Frazzini & Pedersen 2019, 0.17%/month, t 2.46) belongs
+  in Quality. That is a Monday research note, and it is the top of the lab's question queue now
+  that question 1 is decided.
+- Friday 2026-10-16 is a **retrospective**, so the lab's next experiment (profitability,
+  Novy-Marx 2013) is 2026-10-23.
+- Tuesday's product focus was deferred for the owner item and is unworked.
+
+### Gates
+1. **2235 passed / 0 failed** (baseline 2227 / 0, +8 net). One pre-existing test failed on the
+first full run and was **generalised, not weakened**:
+`test_morning_brief.py::TestOpenProposals::test_the_growth_proposal_is_open_until_a_changelog_entry_takes_it_up`
+assumed a proposal could only end by being *built*, so a refusal - which changes no weight and
+therefore correctly writes no changelog entry - read as "still open". It now checks the real
+invariant in both directions (the brief's list equals the notes whose status line says OPEN, and
+a note the changelog has taken up may not still read OPEN), plus a second test pinning this
+proposal as decided. 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. `index.html` non-trivial, `dashboard_data.js` parses (`node --check`);
+`python scripts/rehearse_publish.py` **PASSED** (the diff touches the generator) - page tests 300
+passed, claims gate 454 passed, published files restored byte for byte, **payload unchanged**, as
+an explanation-only change should be. 4. `git status --porcelain` clean after the commits.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched, and nothing in
+this session needed one. `.git/worktrees/tree` is still the stale registration the previous
+session recorded as un-removable under OneDrive; `git worktree list` still shows only the main
+checkout.

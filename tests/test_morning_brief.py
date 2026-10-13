@@ -176,15 +176,40 @@ class TestOpenProposals:
         (tmp_path / "2026-10-12-broken.md").write_bytes(b"\xff\xfe**Proposal status: OPEN** - x\n")
         assert isinstance(wb.open_proposals(tmp_path), list)
 
-    def test_the_growth_proposal_is_open_until_a_changelog_entry_takes_it_up(self):
-        """Tied to the same condition as tests/test_growth_category.py: once the changelog cites
-        the note, the status line must have been rewritten too."""
+    def test_the_brief_and_every_real_note_agree_on_what_is_still_open(self):
+        """The brief's list must equal the notes whose status line still says OPEN - in either
+        direction. Written 2026-10-12 as "the Growth proposal is open until a changelog entry
+        takes it up", which assumed a proposal could only end by being *built*. It can also be
+        **refused**, and a refusal changes no weight, metric or threshold, so by this project's
+        convention it correctly writes no changelog entry - which is how the Growth proposal
+        ended on 2026-10-13. That is a third outcome the old form could not express, so this now
+        checks the actual rule and keeps the teeth it had: a decided note must leave the brief,
+        and a note the changelog has taken up may not still read OPEN."""
+        notes = sorted((ROOT / "research").glob("20*.md"))
+        assert notes, "no dated research notes found"
+        listed = wb.open_proposals()
+        still_open = [
+            f"research/{n.name}" for n in notes
+            if "**Proposal status: OPEN**" in n.read_text(encoding="utf-8", errors="replace")
+        ]
+        assert sorted(p.split("`")[-2] for p in listed) == sorted(still_open), (
+            f"the brief lists {listed} but the notes saying OPEN are {still_open}"
+        )
+
         changelog = (ROOT / "METHODOLOGY_CHANGELOG.md").read_text(encoding="utf-8")
-        listed = [p for p in wb.open_proposals() if "2026-10-12-growth-category.md" in p]
-        if "research/2026-10-12-growth-category.md" in changelog:
-            assert listed == [], "the proposal was taken up in the changelog; rewrite its status line"
-        else:
-            assert len(listed) == 1 and "Growth 13% -> 10%" in listed[0]
+        for path in still_open:
+            assert path not in changelog, (
+                f"{path} was taken up in the changelog but its status line still says OPEN"
+            )
+
+    def test_the_growth_proposal_was_decided_and_says_how(self):
+        """The specific one this machinery was built for. It was refused on 2026-10-13
+        (research/2026-10-12-growth-category.md section 10) and must not drift back to OPEN
+        without a session deliberately reopening it."""
+        note = (ROOT / "research" / "2026-10-12-growth-category.md").read_text(encoding="utf-8")
+        assert "**Proposal status: DECIDED 2026-10-13** - refused" in note
+        assert "**Proposal status: OPEN**" not in note
+        assert [p for p in wb.open_proposals() if "2026-10-12-growth-category.md" in p] == []
 
     def test_the_brief_has_a_section_for_them(self):
         src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
