@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the same night) - experiment 3 shipped:** Fama & French (2015), the
+    five factors behind the Valuation, Quality, Investment and Size categories. **20 of 21
+    figures within tolerances written beforehand.** After the paper's sample (2014 on) none of
+    the four factors is distinguishable from zero, and value is almost fully explained by the
+    other four in both periods. `research/2026-10-12-factor-lab-findings.md` sets out what the
+    three experiments mean for the screener and what they do not - it is the "dig deeper"
+    starting point, and it asks for a Monday research note on what the value and size premia
+    are now worth. **Next: experiment 4, a size premium among large stocks**, then 2b.
   - **2026-10-12 (owner-run, later that night) - experiment 2 shipped**, after the owner's "keep
     improving, whatever you think would benefit these tools, be creative and start making this
     great!": Daniel & Moskowitz (2016), "Momentum crashes" - the study the momentum regime rule

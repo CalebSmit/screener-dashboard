@@ -743,7 +743,11 @@ and `plan/factor-lab.md` the ordered queue and the rules. Experiment 1 (Barroso 
 shipped the same day: 13 of 14 figures within tolerance, one marked outside. Experiment 2 (Daniel &
 Moskowitz 2016, the study behind the momentum regime rule) followed that night: 9 of 15 within
 tolerances written beforehand, the misses all traceable to the paper building its own portfolios.
-**Friday is the lab's day**, one finished experiment a session; next is the Fama-French five factors. The standing rules: the
+Experiment 3 (Fama & French 2015, the five factors) made it three: 20 of 21 within. **Read
+`research/2026-10-12-factor-lab-findings.md`** - the three results weakened after their samples ended
+and value and investment are largely one bet; neither is a reason to move a weight yet, and both are
+research questions for a Monday. **Friday is the lab's day**, one finished experiment a session; next
+is a size premium among large stocks. The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.
 

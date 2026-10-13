@@ -1,0 +1,84 @@
+# What the Factor Lab's first three reruns say about the screener - 2026-10-12 (owner-run)
+
+**Status:** observations, not changes. Nothing here moved a weight or a threshold, and nothing
+here is sufficient to. It is written down so the sessions that own the methodology start from
+what was measured instead of rediscovering it.
+
+**What these numbers are:** monthly returns of the long-short factor portfolios in the Kenneth R.
+French Data Library - the papers' own kind of data, no trading costs. They are **not** a backtest
+of the screener (CLAUDE.md rule 5 is about `backtest.py`, and stays in force) and they are not
+this system's information-coefficient series (rule 4). They are replications of published
+results, with a look at what happened after each paper's sample ended. Reproduce any of them with
+`python factor_lab.py --report`, or on `lab.html`.
+
+## 1. The three papers reproduce
+
+| Experiment | Within tolerance | What missed, and why |
+|---|---|---|
+| Barroso & Santa-Clara (2015), risk-managed momentum | 13 of 14 | The risk-managed worst month (-24.16% here, -28.40% in the paper). The paper took its pre-1963 daily returns from another source. |
+| Daniel & Moskowitz (2016), momentum crashes | 9 of 15 | Six figures that describe the level of the momentum portfolio. The paper builds its own deciles; they earn about three points a year more than the library's. Every figure about what follows a market decline is within. |
+| Fama & French (2015), five factors | 20 of 21 | Profitability's monthly volatility (2.25% here, 2.14% in the paper), by 0.01 over the tolerance. |
+
+Tolerances for the second and third were written before their comparisons were run; the
+first's were written after, and its page says so.
+
+## 2. After their samples ended, the results weakened
+
+| | In the paper's sample | After it |
+|---|---|---|
+| Plain momentum, Sharpe ratio | 0.54 (1927-2011) | 0.20 (2012 to 2026-08) |
+| Risk-managed momentum, Sharpe ratio | 1.00 | 0.37 |
+| Value factor, average month (t) | +0.38% (3.36), 1963-2013 | -0.06% (-0.19), 2014 to 2026-08 |
+| Profitability | +0.27% (2.94) | +0.18% (0.93) |
+| Investment | +0.32% (3.99) | -0.08% (-0.42) |
+| Size | +0.28% (2.26) | -0.19% (-0.79) |
+
+**How much to read into this.** Less than the table invites. 152 months is short for a factor:
+one that truly averages 0.3% a month with 2.8% monthly volatility has a standard error of about
+0.23% over that span, so its expected t-statistic is only about 1.3. Seeing -0.2 instead is
+roughly one and a half standard errors low - weak evidence of a smaller premium, not proof of
+none. The literature expects some decay: McLean & Pontiff (2016, *Journal of Finance* 71(1))
+find anomaly returns lower out of sample and lower again after publication.
+
+**What it is worth doing with.** Three things, all research, none of them a weight change today:
+
+1. **Monday's research queue.** "What do practitioners now assume the value and size premia are
+   worth, and how did they update after 2007-2020?" is a note worth writing properly, with the
+   literature on both sides (Arnott et al. on value's drawdown; Fama & French 2021, "The value
+   premium"; AQR's "Is (systematic) value investing dead?"). Verify those references when
+   reading them - they are listed from memory as starting points, not as checked citations.
+2. **The methodology page should say it.** The page cites long-run premia. A sentence that
+   the same factors have earned little since 2014, with the caveat about short samples, is the
+   honest version. Do it in the generator, with a registered claim.
+3. **Size.** The size factor is the weakest in both periods and the methodology already admits
+   there is no published size premium within large stocks. Plan item 4 (size deciles within
+   the largest two) is the experiment that speaks to the Size weight directly.
+
+## 3. Value and investment are largely the same bet
+
+Over the paper's sample the value factor's correlation with the investment factor is 0.70, the
+other four factors explain half of its variation, and what they leave unexplained is -0.01% a
+month (the paper: -0.04%). After 2013 the unexplained part is +0.04%.
+
+The screener carries **both** a Valuation category and an Investment category. That is not
+wrong - Fama and French keep value in their model too, for describing portfolios - but it means
+the two categories are closer to one and a half independent votes than two. The dashboard's
+factor-correlation panel measures the same thing on the screener's own scores each run; a
+session designing the "coherent whole" (CLAUDE.md "Build a coherent screener") should read the
+two side by side before adding anything else that leans on cheapness or low asset growth.
+
+## 4. The momentum rule's state, on the paper's kind of data
+
+Recorded in full in `research/2026-10-09-momentum-regime.md` (addendum, same date). In short: at
+the screener's own thresholds, on all US stocks from 1927 to 2013, the panic state covers 9.1% of
+months and momentum averaged -1.68% a month in it against +1.52% otherwise; and the broader
+market series puts April 2020 and January 2023 in the state where the S&P 500 total-return index
+the screener reads does not.
+
+## Sources
+
+* Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *JFE* 116(1), 111-120. Figures from the April 2012 working paper, Table 3.
+* Daniel, K. & Moskowitz, T. (2016). Momentum crashes. *JFE* 122(2), 221-247. Figures from the authors' draft of 2015-06-16, Tables 1, 2, 3, 5.
+* Fama, E. & French, K. (2015). A five-factor asset pricing model. *JFE* 116(1), 1-22. Tables 4 and 6.
+* McLean, R. D. & Pontiff, J. (2016). Does academic research destroy stock return predictability? *Journal of Finance* 71(1), 5-32.
+* Data: Kenneth R. French Data Library, files dated from the 2026-08 database.

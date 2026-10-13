@@ -50,13 +50,15 @@ FRENCH_FILES = {
     "momentum_daily": ("10_Portfolios_Prior_12_2_Daily_CSV.zip", "Average Value Weighted Returns -- Daily"),
     "factors_monthly": ("F-F_Research_Data_Factors_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
     "factors_daily": ("F-F_Research_Data_Factors_daily_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
+    "five_factors": ("F-F_Research_Data_5_Factors_2x3_CSV.zip", ",Mkt-RF,SMB,HML,RMW,CMA,RF"),
 }
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
 
 # lab.html loads lab_data.js and lab_engine.js as ?v=ASSET_VERSION. Bump it (and the two
 # script tags) whenever either file's shape changes, so a browser holding last week's copy of
-# one never runs it against this week's copy of the page. 2 = the second experiment.
-ASSET_VERSION = 2
+# one never runs it against this week's copy of the page. 2 = the second experiment;
+# 3 = the third.
+ASSET_VERSION = 3
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -291,6 +293,79 @@ def deepest_fall(returns_pct: list[float]) -> float:
     return worst
 
 
+FACTOR_KEYS = ["mktrf", "smb", "hml", "rmw", "cma"]
+FACTOR_NAMES = {"mktrf": "Market", "smb": "Size", "hml": "Value", "rmw": "Profitability",
+                "cma": "Investment"}
+FACTOR_LONG = {"mktrf": "all stocks minus Treasury bills", "smb": "small minus big",
+               "hml": "high book-to-market minus low", "rmw": "robust profitability minus weak",
+               "cma": "conservative investment minus aggressive"}
+FACTOR_CATEGORY = {"mktrf": None, "smb": "Size", "hml": "Valuation", "rmw": "Quality", "cma": "Investment"}
+
+
+def factor_data(raw_dir: Path = RAW_DIR) -> dict:
+    """The five monthly factor series, in percent, from the library's 2x3 file."""
+    name, mark = FRENCH_FILES["five_factors"]
+    dates, rows, vintage = read_table(raw_dir / name, mark)
+    out = {"months": dates, "vintage": vintage}
+    for k, key in enumerate(FACTOR_KEYS):
+        out[key] = [round(r[k], 2) for r in rows]
+    return out
+
+
+def correlation(x: list[float], y: list[float]) -> float:
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sxy = sum((a - mx) * (b - my) for a, b in zip(x, y))
+    return sxy / math.sqrt(sum((a - mx) ** 2 for a in x) * sum((b - my) ** 2 for b in y))
+
+
+def factor_run(factors: dict, start: str, end: str) -> dict:
+    """Each factor's average month, volatility, t-statistic and compounded growth over a
+    period, their correlations, and each factor regressed on the other four - the intercept is
+    what the others leave unexplained, and ``r2`` how much of its variation they account for."""
+    idx = [i for i, m in enumerate(factors["months"]) if start <= m <= end]
+    months = [factors["months"][i] for i in idx]
+    series = {k: [factors[k][i] for i in idx] for k in FACTOR_KEYS}
+    n = len(months)
+    stats_, spanned = {}, {}
+    for k in FACTOR_KEYS:
+        x = series[k]
+        if n < 6:
+            stats_[k] = None
+            continue
+        mean = sum(x) / n
+        sd = math.sqrt(sum((v - mean) ** 2 for v in x) / (n - 1))
+        stats_[k] = {"mean": mean, "std": sd, "t": mean / (sd / math.sqrt(n)) if sd else None,
+                     "growth": growth(x)[-1]}
+    if n >= 12:
+        for k in FACTOR_KEYS:
+            others = [o for o in FACTOR_KEYS if o != k]
+            coef = ols(series[k], [[1.0] * n] + [series[o] for o in others])
+            fitted = [coef[0] + sum(c * series[o][j] for c, o in zip(coef[1:], others)) for j in range(n)]
+            my = sum(series[k]) / n
+            sst = sum((v - my) ** 2 for v in series[k])
+            sse = sum((v - f) ** 2 for v, f in zip(series[k], fitted))
+            spanned[k] = {"intercept": coef[0], "slopes": dict(zip(others, coef[1:])),
+                          "r2": 1 - sse / sst if sst else None}
+    corr = {a: {b: (correlation(series[a], series[b]) if n >= 6 else None) for b in FACTOR_KEYS}
+            for a in FACTOR_KEYS}
+    return {"months": months, "series": series, "stats": stats_, "corr": corr, "spanned": spanned}
+
+
+def factor_figures(factors: dict, start: str, end: str) -> dict:
+    r = factor_run(factors, start, end)
+    out = {"months": len(r["months"])}
+    for k in FACTOR_KEYS:
+        out["mean_" + k], out["std_" + k], out["t_" + k] = (r["stats"][k][s] for s in ("mean", "std", "t"))
+    out["corr_hml_cma"] = r["corr"]["hml"]["cma"]
+    out["hml_intercept"] = r["spanned"]["hml"]["intercept"]
+    out["hml_on_cma"] = r["spanned"]["hml"]["slopes"]["cma"]
+    out["hml_r2"] = r["spanned"]["hml"]["r2"]
+    out["rmw_intercept"] = r["spanned"]["rmw"]["intercept"]
+    out["cma_intercept"] = r["spanned"]["cma"]["intercept"]
+    return out
+
+
 STATE_NAMES = ["Market up, calm", "Market up, volatile", "Market down, calm",
                "Market down and volatile (the panic state)"]
 
@@ -395,6 +470,7 @@ EXPERIMENTS = [
     {
         "id": "risk-managed-momentum",
         "kind": "risk-managed",
+        "topic": "Momentum",
         "title": "Risk-managed momentum",
         "paper": {
             "authors": "Pedro Barroso and Pedro Santa-Clara",
@@ -453,6 +529,7 @@ EXPERIMENTS = [
     {
         "id": "momentum-crashes",
         "kind": "crashes",
+        "topic": "Momentum",
         "title": "Momentum crashes",
         "paper": {
             "authors": "Kent Daniel and Tobias J. Moskowitz",
@@ -542,6 +619,85 @@ EXPERIMENTS = [
             "screener's thresholds were fixed before this page existed and a test pins them; "
             "nothing found by moving the controls here is used to change them."),
     },
+    {
+        "id": "five-factors",
+        "kind": "factors",
+        "topic": "Value, profitability, investment, size",
+        "title": "The five factors",
+        "paper": {
+            "authors": "Eugene F. Fama and Kenneth R. French",
+            "year": 2015,
+            "title": "A five-factor asset pricing model",
+            "journal": "Journal of Financial Economics 116(1), 1-22",
+            "doi": "10.1016/j.jfineco.2014.10.010",
+        },
+        "claim": ("Average stock returns line up with four things besides the market: size, value, "
+                  "profitability and investment. From 1963 to 2013 the four factors built on them "
+                  "averaged 0.29%, 0.37%, 0.25% and 0.33% a month, each more than two standard errors "
+                  "from zero. And once profitability and investment are in the model, the value factor "
+                  "adds nothing: the other four explain all but -0.04% a month of it."),
+        "reference": {
+            "source": ("The published article, Table 4 (page 7), Panels A and C, and Table 6 (page 11), "
+                       "the 2x3 factors. Sample July 1963 to December 2013, 606 months."),
+            "start": "196307", "end": "201312",
+            # Written 2026-10-12 BEFORE the comparison was run. Nothing had been computed on this
+            # file when they were set. The library is the authors' own data, rebuilt since on a
+            # newer database, so most figures were expected to land within; no figure was
+            # expected to miss for a known reason.
+            "figures": [
+                {"key": "mean_mktrf", "label": "Market: average month (%)", "paper": 0.50, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "mean_smb", "label": "Size: average month (%)", "paper": 0.29, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "mean_hml", "label": "Value: average month (%)", "paper": 0.37, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "mean_rmw", "label": "Profitability: average month (%)", "paper": 0.25, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "mean_cma", "label": "Investment: average month (%)", "paper": 0.33, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "std_mktrf", "label": "Market: volatility, a month (%)", "paper": 4.49, "tolerance": 0.10, "where": "Table 4A"},
+                {"key": "std_smb", "label": "Size: volatility, a month (%)", "paper": 3.07, "tolerance": 0.10, "where": "Table 4A"},
+                {"key": "std_hml", "label": "Value: volatility, a month (%)", "paper": 2.88, "tolerance": 0.10, "where": "Table 4A"},
+                {"key": "std_rmw", "label": "Profitability: volatility, a month (%)", "paper": 2.14, "tolerance": 0.10, "where": "Table 4A"},
+                {"key": "std_cma", "label": "Investment: volatility, a month (%)", "paper": 2.01, "tolerance": 0.10, "where": "Table 4A"},
+                {"key": "t_mktrf", "label": "Market: t-statistic", "paper": 2.74, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "t_smb", "label": "Size: t-statistic", "paper": 2.31, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "t_hml", "label": "Value: t-statistic", "paper": 3.20, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "t_rmw", "label": "Profitability: t-statistic", "paper": 2.92, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "t_cma", "label": "Investment: t-statistic", "paper": 4.07, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "corr_hml_cma", "label": "Correlation of value with investment", "paper": 0.70, "tolerance": 0.05, "where": "Table 4C"},
+                {"key": "hml_intercept", "label": "Value left unexplained by the other four, a month (%)", "paper": -0.04, "tolerance": 0.05, "where": "Table 6"},
+                {"key": "hml_on_cma", "label": "Value's loading on investment", "paper": 1.04, "tolerance": 0.08, "where": "Table 6"},
+                {"key": "hml_r2", "label": "Share of value's variation the other four explain", "paper": 0.51, "tolerance": 0.05, "where": "Table 6"},
+                {"key": "rmw_intercept", "label": "Profitability left unexplained by the other four, a month (%)", "paper": 0.43, "tolerance": 0.05, "where": "Table 6"},
+                {"key": "cma_intercept", "label": "Investment left unexplained by the other four, a month (%)", "paper": 0.28, "tolerance": 0.05, "where": "Table 6"},
+            ],
+        },
+        "conditions": [
+            ["Factors", "Each is a portfolio that holds one kind of stock and shorts its opposite: small "
+                        "minus big, high book-to-market minus low, robust profitability minus weak, "
+                        "conservative investment minus aggressive. The market factor is all stocks "
+                        "minus Treasury bills."],
+            ["Data", "Kenneth R. French's Data Library, \"Fama/French 5 Factors (2x3)\" - the authors' own "
+                     "series, rebuilt since the paper on a newer version of the stock database."],
+            ["Statistics", "The average and standard deviation of the monthly returns, and the "
+                           "t-statistic: the average divided by its standard error."],
+            ["Redundancy", "Each factor regressed on the other four over the same months. The "
+                           "intercept is what the others leave unexplained."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The library has been rebuilt on a newer database since the paper, so small differences "
+            "from the 2013 vintage are expected in every figure.",
+            "Only the 2x3 version of the factors is reproduced. The paper also reports 2x2 and "
+            "2x2x2x2 versions, which the library publishes separately.",
+            "The paper's main tests - how well the model explains 25 and 32 sorted portfolios - are "
+            "not reproduced here. This page checks the factors themselves.",
+        ],
+        "in_the_screener": (
+            "Four of the screener's eight categories lean on these factors: Valuation on value, "
+            "Quality on profitability, Investment on investment, and Size on size. Two cautions "
+            "carry over. The screener ranks about 500 large stocks and holds none short, so it can "
+            "capture only part of what a long-short portfolio of all stocks earns - and the size "
+            "factor is mostly a small-stock effect, which the methodology's own note on Size says. "
+            "And value and investment overlap heavily, which is a reason to read the Valuation and "
+            "Investment categories together rather than as two independent votes."),
+    },
 ]
 
 
@@ -577,6 +733,22 @@ def reproduce_crashes(mom: dict, market: dict, exp: dict) -> dict:
             "scene_months": len(scene["months"])}
 
 
+def reproduce_factors(factors: dict, exp: dict) -> dict:
+    """Experiment 3 at the paper's sample: each reference figure beside the published data's,
+    and the per-factor table the page recomputes on load and checks against this."""
+    ref = exp["reference"]
+    got = factor_figures(factors, ref["start"], ref["end"])
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    r = factor_run(factors, ref["start"], ref["end"])
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": got["months"], "stats": r["stats"],
+            "hml_intercept": r["spanned"]["hml"]["intercept"]}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -591,9 +763,11 @@ def reproduce(data: dict, exp: dict) -> dict:
 def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     data = momentum_data(raw_dir)
     market = market_data(data["months"], raw_dir)
+    factors = factor_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
+                  else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce(data, exp))
         exps.append({**exp, "result": result})
     return {
@@ -609,6 +783,9 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES,
+        "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
+        "factor_category": FACTOR_CATEGORY,
+        "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "market": market,
         "experiments": exps,

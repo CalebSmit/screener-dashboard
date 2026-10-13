@@ -119,6 +119,72 @@
                  all_mean: n ? all / n : null, rest_mean: restN ? rest / restN : null };
     }
 
+    // Least-squares coefficients of y on the given columns (include a column of ones for an
+    // intercept), by the normal equations.
+    function ols(y, columns) {
+        const k = columns.length, a = [];
+        for (let i = 0; i < k; i++) {
+            const row = [];
+            for (let j = 0; j < k; j++) { let s = 0; for (let n = 0; n < y.length; n++) s += columns[i][n] * columns[j][n]; row.push(s); }
+            let sy = 0; for (let n = 0; n < y.length; n++) sy += columns[i][n] * y[n];
+            row.push(sy); a.push(row);
+        }
+        for (let i = 0; i < k; i++) {
+            let p = i;
+            for (let r = i + 1; r < k; r++) if (Math.abs(a[r][i]) > Math.abs(a[p][i])) p = r;
+            const tmp = a[i]; a[i] = a[p]; a[p] = tmp;
+            for (let r = 0; r < k; r++) {
+                if (r === i) continue;
+                const f = a[r][i] / a[i][i];
+                for (let c = 0; c <= k; c++) a[r][c] -= f * a[i][c];
+            }
+        }
+        return a.map((row, i) => row[k] / row[i]);
+    }
+
+    function correlation(x, y) {
+        const n = x.length;
+        let mx = 0, my = 0;
+        for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; }
+        mx /= n; my /= n;
+        let sxy = 0, sxx = 0, syy = 0;
+        for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx); syy += (y[i] - my) * (y[i] - my); }
+        return sxy / Math.sqrt(sxx * syy);
+    }
+
+    // Each factor's average month, volatility, t-statistic (the average over its standard
+    // error) and compounded growth over a period; their correlations; and each factor
+    // regressed on the other four - the intercept is what the others leave unexplained.
+    function factorRun(factors, keys, o) {
+        const idx = [];
+        for (let i = 0; i < factors.months.length; i++) if (factors.months[i] >= o.start && factors.months[i] <= o.end) idx.push(i);
+        const months = idx.map(i => factors.months[i]), n = months.length, series = {}, st = {}, spanned = {}, corr = {};
+        keys.forEach(k => { series[k] = idx.map(i => factors[k][i]); });
+        keys.forEach(k => {
+            const x = series[k];
+            if (n < 6) { st[k] = null; return; }
+            let mean = 0; for (const v of x) mean += v; mean /= n;
+            let ss = 0; for (const v of x) ss += (v - mean) * (v - mean);
+            const sd = Math.sqrt(ss / (n - 1)), g = growth(x);
+            st[k] = { mean: mean, std: sd, t: sd ? mean / (sd / Math.sqrt(n)) : null, growth: g[g.length - 1] };
+        });
+        if (n >= 12) keys.forEach(k => {
+            const others = keys.filter(q => q !== k), ones = new Array(n).fill(1);
+            const coef = ols(series[k], [ones].concat(others.map(q => series[q])));
+            let my = 0; for (const v of series[k]) my += v; my /= n;
+            let sst = 0, sse = 0;
+            for (let j = 0; j < n; j++) {
+                let fit = coef[0];
+                others.forEach((q, c) => { fit += coef[c + 1] * series[q][j]; });
+                sst += (series[k][j] - my) * (series[k][j] - my); sse += (series[k][j] - fit) * (series[k][j] - fit);
+            }
+            const slopes = {}; others.forEach((q, c) => { slopes[q] = coef[c + 1]; });
+            spanned[k] = { intercept: coef[0], slopes: slopes, r2: sst ? 1 - sse / sst : null };
+        });
+        keys.forEach(a => { corr[a] = {}; keys.forEach(b => { corr[a][b] = n >= 6 ? correlation(series[a], series[b]) : null; }); });
+        return { months: months, series: series, stats: st, corr: corr, spanned: spanned };
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
-             crashRun: crashRun };
+             crashRun: crashRun, ols: ols, factorRun: factorRun };
 });
