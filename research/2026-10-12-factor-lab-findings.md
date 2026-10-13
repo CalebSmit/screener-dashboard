@@ -75,6 +75,42 @@ months and momentum averaged -1.68% a month in it against +1.52% otherwise; and 
 market series puts April 2020 and January 2023 in the state where the S&P 500 total-return index
 the screener reads does not.
 
+## 5. Size, among large stocks (experiment 4, added the same night)
+
+The methodology page says: "No published study establishes a size premium *within* the largest
+two market-cap deciles, which is the entire S&P 500." Experiment 4 measures it on the library's
+ten size groups. The ninth group's return minus the tenth's, a month:
+
+| Period | Equal-weighted | Value-weighted |
+|---|---|---|
+| 1963-07 to 1990-12 (the paper's sample) | +0.08% (t = 1.07) | +0.08% (0.84) |
+| 1991-01 to 2026-08 | +0.08% (1.11) | +0.07% (0.79) |
+| 2000-01 to 2026-08 | +0.11% (1.36) | +0.14% (1.24) |
+| 1926-07 to 2026-08 | **+0.10% (2.39)** | +0.09% (1.57) |
+
+The eighth group minus the tenth, over the full century: +0.15% a month either way (t = 2.65
+equal-weighted, 2.17 value-weighted).
+
+**Reading.** The sign is positive in all eight cells and the size is steady - about one
+percentage point a year - but it is distinguishable from zero only over a hundred years. So the
+methodology's sentence stays true as written (this is a measurement on public data, not a
+published study), while "there is no size effect among large stocks" would be saying more than
+the data do. For the Size weight that argues for what the screener already does: a small
+weight, stated with its weakness, and not a larger one. Before anyone moves it, read the
+literature on size after controlling for quality - Asness, Frazzini, Israel, Moskowitz &
+Pedersen (2018), "Size matters, if you control your junk", and Alquist, Israel & Moskowitz
+(2018), "Fact, fiction, and the size effect" are the usual starting points (listed from memory;
+verify on reading).
+
+**The replication itself mostly failed, and is published that way:** 3 of 11 figures within
+tolerance. Fama & French's 1992 table covers non-financial firms that also appear in the
+accounting database; the library's groups hold every listed stock, and every group of smaller
+companies comes out well below the paper's figure. The requirement of accounting data is a
+known source of upward bias in small-firm returns of that era (Kothari, Shanken & Sloan 1995,
+*Journal of Finance* 50(1) - again from memory). It is a useful thing for a student to see:
+the same sort, on a slightly different set of companies, gives a size effect about a third
+smaller.
+
 ## Sources
 
 * Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *JFE* 116(1), 111-120. Figures from the April 2012 working paper, Table 3.

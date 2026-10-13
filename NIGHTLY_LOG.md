@@ -9788,3 +9788,58 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (later still, owner-run) - Factor Lab experiment 4: size - a replication that mostly fails, published as one
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,183 passed / 0 failed; after 2,186 passed / 0 failed.
+**Owner queue:** the owner again, late evening: *"keep making improvements please, all that you
+can tonight! ... keep getting creative and keep improving!"*
+
+### Did
+- **Experiment 4:** Fama & French (1992), Table II, on the library's ten size groups.
+  **3 of 11 figures within tolerances written before the comparison was run.** Every group of
+  smaller companies comes out below the paper's figure (the smallest: 1.28% a month here, 1.55%
+  in the paper). The paper's sample is non-financial firms that also have accounting data; the
+  library's groups hold every listed stock. The page says 3 of 11, names the cause as the
+  likeliest one, and a test pins the tolerances so the result cannot be rescued later.
+- **The screener's own question, answered for any period:** between the two largest size groups,
+  the ninth out-earned the tenth by 0.07-0.14% a month every way it was cut; only the full
+  century (equal-weighted, t = 2.39) clears the usual bar. Recorded in
+  `research/2026-10-12-factor-lab-findings.md` section 5, with what it does and does not say
+  for the Size weight.
+- **A bug caught by looking:** the new bar chart's grey bars stopped short of zero, because the
+  page's top bar already owned the style name `.bar` and its fixed height applied to them. The
+  bars were renamed and a browser test now checks every bar reaches the zero line.
+
+### Evidence / research
+- Reference figures read from the published article (an open copy), Table II Panel A; the
+  smallest and largest tenths are derived from its halves by its own firm counts, and the
+  derivation is tested.
+- The paper's sample definition is on its page 429, read directly.
+
+### Methodology changed
+- None.
+
+### Tried and rejected
+- **Dropping the experiment because it fails.** A failed replication with a known cause teaches
+  more than a fourth success, and plan rule 5 says to publish it.
+- **Comparing against the value-weighted file or another period to find a match.** That is
+  choosing the conditions after seeing the result.
+
+### Noticed, not fixed
+- Which size groups the screener's ~500 companies actually fall in has not been measured; the
+  methodology says the largest two.
+
+### Next
+- Friday: experiment 5, profitability. A Monday: the Size and value-premium research notes the
+  findings note asks for. Tomorrow's 02:00 log first.
+
+### Gates
+1. **2,186 passed / 0 failed** (baseline 2,183 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

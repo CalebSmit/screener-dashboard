@@ -124,6 +124,9 @@ def test_the_published_series_is_whole(published):
     for a, b in zip(fa["months"], fa["months"][1:]):
         ya, ma, yb, mb = int(a[:4]), int(a[4:]), int(b[:4]), int(b[4:])
         assert (yb, mb) == ((ya, ma + 1) if ma < 12 else (ya + 1, 1)), (a, b)
+    sz = published["size"]
+    assert sz["months"][0] == "192607" and len(sz["ew"]) == len(sz["vw"]) == 10
+    assert all(len(col) == len(sz["months"]) > 1100 for col in sz["ew"] + sz["vw"])
     att = published["attribution"]
     assert "Kenneth R. French" in att["text"] and "Fama" in att["text"] and att["url"].startswith("https://")
 
@@ -134,13 +137,14 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
         assert built["reference"] == json.loads(json.dumps(exp["reference"]))   # the paper's figures, as recorded
         again = (fl.reproduce_crashes(published["momentum"], published["market"], exp)
                  if exp["kind"] == "crashes" else fl.reproduce_factors(published["factors"], exp)
-                 if exp["kind"] == "factors" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "factors" else fl.reproduce_size(published["size"], exp)
+                 if exp["kind"] == "size" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -152,13 +156,13 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and exp["paper"]["doi"] and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors"):
+        if exp["kind"] in ("crashes", "factors", "size"):
             figs = exp["reference"]["figures"]
             assert len({f["key"] for f in figs}) == len(figs) >= 10
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size")
 
 
 def test_the_tolerances_are_the_recorded_ones():
@@ -187,6 +191,43 @@ def test_the_tolerances_are_the_recorded_ones():
         "t_mktrf": 2.74, "t_smb": 2.31, "t_hml": 3.20, "t_rmw": 2.92, "t_cma": 4.07,
         "corr_hml_cma": 0.70, "hml_intercept": -0.04, "hml_on_cma": 1.04, "hml_r2": 0.51,
         "rmw_intercept": 0.43, "cma_intercept": 0.28}
+
+
+def test_a_replication_that_mostly_fails_is_published_as_one(published):
+    """Experiment 4 reruns a 1992 table on a different set of companies from the paper's and
+    most figures miss. The tolerances were written first and stay; the page says how many
+    missed and why; and the sentence that says which ones is checked here."""
+    exp, built = fl.EXPERIMENTS[3], published["experiments"][3]["result"]
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "dec1": (1.546, 0.05), "dec2": (1.29, 0.05), "dec3": (1.24, 0.05), "dec4": (1.25, 0.05),
+        "dec5": (1.29, 0.05), "dec6": (1.17, 0.05), "dec7": (1.07, 0.05), "dec8": (1.10, 0.05),
+        "dec9": (0.95, 0.05), "dec10": (0.890, 0.05), "small_big": (0.656, 0.08)}
+    # the two derived figures are the paper's halves weighted by its own firm counts
+    assert (1.64 * 772 + 1.16 * 189) / (772 + 189) == pytest.approx(1.546, abs=0.001)
+    assert (0.88 * 60 + 0.90 * 64) / (60 + 64) == pytest.approx(0.890, abs=0.001)
+    rows = {r["key"]: r for r in built["rows"]}
+    assert built["within"] < built["total"] / 2                      # it is a failed replication, and says so
+    for d in range(1, 7):                                            # "every group of smaller companies sits below"
+        assert rows[f"dec{d}"]["here"] < rows[f"dec{d}"]["paper"] and not rows[f"dec{d}"]["within"]
+    assert {k for k, r in rows.items() if r["within"]} <= {"dec7", "dec8", "dec9", "dec10"}
+    assert "only matches are among the four largest groups" in exp["verdict_note"]
+
+
+def test_the_size_groups_are_measured_as_differences_month_by_month():
+    months = [f"2000{m:02d}" for m in range(1, 13)]
+    base = [1.0, -2.0, 3.0, 0.5, -1.0, 2.0, 0.0, 1.5, -0.5, 2.5, -1.5, 1.0]
+    size = {"months": months, "ew": [[v + (9 - d) * 0.1 + (0.3 if (d == 8 and i % 2) else 0.0) for i, v in enumerate(base)]
+                                     for d in range(10)], "vw": [list(base) for _ in range(10)]}
+    r = fl.size_run(size, "200001", "200012", "ew")
+    assert r["deciles"][0]["mean"] == pytest.approx(sum(base) / 12 + 0.9)
+    assert r["small_big"]["mean"] == pytest.approx(0.9)
+    # the ninth group beats the tenth by 0.1 every month and by another 0.3 every other month
+    assert r["nine_ten"]["mean"] == pytest.approx(0.25)
+    d = [0.1 + (0.3 if i % 2 else 0.0) for i in range(12)]
+    sd = math.sqrt(sum((v - 0.25) ** 2 for v in d) / 11)
+    assert r["nine_ten"]["t"] == pytest.approx(0.25 / (sd / math.sqrt(12)))
+    assert fl.size_run(size, "200001", "200012", "vw")["small_big"]["mean"] == pytest.approx(0)
+    assert fl.size_run(size, "200001", "200003", "ew")["deciles"][0] is None
 
 
 def test_the_sentence_about_the_misses_is_true(published):
@@ -337,6 +378,32 @@ def test_the_browser_measures_the_factors_as_the_reference_does(published, tmp_p
                 assert js["corr"][k][other] == pytest.approx(py["corr"][k][other], rel=1e-9)
 
 
+SIZE_SETTINGS = [{"start": "196307", "end": "199012", "weighting": "ew"}, {"start": "199101", "end": "209912", "weighting": "vw"},
+                 {"start": "192607", "end": "209912", "weighting": "ew"}, {"start": "200001", "end": "209912", "weighting": "vw"}]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_the_size_groups_as_the_reference_does(published, tmp_path):
+    script = tmp_path / "size.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.sizeRun(D.size, o);\n"
+        "  return { n: r.months.length, deciles: r.deciles, small_big: r.small_big, nine_ten: r.nine_ten, eight_ten: r.eight_ten }; })));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(SIZE_SETTINGS)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    for o, js in zip(SIZE_SETTINGS, json.loads(res.stdout)):
+        py = fl.size_run(published["size"], **o)
+        assert js["n"] == len(py["months"]) > 100
+        for a, b in zip(js["deciles"] + [js["small_big"], js["nine_ten"], js["eight_ten"]],
+                        py["deciles"] + [py["small_big"], py["nine_ten"], py["eight_ten"]]):
+            for k in ("mean", "std", "t"):
+                assert a[k] == pytest.approx(b[k], rel=1e-8, abs=1e-12), (o, k)
+
+
 CRASH_SETTINGS = [
     {"start": "192701", "end": "201303", "lookback": 24, "window": 126, "threshold": 0.206},   # the screener's rule
     {"start": "201304", "end": "209912", "lookback": 24, "window": 126, "threshold": 0.206},
@@ -376,10 +443,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     v = f"?v={fl.ASSET_VERSION}"                                    # one version on both, so they travel together
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
-    assert "E.factorRun(F, KEYS, S)" in html
+    assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 3             # each experiment checks itself
+    assert html.count("disagrees with the build") == 4             # each experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -468,7 +535,7 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("window.LAB_STATE().settings.threshold") == pytest.approx(0.30)
                 page.click("#c-reset")
                 assert page.evaluate("window.LAB_STATE().result.cells[3].n") == at_rule
-                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 3
+                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 4
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 # the third
@@ -482,6 +549,21 @@ def test_changing_a_setting_recalculates_the_result():
                 page.click("#c-preset button[data-i='1']")
                 assert page.evaluate("window.LAB_STATE().result.months.length") < 200
                 assert "short period for a factor" in page.inner_text("#x-live-note")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+                # the fourth
+                page.goto(PAGE.as_uri() + "#size-effect", wait_until="load", timeout=60000)
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'size-effect'", timeout=30000)
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 10
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect.col-a').length") == 2
+                # every bar reaches the zero line (a style named .bar once cut the grey ones short)
+                assert page.evaluate("(() => { const r = [...document.querySelectorAll('#ch-bars rect')].map(e => e.getBoundingClientRect().bottom); return Math.max(...r) - Math.min(...r); })()") < 1.5
+                ew = page.evaluate("window.LAB_STATE().result.small_big.mean")
+                page.click("#c-weighting button[data-v='vw']")
+                assert page.evaluate("window.LAB_STATE().result.small_big.mean") != ew
+                assert page.evaluate("location.hash") == "#size-effect?weighting=vw"
+                assert "Between the two largest groups" in page.inner_text("#x-read")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 page.close()
