@@ -9886,3 +9886,43 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (near midnight, owner-run) - Factor Lab experiment 5: do riskier stocks earn more? - on a layout the next experiments reuse
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,190 passed / 0 failed; after 2,193 passed / 0 failed.
+
+### Did
+- **Experiment 5:** Ang, Hodrick, Xing & Zhang (2006), Table VI Panel A, on the library's
+  variance-sorted fifths. **5 of 11 within tolerances written before the first run**, with the
+  miss predicted in the comment beside them: the most volatile fifth earned 0.81% a month here
+  against 0.09% in the paper, because the library's version of that group is tamer.
+- **A generic sorted-portfolio experiment.** `factor_lab.SORTS` + `sort_run`, `sortRun` in the
+  browser, and one page layout driven by the experiment's record (group names, which bar to
+  highlight, the periods offered). The Risk category now has an experiment; the map on the
+  front page says so and says what is still missing (beta, worst fall).
+- **Phone:** six tabs had become a 255-pixel stack. They are one swipeable row now (59 px),
+  with short labels and the current one scrolled into view.
+- **Research note section 6:** on public data the anomaly is "volatility was not rewarded",
+  not "volatility was punished", and the paper's strong form lives in small, extreme stocks the
+  screener does not rank.
+
+### Methodology changed
+- None.
+
+### Noticed, not fixed
+- The methodology's sentence on the low-volatility anomaly is stronger than this rerun
+  supports for large stocks. Rewording it is a research task (note, section 6), not a
+  tonight task.
+
+### Next
+- Unchanged: tomorrow's 02:00 log first. Friday: profitability, on the generic layout.
+
+### Gates
+1. **2,193 passed / 0 failed** (baseline 2,190 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

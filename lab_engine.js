@@ -207,6 +207,16 @@
                  small_big: meanT(diff(0, 9)), nine_ten: meanT(diff(8, 9)), eight_ten: meanT(diff(7, 9)) };
     }
 
+    // A sorted-portfolio experiment: each group's average month and volatility over a period,
+    // and the last group minus the first, month by month, with its t-statistic.
+    function sortRun(data, o) {
+        const idx = [];
+        for (let i = 0; i < data.months.length; i++) if (data.months[i] >= o.start && data.months[i] <= o.end) idx.push(i);
+        const groups = data[o.weighting].map(col => idx.map(i => col[i])), last = groups.length - 1;
+        return { months: idx.map(i => data.months[i]), groups: groups.map(meanT),
+                 spread: meanT(groups[last].map((v, j) => v - groups[0][j])) };
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
-             crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun };
+             crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun };
 });

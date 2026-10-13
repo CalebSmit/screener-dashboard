@@ -111,6 +111,29 @@ known source of upward bias in small-firm returns of that era (Kothari, Shanken 
 the same sort, on a slightly different set of companies, gives a size effect about a third
 smaller.
 
+## 6. Risk: no reward for volatility, rather than a penalty (experiment 5, added the same night)
+
+The methodology calls the low-volatility anomaly "one of the most robust findings in finance".
+On the library's variance-sorted fifths (value-weighted, the paper's sample of 1963-07 to
+2000-12) the calmest fifth averaged 1.03% a month with volatility of 3.57%, and the most
+volatile 0.81% with volatility of 7.56%. Return per unit of risk falls steadily from the
+calmest group to the most volatile (0.29, 0.26, 0.24, 0.21, 0.11).
+
+Two things for a methodology session:
+
+1. **The strong form of the paper's result does not reproduce here.** The paper's most volatile
+   fifth earned 0.09% a month and trailed the calmest by 0.97% (t = -2.86). The library's
+   trails by 0.22% (t = -0.79), and since 2001 by nothing. The library sorts on 60 days where
+   the paper uses one month and draws its lines so the extreme group holds larger stocks. The
+   paper's penalty lives in small, extremely volatile stocks - which the screener never ranks.
+2. **The weak form is what the screener can lean on.** Among the stocks it does rank, the
+   defensible statement is that volatility has not been rewarded with return, so a calmer stock
+   has earned about the same with less risk. That supports a Risk category. It supports "the
+   calmer stock was the better trade per unit of risk"; it does not support "the calmer stock
+   earned more". The methodology's sentence should be read, and perhaps reworded, in that light
+   - with Baker, Bradley & Wurgler (2011) and Frazzini & Pedersen (2014) read first, since they
+   are the usual sources for the large-cap version (from memory; verify).
+
 ## Sources
 
 * Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *JFE* 116(1), 111-120. Figures from the April 2012 working paper, Table 3.
