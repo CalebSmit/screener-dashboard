@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the last of the night) - experiment 7 shipped: does market risk
+    pay?** Fama & French (1992) on the library's beta deciles: **7 of 11 within**, and the paper's
+    point - returns flat from the lowest-beta group to the highest - reproduces, in its sample
+    and since. The Risk category now has two of its three measures behind it. The methodology
+    page links every category to its experiments. **Seven experiments, 64 of 94 figures within
+    tolerance, six of eight categories covered.** Next for a Friday: profitability (Novy-Marx
+    2013) or the cash-flow-yield sort; next for a Monday: the research notes that
+    `research/2026-10-12-factor-lab-findings.md` asks for (value since 2007 first).
   - **2026-10-12 (owner-run, the same night) - experiment 6 shipped: does a high earnings yield
     pay?** Fama & French (1992) on the library's earnings-yield deciles, the nearest public sort
     to the screener's own valuation measures. **7 of 11 figures within** tolerances written

@@ -145,7 +145,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -250,6 +250,18 @@ def test_the_earnings_yield_sort_matches_in_shape_and_misses_at_the_ends(publish
     assert all(abs(r["diff"]) < 0.15 for r in rows.values()) and rows["spread"]["within"]
     here = [rows[f"mean{d}"]["here"] for d in range(1, 11)]
     assert sum(b > a for a, b in zip(here, here[1:])) >= 8                         # rising, almost step by step
+
+
+def test_the_beta_sort_is_flat_as_the_paper_found(published):
+    exp, built = fl.EXPERIMENTS[6], published["experiments"][6]["result"]
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean1": (1.20, 0.05), "mean2": (1.32, 0.05), "mean3": (1.26, 0.05), "mean4": (1.31, 0.05),
+        "mean5": (1.30, 0.05), "mean6": (1.30, 0.05), "mean7": (1.23, 0.05), "mean8": (1.23, 0.05),
+        "mean9": (1.33, 0.05), "mean10": (1.238, 0.05), "spread": (0.038, 0.08)}
+    assert (1.34 * 165 + 1.18 * 291) / 456 == pytest.approx(1.238, abs=0.001)      # the halves, by firm count
+    rows = {r["key"]: r for r in built["rows"]}
+    assert rows["spread"]["within"]                                 # "the gap between the end groups ... matches"
+    assert all(r["here"] < r["paper"] for r in rows.values() if not r["within"])   # "every miss sits below"
 
 
 def test_a_sort_is_measured_group_by_group_and_end_to_end():
@@ -593,6 +605,12 @@ def test_each_takeaway_is_what_the_data_shows(published):
     late = fl.sort_run(ey, "200701", "209912", "ew")["spread"]
     assert abs(late["t"]) < 2 and late["mean"] < 0.25
     assert fl.sort_run(ey, "200701", "209912", "vw")["spread"]["mean"] < 0
+    # 7. "flat in the paper's sample ... not distinguishable from zero since ... about twice as volatile"
+    be = published["sorts"]["market-beta"]
+    for a, b in (("196307", "199012"), ("199101", "209912"), ("196307", "209912")):
+        r = fl.sort_run(be, a, b, "ew")
+        assert abs(r["spread"]["t"]) < 2
+        assert 1.8 < r["groups"][9]["std"] / r["groups"][0]["std"] < 2.5
 
 
 def test_the_category_map_covers_the_screeners_eight_and_nothing_else():
@@ -659,6 +677,26 @@ def test_the_methodology_says_what_the_factors_did_since_2014(published):
         assert abs(since["stats"][k]["mean"]) < 0.2                     # "each averaged close to zero"
     assert since["stats"]["rmw"]["mean"] < first["stats"]["rmw"]["mean"]   # "profitability has earned less"
     assert len(since["months"]) < 360                                   # still short of "roughly thirty years"
+
+
+def test_the_methodology_links_each_category_to_its_experiments():
+    """In the generator (rule 10). The methodology cannot import the lab - no pipeline module
+    may - so the links are written out there, and this keeps them in step with the lab's map."""
+    import yaml
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    text = run_screener.build_screener_overview(cfg)
+    para = next(l for l in text.splitlines() if l.startswith("**Rerun the research.**"))
+    linked = set(re.findall(r"lab\.html#([a-z-]+)\)", para))
+    assert linked == {x["id"] for x in fl.EXPERIMENTS}
+    for c in fl.CATEGORY_MAP:
+        name = {"revisions": "Analyst Revisions"}.get(c["key"], c["category"])
+        if c["experiments"]:
+            part = re.search(re.escape(name) + r" - (.*?)(?:; [A-Z]|\. Growth)", para)
+            assert part, name
+            assert set(re.findall(r"lab\.html#([a-z-]+)\)", part.group(1))) == set(c["experiments"]), name
+        else:
+            assert name in para.split("have nothing there yet")[0].rsplit(".", 1)[-1], name
 
 
 # --------------------------------------------------------------------------- what it must not become

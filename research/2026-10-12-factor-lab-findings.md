@@ -134,6 +134,15 @@ Two things for a methodology session:
    - with Baker, Bradley & Wurgler (2011) and Frazzini & Pedersen (2014) read first, since they
    are the usual sources for the large-cap version (from memory; verify).
 
+**Beta, the category's second measure (experiment 7).** Fama & French's (1992) flat relation
+between beta and return reproduces: the highest-beta tenth minus the lowest is -0.03% a month in
+the paper's sample (the paper: +0.04%), +0.26% since 1991 (t = 0.93) and +0.13% over the whole
+period (t = 0.65), while the highest-beta group has been about twice as volatile throughout.
+Same reading as for volatility: market risk has not been paid for, so a lower-beta company has
+carried less risk for about the same return. Since 2010 the value-weighted high-beta groups have
+earned more (the ninth tenth 1.86% a month) - with volatility to match and nowhere near
+significance, but worth knowing before describing low beta as free.
+
 ## 7. Valuation: the earnings-yield spread since 2007 (experiment 6, added the same night)
 
 Valuation is the screener's joint-largest category (22%) and its metrics are yields. The nearest
