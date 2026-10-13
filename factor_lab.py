@@ -48,11 +48,23 @@ FRENCH_HOME = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_libr
 FRENCH_FILES = {
     "momentum_monthly": ("10_Portfolios_Prior_12_2_CSV.zip", "Value Weight Returns -- Monthly"),
     "momentum_daily": ("10_Portfolios_Prior_12_2_Daily_CSV.zip", "Average Value Weighted Returns -- Daily"),
+    "factors_monthly": ("F-F_Research_Data_Factors_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
+    "factors_daily": ("F-F_Research_Data_Factors_daily_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
 }
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
 
+# lab.html loads lab_data.js and lab_engine.js as ?v=ASSET_VERSION. Bump it (and the two
+# script tags) whenever either file's shape changes, so a browser holding last week's copy of
+# one never runs it against this week's copy of the page. 2 = the second experiment.
+ASSET_VERSION = 2
+
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
+# For the market's own state (experiment 2): the windows its volatility is measured over, and
+# how many months back "the market has fallen" looks. 126 days and 24 months are the paper's,
+# and the screener's.
+MARKET_VOL_WINDOWS = (63, 126, 252)
+BEAR_LOOKBACKS = (12, 24, 36)
 
 
 # --------------------------------------------------------------------------- the data
@@ -85,7 +97,10 @@ def read_table(zip_path: Path, marker: str) -> tuple[list[str], list[list[float]
     except StopIteration:
         raise ValueError(f"{zip_path.name}: no table titled {marker!r}") from None
     dates, rows = [], []
-    for line in lines[i + 2:]:
+    # A titled table has its column names on the next line; the factor files have no title,
+    # and are found by the column-name line itself.
+    first = i + 1 if lines[i].lstrip().startswith(",") else i + 2
+    for line in lines[first:]:
         parts = [c.strip() for c in line.split(",")]
         if not parts[0].isdigit():
             break
@@ -146,6 +161,65 @@ def momentum_data(raw_dir: Path = RAW_DIR) -> dict:
                          for v in vol_forecasts(d_dates, dwml, months, w)] for w in VOL_WINDOWS},
         "vintage": vintage,
         "daily_first": d_dates[0], "daily_last": d_dates[-1],
+    }
+
+
+def market_vol(daily_dates: list[str], daily_ret_pct: list[float], months: list[str],
+               window: int) -> list[float | None]:
+    """For each month, the market's annualised volatility as known when the month begins: the
+    standard deviation (n-1) of its daily returns over the last ``window`` trading days of
+    earlier months, x 252^0.5. ``None`` until that many days exist."""
+    s1, s2 = [0.0], [0.0]
+    for r in daily_ret_pct:
+        s1.append(s1[-1] + r / 100.0)
+        s2.append(s2[-1] + (r / 100.0) ** 2)
+    out, j = [], 0
+    for m in months:
+        while j < len(daily_dates) and daily_dates[j][:6] < m:
+            j += 1
+        if j < window:
+            out.append(None)
+            continue
+        a, b = s1[j] - s1[j - window], s2[j] - s2[j - window]
+        var = max(0.0, (b - a * a / window) / (window - 1))
+        out.append(math.sqrt(252.0 * var))
+    return out
+
+
+def trailing_return(m_dates: list[str], m_ret_pct: list[float], months: list[str],
+                    lookback: int, min_months: int = 6) -> list[float | None]:
+    """For each month, the market's compounded return over the ``lookback`` months before it
+    (as many as the file holds, if fewer - but at least ``min_months``). Negative is the
+    paper's bear-market indicator."""
+    pos = {d: k for k, d in enumerate(m_dates)}
+    out = []
+    for m in months:
+        k = pos.get(m)
+        if k is None or k < min_months:
+            out.append(None)
+            continue
+        v = 1.0
+        for r in m_ret_pct[max(0, k - lookback):k]:
+            v *= 1 + r / 100.0
+        out.append(v - 1.0)
+    return out
+
+
+def market_data(months: list[str], raw_dir: Path = RAW_DIR) -> dict:
+    """The market series experiment 2 needs, aligned to the momentum months."""
+    mfile, mmark = FRENCH_FILES["factors_monthly"]
+    dfile, dmark = FRENCH_FILES["factors_daily"]
+    m_dates, m_rows, _ = read_table(raw_dir / mfile, mmark)
+    d_dates, d_rows, _ = read_table(raw_dir / dfile, dmark)
+    excess = {d: r[0] for d, r in zip(m_dates, m_rows)}
+    total = [r[0] + r[3] for r in m_rows]                    # Mkt-RF + RF
+    daily_total = [r[0] + r[3] for r in d_rows]
+    return {
+        "mktrf": [round(excess[m], 2) for m in months],
+        "vol": {str(w): [None if v is None else round(v, 6)
+                         for v in market_vol(d_dates, daily_total, months, w)] for w in MARKET_VOL_WINDOWS},
+        "trail": {str(n): [None if v is None else round(v, 6)
+                           for v in trailing_return(m_dates, total, months, n)] for n in BEAR_LOOKBACKS},
     }
 
 
@@ -217,6 +291,93 @@ def deepest_fall(returns_pct: list[float]) -> float:
     return worst
 
 
+STATE_NAMES = ["Market up, calm", "Market up, volatile", "Market down, calm",
+               "Market down and volatile (the panic state)"]
+
+
+def crash_run(mom: dict, market: dict, start: str, end: str, lookback: int = 24,
+              window: int = 126, threshold: float = 0.206) -> dict:
+    """Momentum's months sorted into four market states, each known before the month begins.
+
+    "Down": the market's compounded return over the previous ``lookback`` months is negative
+    (Daniel & Moskowitz's bear-market indicator). "Volatile": its volatility over the previous
+    ``window`` trading days is above ``threshold`` a year. Down and volatile together is the
+    panic state - at the defaults, the screener's own momentum regime rule. A month with no
+    reading for either is left out."""
+    trail, vol = market["trail"][str(lookback)], market["vol"][str(window)]
+    months, wml, state = [], [], []
+    for i, m in enumerate(mom["months"]):
+        if m < start or m > end or trail[i] is None or vol[i] is None:
+            continue
+        months.append(m)
+        wml.append(mom["wml"][i])
+        state.append((2 if trail[i] < 0 else 0) + (1 if vol[i] > threshold else 0))
+    n = len(months)
+    cells = []
+    for s in range(4):
+        xs = [r for r, st in zip(wml, state) if st == s]
+        cells.append({"state": s, "name": STATE_NAMES[s], "n": len(xs),
+                      "share": len(xs) / n if n else 0.0,
+                      "mean": sum(xs) / len(xs) if xs else None,
+                      "worst": min(xs) if xs else None,
+                      "losing": sum(1 for r in xs if r < 0) / len(xs) if xs else None})
+    rest = [r for r, st in zip(wml, state) if st != 3]
+    return {"months": months, "wml": wml, "state": state, "cells": cells,
+            "all_mean": sum(wml) / n if n else None,
+            "rest_mean": sum(rest) / len(rest) if rest else None}
+
+
+def ols(y: list[float], columns: list[list[float]]) -> list[float]:
+    """Least-squares coefficients of y on the given columns (include a column of ones for an
+    intercept), by the normal equations. Small and exact enough for four regressors."""
+    k = len(columns)
+    a = [[sum(ci * cj for ci, cj in zip(columns[i], columns[j])) for j in range(k)] +
+         [sum(ci * yi for ci, yi in zip(columns[i], y))] for i in range(k)]
+    for i in range(k):
+        p = max(range(i, k), key=lambda r: abs(a[r][i]))
+        a[i], a[p] = a[p], a[i]
+        for r in range(k):
+            if r != i:
+                f = a[r][i] / a[i][i]
+                a[r] = [x - f * z for x, z in zip(a[r], a[i])]
+    return [a[i][k] / a[i][i] for i in range(k)]
+
+
+def crash_figures(mom: dict, market: dict, start: str, end: str, gamma_start: str,
+                  paper_worst: list[list]) -> dict:
+    """Every figure of the paper's that experiment 2 reproduces, measured on the published data."""
+    idx = [i for i, m in enumerate(mom["months"]) if start <= m <= end]
+    months = [mom["months"][i] for i in idx]
+    wml = [mom["wml"][i] for i in idx]
+    mkt = [market["mktrf"][i] for i in idx]
+    bear = [None if market["trail"]["24"][i] is None else (1.0 if market["trail"]["24"][i] < 0 else 0.0)
+            for i in idx]
+    ws, ms = stats(wml), stats(mkt)
+    ones = [1.0] * len(wml)
+    a0, b0 = ols(wml, [ones, mkt])
+    keep = [k for k, b in enumerate(bear) if b is not None]
+    y = [wml[k] for k in keep]
+    bb, mm = [bear[k] for k in keep], [mkt[k] for k in keep]
+    _, alpha_b, _, beta_b = ols(y, [[1.0] * len(y), bb, mm, [u * v for u, v in zip(bb, mm)]])
+    g = [k for k in keep if months[k] >= gamma_start]
+    g0, gb = ols([wml[k] for k in g], [[1.0] * len(g), [bear[k] for k in g]])
+    ranked = sorted(zip(wml, months))[:len(paper_worst)]
+    ours = {m: r for r, m in ranked}
+    paper = {m: r for m, r in paper_worst}
+    return {
+        "wml_mean": ws["mean"], "wml_std": ws["std"], "wml_sharpe": ws["sharpe"],
+        "mkt_mean": ms["mean"], "mkt_std": ms["std"],
+        "beta0": b0, "alpha0": a0, "beta_bear": beta_b, "alpha_bear": alpha_b,
+        "bear_months": sum(1 for b in bear if b == 1.0), "months": len(months),
+        "gamma0": g0, "gamma_bear": gb,
+        "worst1": ranked[0][0], "worst2": ranked[1][0],
+        "worst_overlap": len(set(ours) & set(paper)),
+        "worst": [{"month": m, "here": r, "paper": paper.get(m)} for r, m in ranked],
+        "missed": [{"month": m, "paper": r, "here": mom["wml"][mom["months"].index(m)]}
+                   for m, r in paper_worst if m not in ours],
+    }
+
+
 # --------------------------------------------------------------------------- the record
 STAT_LABELS = {"max": "Best month (%)", "min": "Worst month (%)", "mean": "Mean, a year (%)",
                "std": "Volatility, a year (%)", "kurt": "Excess kurtosis", "skew": "Skewness",
@@ -233,6 +394,7 @@ TOLERANCES = {"max": 3.0, "min": 3.0, "mean": 1.0, "std": 1.0, "kurt": 1.0, "ske
 EXPERIMENTS = [
     {
         "id": "risk-managed-momentum",
+        "kind": "risk-managed",
         "title": "Risk-managed momentum",
         "paper": {
             "authors": "Pedro Barroso and Pedro Santa-Clara",
@@ -288,6 +450,98 @@ EXPERIMENTS = [
             "only in a market panic state, because the above-one exposures shown here belong to a "
             "long-short portfolio and not to one slice of a long-only ranking."),
     },
+    {
+        "id": "momentum-crashes",
+        "kind": "crashes",
+        "title": "Momentum crashes",
+        "paper": {
+            "authors": "Kent Daniel and Tobias J. Moskowitz",
+            "year": 2016,
+            "title": "Momentum crashes",
+            "journal": "Journal of Financial Economics 122(2), 221-247",
+            "doi": "10.1016/j.jfineco.2015.12.002",
+        },
+        "claim": ("Momentum's worst losses are partly forecastable. They come in panic states - after "
+                  "the market has fallen over two years, while its volatility is high - and arrive as "
+                  "the market rebounds. After a two-year market decline, momentum lost 0.67% a month on "
+                  "average, against a gain of 1.96% a month otherwise."),
+        "reference": {
+            "source": ("The authors' draft of June 16, 2015 (the version on Kent Daniel's website): "
+                       "Table 1 (page 8), Table 2 (page 11), the text on Table 3 (pages 15-16) and "
+                       "Table 5, column 1 (page 20). Sample 1927:01 to 2013:03."),
+            "start": "192701", "end": "201303", "gamma_start": "192707",
+            "lookback": 24, "window": 126, "threshold": 0.206,
+            # Written 2026-10-12 BEFORE the comparison was run (plan/factor-lab.md rule 3), in the
+            # same round sizes as experiment 1. What was already known when they were written:
+            # experiment 1 had shown this library's winners-minus-losers averaging about 15% a
+            # year where this paper reports 17.9%, so the three figures built on that mean
+            # (the mean, the alpha, the average outside bear markets) were expected to fall
+            # outside; and the five worst months had been printed by an earlier probe.
+            "figures": [
+                {"key": "wml_mean", "label": "Momentum: mean, a year (%)", "paper": 17.9, "tolerance": 1.0, "where": "Table 1"},
+                {"key": "wml_std", "label": "Momentum: volatility, a year (%)", "paper": 30.0, "tolerance": 1.0, "where": "Table 1"},
+                {"key": "wml_sharpe", "label": "Momentum: Sharpe ratio", "paper": 0.60, "tolerance": 0.05, "where": "Table 1"},
+                {"key": "mkt_mean", "label": "Market: mean excess return, a year (%)", "paper": 7.7, "tolerance": 0.3, "where": "Table 1"},
+                {"key": "mkt_std", "label": "Market: volatility, a year (%)", "paper": 18.8, "tolerance": 0.3, "where": "Table 1"},
+                {"key": "beta0", "label": "Momentum's market beta", "paper": -0.576, "tolerance": 0.05, "where": "Table 3 (1)"},
+                {"key": "alpha0", "label": "Momentum's alpha, a month (%)", "paper": 1.852, "tolerance": 0.10, "where": "Table 3 (1)"},
+                {"key": "beta_bear", "label": "Change in beta after a market decline", "paper": -1.131, "tolerance": 0.15, "where": "Table 3 (2)"},
+                {"key": "alpha_bear", "label": "Change in alpha after a market decline, a month (%)", "paper": -2.04, "tolerance": 0.35, "where": "Table 3 (2)"},
+                {"key": "bear_months", "label": "Months that followed a two-year market decline", "paper": 183, "tolerance": 5, "where": "Footnote 5", "count": True},
+                {"key": "gamma0", "label": "Momentum's average month otherwise (%)", "paper": 1.955, "tolerance": 0.15, "where": "Table 5 (1)"},
+                {"key": "gamma_bear", "label": "Difference after a market decline, a month (%)", "paper": -2.626, "tolerance": 0.40, "where": "Table 5 (1)"},
+                {"key": "worst1", "label": "Worst month (%)", "paper": -74.36, "tolerance": 3.0, "where": "Table 2"},
+                {"key": "worst2", "label": "Second-worst month (%)", "paper": -60.98, "tolerance": 3.0, "where": "Table 2"},
+                {"key": "worst_overlap", "label": "Of the paper's 15 worst months, how many are among the 15 worst here", "paper": 15, "tolerance": 3, "where": "Table 2", "count": True},
+            ],
+            "worst": [["193208", -74.36], ["193207", -60.98], ["200101", -49.19], ["200904", -45.52],
+                      ["193909", -43.83], ["193304", -43.14], ["200903", -42.28], ["200211", -37.04],
+                      ["193806", -33.36], ["200908", -30.54], ["193106", -29.72], ["193305", -28.90],
+                      ["200111", -25.31], ["200110", -24.98], ["197401", -24.04]],
+        },
+        "conditions": [
+            ["Portfolio", "Winners minus losers, as in experiment 1: the library's top momentum decile "
+                          "minus its bottom decile, value-weighted."],
+            ["Market", "The value-weighted return of all US-listed stocks, and the one-month Treasury "
+                       "bill rate, from the same library - the series the paper itself used."],
+            ["Market fell", "The market's compounded return over the previous 24 months is negative. Known "
+                            "before the month begins."],
+            ["Volatile", "The market's daily returns over the previous 126 trading days have a standard "
+                         "deviation above the threshold, as a rate a year. The paper uses this "
+                         "volatility as a continuous measure; the threshold is how the screener turns "
+                         "it into a yes or no."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper builds its own momentum deciles from the underlying stock database, ranking "
+            "all listed firms; this page uses the library's deciles, which are formed differently. "
+            "The paper's portfolio earns about three points a year more, and every figure built on "
+            "that average sits outside its tolerance for that reason, not because the pattern "
+            "differs. The authors publish their own portfolio returns on Kent Daniel's website; "
+            "rerunning on those is the next check.",
+            "The reference figures were read from the authors' 2015 draft. The published article's "
+            "tables have not been read here.",
+            "The paper's text gives momentum's Sharpe ratio as 0.71 while its Table 1 gives 0.60. "
+            "The table's own mean and volatility (17.9 / 30.0) give 0.60, which is used.",
+            "The library's market file begins in July 1926, so for months before July 1928 the "
+            "two-year market return is measured over the months that exist (at least six).",
+            "Only the first column of the paper's Table 5 is reproduced. Its other columns use the "
+            "market's variance as a continuous measure in units the draft does not state.",
+        ],
+        "verdict_note": ("All of those describe the portfolio itself: the paper builds its own momentum "
+                         "deciles and this page uses the library's. Every figure about what happens "
+                         "after a market decline is within."),
+        "in_the_screener": (
+            "This is the study the screener's momentum regime rule is built on. At the settings "
+            "shown first - a 24-month market return below zero and 126-day volatility above 20.6% - "
+            "the fourth state below is the screener's rule, applied to a century of the paper's "
+            "kind of data. One difference: this page measures the market as all US-listed stocks, "
+            "as the paper does, while the screener reads the S&P 500 total-return index, so the two "
+            "can disagree near the line. This page finds the state going into April 2020 and "
+            "January 2023, when the S&P 500's own two-year return was still just positive. The "
+            "screener's thresholds were fixed before this page existed and a test pins them; "
+            "nothing found by moving the controls here is used to change them."),
+    },
 ]
 
 
@@ -305,6 +559,24 @@ def compare(reference: dict, measured: dict, tolerances: dict = TOLERANCES) -> l
     return rows
 
 
+def reproduce_crashes(mom: dict, market: dict, exp: dict) -> dict:
+    """Experiment 2 at the paper's settings: each reference figure beside what the published
+    data gives, the worst months side by side, and the four-state table at the screener's
+    settings (which the page recomputes on load and checks against this)."""
+    ref = exp["reference"]
+    got = crash_figures(mom, market, ref["start"], ref["end"], ref["gamma_start"], ref["worst"])
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    scene = crash_run(mom, market, ref["start"], ref["end"], ref["lookback"], ref["window"], ref["threshold"])
+    return {"rows": rows, "within": sum(r["within"] for r in rows), "total": len(rows),
+            "months": got["months"], "worst": got["worst"], "missed": got["missed"],
+            "cells": scene["cells"], "rest_mean": scene["rest_mean"], "all_mean": scene["all_mean"],
+            "scene_months": len(scene["months"])}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -318,20 +590,27 @@ def reproduce(data: dict, exp: dict) -> dict:
 # --------------------------------------------------------------------------- the build
 def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     data = momentum_data(raw_dir)
+    market = market_data(data["months"], raw_dir)
     exps = []
     for exp in EXPERIMENTS:
-        exps.append({**exp, "result": reproduce(data, exp)})
+        result = (reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
+                  else reproduce(data, exp))
+        exps.append({**exp, "result": result})
     return {
         "built": (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d"),
         "attribution": {
             "text": "Data: Kenneth R. French Data Library. Copyright Eugene F. Fama and Kenneth R. French.",
             "url": FRENCH_HOME, "vintage": data["vintage"],
-            "note": ("The monthly series below is derived from the library's files (top decile "
-                     "minus bottom decile, and volatility forecasts computed from the daily file). "
+            "note": ("The monthly series here are derived from the library's files (top momentum "
+                     "decile minus bottom decile, the market's excess return, and volatility and "
+                     "trailing-return readings computed from the daily and monthly files). "
                      "Download the originals from the library; this page does not republish them."),
         },
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
+        "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
+        "state_names": STATE_NAMES,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
+        "market": market,
         "experiments": exps,
     }
 
@@ -353,11 +632,14 @@ def report(payload: dict) -> str:
         r = exp["result"]
         lines.append(f"{exp['title']} - {exp['paper']['authors']} ({exp['paper']['year']}): "
                      f"{r['within']} of {r['total']} figures within tolerance, "
-                     f"{r['months']} months {r['first']}..{r['last']}")
+                     f"{r['months']} months" + (f" {r['first']}..{r['last']}" if "first" in r else ""))
         for row in r["rows"]:
-            lines.append(f"  {row['leg']:8} {row['label']:24} paper {row['paper']:8.2f}  here "
+            lines.append(f"  {row.get('leg', ''):8} {row['label'][:52]:52} paper {row['paper']:8.2f}  here "
                          f"{row['here']:8.2f}  diff {row['diff']:+6.2f}  "
                          f"{'within' if row['within'] else 'OUTSIDE'} +/-{row['tolerance']}")
+        for c in r.get("cells", []):
+            mean = "   n/a" if c["mean"] is None else f"{c['mean']:+6.2f}"
+            lines.append(f"    state {c['state']} {c['name'][:42]:42} {c['n']:5} months  mean {mean}% a month")
     return "\n".join(lines)
 
 

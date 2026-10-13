@@ -85,3 +85,39 @@ Until then the rule stays off and `factor_vol_history.csv` keeps recording the d
 * Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *Journal of Financial Economics* 116(1), 111-120.
 * Daniel, K. & Moskowitz, T. (2016). Momentum crashes. *Journal of Financial Economics* 122(2), 221-247. https://www.nber.org/papers/w20439
 * Cooper, M., Gutierrez, R. & Hameed, A. (2004). Market states and momentum. *Journal of Finance* 59(3), 1345-1365.
+
+## Addendum, 2026-10-12: what the Factor Lab's rerun of Daniel & Moskowitz shows about the rule
+
+Not a change. An observation recorded so the next session to touch the rule has it.
+
+The lab's second experiment (`lab.html#momentum-crashes`, `factor_lab.crash_run`) applies the
+rule's two conditions to the Kenneth French library's data: the market is the value-weighted
+return of **all US-listed stocks**, momentum is the top decile minus the bottom.
+
+| | Months in the state | Momentum's average month in it | Outside it |
+|---|---|---|---|
+| The paper's sample, 1927-01 to 2013-03 | 94 of 1,035 (9.1%) | -1.68% | +1.52% |
+| Everything to 2026-08 | 96 of 1,196 (8.0%) | -2.20% | +1.43% |
+| After the paper's sample, 2013-04 to 2026-08 | **2 of 161** | -26.83% | +0.87% |
+
+Three things to carry forward:
+
+1. **The paper's pattern reproduces on public data.** Its bear-market figures are matched closely
+   (183 bear months against 183; momentum's beta change after a decline -1.11 against -1.13; the
+   difference in its average month -2.51 against -2.63). The figures that differ are levels of
+   the portfolio itself, which the paper builds differently.
+2. **The two months after the sample are April 2020 and January 2023** (momentum -32.08% and
+   -21.58%). Two months are an anecdote, not a test - the lab says so on the page.
+3. **The index matters at the margin.** On all US stocks the state held going into those two
+   months. On the S&P 500 total-return index, which the screener reads, the 2026-10-09 replay
+   found it in neither: the large-cap index's two-year return was still just positive. The rule
+   is therefore somewhat *less* likely to fire than the paper's own definition, because large
+   stocks fell less. Whether the screener should read a broader index is a research question -
+   the screener ranks S&P 500 stocks, which argues for the index it uses; the paper's result is
+   about the whole market, which argues the other way. **Do not switch the index, or move the
+   thresholds, on the strength of these two months** (rules 4 and 5; the thresholds are pinned by
+   `tests/test_momentum_panic_rule.py`). If a session takes this up, it starts with the
+   literature on which market defines the state, not with this table.
+
+These are returns of a long-short paper portfolio with no costs, reproduced from a published
+study's own kind of data. They are not a backtest of the screener.

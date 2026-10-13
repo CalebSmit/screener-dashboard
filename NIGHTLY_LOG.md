@@ -9640,3 +9640,66 @@ the next data run.
 (and `lab_data.js`, `lab_engine.js`). 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (night, owner-run) - Factor Lab experiment 2: Daniel & Moskowitz, "Momentum crashes"
+
+**Health (rule 8):** unchanged from the two entries above - both loops ran today, HEALTH: PASS;
+evidence base at `1m` **28 rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,175 passed / 0 failed; after 2,180 passed / 0 failed.
+**Owner queue:** the owner, a third time this evening: *"keep improving, whatever you think would
+benefit these tools, be creative and start making this great!"* Taken as a go-ahead for the
+plan's next item rather than waiting for Friday.
+
+### Did
+- **Experiment 2** on the lab: the study the momentum regime rule is built on, rerun on the
+  French library's momentum deciles and market factors over the paper's sample (1927-01 to
+  2013-03). **9 of 15 figures within tolerance.** Within: the market's mean and volatility,
+  momentum's beta, the change in beta and in alpha after a market decline, the count of bear
+  months (183 against 183), the difference in momentum's average month after a decline, the
+  second-worst month, and 13 of the paper's 15 worst months. Outside: momentum's mean,
+  volatility, Sharpe ratio, alpha, its average month outside bear markets, and the single worst
+  month - all levels of the portfolio, which the paper builds itself and this page takes from
+  the library.
+- **The interactive part:** every month sorted into four market states known before it begins
+  (market up or down over the last N months, calm or volatile), with the panic state shaded on
+  the chart. At the screener's own thresholds over the paper's sample: 94 months, momentum
+  -1.68% a month against +1.52% elsewhere.
+- **The lab now holds more than one experiment:** a switch between them, a link per experiment,
+  and a version on its two script files so a cached copy cannot run against a newer page.
+- **Tolerances were written before the comparison was run**, as the plan requires from this
+  experiment on. What was already known when they were written is in a comment beside them.
+
+### Evidence / research
+- Reference figures from the authors' draft of 2015-06-16 (Kent Daniel's website), Tables 1, 2,
+  3 and 5, with page numbers in `factor_lab.py`. The paper's own text and table disagree on
+  momentum's Sharpe ratio (0.71 and 0.60); the table's figure is consistent with its mean and
+  volatility and is the one used. Recorded on the page.
+- **An observation about the screener's rule**, added to
+  `research/2026-10-09-momentum-regime.md`: on all US stocks the panic state also held going
+  into April 2020 and January 2023; on the S&P 500 total-return index the screener reads, it did
+  not. No change made, and none is to be made from two months.
+
+### Methodology changed
+- None.
+
+### Tried and rejected
+- **Widening the tolerances so the portfolio-level figures pass.** They are outside for a stated
+  reason; the verdict line says which six and why, and a test fails if that sentence stops
+  being true.
+- **Reproducing the paper's other Table 5 columns.** The draft does not state the units of the
+  market-variance term; guessing them to match a coefficient would be fitting, not replication.
+
+### Noticed, not fixed
+- The authors publish their own decile returns. Rerunning on those (plan item 2b) is the real
+  test of whether the six misses are construction. Its terms of use need reading first.
+
+### Next
+- Friday: experiment 3, the Fama-French five factors. Tomorrow's 02:00 log first.
+
+### Gates
+1. **2,180 passed / 0 failed** (baseline 2,175 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. `index.html` non-trivial; payload and lab files pass `node --check`.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

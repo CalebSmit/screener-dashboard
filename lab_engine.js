@@ -86,5 +86,39 @@
         return worst;
     }
 
-    return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall };
+    // Momentum's months sorted into four market states, each known before the month begins.
+    // "Down": the market's compounded return over the previous `lookback` months is negative.
+    // "Volatile": its volatility over the previous `window` trading days is above `threshold`
+    // a year. Down and volatile together is the panic state. A month with no reading for
+    // either is left out.
+    function crashRun(mom, market, o) {
+        const trail = market.trail[String(o.lookback)], vol = market.vol[String(o.window)];
+        const months = [], wml = [], state = [];
+        for (let i = 0; i < mom.months.length; i++) {
+            const m = mom.months[i];
+            if (m < o.start || m > o.end || trail[i] === null || vol[i] === null) continue;
+            months.push(m); wml.push(mom.wml[i]);
+            state.push((trail[i] < 0 ? 2 : 0) + (vol[i] > o.threshold ? 1 : 0));
+        }
+        const n = months.length, cells = [];
+        let all = 0, rest = 0, restN = 0;
+        for (let s = 0; s < 4; s++) {
+            let k = 0, sum = 0, worst = Infinity, neg = 0;
+            for (let j = 0; j < n; j++) {
+                if (state[j] !== s) continue;
+                k++; sum += wml[j];
+                if (wml[j] < worst) worst = wml[j];
+                if (wml[j] < 0) neg++;
+            }
+            all += sum;
+            if (s !== 3) { rest += sum; restN += k; }
+            cells.push({ state: s, n: k, share: n ? k / n : 0, mean: k ? sum / k : null,
+                         worst: k ? worst : null, losing: k ? neg / k : null });
+        }
+        return { months: months, wml: wml, state: state, cells: cells,
+                 all_mean: n ? all / n : null, rest_mean: restN ? rest / restN : null };
+    }
+
+    return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
+             crashRun: crashRun };
 });

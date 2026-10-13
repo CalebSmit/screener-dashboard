@@ -740,8 +740,10 @@ first. The run's reading is in `effective_weights.json` and the dashboard's Meth
 
 **0.13. The Factor Lab (opened 2026-10-12, age 0 days).** Owner item; `OWNER_FOCUS.md` has it
 and `plan/factor-lab.md` the ordered queue and the rules. Experiment 1 (Barroso & Santa-Clara 2015)
-shipped the same day: 13 of 14 figures within tolerance, one marked outside. **Friday is the lab's
-day**, one finished experiment a session; next is Daniel & Moskowitz (2016). The standing rules: the
+shipped the same day: 13 of 14 figures within tolerance, one marked outside. Experiment 2 (Daniel &
+Moskowitz 2016, the study behind the momentum regime rule) followed that night: 9 of 15 within
+tolerances written beforehand, the misses all traceable to the paper building its own portfolios.
+**Friday is the lab's day**, one finished experiment a session; next is the Fama-French five factors. The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.
 
