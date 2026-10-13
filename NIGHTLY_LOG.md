@@ -10104,3 +10104,40 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (addendum, owner-run) - two methodology sentences now say what the lab measured
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,203 passed / 0 failed; after 2,204 passed / 0 failed.
+
+### Did
+- **Risk.** The methodology said the low-volatility anomaly "is one of the most robust findings
+  in finance". Experiments 5 and 7 support something narrower, and the page now says that:
+  more volatile and higher-beta stocks have not earned reliably more than calmer ones, so the
+  extra risk has not been paid for; the stronger claim (volatile stocks earn much less) lives
+  among small, extremely volatile stocks the screener does not rank.
+- **Size.** Beside its own "known weakness", the page now quotes the lab's measurement: the
+  ninth size decile out-earned the tenth by about 0.1% a month over the past century, the same
+  sign in every period checked, distinguishable from zero only over the full hundred years.
+- Both in the generator, `SCREENER_OVERVIEW.md` regenerated, registered as claim
+  `overview.low_risk_and_size_as_measured` and **checked against the lab's data** - so a monthly
+  refresh that changes the picture fails a test instead of leaving the page wrong.
+- `scripts/rehearse_publish.py` run on this change, as the new rule requires: PASSED.
+
+### Methodology changed
+- None. Two sentences on the methodology page were made more accurate; no weight, metric or
+  threshold moved, so there is no `METHODOLOGY_CHANGELOG.md` entry.
+
+### Tried and rejected
+- **"Calmer stocks have earned about as much."** The first wording. The lowest-beta tenth,
+  equal-weighted, has averaged about 0.2% a month less than the rest - it is the *difference
+  between the ends* that cannot be told from zero. The sentence was rewritten to claim only that.
+
+### Gates
+1. **2,204 passed / 0 failed** (baseline 2,203 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

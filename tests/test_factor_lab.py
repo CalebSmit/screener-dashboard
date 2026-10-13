@@ -699,6 +699,36 @@ def test_the_methodology_links_each_category_to_its_experiments():
             assert name in para.split("have nothing there yet")[0].rsplit(".", 1)[-1], name
 
 
+def test_the_methodology_states_risk_and_size_as_the_lab_measures_them(published):
+    """Until 2026-10-12 the methodology called the low-volatility anomaly "one of the most
+    robust findings in finance". The lab's reruns support a weaker statement, and the page now
+    makes that one; the Size section quotes the lab's measurement. Both are checked here against
+    the data, so a refresh that changes the picture fails this instead of leaving the page wrong."""
+    import yaml
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    text = run_screener.build_screener_overview(cfg)
+    assert "one of the most robust findings in finance" not in text
+    assert "so the extra risk has not been paid for" in text and "lab.html#market-beta" in text
+    # "more volatile and higher-beta stocks have not earned reliably more than calmer ones"
+    for name in ("low-volatility", "market-beta"):
+        for weighting in ("vw", "ew"):
+            r = fl.sort_run(published["sorts"][name], "196307", "209912", weighting)
+            assert r["spread"]["t"] < 2, (name, weighting)                      # riskiest minus calmest: not reliably positive
+            assert r["groups"][-1]["std"] > 1.8 * r["groups"][0]["std"], (name, weighting)   # at about twice the risk
+    # "the ninth size decile has out-earned the tenth by about 0.1% a month over the past century -
+    #  the same sign in every period checked, and distinguishable from zero only over the full hundred years"
+    size = published["size"]
+    whole = fl.size_run(size, "192607", "209912", "ew")["nine_ten"]
+    assert 0.05 < whole["mean"] < 0.15 and whole["t"] > 2
+    assert len(fl.size_run(size, "192607", "209912", "ew")["months"]) >= 1200
+    for a, b in (("196307", "199012"), ("199101", "209912"), ("200001", "209912")):
+        for w in ("ew", "vw"):
+            part = fl.size_run(size, a, b, w)["nine_ten"]
+            assert part["mean"] > 0 and part["t"] < 2, (a, b, w)
+    assert "ninth size decile has out-earned the tenth by about 0.1% a month" in text
+
+
 # --------------------------------------------------------------------------- what it must not become
 def test_no_scoring_module_reads_the_lab():
     """The lab reruns published factor portfolios. It is not evidence for the screener's own
