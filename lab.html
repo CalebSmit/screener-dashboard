@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factor Lab · the research behind the screener, rerun</title>
+<meta name="description" content="The papers the Multi-Factor Screener cites, rerun on public data: change the conditions and see how the result changes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Tokens are the dashboard's (plan/dashboard-design-system.md): neutrals carry the page,
+   one accent carries interaction, colour otherwise appears only where it means something. */
+:root {
+    color-scheme: dark;
+    --bg-deep: #0d0d0d; --bg-card: #1a1a19; --bg-card-hover: #202020; --bg-elevated: #222221;
+    --border: #262625; --border-bright: #343433;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8e8c86;
+    --accent: #3987e5; --accent-text: #5598e7; --accent-glow: rgba(57,135,229,.12);
+    --green: #0ca30c; --amber: #fab219; --amber-dim: rgba(250,178,25,.12);
+    --radius: 8px;
+    --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg-deep); color: var(--text-secondary); font-family: var(--font-body);
+       font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent-text); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 72px; }
+@media (min-width: 720px) { .wrap { padding: 0 32px 96px; } }
+
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 56px;
+       border-bottom: 1px solid var(--border); }
+.mark { color: var(--text-primary); font-weight: 600; letter-spacing: -.01em; }
+.mark span { color: var(--text-muted); font-weight: 500; }
+.bar a { font-size: 14px; }
+
+.lede { padding: 40px 0 8px; max-width: 68ch; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw, 40px); line-height: 1.12;
+     font-weight: 700; letter-spacing: -.025em; }
+.lede p { margin: 0 0 10px; font-size: 16px; }
+.fine { font-size: 13px; color: var(--text-muted); }
+
+.exp { margin-top: 32px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.exp > section { padding: 22px 18px; border-top: 1px solid var(--border); }
+.exp > section:first-child { border-top: 0; }
+@media (min-width: 720px) { .exp > section { padding: 28px 32px; } }
+h2 { margin: 6px 0 4px; color: var(--text-primary); font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; }
+h3 { margin: 0 0 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; }
+.cite { margin: 0; font-size: 14px; color: var(--text-muted); }
+.claim { margin: 18px 0 0; max-width: 72ch; color: var(--text-primary); font-size: 16px; line-height: 1.6; }
+.verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 18px; padding: 12px 14px;
+           border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-elevated); font-size: 14px; }
+.verdict strong { color: var(--text-primary); font-weight: 600; }
+.verdict .out { color: var(--amber); }
+
+.controls { display: grid; gap: 16px; }
+.ctl-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+             text-transform: uppercase; color: var(--text-muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { appearance: none; background: transparent; border: 1px solid var(--border-bright); border-radius: 999px;
+              color: var(--text-secondary); font: inherit; font-size: 13.5px; padding: 6px 12px; cursor: pointer;
+              transition: background .12s, color .12s, border-color .12s; }
+.seg button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.seg button[aria-pressed="true"] { background: var(--accent-glow); border-color: var(--accent); color: var(--accent-text); }
+.row2 { display: grid; gap: 16px; }
+@media (min-width: 720px) { .row2 { grid-template-columns: 1fr 1fr; gap: 24px; } }
+.range { display: flex; align-items: center; gap: 12px; }
+.range input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+.range output { min-width: 3.2em; text-align: right; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+.years { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; }
+select { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-bright); border-radius: 6px;
+         font: inherit; font-size: 13.5px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
+.reset { appearance: none; background: none; border: 0; padding: 0; color: var(--accent-text); font: inherit; font-size: 13.5px; cursor: pointer; }
+.reset:hover { text-decoration: underline; }
+.reset[hidden] { display: none; }
+
+.read { margin: 22px 0 0; max-width: 76ch; color: var(--text-primary); font-size: 15.5px; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 22px 0 6px; font-size: 13px; }
+.key i { display: inline-block; width: 18px; height: 2px; margin-right: 7px; vertical-align: middle; }
+.key .a i { background: var(--accent); } .key .b i { background: var(--text-muted); }
+.chart { width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--font-body); font-size: 11.5px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .ref { stroke: var(--border-bright); stroke-width: 1; stroke-dasharray: 3 4; }
+.chart .plain { fill: none; stroke: var(--text-muted); stroke-width: 1.4; }
+.chart .managed { fill: none; stroke: var(--accent); stroke-width: 1.7; }
+.chart-title { margin: 20px 0 2px; font-size: 13px; color: var(--text-secondary); }
+.chart-title strong { color: var(--text-primary); font-weight: 600; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+th:last-child, td:last-child { padding-right: 0; }
+thead th { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+tbody td { color: var(--text-primary); }
+tbody td:first-child { color: var(--text-secondary); }
+tr.group td { padding-top: 18px; color: var(--text-primary); font-weight: 600; border-bottom-color: var(--border-bright); }
+td.ok { color: var(--text-secondary); }
+td.out { color: var(--amber); font-weight: 600; }
+.tablewrap { overflow-x: auto; }
+@media (max-width: 599px) { .tol { display: none; } #t-ref th, #t-ref td { padding-left: 4px; padding-right: 4px; font-size: 13.5px; } }
+.note { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); max-width: 76ch; }
+.warn { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--amber); border-radius: var(--radius); background: var(--amber-dim);
+        color: var(--text-primary); font-size: 14px; }
+.warn[hidden] { display: none; }
+
+dl.cond { display: grid; grid-template-columns: 1fr; gap: 2px 20px; margin: 0; }
+dl.cond dt { color: var(--text-primary); font-weight: 600; font-size: 14px; margin-top: 10px; }
+dl.cond dd { margin: 0; font-size: 14.5px; }
+@media (min-width: 720px) { dl.cond { grid-template-columns: 150px 1fr; } dl.cond dt { margin-top: 0; padding: 6px 0; }
+    dl.cond dd { padding: 6px 0; } }
+ul.open { margin: 0; padding-left: 18px; }
+ul.open li { margin-bottom: 8px; font-size: 14.5px; max-width: 76ch; }
+.eq { margin: 0 0 8px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-deep);
+      color: var(--text-primary); font-size: 14.5px; overflow-x: auto; white-space: nowrap; }
+.eq small { color: var(--text-muted); font-size: 12.5px; white-space: normal; display: block; margin-top: 4px; }
+details { margin-top: 14px; }
+summary { cursor: pointer; color: var(--accent-text); font-size: 14px; }
+pre { margin: 12px 0 0; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-deep);
+      color: var(--text-secondary); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; overflow-x: auto; }
+footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); max-width: 80ch; }
+footer p { margin: 0 0 8px; }
+.next { margin-top: 28px; font-size: 14.5px; max-width: 72ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="bar">
+        <div class="mark">Factor Lab <span>· Multi-Factor Screener</span></div>
+        <a href="index.html">Back to the screener</a>
+    </div>
+
+    <header class="lede">
+        <div class="eyebrow">Research you can rerun</div>
+        <h1>The research behind the screener, rerun.</h1>
+        <p>The screener's methodology rests on published studies. This page takes one of them, reproduces its headline result from data anyone can download, and shows how far the reproduction lands from the paper.</p>
+        <p>Then it hands you the controls. Change the period, the risk window or the borrowing limit and the result is recalculated in your browser.</p>
+        <p class="fine">A teaching tool, not investment advice. These are paper portfolios that hold some stocks and short others, with no trading costs.</p>
+    </header>
+
+    <main id="lab"><p class="fine">Loading the experiment…</p></main>
+
+    <footer id="foot"></footer>
+</div>
+
+<script src="lab_data.js"></script>
+<script src="lab_engine.js"></script>
+<script>
+(function () {
+    'use strict';
+    const D = window.LAB_DATA, E = window.LabEngine, root = document.getElementById('lab');
+    if (!D || !E) { root.innerHTML = '<p class="warn">The experiment data did not load.</p>'; return; }
+    const X = D.experiments[0], REF = X.reference, M = D.momentum;
+    const FIRST = M.months[0], LAST = M.months[M.months.length - 1];
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+    const sf2 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2);
+    const mon = k => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+k.slice(4) - 1] + ' ' + k.slice(0, 4);
+    const refState = () => ({ start: REF.start, end: REF.end, window: REF.window, target: REF.target, cap: REF.cap });
+    let S = refState();
+    const atRef = () => S.start === REF.start && S.end === REF.end && S.window === REF.window &&
+        Math.abs(S.target - REF.target) < 1e-9 && S.cap === REF.cap;
+
+    const PRESETS = [
+        ['The paper · 1927–2011', REF.start, REF.end],
+        ['After the paper · 2012–now', '201201', LAST],
+        ['1929–1939', '192901', '193912'],
+        ['2000–2010', '200001', '201012'],
+        ['Everything', FIRST, LAST],
+    ];
+    const WINDOWS = [[21, '1 month'], [63, '3 months'], [126, '6 months'], [252, '12 months']];
+    const CAPS = [[null, 'None'], [2, '2×'], [1.5, '1.5×'], [1, '1× · no borrowing']];
+
+    const res0 = X.result;
+    const verdict = res0.within === res0.total
+        ? `<strong>All ${res0.total} figures match the paper</strong> within the stated tolerances.`
+        : `<strong>${res0.within} of ${res0.total} figures match the paper</strong> within the stated tolerances. <span class="out">${res0.total - res0.within} outside</span>, and marked below.`;
+
+    const years = []; for (let y = +FIRST.slice(0, 4); y <= +LAST.slice(0, 4); y++) years.push(y);
+    const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    root.innerHTML = `
+    <article class="exp" aria-labelledby="x-title">
+        <section>
+            <div class="eyebrow">Experiment 1 · Momentum</div>
+            <h2 id="x-title">${esc(X.title)}</h2>
+            <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. <a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a></p>
+            <h3 style="margin-top:22px">The claim being tested</h3>
+            <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
+            <div class="verdict"><span>${verdict}</span><a href="#x-against">See every figure</a></div>
+        </section>
+
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                <div>
+                    <span class="ctl-label" id="l-period">Period</span>
+                    <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${PRESETS.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
+                    <div class="years"><label for="c-from">From</label><select id="c-from">${yopts}</select><label for="c-to">to</label><select id="c-to">${yopts}</select></div>
+                </div>
+                <div class="row2">
+                    <div>
+                        <span class="ctl-label" id="l-win">Risk measured over the last</span>
+                        <div class="seg" role="group" aria-labelledby="l-win" id="c-window">${WINDOWS.map(w => `<button type="button" data-v="${w[0]}">${w[1]}${w[0] === REF.window ? ' · paper' : ''}</button>`).join('')}</div>
+                    </div>
+                    <div>
+                        <span class="ctl-label" id="l-cap">Borrowing limit on exposure</span>
+                        <div class="seg" role="group" aria-labelledby="l-cap" id="c-cap">${CAPS.map(c => `<button type="button" data-v="${c[0] === null ? '' : c[0]}">${c[1]}${c[0] === REF.cap ? ' · paper' : ''}</button>`).join('')}</div>
+                    </div>
+                </div>
+                <div class="row2">
+                    <div>
+                        <label class="ctl-label" for="c-target">Target volatility, a year</label>
+                        <div class="range"><input type="range" id="c-target" min="6" max="20" step="1" value="12"><output id="o-target" for="c-target">12%</output></div>
+                    </div>
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
+                </div>
+            </div>
+
+            <p class="read" id="x-read" aria-live="polite"></p>
+
+            <div class="key" aria-hidden="true"><span class="a"><i></i>Risk-managed momentum</span><span class="b"><i></i>Plain momentum</span></div>
+            <p class="chart-title"><strong>What $1 became</strong>, compounding each month's return (log scale)</p>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum. The figures are in the table below."></div>
+            <p class="chart-title"><strong>Exposure each month</strong>: 1.0 is the plain strategy; above it means borrowing</p>
+            <div class="chart" id="ch-weight" role="img" aria-label="The risk-managed strategy's exposure each month."></div>
+
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Figure</th><th scope="col">Plain</th><th scope="col">Risk-managed</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Run at the paper's own settings (${mon(REF.start)} to ${mon(REF.end)}, six-month risk window, 12% target, no borrowing limit), this is each figure the paper reports beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">The tolerances were written down in the build, not chosen on this page: ${Object.keys(D.tolerances).map(k => esc(D.stat_labels[k].replace(/ \(%\)/, '')) + ' ±' + D.tolerances[k]).join(', ')}. They were set after the first comparison was seen, as round numbers, so read the differences themselves. Reference figures: ${esc(REF.source)}</p>
+        </section>
+
+        <section aria-labelledby="x-cond">
+            <h3 id="x-cond">The conditions used</h3>
+            <dl class="cond">${X.conditions.map(c => `<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl>
+        </section>
+
+        <section aria-labelledby="x-open">
+            <h3 id="x-open">What is still needed to call it verified</h3>
+            <ul class="open">${X.open_details.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+        </section>
+
+        <section aria-labelledby="x-scr">
+            <h3 id="x-scr">Where this sits in the screener</h3>
+            <p style="margin:0;max-width:76ch">${esc(X.in_the_screener)} The settings on this page are never used to set the screener's own.</p>
+        </section>
+
+        <section aria-labelledby="x-method">
+            <h3 id="x-method">The method, and the code that ran it</h3>
+            <div class="eq">forecast variance for month <i>t</i> &nbsp;=&nbsp; 21 × ( r<sub>1</sub><sup>2</sup> + r<sub>2</sub><sup>2</sup> + … + r<sub>126</sub><sup>2</sup> ) ÷ 126<small>r are the strategy's daily returns on the 126 trading days before month t begins. Times 12, square-rooted, it is a volatility a year.</small></div>
+            <div class="eq">exposure in month <i>t</i> &nbsp;=&nbsp; target volatility ÷ forecast volatility<small>Capped at the borrowing limit, if one is set.</small></div>
+            <div class="eq">risk-managed return in month <i>t</i> &nbsp;=&nbsp; exposure × plain momentum's return<small>Sharpe ratio = mean return a year ÷ volatility a year. It does not change with the target, unless the limit binds.</small></div>
+            <details><summary>Show the code this page just ran</summary><pre id="x-code"></pre></details>
+        </section>
+    </article>
+    <p class="next">More experiments are being added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Next: momentum crashes (Daniel and Moskowitz, 2016), the study the screener's momentum rule is built on.</p>`;
+
+    document.getElementById('x-code').textContent = E.run.toString() + '\n\n' + E.stats.toString();
+    document.getElementById('foot').innerHTML =
+        `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
+        `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
+        `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and the “After the paper” period shows how much a result can weaken once its sample ends.</p>`;
+
+    // --- the fixed comparison, from the build; the page recomputes it and says so if they differ
+    const rowsNow = E.compare(REF, E.run(M, refState()), D.tolerances, D.stat_labels);
+    const drift = rowsNow.filter((r, i) => Math.abs(r.here - res0.rows[i].here) > 1e-9).length;
+    if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+        w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+    const legName = { plain: 'Plain momentum', managed: 'Risk-managed momentum' };
+    let h = '', leg = '';
+    res0.rows.forEach(r => {
+        if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
+        h += `<tr><td>${esc(r.label)}</td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+    });
+    document.querySelector('#t-ref tbody').innerHTML = h;
+
+    // --- charts
+    const NS = 'http://www.w3.org/2000/svg';
+    function yearTicks(months, maxTicks) {
+        const y0 = +months[0].slice(0, 4), y1 = +months[months.length - 1].slice(0, 4);
+        const step = [1, 2, 5, 10, 20, 25, 50].find(s => (y1 - y0) / s <= maxTicks) || 50;
+        const out = [];
+        for (let y = Math.ceil((y0 + (months[0].slice(4) === '01' ? 0 : 1)) / step) * step; y <= y1; y += step) {
+            const i = months.indexOf(y + '01'); if (i >= 0) out.push([i, y]);
+        }
+        return out;
+    }
+    function dollars(v) {
+        if (v >= 1e6) return '$' + +(v / 1e6).toPrecision(2) + 'M';
+        if (v >= 1e3) return '$' + +(v / 1e3).toPrecision(2) + 'k';
+        if (v >= 1) return '$' + +v.toPrecision(2);
+        return '$' + v.toFixed(2);
+    }
+    function draw(el, months, series, opt) {
+        const W = Math.max(280, el.clientWidth || 600), H = opt.height, L = 46, R = 10, T = 8, B = 22;
+        const n = months.length, x = i => L + (n > 1 ? i / (n - 1) : 0) * (W - L - R);
+        let lo = Infinity, hi = -Infinity;
+        series.forEach(s => s.v.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
+        if (opt.min !== undefined) lo = Math.min(lo, opt.min);
+        if (opt.max !== undefined) hi = Math.max(hi, opt.max);
+        if (hi - lo < 1e-9) hi = lo + 1;
+        const pad = (hi - lo) * .04; lo -= opt.min === lo ? 0 : pad; hi += pad;
+        const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+        let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        opt.ticks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        (opt.refs || []).forEach(v => { if (v > lo && v < hi) s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; });
+        yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
+        series.forEach(se => { let d = ''; se.v.forEach((v, i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }); s += `<path class="${se.cls}" d="${d}"/>`; });
+        el.innerHTML = s + '</svg>';
+    }
+    const logTicks = (lo, hi) => { const out = []; for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) out.push([p, dollars(Math.pow(10, p))]);
+        if (out.length < 2) { out.length = 0; [lo + (hi - lo) * .1, (lo + hi) / 2, hi - (hi - lo) * .1].forEach(v => out.push([v, dollars(Math.pow(10, v))])); }
+        return out.length > 7 ? out.filter((_, i) => i % 2 === 0) : out; };
+    const linTicks = (lo, hi) => { const step = [.25, .5, 1, 2, 5].find(s => (hi - lo) / s <= 5) || 5, out = [];
+        for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push([v, v.toFixed(step < 1 ? 2 : 1)]); return out; };
+
+    // --- the live run
+    let last = null;
+    function render() {
+        const r = last = E.run(M, S), ps = r.plain_stats, ms = r.managed_stats, read = document.getElementById('x-read');
+        document.querySelectorAll('#c-preset button').forEach(b => { const p = PRESETS[+b.dataset.i]; b.setAttribute('aria-pressed', String(p[1] === S.start && p[2] === S.end)); });
+        document.querySelectorAll('#c-window button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === S.window)));
+        document.querySelectorAll('#c-cap button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === '' ? null : +b.dataset.v) === S.cap)));
+        document.getElementById('c-from').value = S.start.slice(0, 4); document.getElementById('c-to').value = S.end.slice(0, 4);
+        document.getElementById('c-target').value = Math.round(S.target * 100); document.getElementById('o-target').textContent = Math.round(S.target * 100) + '%';
+        document.getElementById('c-reset').hidden = atRef();
+        const body = document.querySelector('#t-live tbody');
+        if (!ps || !ms) {
+            read.textContent = 'There are too few months with a risk forecast in this period to measure anything. Widen the period.';
+            body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('ch-weight').innerHTML = '';
+            document.getElementById('x-live-note').textContent = ''; return;
+        }
+        const better = ms.sharpe > ps.sharpe ? 'higher' : ms.sharpe < ps.sharpe ? 'lower' : 'the same';
+        read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, plain momentum's Sharpe ratio was <strong>${f2(ps.sharpe)}</strong> and its worst month <strong>${f2(ps.min)}%</strong>. Risk-managed, the Sharpe ratio was <strong>${f2(ms.sharpe)}</strong> (${better}) and the worst month <strong>${f2(ms.min)}%</strong>. Exposure ran from ${r.weight_stats.min.toFixed(2)} to ${r.weight_stats.max.toFixed(2)} and averaged ${r.weight_stats.mean.toFixed(2)}.`;
+        const fallP = E.deepestFall(r.plain) * 100, fallM = E.deepestFall(r.managed) * 100;
+        const line = (label, a, b) => `<tr><td>${label}</td><td>${a}</td><td>${b}</td></tr>`;
+        body.innerHTML = line('Sharpe ratio', f2(ps.sharpe), f2(ms.sharpe)) + line('Mean, a year (%)', f2(ps.mean), f2(ms.mean)) +
+            line('Volatility, a year (%)', f2(ps.std), f2(ms.std)) + line('Worst month (%)', f2(ps.min), f2(ms.min)) +
+            line('Best month (%)', f2(ps.max), f2(ms.max)) + line('Deepest fall from a high (%)', f2(fallP), f2(fallM)) +
+            line('Skewness', f2(ps.skew), f2(ms.skew)) + line('Excess kurtosis', f2(ps.kurt), f2(ms.kurt));
+        document.getElementById('x-live-note').textContent = atRef()
+            ? 'These are the paper\'s own settings; the comparison with its published figures is in the next section.'
+            : 'These settings differ from the paper\'s, so there is no published figure to compare them with. The two strategies also run at different risk: read the Sharpe ratio, not the height of the lines.';
+        const lg = v => v.map(z => Math.log10(Math.max(z, 1e-9)));
+        draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(E.growth(r.plain)) }, { cls: 'managed', v: lg(E.growth(r.managed)) }],
+            { height: 300, ticks: logTicks, refs: [0] });
+        draw(document.getElementById('ch-weight'), r.months, [{ cls: 'managed', v: r.weights }], { height: 150, ticks: linTicks, refs: [1], min: 0 });
+    }
+    function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+    document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = PRESETS[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
+    document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
+    document.getElementById('c-cap').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ cap: b.dataset.v === '' ? null : +b.dataset.v }); });
+    document.getElementById('c-from').addEventListener('change', e => set({ start: e.target.value + '01' }));
+    document.getElementById('c-to').addEventListener('change', e => set({ end: e.target.value + '12' }));
+    document.getElementById('c-target').addEventListener('input', e => set({ target: +e.target.value / 100 }));
+    document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+    let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+    window.LAB_STATE = () => ({ settings: Object.assign({}, S), result: last });
+    render();
+})();
+</script>
+</body>
+</html>

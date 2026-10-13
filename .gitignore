@@ -47,3 +47,8 @@ logs/
 
 # Misc
 n_ull
+
+# Factor Lab source files from the Kenneth R. French Data Library: re-downloadable
+# (python factor_lab.py --fetch) and not ours to republish. lab_data.js, the derived
+# series the page needs, IS tracked.
+data/lab/
