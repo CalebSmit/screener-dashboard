@@ -99,6 +99,21 @@ MODULES: tuple[tuple[str, str], ...] = (
      "the size tilt is described as what the code does"),
     ("tests/test_risk_category_independence.py",
      "the risk category's documented construction matches the code"),
+    # Added 2026-10-13. All four assert on the methodology page's text *through the
+    # generator* rather than through the committed file, which is the better way
+    # (rule 10) and was the one the gate's membership tripwire could not see. 83
+    # tests, 12.9s measured.
+    ("tests/test_growth_category.py",
+     "the Growth section's claims hold for the run being published - that the "
+     "ranking taken whole is close to growth-neutral, which is why the weight "
+     "was kept on 2026-10-13"),
+    ("tests/test_large_company_evidence.py",
+     "the large-company value and momentum figures on the page match the lab's data"),
+    ("tests/test_momentum_panic_rule.py",
+     "the page describes the momentum regime rule the engine actually applies"),
+    ("tests/test_factor_lab.py",
+     "the page's 'Rerun the research' paragraph matches the experiments that exist, "
+     "and the lab's scorecard carries the screener's own weights"),
     ("tests/test_stock_summary.py",
      "no baked summary carries advice language"),
     ("tests/test_dashboard_surfaces.py",

@@ -18,6 +18,13 @@ the Growth score.** The screener spends 13% of its weight on Growth and ends up 
 built:** Growth 13 -> 10, Quality 22 -> 25, for a second session to review - section 7 says why it
 was not made tonight and what would be a good reason to refuse it.
 
+**Reviewed 2026-10-13 and refused - see section 10.** The measurement that decided it: net growth
+exposure is not flat in the weight, it crosses zero at **13.5** and the near-neutral band is
+**11-16**, because Growth is the only category whose score runs against the rest (-0.388 against
+the mean of the other seven). So 13 points is what *buys* the neutrality this note found, and
+cutting to 10 would not remove a position on growth - it would take one, in a direction the
+evidence cannot settle. The weight stays at 13%, and the methodology page now says why.
+
 ---
 
 ## 1. What the category is, as built
@@ -214,7 +221,9 @@ is no `METHODOLOGY_CHANGELOG.md` entry.
 
 ## 7. Proposed for review: Growth 13 -> 10, Quality 22 -> 25
 
-**Proposal status: OPEN** - Growth 13% -> 10%, Quality 22% -> 25% (section 7 of this note)
+**Proposal status: DECIDED 2026-10-13** - refused. The reasoning, and the measurement that
+decided it, are in **section 10** below. The weight stays at 13%, now on purpose and said so on
+the methodology page.
 
 *(The line above is read by the morning brief. Whoever decides this rewrites it:
 `**Proposal status: DECIDED 2026-MM-DD** - built` or `- refused`, with the reason below.)*
@@ -312,3 +321,144 @@ are from memory where the copy read was a working paper or draft.
 * Dimensional Fund Advisors. Dimensional at a Glance (07/26).
 
 Second-hand only, not read: La Porta, R. (1996), Expectations and the cross-section of stock returns, *Journal of Finance* 51(5); Dechow, P. & Sloan, R. (1997), Returns to contrarian investment strategies, *Journal of Financial Economics* 43(1). Their spreads are quoted from Bordalo et al.'s footnote 5.
+
+## 10. The review, 2026-10-13: refused, and the weight stated as deliberate
+
+*Written by the 06:00 session of 2026-10-13, which did not write sections 1-9. The proposal in
+section 7 was reviewed as put, with its own case-against weighed rather than skimmed, and
+**refused**. No weight, metric or threshold moved, so there is no `METHODOLOGY_CHANGELOG.md`
+entry; what shipped instead is a paragraph on the public methodology page saying why 13% is where
+it is, and the tests that hold it true.*
+
+### What the review added that section 7 did not have
+
+Section 7 measured one point: the composite's Spearman with the Growth score moves from -0.01 at
+weight 13 to -0.06 at weight 10. A reviewer needs the **curve**, because the two readings of the
+same evidence make different predictions and one point cannot separate them:
+
+- *"Weight belongs where evidence is"* (section 7's argument) - Growth has no premium of its own,
+  Quality has one, so move 3 points. On this reading the shape of the curve is irrelevant.
+- *"A trait that earns nothing should be neither rewarded nor penalised"* - the right weight is
+  whichever leaves the ranking neutral on growth, and moving off it is a disimprovement.
+
+The separating test: if net growth exposure is **flat** across a wide band of weights, neutrality
+is not a real constraint and the first reading wins on the evidence. If it moves **steeply through
+zero near 13**, the 13 points are buying neutrality and the second reading is live.
+
+`research/measurements/2026-10-13-growth-weight-sweep.py`, on the published run of 2026-10-13
+02:00 (501 stocks; the approximation reproduces the published ranking at Spearman 1.0000, 25 of
+the top 25). Growth swept 0-26, the freed or borrowed points going to Quality as the proposal
+does, and pro rata as the neutral alternative:
+
+| Growth weight | 0 | 5 | 10 | **13** | 16 | 20 | 26 |
+|---|---|---|---|---|---|---|---|
+| composite's Spearman with the Growth score | -0.199 | -0.136 | **-0.060** | **-0.009** | +0.048 | +0.130 | +0.258 |
+| top 25 kept vs today | 16 | 21 | 25 | 25 | 24 | 22 | 18 |
+
+- **Exposure is not flat.** It is monotonic over the whole sweep, range -0.199 to +0.258, slope
+  **+0.0181 of correlation per point** of weight near the current setting.
+- **Zero exposure is at weight 13.5** (13.3 if the points are spread pro rata). The configured
+  weight is 13 - within half a point of exactly neutral.
+- The band in which |exposure| stays <= 0.05 is **weights 11 to 16**. The proposed 10 is just
+  outside it.
+- **Growth is the only category that runs against the composite's grain.** Each category's score
+  against the mean of the other seven: Growth **-0.388**, every other category between -0.055
+  (Size) and +0.158 (Valuation). Nothing else in the composite does this job, so Growth's weight
+  *is* the growth-exposure dial.
+
+So the first reading's premise is false in this composite. Weight on a category and exposure to
+the trait it measures are not the same thing when the category is the hedge. **Cutting the weight
+of an unrewarded-but-offsetting category does not remove a position on growth - it takes one.**
+
+### Why that refuses the proposal
+
+The proposal's own justification is that growth as measured earns nothing. If that is right, the
+supported *exposure* is zero, and zero is what 13 delivers. Moving to 10 puts the ranking at
+-0.06: a small position against growth, taken on evidence that does not establish the sign.
+
+Re-reading section 2 for sign rather than for size, the four strands do not agree:
+
+| Strand | Sign | Conditions |
+|---|---|---|
+| Da & Warachka 2011, one-year forecast growth (nearest to the 45% metric) | **none** - 0.0003, t 1.46; -0.0009, t -0.81 with revisions and surprise | within industries, 1983-2006 |
+| Bordalo et al. 2019, long-term forecast growth | **none after controls** - monthly alpha 0.03%, s.e. 0.18 | 1981-2015, equal-weighted |
+| Lakonishok, Shleifer & Vishny 1994, past sales growth | **negative** - 2.9 to 5.8 pts/yr among large stocks at fixed cash-flow-to-price | **five-year** growth, market-wide, 1968-1990, equal-weighted |
+| MSCI FaCS, pure Growth factor | **slightly positive** - 0.89%/yr, information ratio 0.80 | global model, 1995-2016, 70% long-term forecast |
+
+The one clearly negative result is the furthest from what this category measures (five-year
+market-wide growth, not sector-relative one- and three-year growth), from the oldest sample, and
+equal-weighted; the only estimate from the modern era with modern controls is slightly positive.
+**The honest summary is that the sign is unidentified** - which section 7's own case-against #4
+says, without carrying it through to the conclusion. A position whose direction the evidence
+cannot settle is not one this screener should take, and the current weight is what keeps it from
+taking one.
+
+### The parts of section 7 that survive, and where they belong
+
+The metric-by-metric critique in sections 2 and 4 is sound and is **not** answered by this
+refusal. But every item in it is about the category's *composition*, not its weight:
+
+- `forward_eps_growth` (5.85 points) has no effect of its own, and what raw effect it shows is
+  momentum and revisions, which already carry 23 points.
+- `revenue_growth` is +0.51 with `asset_growth`, which Investment scores the other way: for most
+  companies two categories argue about the same fact.
+- `sustainable_growth` is 0.79 with ROIC - Quality counted a second time.
+
+Trimming the category by 3 points does none of those three any good: it shrinks all four metrics
+including the one (`sustainable_growth`) that points the way the evidence does, and leaves the
+duplication exactly where it was. **The composition questions in section 8 are the real next
+work**, and they are now the open Growth question rather than the weight.
+
+### Also weighed
+
+- **Case-against #1 (it barely matters)** is correct, and counts against building rather than
+  against refusing: one name in 25, at the cost of a methodology that changed for a small reason.
+- **Case-against #3** holds: experiment 8 found a long-only holder keeps under half of
+  profitability's premium among large companies, and what Quality is *for* is still question 5.
+  "Move it to the best-supported factor" is weaker than it sounds while that is unanswered.
+- **Is 13 points an expensive instrument for neutrality?** In principle, yes - MSCI's Diversified
+  Multiple-Factor indexes neutralise growth with an exposure *constraint* in the optimiser and
+  spend no score weight on it (methodology May 2022, p. 3). That is a real design question and it
+  is recorded in section 11. It is not an argument for the proposal, which neither neutralises
+  more cheaply nor keeps neutrality; and an exposure constraint bolted onto an eight-category
+  weighted average of percentiles would cost this tool the thing it is best at - a reader can add
+  the eight numbers up by hand. CLAUDE.md's trade applies: a change that improves a number while
+  making the tool harder to explain is usually a bad one.
+- **The 13 was not originally chosen for this.** It was inherited, and the neutrality was
+  discovered on 2026-10-12, not designed. The page therefore says the weight *stays* at 13% after
+  review, with the reason - not that it was set that way on purpose. Keeping a value for a reason
+  found later is legitimate; claiming it was the original intent would not be.
+
+### What shipped with this review
+
+- The methodology page's Growth section gains **"Why the weight stays at 13%"** (the generator,
+  `build_screener_overview`): that Growth is the only category running against the others, that
+  its weight is therefore the growth-exposure dial, that the ranking at 13% leans neither way,
+  that reducing it would take a position rather than remove one, and that the evidence does not
+  settle the sign. It names this measurement script.
+- `tests/test_growth_category.py` gains six tests: the page says why the weight was kept; the
+  paragraph must be rewritten if the weight ever moves; **the published ranking really is within
+  0.05 of growth-neutral** (the assertion, not the plumbing); Growth really is the category that
+  runs against the others; the note records a decision rather than an open proposal; the sweep
+  script runs from a clean checkout.
+- The module was added to the data loop's publish gate (`scripts/check_published_claims.py`), and
+  the gate's membership tripwire now catches a test that asserts on the methodology page **through
+  the generator** as well as through the committed file - the 2026-09-28 class of hole, one level
+  up. Reading the generator is the better way (CLAUDE.md rule 10) and was the way the detector
+  could not see.
+
+## 11. Left open by the review
+
+- **The composition questions in section 8 are now the Growth question**, in this order: the sign
+  of `revenue_growth` against `asset_growth` (two categories, one fact, opposite directions);
+  whether growth in profitability - the one growth measure with a published premium (Asness,
+  Frazzini & Pedersen 2019, 0.17% a month, t 2.46) - belongs in Quality; and whether
+  `sustainable_growth` should be there instead. A Monday.
+- **Is a score weight the right instrument for a neutrality the screener wants?** MSCI constrains
+  the exposure instead. Answering it means pricing the explainability cost, so it is a design
+  note, not a weight change.
+- **What the ranking's growth exposure does over time.** -0.01 is one run. The sweep script can be
+  pointed at any published payload; a session with the rank history could say whether the
+  neutrality is stable or an accident of this month's cross-section. Until that is known the page
+  says "close to neutral" rather than a figure, and the test holds the band rather than the point.
+- La Porta (1996) and Dechow & Sloan (1997) remain unread, as section 8 said.
