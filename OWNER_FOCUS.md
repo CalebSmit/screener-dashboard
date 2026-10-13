@@ -60,7 +60,9 @@ Add items below. Anything under this heading is unclaimed work.
     note lists what each needs. A full rehearsal of the 02:00 publish with tonight's code passed
     the whole suite. Experiment 9 reruns Israel & Moskowitz (2013) in the largest fifth of
     companies: the paper's figures there reproduce, and momentum since 2000 is 2.7% a year
-    (t 0.54) - the flat stretch is in the largest fifth as well.
+    (t 0.54) - the flat stretch is in the largest fifth as well. **Your morning brief now has a
+    "Waiting for a decision" section** listing any proposal a session left for review, with how
+    many days it has been open - today, the Growth one.
   - **2026-10-13 (owner-run, just after midnight) - the second question is researched too: value
     and momentum among large companies.**
     `research/2026-10-12-value-and-momentum-among-large-companies.md`. Value on book value was

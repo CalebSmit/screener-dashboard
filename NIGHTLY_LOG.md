@@ -10424,3 +10424,35 @@ nightly sessions are ready to go moving forward"*
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** scheduled tasks read back as above; none was changed.
+
+## 2026-10-13 (owner-run, last before the 02:00 run) - open proposals in the morning brief
+
+**Health (rule 8):** unchanged since the last entry - both loops ran 2026-10-12, HEALTH: PASS;
+evidence base at `1m` **28 rows, newest 2026-09-11 (32 days, bound 40), 4 effective**; priority 0
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 1 day).
+**Tests:** before 2222 passed / 0 failed; after 2227 passed / 0 failed.
+
+### Did
+- **`MORNING_BRIEF.md` gains "Waiting for a decision"** (`write_brief.open_proposals`). A
+  research note that proposes a change and leaves it for review carries one line,
+  `**Proposal status: OPEN** - <what>`; the brief lists each with its age in days until the
+  line is rewritten. About two scheduled sessions in three did not start at all in August; a
+  proposal that only a session can see would have waited on that. The Growth note carries the
+  line. The function never raises - the brief is written from `finally`.
+  `tests/test_morning_brief.py::TestOpenProposals`, 5 tests.
+- **The plan's questions 3 and 4 now point at the notes that already researched part of them**
+  (2026-08-31 on size, 2026-09-02 on category independence), so a Monday does not start from
+  scratch.
+- **The bot's next run was rehearsed** against the published rankings (`python -m bot.rehearse
+  --date 2026-10-13`): no orders due, a second equity row per account, exit 0.
+
+### Methodology changed
+- None.
+
+### Gates
+1. **2227 passed / 0 failed** (baseline 2222 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit. No generator was touched in this commit; the full publish rehearsal
+passed on the commit before it.
+
+**Machine state, rule 11:** nothing changed; the three tasks were read back earlier tonight.

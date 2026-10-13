@@ -787,7 +787,10 @@ layout through an optional `split` record on the experiment; 5 of 12 within, the
 largest-fifth figures all matching. **`prompts/nightly.md` section 3 now carries the lab, the
 route to a weight, the waiting proposal and how to read a paper** - keep it true when any of
 them changes. The Growth proposal was pre-flighted (the note's section 7 lists the eight tests it
-trips). Friday 2026-10-16 is a retrospective; the lab's next day is 2026-10-23.
+trips). Friday 2026-10-16 is a retrospective; the lab's next day is 2026-10-23. **A note that
+proposes a change for someone else to decide carries `**Proposal status: OPEN** - <what>`; the
+morning brief lists every open one with its age (`write_brief.open_proposals`), and whoever
+decides rewrites the line.**
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.
