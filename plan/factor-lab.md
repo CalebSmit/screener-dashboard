@@ -98,7 +98,7 @@ Ranked by weight at stake times how little stands behind it. Each is a Monday.
 | # | Question | Weight | What the lab has | Read first |
 |---|---|---|---|---|
 | 1 | **What is the case for Growth?** **RESEARCHED 2026-10-12 - `research/2026-10-12-growth-category.md`.** No published premium for growth as the category measures it; index providers treat it as a style; in the composite it is a counterweight (the published ranking's correlation with the Growth score is -0.01). **A proposal waits for a second session's review: Growth 13 -> 10, Quality 22 -> 25** - section 7 of the note has the argument, the case against, and the build list. Decide and record it either way. | 13% | Nothing of its own; experiments 3 and 8 for asset growth and value | The note |
-| 2 | **Momentum and value among large companies.** Momentum has averaged +0.08% a month among big companies since 2000; value 0.19% over the whole record, t 1.56. Decay, or a drought? | 13% + 22% | Experiment 8 | Israel & Moskowitz (2013), "The role of shorting, firm size, and time on market anomalies" - the published study of exactly this, and the next experiment to rerun (from memory; verify the tables) |
+| 2 | **Momentum and value among large companies.** **RESEARCHED 2026-10-12 - `research/2026-10-12-value-and-momentum-among-large-companies.md`.** Two different stories. Value on book-to-market was never reliably there among the largest stocks (Israel & Moskowitz 2013; AQR 2015), the premium is larger on the earnings and cash-flow measures the screener weights, and about 90% of it is the long side. Momentum is strong in every published sample and flat on the public data since 2000 - the lowest 320-month window on record; outside the panic state +0.33% a month. **Lab and literature disagree, so by the reading rules the weight stays.** Recorded as the composite's least well-supported large weight. | 13% + 22% | Experiment 8; the measurement script | The note; then rerun Israel & Moskowitz's largest quintile (queue) |
 | 3 | **Is Investment Valuation counted twice?** Correlation 0.70 across all stocks, 0.52 among big companies; the paper's own regression leaves value nothing once investment and profitability are in. | 5% (+22%) | Experiments 3 and 8 | Fama & French (2015) section 7; Hou, Xue & Zhang (2015) (from memory; verify) |
 | 4 | **Is Size worth 5%?** 0.10% a month between the two largest groups, distinguishable from zero only over a century. | 5% | Experiment 4 | Asness et al. (2018), "Size matters, if you control your junk" (from memory; verify) |
 | 5 | **What is Quality for?** Profitability is the one factor as strong among big companies as small, and the only one above the bar there since 2000 - but under half of it is the held side; most is unprofitable companies lagging. That reads as a screen that keeps weak names out, not one that lifts strong ones. Only worth asking about its weight once 1-4 free any. | 22% | Experiments 3 and 8 | Novy-Marx (2013); Asness, Frazzini & Pedersen (2019) |
@@ -232,6 +232,12 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   category's weight from `config.yaml`, what the lab measured among large companies, what that
   leaves open. **"From the lab to the weights" above is the process and the ranked questions** -
   start a Monday there. Eight experiments, 76 of 112 figures within tolerance.
+  **After midnight: question 2 (value and momentum among large companies) was researched** from
+  six more papers - `research/2026-10-12-value-and-momentum-among-large-companies.md`. No weight
+  proposed to change; the methodology's Valuation and Momentum sections now state the
+  large-company evidence, and momentum's record since 2000, with the figures held to the lab's
+  data by `tests/test_large_company_evidence.py`. **Next for the lab: rerun Israel & Moskowitz
+  (2013)** - the largest size quintile, long and short sides, by period, to 2026.
   **Near midnight: question 1 (Growth) was researched** from six papers and the index providers'
   own methodology documents - `research/2026-10-12-growth-category.md`. The methodology page and
   the scorecard's Growth row say what it found. No weight moved; a 3-point proposal waits for

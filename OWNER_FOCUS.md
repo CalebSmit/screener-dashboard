@@ -52,6 +52,16 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-13 (owner-run, just after midnight) - the second question is researched too: value
+    and momentum among large companies.**
+    `research/2026-10-12-value-and-momentum-among-large-companies.md`. Value on book value was
+    never reliably there among the largest stocks, but the screener weights earnings and cash-flow
+    measures, where the published large-company evidence is better, and nearly all of that premium
+    is on the side a long-only book keeps. Momentum is strong in every published study and has
+    been flat among big companies on the public data since 2000 - a longer, lower stretch than
+    any on record, which no published study yet covers. **No weight change is proposed:** the lab
+    and the literature disagree, and the rule written beforehand says the weight then stays.
+    The methodology page now tells a reader all of this instead of quoting all-stock figures.
   - **2026-10-12 (owner-run, near midnight) - the first of the five questions is researched:
     Growth's 13%.** `research/2026-10-12-growth-category.md`, from six papers and MSCI's and S&P's
     methodology documents. No published return premium stands behind growth as the category

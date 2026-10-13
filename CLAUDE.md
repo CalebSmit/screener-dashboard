@@ -775,7 +775,13 @@ no published premium stands behind growth as the category measures it, and its j
 composite is a counterweight to Valuation, Investment and Size. **A proposal - Growth 13 -> 10,
 Quality 22 -> 25 - is waiting for a second session to review and decide** (section 7 of the note;
 `tests/test_growth_category.py::test_no_weight_moved_with_the_note` holds the config until a
-changelog entry cites the note).
+changelog entry cites the note). **Question 2 is researched too**
+(`research/2026-10-12-value-and-momentum-among-large-companies.md`): large-company value was never
+reliable on book value and is better supported on the earnings and cash-flow measures the screener
+uses; large-company momentum is strong in every published sample and flat on the public data since
+2000. Lab and literature disagree, so the weight stays - **do not cut Momentum on the lab's number
+alone, and do not quote an all-stock premium for either category on the methodology page again**
+(`tests/test_large_company_evidence.py` holds the page's figures to the lab's data).
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.

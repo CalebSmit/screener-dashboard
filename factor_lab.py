@@ -91,8 +91,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
-# 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review.
-ASSET_VERSION = 13
+# 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
+# 14 = its Valuation and Momentum rows after theirs.
+ASSET_VERSION = 14
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1349,17 +1350,20 @@ CATEGORY_MAP = [
 # "open" is written by hand; every figure in "measured" is computed below, and the words
 # around the figures are checked against the data by the tests.
 SCORECARD_OPEN = {
-    "valuation": ("The screener's own valuation measures - cash flow and earnings against the value of "
-                  "the whole business, compared within sectors - are not what these portfolios sort on "
-                  "and have not been rerun."),
+    "valuation": ("Reviewed 2026-10-12: on book value there was never a reliable premium among the "
+                  "largest companies, and the published studies find it larger on earnings and cash-flow "
+                  "measures, which are the ones the screener weights. Those measures, compared within "
+                  "sectors, have still not been rerun here."),
     "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
                 "profitability among large companies. Neither can be rerun on public data."),
     "growth": ("The research was read on 2026-10-12: index providers treat growth as a style, not a "
                "rewarded factor, and the studies of sales growth and growth forecasts run flat to "
                "negative. In the screener the category works as a counterweight to Valuation. A "
                "3-point reduction is proposed and awaiting a second review."),
-    "momentum": ("Whether so little among large companies since 2000 is decay or a long drought. "
-                 "The crash rule (experiment 2) addresses momentum's worst months, not its average."),
+    "momentum": ("Reviewed 2026-10-12: every published study finds momentum among large companies, "
+                 "and none has data past 2014. Outside the panic state the crash rule watches for, it "
+                 "has averaged about 0.3% a month since 2000. The lab and the literature disagree, so "
+                 "the weight stays, as the least well-supported of the large ones."),
     "risk": ("The category lowers risk for a similar return. It is not evidence of a higher one, and "
              "the methodology now says so."),
     "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
