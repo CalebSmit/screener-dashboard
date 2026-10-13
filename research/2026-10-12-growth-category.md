@@ -214,6 +214,11 @@ is no `METHODOLOGY_CHANGELOG.md` entry.
 
 ## 7. Proposed for review: Growth 13 -> 10, Quality 22 -> 25
 
+**Proposal status: OPEN** - Growth 13% -> 10%, Quality 22% -> 25% (section 7 of this note)
+
+*(The line above is read by the morning brief. Whoever decides this rewrites it:
+`**Proposal status: DECIDED 2026-MM-DD** - built` or `- refused`, with the reason below.)*
+
 **The argument.** Weight should sit where evidence is. Growth has none of its own; Quality is the
 best-supported category among large companies in the lab (experiment 8) and in every rewarded-
 factor set in section 3, and it is what the growth literature itself says to look at. The step is

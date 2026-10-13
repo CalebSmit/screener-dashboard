@@ -186,6 +186,9 @@ import it. Three things to know before you start:
   changelog entry, or refuse it and write down why; section 7 has the argument, four
   reasons to refuse, and a **pre-flight** listing exactly which eight tests the change
   trips and what each needs. Do not decide it by skimming, and do not leave it undecided.
+  When you have decided, rewrite the note's `**Proposal status: OPEN**` line (the morning
+  brief lists every open one with its age until you do). A future note that proposes a
+  change for someone else to decide carries the same line.
 - **Reading rules were written before the questions were researched** (same section of
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock

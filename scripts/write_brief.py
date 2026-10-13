@@ -256,6 +256,37 @@ def context_record() -> str:
         return "no context evaluation yet"
 
 
+# A research note that proposes a change and leaves it for a second session to decide carries
+# one line:  **Proposal status: OPEN** - <what is proposed>   The session that decides rewrites
+# it (DECIDED <date> - built / refused). Until then the brief shows it with its age, because a
+# proposal nobody is reminded of is a decision made by default.
+PROPOSAL_OPEN = re.compile(r"^\*\*Proposal status: OPEN\*\*\s*-\s*(.+?)\s*$", re.M)
+
+
+def open_proposals(research_dir: Path | None = None, today: datetime | None = None) -> list[str]:
+    """One line per research note with an open proposal, oldest first. Never raises: the brief
+    is written from a `finally` and must not be the thing that fails."""
+    research_dir = research_dir or ROOT / "research"
+    today = today or datetime.now()
+    out = []
+    try:
+        notes = sorted(research_dir.glob("20??-??-??-*.md"))
+    except OSError:
+        return out
+    for note in notes:
+        try:
+            found = PROPOSAL_OPEN.search(note.read_text(encoding="utf-8", errors="replace"))
+            opened = datetime.strptime(note.name[:10], "%Y-%m-%d")
+        except (OSError, ValueError):
+            continue
+        if not found:
+            continue
+        days = max(0, (today.date() - opened.date()).days)
+        age = "today" if days == 0 else f"{days} day{'' if days == 1 else 's'}"
+        out.append(f"**{found.group(1)}** - open {age} - `research/{note.name}`")
+    return out
+
+
 def last_log_entry() -> str:
     """The most recent dated section of NIGHTLY_LOG.md, lightly trimmed."""
     p = ROOT / "NIGHTLY_LOG.md"
@@ -329,6 +360,17 @@ def main() -> int:
     a(f"| Context signals | {context_record()} |")
     a(f"| Context coverage | {context_coverage()} |")
     a("")
+
+    proposals = open_proposals(today=now)
+    if proposals:
+        a("## Waiting for a decision")
+        a("")
+        a("A session researched these, proposed a change and left it for review. The next")
+        a("session decides and records why; you can also answer in `OWNER_FOCUS.md`.")
+        a("")
+        for p in proposals:
+            a(f"- {p}")
+        a("")
 
     payload_notes = []
     if facts.get("missing_keys"):

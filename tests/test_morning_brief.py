@@ -145,3 +145,48 @@ class TestStallBanner:
         assert wb.outcome(
             ["[06:00:01] [ERROR] SHIP GATES FAILED"]
         )[0] == "stopped deliberately"
+
+
+class TestOpenProposals:
+    """A research note may propose a change and leave it for a second session. The brief lists
+    every such proposal with its age until someone decides it - otherwise the default decision
+    is whichever one nobody noticed being made."""
+
+    def note(self, folder, name, body):
+        (folder / name).write_text(body, encoding="utf-8")
+
+    def test_an_open_proposal_is_listed_with_its_age(self, tmp_path):
+        from datetime import datetime
+        self.note(tmp_path, "2026-10-12-growth-category.md",
+                  "# Growth\n\n**Proposal status: OPEN** - Growth 13% -> 10%, Quality 22% -> 25%\n")
+        got = wb.open_proposals(tmp_path, datetime(2026, 10, 15, 6, 0))
+        assert got == ["**Growth 13% -> 10%, Quality 22% -> 25%** - open 3 days - "
+                       "`research/2026-10-12-growth-category.md`"]
+        assert "open today" in wb.open_proposals(tmp_path, datetime(2026, 10, 12, 23, 0))[0]
+        assert "open 1 day -" in wb.open_proposals(tmp_path, datetime(2026, 10, 13, 2, 0))[0]
+
+    def test_a_decided_proposal_and_an_ordinary_note_are_not(self, tmp_path):
+        self.note(tmp_path, "2026-10-12-a.md", "**Proposal status: DECIDED 2026-10-13** - built\n")
+        self.note(tmp_path, "2026-10-12-b.md", "A note that mentions Proposal status: OPEN in a sentence.\n")
+        self.note(tmp_path, "README.md", "**Proposal status: OPEN** - not a dated note\n")
+        assert wb.open_proposals(tmp_path) == []
+
+    def test_a_missing_folder_or_an_odd_file_never_raises(self, tmp_path):
+        assert wb.open_proposals(tmp_path / "nowhere") == []
+        (tmp_path / "2026-10-12-broken.md").write_bytes(b"\xff\xfe**Proposal status: OPEN** - x\n")
+        assert isinstance(wb.open_proposals(tmp_path), list)
+
+    def test_the_growth_proposal_is_open_until_a_changelog_entry_takes_it_up(self):
+        """Tied to the same condition as tests/test_growth_category.py: once the changelog cites
+        the note, the status line must have been rewritten too."""
+        changelog = (ROOT / "METHODOLOGY_CHANGELOG.md").read_text(encoding="utf-8")
+        listed = [p for p in wb.open_proposals() if "2026-10-12-growth-category.md" in p]
+        if "research/2026-10-12-growth-category.md" in changelog:
+            assert listed == [], "the proposal was taken up in the changelog; rewrite its status line"
+        else:
+            assert len(listed) == 1 and "Growth 13% -> 10%" in listed[0]
+
+    def test_the_brief_has_a_section_for_them(self):
+        src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
+        assert '"## Waiting for a decision"' in src and "open_proposals(today=now)" in src
+
