@@ -1515,6 +1515,30 @@ def fetch_market_returns(max_retries: int = 3) -> pd.Series:
     return pd.Series(dtype=float)
 
 
+def fetch_market_closes(period: str = "3y", max_retries: int = 3) -> pd.Series:
+    """Daily closes of the S&P 500 total-return index, for the momentum rule's market state
+    (``market_panic_state``). One request. Three years covers the 24-month return and the
+    126-day volatility with room to spare.
+
+    Only ^SP500TR: the rule's volatility threshold was measured on that series, and near a
+    zero two-year return the price index (no dividends) can sit on the other side of it. An
+    empty series on failure, which the rule reads as no state and changes nothing.
+    """
+    for attempt in range(max_retries):
+        try:
+            import yfinance as yf
+            closes = yf.Ticker("^SP500TR").history(period=period, auto_adjust=True)["Close"].dropna()
+            if len(closes) < 520:
+                raise ValueError(f"only {len(closes)} closes")
+            closes.attrs["source"] = "^SP500TR"
+            return closes
+        except Exception as e:
+            warnings.warn(f"Market closes (^SP500TR, {period}) fetch attempt {attempt+1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+    return pd.Series(dtype=float)
+
+
 def fetch_risk_free_rate(max_retries: int = 3) -> float:
     """Fetch the 13-week T-bill yield (^IRX) as an annualized risk-free rate.
 
@@ -3162,32 +3186,33 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 
 
 # =========================================================================
-# H½. Volatility-scaled momentum weight (adaptive regime)
+# H½. Momentum regime: the market panic state
 # =========================================================================
-MOMENTUM_REGIME_SCALE = {"HIGH VOL": 0.70, "LOW VOL": 1.15}
+# One state changes a weight, and only downward. research/2026-10-09-momentum-regime.md
+MOMENTUM_REGIME_SCALE = {"PANIC": 0.70}
+# The thresholds are fixed, not re-estimated per run: 20.6% is the 80th percentile of the
+# S&P 500 total-return index's 126-day realised volatility over 1988-2026
+# (research/measurements/2026-10-09-momentum-panic-replay.py). `config.yaml` may override them.
+MOMENTUM_REGIME_DEFAULTS = {"vol_window_days": 126, "vol_threshold": 0.206, "return_window_months": 24}
 
 
 def apply_momentum_regime(fw: dict, regime: str) -> dict:
-    """The volatility-regime rule on a set of factor weights, as one pure function.
+    """The momentum regime rule on a set of factor weights, as one pure function.
 
-    HIGH VOL: momentum x0.70, the freed weight split between quality and valuation.
-    LOW VOL: momentum x1.15, funded from valuation. NORMAL: unchanged. Used by
-    ``adjust_momentum_weight`` for the run, and by the dashboard's investor profiles so
+    PANIC: momentum x0.70, the freed weight split equally between quality and valuation.
+    Every other state (NORMAL, UNKNOWN): unchanged. No state raises momentum's weight.
+    Used by ``adjust_momentum_weight`` for the run, and by the dashboard's investor profiles so
     a profile is weighted exactly as ``run_screener.py --preset <name>`` would weight it
     on the same day (2026-10-09, plan/investor-profiles.md)."""
     fw = dict(fw)
+    scale = MOMENTUM_REGIME_SCALE.get(regime)
+    if scale is None:
+        return fw
     mom_w = fw.get("momentum", 0)
-    if regime == "HIGH VOL":
-        scale = MOMENTUM_REGIME_SCALE[regime]
-        freed = mom_w * (1 - scale)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
-    elif regime == "LOW VOL":
-        scale = MOMENTUM_REGIME_SCALE[regime]
-        added = mom_w * (scale - 1)
-        fw["momentum"] = round(mom_w * scale, 2)
-        fw["valuation"] = round(fw.get("valuation", 0) - added, 2)
+    freed = mom_w * (1 - scale)
+    fw["momentum"] = round(mom_w * scale, 2)
+    fw["quality"] = round(fw.get("quality", 0) + freed / 2, 2)
+    fw["valuation"] = round(fw.get("valuation", 0) + freed / 2, 2)
     return fw
 
 
@@ -3200,13 +3225,65 @@ def infer_momentum_regime(base: dict, adjusted: dict) -> str:
     return "NORMAL"
 
 
-def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
-    """Adjust momentum factor weight based on realized momentum-score volatility.
+def market_panic_state(closes, rule: dict | None = None) -> dict:
+    """The momentum rule's reading of the market, from an index's daily closes.
 
-    Compares current run's momentum_score dispersion to historical runs.
-    High-vol regime → reduce momentum weight (whipsaw risk), redistribute
-    to quality + valuation.  Low-vol regime → increase momentum weight,
-    funded by valuation reduction.
+    PANIC when both hold - Daniel & Moskowitz's (2016) panic state, in which momentum's
+    crashes cluster: the index's return over the trailing ``return_window_months`` is negative,
+    AND its realised volatility over the trailing ``vol_window_days`` (standard deviation of
+    daily log returns x 252^0.5) is above ``vol_threshold``. NORMAL otherwise. UNKNOWN when
+    the series cannot answer (missing, too short, or not reaching back the full window), which
+    the rule treats as no change.
+
+    Returns the state with the two readings and the thresholds they were held against, so the
+    run can publish exactly what was compared (``effective_weights.json`` -> the dashboard).
+    """
+    r = dict(MOMENTUM_REGIME_DEFAULTS)
+    r.update({k: v for k, v in (rule or {}).items() if k in MOMENTUM_REGIME_DEFAULTS and v is not None})
+    n, months, thr = int(r["vol_window_days"]), int(r["return_window_months"]), float(r["vol_threshold"])
+    out = {"state": "UNKNOWN", "vol": None, "ret": None, "as_of": None, "source": None,
+           "vol_threshold": thr, "vol_window_days": n, "return_window_months": months}
+    if closes is None or len(closes) == 0:
+        return out
+    out["source"] = getattr(closes, "attrs", {}).get("source")
+    px = pd.Series(closes).dropna()
+    px.index = pd.to_datetime(px.index)
+    if getattr(px.index, "tz", None) is not None:
+        px.index = px.index.tz_localize(None)
+    px = px[px > 0].sort_index()
+    if len(px) < n + 1:
+        return out
+    last = px.index[-1]
+    start = last - pd.DateOffset(months=months)
+    past = px[:start]
+    # The close `months` ago is the last one on or before that date; a series that begins
+    # later than that (or has a hole there) cannot give the return, so it gives no state.
+    if past.empty or (start - past.index[-1]).days > 7:
+        return out
+    lr = np.log(px).diff().dropna()
+    vol = float(lr.iloc[-n:].std() * np.sqrt(252))
+    ret = float(px.iloc[-1] / past.iloc[-1] - 1)
+    if not (np.isfinite(vol) and np.isfinite(ret)):
+        return out
+    out.update(vol=vol, ret=ret, as_of=last.date().isoformat(),
+               state="PANIC" if (ret < 0 and vol > thr) else "NORMAL")
+    return out
+
+
+def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str,
+                           market_state: dict | None = None,
+                           record_spread: bool = True) -> dict:
+    """Apply the momentum regime rule to the run's factor weights.
+
+    ``market_state`` is ``market_panic_state``'s reading for the run. In the PANIC state
+    momentum's weight is cut and the freed weight goes to quality and valuation
+    (``apply_momentum_regime``); in any other state, or with no reading, nothing changes.
+
+    Also records the cross-stock spread of ``momentum_score`` in ``factor_vol_history.csv``,
+    one row per run date. That spread was the rule's input until 2026-10-09; it does not
+    measure market volatility and decides nothing now, but the series is kept.
+    ``record_spread=False`` leaves the file alone: a ``--tickers`` run would otherwise replace
+    the universe's row for the day with a subset's.
 
     Returns a (potentially modified) deep-copy of cfg.
     """
@@ -3247,7 +3324,7 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
     # covers all three.
     today = date.today().isoformat()
     rows = []
-    if os.path.exists(hist_path):
+    if record_spread and os.path.exists(hist_path):
         try:
             with open(hist_path, "r", newline="") as f:
                 rows = [r for r in csv.DictReader(f)
@@ -3257,49 +3334,39 @@ def adjust_momentum_weight(df: pd.DataFrame, cfg: dict, root_dir: str) -> dict:
                           f"{type(e).__name__}: {e}")
             rows = []
     try:
-        with open(hist_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["date", "momentum_vol"])
-            for r in rows:
-                writer.writerow([r.get("date", ""), r.get("momentum_vol", "")])
-            writer.writerow([today, f"{current_vol:.4f}"])
+        if record_spread:
+            with open(hist_path, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["date", "momentum_vol"])
+                for r in rows:
+                    writer.writerow([r.get("date", ""), r.get("momentum_vol", "")])
+                writer.writerow([today, f"{current_vol:.4f}"])
     except OSError as e:
         warnings.warn(f"[MOM-VOL] Could not append vol history {hist_path}: "
                       f"{type(e).__name__}: {e}")
 
-    # Switched off 2026-10-09 (config ``momentum_regime.enabled``). ``current_vol`` is the spread
-    # of momentum_score ACROSS STOCKS, and momentum_score is built from within-sector percentile
-    # ranks whose spread is fixed by construction: it moves only with how closely the three
-    # momentum metrics' ranks agree, not with how volatile the market is (rank-predicted 25.03
-    # against 25.07 measured; correlation with the S&P 500's realised volatility +0.37). It
-    # called 30 of the 33 runs it acted on "LOW VOL" and never "HIGH VOL", so in practice it
-    # raised momentum's weight 13 -> 14.95 most days. The history is still recorded.
-    # research/2026-10-09-momentum-regime.md
-    if not (cfg.get("momentum_regime") or {}).get("enabled", False):
-        print(f"  [MOM-VOL] Score dispersion={current_vol:.2f} recorded; the regime rule is off (config momentum_regime.enabled).")
+    # The spread above decides nothing (see the docstring and research/2026-10-09-momentum-regime.md:
+    # it is fixed by the percentile construction, and the old rule built on it called 30 of 33
+    # runs "LOW VOL"). The rule reads the market itself.
+    rule = cfg.get("momentum_regime") or {}
+    if not rule.get("enabled", False):
+        print(f"  [MOM-REGIME] Score dispersion={current_vol:.2f} recorded; the regime rule is off (config momentum_regime.enabled).")
         return cfg
-
-    # Need >= 20 historical observations to establish regime thresholds
-    if len(hist_vols) < 20:
-        print(f"  [MOM-VOL] Current vol={current_vol:.2f}, history={len(hist_vols)} runs (need 20+). Skipping regime scaling.")
+    state = (market_state or {}).get("state", "UNKNOWN")
+    if state == "UNKNOWN":
+        warnings.warn("[MOM-REGIME] No market-state reading for this run (index history unavailable); "
+                      "momentum weight left unchanged")
         return cfg
-
-    p25 = float(np.percentile(hist_vols, 25))
-    p75 = float(np.percentile(hist_vols, 75))
-
+    vol, ret = market_state.get("vol"), market_state.get("ret")
+    print(f"  [MOM-REGIME] {market_state.get('return_window_months')}-month return {ret:+.1%}, "
+          f"{market_state.get('vol_window_days')}-day volatility {vol:.1%} "
+          f"(threshold {market_state.get('vol_threshold'):.1%}) | State: {state}")
+    if state != "PANIC":
+        return cfg
     cfg = copy.deepcopy(cfg)
-    if current_vol > p75:
-        regime = "HIGH VOL"
-    elif current_vol < p25:
-        regime = "LOW VOL"
-    else:
-        regime = "NORMAL"
-    cfg["factor_weights"] = apply_momentum_regime(cfg["factor_weights"], regime)
+    cfg["factor_weights"] = apply_momentum_regime(cfg["factor_weights"], state)
     fw = cfg["factor_weights"]
-
-    print(f"  [MOM-VOL] vol={current_vol:.2f} | p25={p25:.2f} p75={p75:.2f} | Regime: {regime}")
-    if regime != "NORMAL":
-        print(f"  [MOM-VOL] Adjusted weights: momentum={fw['momentum']}, quality={fw.get('quality')}, valuation={fw.get('valuation')}")
+    print(f"  [MOM-REGIME] Adjusted weights: momentum={fw['momentum']}, quality={fw.get('quality')}, valuation={fw.get('valuation')}")
     return cfg
 
 

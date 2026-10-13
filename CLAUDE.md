@@ -719,12 +719,16 @@ judgement calls and need a Monday-style note before any change: **(a) DONE 2026-
 P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `earnings_acceleration` (20% of Revisions) correlated -0.54 with the prior quarter's
 surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
 1990); **(c) MEASURED, no change:** accruals counted three times within Quality - correlation 0.49 with Beneish, 0.00 with Piotroski, 13 points in all;
-**(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. Also: the
-momentum regime rule is **off** (its input did not measure volatility); `research/2026-10-09-momentum-regime.md`
-pre-registers a replacement (cut momentum only in Daniel & Moskowitz's panic state, from the index's own
-long history; no upward scaling). **Its evidence gate is met** (replay: 7.5% of month-ends since 1988,
-not in force today) - **ready to build**: config `momentum_regime` mode + fixed 20.6% threshold, a
-3-year ^SP500TR fetch, a `PANIC` entry in `MOMENTUM_REGIME_SCALE`, and a changelog entry citing the replay.
+**(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. **The
+momentum regime rule was REBUILT 2026-10-12 (owner-run)** as pre-registered in
+`research/2026-10-09-momentum-regime.md`: momentum's weight is cut x0.70 (freed weight half to Quality,
+half to Valuation) only in Daniel & Moskowitz's panic state - S&P 500 total-return index 24-month return
+negative **and** 126-day volatility above a fixed 20.6% - and never raised
+(`factor_engine.market_panic_state`; changelog 2026-10-12 evening). Not in force today, so no score moved.
+**Do not re-fit the three numbers to recent data or to results** - they are set in advance from the index's
+own history, and `tests/test_momentum_panic_rule.py` pins them; change the research note and the changelog
+first. The run's reading is in `effective_weights.json` and the dashboard's Methodology view. With this,
+**0.12 is closed**.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's

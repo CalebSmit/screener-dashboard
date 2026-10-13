@@ -1,6 +1,12 @@
 # The momentum regime rule: why it is off, and what would replace it - 2026-10-09 (owner-run)
 
-**Status:** the rule is **switched off** (`config.yaml` `momentum_regime.enabled: false`, changelog
+**Status, 2026-10-12: the replacement below is BUILT and on** (`config.yaml`
+`momentum_regime`, changelog 2026-10-12 evening; `factor_engine.market_panic_state`;
+`tests/test_momentum_panic_rule.py`). It was built as pre-registered here, with one thing the
+design left unsaid made explicit: the freed weight goes half to Quality and half to Valuation.
+What follows is the note as written on 2026-10-09, when the old rule was switched off.
+
+**Status, 2026-10-09:** the rule is **switched off** (`config.yaml` `momentum_regime.enabled: false`, changelog
 2026-10-09 "metric audit"). This note records the measurement that switched it off and a
 pre-registered design for a replacement, so the next session does not re-tune the old one.
 

@@ -2351,7 +2351,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 const w = meta.weights, CL = {{valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment'}};
                 const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
                 note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
-                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum adjusted for this run&rsquo;s ' + (P.regime === 'LOW VOL' ? 'calm' : 'volatile') + ' market, as every run is)' : '') +
+                    (P.regime && P.regime !== 'NORMAL' ? ' (momentum cut for the market&rsquo;s panic state, as the published ranking is this run)' : '') +
                     '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\\'filter-profile\\').value=\\'balanced\\';setProfile(\\'balanced\\')">Back to published</button>';
                 note.hidden = false;
             }} else {{
@@ -3843,6 +3843,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     function openMethodology() {{
         buildMethodologyToc();
+        methodologyRunNote();
         document.getElementById('methodology-modal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
         const mc = document.querySelector('#methodology-modal .modal-close');
@@ -3862,6 +3863,30 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             h += '<a href="#' + el.id + '" data-m="' + el.id + '" onclick="return goToMethod(this.dataset.m)">' + escapeHtml(el.textContent) + '</a>';
         }});
         body.insertAdjacentHTML('afterbegin', h + '</nav>');
+    }}
+
+    // The methodology text states the momentum regime rule; this states what the rule read on
+    // this run. Every figure is the engine's (effective_weights.json -> D.weights.momentum_regime).
+    function methodologyRunNote() {{
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        const m = (D.weights || {{}}).momentum_regime;
+        if (!body || !m || body.querySelector('.method-run-note')) return;
+        const pc = v => (v * 100).toFixed(1) + '%';
+        let h = '<strong>This run&rsquo;s market-state check.</strong> ';
+        if (m.state === 'UNKNOWN' || m.vol == null || m.ret == null) {{
+            h += 'The index history could not be read, so the momentum regime rule made no change.';
+        }} else {{
+            h += 'S&amp;P 500 total return to ' + escapeHtml(String(m.as_of)) + ': ' + (m.ret < 0 ? '&minus;' : '+') + pc(Math.abs(m.ret)) +
+                ' over ' + m.return_window_months + ' months, with realised volatility of ' + pc(m.vol) + ' a year over ' +
+                m.vol_window_days + ' trading days. ' + (m.state === 'PANIC'
+                    ? 'The return is negative and volatility is above ' + pc(m.vol_threshold) + ', so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.'
+                    : 'The panic state needs a negative return and volatility above ' + pc(m.vol_threshold) + ', so Momentum&rsquo;s weight is unchanged.');
+        }}
+        const toc = body.querySelector('.method-toc');
+        const p = document.createElement('p');
+        p.className = 'method-run-note';
+        p.innerHTML = h;
+        body.insertBefore(p, toc ? toc.nextSibling : body.firstChild);
     }}
 
     function goToMethod(id) {{

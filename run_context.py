@@ -109,6 +109,9 @@ class RunContext:
             "sector_neutral": cfg.get("sector_neutral", {}),
             "value_trap_filters": cfg.get("value_trap_filters", {}),
             "universe": cfg.get("universe", {}),
+            # The regime rule changes the factor weights a scored table was built with
+            # (2026-10-12), so a cache made under one setting is not served under another.
+            "momentum_regime": cfg.get("momentum_regime", {}),
             # Bump when scoring code changes what a cached scored table contains
             # (columns, not just values). The cache is keyed by config alone, so
             # without this a warm start serves a table built by the previous engine:
@@ -158,7 +161,8 @@ class RunContext:
         return path
 
     def save_effective_weights(self, cfg: dict,
-                               factor_weights: dict | None = None) -> Path:
+                               factor_weights: dict | None = None,
+                               momentum_regime: dict | None = None) -> Path:
         """Save the weights the composite was actually built from.
 
         `cfg` carries the configured weights after the revisions/investment
@@ -179,6 +183,11 @@ class RunContext:
             "base_factor_weights": dict(base),
             "factor_weights_adjusted": dict(effective) != dict(base),
         }
+        # The market-state reading the momentum regime rule made for this run: the two
+        # figures it compared and the thresholds, so the page can print what was checked
+        # on a day the rule changed nothing as well as on a day it did.
+        if momentum_regime:
+            data["momentum_regime"] = dict(momentum_regime)
         # The metric-weight tables the scorer resolved (bank / Piotroski-conditional
         # / generic), so the dashboard can print the weights that were used rather
         # than re-deriving them. A failure here must not lose the run.

@@ -199,14 +199,23 @@ sector_neutral:
   gics_level: 'Sector'  # NOT ENFORCED (Phase 13/F38): sector grouping is hardwired to the 'Sector' column; this key is descriptive only (Industry-level neutrality not implemented).
   sector_relative_composite: false  # If true, min-max normalize composite within each sector
 
-# Momentum regime rule (factor_engine.adjust_momentum_weight) - OFF since 2026-10-09.
-# It scaled momentum's weight by where the cross-stock spread of momentum_score sat in its own
-# history, labelled "market volatility". That spread is fixed by the percentile construction and
-# does not measure volatility; the rule called 30 of 33 runs "LOW VOL" and raised momentum
-# 13 -> 14.95. Re-enable only on a real volatility input (Barroso & Santa-Clara 2015; Daniel &
-# Moskowitz 2016) with its own research note. research/2026-10-09-momentum-regime.md
+# Momentum regime rule (factor_engine.market_panic_state / adjust_momentum_weight).
+# Momentum's weight is cut (x0.70; the freed weight goes half to quality, half to valuation)
+# ONLY in the market's panic state - Daniel & Moskowitz (2016): the S&P 500 total-return
+# index's trailing 24-month return is negative AND its trailing 126-day realised volatility is
+# above vol_threshold. Never raised. Every other day the weights are exactly as configured.
+# vol_threshold is FIXED at 0.206: the 80th percentile of that volatility over 1988-2026
+# (research/measurements/2026-10-09-momentum-panic-replay.py). Do not re-fit it to recent
+# data or to results - it is set in advance so the rule is decided before it is used. The
+# state held at 33 of 442 month-ends (7.5%) in that replay.
+# History: an earlier rule (to 2026-10-09) scaled momentum by the cross-stock spread of
+# momentum_score, which does not measure volatility; it was switched off that day and
+# replaced by this one on 2026-10-12. research/2026-10-09-momentum-regime.md
 momentum_regime:
-  enabled: false
+  enabled: true
+  vol_window_days: 126
+  vol_threshold: 0.206
+  return_window_months: 24
 
 # Value Trap Filters
 # Logic: the stock must be CHEAP (valuation score at or above valuation_percentile -

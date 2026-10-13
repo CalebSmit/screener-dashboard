@@ -289,7 +289,8 @@ class TestEffectiveWeightsArePropagated:
             "run_factor_engine must hand the regime-adjusted weights back - "
             "rebinding its local cfg does not reach main()")
         assert 'fe_stats.pop("_effective_factor_weights"' in src
-        assert "save_effective_weights(cfg, factor_weights=effective_fw)" in src
+        # the call also carries the momentum rule's market reading since 2026-10-12
+        assert "save_effective_weights(cfg, factor_weights=effective_fw," in src
 
     def test_the_adjustment_is_captured_after_it_is_applied_not_before(self):
         """Ordering matters: capture before adjust_momentum_weight records nothing."""
