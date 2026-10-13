@@ -52,6 +52,15 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the same night) - experiment 4 shipped, and it is the lab's first
+    replication that mostly fails:** Fama & French (1992) on size, **3 of 11 figures within**
+    tolerances written beforehand, because the paper's table covers only non-financial firms
+    with accounting data and the public file covers every stock. It is published as a miss, with
+    the reason. The page also answers the screener's own question - is there a size effect among
+    large companies? - for any period: the ninth size group has out-earned the tenth by
+    0.07-0.14% a month every way it was cut, but only the full century clears the usual bar.
+    The lab also gained a readout on every chart and links that reopen an exact scene.
+    **Next: experiment 5, profitability (Novy-Marx 2013)**, then 2b.
   - **2026-10-12 (owner-run, the same night) - experiment 3 shipped:** Fama & French (2015), the
     five factors behind the Valuation, Quality, Investment and Size categories. **20 of 21
     figures within tolerances written beforehand.** After the paper's sample (2014 on) none of

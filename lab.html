@@ -92,6 +92,9 @@ select { background: var(--bg-elevated); color: var(--text-primary); border: 1px
 .key .c i { height: 10px; width: 14px; background: var(--amber-dim); border: 1px solid rgba(250,178,25,.45); border-radius: 2px; }
 .chart .band { fill: rgba(250,178,25,.16); }
 .chart .cursor { stroke: var(--text-muted); stroke-width: 1; pointer-events: none; }
+/* not .bar: the page's top bar owns that name, and its height would be applied to these */
+.chart .col { fill: var(--border-bright); } .chart .col-a { fill: var(--accent); }
+.chart text.val { fill: var(--text-secondary); font-size: 11px; }
 .chart svg { touch-action: pan-y; cursor: crosshair; }
 .chart-read { margin: 6px 0 0; min-height: 1.6em; font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
@@ -170,8 +173,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=4"></script>
-<script src="lab_engine.js?v=4"></script>
+<script src="lab_data.js?v=5"></script>
+<script src="lab_engine.js?v=5"></script>
 <script>
 (function () {
     'use strict';
@@ -617,8 +620,97 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ experiment 4
+    function drawBars(el, values, opt) {
+        const W = Math.max(280, el.clientWidth || 600), H = 260, L = 40, R = 8, T = 22, B = 34;
+        const hi = Math.max(0, Math.max.apply(null, values)) * 1.08 || 1, lo = Math.min(0, Math.min.apply(null, values)) * 1.08;
+        const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), slot = (W - L - R) / values.length, bw = Math.min(46, slot * .68);
+        let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        linTicks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        values.forEach((v, i) => {
+            const cx = L + slot * (i + .5), top = Math.min(y(v), y(0)), h = Math.max(1, Math.abs(y(v) - y(0)));
+            s += `<rect class="${opt.accent(i) ? 'col-a' : 'col'}" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
+            if (W >= 520 || opt.accent(i) || i === 0) s += `<text class="val" x="${cx.toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${v.toFixed(2)}</text>`;
+            s += `<text x="${cx.toFixed(1)}" y="${H - 18}" text-anchor="middle">${i + 1}</text>`;
+        });
+        s += `<text x="${L}" y="${H - 3}" text-anchor="start">smallest</text><text x="${W - R}" y="${H - 3}" text-anchor="end">largest</text>`;
+        el.innerHTML = s + '</svg>';
+    }
+    function sizeEffect(X, n, mount, init) {
+        const REF = X.reference, res0 = X.result, Z = D.size, Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
+        const zyears = []; for (let y = +Z0.slice(0, 4); y <= +Z1.slice(0, 4); y++) zyears.push(y);
+        const refState = () => ({ start: REF.start, end: REF.end, weighting: REF.weighting });
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', weighting: ['ew', 'vw'] }), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end && S.weighting === REF.weighting;
+        const PRESETS = [['The paper · 1963–1990', REF.start, REF.end], ['After the paper · 1991–now', '199101', Z1],
+            ['Since 2000', '200001', Z1], ['Everything', Z0, Z1]];
+        const outside = res0.rows.filter(r => !r.within).length;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, zyears)}
+                <div class="row2">
+                    ${seg('weighting', 'Within each group, companies count', [['ew', 'Equally · paper'], ['vw', 'By market value']].map(w => `<button type="button" data-v="${w[0]}">${w[1]}</button>`).join(''))}
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>The two largest groups, where the screener's companies are</span><span class="b"><i></i>The eight smaller groups</span></div>
+            <p class="chart-title"><strong>Average return a month</strong>, by size group (%)</p>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each of ten size groups, smallest to largest. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Difference</th><th scope="col">A month</th><th scope="col">t-statistic</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), equal-weighted, each figure in its table beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+        </section>` + tail(X, `
+            <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>Ten groups, re-formed each June by market value.</small></div>
+            <div class="eq">difference between two groups &nbsp;=&nbsp; mean of ( one group's return − the other's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
+        document.getElementById('x-code').textContent = E.sizeRun.toString();
+
+        const now = E.sizeRun(Z, refState());
+        const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0);
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+
+        function render() {
+            const r = last = E.sizeRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            press('weighting', v => v === S.weighting);
+            document.getElementById('c-reset').hidden = atRef();
+            if (!r.deciles[0]) {
+                read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const sb = r.small_big, nt = r.nine_ten, how = nt.mean >= 0 ? 'out-earned' : 'trailed';
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, the smallest group averaged <strong>${f2(r.deciles[0].mean)}%</strong> a month and the largest <strong>${f2(r.deciles[9].mean)}%</strong>: a difference of ${sf2(sb.mean)}%, t-statistic ${f2(sb.t)}. Between the two largest groups, the ninth ${how} the tenth by <strong>${f2(Math.abs(nt.mean))}%</strong> a month, t-statistic <strong>${f2(nt.t)}</strong>. Above about 2 is the usual bar for a difference that can be told from zero.`;
+            const line = (label, q) => `<tr><td>${label}</td><td>${sf2(q.mean)}%</td><td>${f2(q.t)}</td></tr>`;
+            body.innerHTML = line('Smallest group minus largest', sb) + line('Eighth group minus tenth', r.eight_ten) +
+                `<tr class="focus"><td>Ninth group minus tenth</td><td>${sf2(nt.mean)}%</td><td>${f2(nt.t)}</td></tr>`;
+            document.getElementById('x-live-note').textContent = atRef()
+                ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
+                : 'These settings are yours, so there is no published figure to compare them with.';
+            drawBars(document.getElementById('ch-bars'), r.deciles.map(d => d.mean), { accent: i => i >= 8 });
+            writeScene(X.id, S, refState());
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect };
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
     function show() {

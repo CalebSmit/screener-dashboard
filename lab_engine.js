@@ -185,6 +185,28 @@
         return { months: months, series: series, stats: st, corr: corr, spanned: spanned };
     }
 
+    // Average, standard deviation (n-1) and t-statistic of a monthly series.
+    function meanT(x) {
+        const n = x.length;
+        if (n < 6) return null;
+        let mean = 0; for (const v of x) mean += v; mean /= n;
+        let ss = 0; for (const v of x) ss += (v - mean) * (v - mean);
+        const sd = Math.sqrt(ss / (n - 1));
+        return { mean: mean, std: sd, t: sd ? mean / (sd / Math.sqrt(n)) : null };
+    }
+
+    // Each size group's average month over a period, and three differences with their
+    // t-statistics: smallest minus largest, and the eighth and ninth groups minus the tenth -
+    // the size effect among large companies.
+    function sizeRun(size, o) {
+        const idx = [];
+        for (let i = 0; i < size.months.length; i++) if (size.months[i] >= o.start && size.months[i] <= o.end) idx.push(i);
+        const dec = size[o.weighting].map(col => idx.map(i => col[i]));
+        const diff = (a, b) => dec[a].map((v, j) => v - dec[b][j]);
+        return { months: idx.map(i => size.months[i]), deciles: dec.map(meanT),
+                 small_big: meanT(diff(0, 9)), nine_ten: meanT(diff(8, 9)), eight_ten: meanT(diff(7, 9)) };
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
-             crashRun: crashRun, ols: ols, factorRun: factorRun };
+             crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun };
 });

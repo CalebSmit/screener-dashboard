@@ -51,15 +51,18 @@ FRENCH_FILES = {
     "factors_monthly": ("F-F_Research_Data_Factors_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
     "factors_daily": ("F-F_Research_Data_Factors_daily_CSV.zip", ",Mkt-RF,SMB,HML,RF"),
     "five_factors": ("F-F_Research_Data_5_Factors_2x3_CSV.zip", ",Mkt-RF,SMB,HML,RMW,CMA,RF"),
+    "size_portfolios": ("Portfolios_Formed_on_ME_CSV.zip", "Average Value Weight Returns -- Monthly"),
 }
+SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
 
 # lab.html loads lab_data.js and lab_engine.js as ?v=ASSET_VERSION. Bump it (and the two
 # script tags) whenever either file's shape changes, so a browser holding last week's copy of
 # one never runs it against this week's copy of the page. 2 = the second experiment;
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
-# but one number moving with every release of the page is simpler to keep true).
-ASSET_VERSION = 4
+# but one number moving with every release of the page is simpler to keep true); 5 = the fourth
+# experiment.
+ASSET_VERSION = 5
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -292,6 +295,43 @@ def deepest_fall(returns_pct: list[float]) -> float:
         peak = max(peak, v)
         worst = min(worst, v / peak - 1)
     return worst
+
+
+def size_data(raw_dir: Path = RAW_DIR) -> dict:
+    """Monthly returns (percent) of the ten size groups, smallest first, equal- and
+    value-weighted. The file's last ten columns are the deciles."""
+    name, vw_mark = FRENCH_FILES["size_portfolios"]
+    dates, vw, vintage = read_table(raw_dir / name, vw_mark)
+    dates_ew, ew, _ = read_table(raw_dir / name, SIZE_EQUAL_MARKER)
+    if dates != dates_ew:
+        raise ValueError("size file: the equal- and value-weighted tables cover different months")
+    keep = [i for i in range(len(dates))
+            if all(v > MISSING for v in vw[i][-10:]) and all(v > MISSING for v in ew[i][-10:])]
+    return {"months": [dates[i] for i in keep], "vintage": vintage,
+            "vw": [[round(vw[i][-10 + d], 2) for i in keep] for d in range(10)],
+            "ew": [[round(ew[i][-10 + d], 2) for i in keep] for d in range(10)]}
+
+
+def mean_t(x: list[float]) -> dict | None:
+    """Average, standard deviation (n-1) and t-statistic of a monthly series."""
+    n = len(x)
+    if n < 6:
+        return None
+    mean = sum(x) / n
+    sd = math.sqrt(sum((v - mean) ** 2 for v in x) / (n - 1))
+    return {"mean": mean, "std": sd, "t": mean / (sd / math.sqrt(n)) if sd else None}
+
+
+def size_run(size: dict, start: str, end: str, weighting: str = "ew") -> dict:
+    """Each size group's average month over a period, and three differences with their
+    t-statistics: smallest minus largest, and the eighth and ninth groups minus the tenth -
+    the size effect among large companies."""
+    idx = [i for i, m in enumerate(size["months"]) if start <= m <= end]
+    months = [size["months"][i] for i in idx]
+    dec = [[size[weighting][d][i] for i in idx] for d in range(10)]
+    diff = lambda a, b: [x - y for x, y in zip(dec[a], dec[b])]            # noqa: E731
+    return {"months": months, "deciles": [mean_t(x) for x in dec],
+            "small_big": mean_t(diff(0, 9)), "nine_ten": mean_t(diff(8, 9)), "eight_ten": mean_t(diff(7, 9))}
 
 
 FACTOR_KEYS = ["mktrf", "smb", "hml", "rmw", "cma"]
@@ -699,6 +739,87 @@ EXPERIMENTS = [
             "And value and investment overlap heavily, which is a reason to read the Valuation and "
             "Investment categories together rather than as two independent votes."),
     },
+    {
+        "id": "size-effect",
+        "kind": "size",
+        "topic": "Size",
+        "title": "The size effect, and whether it reaches large stocks",
+        "paper": {
+            "authors": "Eugene F. Fama and Kenneth R. French",
+            "year": 1992,
+            "title": "The cross-section of expected stock returns",
+            "journal": "Journal of Finance 47(2), 427-465",
+            "doi": "10.1111/j.1540-6261.1992.tb04398.x",
+        },
+        "claim": ("Smaller companies earned more. Sorting US stocks into ten groups by market value, the "
+                  "smallest group averaged about 1.5% a month from 1963 to 1990 and the largest about "
+                  "0.9%. The question this page adds, because the screener ranks only large companies: "
+                  "is any of that difference found between the two largest groups?"),
+        "reference": {
+            "source": ("The published article, Table II, Panel A (page 436): average monthly returns of "
+                       "portfolios formed on size, equal-weighted, July 1963 to December 1990. The paper "
+                       "splits the smallest and largest tenths in half; those halves are combined here "
+                       "by the number of firms in each, to compare with the library's ten groups."),
+            "start": "196307", "end": "199012", "weighting": "ew",
+            # Written 2026-10-12 BEFORE the comparison was run; nothing had been computed on this
+            # file. One tolerance for every decile. The smallest tenth was the one thought most
+            # likely to miss: it holds the most firms, the least liquid, and its reference figure
+            # is derived from two halves rather than read.
+            "figures": [
+                {"key": "dec1", "label": "Smallest tenth: average month (%)", "paper": 1.546, "tolerance": 0.05, "where": "Table II A (its two halves, averaged by number of firms)"},
+                {"key": "dec2", "label": "Size decile 2: average month (%)", "paper": 1.29, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec3", "label": "Size decile 3: average month (%)", "paper": 1.24, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec4", "label": "Size decile 4: average month (%)", "paper": 1.25, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec5", "label": "Size decile 5: average month (%)", "paper": 1.29, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec6", "label": "Size decile 6: average month (%)", "paper": 1.17, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec7", "label": "Size decile 7: average month (%)", "paper": 1.07, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec8", "label": "Size decile 8: average month (%)", "paper": 1.1, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec9", "label": "Size decile 9: average month (%)", "paper": 0.95, "tolerance": 0.05, "where": "Table II A"},
+                {"key": "dec10", "label": "Largest tenth: average month (%)", "paper": 0.89, "tolerance": 0.05, "where": "Table II A (its two halves, averaged by number of firms)"},
+                {"key": "small_big", "label": "Smallest tenth minus largest, a month (%)", "paper": 0.656, "tolerance": 0.08, "where": "Table II A, derived"},
+            ],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, every US-listed stock is put in one of ten groups by market value, "
+                           "using the New York Stock Exchange's own stocks to set the nine dividing "
+                           "lines. The tenth group is the largest companies."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Size\"."],
+            ["Weighting", "Equal-weighted, as in the paper's table: every company in a group counts the "
+                          "same. The value-weighted version, where bigger companies count for more, is "
+                          "one click away."],
+            ["Large stocks", "The ninth and tenth groups. The screener's methodology takes these as the "
+                             "range its roughly 500 companies fall in."],
+            ["Costs", "None. The smallest groups are also the costliest to trade, which these "
+                      "returns ignore."],
+        ],
+        "open_details": [
+            "The paper's sample is non-financial firms that also appear in the accounting database "
+            "(its page 429); the library's size groups are all listed stocks. That is a different "
+            "set of companies, most of all among the small ones, and it is the likeliest reason "
+            "eight of the eleven figures miss. Rebuilding the paper's exact sample needs the "
+            "accounting database, which is not free.",
+            "The paper reports the smallest and largest tenths as two halves each. Their combined "
+            "figures here are weighted by the paper's own count of firms in each half, which is an "
+            "approximation of what the paper would have printed for the whole tenth.",
+            "The library has been rebuilt on a newer database, and the smallest group is where "
+            "that matters most.",
+            "Which size groups the screener's companies actually fall in has not been measured here. "
+            "The methodology says the largest two; the true range may reach a little lower.",
+            "This checks the paper's table of averages, not its regressions, which are its main "
+            "evidence.",
+        ],
+        "verdict_note": ("The paper's table uses only non-financial companies with accounting data on "
+                         "file; the library's groups hold every listed stock. Every group of smaller "
+                         "companies sits below the paper's figure for it, and the only matches are among "
+                         "the four largest groups."),
+        "in_the_screener": (
+            "The screener's Size category scores a company higher for being smaller, within the "
+            "large companies it ranks. Its own methodology says no published study establishes a "
+            "size premium among stocks this large. The last two bars of the chart are that "
+            "question, and the sentence above the chart gives the answer for whatever period is "
+            "chosen. What follows for the Size weight is a question for a research note, not for "
+            "this page."),
+    },
 ]
 
 
@@ -750,6 +871,22 @@ def reproduce_factors(factors: dict, exp: dict) -> dict:
             "hml_intercept": r["spanned"]["hml"]["intercept"]}
 
 
+def reproduce_size(size: dict, exp: dict) -> dict:
+    """Experiment 4 at the paper's sample and weighting, against its table."""
+    ref = exp["reference"]
+    r = size_run(size, ref["start"], ref["end"], ref["weighting"])
+    got = {f"dec{d + 1}": r["deciles"][d]["mean"] for d in range(10)}
+    got["small_big"] = r["small_big"]["mean"]
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "means": [d["mean"] for d in r["deciles"]],
+            "nine_ten": r["nine_ten"]}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -765,10 +902,12 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     data = momentum_data(raw_dir)
     market = market_data(data["months"], raw_dir)
     factors = factor_data(raw_dir)
+    size = size_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
+                  else reproduce_size(size, exp) if exp["kind"] == "size"
                   else reproduce(data, exp))
         exps.append({**exp, "result": result})
     return {
@@ -787,6 +926,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
+        "size": {k: size[k] for k in ("months", "ew", "vw")},
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "market": market,
         "experiments": exps,
