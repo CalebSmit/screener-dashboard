@@ -10263,3 +10263,56 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (owner-run, near midnight) - Growth's 13%: the research, and a proposal left for review
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2210 passed / 0 failed; after 2216 passed / 0 failed.
+
+### The owner asked
+*"ok then keep making improvements, whatever you think is necessary to get me to my goal!"* - the
+goal being a methodology fit to run real money. The first of the five questions the lab raised
+was the largest weight with nothing behind it, so that is what was researched.
+
+### Did
+- **`research/2026-10-12-growth-category.md`.** Six papers read from the PDFs (three readers in
+  parallel, figures spot-checked against the files) plus MSCI's, S&P's and Dimensional's own
+  documents. In short: earnings growth does not persist beyond chance (Chan, Karceski &
+  Lakonishok); high past sales growth was followed by lower returns, among large stocks too
+  (Lakonishok, Shleifer & Vishny); the long-term-forecast effect is negative and vanishes after
+  value, profitability and investment (Bordalo et al.); one-year forecast growth - the screener's
+  45% metric - has no predictive power of its own (Da & Warachka); the one positive result is
+  growth in *profitability* (Asness, Frazzini & Pedersen), which the category does not measure.
+  MSCI calls growth a factor that has not earned a premium; S&P's multi-factor index omits it.
+- **What the category actually does** (`research/measurements/2026-10-12-growth-category-structure.py`):
+  Growth's score runs -0.44 against Valuation, -0.40 against Investment, -0.35 against Size, and
+  **the published ranking's correlation with the Growth score is -0.01**. Thirteen points of
+  weight buy growth-neutrality, not a preference for growth.
+- **The methodology page says both** (generator; `tests/test_growth_category.py`, 6 tests), and
+  the lab's scorecard row for Growth was updated. `scripts/rehearse_publish.py` run.
+
+### Methodology changed
+- None. No weight, metric or threshold moved, so there is no `METHODOLOGY_CHANGELOG.md` entry.
+
+### Left for the next session - DO THIS FIRST, after reading the 02:00 log
+- **Review section 7 of the note and decide the proposal: Growth 13 -> 10, Quality 22 -> 25.**
+  Measured effect on the 2026-10-12 run: rank correlation 0.997, 24 of the top 25 unchanged. The
+  note gives the argument, four reasons a reviewer might refuse, and the build list. Either
+  outcome is fine; an unrecorded one is not. If you refuse it, add the sentence the note
+  suggests (the 13 points buy growth-neutrality on purpose).
+- Two papers could not be obtained (La Porta 1996; Dechow & Sloan 1997) and are quoted
+  second-hand, marked as such. The note has the Wayback Machine lead.
+
+### Tried and rejected
+- **Making the weight change tonight.** The 02:00 run is the first under the rebuilt momentum
+  rule and several generator changes, and a second change in the same run would make anything
+  odd in it harder to read. The note's author also ranked the question and briefed its readers.
+
+### Gates
+1. **2216 passed / 0 failed** (baseline 2210 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

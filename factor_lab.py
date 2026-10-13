@@ -91,8 +91,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
-# 12 = the two sides of each big-company factor.
-ASSET_VERSION = 12
+# 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review.
+ASSET_VERSION = 13
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1354,8 +1354,10 @@ SCORECARD_OPEN = {
                   "and have not been rerun."),
     "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
                 "profitability among large companies. Neither can be rerun on public data."),
-    "growth": ("The largest weight with nothing rerun behind it. Its case has to come from research and "
-               "from practice, and it is first in the queue of questions."),
+    "growth": ("The research was read on 2026-10-12: index providers treat growth as a style, not a "
+               "rewarded factor, and the studies of sales growth and growth forecasts run flat to "
+               "negative. In the screener the category works as a counterweight to Valuation. A "
+               "3-point reduction is proposed and awaiting a second review."),
     "momentum": ("Whether so little among large companies since 2000 is decay or a long drought. "
                  "The crash rule (experiment 2) addresses momentum's worst months, not its average."),
     "risk": ("The category lowers risk for a similar return. It is not evidence of a higher one, and "

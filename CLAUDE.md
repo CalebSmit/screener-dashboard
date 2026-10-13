@@ -770,7 +770,12 @@ reaches a weight is written down - `plan/factor-lab.md`, "From the lab to the we
 raises a question (the front page's scorecard, `factor_lab.scorecard`, which carries the weights
 from `config.yaml` and fails a test if they part company), a research note answers it, a changelog
 entry makes one change at a time. Five questions are ranked there; **Growth's 13% is first**. The
-lab still sets nothing itself.
+lab still sets nothing itself. **Question 1 is researched** (`research/2026-10-12-growth-category.md`):
+no published premium stands behind growth as the category measures it, and its job in the
+composite is a counterweight to Valuation, Investment and Size. **A proposal - Growth 13 -> 10,
+Quality 22 -> 25 - is waiting for a second session to review and decide** (section 7 of the note;
+`tests/test_growth_category.py::test_no_weight_moved_with_the_note` holds the config until a
+changelog entry cites the note).
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.

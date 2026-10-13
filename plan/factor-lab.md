@@ -97,7 +97,7 @@ Ranked by weight at stake times how little stands behind it. Each is a Monday.
 
 | # | Question | Weight | What the lab has | Read first |
 |---|---|---|---|---|
-| 1 | **What is the case for Growth?** No published premium exists to rerun; the factor literature's nearest result runs the other way (fast asset growth earns less - the investment factor). | 13% | Nothing | Mohanram (2005), cited by the methodology; how index providers treat growth (a style, not a rewarded factor - verify); La Porta (1996) on growth forecasts (from memory; verify) |
+| 1 | **What is the case for Growth?** **RESEARCHED 2026-10-12 - `research/2026-10-12-growth-category.md`.** No published premium for growth as the category measures it; index providers treat it as a style; in the composite it is a counterweight (the published ranking's correlation with the Growth score is -0.01). **A proposal waits for a second session's review: Growth 13 -> 10, Quality 22 -> 25** - section 7 of the note has the argument, the case against, and the build list. Decide and record it either way. | 13% | Nothing of its own; experiments 3 and 8 for asset growth and value | The note |
 | 2 | **Momentum and value among large companies.** Momentum has averaged +0.08% a month among big companies since 2000; value 0.19% over the whole record, t 1.56. Decay, or a drought? | 13% + 22% | Experiment 8 | Israel & Moskowitz (2013), "The role of shorting, firm size, and time on market anomalies" - the published study of exactly this, and the next experiment to rerun (from memory; verify the tables) |
 | 3 | **Is Investment Valuation counted twice?** Correlation 0.70 across all stocks, 0.52 among big companies; the paper's own regression leaves value nothing once investment and profitability are in. | 5% (+22%) | Experiments 3 and 8 | Fama & French (2015) section 7; Hou, Xue & Zhang (2015) (from memory; verify) |
 | 4 | **Is Size worth 5%?** 0.10% a month between the two largest groups, distinguishable from zero only over a century. | 5% | Experiment 4 | Asness et al. (2018), "Size matters, if you control your junk" (from memory; verify) |
@@ -232,6 +232,10 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   category's weight from `config.yaml`, what the lab measured among large companies, what that
   leaves open. **"From the lab to the weights" above is the process and the ranked questions** -
   start a Monday there. Eight experiments, 76 of 112 figures within tolerance.
+  **Near midnight: question 1 (Growth) was researched** from six papers and the index providers'
+  own methodology documents - `research/2026-10-12-growth-category.md`. The methodology page and
+  the scorecard's Growth row say what it found. No weight moved; a 3-point proposal waits for
+  review (the table above).
   **Later the same night: experiment 8 also splits each big-company factor into its two sides**
   (held group minus the market, market minus shorted group; they add up to the factor, and a
   test checks it month by month). Not in the paper's table, so not in the comparison.
