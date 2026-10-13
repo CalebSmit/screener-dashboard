@@ -28,6 +28,39 @@ Add items below. Anything under this heading is unclaimed work.
 
 <!-- Add items here, newest at the top. Free text, one item per bullet. -->
 
+- **2026-10-12 - The Factor Lab: turn the papers the screener cites into experiments a reader
+  can rerun. First experiment built by an owner-run session; the nightly sessions grow it.**
+  Owner, verbatim, after reading about agents that turned a reading list into a browser lab:
+  *"this is something i read today and thought it was a really good idea, dont know how it would
+  integrate with these tools (the screener and the trading bot), but it think it would be really
+  cool"*, and then: *"do whatever you think would improve these tools please! just keep looking
+  for improvements, then have also make a plan for the nightly sessions to dig even deeper!"*
+
+  **The plan is `plan/factor-lab.md` - read it first.** In short: `lab.html` reproduces a cited
+  paper's headline result from public data, shows the claim, the conditions, the difference from
+  the paper and what is still unverified, and lets the reader change the conditions. The queue
+  there is ordered so that every weight on the methodology page ends up with either an
+  experiment or an honest "cannot be rerun on free data". **Friday is the lab's day** (one
+  experiment, finished); Monday adds to its queue; the context-layer item below keeps the other
+  days. The lab never sets a screener parameter and no scoring module may import it.
+
+  The same plan carries the "dig deeper" half: use replication as an audit of the screener's own
+  citations - every effect size the methodology quotes gets tagged *rerun in the lab*, *cannot
+  be rerun on free data* or *not yet tried*.
+
+  This item is about the screener. The trading bot is a separate repo that nightly sessions do
+  not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
+
+  **Progress (update this line each session):**
+  - **2026-10-12 (owner-run) - experiment 1 shipped:** Barroso & Santa-Clara (2015),
+    risk-managed momentum, on the Kenneth French library's momentum deciles. **13 of 14 figures
+    within tolerance** (Sharpe 0.54 -> 1.00 here against the paper's 0.53 -> 0.97); the
+    risk-managed worst month is outside (-24.16% against -28.40%) and stays marked. After the
+    paper's sample (2012 on) the Sharpe ratios are 0.20 and 0.37. `factor_lab.py`,
+    `lab_engine.js`, `lab_data.js`, `lab.html`, `tests/test_factor_lab.py` (15).
+    **Next: experiment 2, Daniel & Moskowitz (2016), momentum crashes** - the study the momentum
+    regime rule is built on. Write its tolerances before running the comparison.
+
 - **2026-10-08 - The context layer: technicals, options, insiders, macro and a track record.
   First draft built by an owner-run session; the nightly sessions now own making it right.**
   Owner, verbatim: *"This is where I want people to come for all of their investing needs ... maybe we should take like technicals into account for timing of investments? Or macro data? Or options data? ... the goal is still long term ... if free somehow ... you would just build the first rough draft of it, then the nightly sessions would really drill into it, and make sure that it is perfect moving forward."* He chose all four (track record, a per-stock "Before you

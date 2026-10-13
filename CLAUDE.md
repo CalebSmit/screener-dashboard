@@ -221,7 +221,8 @@ improving.
 
 10. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
-   generator. `index.html` is what Pages serves.
+   generator. `index.html` is what Pages serves. (`lab_data.js` is generated too, by
+   `factor_lab.py --build`; `lab.html` and `lab_engine.js` are source.)
 
    **`SCREENER_OVERVIEW.md` is also generated** - added 2026-09-28, because
    this list not naming it cost the project a live regression. It is written by
@@ -415,6 +416,13 @@ outcome.
   not have it, that is by design, not a bug (a 2026-10-12 session lost time concluding the
   context layer published nothing). In a browser, wait on `window.SCREENER_CONTEXT`; the
   `CTX_LOADED` flag is closure-scoped and not visible from `page.evaluate`.
+- **The Factor Lab** (2026-10-12; `plan/factor-lab.md`): `lab.html` reruns a paper the
+  screener cites on public data and lets the reader change the conditions. `factor_lab.py` is
+  the reference implementation and builds `lab_data.js` (**generated**: `python factor_lab.py
+  --build`); `lab_engine.js` is the same arithmetic for the browser and must reproduce the Python
+  (`tests/test_factor_lab.py`). `lab.html` is hand-written source. The library's own files live
+  in the gitignored `data/lab/`. **The lab never sets a screener parameter and no scoring module
+  may import it**; a tolerance is never widened to turn an "outside" into a "within".
 - **Downstream consumer: `CalebSmit/screener-bot`** (separate private repo,
   2026-10-09) trades a simulated/paper account from `dashboard_data.js` as Pages
   serves it. It reads `kpis.run_timestamp`, `table_data[].{Ticker, Rank,
@@ -729,6 +737,13 @@ negative **and** 126-day volatility above a fixed 20.6% - and never raised
 own history, and `tests/test_momentum_panic_rule.py` pins them; change the research note and the changelog
 first. The run's reading is in `effective_weights.json` and the dashboard's Methodology view. With this,
 **0.12 is closed**.
+
+**0.13. The Factor Lab (opened 2026-10-12, age 0 days).** Owner item; `OWNER_FOCUS.md` has it
+and `plan/factor-lab.md` the ordered queue and the rules. Experiment 1 (Barroso & Santa-Clara 2015)
+shipped the same day: 13 of 14 figures within tolerance, one marked outside. **Friday is the lab's
+day**, one finished experiment a session; next is Daniel & Moskowitz (2016). The standing rules: the
+lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
+run, and a replication that fails is a research finding to write up, not a number to tune away.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
 days).** A data change, not design - the residual of the transparency work. Every metric's

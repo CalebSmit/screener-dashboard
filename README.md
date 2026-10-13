@@ -114,6 +114,15 @@ The live dashboard is hosted at: https://calebsmit.github.io/screener-dashboard/
 edit those outputs by hand. The scheduled data loop (`scripts/data-run.ps1`)
 publishes them after its gates pass; see `CLAUDE.md` for the gates.
 
+### Factor Lab
+
+https://calebsmit.github.io/screener-dashboard/lab.html reruns a paper the
+screener cites on public data (the Kenneth R. French Data Library), shows how
+far the reproduction lands from the paper, and lets you change the conditions
+in the browser. `factor_lab.py` is the reference implementation;
+`python factor_lab.py --fetch --build` refreshes `lab_data.js`. It is a
+teaching tool: it does not set any of the screener's parameters.
+
 What the page holds (full list: `plan/dashboard-inventory.md`):
 
 - **Rankings** for every S&P 500 stock, with a **Weighting** menu (Balanced,

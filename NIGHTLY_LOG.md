@@ -9557,3 +9557,84 @@ A second trial run confirmed it: the tree afterwards differed only in `factor_ou
 `dashboard_context.js` pass `node --check`. 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (late evening, owner-run) - the Factor Lab: a cited paper rerun on public data, and a plan for the nightly sessions
+
+**Health (rule 8):** unchanged from the evening entry above - both loops ran today, HEALTH: PASS;
+evidence base at `1m` **28 rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0
+unchanged. Top open roadmap item is now **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,159 passed / 0 failed; after 2,174 passed / 0 failed.
+**Owner queue:** a new owner item, taken the same evening it was given: the owner read about
+agents turning a reading list of papers into a browser lab and asked for the idea to be applied
+here, then for "a plan for the nightly sessions to dig even deeper". Both are done; the item is
+open in `OWNER_FOCUS.md` with the queue in `plan/factor-lab.md`.
+
+### Did
+
+**1. The lab's first experiment** - Barroso & Santa-Clara (2015), "Momentum has its moments".
+`lab.html` reproduces the paper's Table 3 from the Kenneth R. French Data Library's momentum
+deciles and lets the reader change the period, the risk window, the target volatility and a
+borrowing limit, recalculated in the browser.
+- **Result at the paper's settings: 13 of 14 figures within tolerance.** Sharpe ratio 0.54 ->
+  1.00 here against 0.53 -> 0.97; mean, volatility, skewness and kurtosis all within. **One
+  outside:** the risk-managed worst month, -24.16% here against -28.40% (September 1939). It
+  stays on the page marked "outside".
+- **After the paper's sample (2012 to August 2026):** Sharpe 0.20 plain, 0.37 risk-managed.
+  Weaker than in-sample on both, the managed version still ahead. The page shows this as a
+  preset; it is the most useful single thing on it for a student.
+- **How it is kept honest:** `factor_lab.py` is the reference; `lab_engine.js` must reproduce it
+  under node on the published data at five settings (to 1e-9); the published comparison is
+  recomputed by a test, not trusted; the page recomputes it again on load and warns if it
+  differs; tolerances are pinned by a test; no scoring module may import the lab.
+- **Looked at 800 and 375 px:** one column on a phone, no sideways scroll, the comparison table
+  keeps its verdict column, both charts redraw on a change, no console errors. A Playwright test
+  does the same at 1440 and 375.
+
+**2. The plan** (`plan/factor-lab.md`): the four parts every experiment shows, the four steps of
+a lab session (read, build, review, interface), an ordered queue of eight experiments mapped to
+the eight categories plus the ones that cannot be rerun on free data, and the "dig deeper" half -
+tagging every effect size the methodology quotes as rerun / cannot be rerun / not yet tried.
+Friday is the lab's day.
+
+**3. One sentence in the methodology** (generator, then `SCREENER_OVERVIEW.md` regenerated)
+linking the momentum rule's paragraph to the lab. It reaches the dashboard's Methodology view on
+the next data run.
+
+### Evidence / research
+- Reference figures: Table 3 of the authors' April 2012 working paper ("Managing the risk of
+  momentum"), read through a text copy of it; the published abstract quotes the same Sharpe
+  ratios, kurtosis and skewness. **The published article's tables were not read** (paywalled) -
+  recorded on the page as still needed.
+- The paper's pre-1963 daily returns came from Daniel & Moskowitz; the library's daily file is
+  used here for the whole period. That is the likeliest cause of the one figure outside.
+
+### Methodology changed
+- None. The lab changes no score, weight or threshold, and is not evidence for one.
+
+### Tried and rejected
+- **Having the browser fetch the library's files itself.** The server sends no cross-origin
+  header, so a page on github.io cannot read them. The derived series is published instead.
+- **Committing the library's files.** Their pages carry a copyright line and no reuse terms;
+  they stay in the gitignored `data/lab/`.
+- **Choosing tolerances that make all 14 match.** A +/-5 point band on a single month would
+  have done it. The one miss is more useful on the page than a clean sheet.
+- **Twelve agents.** The idea as the owner read it used them; its own advice is to reproduce one
+  experiment from one paper first. One session did.
+
+### Noticed, not fixed
+- The tolerances for experiment 1 were written after its first comparison was seen. The page and
+  the plan both say so, and the plan requires them first from experiment 2 on.
+- **For the owner:** whether publishing a series derived from the French library, with
+  attribution, is acceptable to him. `plan/factor-lab.md` "Open, for the owner".
+- The dashboard has no navigation entry for the lab yet (Tuesday backlog).
+
+### Next
+- **Friday:** experiment 2, Daniel & Moskowitz (2016). Tomorrow's 02:00 log should still be read
+  first for the `[MOM-REGIME]` line (see the evening entry).
+
+### Gates
+1. **2,174 passed / 0 failed** (baseline 2,159 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. `index.html` non-trivial; both payload files pass `node --check`
+(and `lab_data.js`, `lab_engine.js`). 4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
