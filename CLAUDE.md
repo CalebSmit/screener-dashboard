@@ -782,6 +782,12 @@ uses; large-company momentum is strong in every published sample and flat on the
 2000. Lab and literature disagree, so the weight stays - **do not cut Momentum on the lab's number
 alone, and do not quote an all-stock premium for either category on the methodology page again**
 (`tests/test_large_company_evidence.py` holds the page's figures to the lab's data).
+Experiment 9 (Israel & Moskowitz 2013, the largest fifth of companies) reuses experiment 8's
+layout through an optional `split` record on the experiment; 5 of 12 within, the four
+largest-fifth figures all matching. **`prompts/nightly.md` section 3 now carries the lab, the
+route to a weight, the waiting proposal and how to read a paper** - keep it true when any of
+them changes. The Growth proposal was pre-flighted (the note's section 7 lists the eight tests it
+trips). Friday 2026-10-16 is a retrospective; the lab's next day is 2026-10-23.
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.

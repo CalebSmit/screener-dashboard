@@ -10366,3 +10366,61 @@ unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, a
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-13 (owner-run, before the 02:00 run) - nightly sessions made ready, and experiment 9
+
+**Health (rule 8):** unchanged since the last entry - both loops ran 2026-10-12, HEALTH: PASS;
+evidence base at `1m` **28 rows, newest 2026-09-11 (32 days, bound 40), 4 effective**; priority 0
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 1 day).
+**Tests:** before 2221 passed / 0 failed; after 2222 passed / 0 failed.
+
+### The owner asked
+*"please do one more round of big improvements tonight before the 2 am run! and make sure the
+nightly sessions are ready to go moving forward"*
+
+### Made ready
+- **All three scheduled tasks read back** with `Get-ScheduledTask`: Screener Data Run next
+  2026-10-13 02:00, Nightly Screener Improvement 06:00, Screener Option Quotes 20:00; all
+  `Ready`, last result 0.
+- **`python scripts/rehearse_publish.py --full` PASSED** with every generator change made
+  tonight: the page the 02:00 run will publish passes the whole suite and the claims gate, so
+  the 06:00 baseline should be green. If it is not, that command is the first thing to run.
+- **`prompts/nightly.md` section 3** now tells a session about the Factor Lab, "From the lab to
+  the weights", the proposal waiting for review, the reading rules, what a lab session is, and
+  how the 2026-10-12 notes read their papers (PDFs, not memory; parallel readers told the
+  question and not the answer; figures spot-checked).
+- **The Growth proposal was pre-flighted** in a throwaway checkout: with only `config.yaml`,
+  `presets.py` and `schemas.py` changed, eight tests trip. The note's section 7 lists each and
+  what it needs. One of them, `TestWeightSensitivity::test_small_perturbation_high_stability`,
+  is to be understood rather than updated.
+
+### Did
+- **Experiment 9: are value and momentum still there in the largest companies?** Israel &
+  Moskowitz (2013), Table 3, on the library's 25 size-by-trait portfolios. **5 of 12 within**
+  tolerances written first; all four figures for the largest fifth match, every miss involves
+  the smallest fifth. Momentum in the largest fifth: 7.7% a year 1927-2011 (t 3.07), 2.7% since
+  2000 (t 0.54). It reuses experiment 8's layout through an optional `split` record. Research
+  note section 4b; methodology "Rerun the research" links it under Valuation and Momentum.
+
+### Methodology changed
+- None.
+
+### For the 06:00 session, in order
+1. `git stash list`; the 02:00 log - the `[MOM-REGIME]` line, `weights.momentum_regime` in the
+   payload, and on the live page the Methodology view (it now carries new paragraphs under
+   Valuation, Growth and Momentum: read them once at 1440 and 375px, they have been tested but
+   not looked at in place).
+2. **Review and decide the Growth proposal** (`OWNER_FOCUS.md`; the note's section 7).
+3. Then the day's focus. Friday 2026-10-16 is a retrospective.
+
+### Left as found
+- `.git/worktrees/tree` is a stale registration from 2026-10-02 that `git worktree prune`
+  cannot delete (permission denied, the folder is under OneDrive). `git worktree list` shows
+  only the main checkout, and the loops have run with it there for eleven days.
+
+### Gates
+1. **2222 passed / 0 failed** (baseline 2221 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** scheduled tasks read back as above; none was changed.

@@ -158,11 +158,33 @@ momentum figures on that page are checked against the lab's data by
 `tests/test_large_company_evidence.py`, so a refresh that changes the picture fails a test.
 **No weight, metric or threshold changed**; no `METHODOLOGY_CHANGELOG.md` entry.
 
+## 4b. Experiment 9, added the same night: the largest fifth, rerun
+
+The first item this note left open was rerun within the hour (`lab.html#largest-fifth`;
+tolerances written first). Israel & Moskowitz's Table 3 on today's library, January 1927 to
+December 2011: **5 of 12 figures within, and all four that describe the largest fifth match** -
+value 4.03% a year against the paper's 3.70 (t 1.76 against 1.90), momentum 7.74 against 7.49
+(t 3.07 against 2.95). Every miss involves the smallest fifth, where the paper's dependent sort
+and the library's independent one differ most. Percent a year, t-statistic in brackets:
+
+| In the largest fifth | 1927-2011 | 1963-1999 | 2000-2026 | 2012-2026 |
+|---|---|---|---|---|
+| Momentum, high minus low | 7.74 (3.07) | 9.40 (3.17) | 2.68 (0.54) | 2.32 (0.38) |
+| Momentum, held side over the market | 3.52 (3.42) | 4.47 (3.17) | 0.70 (0.38) | 1.06 (0.47) |
+| Value, high minus low | 4.03 (1.76) | 1.87 (0.86) | 2.63 (0.75) | 3.69 (0.77) |
+| Value, held side over the market | 3.55 (1.78) | 1.62 (1.02) | 3.35 (1.12) | 6.24 (1.63) |
+
+So the answer to the open question is **yes: the flat stretch shows in the largest fifth too.**
+It is less stark than in the larger half (2.7% a year since 2000 against 1%), and it is not
+distinguishable from zero in either. Nothing in section 3 changes: the published record and the
+lab still disagree about momentum among large companies, the weight stays, and this is now a
+second construction saying the same thing. For value the largest fifth looks like the larger
+half - never reliably there, and mostly held side.
+
 ## 5. Left open
 
-- **Rerun Israel & Moskowitz in the lab** (largest size quintile, long and short sides, by
-  period, extended to 2026). It is the published form of experiment 8 and would say whether the
-  flat stretch is as stark in the largest fifth as in the larger half.
+- **The paper's risk-adjusted figures** (2.2% and 10.2% a year in the largest fifth) are not rerun;
+  experiment 9 compares raw spreads only.
 - **Does sector-relative momentum behave differently from the market-wide sort?** The published
   work on industry-neutral momentum has not been read; it bears directly on whether the lab's
   result transfers to the screener's metrics.
