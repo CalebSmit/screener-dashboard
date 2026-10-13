@@ -10175,3 +10175,62 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (owner-run, past 23:00) - the factors among large companies, and how a lab finding reaches a weight
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2205 passed / 0 failed; after 2209 passed / 0 failed.
+
+### The owner asked
+*"based off everything you are learning and seeing in these factor labs, will that be used to
+improve the methodology in the screener? ... down the road i want this to be the methodology
+behind my hedge fund/real trading bot."*
+
+### Did
+- **Wrote the answer down where the next session will find it**: `plan/factor-lab.md`, "From the
+  lab to the weights". The lab raises a question; a Monday note answers it from the literature
+  and from practice; a Wednesday synthesis fits it to the other categories; a changelog entry
+  makes one change at a time; the live record (including the bot's paper accounts) confirms or
+  contradicts it over time. Reading rules were written before any question is researched. Five
+  questions are ranked: Growth (13%, nothing behind it that can be rerun), momentum and value
+  among large companies, the Valuation/Investment overlap, Size, and whether Quality is
+  under-weighted.
+- **Experiment 8: do the factors work among large companies?** Fama & French (2015) Table 4A's
+  second block. **12 of 18 within** tolerances written first; the six misses are value and
+  profitability among big companies and stay marked. Among big companies over 1963-2026: value
+  0.19% a month (t 1.56), profitability 0.22% (2.35), investment 0.15% (1.46), momentum 0.37%
+  (2.13) - and since 2000, momentum 0.08% (0.24) with profitability alone above 2. Research note
+  section 8 has the table and what it is not.
+- **A scorecard on the lab's front page** (`factor_lab.scorecard`): each category's weight read
+  from `config.yaml`, what the lab measured among large companies, what that leaves open. The
+  page says above it that the lab sets no weight and none has changed because of it.
+- The methodology's "Rerun the research" paragraph links the new experiment under four
+  categories (generator; `SCREENER_OVERVIEW.md` regenerated; `scripts/rehearse_publish.py` run).
+
+### Methodology changed
+- None. No weight, metric or threshold moved, so there is no `METHODOLOGY_CHANGELOG.md` entry.
+
+### Tried and rejected
+- **Changing a weight tonight.** The numbers invite it (momentum among big companies since
+  2000; Growth with nothing behind it). The published study of exactly the first question,
+  Israel & Moskowitz (2013), has not been read against them, and a weight moved on a rerun
+  before reading it would be the lab setting a parameter by another name.
+
+### Where things stand for the next session
+- **Read the 02:00 log first** (the `[MOM-REGIME]` line; `weights.momentum_regime` in the
+  payload; the Methodology view, the footer and palette links to the lab). If the 06:00 baseline
+  is red, run `python scripts/rehearse_publish.py --full`.
+- **A changed category weight now fails `test_the_scorecard_is_computed_and_carries_the_screeners_own_weights`
+  until the lab is rebuilt** (`python factor_lab.py --build`; `--fetch` first if `data/lab/french/`
+  is empty). That is deliberate: the public page prints the weights.
+- Monday: question 1 or 2 from the plan. Friday or a spare session: rerun Israel & Moskowitz,
+  then the long side of each factor among big companies against the market.
+
+### Gates
+1. **2209 passed / 0 failed** (baseline 2205 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

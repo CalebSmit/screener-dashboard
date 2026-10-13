@@ -139,13 +139,14 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
                  if exp["kind"] == "crashes" else fl.reproduce_factors(published["factors"], exp)
                  if exp["kind"] == "factors" else fl.reproduce_size(published["size"], exp)
                  if exp["kind"] == "size" else fl.reproduce_sort(published["sorts"][exp["sort"]["data"]], exp)
-                 if exp["kind"] == "sort" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "sort" else fl.reproduce_split(published["split"], exp)
+                 if exp["kind"] == "split" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -157,13 +158,13 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and exp["paper"]["doi"] and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors", "size", "sort"):
+        if exp["kind"] in ("crashes", "factors", "size", "sort", "split"):
             figs = exp["reference"]["figures"]
             assert len({f["key"] for f in figs}) == len(figs) >= 10
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split")
         if exp["kind"] == "sort":                                       # what the generic layout needs
             g = exp["sort"]
             assert g["data"] in fl.SORTS and len(g["groups"]) == len(fl.SORTS[g["data"]]["columns"])
@@ -495,6 +496,27 @@ def test_the_browser_measures_a_sort_as_the_reference_does(published, tmp_path):
                     assert a[k] == pytest.approx(b[k], rel=1e-8, abs=1e-12), (name, o, k)
 
 
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_the_halves_as_the_reference_does(published, tmp_path):
+    script = tmp_path / "split.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.splitRun(D.split, o);\n"
+        "  return { n: r.months.length, factors: r.factors }; })));\n", encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(FACTOR_SETTINGS)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    for o, js in zip(FACTOR_SETTINGS, json.loads(res.stdout)):
+        py = fl.split_run(published["split"], **o)
+        assert js["n"] == len(py["months"]) > 100 and list(js["factors"]) == fl.SPLIT_KEYS == published["split_keys"]
+        for k in fl.SPLIT_KEYS:
+            for part in ("small", "big", "gap"):
+                for stat in ("mean", "std", "t"):
+                    assert js["factors"][k][part][stat] == pytest.approx(py["factors"][k][part][stat], rel=1e-8, abs=1e-12), (o, k, part)
+
+
 CRASH_SETTINGS = [
     {"start": "192701", "end": "201303", "lookback": 24, "window": 126, "threshold": 0.206},   # the screener's rule
     {"start": "201304", "end": "209912", "lookback": 24, "window": 126, "threshold": 0.206},
@@ -535,9 +557,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
     assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html and "E.sortRun(Z, S)" in html
+    assert "E.splitRun(Z, S)" in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 5             # each kind of experiment checks itself
+    assert html.count("disagrees with the build") == 6             # each kind of experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -611,6 +634,95 @@ def test_each_takeaway_is_what_the_data_shows(published):
         r = fl.sort_run(be, a, b, "ew")
         assert abs(r["spread"]["t"]) < 2
         assert 1.8 < r["groups"][9]["std"] / r["groups"][0]["std"] < 2.5
+    # 8. "each earned roughly half what they did among small ones in the paper's sample; since 2000
+    #     only profitability has stayed distinguishable from zero there"
+    sp = published["split"]
+    paper = fl.split_run(sp, "196307", "201312")["factors"]
+    for k in ("value", "profitability", "investment"):
+        assert 0.4 < paper[k]["big"]["mean"] / paper[k]["small"]["mean"] < 0.7, k
+    late = fl.split_run(sp, "200001", "209912")["factors"]
+    assert late["profitability"]["big"]["t"] > 2
+    assert all(abs(late[k]["big"]["t"]) < 2 for k in fl.SPLIT_KEYS if k != "profitability")
+
+
+def test_the_factors_are_measured_within_each_half_of_the_market():
+    """A factor among big companies is the big half's high group minus its low group - and for
+    investment the low minus the high. The gap between the halves is taken month by month."""
+    months = [f"2000{m:02d}" for m in range(1, 13)]
+    split = {"months": months}
+    for i, k in enumerate(fl.SPLIT_KEYS):
+        split[k] = {"small": [1.0 + i + 0.1 * j for j in range(12)], "big": [0.5 * i - 0.05 * j for j in range(12)]}
+    r = fl.split_run(split, "200003", "200010")
+    assert r["months"] == months[2:10]
+    for i, k in enumerate(fl.SPLIT_KEYS):
+        small, big = split[k]["small"][2:10], split[k]["big"][2:10]
+        assert r["factors"][k]["small"]["mean"] == pytest.approx(sum(small) / 8)
+        assert r["factors"][k]["big"]["mean"] == pytest.approx(sum(big) / 8)
+        assert r["factors"][k]["gap"]["mean"] == pytest.approx(sum(a - b for a, b in zip(small, big)) / 8)
+    assert fl.SPLIT_SIGN == {"value": 1, "profitability": 1, "investment": -1, "momentum": 1}
+    assert set(fl.SPLIT_CATEGORY.values()) <= {c["category"] for c in fl.CATEGORY_MAP}
+
+
+def test_the_large_company_experiment_is_recorded_as_it_landed(published):
+    """Experiment 8's tolerances were written first, expecting nearly every figure within. Six
+    missed. They stay as written, and the sentence that says where the misses are is checked."""
+    exp, built = fl.EXPERIMENTS[7], published["experiments"][7]["result"]
+    assert exp["id"] == "big-and-small" and exp["kind"] == "split"
+    figs = {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]}
+    assert figs == {
+        "mean_value_small": (0.53, 0.03), "t_value_small": (4.05, 0.25), "mean_value_big": (0.21, 0.03),
+        "t_value_big": (1.69, 0.25), "mean_value_gap": (0.32, 0.03), "t_value_gap": (2.94, 0.25),
+        "mean_profitability_small": (0.33, 0.03), "t_profitability_small": (3.06, 0.25),
+        "mean_profitability_big": (0.17, 0.03), "t_profitability_big": (1.81, 0.25),
+        "mean_profitability_gap": (0.16, 0.03), "t_profitability_gap": (1.48, 0.25),
+        "mean_investment_small": (0.45, 0.03), "t_investment_small": (5.49, 0.25),
+        "mean_investment_big": (0.22, 0.03), "t_investment_big": (2.00, 0.25),
+        "mean_investment_gap": (0.23, 0.03), "t_investment_gap": (2.29, 0.25)}
+    rows = {r["key"]: r for r in built["rows"]}
+    missed = {k for k, r in rows.items() if not r["within"]}
+    assert missed and all("value" in k or "profitability" in k for k in missed)      # "every miss is in value or profitability"
+    for k in ("value", "profitability"):                                             # "a little more than the paper printed"
+        assert 0 < rows[f"mean_{k}_big"]["diff"] < 0.06
+    for k in ("value", "profitability", "investment"):                               # "almost exactly at two standard errors"
+        assert 1.9 < rows[f"t_{k}_big"]["here"] < 2.1
+    assert "Every miss is in value or profitability" in exp["verdict_note"]
+    # momentum is shown but has no figure in the paper's table, so none in the comparison
+    assert not any("momentum" in k for k in figs) and "momentum" in published["split"]
+
+
+def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(published):
+    """The front page's table of where each category stands. Its weights are the config's - a
+    weight change without a rebuild of the lab fails here - and every figure in it is rebuilt
+    from the published series. The words around the figures are checked below them."""
+    import yaml
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    card = published["scorecard"]
+    assert [(r["key"], r["weight"]) for r in card] == list(cfg["factor_weights"].items())
+    assert card == json.loads(json.dumps(fl.scorecard(published["split"], published["size"], cfg["factor_weights"])))
+    assert all(r["measured"] and r["open"] for r in card) and set(fl.SCORECARD_OPEN) == set(cfg["factor_weights"])
+    assert advice_terms_in(json.dumps(card)) == []
+    sp = published["split"]
+    whole, late, recent = (fl.split_run(sp, a, "209912")["factors"] for a in ("196307", "200001", "201401"))
+    # valuation: "about half its size among small ones ... since 2014" close to nothing
+    assert 0.35 < whole["value"]["big"]["mean"] / whole["value"]["small"]["mean"] < 0.65
+    assert abs(recent["value"]["big"]["mean"]) < 0.15
+    assert fl.sort_run(published["sorts"]["earnings-yield"], "200701", "209912", "vw")["spread"]["mean"] < 0
+    # quality: "carries over best ... the only one still distinguishable from zero among big companies since 2000"
+    ratio = {k: whole[k]["big"]["mean"] / whole[k]["small"]["mean"] for k in fl.SPLIT_KEYS}
+    assert max(ratio, key=ratio.get) == "profitability"
+    assert [k for k in fl.SPLIT_KEYS if abs(late[k]["big"]["t"]) >= 2] == ["profitability"]
+    # momentum: "under half its size among small ones"; since 2000 not distinguishable from zero
+    assert ratio["momentum"] < 0.5 and abs(late["momentum"]["big"]["t"]) < 1
+    # investment: "it moves with value"
+    assert fl.correlation(sp["value"]["big"], sp["investment"]["big"]) > 0.4
+    # growth and revisions have nothing rerun, and say so
+    by_key = {r["key"]: r for r in card}
+    for k in ("growth", "revisions"):
+        assert by_key[k]["experiments"] == [] and by_key[k]["measured"].startswith("Nothing.")
+    # the page says, above the table, that none of this sets a weight
+    html = PAGE.read_text(encoding="utf-8")
+    assert "The lab does not set the screener's weights, and none has changed because of it." in html
+    assert "D.scorecard.map" in html
 
 
 def test_the_table_of_results_after_their_papers_is_computed(published):
@@ -618,7 +730,7 @@ def test_the_table_of_results_after_their_papers_is_computed(published):
     Rebuilt here from the published series; the page's sentence counts the rows itself."""
     built = published["after_the_paper"]
     again = fl.after_the_paper(published["momentum"], published["market"], published["factors"],
-                               published["size"], published["sorts"])
+                               published["size"], published["sorts"], published["split"])
     assert [r["label"] for r in again] == [r["label"] for r in built] and len(built) >= 10
     assert {r["experiment"] for r in built} == {x["id"] for x in fl.EXPERIMENTS}
     for a, b in zip(again, built):
@@ -670,6 +782,8 @@ def test_the_front_page_lists_every_experiment_and_opens_them():
                 page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
                 assert page.evaluate("document.querySelectorAll('.card').length") == len(fl.EXPERIMENTS)
                 assert page.evaluate("document.querySelectorAll('#t-map tbody tr').length") == 8
+                assert page.evaluate("document.querySelectorAll('#t-score tbody tr').length") == 8
+                assert "22% of the score" in page.inner_text("#t-score")
                 assert page.evaluate("document.querySelectorAll('#t-after tbody tr').length") >= 10
                 assert "were weaker" in page.inner_text("#o-after + p")
                 total = sum(len(x["reference"].get("figures", [])) or 14 for x in fl.EXPERIMENTS)
@@ -856,6 +970,21 @@ def test_changing_a_setting_recalculates_the_result():
                 assert "calmest fifth averaged" in page.inner_text("#x-read")
                 page.click("#c-preset button[data-i='1']")
                 assert page.evaluate("location.hash").startswith("#low-volatility?start=200101")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+                # the factors within each half of the market
+                page.goto(PAGE.as_uri() + "#big-and-small", wait_until="load", timeout=60000)
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'big-and-small'", timeout=30000)
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 8
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect.col-a').length") == 4
+                assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 4
+                assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 18
+                in_sample = page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean")
+                page.click("#c-preset button[data-i='2']")                # since 2000
+                assert page.evaluate("location.hash").startswith("#big-and-small?start=200001")
+                assert page.evaluate("window.LAB_STATE().result.factors.momentum.big.mean") < in_sample
+                assert "1 of the 4</strong> among big companies" in page.inner_html("#x-read")
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 page.close()

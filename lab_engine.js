@@ -217,6 +217,21 @@
                  spread: meanT(groups[last].map((v, j) => v - groups[0][j])) };
     }
 
+    // Each factor measured separately among small companies and among big ones over a period,
+    // and the difference between the two halves, month by month.
+    function splitRun(split, o) {
+        const idx = [];
+        for (let i = 0; i < split.months.length; i++) if (split.months[i] >= o.start && split.months[i] <= o.end) idx.push(i);
+        const out = { months: idx.map(i => split.months[i]), factors: {} };
+        Object.keys(split).forEach(k => {
+            if (k === 'months') return;
+            const small = idx.map(i => split[k].small[i]), big = idx.map(i => split[k].big[i]);
+            out.factors[k] = { small: meanT(small), big: meanT(big), gap: meanT(small.map((v, j) => v - big[j])) };
+        });
+        return out;
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
-             crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun };
+             crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun,
+             splitRun: splitRun };
 });

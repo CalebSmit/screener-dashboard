@@ -42,11 +42,77 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 39 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 43 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
 match it, and the page warns if its own calculation leaves the build's.**
+
+## From the lab to the weights
+
+Added 2026-10-12, in answer to the owner: *"based off everything you are learning and seeing in
+these factor labs, will that be used to improve the methodology in the screener? ... down the
+road i want this to be the methodology behind my hedge fund/real trading bot."*
+
+**Yes - by a written route, never by a code path.** Rule 1 below stands: nothing in the lab sets
+a parameter, and no pipeline module may import it. What the lab produces is *questions with
+evidence attached*, and they reach a weight in four steps.
+
+1. **The lab raises the question.** `factor_lab.scorecard` builds one row per category for the
+   front page: the weight (read from `config.yaml`), what the lab has measured that bears on it
+   among large companies, and what that leaves open. A row is not a verdict.
+2. **A Monday research note answers it** from the literature and from documented practice
+   (CLAUDE.md, "Your mandate"). The lab's figures go in as measured evidence about the
+   *published research*; the note must also say what the literature and practitioners say about
+   the same question, and may conclude "no change".
+3. **A Wednesday synthesis** says how the change fits the other seven categories: what it
+   overlaps, what it makes redundant, what the whole composite is then betting on.
+4. **A `METHODOLOGY_CHANGELOG.md` entry, one change at a time**, then the build. From there the
+   live record takes over: the published ranking's forward returns, the track record, and the
+   paper accounts of `CalebSmit/screener-bot`, which accrue about one independent observation a
+   month and confirm or contradict a change over time (rule 4: they do not drive it yet).
+
+**What a lab result is evidence for:** that a cited study says what the methodology says it
+says; whether its result held after publication; whether it exists among large companies; how
+much two factors overlap. **What it is never evidence for:** a particular weight, a setting
+found by trying settings, or the return of the screener's own ranking. The lab's portfolios are
+value-weighted, go long one group and short another, pay no costs, and sort on the academic
+definition of each trait; the screener ranks 500 large companies on its own metrics within
+sectors and shorts nothing.
+
+**How to read the evidence - written before any of the questions below is researched**, so the
+reading cannot be bent to the answer:
+
+- A period of under twenty years with a t-statistic inside 2 is "not confirmed", not "gone". A
+  weight is not cut on weakness since publication alone.
+- For this screener, evidence among large companies outranks evidence across all stocks.
+- A change needs the lab and the literature or practice pointing the same way. Where they
+  disagree the note says so and the weight stays.
+- One category at a time, in steps of at most 3 points (the improvement engine's own
+  `max_change_per_cycle`), so each change can be read in the live record before the next.
+
+### The questions, in the order to research them
+
+Ranked by weight at stake times how little stands behind it. Each is a Monday.
+
+| # | Question | Weight | What the lab has | Read first |
+|---|---|---|---|---|
+| 1 | **What is the case for Growth?** No published premium exists to rerun; the factor literature's nearest result runs the other way (fast asset growth earns less - the investment factor). | 13% | Nothing | Mohanram (2005), cited by the methodology; how index providers treat growth (a style, not a rewarded factor - verify); La Porta (1996) on growth forecasts (from memory; verify) |
+| 2 | **Momentum and value among large companies.** Momentum has averaged +0.08% a month among big companies since 2000; value 0.19% over the whole record, t 1.56. Decay, or a drought? | 13% + 22% | Experiment 8 | Israel & Moskowitz (2013), "The role of shorting, firm size, and time on market anomalies" - the published study of exactly this, and the next experiment to rerun (from memory; verify the tables) |
+| 3 | **Is Investment Valuation counted twice?** Correlation 0.70 across all stocks, 0.52 among big companies; the paper's own regression leaves value nothing once investment and profitability are in. | 5% (+22%) | Experiments 3 and 8 | Fama & French (2015) section 7; Hou, Xue & Zhang (2015) (from memory; verify) |
+| 4 | **Is Size worth 5%?** 0.10% a month between the two largest groups, distinguishable from zero only over a century. | 5% | Experiment 4 | Asness et al. (2018), "Size matters, if you control your junk" (from memory; verify) |
+| 5 | **Is Quality under-weighted?** Profitability is the one factor as strong among big companies as small, and the only one above the bar there since 2000. Only worth asking once 1-4 free any weight. | 22% | Experiments 3 and 8 | Novy-Marx (2013); Asness, Frazzini & Pedersen (2019) |
+
+**What the lab cannot give a real-money methodology, and what does** (so nobody mistakes eight
+experiments for a validated strategy):
+
+- *The composite's own record, point in time.* `plan/backtest-v2.md`; look-ahead bias touches at
+  least 63% of today's backtest and nothing decides on it until 2027-02-11.
+- *A live record.* The bot's paper accounts began 2026-10-12. A year is twelve observations.
+- *What a long-only investor keeps.* Every lab figure is long minus short. The next experiment
+  after Israel & Moskowitz should measure each factor's long side among big companies against
+  the market - the part a top-25, long-only portfolio can actually hold.
+- *Costs, turnover and capacity.* None is in any lab figure.
 
 ## Rules that keep it honest
 
@@ -154,6 +220,16 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-12 (owner-run, past 23:00) - experiment 8 shipped: do the factors work among large
+  companies?** Fama & French (2015) Table 4A's second block, the factors within each half of the
+  market: **12 of 18 within** tolerances written first (17 or so were expected; the misses are all
+  value and profitability among big companies, and stay marked). A new kind, `split`
+  (`split_data`, `split_run`, `E.splitRun`, renderer `bigAndSmall`), with momentum shown beside
+  the paper's three. **And the front page now has a scorecard** (`factor_lab.scorecard`): each
+  category's weight from `config.yaml`, what the lab measured among large companies, what that
+  leaves open. **"From the lab to the weights" above is the process and the ranked questions** -
+  start a Monday there. Eight experiments, 76 of 112 figures within tolerance.
 
 - **2026-10-12 (owner-run, the last of the night) - experiment 7 shipped: market beta**, and
   **the methodology page now links each category to its experiments** (generator; a test keeps

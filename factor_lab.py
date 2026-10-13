@@ -55,7 +55,20 @@ FRENCH_FILES = {
     "variance_portfolios": ("Portfolios_Formed_on_VAR_CSV.zip", "Value Weighted Returns -- Monthly"),
     "earnings_yield_portfolios": ("Portfolios_Formed_on_E-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "beta_portfolios": ("Portfolios_Formed_on_BETA_CSV.zip", "Value Weighted Returns -- Monthly"),
+    "split_value": ("6_Portfolios_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "split_momentum": ("6_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
 }
+# Factors computed separately among small and big companies. Each file's columns are
+# small-low, small-middle, small-high, big-low, big-middle, big-high; the sign says which end
+# the factor is long (investment is conservative minus aggressive: low minus high).
+SPLIT_KEYS = ["value", "profitability", "investment", "momentum"]
+SPLIT_SIGN = {"value": 1, "profitability": 1, "investment": -1, "momentum": 1}
+SPLIT_NAMES = {"value": "Value", "profitability": "Profitability", "investment": "Investment",
+               "momentum": "Momentum"}
+SPLIT_CATEGORY = {"value": "Valuation", "profitability": "Quality", "investment": "Investment",
+                  "momentum": "Momentum"}
 # Sorted-portfolio experiments (kind "sort"): which file, which two tables, which columns.
 SORTS = {
     "low-volatility": {"file": "variance_portfolios", "ew": "Equal Weighted Returns -- Monthly",
@@ -76,8 +89,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
-# results inside and after their papers' samples.
-ASSET_VERSION = 10
+# results inside and after their papers' samples; 11 = the eighth experiment and the scorecard.
+ASSET_VERSION = 11
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -350,6 +363,37 @@ def sort_run(data: dict, start: str, end: str, weighting: str = "vw") -> dict:
     groups = [[col[i] for i in idx] for col in data[weighting]]
     return {"months": [data["months"][i] for i in idx], "groups": [mean_t(g) for g in groups],
             "spread": mean_t([b - a for a, b in zip(groups[0], groups[-1])])}
+
+
+def split_data(raw_dir: Path = RAW_DIR) -> dict:
+    """Each factor among small companies and among big ones, monthly, in percent, over the
+    months all four files share."""
+    raw = {}
+    for key in SPLIT_KEYS:
+        fname, mark = FRENCH_FILES["split_" + key]
+        dates, rows, _ = read_table(raw_dir / fname, mark)
+        s = SPLIT_SIGN[key]
+        raw[key] = {d: (s * (r[2] - r[0]), s * (r[5] - r[3])) for d, r in zip(dates, rows)
+                    if all(v > MISSING for v in r[:6])}
+    months = sorted(set.intersection(*(set(v) for v in raw.values())))
+    out = {"months": months}
+    for key in SPLIT_KEYS:
+        out[key] = {"small": [round(raw[key][m][0], 4) for m in months],
+                    "big": [round(raw[key][m][1], 4) for m in months]}
+    return out
+
+
+def split_run(split: dict, start: str, end: str) -> dict:
+    """Each factor's average month and t-statistic among small companies, among big ones, and
+    the difference between the two, month by month."""
+    idx = [i for i, m in enumerate(split["months"]) if start <= m <= end]
+    out = {"months": [split["months"][i] for i in idx], "factors": {}}
+    for key in SPLIT_KEYS:
+        small = [split[key]["small"][i] for i in idx]
+        big = [split[key]["big"][i] for i in idx]
+        out["factors"][key] = {"small": mean_t(small), "big": mean_t(big),
+                               "gap": mean_t([a - b for a, b in zip(small, big)])}
+    return out
 
 
 def mean_t(x: list[float]) -> dict | None:
@@ -1128,6 +1172,86 @@ EXPERIMENTS = [
             "given up little return for carrying less market risk. It is a statement about risk "
             "taken for the same return, not a promise of a higher one."),
     },
+    {
+        "id": "big-and-small",
+        "kind": "split",
+        "topic": "Value, profitability, investment and momentum among large companies",
+        "title": "Do the factors work among large companies?",
+        "tab": "Large companies",
+        "paper": {
+            "authors": "Eugene F. Fama and Kenneth R. French",
+            "year": 2015,
+            "title": "A five-factor asset pricing model",
+            "journal": "Journal of Financial Economics 116(1), 1-22",
+            "doi": "10.1016/j.jfineco.2014.10.010",
+        },
+        "claim": ("Less well than among small ones. Split by company size, from 1963 to 2013 the value "
+                  "factor averaged 0.53% a month among small companies and 0.21% among big ones; "
+                  "profitability 0.33% and 0.17%; investment 0.45% and 0.22%. Among big companies only "
+                  "investment reaches two standard errors."),
+        "reference": {
+            "source": ("The published article, Table 4, Panel A, second block (page 7): the 2x3 factors "
+                       "computed separately among small and big stocks, July 1963 to December 2013."),
+            "start": "196307", "end": "201312",
+            # Written 2026-10-12 BEFORE the comparison was run; nothing had been computed on
+            # these files. (It then landed 12 of 18, not the 17 or so expected: the misses are
+            # recorded in verdict_note and the tolerances were left as written.) The same sizes as experiment 3, which reruns the first block of the
+            # same table and landed 20 of 21 within. Expected: the same - these are the authors'
+            # own portfolios, rebuilt on a newer database.
+            "figures": [
+                {"key": "mean_value_small", "label": "Value among small companies: average month (%)", "paper": 0.53, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_value_small", "label": "Value among small companies: t-statistic", "paper": 4.05, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_value_big", "label": "Value among big companies: average month (%)", "paper": 0.21, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_value_big", "label": "Value among big companies: t-statistic", "paper": 1.69, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_value_gap", "label": "Value small minus big: average month (%)", "paper": 0.32, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_value_gap", "label": "Value small minus big: t-statistic", "paper": 2.94, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_profitability_small", "label": "Profitability among small companies: average month (%)", "paper": 0.33, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_profitability_small", "label": "Profitability among small companies: t-statistic", "paper": 3.06, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_profitability_big", "label": "Profitability among big companies: average month (%)", "paper": 0.17, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_profitability_big", "label": "Profitability among big companies: t-statistic", "paper": 1.81, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_profitability_gap", "label": "Profitability small minus big: average month (%)", "paper": 0.16, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_profitability_gap", "label": "Profitability small minus big: t-statistic", "paper": 1.48, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_investment_small", "label": "Investment among small companies: average month (%)", "paper": 0.45, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_investment_small", "label": "Investment among small companies: t-statistic", "paper": 5.49, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_investment_big", "label": "Investment among big companies: average month (%)", "paper": 0.22, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_investment_big", "label": "Investment among big companies: t-statistic", "paper": 2.0, "tolerance": 0.25, "where": "Table 4A"},
+                {"key": "mean_investment_gap", "label": "Investment small minus big: average month (%)", "paper": 0.23, "tolerance": 0.03, "where": "Table 4A"},
+                {"key": "t_investment_gap", "label": "Investment small minus big: t-statistic", "paper": 2.29, "tolerance": 0.25, "where": "Table 4A"},
+            ],
+        },
+        "verdict_note": ("Every miss is in value or profitability, where today's library gives big "
+                         "companies a little more than the paper printed. On today's data all three "
+                         "factors sit almost exactly at two standard errors among big companies, so the "
+                         "paper's line between the one that reaches it and the two that fall short does "
+                         "not survive the rebuild."),
+        "conditions": [
+            ["Portfolios", "Each June, US stocks are split into small and big at the median market "
+                           "value of New York Stock Exchange companies, and within each half into low, "
+                           "middle and high on one trait. A factor among big companies is the high "
+                           "group minus the low group, both from the big half."],
+            ["Data", "Kenneth R. French's Data Library: the \"6 Portfolios\" files formed on size and "
+                     "book-to-market, operating profitability, investment, and prior return."],
+            ["Momentum", "Shown beside the paper's three. It is not in the paper's table, so it has no "
+                         "reference figure and is not counted in the comparison."],
+            ["Weighting", "Value-weighted within each of the six portfolios, as in the paper."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "\"Big\" here is the larger half of New York Stock Exchange companies. The screener's "
+            "companies are larger still - roughly the top fifth - so this is the nearest public "
+            "evidence for its universe, not that universe itself.",
+            "The library has been rebuilt on a newer database since the paper.",
+            "The traits are the factors' own: book-to-market, operating profitability and asset "
+            "growth. The screener measures value, quality and investment with different metrics, "
+            "compared within sectors.",
+        ],
+        "in_the_screener": (
+            "Every company the screener ranks sits in the \"big\" half, so these are the versions of "
+            "the factors that bear on it most directly, and they are the weaker versions. This is "
+            "the experiment to read before trusting a long-run average quoted for all stocks, and "
+            "it is the main input to the open questions about the screener's weights listed on the "
+            "front page."),
+    },
 ]
 
 
@@ -1152,6 +1276,9 @@ TAKEAWAYS = {
     "earnings-yield": ("Returns rose step by step with earnings yield, in the paper's sample and for "
                        "decades after it. Since 2007 the gap has all but closed, and among large "
                        "companies it reversed."),
+    "big-and-small": ("Among big companies - all the screener ranks - value, profitability and investment "
+                      "each earned roughly half what they did among small ones in the paper's sample. "
+                      "Since 2000 only profitability has stayed distinguishable from zero there."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -1162,11 +1289,11 @@ TAKEAWAYS = {
 # have, and says what that data is. Kept honest by hand and by one test: every experiment id
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
-    {"category": "Valuation", "key": "valuation", "experiments": ["earnings-yield", "five-factors"],
+    {"category": "Valuation", "key": "valuation", "experiments": ["earnings-yield", "five-factors", "big-and-small"],
      "has": "Stocks sorted by earnings yield, and the value factor (book value against price).",
      "gap": "The screener's heaviest valuation measure is free cash flow against the value of the whole "
             "business. The library's sort on cash-flow yield is the nearest thing and is queued."},
-    {"category": "Quality", "key": "quality", "experiments": ["five-factors"],
+    {"category": "Quality", "key": "quality", "experiments": ["five-factors", "big-and-small"],
      "has": "The profitability factor - robustly profitable companies minus weakly profitable ones.",
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
             "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
@@ -1177,8 +1304,9 @@ CATEGORY_MAP = [
      "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
             "cites, needs company accounts."},
-    {"category": "Momentum", "key": "momentum", "experiments": ["risk-managed-momentum", "momentum-crashes"],
-     "has": "Two experiments: momentum's risk, and when it crashes.",
+    {"category": "Momentum", "key": "momentum",
+     "experiments": ["risk-managed-momentum", "momentum-crashes", "big-and-small"],
+     "has": "Momentum's risk, when it crashes, and its size among big companies.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
     {"category": "Risk", "key": "risk", "experiments": ["low-volatility", "market-beta"],
@@ -1193,10 +1321,93 @@ CATEGORY_MAP = [
     {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
-    {"category": "Investment", "key": "investment", "experiments": ["five-factors"],
+    {"category": "Investment", "key": "investment", "experiments": ["five-factors", "big-and-small"],
      "has": "The investment factor - companies that grow their assets slowly, minus those that grow them fast.",
      "gap": "It overlaps heavily with value; the five-factor experiment shows by how much."},
 ]
+
+
+# Where each category stands on what the lab has measured, for the front page. This is the
+# lab's whole route into the methodology and it is deliberately not a code path: nothing here
+# sets a weight (tests/test_factor_lab.py::test_no_scoring_module_reads_the_lab). A row raises
+# a question; the answer is a research note from the literature and from practice, then a
+# METHODOLOGY_CHANGELOG.md entry - plan/factor-lab.md, "From the lab to the weights".
+# "open" is written by hand; every figure in "measured" is computed below, and the words
+# around the figures are checked against the data by the tests.
+SCORECARD_OPEN = {
+    "valuation": ("The screener's own valuation measures - cash flow and earnings against the value of "
+                  "the whole business, compared within sectors - are not what these portfolios sort on "
+                  "and have not been rerun."),
+    "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
+                "profitability among large companies. Neither can be rerun on public data."),
+    "growth": ("The largest weight with nothing rerun behind it. Its case has to come from research and "
+               "from practice, and it is first in the queue of questions."),
+    "momentum": ("Whether so little among large companies since 2000 is decay or a long drought. "
+                 "The crash rule (experiment 2) addresses momentum's worst months, not its average."),
+    "risk": ("The category lowers risk for a similar return. It is not evidence of a higher one, and "
+             "the methodology now says so."),
+    "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
+                  "only measurement it will get."),
+    "size": ("A small effect for its weight, and the screener's companies sit almost entirely in the "
+             "two largest groups."),
+    "investment": "How much of this category is Valuation counted a second time.",
+}
+
+
+def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
+    """The category weights as the screener's config has them, for display beside the evidence.
+    Read at build time; a test fails if the published copy and the config part company."""
+    import yaml
+    return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
+
+
+def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
+    """One row per category of the screener: its weight, what the lab has measured that bears
+    on it among large companies, and what that leaves open."""
+    whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
+                           split_run(split, "201401", "209912"))
+
+    def big(r, k):
+        return r["factors"][k]["big"]
+
+    def small(r, k):
+        return r["factors"][k]["small"]
+
+    idx = range(len(split["months"]))
+    overlap = correlation([split["value"]["big"][i] for i in idx], [split["investment"]["big"][i] for i in idx])
+    nine_ten = size_run(size, size["months"][0], "209912", "ew")["nine_ten"]
+    measured = {
+        "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
+                      f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
+                      f"{small(whole, 'value')['mean']:.2f}% among small ones, and "
+                      f"{big(recent, 'value')['mean']:+.2f}% a month since 2014. Sorted on earnings yield, "
+                      f"the gap among large companies reversed after 2007."),
+        "quality": (f"Profitability is the factor that carries over best: {big(whole, 'profitability')['mean']:.2f}% "
+                    f"a month among big companies since 1963 (t-statistic {big(whole, 'profitability')['t']:.2f}) "
+                    f"against {small(whole, 'profitability')['mean']:.2f}% among small ones, and the only one of "
+                    f"the four still distinguishable from zero among big companies since 2000."),
+        "growth": "Nothing. There is no published return premium for growth to rerun.",
+        "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
+                     f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "
+                     f"{small(whole, 'momentum')['mean']:.2f}% among small ones - and "
+                     f"{big(late, 'momentum')['mean']:+.2f}% a month since 2000 "
+                     f"(t-statistic {big(late, 'momentum')['t']:.2f})."),
+        "risk": ("Sorted by volatility or by beta, riskier stocks have not earned reliably more, while "
+                 "being about twice as volatile."),
+        "revisions": ("Nothing. A history of analysts' estimates as they stood at the time is sold, not "
+                      "published."),
+        "size": (f"Between the two largest size groups the smaller has earned {nine_ten['mean']:.2f}% a month more "
+                 f"over the whole record (t-statistic {nine_ten['t']:.2f}), and the difference cannot be told "
+                 f"from zero in any shorter period checked."),
+        "investment": (f"Among big companies the investment factor has averaged {big(whole, 'investment')['mean']:.2f}% "
+                       f"a month since 1963 (t-statistic {big(whole, 'investment')['t']:.2f}) and "
+                       f"{big(recent, 'investment')['mean']:+.2f}% since 2014. It moves with value: among big "
+                       f"companies the two have a correlation of {overlap:.2f}."),
+    }
+    by_key = {c["key"]: c for c in CATEGORY_MAP}
+    return [{"key": k, "category": by_key[k]["category"], "weight": w, "measured": measured[k],
+             "open": SCORECARD_OPEN[k], "experiments": by_key[k]["experiments"]}
+            for k, w in weights.items()]
 
 
 def next_month(m: str) -> str:
@@ -1204,7 +1415,8 @@ def next_month(m: str) -> str:
     return f"{y + (mo == 12)}{(mo % 12) + 1:02d}"
 
 
-def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict) -> list[dict]:
+def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
+                    split: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -1259,6 +1471,14 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         add(exp_id, x["sort"]["spread"] + ", a month", "pct", sign,
             cell(a["spread"]["mean"], len(a["months"]), a["spread"]["t"]),
             cell(b["spread"]["mean"], len(b["months"]), b["spread"]["t"]))
+
+    if split is not None and "big-and-small" in exps:
+        ref = exps["big-and-small"]["reference"]
+        a, b = split_run(split, ref["start"], ref["end"]), split_run(split, next_month(ref["end"]), end)
+        for k in SPLIT_KEYS:
+            add("big-and-small", f"{SPLIT_NAMES[k]} among big companies: average month", "pct", 1,
+                cell(a["factors"][k]["big"]["mean"], len(a["months"]), a["factors"][k]["big"]["t"]),
+                cell(b["factors"][k]["big"]["mean"], len(b["months"]), b["factors"][k]["big"]["t"]))
     return rows
 
 
@@ -1343,6 +1563,24 @@ def reproduce_sort(data: dict, exp: dict) -> dict:
             "spread": r["spread"]}
 
 
+def reproduce_split(split: dict, exp: dict) -> dict:
+    """Experiment 8 at the paper's sample, against its table."""
+    ref = exp["reference"]
+    r = split_run(split, ref["start"], ref["end"])
+    got = {}
+    for key, parts in r["factors"].items():
+        for part, s in parts.items():
+            got[f"mean_{key}_{part}"], got[f"t_{key}_{part}"] = s["mean"], s["t"]
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]),
+            "big_means": {k: v["big"]["mean"] for k, v in r["factors"].items()}}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -1360,9 +1598,11 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
     factors = factor_data(raw_dir)
     size = size_data(raw_dir)
     sorts = {name: sort_data(name, raw_dir) for name in SORTS}
+    split = split_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
-        result = (reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
+        result = (reproduce_split(split, exp) if exp["kind"] == "split"
+                  else reproduce_crashes(data, market, exp) if exp["kind"] == "crashes"
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce_size(size, exp) if exp["kind"] == "size"
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
@@ -1381,12 +1621,14 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts),
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split),
+        "scorecard": scorecard(split, size, screener_weights()),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},
         "size": {k: size[k] for k in ("months", "ew", "vw")},
         "sorts": sorts,
+        "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "market": market,
         "experiments": exps,
