@@ -134,6 +134,34 @@ Two things for a methodology session:
    - with Baker, Bradley & Wurgler (2011) and Frazzini & Pedersen (2014) read first, since they
    are the usual sources for the large-cap version (from memory; verify).
 
+## 7. Valuation: the earnings-yield spread since 2007 (experiment 6, added the same night)
+
+Valuation is the screener's joint-largest category (22%) and its metrics are yields. The nearest
+sort the public data carries is earnings against price. The highest-yield tenth minus the
+lowest, a month:
+
+| Period | Equal-weighted | Value-weighted (large companies dominate) |
+|---|---|---|
+| 1963-07 to 1990-12 (the paper's sample) | +0.70% (t = 4.35) | +0.41% (1.75) |
+| 1991-01 to 2026-08 | +0.43% (2.80) | +0.16% (0.74) |
+| 2007-01 to 2026-08 | +0.13% (0.65) | **-0.23% (-0.78)** |
+| 1951-07 to 2026-08 | +0.60% (6.05) | +0.36% (2.56) |
+
+**Reading.** Over seventy-five years this is among the strongest patterns in the lab. Over the
+last twenty it is not there, and in the value-weighted version - the one closest to a universe
+of large companies - the sign is negative. Twenty years is long enough to take seriously and
+not long enough to call (the t-statistics say so), and this period is the well-documented
+drawdown of value strategies generally.
+
+**What it is and is not a reason for.** It is a reason to (a) write the Monday note the first
+section already asks for, with this table in it; (b) check whether the screener's own valuation
+metrics - free-cash-flow yield and enterprise-value yields, compared within sector - behave like
+earnings-to-price or differently, which the cash-flow-yield sort (plan item 6b's remainder)
+starts to answer; and (c) say so on the methodology page, which limitation 11 now does for the
+factors. It is **not** a reason to cut the Valuation weight tonight: one sort on one definition
+over one twenty-year window is exactly the kind of evidence rule 4 exists to stop a session
+acting on, and within-sector comparison is a material difference from this sort.
+
 ## Sources
 
 * Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *JFE* 116(1), 111-120. Figures from the April 2012 working paper, Table 3.

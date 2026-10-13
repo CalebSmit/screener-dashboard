@@ -145,7 +145,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -233,6 +233,23 @@ def test_the_volatility_sort_misses_where_it_was_expected_to(published):
     assert {k for k, r in rows.items() if not r["within"]} <= {"mean4", "mean5", "std3", "std4", "std5", "spread"}
     # "its most volatile fifth ... earned far more than the paper's"
     assert rows["mean5"]["here"] > rows["mean5"]["paper"] + 0.3 and not rows["mean5"]["within"]
+
+
+def test_the_earnings_yield_sort_matches_in_shape_and_misses_at_the_ends(published):
+    exp, built = fl.EXPERIMENTS[5], published["experiments"][5]["result"]
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean1": (0.984, 0.05), "mean2": (0.94, 0.05), "mean3": (1.03, 0.05), "mean4": (1.18, 0.05),
+        "mean5": (1.22, 0.05), "mean6": (1.33, 0.05), "mean7": (1.42, 0.05), "mean8": (1.46, 0.05),
+        "mean9": (1.57, 0.05), "mean10": (1.730, 0.05), "spread": (0.746, 0.08)}
+    assert (1.04 * 88 + 0.93 * 90) / 178 == pytest.approx(0.984, abs=0.001)       # the halves, by firm count
+    assert (1.74 * 95 + 1.72 * 91) / 186 == pytest.approx(1.730, abs=0.001)
+    rows = {r["key"]: r for r in built["rows"]}
+    # "the misses are small and mostly at the two ends ... the rise and the gap both match"
+    missed = {k for k, r in rows.items() if not r["within"]}
+    assert {"mean1", "mean10"} <= missed and len(missed & {"mean1", "mean2", "mean9", "mean10"}) >= len(missed) / 2
+    assert all(abs(r["diff"]) < 0.15 for r in rows.values()) and rows["spread"]["within"]
+    here = [rows[f"mean{d}"]["here"] for d in range(1, 11)]
+    assert sum(b > a for a, b in zip(here, here[1:])) >= 8                         # rising, almost step by step
 
 
 def test_a_sort_is_measured_group_by_group_and_end_to_end():
@@ -569,6 +586,13 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert abs(r["groups"][0]["mean"] - rest) < 0.15
     assert 1.8 < r["groups"][4]["std"] / r["groups"][0]["std"] < 2.5
     assert r["spread"]["mean"] > -0.97 + 0.5 and abs(r["spread"]["t"]) < 2
+    # 6. "in the paper's sample and for decades after; since 2007 all but closed; reversed among large companies"
+    ey = published["sorts"]["earnings-yield"]
+    assert fl.sort_run(ey, "196307", "199012", "ew")["spread"]["t"] > 2
+    assert fl.sort_run(ey, "199101", "209912", "ew")["spread"]["t"] > 2
+    late = fl.sort_run(ey, "200701", "209912", "ew")["spread"]
+    assert abs(late["t"]) < 2 and late["mean"] < 0.25
+    assert fl.sort_run(ey, "200701", "209912", "vw")["spread"]["mean"] < 0
 
 
 def test_the_category_map_covers_the_screeners_eight_and_nothing_else():

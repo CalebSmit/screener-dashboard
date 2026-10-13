@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 34 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 35 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -100,7 +100,7 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 4 | The size effect, and whether it reaches large stocks (Fama & French 1992) | Size | French size deciles | **Shipped 2026-10-12. The lab's first replication that mostly fails: 3 of 11 figures within** tolerances written beforehand. The paper's table uses only non-financial firms with accounting data; the library's groups hold every stock. It stays on the page as a miss. **The measurement that matters here:** the ninth size group out-earned the tenth by 0.07-0.14% a month in every period and weighting tried, distinguishable from zero only over the full century. `research/2026-10-12-factor-lab-findings.md` section 5. |
 | 5 | **Novy-Marx (2013), profitability** | Quality | French operating-profitability portfolios | **Next.** The library sorts on operating, not gross, profitability: that difference goes in "still needed". |
 | 6 | Do riskier stocks earn more? Ang, Hodrick, Xing & Zhang (2006) | Risk | `Portfolios_Formed_on_VAR` | **Shipped 2026-10-12 as experiment 5. 5 of 11 within** tolerances written beforehand; the most volatile fifth was expected to miss and does (0.81% a month here, 0.09% in the paper). It is the first user of the **generic sorted-portfolio layout** (`kind: "sort"`, `factor_lab.SORTS`, `sort_run`, `sortRun`): a new sort now needs a `SORTS` entry, a record with its `sort` block and reference figures, and nothing on the page. Still open for Risk: the beta sort (`_BETA`) and the paper's own headline sort (`_RESVAR`). |
-| 6b | Value as the screener measures it: earnings yield and cash-flow yield (Lakonishok, Shleifer & Vishny 1994 is the usual reference - verify) | Valuation | `Portfolios_Formed_on_E-P` and `_CF-P` (confirmed present) | Closer to the screener's own valuation metrics than book-to-market is. |
+| 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. Still open: the cash-flow-yield sort (`_CF-P`), which is nearer the screener's heaviest valuation measure, and the book-to-market panel of the same table. |
 | 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` (confirmed present) | A partial stand-in for the accounting-quality studies that cannot be rerun. |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French HML and momentum factors | The correlation the 2026-10-12 changelog entry leans on for sending freed weight to Valuation. Verify it. |
 | 8 | Post-publication decay across all of the above (McLean & Pontiff 2016) | All | The experiments' own series | One table: each result in its paper's sample and after it. |
@@ -154,6 +154,13 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-12 (owner-run, the same night) - experiment 6 shipped: earnings yield.** Fama &
+  French (1992) Table IV Panel B on the library's earnings-yield deciles: 7 of 11 within, the
+  shape and the end-to-end gap both matching. Six experiments; Valuation now has a sort on a
+  yield, not only book-to-market. What it shows since 2007 is in
+  `research/2026-10-12-factor-lab-findings.md` section 7 and is the most important thing the lab
+  has found for the screener's largest category.
 
 - **2026-10-12 (owner-run, the same night) - experiment 5 shipped on a reusable layout.** Ang,
   Hodrick, Xing & Zhang (2006) on the library's variance-sorted fifths: 5 of 11 within. The
