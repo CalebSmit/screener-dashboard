@@ -215,6 +215,15 @@ def test_the_methodology_points_at_the_experiment_it_cites():
     assert "[Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html)" in text
 
 
+def test_the_dashboard_has_a_way_into_the_lab():
+    """In the generator (rule 10): the footer and the search palette, neither of which is a
+    change to the closed header design."""
+    import generate_dashboard as gd
+    html = gd.generate_html()
+    assert '<a href="lab.html">Factor Lab</a>' in html
+    assert "label: 'Factor Lab'" in html and "window.location.href = 'lab.html'" in html
+
+
 # --------------------------------------------------------------------------- what it must not become
 def test_no_scoring_module_reads_the_lab():
     """The lab reruns published factor portfolios. It is not evidence for the screener's own

@@ -1947,6 +1947,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
             <nav class="footer-links" aria-label="Footer">
                 <a href="#" onclick="openMethodology();return false;">Methodology</a>
+                <a href="lab.html">Factor Lab</a>
                 <a href="#" onclick="openShortcuts();return false;">Keyboard shortcuts</a>
                 <a href="#" onclick="showGuide();return false;">How to read this</a>
             </nav>
@@ -7552,6 +7553,7 @@ def _js_ux() -> str:
         { label: 'Factor analytics', hint: 'Section', run: () => goToSection('sec-analytics') },
         { label: 'Defensibility and diagnostics', hint: 'Section', run: () => goToSection('sec-defensibility') },
         { label: 'Methodology', hint: 'How it works', run: () => openMethodology() },
+        { label: 'Factor Lab', hint: 'Rerun the research', run: () => { window.location.href = 'lab.html'; } },
         { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
         { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
         { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
