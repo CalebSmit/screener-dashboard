@@ -45,7 +45,13 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
 .lede p { margin: 0 0 10px; font-size: 16px; }
 .fine { font-size: 13px; color: var(--text-muted); }
 
-.exp { margin-top: 32px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.tabs a { display: block; padding: 9px 14px; border: 1px solid var(--border-bright); border-radius: 10px; color: var(--text-secondary);
+          font-size: 14.5px; font-weight: 500; line-height: 1.3; transition: background .12s, border-color .12s, color .12s; }
+.tabs a span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.tabs a:hover { background: var(--bg-card-hover); color: var(--text-primary); text-decoration: none; }
+.tabs a[aria-current="page"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
+.exp { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
 .exp > section { padding: 22px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
 @media (min-width: 720px) { .exp > section { padding: 28px 32px; } }
@@ -83,6 +89,13 @@ select { background: var(--bg-elevated); color: var(--text-primary); border: 1px
 .key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 22px 0 6px; font-size: 13px; }
 .key i { display: inline-block; width: 18px; height: 2px; margin-right: 7px; vertical-align: middle; }
 .key .a i { background: var(--accent); } .key .b i { background: var(--text-muted); }
+.key .c i { height: 10px; width: 14px; background: var(--amber-dim); border: 1px solid rgba(250,178,25,.45); border-radius: 2px; }
+.chart .band { fill: rgba(250,178,25,.16); }
+.where { display: block; font-size: 12px; color: var(--text-muted); }
+.muted { color: var(--text-muted); }
+tr.panic td { background: var(--amber-dim); }
+tr.panic td:first-child { color: var(--text-primary); font-weight: 600; padding-left: 8px; }
+tr.panic td:last-child { padding-right: 8px; }
 .chart { width: 100%; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart text { font-family: var(--font-body); font-size: 11.5px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -104,7 +117,8 @@ tr.group td { padding-top: 18px; color: var(--text-primary); font-weight: 600; b
 td.ok { color: var(--text-secondary); }
 td.out { color: var(--amber); font-weight: 600; }
 .tablewrap { overflow-x: auto; }
-@media (max-width: 599px) { .tol { display: none; } #t-ref th, #t-ref td { padding-left: 4px; padding-right: 4px; font-size: 13.5px; } }
+@media (max-width: 599px) { .tol { display: none; } #t-ref th, #t-ref td { padding-left: 3px; padding-right: 3px; font-size: 13px; }
+    #t-ref thead th { font-size: 11px; letter-spacing: .02em; } #t-ref td:first-child { overflow-wrap: anywhere; } }
 .note { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); max-width: 76ch; }
 .warn { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--amber); border-radius: var(--radius); background: var(--amber-dim);
         color: var(--text-primary); font-size: 14px; }
@@ -139,156 +153,74 @@ footer p { margin: 0 0 8px; }
     <header class="lede">
         <div class="eyebrow">Research you can rerun</div>
         <h1>The research behind the screener, rerun.</h1>
-        <p>The screener's methodology rests on published studies. This page takes one of them, reproduces its headline result from data anyone can download, and shows how far the reproduction lands from the paper.</p>
-        <p>Then it hands you the controls. Change the period, the risk window or the borrowing limit and the result is recalculated in your browser.</p>
+        <p>The screener's methodology rests on published studies. This page takes them one at a time, reproduces each one's headline result from data anyone can download, and shows how far the reproduction lands from the paper.</p>
+        <p>Then it hands you the controls. Change the period or the settings and the result is recalculated in your browser.</p>
         <p class="fine">A teaching tool, not investment advice. These are paper portfolios that hold some stocks and short others, with no trading costs.</p>
     </header>
 
+    <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
     <main id="lab"><p class="fine">Loading the experiment…</p></main>
+    <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Next: the Fama and French factors behind the screener's value, profitability and investment categories.</p>
 
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js"></script>
-<script src="lab_engine.js"></script>
+<script src="lab_data.js?v=2"></script>
+<script src="lab_engine.js?v=2"></script>
 <script>
 (function () {
     'use strict';
     const D = window.LAB_DATA, E = window.LabEngine, root = document.getElementById('lab');
     if (!D || !E) { root.innerHTML = '<p class="warn">The experiment data did not load.</p>'; return; }
-    const X = D.experiments[0], REF = X.reference, M = D.momentum;
+    const M = D.momentum, MK = D.market;
     const FIRST = M.months[0], LAST = M.months[M.months.length - 1];
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const f2 = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
     const sf2 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2);
     const mon = k => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+k.slice(4) - 1] + ' ' + k.slice(0, 4);
-    const refState = () => ({ start: REF.start, end: REF.end, window: REF.window, target: REF.target, cap: REF.cap });
-    let S = refState();
-    const atRef = () => S.start === REF.start && S.end === REF.end && S.window === REF.window &&
-        Math.abs(S.target - REF.target) < 1e-9 && S.cap === REF.cap;
-
-    const PRESETS = [
-        ['The paper · 1927–2011', REF.start, REF.end],
-        ['After the paper · 2012–now', '201201', LAST],
-        ['1929–1939', '192901', '193912'],
-        ['2000–2010', '200001', '201012'],
-        ['Everything', FIRST, LAST],
-    ];
-    const WINDOWS = [[21, '1 month'], [63, '3 months'], [126, '6 months'], [252, '12 months']];
-    const CAPS = [[null, 'None'], [2, '2×'], [1.5, '1.5×'], [1, '1× · no borrowing']];
-
-    const res0 = X.result;
-    const verdict = res0.within === res0.total
-        ? `<strong>All ${res0.total} figures match the paper</strong> within the stated tolerances.`
-        : `<strong>${res0.within} of ${res0.total} figures match the paper</strong> within the stated tolerances. <span class="out">${res0.total - res0.within} outside</span>, and marked below.`;
-
     const years = []; for (let y = +FIRST.slice(0, 4); y <= +LAST.slice(0, 4); y++) years.push(y);
     const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
+    const seg = (id, label, items) => `<div><span class="ctl-label" id="l-${id}">${label}</span><div class="seg" role="group" aria-labelledby="l-${id}" id="c-${id}">${items}</div></div>`;
+    let current = null;                                  // { id, settings(), result() } of the experiment on screen
+    window.LAB_STATE = () => current ? { id: current.id, settings: current.settings(), result: current.result() } : null;
 
-    root.innerHTML = `
-    <article class="exp" aria-labelledby="x-title">
-        <section>
-            <div class="eyebrow">Experiment 1 · Momentum</div>
+    // ------------------------------------------------------------------ shared pieces
+    function head(X, n, verdictExtra) {
+        const r = X.result, out = r.total - r.within;
+        const verdict = out === 0
+            ? `<strong>All ${r.total} figures match the paper</strong> within the stated tolerances.`
+            : `<strong>${r.within} of ${r.total} figures match the paper</strong> within the stated tolerances. <span class="out">${out} outside</span>, and marked below.`;
+        return `<section>
+            <div class="eyebrow">Experiment ${n} · Momentum</div>
             <h2 id="x-title">${esc(X.title)}</h2>
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. <a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a></p>
             <h3 style="margin-top:22px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
-            <div class="verdict"><span>${verdict}</span><a href="#x-against">See every figure</a></div>
-        </section>
-
-        <section aria-labelledby="x-run">
-            <h3 id="x-run">Run it yourself</h3>
-            <div class="warn" id="x-mismatch" hidden></div>
-            <div class="controls">
-                <div>
-                    <span class="ctl-label" id="l-period">Period</span>
-                    <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${PRESETS.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
-                    <div class="years"><label for="c-from">From</label><select id="c-from">${yopts}</select><label for="c-to">to</label><select id="c-to">${yopts}</select></div>
-                </div>
-                <div class="row2">
-                    <div>
-                        <span class="ctl-label" id="l-win">Risk measured over the last</span>
-                        <div class="seg" role="group" aria-labelledby="l-win" id="c-window">${WINDOWS.map(w => `<button type="button" data-v="${w[0]}">${w[1]}${w[0] === REF.window ? ' · paper' : ''}</button>`).join('')}</div>
-                    </div>
-                    <div>
-                        <span class="ctl-label" id="l-cap">Borrowing limit on exposure</span>
-                        <div class="seg" role="group" aria-labelledby="l-cap" id="c-cap">${CAPS.map(c => `<button type="button" data-v="${c[0] === null ? '' : c[0]}">${c[1]}${c[0] === REF.cap ? ' · paper' : ''}</button>`).join('')}</div>
-                    </div>
-                </div>
-                <div class="row2">
-                    <div>
-                        <label class="ctl-label" for="c-target">Target volatility, a year</label>
-                        <div class="range"><input type="range" id="c-target" min="6" max="20" step="1" value="12"><output id="o-target" for="c-target">12%</output></div>
-                    </div>
-                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
-                </div>
-            </div>
-
-            <p class="read" id="x-read" aria-live="polite"></p>
-
-            <div class="key" aria-hidden="true"><span class="a"><i></i>Risk-managed momentum</span><span class="b"><i></i>Plain momentum</span></div>
-            <p class="chart-title"><strong>What $1 became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum. The figures are in the table below."></div>
-            <p class="chart-title"><strong>Exposure each month</strong>: 1.0 is the plain strategy; above it means borrowing</p>
-            <div class="chart" id="ch-weight" role="img" aria-label="The risk-managed strategy's exposure each month."></div>
-
-            <h3 style="margin-top:26px">Measured on these settings</h3>
-            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Figure</th><th scope="col">Plain</th><th scope="col">Risk-managed</th></tr></thead><tbody></tbody></table></div>
-            <p class="note" id="x-live-note"></p>
-        </section>
-
-        <section aria-labelledby="x-against">
-            <h3 id="x-against">Against the paper</h3>
-            <p style="margin:0 0 12px;max-width:76ch">Run at the paper's own settings (${mon(REF.start)} to ${mon(REF.end)}, six-month risk window, 12% target, no borrowing limit), this is each figure the paper reports beside what the public data gives today.</p>
-            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">The tolerances were written down in the build, not chosen on this page: ${Object.keys(D.tolerances).map(k => esc(D.stat_labels[k].replace(/ \(%\)/, '')) + ' ±' + D.tolerances[k]).join(', ')}. They were set after the first comparison was seen, as round numbers, so read the differences themselves. Reference figures: ${esc(REF.source)}</p>
-        </section>
-
-        <section aria-labelledby="x-cond">
+            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''}</span><a href="#x-against">See every figure</a></div>
+        </section>`;
+    }
+    function tail(X, method) {
+        return `<section aria-labelledby="x-cond">
             <h3 id="x-cond">The conditions used</h3>
             <dl class="cond">${X.conditions.map(c => `<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl>
         </section>
-
         <section aria-labelledby="x-open">
             <h3 id="x-open">What is still needed to call it verified</h3>
             <ul class="open">${X.open_details.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
         </section>
-
         <section aria-labelledby="x-scr">
             <h3 id="x-scr">Where this sits in the screener</h3>
             <p style="margin:0;max-width:76ch">${esc(X.in_the_screener)} The settings on this page are never used to set the screener's own.</p>
         </section>
-
         <section aria-labelledby="x-method">
             <h3 id="x-method">The method, and the code that ran it</h3>
-            <div class="eq">forecast variance for month <i>t</i> &nbsp;=&nbsp; 21 × ( r<sub>1</sub><sup>2</sup> + r<sub>2</sub><sup>2</sup> + … + r<sub>126</sub><sup>2</sup> ) ÷ 126<small>r are the strategy's daily returns on the 126 trading days before month t begins. Times 12, square-rooted, it is a volatility a year.</small></div>
-            <div class="eq">exposure in month <i>t</i> &nbsp;=&nbsp; target volatility ÷ forecast volatility<small>Capped at the borrowing limit, if one is set.</small></div>
-            <div class="eq">risk-managed return in month <i>t</i> &nbsp;=&nbsp; exposure × plain momentum's return<small>Sharpe ratio = mean return a year ÷ volatility a year. It does not change with the target, unless the limit binds.</small></div>
+            ${method}
             <details><summary>Show the code this page just ran</summary><pre id="x-code"></pre></details>
-        </section>
-    </article>
-    <p class="next">More experiments are being added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Next: momentum crashes (Daniel and Moskowitz, 2016), the study the screener's momentum rule is built on.</p>`;
+        </section>`;
+    }
+    const tolNote = X => `The tolerances were written down in the build, not chosen on this page. Reference figures: ${esc(X.reference.source)}`;
 
-    document.getElementById('x-code').textContent = E.run.toString() + '\n\n' + E.stats.toString();
-    document.getElementById('foot').innerHTML =
-        `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
-        `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
-        `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and the “After the paper” period shows how much a result can weaken once its sample ends.</p>`;
-
-    // --- the fixed comparison, from the build; the page recomputes it and says so if they differ
-    const rowsNow = E.compare(REF, E.run(M, refState()), D.tolerances, D.stat_labels);
-    const drift = rowsNow.filter((r, i) => Math.abs(r.here - res0.rows[i].here) > 1e-9).length;
-    if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
-        w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-    const legName = { plain: 'Plain momentum', managed: 'Risk-managed momentum' };
-    let h = '', leg = '';
-    res0.rows.forEach(r => {
-        if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
-        h += `<tr><td>${esc(r.label)}</td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
-    });
-    document.querySelector('#t-ref tbody').innerHTML = h;
-
-    // --- charts
+    // ------------------------------------------------------------------ charts
     const NS = 'http://www.w3.org/2000/svg';
     function yearTicks(months, maxTicks) {
         const y0 = +months[0].slice(0, 4), y1 = +months[months.length - 1].slice(0, 4);
@@ -311,11 +243,24 @@ footer p { margin: 0 0 8px; }
         let lo = Infinity, hi = -Infinity;
         series.forEach(s => s.v.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
         if (opt.min !== undefined) lo = Math.min(lo, opt.min);
-        if (opt.max !== undefined) hi = Math.max(hi, opt.max);
         if (hi - lo < 1e-9) hi = lo + 1;
         const pad = (hi - lo) * .04; lo -= opt.min === lo ? 0 : pad; hi += pad;
         const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
         let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        // shaded bands: runs of months in a marked state
+        if (opt.bands) {
+            const half = n > 1 ? (W - L - R) / (n - 1) / 2 : 0;
+            let a = -1;
+            for (let i = 0; i <= n; i++) {
+                const on = i < n && opt.bands[i];
+                if (on && a < 0) a = i;
+                if (!on && a >= 0) {
+                    const x0 = Math.max(L, x(a) - half), x1 = Math.min(W - R, x(i - 1) + half);
+                    s += `<rect class="band" x="${x0.toFixed(1)}" y="${T}" width="${Math.max(1.5, x1 - x0).toFixed(1)}" height="${H - T - B}"/>`;
+                    a = -1;
+                }
+            }
+        }
         opt.ticks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         (opt.refs || []).forEach(v => { if (v > lo && v < hi) s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; });
         yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
@@ -327,50 +272,233 @@ footer p { margin: 0 0 8px; }
         return out.length > 7 ? out.filter((_, i) => i % 2 === 0) : out; };
     const linTicks = (lo, hi) => { const step = [.25, .5, 1, 2, 5].find(s => (hi - lo) / s <= 5) || 5, out = [];
         for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push([v, v.toFixed(step < 1 ? 2 : 1)]); return out; };
-
-    // --- the live run
-    let last = null;
-    function render() {
-        const r = last = E.run(M, S), ps = r.plain_stats, ms = r.managed_stats, read = document.getElementById('x-read');
-        document.querySelectorAll('#c-preset button').forEach(b => { const p = PRESETS[+b.dataset.i]; b.setAttribute('aria-pressed', String(p[1] === S.start && p[2] === S.end)); });
-        document.querySelectorAll('#c-window button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === S.window)));
-        document.querySelectorAll('#c-cap button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === '' ? null : +b.dataset.v) === S.cap)));
-        document.getElementById('c-from').value = S.start.slice(0, 4); document.getElementById('c-to').value = S.end.slice(0, 4);
-        document.getElementById('c-target').value = Math.round(S.target * 100); document.getElementById('o-target').textContent = Math.round(S.target * 100) + '%';
-        document.getElementById('c-reset').hidden = atRef();
-        const body = document.querySelector('#t-live tbody');
-        if (!ps || !ms) {
-            read.textContent = 'There are too few months with a risk forecast in this period to measure anything. Widen the period.';
-            body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('ch-weight').innerHTML = '';
-            document.getElementById('x-live-note').textContent = ''; return;
-        }
-        const better = ms.sharpe > ps.sharpe ? 'higher' : ms.sharpe < ps.sharpe ? 'lower' : 'the same';
-        read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, plain momentum's Sharpe ratio was <strong>${f2(ps.sharpe)}</strong> and its worst month <strong>${f2(ps.min)}%</strong>. Risk-managed, the Sharpe ratio was <strong>${f2(ms.sharpe)}</strong> (${better}) and the worst month <strong>${f2(ms.min)}%</strong>. Exposure ran from ${r.weight_stats.min.toFixed(2)} to ${r.weight_stats.max.toFixed(2)} and averaged ${r.weight_stats.mean.toFixed(2)}.`;
-        const fallP = E.deepestFall(r.plain) * 100, fallM = E.deepestFall(r.managed) * 100;
-        const line = (label, a, b) => `<tr><td>${label}</td><td>${a}</td><td>${b}</td></tr>`;
-        body.innerHTML = line('Sharpe ratio', f2(ps.sharpe), f2(ms.sharpe)) + line('Mean, a year (%)', f2(ps.mean), f2(ms.mean)) +
-            line('Volatility, a year (%)', f2(ps.std), f2(ms.std)) + line('Worst month (%)', f2(ps.min), f2(ms.min)) +
-            line('Best month (%)', f2(ps.max), f2(ms.max)) + line('Deepest fall from a high (%)', f2(fallP), f2(fallM)) +
-            line('Skewness', f2(ps.skew), f2(ms.skew)) + line('Excess kurtosis', f2(ps.kurt), f2(ms.kurt));
-        document.getElementById('x-live-note').textContent = atRef()
-            ? 'These are the paper\'s own settings; the comparison with its published figures is in the next section.'
-            : 'These settings differ from the paper\'s, so there is no published figure to compare them with. The two strategies also run at different risk: read the Sharpe ratio, not the height of the lines.';
-        const lg = v => v.map(z => Math.log10(Math.max(z, 1e-9)));
-        draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(E.growth(r.plain)) }, { cls: 'managed', v: lg(E.growth(r.managed)) }],
-            { height: 300, ticks: logTicks, refs: [0] });
-        draw(document.getElementById('ch-weight'), r.months, [{ cls: 'managed', v: r.weights }], { height: 150, ticks: linTicks, refs: [1], min: 0 });
+    const lg = v => v.map(z => Math.log10(Math.max(z, 1e-9)));
+    function periodControl(presets) {
+        return `<div><span class="ctl-label" id="l-period">Period</span>
+            <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${presets.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
+            <div class="years"><label for="c-from">From</label><select id="c-from">${yopts}</select><label for="c-to">to</label><select id="c-to">${yopts}</select></div></div>`;
     }
-    function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-    document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = PRESETS[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
-    document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
-    document.getElementById('c-cap').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ cap: b.dataset.v === '' ? null : +b.dataset.v }); });
-    document.getElementById('c-from').addEventListener('change', e => set({ start: e.target.value + '01' }));
-    document.getElementById('c-to').addEventListener('change', e => set({ end: e.target.value + '12' }));
-    document.getElementById('c-target').addEventListener('input', e => set({ target: +e.target.value / 100 }));
-    document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
-    let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
-    window.LAB_STATE = () => ({ settings: Object.assign({}, S), result: last });
-    render();
+    function bindPeriod(presets, get, set) {
+        document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
+        document.getElementById('c-from').addEventListener('change', e => set({ start: e.target.value + '01' }));
+        document.getElementById('c-to').addEventListener('change', e => set({ end: e.target.value + '12' }));
+        return () => { const S = get();
+            document.querySelectorAll('#c-preset button').forEach(b => { const p = presets[+b.dataset.i]; b.setAttribute('aria-pressed', String(p[1] === S.start && p[2] === S.end)); });
+            document.getElementById('c-from').value = S.start.slice(0, 4); document.getElementById('c-to').value = S.end.slice(0, 4); };
+    }
+    const press = (id, test) => document.querySelectorAll('#c-' + id + ' button').forEach(b => b.setAttribute('aria-pressed', String(test(b.dataset.v))));
+
+    // ------------------------------------------------------------------ experiment 1
+    function riskManaged(X, n, mount) {
+        const REF = X.reference, res0 = X.result;
+        const refState = () => ({ start: REF.start, end: REF.end, window: REF.window, target: REF.target, cap: REF.cap });
+        let S = refState(), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end && S.window === REF.window && Math.abs(S.target - REF.target) < 1e-9 && S.cap === REF.cap;
+        const PRESETS = [['The paper · 1927–2011', REF.start, REF.end], ['After the paper · 2012–now', '201201', LAST],
+            ['1929–1939', '192901', '193912'], ['2000–2010', '200001', '201012'], ['Everything', FIRST, LAST]];
+        const WINDOWS = [[21, '1 month'], [63, '3 months'], [126, '6 months'], [252, '12 months']];
+        const CAPS = [[null, 'None'], [2, '2×'], [1.5, '1.5×'], [1, '1× · no borrowing']];
+        mount.innerHTML = head(X, n) + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS)}
+                <div class="row2">
+                    ${seg('window', 'Risk measured over the last', WINDOWS.map(w => `<button type="button" data-v="${w[0]}">${w[1]}${w[0] === REF.window ? ' · paper' : ''}</button>`).join(''))}
+                    ${seg('cap', 'Borrowing limit on exposure', CAPS.map(c => `<button type="button" data-v="${c[0] === null ? '' : c[0]}">${c[1]}${c[0] === REF.cap ? ' · paper' : ''}</button>`).join(''))}
+                </div>
+                <div class="row2">
+                    <div><label class="ctl-label" for="c-target">Target volatility, a year</label>
+                        <div class="range"><input type="range" id="c-target" min="6" max="20" step="1" value="12"><output id="o-target" for="c-target">12%</output></div></div>
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>Risk-managed momentum</span><span class="b"><i></i>Plain momentum</span></div>
+            <p class="chart-title"><strong>What $1 became</strong>, compounding each month's return (log scale)</p>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum. The figures are in the table below."></div>
+            <p class="chart-title"><strong>Exposure each month</strong>: 1.0 is the plain strategy; above it means borrowing</p>
+            <div class="chart" id="ch-weight" role="img" aria-label="The risk-managed strategy's exposure each month."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Figure</th><th scope="col">Plain</th><th scope="col">Risk-managed</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Run at the paper's own settings (${mon(REF.start)} to ${mon(REF.end)}, six-month risk window, 12% target, no borrowing limit), this is each figure the paper reports beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} They were set after the first comparison was seen, as round numbers, so read the differences themselves.</p>
+        </section>` + tail(X, `
+            <div class="eq">forecast variance for month <i>t</i> &nbsp;=&nbsp; 21 × ( r<sub>1</sub><sup>2</sup> + r<sub>2</sub><sup>2</sup> + … + r<sub>126</sub><sup>2</sup> ) ÷ 126<small>r are the strategy's daily returns on the 126 trading days before month t begins. Times 12, square-rooted, it is a volatility a year.</small></div>
+            <div class="eq">exposure in month <i>t</i> &nbsp;=&nbsp; target volatility ÷ forecast volatility<small>Capped at the borrowing limit, if one is set.</small></div>
+            <div class="eq">risk-managed return in month <i>t</i> &nbsp;=&nbsp; exposure × plain momentum's return<small>Sharpe ratio = mean return a year ÷ volatility a year. It does not change with the target, unless the limit binds.</small></div>`);
+        document.getElementById('x-code').textContent = E.run.toString() + '\n\n' + E.stats.toString();
+
+        // the fixed comparison, from the build; the page recomputes it and says so if they differ
+        const rowsNow = E.compare(REF, E.run(M, refState()), D.tolerances, D.stat_labels);
+        const drift = rowsNow.filter((r, i) => Math.abs(r.here - res0.rows[i].here) > 1e-9).length;
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        const legName = { plain: 'Plain momentum', managed: 'Risk-managed momentum' };
+        let h = '', leg = '';
+        res0.rows.forEach(r => {
+            if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
+            h += `<tr><td>${esc(r.label)}</td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+        });
+        document.querySelector('#t-ref tbody').innerHTML = h;
+
+        function render() {
+            const r = last = E.run(M, S), ps = r.plain_stats, ms = r.managed_stats, read = document.getElementById('x-read');
+            syncPeriod();
+            press('window', v => +v === S.window);
+            press('cap', v => (v === '' ? null : +v) === S.cap);
+            document.getElementById('c-target').value = Math.round(S.target * 100); document.getElementById('o-target').textContent = Math.round(S.target * 100) + '%';
+            document.getElementById('c-reset').hidden = atRef();
+            const body = document.querySelector('#t-live tbody');
+            if (!ps || !ms) {
+                read.textContent = 'There are too few months with a risk forecast in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('ch-weight').innerHTML = '';
+                document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const better = ms.sharpe > ps.sharpe ? 'higher' : ms.sharpe < ps.sharpe ? 'lower' : 'the same';
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, plain momentum's Sharpe ratio was <strong>${f2(ps.sharpe)}</strong> and its worst month <strong>${f2(ps.min)}%</strong>. Risk-managed, the Sharpe ratio was <strong>${f2(ms.sharpe)}</strong> (${better}) and the worst month <strong>${f2(ms.min)}%</strong>. Exposure ran from ${r.weight_stats.min.toFixed(2)} to ${r.weight_stats.max.toFixed(2)} and averaged ${r.weight_stats.mean.toFixed(2)}.`;
+            const fallP = E.deepestFall(r.plain) * 100, fallM = E.deepestFall(r.managed) * 100;
+            const line = (label, a, b) => `<tr><td>${label}</td><td>${a}</td><td>${b}</td></tr>`;
+            body.innerHTML = line('Sharpe ratio', f2(ps.sharpe), f2(ms.sharpe)) + line('Mean, a year (%)', f2(ps.mean), f2(ms.mean)) +
+                line('Volatility, a year (%)', f2(ps.std), f2(ms.std)) + line('Worst month (%)', f2(ps.min), f2(ms.min)) +
+                line('Best month (%)', f2(ps.max), f2(ms.max)) + line('Deepest fall from a high (%)', f2(fallP), f2(fallM)) +
+                line('Skewness', f2(ps.skew), f2(ms.skew)) + line('Excess kurtosis', f2(ps.kurt), f2(ms.kurt));
+            document.getElementById('x-live-note').textContent = atRef()
+                ? 'These are the paper\'s own settings; the comparison with its published figures is in the next section.'
+                : 'These settings differ from the paper\'s, so there is no published figure to compare them with. The two strategies also run at different risk: read the Sharpe ratio, not the height of the lines.';
+            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(E.growth(r.plain)) }, { cls: 'managed', v: lg(E.growth(r.managed)) }],
+                { height: 300, ticks: logTicks, refs: [0] });
+            draw(document.getElementById('ch-weight'), r.months, [{ cls: 'managed', v: r.weights }], { height: 150, ticks: linTicks, refs: [1], min: 0 });
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
+        document.getElementById('c-cap').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ cap: b.dataset.v === '' ? null : +b.dataset.v }); });
+        document.getElementById('c-target').addEventListener('input', e => set({ target: +e.target.value / 100 }));
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
+    // ------------------------------------------------------------------ experiment 2
+    function crashes(X, n, mount) {
+        const REF = X.reference, res0 = X.result, NAMES = D.state_names;
+        const refState = () => ({ start: REF.start, end: REF.end, lookback: REF.lookback, window: REF.window, threshold: REF.threshold });
+        let S = refState(), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end && S.lookback === REF.lookback && S.window === REF.window && Math.abs(S.threshold - REF.threshold) < 1e-9;
+        const PRESETS = [['The paper · 1927–2013', REF.start, REF.end], ['After the paper · 2013–now', '201304', LAST],
+            ['1929–1939', '192901', '193912'], ['2000–2010', '200001', '201012'], ['Everything', FIRST, LAST]];
+        const LOOKS = D.bear_lookbacks.map(v => [v, v + ' months']);
+        const WINDOWS = [[63, '3 months'], [126, '6 months'], [252, '12 months']].filter(w => D.market_vol_windows.indexOf(w[0]) >= 0);
+        const outside = res0.rows.filter(r => !r.within).length;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS)}
+                <div class="row2">
+                    ${seg('lookback', '“The market fell”: its return over the last', LOOKS.map(w => `<button type="button" data-v="${w[0]}">${w[1]}${w[0] === REF.lookback ? ' · paper' : ''}</button>`).join(''))}
+                    ${seg('window', 'Volatility measured over the last', WINDOWS.map(w => `<button type="button" data-v="${w[0]}">${w[1]}${w[0] === REF.window ? ' · paper' : ''}</button>`).join(''))}
+                </div>
+                <div class="row2">
+                    <div><label class="ctl-label" for="c-thr">“Volatile” means above, a year</label>
+                        <div class="range"><input type="range" id="c-thr" min="10" max="40" step="0.2" value="20.6"><output id="o-thr" for="c-thr">20.6%</output></div></div>
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the screener's rule and the paper's period</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>Momentum (winners minus losers)</span><span class="c"><i></i>Months in the panic state</span></div>
+            <p class="chart-title"><strong>What $1 in momentum became</strong>, compounding each month's return (log scale)</p>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the momentum strategy, with the months the market was in the panic state shaded. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Momentum's months, by the state the market was in beforehand</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">State</th><th scope="col">Months</th><th scope="col" class="tol">Share</th><th scope="col">Average month</th><th scope="col">Worst month</th><th scope="col" class="tol">Lost money</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <h3 style="margin-top:26px">The fifteen worst months</h3>
+            <div class="tablewrap"><table id="t-worst"><thead><tr><th scope="col">Month here</th><th scope="col">Here (%)</th><th scope="col">Paper (%)</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-worst-note"></p>
+        </section>` + tail(X, `
+            <div class="eq">market fell before month <i>t</i> &nbsp;=&nbsp; (1 + r<sub>t−24</sub>) × … × (1 + r<sub>t−1</sub>) − 1 &lt; 0<small>r are the market's monthly returns. The paper's bear-market indicator.</small></div>
+            <div class="eq">volatile before month <i>t</i> &nbsp;=&nbsp; standard deviation of the market's last 126 daily returns × √252 &gt; threshold<small>Both are known before the month begins. Both true is the panic state.</small></div>
+            <div class="eq">average month in a state &nbsp;=&nbsp; mean of momentum's returns over the months that began in it<small>The paper tests the same idea with regressions; its figures are in the table above.</small></div>`);
+        document.getElementById('x-code').textContent = E.crashRun.toString();
+
+        // the build's four-state table at the reference settings, recomputed here
+        const now = E.crashRun(M, MK, refState());
+        const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length;
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${r.count ? (r.diff < 0 ? '−' : '+') + Math.abs(Math.round(r.diff)) : sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-worst tbody').innerHTML = res0.worst.map(w =>
+            `<tr><td>${mon(w.month)}</td><td>${f2(w.here)}</td><td>${w.paper === null ? '<span class="muted">not in its list</span>' : f2(w.paper)}</td></tr>`).join('');
+        document.getElementById('x-worst-note').textContent = res0.missed.length
+            ? 'In the paper\'s fifteen but not in these: ' + res0.missed.map(m => mon(m.month) + ' (' + f2(m.paper) + '% there, ' + f2(m.here) + '% here)').join('; ') + '.'
+            : 'The same fifteen months as the paper\'s list.';
+
+        function render() {
+            const r = last = E.crashRun(M, MK, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            press('lookback', v => +v === S.lookback);
+            press('window', v => +v === S.window);
+            document.getElementById('c-thr').value = (S.threshold * 100).toFixed(1); document.getElementById('o-thr').textContent = (S.threshold * 100).toFixed(1) + '%';
+            document.getElementById('c-reset').hidden = atRef();
+            if (r.months.length < 3) {
+                read.textContent = 'There are too few months with a market reading in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const p = r.cells[3];
+            read.innerHTML = p.n
+                ? `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, the market was down and volatile going into <strong>${p.n}</strong> of them (${(p.share * 100).toFixed(1)}%). In those months momentum averaged <strong>${sf2(p.mean)}%</strong> a month and lost money in ${(p.losing * 100).toFixed(0)}% of them. In all the other months it averaged <strong>${sf2(r.rest_mean)}%</strong>.`
+                : `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, the market was never both down and volatile on these settings. Momentum averaged <strong>${sf2(r.all_mean)}%</strong> a month.`;
+            body.innerHTML = r.cells.map(c => `<tr${c.state === 3 ? ' class="panic"' : ''}><td>${esc(NAMES[c.state])}</td><td>${c.n}</td><td class="tol">${(c.share * 100).toFixed(1)}%</td><td>${c.mean === null ? '–' : sf2(c.mean) + '%'}</td><td>${c.worst === null ? '–' : f2(c.worst) + '%'}</td><td class="tol">${c.losing === null ? '–' : (c.losing * 100).toFixed(0) + '%'}</td></tr>`).join('');
+            document.getElementById('x-live-note').textContent = (p.n && p.n < 30 ? 'Only ' + p.n + ' months are in the panic state here: too few for its average to mean much. ' : '') +
+                (S.lookback === REF.lookback && S.window === REF.window && Math.abs(S.threshold - REF.threshold) < 1e-9
+                    ? 'These are the screener\'s own thresholds, over ' + (atRef() ? 'the paper\'s period.' : 'the period you chose.')
+                    : 'These thresholds are yours. The screener\'s rule is the 24-month, 6-month, 20.6% setting.');
+            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'managed', v: lg(E.growth(r.wml)) }],
+                { height: 300, ticks: logTicks, refs: [0], bands: r.state.map(s => s === 3) });
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-lookback').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ lookback: +b.dataset.v }); });
+        document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
+        document.getElementById('c-thr').addEventListener('input', e => set({ threshold: Math.round(+e.target.value * 10) / 1000 }));
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
+    // ------------------------------------------------------------------ the page
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes };
+    const tabs = document.getElementById('tabs');
+    tabs.innerHTML = D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
+    function show() {
+        const want = location.hash.slice(1), i = Math.max(0, D.experiments.findIndex(x => x.id === want));
+        const X = D.experiments[i];
+        root.innerHTML = '<article class="exp" aria-labelledby="x-title"></article>';
+        current = KINDS[X.kind](X, i + 1, root.firstChild);
+        tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === X.id ? 'page' : 'false'));
+    }
+    window.addEventListener('hashchange', () => { show(); window.scrollTo(0, tabs.offsetTop - 12); });
+    let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
+    document.getElementById('foot').innerHTML =
+        `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
+        `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
+        `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>`;
+    show();
 })();
 </script>
 </body>

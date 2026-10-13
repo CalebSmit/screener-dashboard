@@ -52,6 +52,16 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, later that night) - experiment 2 shipped**, after the owner's "keep
+    improving, whatever you think would benefit these tools, be creative and start making this
+    great!": Daniel & Moskowitz (2016), "Momentum crashes" - the study the momentum regime rule
+    is built on. **9 of 15 figures within tolerances written before the comparison was run**;
+    every figure about what follows a market decline matches, and the six misses all describe
+    the portfolio itself (the paper builds its own deciles). The page sorts each month into four
+    market states and shades the panic state on the chart: at the screener's own thresholds,
+    1927 to 2013, momentum averaged -1.68% a month in that state and +1.52% outside it. The lab
+    now switches between experiments. **Next: experiment 3, the Fama-French five factors**, and
+    2b in the plan (rerun experiment 2 on the authors' own portfolios, terms permitting).
   - **2026-10-12 (owner-run) - experiment 1 shipped:** Barroso & Santa-Clara (2015),
     risk-managed momentum, on the Kenneth French library's momentum deciles. **13 of 14 figures
     within tolerance** (Sharpe 0.54 -> 1.00 here against the paper's 0.53 -> 0.97); the
