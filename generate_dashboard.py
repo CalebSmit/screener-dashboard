@@ -1878,9 +1878,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     </div>
                     <button class="modal-close" onclick="closeMethodology()" aria-label="Close methodology">&times;</button>
                 </div>
-                <div class="modal-body methodology-body">
+                <div class="modal-body methodology-body"></div>
+                <!-- The methodology is some 830 elements nobody sees until they ask for it. It waits
+                     in a template, outside the document, and is moved in the first time it is opened
+                     (hydrateMethodology), so it does not weigh on the first paint. -->
+                <template id="methodology-src">
                     {methodology_escaped}
-                </div>
+                </template>
             </div>
         </div>
 
@@ -3842,7 +3846,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // =====================================================================
     // METHODOLOGY MODAL
     // =====================================================================
+    function hydrateMethodology() {{
+        const body = document.querySelector('#methodology-modal .methodology-body');
+        const src = document.getElementById('methodology-src');
+        if (body && src && !body.firstChild) body.appendChild(src.content.cloneNode(true));
+    }}
     function openMethodology() {{
+        hydrateMethodology();
         buildMethodologyToc();
         methodologyRunNote();
         document.getElementById('methodology-modal').style.display = 'flex';

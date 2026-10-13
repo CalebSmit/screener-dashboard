@@ -62,7 +62,7 @@ def main() -> int:
     run = SCRATCH / "run"
     if SCRATCH.exists():
         shutil.rmtree(SCRATCH, ignore_errors=True)
-    shutil.copytree(src, run)
+    shutil.copytree(src, run, dirs_exist_ok=True)       # a synced folder can refuse to be removed; overwrite it
     w = json.loads((run / "effective_weights.json").read_text())
     w["momentum_regime"] = reading
     (run / "effective_weights.json").write_text(json.dumps(w, indent=2))

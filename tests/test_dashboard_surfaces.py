@@ -274,3 +274,20 @@ def test_what_changed_reveal_does_not_fight_the_collapse(html):
     block = block[:block.index("// Range switch")]
     assert "sec.style.display = ''" in block
     assert "classList.remove('collapsed')" not in block
+
+
+def test_the_methodology_waits_outside_the_document_until_it_is_opened():
+    """Asserted on the generator's output (CLAUDE.md rule 10). The methodology is some 830
+    elements inside a hidden dialog; on 2026-10-12 two added paragraphs took the page from
+    2,988 elements at first paint to 3,008, over the 3,000 budget
+    (tests/test_dashboard_browser.py), found by regenerating the page before the data loop
+    did. It now waits in a <template> and is moved in on first open."""
+    import generate_dashboard as gd
+    html = gd.generate_html(methodology_html="<h2>How it works</h2><p>MARKER-TEXT</p>")
+    assert '<div class="modal-body methodology-body"></div>' in html
+    start = html.index('<template id="methodology-src">')
+    assert start < html.index("MARKER-TEXT") < html.index("</template>", start)
+    opener = html[html.index("function openMethodology()"):][:400]
+    assert opener.index("hydrateMethodology();") < opener.index("buildMethodologyToc();") < opener.index("methodologyRunNote();")
+    assert "src.content.cloneNode(true)" in html
+
