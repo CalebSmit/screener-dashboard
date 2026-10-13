@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 23 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 24 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -130,10 +130,13 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
 
 ## Interface backlog
 
-- A pointer readout on the charts (date, both values).
-- An index once there is a second experiment, and a way to keep one scene while switching method.
-- A link that opens a given scene (`#period=...`), like the dashboard's `#stock=`, so a club leader
-  can send "look at this".
+- ~~A pointer readout on the charts~~ - done 2026-10-12: point at (or touch) a chart and the
+  month is read out in a sentence under it.
+- ~~An index once there is a second experiment~~ - done 2026-10-12 (the switch above the
+  experiment). Keeping one scene while switching method is still open.
+- ~~A link that opens a given scene~~ - done 2026-10-12: the address carries the experiment and
+  any settings that differ from its opening ones (`lab.html#momentum-crashes?threshold=0.3`),
+  with a "Copy a link to this scene" button. A setting a link cannot mean is ignored.
 - ~~A way into the lab from the dashboard~~ - done 2026-10-12: the footer and the search palette
   (Ctrl/Cmd+K), plus the link in the methodology. The header's design is closed; leave it.
 - A light look at whether the first paint needs the fonts it waits for.

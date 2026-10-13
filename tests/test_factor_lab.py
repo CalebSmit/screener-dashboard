@@ -487,3 +487,51 @@ def test_changing_a_setting_recalculates_the_result():
                 page.close()
         finally:
             browser.close()
+
+
+def test_a_scene_can_be_sent_as_a_link_and_a_month_read_off_the_chart():
+    """The address carries the experiment and whatever settings differ from its opening ones,
+    so the page in front of one reader can be sent to another. Settings a link cannot mean
+    are ignored rather than obeyed."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        try:
+            page = browser.new_page(viewport={"width": 1200, "height": 900})
+            errors: list[str] = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(PAGE.as_uri() + "#momentum-crashes?start=192901&end=193912&threshold=0.3", wait_until="load")
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'momentum-crashes'", timeout=30000)
+            s = page.evaluate("window.LAB_STATE().settings")
+            assert (s["start"], s["end"], s["threshold"], s["lookback"]) == ("192901", "193912", 0.3, 24)
+            assert page.evaluate("document.getElementById('c-reset').hidden") is False
+            assert page.inner_text("#c-copy") == "Copy a link to this scene"
+            # changing a setting rewrites the address; going back to the opening ones clears it
+            page.click("#c-preset button[data-i='0']")
+            assert page.evaluate("location.hash") == "#momentum-crashes?threshold=0.3"
+            page.click("#c-reset")
+            assert page.evaluate("location.hash") == "#momentum-crashes"
+            # pointing at the chart reads one month, in words
+            page.locator("#ch-growth svg").scroll_into_view_if_needed()
+            box = page.locator("#ch-growth svg").bounding_box()
+            assert page.inner_text(".chart-read") == "Point at the chart to read any month."
+            page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            read = page.inner_text(".chart-read")
+            assert re.match(r"[A-Z][a-z]{2} \d{4}: momentum returned ", read) and "$1 had become $" in read
+            assert page.evaluate("document.querySelector('.chart .cursor').style.visibility") == "visible"
+            # a link that asks for things that do not exist opens the experiment as it starts
+            page.goto(PAGE.as_uri() + "#five-factors?focus=nonsense&start=99&end=abc&window=7", wait_until="load")
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'five-factors'", timeout=30000)
+            s = page.evaluate("window.LAB_STATE().settings")
+            assert (s["focus"], s["start"], s["end"]) == ("hml", "196307", "201312")
+            page.goto(PAGE.as_uri() + "#risk-managed-momentum?cap=1&target=0.2&window=21", wait_until="load")
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'risk-managed-momentum'", timeout=30000)
+            s = page.evaluate("window.LAB_STATE().settings")
+            assert (s["cap"], s["target"], s["window"]) == (1, 0.2, 21)
+            assert errors == []
+        finally:
+            browser.close()
+
