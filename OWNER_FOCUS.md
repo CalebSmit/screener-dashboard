@@ -52,6 +52,26 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-13 (06:00 nightly) - the Growth proposal was reviewed and REFUSED, and the page now
+    says why the weight is where it is.** The waiting proposal (Growth 13% -> 10%, Quality 22% ->
+    25%) measured one point; the review measured the curve, which is what separates the two
+    readings of the same evidence. Net growth exposure moves steadily with the weight, crosses zero
+    at **13.5**, and stays within 0.05 of neutral only between **11 and 16** - because Growth is the
+    one category of eight whose score runs *against* the others. So its weight is the dial that
+    sets whether the finished ranking leans toward growing companies or away from them, and at 13%
+    it leans neither way. The proposal's own argument is that growth earns nothing; if that is
+    right the supported position is none, and 13 points is what delivers none. **Cutting to 10
+    would not remove a position on growth - it would take one**, in a direction the four studies do
+    not agree on (two flat, one negative but on 1968-1990 five-year market-wide growth, and MSCI's
+    modern estimate slightly positive). The methodology page gained **"Why the weight stays at
+    13%"**, with six tests behind it - including one that fails if a published run ever stops being
+    growth-neutral, so the sentence cannot quietly go stale. The sound half of the proposal
+    survives and moved: the category's *composition* (one metric duplicating momentum, one arguing
+    with Investment about the same fact, one duplicating Quality) is now the open Growth question.
+    **Found while wiring that up:** the publish gate's tripwire only noticed tests that read the
+    committed methodology file, not ones that read the generator - which is the better way - so
+    **three further modules holding public page claims were never run before publishing**. All four
+    are in the gate now (454 claims-gate tests, up from 371).
   - **2026-10-13 (owner-run, before the 02:00 run) - the nightly sessions are set up to carry
     this on, and a ninth experiment answers the question the review left open.**
     `prompts/nightly.md` now tells each session about the lab, the route from a finding to a

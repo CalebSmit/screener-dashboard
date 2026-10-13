@@ -628,7 +628,7 @@ already shipped to the live public site.
 | 0.8 | **The page shows the engine's numbers and refuses to publish if they do not add up.** Metric weights are resolved in one place (`factor_engine.metric_weight_profiles`) and published, never re-derived; `generate_dashboard` rebuilds every score from its own payload (`calc_trace`) and raises `CalculationMismatch`; an equation is shown only if it reproduces (`metric_lineage.RECOMPUTE`); `scoring_schema` keys the scored cache. Do not widen the tolerances to pass a build | `tests/test_calculation_reproducibility.py`, `tests/test_metric_lineage.py`, `tests/test_dashboard_browser.py` |
 | 0.8c | **A scoring change ships with its frontend in the same commit** (owner, 2026-10-07). Opening any metric row shows the stock's figures through the formula (`metric_lineage.EQUATIONS`), and an unscored metric says why (`NOT_USED_BECAUSE`); the suite evaluates each exact equation against every stock's scored value at a 99% bar, and a weighted metric with no line fails. Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never satisfy it by loosening the bar or marking a template `exact=False` | `tests/test_metric_lineage.py` (equation tests), `tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers`; `prompts/nightly.md` section 3 |
 | ctx | **Context is shown beside the score, never in it** (owner, 2026-10-08: "context only, track them"). Trend, options, insider, rate-sensitivity, macro, own-history valuation and track-record data live in `context_signals` / `context_fetch` / `insider_activity` / `market_context` / `valuation_history` / `track_record` and the payload's `ctx`, `market`, `track`; none may reach `raw`, `pct`, a category score or the composite, and no scoring module may read a `_ctx_` field. Option and insider requests run in a separate, time-budgeted pass **after** the core fetch (inside it they tripped the rate limiter). Every signal is logged per run in `data/context_log/`; one joins the score only with a research note **and** a measured `1m` record meeting the engine's own observation gate, then a changelog entry. The track record lists no current holdings (the Model Portfolio decision) and is not methodology evidence (rule 4) | `tests/test_context_layer.py`; `plan/context-layer.md` |
-| gates | Both publish paths parse the payload (`node --check`) and check its opening assignment; the data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`). Where node or pytest is absent both fall back with a `WARN` rather than jamming | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
+| gates | Both publish paths parse the payload (`node --check`) and check its opening assignment; the data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`). Where node or pytest is absent both fall back with a `WARN` rather than jamming. **The gate's membership tripwire counts both routes to the page's text** - the committed `SCREENER_OVERVIEW.md` *and* a call to `build_screener_overview` (widened 2026-10-13: reading the generator is the better way per rule 10, and was exactly the way the detector could not see; three modules holding public page claims were outside the gate) | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
 **One constraint with no test, kept here because it governs how you spend the
 session:** a weekly usage ceiling exists and silently killed the 2026-08-14
@@ -769,13 +769,21 @@ momentum are about half-size there and profitability is the one that holds. **Ho
 reaches a weight is written down - `plan/factor-lab.md`, "From the lab to the weights"**: the lab
 raises a question (the front page's scorecard, `factor_lab.scorecard`, which carries the weights
 from `config.yaml` and fails a test if they part company), a research note answers it, a changelog
-entry makes one change at a time. Five questions are ranked there; **Growth's 13% is first**. The
+entry makes one change at a time. Five questions are ranked there; **Growth's 13% was first**. The
 lab still sets nothing itself. **Question 1 is researched** (`research/2026-10-12-growth-category.md`):
 no published premium stands behind growth as the category measures it, and its job in the
-composite is a counterweight to Valuation, Investment and Size. **A proposal - Growth 13 -> 10,
-Quality 22 -> 25 - is waiting for a second session to review and decide** (section 7 of the note;
-`tests/test_growth_category.py::test_no_weight_moved_with_the_note` holds the config until a
-changelog entry cites the note). **Question 2 is researched too**
+composite is a counterweight to Valuation, Investment and Size. **Its proposal - Growth 13 -> 10,
+Quality 22 -> 25 - was reviewed and REFUSED 2026-10-13** (section 10 of the note). The measurement
+that decided it: net growth exposure is **monotonic in the weight**, crosses zero at **13.5**, and
+stays within 0.05 of neutral only over **11-16**, because Growth is the one category whose score
+runs against the rest (**-0.388** against the mean of the other seven). So if growth earns nothing,
+the supported exposure is zero and 13 points is what delivers it - **cutting the weight of an
+unrewarded-but-offsetting category does not remove a position on growth, it takes one**, in a
+direction the four evidence strands do not agree on. The page now says this
+(`tests/test_growth_category.py`, in the data loop's publish gate; the committed ranking must stay
+within 0.05 of growth-neutral or the claim fails). **The open Growth question is composition, not
+weight** - `revenue_growth` against `asset_growth`, and whether growth in profitability belongs in
+Quality (note section 11). **Question 2 is researched too**
 (`research/2026-10-12-value-and-momentum-among-large-companies.md`): large-company value was never
 reliable on book value and is better supported on the earnings and cash-flow measures the screener
 uses; large-company momentum is strong in every published sample and flat on the public data since
