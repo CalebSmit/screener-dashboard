@@ -95,7 +95,8 @@ equal-weighted, 2.17 value-weighted).
 percentage point a year - but it is distinguishable from zero only over a hundred years. So the
 methodology's sentence stays true as written (this is a measurement on public data, not a
 published study), while "there is no size effect among large stocks" would be saying more than
-the data do. For the Size weight that argues for what the screener already does: a small
+the data do. **The methodology's Size section now quotes this measurement beside its own
+caveat** (same claim, same night). For the Size weight that argues for what the screener already does: a small
 weight, stated with its weakness, and not a larger one. Before anyone moves it, read the
 literature on size after controlling for quality - Asness, Frazzini, Israel, Moskowitz &
 Pedersen (2018), "Size matters, if you control your junk", and Alquist, Israel & Moskowitz
@@ -130,9 +131,11 @@ Two things for a methodology session:
    defensible statement is that volatility has not been rewarded with return, so a calmer stock
    has earned about the same with less risk. That supports a Risk category. It supports "the
    calmer stock was the better trade per unit of risk"; it does not support "the calmer stock
-   earned more". The methodology's sentence should be read, and perhaps reworded, in that light
-   - with Baker, Bradley & Wurgler (2011) and Frazzini & Pedersen (2014) read first, since they
-   are the usual sources for the large-cap version (from memory; verify).
+   earned more". **The methodology's sentence was reworded to exactly that the same night**
+   (generator; claim `overview.low_risk_and_size_as_measured`): "more volatile and higher-beta
+   stocks have not earned reliably more than calmer ones, so the extra risk has not been paid
+   for." Baker, Bradley & Wurgler (2011) and Frazzini & Pedersen (2014) are still worth reading
+   for the large-cap version (from memory; verify).
 
 **Beta, the category's second measure (experiment 7).** Fama & French's (1992) flat relation
 between beta and return reproduces: the highest-beta tenth minus the lowest is -0.03% a month in

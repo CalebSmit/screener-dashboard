@@ -658,6 +658,22 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"The published premia behind several categories have been weak since their studies",
     ),
     Claim(
+        id="overview.low_risk_and_size_as_measured",
+        surface=OVERVIEW,
+        asserts=(
+            "On the Kenneth French library's sorted portfolios: the most volatile and highest-beta "
+            "groups have not earned reliably more than the calmest and lowest-beta ones (the "
+            "difference between the end groups is not distinguishable from zero) at about twice "
+            "the volatility; and the ninth size decile has out-earned the tenth by "
+            "roughly 0.1% a month since 1926, with a t-statistic above 2 only over the full period."
+        ),
+        made_true_by="factor_lab:sort_run",
+        checked_by=(
+            "tests/test_factor_lab.py::test_the_methodology_states_risk_and_size_as_the_lab_measures_them",
+        ),
+        detect=r"so the extra risk has not been paid for",
+    ),
+    Claim(
         id="drilldown.piotroski_beneish_parts",
         surface=DRILLDOWN,
         asserts=(
