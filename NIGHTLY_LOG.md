@@ -9843,3 +9843,46 @@ can tonight! ... keep getting creative and keep improving!"*
 clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (toward midnight, owner-run) - the lab's front page, a category map, and limitation 11 on the methodology page
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,186 passed / 0 failed; after 2,190 passed / 0 failed.
+
+### Did
+- **`lab.html` opens on an overview.** A card per experiment (verdict, one-sentence takeaway)
+  and "What stands behind each part of the screener's score": for each of the eight categories,
+  what the lab has rerun and what it has not or cannot. Two categories have nothing yet (Growth,
+  Risk); Analyst revisions probably never will, and the page says why.
+- **Every sentence on that page is checked.** `test_each_takeaway_is_what_the_data_shows`
+  recomputes each takeaway's claim from the published series; the map must match the config's
+  eight categories; the studies it says the methodology cites must be in the generated
+  methodology.
+- **Limitation 11 on the methodology page** (generator; `SCREENER_OVERVIEW.md` regenerated):
+  the four factors behind Valuation, Quality, Investment and Size averaged 0.2-0.45% a month to
+  2013 and three of them close to zero since 2014, none distinguishable from zero, over a span
+  too short to settle it. Registered as claim `overview.factor_premia_since_2014`, checked
+  against the lab's data so a later refresh can falsify it. This is a statement on the page,
+  not a change to any score.
+- Confirmed on the library's own index that it publishes portfolios sorted on variance, residual
+  variance, beta, earnings yield, cash-flow yield and accruals; the plan's queue now names them.
+
+### Methodology changed
+- None. A limitation was added to the methodology *page*; no weight, metric or threshold moved.
+
+### Noticed, not fixed
+- Limitation 11 states a weakness the weights do not yet respond to. Whether they should is the
+  Monday research note `research/2026-10-12-factor-lab-findings.md` asks for.
+
+### Next
+- Unchanged: tomorrow's 02:00 log first; Friday, experiment 5 (profitability) or 6 (low risk -
+  the Risk category has nothing behind it).
+
+### Gates
+1. **2,190 passed / 0 failed** (baseline 2,186 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.

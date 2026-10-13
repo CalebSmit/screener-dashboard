@@ -52,6 +52,23 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
 .tabs a:hover { background: var(--bg-card-hover); color: var(--text-primary); text-decoration: none; }
 .tabs a[aria-current="page"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
 .exp { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.cards { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .cards { grid-template-columns: 1fr 1fr; } }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border: 1px solid var(--border-bright); border-radius: 10px;
+        background: var(--bg-elevated); color: var(--text-secondary); transition: border-color .12s, background .12s; }
+.card:hover { border-color: var(--accent); background: var(--bg-card-hover); text-decoration: none; }
+.card strong { color: var(--text-primary); font-size: 17px; line-height: 1.25; letter-spacing: -.01em; }
+.card .cite { font-size: 13px; }
+.card .take { font-size: 14px; line-height: 1.5; }
+.chip { align-self: flex-start; margin: 4px 0; padding: 3px 10px; border: 1px solid var(--border-bright); border-radius: 999px;
+        font-size: 12.5px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.chip.part { border-color: rgba(250,178,25,.5); }
+.chip.miss { border-color: var(--amber); color: var(--amber); }
+#t-map td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
+#t-map th { text-align: left; }
+#t-map td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+@media (max-width: 599px) { #t-map, #t-map tbody, #t-map tr, #t-map td { display: block; } #t-map thead { display: none; }
+    #t-map tr { padding: 12px 0; border-bottom: 1px solid var(--border); } #t-map td { border: 0; padding: 2px 0; } }
 .exp > section { padding: 22px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
 @media (min-width: 720px) { .exp > section { padding: 28px 32px; } }
@@ -173,8 +190,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=5"></script>
-<script src="lab_engine.js?v=5"></script>
+<script src="lab_data.js?v=6"></script>
+<script src="lab_engine.js?v=6"></script>
 <script>
 (function () {
     'use strict';
@@ -709,14 +726,56 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ the front page
+    function overview(mount) {
+        const byId = {}; D.experiments.forEach((x, i) => { byId[x.id] = { x: x, n: i + 1 }; });
+        const total = D.experiments.reduce((a, x) => a + x.result.total, 0), within = D.experiments.reduce((a, x) => a + x.result.within, 0);
+        const card = (x, i) => `<a class="card" href="#${esc(x.id)}">
+            <span class="eyebrow">Experiment ${i + 1} · ${esc(x.topic)}</span>
+            <strong>${esc(x.title)}</strong>
+            <span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
+            <span class="chip${x.result.within === x.result.total ? '' : x.result.within * 2 < x.result.total ? ' miss' : ' part'}">${x.result.within} of ${x.result.total} figures match the paper</span>
+            <span class="take">${esc(x.takeaway)}</span></a>`;
+        const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
+        mount.innerHTML = `
+        <section aria-labelledby="o-exp">
+            <h2 id="o-exp">${D.experiments.length} experiments so far</h2>
+            <p style="margin:6px 0 18px;max-width:72ch">Each one reruns a published study on public data and reports every figure beside the paper's. Across all of them, <strong>${within} of ${total} figures</strong> land within tolerances written into the build. The ones that do not are shown, not hidden.</p>
+            <div class="cards">${D.experiments.map(card).join('')}</div>
+        </section>
+        <section aria-labelledby="o-map">
+            <h3 id="o-map">What stands behind each part of the screener's score</h3>
+            <p style="margin:0 0 12px;max-width:72ch">The screener scores every company in eight categories. This is what the lab can put behind each one today, and what it cannot.</p>
+            <div class="tablewrap"><table id="t-map"><thead><tr><th scope="col">Category</th><th scope="col">Rerun in the lab</th><th scope="col">Not covered</th></tr></thead><tbody>
+            ${D.category_map.map(c => `<tr><td>${esc(c.category)}</td><td>${esc(c.has)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.gap)}</td></tr>`).join('')}
+            </tbody></table></div>
+        </section>
+        <section aria-labelledby="o-how">
+            <h3 id="o-how">How to read an experiment</h3>
+            <dl class="cond">
+                <dt>The claim</dt><dd>What the paper says it found, with its source.</dd>
+                <dt>Run it yourself</dt><dd>The same calculation with the controls in your hands. Start with “After the paper”: it shows how the result held once its sample ended.</dd>
+                <dt>Against the paper</dt><dd>Every figure the paper reports beside what the public data gives, with the difference and whether it is inside a tolerance fixed in advance.</dd>
+                <dt>Still unverified</dt><dd>What is different about the data here, and what has not been checked.</dd>
+            </dl>
+        </section>`;
+        return { id: 'overview', settings: () => ({}), result: () => null, redraw: () => {} };
+    }
+
     // ------------------------------------------------------------------ the page
     const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect };
     const tabs = document.getElementById('tabs');
-    tabs.innerHTML = D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
+    tabs.innerHTML = '<a href="#overview" data-id="overview"><span>Start here</span>Overview</a>' +
+        D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.title)}</a>`).join('');
     function show() {
-        const scene = parseScene(), i = Math.max(0, D.experiments.findIndex(x => x.id === scene.id));
+        const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
+        root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
+        if (i < 0) {
+            current = overview(root.firstChild);
+            tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === 'overview' ? 'page' : 'false'));
+            return;
+        }
         const X = D.experiments[i];
-        root.innerHTML = '<article class="exp" aria-labelledby="x-title"></article>';
         current = KINDS[X.kind](X, i + 1, root.firstChild, scene.p);
         const reset = document.getElementById('c-reset');
         if (reset) {

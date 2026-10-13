@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 27 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 31 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -99,7 +99,9 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 3 | Fama & French (2015), five factors | Valuation, Quality (profitability), Investment, Size | French 5-factor file (2x3) | **Shipped 2026-10-12.** 20 of 21 figures within tolerances written beforehand; profitability's volatility is outside by 0.01. After the paper's sample (2014 on) none of the four factors is distinguishable from zero - see `research/2026-10-12-factor-lab-findings.md` before reading anything into that. |
 | 4 | The size effect, and whether it reaches large stocks (Fama & French 1992) | Size | French size deciles | **Shipped 2026-10-12. The lab's first replication that mostly fails: 3 of 11 figures within** tolerances written beforehand. The paper's table uses only non-financial firms with accounting data; the library's groups hold every stock. It stays on the page as a miss. **The measurement that matters here:** the ninth size group out-earned the tenth by 0.07-0.14% a month in every period and weighting tried, distinguishable from zero only over the full century. `research/2026-10-12-factor-lab-findings.md` section 5. |
 | 5 | **Novy-Marx (2013), profitability** | Quality | French operating-profitability portfolios | **Next.** The library sorts on operating, not gross, profitability: that difference goes in "still needed". |
-| 6 | Low-risk: Frazzini & Pedersen (2014) or Baker, Bradley & Wurgler (2011) | Risk | French beta / variance portfolios, or AQR's library | **Check AQR's terms of use before publishing anything derived from it.** |
+| 6 | Low risk: Baker, Bradley & Wurgler (2011), or Ang, Hodrick, Xing & Zhang (2006) | Risk | The library's `Portfolios_Formed_on_VAR`, `_RESVAR` and `_BETA` files (confirmed present 2026-10-12) | The Risk category has nothing behind it in the lab yet. No need for AQR's data, so no terms question. |
+| 6b | Value as the screener measures it: earnings yield and cash-flow yield (Lakonishok, Shleifer & Vishny 1994 is the usual reference - verify) | Valuation | `Portfolios_Formed_on_E-P` and `_CF-P` (confirmed present) | Closer to the screener's own valuation metrics than book-to-market is. |
+| 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` (confirmed present) | A partial stand-in for the accounting-quality studies that cannot be rerun. |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French HML and momentum factors | The correlation the 2026-10-12 changelog entry leans on for sending freed weight to Valuation. Verify it. |
 | 8 | Post-publication decay across all of the above (McLean & Pontiff 2016) | All | The experiments' own series | One table: each result in its paper's sample and after it. |
 | - | **Cannot be rerun on free data:** Piotroski (2000), Beneish (1999), analyst revisions (Chan, Jegadeesh & Lakonishok 1996), post-earnings drift | Quality, Revisions, Growth | Needs stock-level fundamentals and estimates history | Give each a card saying exactly that and what data it would take. Check first whether the French library's accruals and net-issuance portfolios can stand in for Sloan (1996). |
@@ -152,6 +154,15 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-12 (owner-run, the same night) - the lab has a front page.** `lab.html` now opens
+  on an overview: a card per experiment with its verdict and a one-sentence takeaway, and a
+  table of what the lab can and cannot put behind each of the screener's eight categories
+  (`factor_lab.CATEGORY_MAP`, `TAKEAWAYS`). Every takeaway is checked against the published
+  data by a test; the map must list the config's eight categories exactly. **Keep both true when
+  adding an experiment** - the tests will insist. The same session added limitation 11 to the
+  methodology page (generator): what the four factors have earned since 2014, as a registered
+  claim that a monthly refresh of the lab can falsify.
 
 - **2026-10-12 (owner-run, the same night) - experiment 4 shipped, and it mostly fails.** Fama &
   French (1992) Table II on the library's size deciles: 3 of 11 within tolerances written

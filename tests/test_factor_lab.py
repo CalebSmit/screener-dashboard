@@ -475,6 +475,100 @@ def test_the_dashboard_has_a_way_into_the_lab():
     assert "label: 'Factor Lab'" in html and "window.location.href = 'lab.html'" in html
 
 
+# --------------------------------------------------------------------------- the front page
+def test_each_takeaway_is_what_the_data_shows(published):
+    """The front page gives one sentence per experiment. Each is checked here against the
+    published series, so a rebuild that makes one untrue fails instead of leaving it up."""
+    assert set(fl.TAKEAWAYS) == {x["id"] for x in fl.EXPERIMENTS}
+    mom, fac, size = published["momentum"], published["factors"], published["size"]
+    # 1. "roughly doubled its Sharpe ratio in the paper's sample ... after the sample, both earned less"
+    inside, after = fl.run(mom, "192703", "201112"), fl.run(mom, "201201", "209912")
+    assert 1.6 < inside["managed_stats"]["sharpe"] / inside["plain_stats"]["sharpe"] < 2.4
+    for leg in ("plain_stats", "managed_stats"):
+        assert after[leg]["sharpe"] < inside[leg]["sharpe"] and after[leg]["mean"] < inside[leg]["mean"]
+    # 2. "that pattern reproduces closely; the levels of the paper's own portfolio do not"
+    rows = {r["key"]: r["within"] for r in published["experiments"][1]["result"]["rows"]}
+    assert rows["gamma_bear"] and rows["beta_bear"] and rows["bear_months"] and not rows["wml_mean"]
+    cells = published["experiments"][1]["result"]["cells"]
+    assert cells[3]["mean"] < 0 < cells[0]["mean"]
+    # 3. "about a third of a percent a month for fifty years; since, none distinguishable from zero"
+    first, since = fl.factor_run(fac, "196307", "201312"), fl.factor_run(fac, "201401", "209912")
+    for k in ("smb", "hml", "rmw", "cma"):
+        assert 0.2 < first["stats"][k]["mean"] < 0.45 and first["stats"][k]["t"] > 2
+        assert abs(since["stats"][k]["t"]) < 2
+    assert len(since["months"]) < 240                                   # "a period too short to settle it"
+    # 4. "by less than the paper's table shows ... between the two largest groups the difference is small"
+    rows = {r["key"]: r for r in published["experiments"][3]["result"]["rows"]}
+    assert 0 < rows["small_big"]["here"] < rows["small_big"]["paper"]
+    assert abs(published["experiments"][3]["result"]["nine_ten"]["mean"]) < 0.15
+
+
+def test_the_category_map_covers_the_screeners_eight_and_nothing_else():
+    import yaml
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    assert [c["key"] for c in fl.CATEGORY_MAP] == list(cfg["factor_weights"])
+    ids = {x["id"] for x in fl.EXPERIMENTS}
+    for c in fl.CATEGORY_MAP:
+        assert set(c["experiments"]) <= ids and c["has"] and c["gap"] and c["category"]
+    assert advice_terms_in(json.dumps(fl.CATEGORY_MAP) + json.dumps(fl.TAKEAWAYS)) == []
+    # every study the map says the methodology cites is in the methodology the generator writes
+    import run_screener
+    overview = run_screener.build_screener_overview(cfg)
+    for study in ("Piotroski (2000)", "Beneish (1999)", "Mohanram (2005)", "Jegadeesh & Titman, 1993",
+                  "Chan, Jegadeesh & Lakonishok (1996"):
+        assert study in overview, study
+
+
+def test_the_front_page_lists_every_experiment_and_opens_them():
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        try:
+            for width in (1200, 375):
+                page = browser.new_page(viewport={"width": width, "height": 900})
+                errors: list[str] = []
+                page.on("pageerror", lambda e: errors.append(str(e)))
+                page.goto(PAGE.as_uri(), wait_until="load")
+                page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
+                assert page.evaluate("document.querySelectorAll('.card').length") == len(fl.EXPERIMENTS)
+                assert page.evaluate("document.querySelectorAll('#t-map tbody tr').length") == 8
+                total = sum(len(x["reference"].get("figures", [])) or 14 for x in fl.EXPERIMENTS)
+                assert f"of {total} figures" in page.inner_text("#lab")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                page.click(".card >> nth=1")
+                page.wait_for_function("window.LAB_STATE().id === 'momentum-crashes'", timeout=30000)
+                assert page.evaluate("window.LAB_STATE().result.cells.length") == 4
+                assert errors == []
+                page.close()
+        finally:
+            browser.close()
+
+
+def test_the_methodology_says_what_the_factors_did_since_2014(published):
+    """Limitation 11 on the methodology page (in the generator, rule 10) states what four
+    factors have earned since 2014. It is a claim about data that will keep arriving: when a
+    monthly refresh of the lab makes any part of it untrue, this fails and the sentence is
+    rewritten - which is the point of checking it instead of typing numbers into it."""
+    import yaml
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    text = run_screener.build_screener_overview(cfg)
+    para = next(l for l in text.splitlines() if l.startswith("11. **The published premia"))
+    assert "lab.html#five-factors" in para and "too short to settle anything" in para
+    fac = published["factors"]
+    first, since = fl.factor_run(fac, "196307", "201312"), fl.factor_run(fac, "201401", "209912")
+    for k in ("smb", "hml", "rmw", "cma"):
+        assert 0.2 <= first["stats"][k]["mean"] <= 0.45                 # "between 0.2% and 0.45% a month"
+        assert abs(since["stats"][k]["t"]) < 2                          # "none ... distinguishable from zero"
+    for k in ("smb", "hml", "cma"):
+        assert abs(since["stats"][k]["mean"]) < 0.2                     # "each averaged close to zero"
+    assert since["stats"]["rmw"]["mean"] < first["stats"]["rmw"]["mean"]   # "profitability has earned less"
+    assert len(since["months"]) < 360                                   # still short of "roughly thirty years"
+
+
 # --------------------------------------------------------------------------- what it must not become
 def test_no_scoring_module_reads_the_lab():
     """The lab reruns published factor portfolios. It is not evidence for the screener's own
@@ -509,7 +603,7 @@ def test_changing_a_setting_recalculates_the_result():
                 page = browser.new_page(viewport={"width": width, "height": 900})
                 errors: list[str] = []
                 page.on("pageerror", lambda e: errors.append(str(e)))
-                page.goto(PAGE.as_uri(), wait_until="load", timeout=60000)
+                page.goto(PAGE.as_uri() + "#risk-managed-momentum", wait_until="load", timeout=60000)
                 page.wait_for_function("window.LAB_STATE && window.LAB_STATE().result", timeout=30000)
                 before = page.evaluate("window.LAB_STATE().result.managed_stats.sharpe")
                 assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
@@ -535,7 +629,7 @@ def test_changing_a_setting_recalculates_the_result():
                 assert page.evaluate("window.LAB_STATE().settings.threshold") == pytest.approx(0.30)
                 page.click("#c-reset")
                 assert page.evaluate("window.LAB_STATE().result.cells[3].n") == at_rule
-                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 4
+                assert page.evaluate("document.querySelectorAll('.tabs a').length") == 5
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
                 # the third

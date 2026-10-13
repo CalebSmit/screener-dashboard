@@ -643,6 +643,21 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"Momentum regime rule - currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
     ),
     Claim(
+        id="overview.factor_premia_since_2014",
+        surface=OVERVIEW,
+        asserts=(
+            "On the Kenneth French library's five-factor file, the value, profitability, investment "
+            "and size factors each averaged 0.2-0.45% a month from July 1963 to December 2013; since "
+            "January 2014 value, investment and size have each averaged within 0.2% of zero a month, "
+            "profitability has averaged less than before, and none has a t-statistic of 2."
+        ),
+        made_true_by="factor_lab:factor_run",
+        checked_by=(
+            "tests/test_factor_lab.py::test_the_methodology_says_what_the_factors_did_since_2014",
+        ),
+        detect=r"The published premia behind several categories have been weak since their studies",
+    ),
+    Claim(
         id="drilldown.piotroski_beneish_parts",
         surface=DRILLDOWN,
         asserts=(
