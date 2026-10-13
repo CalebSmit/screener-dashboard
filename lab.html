@@ -68,6 +68,7 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
         font-size: 12.5px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .chip.part { border-color: rgba(250,178,25,.5); }
 .chip.miss { border-color: var(--amber); color: var(--amber); }
+#t-after td:first-child a { color: var(--text-primary); }
 #t-map td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
 #t-map th { text-align: left; }
 #t-map td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
@@ -194,8 +195,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=9"></script>
-<script src="lab_engine.js?v=9"></script>
+<script src="lab_data.js?v=10"></script>
+<script src="lab_engine.js?v=10"></script>
 <script>
 (function () {
     'use strict';
@@ -817,11 +818,24 @@ footer p { margin: 0 0 8px; }
             <span class="chip${x.result.within === x.result.total ? '' : x.result.within * 2 < x.result.total ? ' miss' : ' part'}">${x.result.within} of ${x.result.total} figures match the paper</span>
             <span class="take">${esc(x.takeaway)}</span></a>`;
         const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
+        const afterCell = (r, c) => c.value === null ? '–' :
+            (r.unit === 'pct' ? sf2(c.value) + '%' : f2(c.value)) + (c.t === null ? '' : ' <span class="muted">(' + f2(c.t) + ')</span>') +
+            '<span class="where">' + c.months + ' months</span>';
+        const directional = D.after_the_paper.filter(r => r.weaker !== null), weaker = directional.filter(r => r.weaker).length;
+        const afterLine = `A result that looks strong in the years a paper studied does not always look the same afterwards. Of the ${directional.length} results here that claim a direction, <strong>${weaker} were weaker</strong> once their paper's sample ended.`;
         mount.innerHTML = `
         <section aria-labelledby="o-exp">
             <h2 id="o-exp">${D.experiments.length} experiments so far</h2>
             <p style="margin:6px 0 18px;max-width:72ch">Each one reruns a published study on public data and reports every figure beside the paper's. Across all of them, <strong>${within} of ${total} figures</strong> land within tolerances written into the build. The ones that do not are shown, not hidden.</p>
             <div class="cards">${D.experiments.map(card).join('')}</div>
+        </section>
+        <section aria-labelledby="o-after">
+            <h3 id="o-after">In the paper's sample, and after it</h3>
+            <p style="margin:0 0 12px;max-width:72ch">${afterLine}</p>
+            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th></tr></thead><tbody>
+            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td></tr>`).join('')}
+            </tbody></table></div>
+            <p class="note">“Since” runs from the month after each paper's sample to the latest month in the data. The figure in brackets is the t-statistic where one applies; beyond about 2 either way is the usual bar. Short periods prove little: read the months beside each figure.</p>
         </section>
         <section aria-labelledby="o-map">
             <h3 id="o-map">What stands behind each part of the screener's score</h3>

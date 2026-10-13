@@ -10141,3 +10141,37 @@ roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-12 (final, owner-run) - the lab's front page: every headline result inside its paper's sample and since
+
+**Health (rule 8):** unchanged - both loops ran today, HEALTH: PASS; evidence base at `1m` **28
+rows, newest 2026-09-11 (31 days, bound 40), 4 effective**; priority 0 unchanged. Top open
+roadmap item: **0.13, the Factor Lab** (opened today, age 0 days).
+**Tests:** before 2,204 passed / 0 failed; after 2,205 passed / 0 failed.
+
+### Did
+- **Plan item 8.** `factor_lab.after_the_paper` builds one row per headline result - its value
+  in the paper's sample and in the months since, with t-statistics and the number of months -
+  and the lab's front page shows the table. Eleven rows from seven experiments; **9 of the 10
+  that claim a direction were weaker after their sample**. The exception is momentum's average
+  month in the panic state, on two months. The page says short periods prove little and prints
+  the months beside every figure.
+- `lab.html` and `lab_data.js` only; no generator touched, so no publish rehearsal was needed.
+
+### Methodology changed
+- None.
+
+### Where things stand for the next session
+- **Read the 02:00 log first** (the `[MOM-REGIME]` line; `weights.momentum_regime` in the
+  payload; on the live page the Methodology view opening with its run note and links, the
+  footer's Factor Lab link, the palette entry). If the 06:00 baseline is red, run
+  `python scripts/rehearse_publish.py --full`.
+- Then the rotation. The research note `research/2026-10-12-factor-lab-findings.md` has seven
+  sections of questions for a Monday; the plan has the lab's queue for a Friday.
+
+### Gates
+1. **2,205 passed / 0 failed** (baseline 2,204 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
