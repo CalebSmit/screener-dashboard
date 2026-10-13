@@ -502,6 +502,8 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 10. **Not investment advice:** This is a screening tool, not a recommendation engine. The output is a ranked list to narrow your research — not a list of stocks to blindly buy.
 
+11. **The published premia behind several categories have been weak since their studies were written:** The Valuation, Quality, Investment and Size categories lean on four well-known factors (value, profitability, investment, size). Rerun on public data in the [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors), each of them averaged between 0.2% and 0.45% a month over the fifty years to 2013. Since 2014 the value, investment and size factors have each averaged close to zero, profitability has earned less than it did, and none of the four is statistically distinguishable from zero. That span is too short to settle anything - a factor of this kind needs roughly thirty years to clear the usual bar - but a reader should know the long-run figures are not the recent ones. The screener's weights rest on the long-run evidence.
+
 ---
 
 ## Quick Start

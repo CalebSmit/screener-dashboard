@@ -61,8 +61,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # one never runs it against this week's copy of the page. 2 = the second experiment;
 # 3 = the third; 4 = scene links and the chart readout (the page changed, the files did not,
 # but one number moving with every release of the page is simpler to keep true); 5 = the fourth
-# experiment.
-ASSET_VERSION = 5
+# experiment; 6 = the front page.
+ASSET_VERSION = 6
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -823,6 +823,67 @@ EXPERIMENTS = [
 ]
 
 
+# One sentence per experiment for the lab's front page. Each is a statement about what the
+# published data shows, and tests/test_factor_lab.py checks every one against that data, so a
+# rebuild that makes one untrue fails the suite instead of leaving it on the page.
+TAKEAWAYS = {
+    "risk-managed-momentum": ("Scaling momentum by its own recent volatility roughly doubled its Sharpe "
+                              "ratio in the paper's sample, and the public data agrees. After the sample "
+                              "ended, both versions earned less."),
+    "momentum-crashes": ("Momentum's worst months came after the market had fallen and while it was "
+                         "volatile. That pattern reproduces closely; the levels of the paper's own "
+                         "portfolio do not."),
+    "five-factors": ("Four factors averaged about a third of a percent a month for fifty years. Since "
+                     "the paper, none has been distinguishable from zero - over a period too short to "
+                     "settle it."),
+    "size-effect": ("Smaller companies earned more, but by less than the paper's table shows once every "
+                    "listed stock is counted. Between the two largest groups the difference is small."),
+}
+
+# What the lab can and cannot put behind each of the screener's eight categories. "experiments"
+# are ids above; "cannot" names studies the methodology cites that need data the lab does not
+# have, and says what that data is. Kept honest by hand and by one test: every experiment id
+# exists, and every category of the screener's config appears exactly once.
+CATEGORY_MAP = [
+    {"category": "Valuation", "key": "valuation", "experiments": ["five-factors"],
+     "has": "The value factor - companies priced low against their book value, minus those priced high.",
+     "gap": "The screener measures value on cash flow and earnings against enterprise value, not on "
+            "book value. The public library also publishes portfolios sorted on earnings yield and on "
+            "cash-flow yield, which are closer; an experiment on those is queued."},
+    {"category": "Quality", "key": "quality", "experiments": ["five-factors"],
+     "has": "The profitability factor - robustly profitable companies minus weakly profitable ones.",
+     "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
+            "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
+            "year by year, for decades. The library's portfolios sorted on accruals can stand in for part "
+            "of that, and are queued."},
+    {"category": "Growth", "key": "growth", "experiments": [],
+     "has": "Nothing yet.",
+     "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
+            "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
+            "cites, needs company accounts."},
+    {"category": "Momentum", "key": "momentum", "experiments": ["risk-managed-momentum", "momentum-crashes"],
+     "has": "Two experiments: momentum's risk, and when it crashes.",
+     "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
+            "portfolios differently from the public file. A direct rerun is still to do."},
+    {"category": "Risk", "key": "risk", "experiments": [],
+     "has": "Nothing yet.",
+     "gap": "The methodology rests this category on the low-volatility anomaly. The public library "
+            "publishes portfolios sorted on volatility and on market beta; an experiment on them is "
+            "queued."},
+    {"category": "Analyst revisions", "key": "revisions", "experiments": [],
+     "has": "Nothing, and probably never.",
+     "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
+            "surprises. They need a history of analysts' estimates as they stood at the time, which is "
+            "sold, not published."},
+    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors"],
+     "has": "The size effect by size group, and the size factor.",
+     "gap": "Which size groups the screener's own companies fall in has not been measured."},
+    {"category": "Investment", "key": "investment", "experiments": ["five-factors"],
+     "has": "The investment factor - companies that grow their assets slowly, minus those that grow them fast.",
+     "gap": "It overlaps heavily with value; the five-factor experiment shows by how much."},
+]
+
+
 def compare(reference: dict, measured: dict, tolerances: dict = TOLERANCES) -> list[dict]:
     """One row per reported figure: the paper's, ours, the difference and whether it is
     inside the tolerance."""
@@ -909,7 +970,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce_size(size, exp) if exp["kind"] == "size"
                   else reproduce(data, exp))
-        exps.append({**exp, "result": result})
+        exps.append({**exp, "takeaway": TAKEAWAYS[exp["id"]], "result": result})
     return {
         "built": (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d"),
         "attribution": {
@@ -922,7 +983,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         },
         "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
-        "state_names": STATE_NAMES,
+        "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},

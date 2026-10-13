@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, the same night) - a front page, and an honest line on the
+    methodology page.** The lab opens on an overview: four cards (verdict and one tested sentence
+    each; 45 of 61 figures within tolerance across them) and a table of what stands behind each
+    of the eight categories - including the two that have nothing yet (Growth, Risk) and the one
+    that probably never will (Analyst revisions: its studies need estimate history that is sold,
+    not published). The methodology page gained limitation 11: the value, investment and size
+    factors have averaged close to zero since 2014. The plan's queue now names the library files
+    for Risk, for value measured the screener's way, and for accruals.
   - **2026-10-12 (owner-run, the same night) - experiment 4 shipped, and it is the lab's first
     replication that mostly fails:** Fama & French (1992) on size, **3 of 11 figures within**
     tolerances written beforehand, because the paper's table covers only non-financial firms
