@@ -10316,3 +10316,53 @@ was the largest weight with nothing behind it, so that is what was researched.
 4. `git status --porcelain` clean after the commit.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
+
+## 2026-10-13 (owner-run, just after midnight) - value and momentum among large companies: no weight change, and a page that says why
+
+**Health (rule 8):** unchanged since the last entry - both loops ran 2026-10-12, HEALTH: PASS;
+evidence base at `1m` **28 rows, newest 2026-09-11 (32 days, bound 40), 4 effective**; priority 0
+unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 1 day).
+**Tests:** before 2216 passed / 0 failed; after 2221 passed / 0 failed.
+
+### Did
+- **`research/2026-10-12-value-and-momentum-among-large-companies.md`** - question 2 of the five.
+  Six papers read from the PDFs by two readers in parallel, figures spot-checked against the
+  files: Israel & Moskowitz (2013), the two AQR "Fact, fiction" papers, Bhattacharya, Li & Sonaer,
+  Hou, Xue & Zhang, McLean & Pontiff.
+- **Value:** among the largest fifth of US stocks the book-to-market premium is 3.7% a year
+  (t 1.90), 2.2% after market risk (t 1.14), 1926-2011 - never reliably there, in AQR's own
+  words. It is larger on earnings and cash-flow measures (t about 2.8), which are what the
+  screener weights, and about 90% of it is the long side.
+- **Momentum:** 7.5% a year in the largest quintile (t 2.95), alpha 10.2% (t 4.23), only 38% of it
+  on the long side; no fade through 2011. On the lab's data it has averaged 0.58% a month among
+  big companies in 1963-1999 and 0.08% since 2000 - the lowest 320-month window of 439 - and
+  +0.33% a month since 2000 outside the regime rule's panic state against -2.02% inside it
+  (`research/measurements/2026-10-12-large-company-value-momentum.py`).
+- **The methodology's Valuation and Momentum sections each gain a paragraph** (generator) with
+  the large-company evidence and, for momentum, the record since 2000 and what the weight
+  therefore rests on. `tests/test_large_company_evidence.py`, 5 tests, holds the figures to the
+  lab's data. The lab's scorecard rows for both were updated. `rehearse_publish.py` run.
+
+### Methodology changed
+- None. No weight, metric or threshold moved, so there is no `METHODOLOGY_CHANGELOG.md` entry.
+
+### Tried and rejected
+- **Proposing a cut to Momentum.** Twenty-six years flat is past what the reading rules protect.
+  But every published study still finds the effect among large companies, index providers keep
+  it, the lab's market-wide value-weighted sort is not the screener's sector-relative measure,
+  and the rule for a disagreement was written before the numbers were looked at: the weight
+  stays, and the disagreement is written down rather than resolved by forgetting it.
+
+### Where things stand for the next session
+- Unchanged from the previous entry: **read the 02:00 log, then review and decide the Growth
+  proposal** (section 7 of `research/2026-10-12-growth-category.md`). If its 3 points move, this
+  note is a reason they should not go to Momentum.
+- The lab's next experiment is Israel & Moskowitz's largest size quintile, by period, to 2026.
+  It would say whether the flat stretch is as stark in the largest fifth as in the larger half.
+
+### Gates
+1. **2221 passed / 0 failed** (baseline 2216 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`; `rehearse_publish.py` PASSED.
+4. `git status --porcelain` clean after the commit.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched.
