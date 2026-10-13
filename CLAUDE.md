@@ -764,6 +764,13 @@ because the paper's sample is a different set of companies - and is published th
 (`factor_lab.SORTS`, `kind: "sort"`): a new sort is a record and a file entry, no page work. The lab
 opens on an overview with a category map; adding an experiment means updating `TAKEAWAYS`,
 `CATEGORY_MAP` and the methodology's "Rerun the research" paragraph together (tests insist).
+Experiment 8 measures the factors **among large companies** (kind `split`): value, investment and
+momentum are about half-size there and profitability is the one that holds. **How a lab finding
+reaches a weight is written down - `plan/factor-lab.md`, "From the lab to the weights"**: the lab
+raises a question (the front page's scorecard, `factor_lab.scorecard`, which carries the weights
+from `config.yaml` and fails a test if they part company), a research note answers it, a changelog
+entry makes one change at a time. Five questions are ranked there; **Growth's 13% is first**. The
+lab still sets nothing itself.
 **Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.

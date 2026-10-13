@@ -174,10 +174,68 @@ factors. It is **not** a reason to cut the Valuation weight tonight: one sort on
 over one twenty-year window is exactly the kind of evidence rule 4 exists to stop a session
 acting on, and within-sector comparison is a material difference from this sort.
 
+## 8. Among large companies (experiment 8, added the same night)
+
+The screener ranks the S&P 500. Every result above is for all US stocks, where small companies
+are most of the names. Fama & French (2015) Table 4A also reports each factor built separately
+within the smaller and the larger half of the market, and the library publishes the six
+portfolios behind each. Rerun (606 months, July 1963 to December 2013; tolerances written first):
+**12 of 18 figures within.** The six misses are all value or profitability among big companies,
+where today's library gives slightly more than the paper printed (value 0.25% a month against
+0.21%); on today's data all three factors sit at a t-statistic of 1.95 to 2.02 among big
+companies, so the paper's distinction between the one that reaches 2 and the two that do not
+does not survive the rebuild.
+
+Average month among **big** companies (t-statistic), with momentum added from the library's
+size-and-prior-return portfolios:
+
+| Factor | 1963-2013 | 1963-2026 | Since 2000 | Since 2014 | Among small, 1963-2026 |
+|---|---|---|---|---|---|
+| Value | 0.25 (2.02) | 0.19 (1.56) | 0.14 (0.62) | -0.07 (-0.19) | 0.40 (3.34) |
+| Profitability | 0.20 (1.95) | 0.22 (2.35) | 0.39 (2.24) | 0.31 (1.32) | 0.28 (2.79) |
+| Investment | 0.22 (1.99) | 0.15 (1.46) | 0.18 (1.03) | -0.12 (-0.45) | 0.34 (4.61) |
+| Momentum | 0.46 (2.40) | 0.37 (2.13) | 0.08 (0.24) | 0.00 (0.01) | 0.82 (5.51) |
+
+Three things follow, and none of them is a weight.
+
+1. **The long-run averages quoted for these factors are mostly small-company averages.** Among
+   big companies value, investment and momentum are each about half the size. A methodology for
+   500 large companies should quote the large-company figure, and the lab's scorecard now does.
+2. **Profitability is the exception.** It is nearly as strong among big companies as small
+   (0.22 against 0.28), has the highest t-statistic of the four among big companies over the
+   whole record, and is the only one above 2 since 2000. On this evidence Quality is the
+   best-supported 22 points in the composite.
+3. **Momentum among big companies since 2000 is the starkest number in the lab**: 0.08% a month
+   over 320 months. That is a quarter-century, and it includes 2009, one of momentum's two
+   worst episodes on record - which is the point of the crash rule, and a reason not to read
+   this as a clean measure of decay. Under the reading rules written in `plan/factor-lab.md` before this was
+   researched, it is "not confirmed since 2000", and it is question 2 in the queue there.
+
+**What this is not.** These portfolios are value-weighted, long one group and short another,
+free of costs, and sorted on book-to-market, operating profitability, asset growth and prior
+return across the whole market. The screener compares its own metrics within sectors, ranks,
+and shorts nothing. "Big" is the larger half of NYSE companies, a wider group than the S&P 500.
+So this is evidence about the traits among large companies, not a measurement of the screener.
+
+**Value and investment among big companies** correlate 0.52 (0.70 across all stocks, section 3):
+still largely one bet, a little less so.
+
+### How any of this reaches a weight
+
+Written out in `plan/factor-lab.md`, "From the lab to the weights": the lab raises a question,
+a research note answers it from the literature and from practice, a synthesis fits it to the
+other categories, and a changelog entry makes one change at a time. Five questions are ranked
+there. **No weight changed tonight**, and the reason is not caution for its own sake: the one
+published study of exactly this question - Israel & Moskowitz (2013) - has not been read
+against these numbers yet, and changing a weight on a rerun before reading the paper that
+studies it would be the lab setting a parameter by another name.
+
 ## Sources
 
 * Barroso, P. & Santa-Clara, P. (2015). Momentum has its moments. *JFE* 116(1), 111-120. Figures from the April 2012 working paper, Table 3.
 * Daniel, K. & Moskowitz, T. (2016). Momentum crashes. *JFE* 122(2), 221-247. Figures from the authors' draft of 2015-06-16, Tables 1, 2, 3, 5.
 * Fama, E. & French, K. (2015). A five-factor asset pricing model. *JFE* 116(1), 1-22. Tables 4 and 6.
+* Fama & French (2015), Table 4, Panel A, second block (2x3 factors within small and big stocks) - experiment 8's reference.
+* Israel, R. & Moskowitz, T. (2013). The role of shorting, firm size, and time on market anomalies. *JFE* 108(2), 275-301. **Cited from memory as the study to read next; not yet read against these figures.**
 * McLean, R. D. & Pontiff, J. (2016). Does academic research destroy stock return predictability? *Journal of Finance* 71(1), 5-32.
 * Data: Kenneth R. French Data Library, files dated from the 2026-08 database.

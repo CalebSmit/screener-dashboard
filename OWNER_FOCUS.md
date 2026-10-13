@@ -52,6 +52,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-12 (owner-run, past 23:00) - your question, "will the lab be used to improve the
+    methodology?", has a written answer: `plan/factor-lab.md`, "From the lab to the weights".**
+    In short: yes, through research notes and the changelog, never through code; five questions
+    about the weights are ranked there (Growth's 13% first - nothing stands behind it that can
+    be rerun). Experiment 8 shipped with it - the factors **among large companies**, which are
+    all the screener ranks: value, investment and momentum are about half-size there, and
+    profitability is the one that holds. The lab's front page now shows where each category's
+    weight stands on that evidence. **No weight changed.**
   - **2026-10-12 (owner-run, the end of the night) - the front page compares every headline
     result inside its paper's sample with the years since** (9 of the 10 that claim a direction
     were weaker afterwards), and **two methodology sentences were corrected to what the lab

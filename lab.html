@@ -69,11 +69,12 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
 .chip.part { border-color: rgba(250,178,25,.5); }
 .chip.miss { border-color: var(--amber); color: var(--amber); }
 #t-after td:first-child a { color: var(--text-primary); }
-#t-map td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
-#t-map th { text-align: left; }
-#t-map td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
-@media (max-width: 599px) { #t-map, #t-map tbody, #t-map tr, #t-map td { display: block; } #t-map thead { display: none; }
-    #t-map tr { padding: 12px 0; border-bottom: 1px solid var(--border); } #t-map td { border: 0; padding: 2px 0; } }
+#t-map td, #t-score td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
+#t-map th, #t-score th { text-align: left; }
+#t-map td:first-child, #t-score td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+@media (max-width: 599px) { #t-map, #t-map tbody, #t-map tr, #t-map td, #t-score, #t-score tbody, #t-score tr, #t-score td { display: block; } #t-map thead, #t-score thead { display: none; }
+    #t-map tr, #t-score tr { padding: 12px 0; border-bottom: 1px solid var(--border); } #t-map td, #t-score td { border: 0; padding: 2px 0; }
+    #t-score td:nth-child(3) { margin-top: 8px; } #t-score td:nth-child(3)::before { content: 'Left open: '; color: var(--text-primary); font-weight: 600; } }
 .exp > section { padding: 22px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
 @media (min-width: 720px) { .exp > section { padding: 28px 32px; } }
@@ -195,8 +196,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=10"></script>
-<script src="lab_engine.js?v=10"></script>
+<script src="lab_data.js?v=11"></script>
+<script src="lab_engine.js?v=11"></script>
 <script>
 (function () {
     'use strict';
@@ -807,6 +808,97 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ factors among small and big companies
+    function drawPairs(el, rows) {
+        const W = Math.max(280, el.clientWidth || 600), H = 260, L = 40, R = 8, T = 22, B = 34;
+        const all = rows.reduce((a, r) => a.concat([r.small, r.big]), []);
+        const hi = Math.max(0, Math.max.apply(null, all)) * 1.08 || 1, lo = Math.min(0, Math.min.apply(null, all)) * 1.08;
+        const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), slot = (W - L - R) / rows.length, bw = Math.min(46, slot * .3);
+        let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+        linTicks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        rows.forEach((r, i) => {
+            const mid = L + slot * (i + .5);
+            [[r.small, 'col', mid - bw * .56], [r.big, 'col-a', mid + bw * .56]].forEach(b => {
+                const top = Math.min(y(b[0]), y(0)), h = Math.max(1, Math.abs(y(b[0]) - y(0)));
+                s += `<rect class="${b[1]}" x="${(b[2] - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
+                if (W >= 520 || b[1] === 'col-a') s += `<text class="val" x="${b[2].toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${b[0].toFixed(2)}</text>`;
+            });
+            s += `<text x="${mid.toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(W < 520 && r.name.length > 9 ? r.name.slice(0, 6) + '.' : r.name)}</text>`;
+        });
+        el.innerHTML = s + '</svg>';
+    }
+    function bigAndSmall(X, n, mount, init) {
+        const REF = X.reference, res0 = X.result, Z = D.split, KEYS = D.split_keys, NAME = D.split_names;
+        const Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
+        const zyears = []; for (let y = +Z0.slice(0, 4); y <= +Z1.slice(0, 4); y++) zyears.push(y);
+        const refState = () => ({ start: REF.start, end: REF.end });
+        let S = applyScene(refState(), init, { start: 'month', end: 'month' }), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end;
+        const PRESETS = [['The paper · 1963–2013', REF.start, REF.end], ['After the paper · 2014–now', '201401', Z1],
+            ['Since 2000', '200001', Z1], ['Everything', Z0, Z1]];
+        const outside = res0.rows.filter(r => !r.within).length;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, zyears)}
+                <div class="row2"><div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div></div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>Among big companies, which are all the screener ranks</span><span class="b"><i></i>Among small companies</span></div>
+            <p class="chart-title"><strong>Average return a month</strong>, each factor among small and among big companies (%)</p>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of four factors, each measured among small companies and among big ones. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">Small</th><th scope="col">Big</th><th scope="col">Small − big</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today. Momentum is not in the paper's table, so it is not in this comparison.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+        </section>` + tail(X, `
+            <div class="eq">a factor among big companies &nbsp;=&nbsp; the big half's high group − its low group, each month<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small></div>
+            <div class="eq">average month &nbsp;=&nbsp; mean of that series over the period<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>
+            <div class="eq">small minus big &nbsp;=&nbsp; mean of ( the factor among small − the factor among big ), month by month</div>`);
+        document.getElementById('x-code').textContent = E.splitRun.toString();
+
+        const now = E.splitRun(Z, refState());
+        const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length;
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+
+        function render() {
+            const r = last = E.splitRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            document.getElementById('c-reset').hidden = atRef();
+            if (!r.factors[KEYS[0]].big) {
+                read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const F = r.factors, clears = part => KEYS.filter(k => F[k][part].mean > 0 && F[k][part].t >= 2).length;
+            const of4 = c => c === KEYS.length ? 'all ' + c : c === 0 ? 'none' : c + ' of the ' + KEYS.length;
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, among <strong>big companies</strong> ` +
+                KEYS.map(k => `${esc(NAME[k].toLowerCase())} averaged <strong>${sf2(F[k].big.mean)}%</strong> a month (t-statistic ${f2(F[k].big.t)})`).join(', ') +
+                `. Factors above the usual bar of about 2: <strong>${of4(clears('big'))}</strong> among big companies, ${of4(clears('small'))} among small ones.`;
+            const cell = q => `${sf2(q.mean)}% <span class="muted">(${f2(q.t)})</span>`;
+            body.innerHTML = KEYS.map(k => `<tr><td>${esc(NAME[k])} <span class="where">${esc(D.split_category[k])}</span></td><td>${cell(F[k].small)}</td><td>${cell(F[k].big)}</td><td>${cell(F[k].gap)}</td></tr>`).join('');
+            document.getElementById('x-live-note').textContent = 'Small and big are the two halves of the market by company size; under each factor is the screener category it stands behind. The figure in brackets is the t-statistic. ' + (atRef()
+                ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
+                : 'These settings are yours, so there is no published figure to compare them with.');
+            drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })));
+            writeScene(X.id, S, refState());
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the front page
     function overview(mount) {
         const byId = {}; D.experiments.forEach((x, i) => { byId[x.id] = { x: x, n: i + 1 }; });
@@ -837,6 +929,14 @@ footer p { margin: 0 0 8px; }
             </tbody></table></div>
             <p class="note">“Since” runs from the month after each paper's sample to the latest month in the data. The figure in brackets is the t-statistic where one applies; beyond about 2 either way is the usual bar. Short periods prove little: read the months beside each figure.</p>
         </section>
+        <section aria-labelledby="o-score">
+            <h3 id="o-score">What this means for the screener's weights</h3>
+            <p style="margin:0 0 12px;max-width:72ch">The lab does not set the screener's weights, and none has changed because of it. A weight changes only through a written argument from published research and from how practitioners build screens, recorded in the methodology's changelog. The lab's part is to check that research: does it rerun, has it held since, and does it hold among large companies, which are all the screener ranks. This is where each category stands.</p>
+            <div class="tablewrap"><table id="t-score"><thead><tr><th scope="col">Category</th><th scope="col">Measured in the lab</th><th scope="col">What that leaves open</th></tr></thead><tbody>
+            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
+            </tbody></table></div>
+            <p class="note">“Big companies” are the larger half of New York Stock Exchange companies by market value. The factors are measured on value-weighted portfolios that go long one group and short another; the screener ranks companies and shorts nothing, so these are evidence about the traits, not a forecast of its results.</p>
+        </section>
         <section aria-labelledby="o-map">
             <h3 id="o-map">What stands behind each part of the screener's score</h3>
             <p style="margin:0 0 12px;max-width:72ch">The screener scores every company in eight categories. This is what the lab can put behind each one today, and what it cannot.</p>
@@ -857,7 +957,7 @@ footer p { margin: 0 0 8px; }
     }
 
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall };
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = '<a href="#overview" data-id="overview"><span>Start here</span>Overview</a>' +
         D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.tab || x.title)}</a>`).join('');
