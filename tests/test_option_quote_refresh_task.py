@@ -96,11 +96,14 @@ def test_the_refresh_does_not_opt_into_running_late():
     assert re.search(r"NoCatchUp\s*=\s*\$true", block), block
 
 
-def test_the_docstring_names_three_tasks():
-    """Rule 9: a process doc that has gone stale sends the next session to rebuild something."""
+def test_the_docstring_names_every_task():
+    """Rule 9: a process doc that has gone stale sends the next session to rebuild something.
+    Five tasks since 2026-10-14 (the two extra code sessions)."""
     src = _src(REGISTER)
     head = src[:src.index("[CmdletBinding()]")]
-    assert "three tasks" in head
+    names = re.findall(r"Name\s*=\s*'([^']+)'", src)
+    assert len(names) == 5 and "five tasks" in head
+    assert all(n in head for n in names), names
     assert TASK_NAME in head
 
 

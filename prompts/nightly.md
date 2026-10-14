@@ -63,6 +63,11 @@ does not.
   change ships with its frontend in the same commit** (section 3 below, CLAUDE.md
   0.8c), and **a page that is broken or false is a defect to fix** like any other.
 
+- **You may not be today's first session** (since 2026-10-14: 06:00 weekdays, 13:00 every
+  day, 06:00 weekends - see CLAUDE.md "The two loops"). If `NIGHTLY_LOG.md` already has an entry
+  dated today, read it first: carry on from its **Next**, do not start the same item over, and do
+  not reverse a decision it made without new evidence - and if you do reverse one, say so and why.
+  Write your own entry under its own heading; never edit the earlier session's.
 - Read the last 3 entries of `NIGHTLY_LOG.md`. What was in progress? What did
   the last session say to do next? What did it flag as broken?
 - **Check the priorities section in `CLAUDE.md`.** Read what is at the top of

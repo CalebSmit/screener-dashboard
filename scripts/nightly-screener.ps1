@@ -23,13 +23,24 @@
 
 .PARAMETER NoMerge
     Run the session but never merge to main, whatever the gates say.
+
+.PARAMETER Slot
+    Which of the day's sessions this is (owner direction 2026-10-14: "I want you to be doing
+    more, scheduling more runs ... speed up the development"). Empty is the classic 06:00
+    weekday session. 'midday' (13:00, every day) and 'weekend' (06:00 Sat/Sun) are the extra
+    sessions. Each slot keeps its own once-a-day success marker, so the morning's success does
+    not cancel the afternoon. The extra slots are deliberately more timid than the morning one:
+    they never stash a dirty tree (that is someone's work in progress, not a failed session's
+    leftovers), and they stand down while an owner session is marked in progress or a usage
+    limit was hit in the last 24 hours, so the 06:00 session keeps first call on the quota.
 #>
 [CmdletBinding()]
 param(
     [string]$Focus,
     [switch]$DryRun,
     [switch]$NoMerge,
-    [switch]$Force
+    [switch]$Force,
+    [string]$Slot = ''
 )
 
 # git/gh/claude write progress to stderr routinely. Under 'Stop', PowerShell
@@ -43,7 +54,24 @@ $LogDir   = Join-Path $RepoPath 'logs'
 $LockFile = Join-Path $LogDir '.nightly.lock'
 $Date     = Get-Date -Format 'yyyy-MM-dd'
 $Stamp    = Get-Date -Format 'yyyy-MM-dd_HHmmss'
-$LogFile  = Join-Path $LogDir "nightly-$Stamp.log"
+
+# The day's sessions. '' is the 06:00 weekday rotation; the others are extra sessions.
+$Slots = @('', 'midday', 'weekend')
+if ($Slots -notcontains $Slot) { Write-Host "Unknown -Slot '$Slot'. Use one of: midday, weekend."; exit 1 }
+$SlotTag  = if ($Slot) { "-$Slot" } else { '' }
+$IsExtra  = [bool]$Slot
+$LogFile  = Join-Path $LogDir "nightly-$Stamp$SlotTag.log"
+
+# An owner session in progress (created and removed by the owner's own sessions - see
+# CLAUDE.md "The two loops"), and the trace a usage limit leaves. Both are read before any git
+# command, so standing down costs nothing.
+$OwnerSessionFile = Join-Path $LogDir '.owner-session'
+$UsageLimitFile   = Join-Path $LogDir '.usage-limited'
+$SkipBrief = $false
+
+$FocusBySlot = @{
+    'midday' = 'QUEUE. A second session today - more of the work, not a different kind. Read today''s earlier NIGHTLY_LOG.md entry first and carry on from its Next; if it finished, take the next open item in OWNER_FOCUS.md, then the top of CLAUDE.md "Current priorities", then the queues in plan/factor-lab.md, plan/context-layer.md and plan/backtest-v2.md. Finish one item end to end, to the same evidence standard as any other session. Do not repeat or reverse a decision an earlier session made today without new evidence, and write down why if you do.'
+}
 
 $FocusByDay = @{
     'Monday'    = 'RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.'
@@ -51,8 +79,8 @@ $FocusByDay = @{
     'Wednesday' = 'SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
     'Thursday'  = 'BUILD. Implement what the week''s research justified. Write tests alongside the code.'
     'Friday'    = 'HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?'
-    'Saturday'  = 'CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.'
-    'Sunday'    = 'CATCH-UP. Not normally scheduled. Work the single highest-value item from the priorities list.'
+    'Saturday'  = 'WEEKEND. Work the single highest-value open item: OWNER_FOCUS.md first, then the top of CLAUDE.md "Current priorities", then the queues in plan/. Finish it end to end.'
+    'Sunday'    = 'WEEKEND. Work the single highest-value open item: OWNER_FOCUS.md first, then the top of CLAUDE.md "Current priorities", then the queues in plan/. Finish it end to end.'
 }
 
 # Published artifacts the test suite historically rewrote. conftest.py now
@@ -219,7 +247,7 @@ $SessionError  = ''
 # login screen; both the 02:00 and 06:00 runs were simply lost. A catch-up
 # logon trigger fixes that, but then needs this guard so logging in three times
 # does not run a session three times.
-$SuccessMarker = Join-Path $LogDir '.nightly-last-success'
+$SuccessMarker = Join-Path $LogDir ".nightly-last-success$SlotTag"
 if ((Test-Path $SuccessMarker) -and -not $Force -and -not $DryRun) {
     # Strip a UTF-8 BOM: Set-Content -Encoding utf8 writes one in PS 5.1 and
     # .Trim() does not remove it, so this comparison silently never matched.
@@ -229,6 +257,31 @@ if ((Test-Path $SuccessMarker) -and -not $Force -and -not $DryRun) {
         if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
         exit 0
     }
+}
+
+# --- Stand down: an owner session, or a recent usage limit -------------------
+# The owner's own sessions work in this same folder. A scheduled session that started under
+# one would switch branches beneath it, and the morning slot would even stash its edits as
+# "leftovers". So any slot stands down while an owner session is marked in progress (a marker
+# older than 8 hours is treated as forgotten). The extra slots also stand down for 24 hours
+# after a usage limit, so the 06:00 session keeps first call on the weekly quota.
+function Get-MarkerAgeHours {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return $null }
+    return ((Get-Date) - (Get-Item $Path).LastWriteTime).TotalHours
+}
+$ownerAge = Get-MarkerAgeHours $OwnerSessionFile
+$limitAge = Get-MarkerAgeHours $UsageLimitFile
+$standDown = ''
+if ($null -ne $ownerAge -and $ownerAge -lt 8 -and -not $Force) {
+    $standDown = "an owner session is marked in progress (logs/.owner-session, $([int]($ownerAge * 60)) min old)"
+} elseif ($IsExtra -and $null -ne $limitAge -and $limitAge -lt 24 -and -not $Force) {
+    $standDown = "a usage limit was hit $([int]$limitAge)h ago (logs/.usage-limited); the 06:00 session keeps first call on the quota"
+}
+if ($standDown) {
+    Write-Log "Standing down$(if ($Slot) { " ($Slot slot)" }): $standDown. Nothing was touched." 'WARN'
+    if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
+    exit 0
 }
 
 try {
@@ -259,15 +312,20 @@ try {
         }
     }
 
+    # Retrospectives belong to the 06:00 slot only; an extra session on a retro Friday works.
+    if ($IsExtra) { $IsRetro = $false }
+
     if (-not $Focus) {
-        if ($IsRetro) {
+        if ($FocusBySlot.ContainsKey($Slot)) {
+            $Focus = $FocusBySlot[$Slot]
+        } elseif ($IsRetro) {
             $Focus = 'RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.'
         } else {
             $Focus = $FocusByDay[(Get-Date).DayOfWeek.ToString()]
         }
     }
 
-    Write-Log "=== Code loop $Date (ISO week $weekNo) ==="
+    Write-Log "=== Code loop $Date (ISO week $weekNo)$(if ($Slot) { " - $Slot session" }) ==="
     if ($IsRetro) { Write-Log "RETROSPECTIVE SESSION - self-evaluation, not normal work" }
     Write-Log "Focus: $Focus"
 
@@ -290,6 +348,23 @@ try {
                     -Logger { param($m, $l) Write-Log $m $l }
     if (-not $RepoLock) {
         Stop-Run "Could not get exclusive use of the repo. Not running git alongside another loop."
+    }
+
+    # An extra slot never stashes. At 13:00 or on a weekend a dirty tree, or a tree that is not
+    # on main, is far more likely to be someone's work in progress than a failed session's
+    # leftovers - and the 06:00 session, which is the one that recovers leftovers, comes round
+    # every weekday. Stand down and leave everything exactly as it was.
+    if ($IsExtra) {
+        $here  = (Invoke-Native 'git' @('rev-parse', '--abbrev-ref', 'HEAD')).Text.Trim()
+        $dirty = (Invoke-Native 'git' @('status', '--porcelain')).Text.Trim()
+        if ($dirty -or $here -ne 'main') {
+            Write-Log "Standing down ($Slot slot): the tree is $(if ($dirty) { 'dirty' } else { 'clean' }) on '$here' - work in progress, not leftovers. Nothing was stashed or switched." 'WARN'
+            $SkipBrief = $true
+            Exit-RepoLock $RepoLock
+            $RepoLock = $null
+            if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
+            exit 0
+        }
     }
 
     Restore-Artifacts 'pre-existing'
@@ -459,7 +534,7 @@ try {
 
     # --- Run the session ----------------------------------------------------
     Write-Log "Invoking Claude Code..."
-    $JsonLog = Join-Path $LogDir "nightly-$Stamp.json"
+    $JsonLog = Join-Path $LogDir "nightly-$Stamp$SlotTag.json"
     $Prompt | claude --print --permission-mode acceptEdits --output-format json |
         Out-File -FilePath $JsonLog -Encoding utf8
     $claudeExit = $LASTEXITCODE
@@ -470,6 +545,12 @@ try {
     $SessionError  = $session.Reason
     if ($SessionFailed) {
         Write-Log "SESSION DID NOT RUN: $SessionError" 'ERROR'
+        # A usage limit is the one failure where trying again in the afternoon makes it worse:
+        # record it so the extra slots stand down for a day (see the stand-down check above).
+        if ($SessionError -match '429|rate.?limit|usage limit') {
+            [System.IO.File]::WriteAllText($UsageLimitFile, (Get-Date -Format 's'))
+            Write-Log "Recorded a usage limit in logs/.usage-limited - the extra sessions will stand down for 24h." 'WARN'
+        }
         Write-Log "Treating this as a failure, not as 'nothing to do'. No success marker will be written," 'ERROR'
         Write-Log "so the catch-up trigger will retry rather than skipping the day." 'ERROR'
     }
@@ -690,9 +771,10 @@ catch {
     exit 1
 }
 finally {
-    $briefLabel = if ($SessionFailed) { "code session $Date - SESSION DID NOT RUN" } else { "code session $Date" }
-    # Publish-Brief runs git, so the repo lock is released after it, not before.
-    Publish-Brief $briefLabel
-    Exit-RepoLock $RepoLock
+    $briefLabel = if ($SessionFailed) { "code session $Date$SlotTag - SESSION DID NOT RUN" } else { "code session $Date$SlotTag" }
+    # Publish-Brief runs git, so the repo lock is released after it, not before. A slot that
+    # stood down touched nothing and has nothing to report.
+    if (-not $SkipBrief) { Publish-Brief $briefLabel }
+    if ($RepoLock) { Exit-RepoLock $RepoLock }
     if (Test-Path $LockFile) { Remove-Item $LockFile -Force -ErrorAction SilentlyContinue }
 }
