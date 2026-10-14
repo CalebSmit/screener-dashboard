@@ -3723,3 +3723,79 @@ finds the cut costs more in the rebound's leaders than it saves.
 **Applied by:** owner-run session (manual).
 **Rollback:** set `momentum_regime.enabled: false`; or the tag before this merge,
 `good/2026-10-12`.
+
+## 2026-10-14 - Documented defect: the dividend yield had one input and the source dropped it
+
+**Area:** metric definition (`dividend_yield`, weight **0** in both profiles - a candidate the
+improvement engine evaluates, shown on the page, never scored)
+
+**Changed:** `dividend_yield` was `.info["dividendRate"] / currentPrice` and nothing else. It is
+now the first usable of **`dividendRate`** (the declared forward annual rate) and
+**`trailingAnnualDividendRate`** (the last twelve months paid) over the price, bounded at 25%,
+with the basis it came from published so the page can say which it is showing
+(`factor_engine.dividend_yield_from_fields`). `.info["dividendYield"]` is **deliberately not
+read**. `schemas.RawTickerData` and the `.info` harvest carry the new field.
+
+**The defect, measured.** On 2026-10-14 the 02:00 run published `dividend_yield` for **6 of 501
+stocks**, against **402 of 501** the day before
+(`cache/factor_scores_56e2a679e777_2026101{3,4}.parquet`). A live probe the same morning
+(`research/measurements/2026-10-14-dividend-field-probe.py`) found `.info["dividendRate"]` served
+for **0 of 12** tickers while `dividendYield`, `trailingAnnualDividendRate`,
+`trailingAnnualDividendYield`, `fiveYearAvgDividendYield`, `lastDividendValue` and `payoutRatio`
+were all served for 12 of 12. The source dropped one field; the metric had no fallback, so it
+emptied.
+
+**Evidence for the construction, not for a weight.** This is a documented failure fixed in the
+direction the surviving data allows - no weight, threshold or score moved, and nothing here rests
+on the backtest (rule 5) or the IC series (rule 4).
+- **Dollar amounts only.** The probe measured `.info["dividendYield"]` at **2.35 for a stock
+  yielding 2.31%** - already a percent - while older yfinance releases served the same field as a
+  fraction. A field whose units changed between releases is a silent 100x error waiting for the
+  release that changes them back. A dollar amount divided by the run's own price cannot be
+  misread, and the 25% bound is the belt to that brace (the highest S&P 500 yields are under 10%).
+- **Trailing is the honest fallback, and is named as such.** The forward rate is what a declared
+  dividend will pay; the trailing rate is what was paid. They differ for a company that has just
+  raised its dividend (PEP: 4.65% forward against 4.58% trailing on the probe), so the page prints
+  "last 12 months paid" or "declared annual rate" rather than presenting one as the other.
+- **Why the page must name the basis.** *Indicated* yield (the declared dividend annualised) and
+  *trailing twelve-month* yield are two different standard definitions, not two estimates of one
+  number, which is the whole reason a fallback has to be labelled rather than silently
+  substituted. **Second-hand, and marked as such:** S&P Dow Jones Indices' dividend indices are
+  described as ranking and weighting constituents on *indicated annual dividend* yield. That is
+  from a search summary of their methodology documents - spglobal.com served a bot check to two
+  attempts at the PDFs, so **the primary document was not obtained** and no figure from it is
+  relied on here. It is not load-bearing: the fallback order follows from what the source serves
+  and the units argument above, not from an index provider's choice.
+
+**A second defect the first one exposed.** `generate_dashboard` derived the same quantity a
+**second** time from its own copy of `dividendRate`, for both the Company Snapshot's row and the
+Sector Peers comparison - which is what `CLAUDE.md` row 0.8 forbids, and which means fixing the
+engine alone would have left the page reading "None". The generator now reads the engine's
+`dividend_yield` column and no longer carries the raw rate at all, so it cannot be re-derived.
+Measured on the published payload
+(`research/measurements/2026-10-14-published-dividend-yield.py`): engine 0 of 501, page 6 of 501 -
+the two did not even agree on how many stocks had a yield.
+
+**And a false statement, fixed.** An absent yield rendered as **"None"**, which asserts the company
+pays no dividend. On the 2026-10-14 run that was published for 495 stocks including Coca-Cola,
+J&J and Procter & Gamble. Absent now renders as an em dash; "None" is reserved for a measured zero.
+
+**Expected effect:** no score, rank or composite moves - the metric carries weight 0 in both
+profiles (`tests/test_run_health.py::test_the_weights_come_from_the_one_place_they_are_resolved`
+fails if that ever changes without this entry being revisited). Coverage should return to roughly
+400 of 501 at the next full run; the figures will be trailing rather than forward until the source
+serves `dividendRate` again, and the page will say so.
+
+**Validated by:** `tests/test_dividend_yield_source.py`, 22 tests - the fallback order, that a
+missing key is not a zero, that no yield-shaped field is ever read, that a unit error is refused
+and the next field tried, that the generator contains no second derivation and no longer carries
+the raw rate, and that absent is not rendered as "None". Full suite 2,234 -> 2,274 passed.
+`scripts/rehearse_publish.py` run because the diff touches the generator.
+
+**What would make it wrong:** if `trailingAnnualDividendRate` turns out to be stale for companies
+that have changed their dividend (the basis label is the mitigation, not a fix), or if the source
+restores `dividendRate` with different units - in which case the bound refuses it and the trailing
+field carries on, which is the intended failure mode.
+
+**Applied by:** morning session (manual).
+**Rollback:** the tag before this merge, `good/2026-10-13`.

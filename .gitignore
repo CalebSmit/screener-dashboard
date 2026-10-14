@@ -52,3 +52,7 @@ n_ull
 # (python factor_lab.py --fetch) and not ours to republish. lab_data.js, the derived
 # series the page needs, IS tracked.
 data/lab/
+
+# Papers downloaded to be read for a research note. Re-downloadable, and not
+# ours to republish - the note carries the citation and the page numbers.
+data/papers/

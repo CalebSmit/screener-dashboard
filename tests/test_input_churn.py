@@ -500,3 +500,103 @@ def test_summary_text_round_trips_the_fact():
     text = S.summary_text(_summary(_delta(2, 0)))
     assert "changed availability" in text or "could be computed" in text
     assert S.advice_terms_in(text) == []
+
+
+# ---------------------------------------------------------------------------
+# universe_wide_changes - a source outage is not one stock's churn
+#
+# Measured 2026-10-14
+# (`research/measurements/2026-10-14-input-churn-which-metric.py`): the source
+# stopped serving `.info["dividendRate"]`, `dividend_yield` fell from 402 of 501
+# stocks to 6, and 852 of 1002 comparison entries (85.0%) recorded churn. 90 of
+# them crossed MIN_INPUT_CHURN only because of it - 90 stock-comparisons told a
+# reader "two of your inputs changed" when one of the two changed for all 501.
+# With the correction: 218 entries (21.8%), 104 armed.
+#
+# The rule the mechanism already stated and could not keep: do not flag the whole
+# universe for a change that is not about any one stock. It tested a column's
+# *presence*, and a source that empties a column it still serves walked through.
+# ---------------------------------------------------------------------------
+
+WIDE_RANKS = {"AAA": 1, "BBB": 2, "CCC": 3, "DDD": 4, "EEE": 5}
+
+
+def test_a_metric_lost_by_everyone_is_named_universe_wide():
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS,
+                {t: ["peg_ratio_pct"] for t in WIDE_RANKS})
+    assert H.universe_wide_changes(cur, base) == frozenset({"peg_ratio_pct"})
+
+
+def test_a_metric_lost_by_one_stock_is_not():
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS, {"AAA": ["peg_ratio_pct"]})
+    assert H.universe_wide_changes(cur, base) == frozenset()
+
+
+def test_the_boundary_is_more_than_half_not_half():
+    """More than half is the only non-arbitrary point; exactly half is not most."""
+    four = {"A": 1, "B": 2, "C": 3, "D": 4}
+    base = _snap("2026-10-13", four)
+    half = _snap("2026-10-14", four, {"A": ["roic_pct"], "B": ["roic_pct"]})
+    assert H.universe_wide_changes(half, base) == frozenset()
+    over = _snap("2026-10-14", four,
+                 {"A": ["roic_pct"], "B": ["roic_pct"], "C": ["roic_pct"]})
+    assert H.universe_wide_changes(over, base) == frozenset({"roic_pct"})
+
+
+def test_a_metric_regained_by_everyone_counts_too():
+    """The day after the outage is the mirror image and equally not per-stock."""
+    base = _snap("2026-10-13", WIDE_RANKS,
+                 {t: ["peg_ratio_pct"] for t in WIDE_RANKS})
+    cur = _snap("2026-10-14", WIDE_RANKS)
+    assert H.universe_wide_changes(cur, base) == frozenset({"peg_ratio_pct"})
+
+
+def test_the_universe_wide_metric_is_not_counted_against_a_stock():
+    """The defect stated as the arithmetic a reader was shown: one real change
+    plus one source outage read as two, which armed the caveat."""
+    missing = {t: ["peg_ratio_pct"] for t in WIDE_RANKS}
+    missing["AAA"] = ["peg_ratio_pct", "roic_pct"]
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS, missing)
+    wide = H.universe_wide_changes(cur, base)
+    assert H.input_churn(cur, base, "AAA", wide) == (1, 0)
+    assert H.input_churn(cur, base, "BBB", wide) == (0, 0)
+    assert H.input_churn(cur, base, "AAA") == (2, 0)
+    assert sum(H.input_churn(cur, base, "AAA")) >= S.MIN_INPUT_CHURN
+    assert sum(H.input_churn(cur, base, "AAA", wide)) < S.MIN_INPUT_CHURN
+
+
+def test_the_correction_is_wired_into_the_comparison():
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS,
+                {t: ["peg_ratio_pct"] for t in WIDE_RANKS})
+    out = H._compare(cur, base)
+    assert not any("ch" in e for e in out.values()), \
+        "a source outage must not record per-stock churn for every ticker"
+
+
+def test_omitting_the_argument_keeps_the_plain_comparison():
+    """A hand-built pair of snapshots asks the per-column question and gets it."""
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS, {"AAA": ["roic_pct"]})
+    assert H.input_churn(cur, base, "AAA") == (1, 0)
+
+
+def test_cannot_tell_still_never_reads_as_nothing_changed():
+    """The correction must not turn a None into a (0, 0)."""
+    base = _snap("2026-10-13", WIDE_RANKS, metric_cols=[])
+    cur = _snap("2026-10-14", WIDE_RANKS)
+    assert H.universe_wide_changes(cur, base) == frozenset()
+    assert H.input_churn(cur, base, "AAA", frozenset()) is None
+
+
+def test_every_shared_column_going_wide_leaves_nothing_to_compare():
+    """All columns excluded is "cannot tell", not "nothing changed"."""
+    base = _snap("2026-10-13", WIDE_RANKS)
+    cur = _snap("2026-10-14", WIDE_RANKS,
+                {t: list(METRICS) for t in WIDE_RANKS})
+    wide = H.universe_wide_changes(cur, base)
+    assert wide == frozenset(METRICS)
+    assert H.input_churn(cur, base, "AAA", wide) is None

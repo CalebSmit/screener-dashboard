@@ -11,6 +11,12 @@ Every failure this guards against actually happened, in the same week:
   category's dispersion collapsed 25-36%, and the published Top 5 was wrong for
   three days.
 
+* **2026-10-14** - the source stopped serving one `.info` field and
+  `dividend_yield` fell from 402 of 501 stocks to 6. This script said PASS, the
+  claims gate said PASS, and the run published; the code loop's test suite found
+  it four hours later. Nothing here had ever compared one run's per-metric
+  availability with the last one's. `check_metric_availability` does.
+
 Both runs reported "0 issues logged, 0 fetch failures". The screener does not
 consider "I fetched nothing" to be a problem, and file size does not reveal it -
 a fully synthetic run produces a perfectly normal-sized payload.
@@ -172,6 +178,99 @@ def check_price_derived_coverage(payload: dict, res: Result) -> None:
             res.note(f"{cat} coverage {present}/{n} ({cov:.0%})")
 
 
+def check_metric_availability(res: Result) -> None:
+    """A metric that goes missing for most of the universe is a source event.
+
+    **2026-10-14**: the source stopped serving ``.info["dividendRate"]`` and
+    ``dividend_yield`` fell from 402 of 501 stocks to **6**. Every gate in the
+    publishing loop passed - HEALTH: PASS, 454 claims-gate tests green - because
+    nothing compared this run's per-metric availability with the last run's. The
+    *code* loop's test suite caught it four hours later, through the input-churn
+    tripwire, by which time the run was published and the live page read
+    "Dividend Yield: None" for Coca-Cola, J&J and Procter & Gamble. This is the
+    counterpart that belongs in the loop that publishes.
+
+    The comparison is the snapshot directory's, read through ``history`` so that
+    "most of the universe" has **one** definition shared with the input-churn
+    record (``history.universe_wide_changes``: more than half the shared
+    tickers). The snapshot for this run is written at step 13 of
+    ``run_screener.py``, before this script runs, and ``data-run.ps1`` cleans it
+    away again when a run is discarded.
+
+    A metric that **carries weight** is a failure: every stock's composite would
+    be computed on a different metric set from yesterday's, which is a
+    measurement change wearing a ranking's clothes, and dispersion does not
+    notice because renormalisation keeps the spread. A metric that carries
+    **none** is a note: it is display-only, and jamming the evidence loop over a
+    row in the Company Snapshot is the wrong trade - the same reasoning as the
+    node and pytest fallbacks in both publish paths.
+    """
+    sys.path.insert(0, str(ROOT))
+    try:
+        import history as H
+    except ImportError as exc:
+        res.note(f"metric availability not checked - history unavailable ({exc})")
+        return
+
+    index = H.snapshot_index()
+    dates = sorted(index)
+    if len(dates) < 2:
+        res.note("metric availability not checked - fewer than two snapshots")
+        return
+    try:
+        current = H._to_run_snapshot(dates[-1], pd.read_parquet(index[dates[-1]]))
+        baseline = H._to_run_snapshot(dates[-2], pd.read_parquet(index[dates[-2]]))
+    except (OSError, ValueError, KeyError) as exc:
+        res.note(f"metric availability not checked - snapshots unreadable ({exc})")
+        return
+
+    wide = H.universe_wide_changes(current, baseline)
+    if not wide:
+        res.note(f"no metric changed availability across the universe "
+                 f"vs {dates[-2]}")
+        return
+
+    weighted = _weighted_metric_names()
+    for col in sorted(wide):
+        metric = col[:-4] if col.endswith("_pct") else col
+        n_cur = sum(1 for t in current.ranks
+                    if col not in current.missing_metrics.get(t, frozenset()))
+        n_base = sum(1 for t in baseline.ranks
+                     if col not in baseline.missing_metrics.get(t, frozenset()))
+        where = (f"{metric}: available for {n_cur}/{len(current.ranks)} stocks, "
+                 f"was {n_base}/{len(baseline.ranks)} on {dates[-2]}")
+        # Only a *loss* can refuse a publish. The day after an outage the
+        # universe regains the metric, and that run is better than the one
+        # before it, not worse - a gate that discarded the recovery would turn a
+        # one-day source outage into a permanent one.
+        if n_cur >= n_base:
+            res.note(f"{where} - regained, not lost")
+        elif weighted is None:
+            res.note(f"{where} - cannot tell whether it carries weight")
+        elif metric in weighted:
+            res.fail(f"{where}. It carries weight, so every composite is "
+                     f"computed on a different metric set from the last run - "
+                     f"a measurement change, not a ranking change.")
+        else:
+            res.note(f"{where} - carries no weight, so no score moved")
+
+
+def _weighted_metric_names() -> set[str] | None:
+    """Every metric with weight in any profile, or None if that cannot be read.
+
+    ``factor_engine.weighted_metric_sets`` is the one place weights are resolved
+    (CLAUDE.md row 0.8); None rather than an empty set, so "cannot tell" cannot
+    read as "nothing carries weight".
+    """
+    try:
+        import factor_engine as F
+        gen, bank = F.weighted_metric_sets(F.load_config())
+        return set(gen) | set(bank)
+    except Exception as exc:  # noqa: BLE001 - a gate reports, it does not raise
+        print(f"  (could not read the weights: {type(exc).__name__}: {exc})")
+        return None
+
+
 def check_dispersion(payload: dict, res: Result) -> None:
     """Compare this run's category dispersion to the trailing median.
 
@@ -253,6 +352,7 @@ def main() -> int:
         return 2
 
     check_coverage(payload, res)
+    check_metric_availability(res)
     check_dispersion(payload, res)
 
     if not args.quiet:

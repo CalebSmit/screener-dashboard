@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=0ac288443124" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=60e793466836" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -4497,7 +4497,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </footer>
     </div>
 
-    <script src="./dashboard_data.js?v=0ac288443124"></script>
+    <script src="./dashboard_data.js?v=60e793466836"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -6247,7 +6247,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 { label: 'Net Debt',        value: fmtBig(f.net_debt) },
             ]},
             { label: 'Shareholder', color: '#8e8c86', items: [
-                { label: 'Dividend Yield',  value: f.dividend_yield !== null ? fmtPct2(f.dividend_yield) : 'None' },
+                { label: 'Dividend Yield',
+                   value: f.dividend_yield === null || f.dividend_yield === undefined ? '—'
+                          : (f.dividend_yield === 0 ? 'None' : fmtPct2(f.dividend_yield)),
+                   sub: f.dividend_yield ? (f.dividend_basis === 'trailing' ? 'last 12 months paid'
+                                            : (f.dividend_basis === 'forward' ? 'declared annual rate' : '')) : '' },
                 { label: 'Payout Ratio',    value: f.payout_ratio !== null ? fmtPct2(f.payout_ratio) : '—' },
                 { label: 'Shares Out',      value: fmtShares(f.shares_outstanding) },
             ]},

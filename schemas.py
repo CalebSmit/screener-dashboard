@@ -32,6 +32,7 @@ class RawTickerData(BaseModel):
     sharesOutstanding: Optional[float] = None
     earningsGrowth: Optional[float] = None
     dividendRate: Optional[float] = None
+    trailingAnnualDividendRate: Optional[float] = None
 
     # Income statement
     totalRevenue: Optional[float] = None

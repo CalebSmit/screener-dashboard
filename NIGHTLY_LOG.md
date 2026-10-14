@@ -10609,3 +10609,161 @@ an explanation-only change should be. 4. `git status --porcelain` clean after th
 this session needed one. `.git/worktrees/tree` is still the stale registration the previous
 session recorded as un-removable under OneDrive; `git worktree list` still shows only the main
 checkout.
+
+## 2026-10-14 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-13_060001.log`
+ends "Run complete: shipped to main". Data loop published? **yes** -
+`logs/datarun-2026-10-14_020002.log` ends "Data loop complete", HEALTH: PASS, claims gate 454
+passed. Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days ago, bound 40), 4 effective**
+- inside the bound, and the engine's own line in the data log agrees ("4 effective (29 rows) at
+the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of 8 effective observations.
+Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 2 days**).
+**Tests:** before **2,234 passed / 1 failed**, after **2,274 passed / 0 failed**.
+**Owner queue / rotation:** **the baseline was red**, which outranks both the owner queue and the
+day's focus - and the failure turned out to be a real defect that had published four hours
+earlier. Both owner items (the Factor Lab, the context layer) are **deferred for that**, named
+here as rule 8 requires. The lab's next day is Friday 2026-10-23 anyway (2026-10-16 is a
+retrospective); the context layer's queue item 4 is unworked and still next.
+
+### Did
+
+**The gate-1 baseline failed, and it was not flaky.**
+`tests/test_input_churn.py::test_build_history_on_real_snapshots_reports_some_churn` -
+"churn on most of the universe", 852 of 1002 comparison entries - green yesterday. It is a
+tripwire on the real snapshot directory, so the question was which metric, not how to quiet it.
+`research/measurements/2026-10-14-input-churn-which-metric.py`: **`dividend_yield_pct` went from
+99 NaN to 495 NaN of 501 in the run published at 02:00 this morning.**
+
+**1. The source dropped a field and the metric had no fallback.**
+Measured in the scored caches: `dividend_yield` **402 of 501 on 2026-10-13, 6 of 501 on
+2026-10-14**. A live probe (`research/measurements/2026-10-14-dividend-field-probe.py`) found
+`.info["dividendRate"]` served for **0 of 12** tickers while `dividendYield`,
+`trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `fiveYearAvgDividendYield`,
+`lastDividendValue` and `payoutRatio` were all served **12 of 12**. The metric read that one
+field and divided by the price; nothing else.
+
+Fixed in `factor_engine.dividend_yield_from_fields`: the declared forward rate, then the trailing
+twelve months paid, over the price, bounded at 25%, publishing which basis it used.
+**`.info["dividendYield"]` is deliberately not read** - the probe measured it at **2.35 for a
+stock yielding 2.31%**, already a percent, where older yfinance releases served the same field as
+a fraction. A field whose units changed between releases is a silent 100x error waiting for the
+release that changes them back; a dollar amount over our own price cannot be misread.
+`METHODOLOGY_CHANGELOG.md` 2026-10-14, `tests/test_dividend_yield_source.py` (22).
+**No score moved: `dividend_yield` carries weight 0 in both profiles.**
+
+**2. Fixing the engine would not have fixed the page, which is the row-0.8 failure again.**
+`generate_dashboard` derived the same quantity a **second** time from its own copy of
+`dividendRate` - for the Company Snapshot row *and* for Sector Peers. Measured on the published
+payload (`research/measurements/2026-10-14-published-dividend-yield.py`): engine **0 of 501**,
+page **6 of 501**, the two not even agreeing on how many stocks had a yield. The generator now
+reads the engine's column and **no longer carries the raw rate at all**, so it cannot be
+re-derived by the next editor.
+
+**And an absent yield rendered as "None"**, which asserts the company pays no dividend - published
+this morning for 495 stocks including Coca-Cola, J&J and Procter & Gamble. Absent is now an em
+dash; "None" is reserved for a measured zero; and the row says whether the figure is the declared
+annual rate or the last twelve months paid, because those are two different standard definitions
+and substituting one silently is the thing the fallback could have done.
+
+**3. The churn mechanism was *also* wrong, and that is why the test could fire at all.**
+Input churn is a statement about one stock *relative to its peers*: FCX lost two of five growth
+metrics while everyone else kept theirs. When a metric goes missing for everybody, every stock
+renormalises identically and there is nothing per-stock to explain. `input_churn` already refused
+to count a column one run does not carry, **for exactly this reason** - but it tested the column's
+*presence*, and a source that empties a column it still serves walks straight through.
+`history.universe_wide_changes` names the metrics whose availability changed for **more than half**
+the shared tickers (the only non-arbitrary point, and the bound the test itself asserts), computed
+once per pair. Measured: flagged entries **852 -> 218**, and "prev" (yesterday vs today) **396 ->
+2**, which is what consecutive runs should look like. The user-facing size of it: the outage had
+armed the displayed caveat for **90 extra stock-comparisons**. 10 new tests.
+
+**4. The loop that publishes should have caught this; now it does.**
+The 02:00 loop ran its full gate set this morning - HEALTH: PASS, 454 claims tests - and published
+a run with a metric gone for 99% of the universe, because **nothing had ever compared one run's
+per-metric availability with the last run's.** The code loop's test suite found it four hours
+later. That is exactly the asymmetry CLAUDE.md names: the strongest checks guard the path that
+publishes least often. `scripts/check_run_health.check_metric_availability` closes it, reading the
+snapshot directory through `history` so **"most of the universe" has one definition** shared with
+the churn record. A metric that **carries weight fails the run** - every composite would rest on a
+different metric set and dispersion cannot see it, because renormalisation preserves the spread. A
+metric that carries none is a note (display-only; jamming the evidence loop over a Company Snapshot
+row is the wrong trade, the node/pytest fallback precedent). Unreadable weights are a note too.
+Run against today's artifacts it names the event exactly: *"dividend_yield: available for 6/501
+stocks, was 402/501 on 2026-10-13 - carries no weight, so no score moved"*. 8 tests - **one of
+which caught a real flaw before it shipped**: the first version discarded a run in which a weighted
+metric came *back*, which would have turned a one-day source outage into a permanent one.
+
+**5. The live page was regenerated rather than left wrong until 02:00.**
+Not a new run - `scripts/rehearse_publish.py` rebuilds today's run with this branch's code, so
+`kpis.run_timestamp` and every score are unchanged. Diffed before installing
+(`research/measurements/2026-10-14-regen-diff-classes.py`): **223,675 leaves, 221,996 unchanged,
+exactly six classes of change** - the `history.*.ch` records the churn correction drops or shrinks,
+the new `financials.dividend_basis` key, and the summary sentences that shifted where the caveat
+went. **Nothing under `table_data`, `raw`, `pct`, `contrib`, `Composite` or `Rank`**, so no score,
+rank or sentence about a score moved and the bot's seven pinned fields are untouched.
+**Looked at it** (`research/measurements/2026-10-14-dividend-row-on-the-page.py`, KO and PYPL at
+1440 and 375px): the row reads "—" at both widths with Payout Ratio still rendering beside it
+(KO 62.5%), and PYPL's summary no longer carries the caveat. KO's drilldown still reads "The score
+rests on 27 of 27 metrics", which is correct - coverage counts weighted metrics only.
+
+### Evidence / research
+- **The defect itself is the evidence** for 1-4: a documented, reproducible, user-facing failure,
+  which is the fourth kind `CLAUDE.md` admits. Every number above is from a committed script.
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3), **read from the paper** (p. 644-645, obtained from
+  a Tsinghua PBCSF copy after four other mirrors served HTML): `SKEW = VOL_OTMP - VOL_ATMC`; the
+  OTM put is the one with strike/price closest to **0.95** within (0.80, 0.95), the ATM call the
+  one closest to **1** within [0.95, 1.05], options of **10-60 days**, weekly Tuesday-to-Tuesday.
+  This was fetched for the options-panel correction the day's focus would otherwise have gone to;
+  it confirms from the primary source what `research/2026-10-12-option-implied-signals.md` had
+  only second-hand, and it is **not** what this screener computes (ours is the 0.90-moneyness put
+  minus the *mean* of the ATM call and put). Recorded for the session that takes it up - no code
+  changed today.
+- **Not obtained:** S&P Dow Jones Indices' dividend-index methodology PDFs; spglobal.com served a
+  bot check to two attempts, so the changelog marks the indicated-dividend point second-hand and
+  does not rest on it.
+
+### Methodology changed
+- **`METHODOLOGY_CHANGELOG.md` 2026-10-14** - documented defect: `dividend_yield`'s input chain,
+  the units rule, the second derivation and the false "None". **No weight, threshold or score
+  moved**; `dividend_yield` is weight 0 in both profiles and the payload diff proves nothing under
+  `table_data`, `raw`, `pct`, `contrib` or `Composite` changed.
+
+### Tried and rejected
+- **Relaxing the churn test to get gate 1 green.** It is a tripwire on the real snapshot
+  directory and it was right. The test is untouched; what changed is the data and what the
+  mechanism measures.
+- **Re-running the screener to correct today's snapshot.** The scored cache holds no raw `.info`
+  fields, so a corrected run needs `--refresh` - a *new* run at 07:00 prices, which publishes a
+  different ranking to fix a weight-0 display field. Regenerating today's run with today's prices
+  was the narrower, provable change.
+- **Reading `.info["dividendYield"]`, which is the obvious one-line fix.** It is the forward
+  figure and it is served for every stock - but the probe measured it at 2.35 where the yield is
+  2.31%, and the same field was a fraction in older releases. One release note away from a 100x
+  error on a public page.
+- **Making the health gate fail on *any* universe-wide availability change.** Its own test showed
+  that would discard the recovery run the morning after an outage.
+
+### Next
+- **The data loop at 02:00 tomorrow is the test of all of this.** Expect `dividend_yield` back for
+  roughly 400 of 501 on the **trailing** basis, the page labelling it "last 12 months paid", and
+  `check_metric_availability` reporting *"regained, not lost"*. If the count comes back near 6, the
+  fallback field is not reaching the metric and that is the next session's first job.
+- Then the deferred owner work, in order: **`plan/context-layer.md` item 4's remaining per-signal
+  notes** (macro backdrop, track record) and its three open options-panel page-sentence
+  corrections - for which the XZZ definition above is now in hand from the primary source.
+- Friday 2026-10-16 is a **retrospective**; the lab's next experiment is 2026-10-23.
+
+### Gates
+1. **2,274 passed / 0 failed** (baseline at session start **2,234 passed / 1 failed** - the failure
+was the defect this session fixed, not a flake, and the test that found it is **unchanged**).
+2. `run_screener.py --dry-run` **DRY-RUN PASSED**, exit 0. 3. `index.html` 554,892 bytes;
+`dashboard_data.js` and `dashboard_context.js` both pass `node --check` and the payload opens with
+the expected assignment; **`python scripts/rehearse_publish.py` PASSED** (the diff touches the
+generator) - 300 page tests, claims gate 454 passed, published files restored byte for byte before
+the regenerated page was installed deliberately and diffed. 4. `git status --porcelain` clean after
+the commits and again after the full suite.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched and nothing here
+needed one. `.git/worktrees/tree` is still the stale registration two previous sessions recorded as
+un-removable under OneDrive; `git worktree list` still shows only the main checkout.

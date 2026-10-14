@@ -198,6 +198,143 @@ class TestPriceDerivedCoverage:
         assert not res.healthy
 
 
+class TestMetricAvailability:
+    """2026-10-14: the source stopped serving one `.info` field, `dividend_yield`
+    fell from 402 of 501 stocks to 6, and this script said PASS - nothing had
+    ever compared one run's per-metric availability with the last one's. The
+    code loop's input-churn tripwire found it four hours after publication.
+
+    "Most of the universe" has one definition, shared with that tripwire
+    (`history.universe_wide_changes`), so the gate and the record cannot drift.
+    """
+
+    @staticmethod
+    def _snapshots(tmp_path, monkeypatch, missing_now, n=20, cols=None):
+        """Two snapshot files: yesterday complete, today missing what is named."""
+        import pandas as pd
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        import history as H
+
+        cols = cols or ["roic_pct", "dividend_yield_pct"]
+        tickers = [f"T{i:03d}" for i in range(n)]
+
+        def frame(absent: set[str]) -> pd.DataFrame:
+            rows = []
+            for i, t in enumerate(tickers):
+                row = {"Ticker": t, "Sector": "Tech", "Rank": i + 1,
+                       "Composite": 50.0}
+                for cat in H.CATEGORIES:
+                    row[f"{cat}_score"] = 50.0
+                for c in cols:
+                    row[c] = None if c in absent else 50.0
+                rows.append(row)
+            return pd.DataFrame(rows)
+
+        d = tmp_path / "snapshots"
+        d.mkdir()
+        frame(set()).to_parquet(d / "2026-10-13_aaa.parquet")
+        frame(set(missing_now)).to_parquet(d / "2026-10-14_bbb.parquet")
+        monkeypatch.setattr(H, "SNAPSHOTS_DIR", d)
+        return d
+
+    def test_a_weighted_metric_lost_by_the_universe_discards_the_run(
+            self, tmp_path, monkeypatch):
+        """Every composite would rest on a different metric set from yesterday's,
+        and dispersion does not notice because renormalisation keeps the spread."""
+        self._snapshots(tmp_path, monkeypatch, {"roic_pct"})
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert not res.healthy
+        assert any("roic" in f for f in res.failures)
+        assert any("0/20" in f and "20/20" in f for f in res.failures), res.failures
+
+    def test_an_unweighted_metric_is_reported_and_published(
+            self, tmp_path, monkeypatch):
+        """The 2026-10-14 case itself. Display-only: jamming the evidence loop
+        over a row in the Company Snapshot is the wrong trade."""
+        self._snapshots(tmp_path, monkeypatch, {"dividend_yield_pct"})
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert res.healthy
+        assert any("dividend_yield" in n and "no weight" in n for n in res.notes)
+
+    def test_one_stock_losing_a_metric_is_not_a_source_event(
+            self, tmp_path, monkeypatch):
+        """The mechanism it must not become: a per-stock gap is normal."""
+        import pandas as pd
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        import history as H
+
+        d = self._snapshots(tmp_path, monkeypatch, set())
+        f = pd.read_parquet(d / "2026-10-14_bbb.parquet")
+        f.loc[0, "roic_pct"] = None
+        f.to_parquet(d / "2026-10-14_bbb.parquet")
+        monkeypatch.setattr(H, "SNAPSHOTS_DIR", d)
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert res.healthy
+        assert any("no metric changed availability" in n for n in res.notes)
+
+    def test_fewer_than_two_snapshots_cannot_tell_and_says_so(
+            self, tmp_path, monkeypatch):
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        import history as H
+        d = tmp_path / "empty"
+        d.mkdir()
+        monkeypatch.setattr(H, "SNAPSHOTS_DIR", d)
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert res.healthy
+        assert any("fewer than two snapshots" in n for n in res.notes)
+
+    def test_a_metric_regained_by_the_universe_does_not_discard_the_run(
+            self, tmp_path, monkeypatch):
+        """Recovery day. The run is better than the last one, not worse - a
+        weighted metric coming *back* must not refuse the publish."""
+        import pandas as pd
+
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        import history as H
+
+        d = self._snapshots(tmp_path, monkeypatch, set())
+        f = pd.read_parquet(d / "2026-10-13_aaa.parquet")
+        f["roic_pct"] = None
+        f.to_parquet(d / "2026-10-13_aaa.parquet")
+        monkeypatch.setattr(H, "SNAPSHOTS_DIR", d)
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert res.healthy, res.failures
+        assert any("roic" in n and "regained" in n for n in res.notes), res.notes
+
+    def test_the_weights_come_from_the_one_place_they_are_resolved(self):
+        """Row 0.8: never a second list of which metrics carry weight."""
+        names = h._weighted_metric_names()
+        assert names is not None and names
+        import factor_engine as F
+        gen, bank = F.weighted_metric_sets(F.load_config())
+        assert names == set(gen) | set(bank)
+        assert "dividend_yield" not in names, \
+            "dividend_yield is a weight-0 candidate; if that changed, the " \
+            "2026-10-14 outage would have been a run-discarding failure"
+
+    def test_cannot_read_the_weights_is_a_note_not_a_failure(self, tmp_path,
+                                                             monkeypatch):
+        """A gate that can only fail closed jams an unattended loop."""
+        self._snapshots(tmp_path, monkeypatch, {"roic_pct"})
+        monkeypatch.setattr(h, "_weighted_metric_names", lambda: None)
+        res = h.Result()
+        h.check_metric_availability(res)
+        assert res.healthy
+        assert any("cannot tell whether it carries weight" in n for n in res.notes)
+
+    def test_it_is_wired_into_main(self):
+        src = (Path(__file__).resolve().parent.parent / "scripts"
+               / "check_run_health.py").read_text(encoding="utf-8")
+        assert "check_metric_availability(res)" in src.split("def main(")[1]
+
+
 class TestPayloadLoading:
     def test_malformed_payload_raises(self, tmp_path):
         (tmp_path / "dashboard_data.js").write_text(

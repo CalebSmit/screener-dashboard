@@ -52,6 +52,11 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-14 (06:00 nightly) - deferred for a red ship gate, nothing lost.** The day's work was a
+    data defect published by the 02:00 run (see the context-layer item below and `NIGHTLY_LOG.md`).
+    The lab's next day is Friday **2026-10-23** either way - 2026-10-16 is a retrospective - and the
+    next experiment is still profitability (Novy-Marx 2013). No proposal is waiting for a decision:
+    `write_brief.open_proposals()` returns `[]` since the Growth refusal.
   - **2026-10-13 (06:00 nightly) - the Growth proposal was reviewed and REFUSED, and the page now
     says why the weight is where it is.** The waiting proposal (Growth 13% -> 10%, Quality 22% ->
     25%) measured one point; the review measured the curve, which is what separates the two
@@ -207,6 +212,16 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-14 - deferred, and why.** The 06:00 session's test baseline was red: the source had
+    stopped serving one `.info` field and the dividend yield had emptied for 495 of 501 stocks in the
+    run published at 02:00, which also put "Dividend Yield: None" on the page for Coca-Cola, J&J and
+    Procter & Gamble. A failing gate outranks this queue, so the session spent itself on that, on the
+    three further defects it exposed, and on giving the 02:00 loop a gate that would have caught it.
+    **One thing landed for this item anyway:** Xing, Zhang & Zhao (2010) was obtained and read from
+    the paper, so the put-skew correction in item 4 now has its definition from the primary source
+    (`SKEW` = OTM put at 0.95 moneyness minus **ATM call**, 10-60 day options) rather than
+    second-hand. **Next is unchanged:** item 4's remaining per-signal notes (macro backdrop, track
+    record) and its three open options-panel sentence corrections, then item 6.
   - **2026-10-12 - queue item 2 is CLOSED, and closing it caught a false statement on the live site.**
     Today's 02:00 run was the first scheduled one after a 20:00 refresh: options `ok` **397 of 503**,
     `partial` 59, `quotes-closed` 47, against **0 of 503** before the fix. The after-close cache works.
