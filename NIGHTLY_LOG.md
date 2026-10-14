@@ -10753,3 +10753,17 @@ rests on 27 of 27 metrics", which is correct - coverage counts weighted metrics 
   notes** (macro backdrop, track record) and its three open options-panel page-sentence
   corrections - for which the XZZ definition above is now in hand from the primary source.
 - Friday 2026-10-16 is a **retrospective**; the lab's next experiment is 2026-10-23.
+
+### Gates
+1. **2,274 passed / 0 failed** (baseline at session start **2,234 passed / 1 failed** - the failure
+was the defect this session fixed, not a flake, and the test that found it is **unchanged**).
+2. `run_screener.py --dry-run` **DRY-RUN PASSED**, exit 0. 3. `index.html` 554,892 bytes;
+`dashboard_data.js` and `dashboard_context.js` both pass `node --check` and the payload opens with
+the expected assignment; **`python scripts/rehearse_publish.py` PASSED** (the diff touches the
+generator) - 300 page tests, claims gate 454 passed, published files restored byte for byte before
+the regenerated page was installed deliberately and diffed. 4. `git status --porcelain` clean after
+the commits and again after the full suite.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched and nothing here
+needed one. `.git/worktrees/tree` is still the stale registration two previous sessions recorded as
+un-removable under OneDrive; `git worktree list` still shows only the main checkout.
