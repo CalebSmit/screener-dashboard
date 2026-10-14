@@ -10809,3 +10809,21 @@ clean after the commit.
 
 **Machine state, rule 11:** `scripts/register-tasks.ps1` run after the merge and all five tasks
 read back with `Get-ScheduledTask` - recorded in the commit that follows this one.
+
+### Addendum - the tasks read back, and a dry run that published a false brief
+
+- **`scripts/register-tasks.ps1` run and every task read back** with `Get-ScheduledTask`:
+  `Screener Midday Session` weekly 13:00, days 127 (every day), action
+  `nightly-screener.ps1 -Slot midday`, StartWhenAvailable False, 4h limit;
+  `Screener Weekend Session` 06:00, days 65 (Saturday and Sunday), `-Slot weekend`; the data run
+  and 06:00 session still carry their PT3M / PT20M logon delays; the quote refresh unchanged.
+  Next runs: midday 2026-10-14 13:00, weekend 2026-10-17 06:00.
+- **A full dry run of the midday slot on clean `main`** went through every preflight, cut
+  `nightly/2026-10-14`, resolved the prompt and reverted - and then, from `finally`, **published
+  a morning brief calling the day's code session "failed"**, because the brief read the newest
+  log and a dry run's log is not a session. Pre-existing behaviour, but with several logs a day
+  it would have recurred on every stand-down too. Fixed both ways: a dry run now publishes
+  nothing (`$SkipBrief`), and the brief reads the newest log that records a session
+  (`write_brief.newest_session` skips dry runs and stand-downs). The brief was regenerated and
+  reads "completed" again. `tests/test_morning_brief.py::TestTheNewestSession`, 3 tests.
+- **Gates for the addendum:** 2288 passed / 0 failed; dry-run, node and clean tree as above.

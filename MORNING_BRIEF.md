@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 14 October 2026, 08:14
+# Morning Brief - Wednesday 14 October 2026, 08:16
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **failed** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-14T02:00:10.255065 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -20,6 +20,7 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `c45178e brief: code session 2026-10-14-midday`
 - `dfd94fb routine: two extra scheduled code sessions - 13:00 daily and weekend mornings`
 - `4f0c64c brief: code session 2026-10-14`
 - `f8480a6 log: the four gates for 2026-10-14`
@@ -34,7 +35,6 @@ history is in `NIGHTLY_LOG.md`.
 - `d7c1b71 brief: code session 2026-10-13`
 - `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
 - `99ec010 growth: record the decision on the page, the lab scorecard and the plan`
-- `a3d2726 growth: review the waiting proposal and refuse it, with the measurement that decided it`
 
 ## The session's own account
 

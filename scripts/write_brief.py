@@ -41,6 +41,22 @@ def newest(pattern: str) -> Path | None:
     return files[-1] if files else None
 
 
+# A code-session log that records no session: a dry run, or an extra slot standing down because
+# the owner was working (scripts/nightly-screener.ps1 -Slot). Since 2026-10-14 there can be several
+# of these a day, and the newest log is no longer necessarily the newest *session* - a 08:15 dry
+# run published a brief calling the day's code session "failed".
+NOT_A_SESSION = ("=== Dry run complete ===", "Standing down")
+
+
+def newest_session(pattern: str = "nightly-*.log") -> Path | None:
+    """The newest log that records a session that actually ran."""
+    for path in sorted(LOGS.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True):
+        text = "\n".join(tail(path, 60))
+        if not any(marker in text for marker in NOT_A_SESSION):
+            return path
+    return None
+
+
 def tail(path: Path | None, n: int = 400) -> list[str]:
     if not path or not path.exists():
         return []
@@ -304,7 +320,7 @@ def last_log_entry() -> str:
 def main() -> int:
     now = datetime.now()
     data_log = newest("datarun-*.log")
-    code_log = newest("nightly-*.log")
+    code_log = newest_session("nightly-*.log")
     data_state, data_notes = outcome(tail(data_log))
     code_state, code_notes = outcome(tail(code_log))
     facts = dashboard_facts()

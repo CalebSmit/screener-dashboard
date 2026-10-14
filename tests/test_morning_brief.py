@@ -215,3 +215,38 @@ class TestOpenProposals:
         src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
         assert '"## Waiting for a decision"' in src and "open_proposals(today=now)" in src
 
+
+class TestTheNewestSession:
+    """Several code-session logs a day since 2026-10-14, and not all of them are sessions."""
+
+    def log(self, folder, name, body, age):
+        import os, time
+        path = folder / name
+        path.write_text(body, encoding="utf-8")
+        stamp = time.time() - age
+        os.utime(path, (stamp, stamp))
+        return path
+
+    def test_a_dry_run_or_a_stand_down_is_not_the_latest_session(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(wb, "LOGS", tmp_path)
+        real = self.log(tmp_path, "nightly-2026-10-14_060001.log",
+                        "[06:40:12] [INFO] === Run complete: shipped to main ===\n", 3600 * 3)
+        self.log(tmp_path, "nightly-2026-10-14_081453-midday.log",
+                 "[08:14:56] [INFO] === Dry run complete ===\n", 3600)
+        self.log(tmp_path, "nightly-2026-10-14_130001-midday.log",
+                 "[13:00:01] [WARN] Standing down (midday slot): the tree is dirty on 'owner/x'\n", 60)
+        assert wb.newest_session() == real
+        assert wb.outcome(wb.tail(wb.newest_session()))[0] == "completed"
+
+    def test_with_only_non_sessions_there_is_no_session(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(wb, "LOGS", tmp_path)
+        self.log(tmp_path, "nightly-2026-10-14_081453-midday.log", "=== Dry run complete ===\n", 60)
+        assert wb.newest_session() is None
+
+    def test_the_brief_reads_the_code_session_through_it_and_a_dry_run_publishes_nothing(self):
+        src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
+        assert 'code_log = newest_session("nightly-*.log")' in src
+        runner = (ROOT / "scripts" / "nightly-screener.ps1").read_text(encoding="utf-8-sig")
+        dry = runner[runner.index("    if ($DryRun) {"):]
+        assert dry.index("$SkipBrief = $true") < dry.index("exit 0")
+

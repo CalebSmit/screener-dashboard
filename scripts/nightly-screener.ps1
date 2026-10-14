@@ -524,6 +524,9 @@ try {
         Replace('{{FOCUS}}', $Focus).Replace('{{DATE}}', $Date).Replace('{{BRANCH}}', $Branch)
 
     if ($DryRun) {
+        # A dry run publishes nothing, the brief included: it is not a session, and the brief
+        # reading its log as one reported the day's code session as failed (2026-10-14).
+        $SkipBrief = $true
         Write-Log "DryRun: prompt resolved to $($Prompt.Length) chars. Reverting branch."
         Invoke-Native 'git' @('checkout', 'main') | Out-Null
         Invoke-Native 'git' @('branch', '-D', $Branch) | Out-Null
