@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 14 October 2026, 06:40
+# Morning Brief - Wednesday 14 October 2026, 08:14
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (6 AM) | **completed** - last ran today |
+| Code session (latest) | **failed** - last ran today |
 | Dashboard data from | 2026-10-14T02:00:10.255065 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -20,6 +20,8 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `dfd94fb routine: two extra scheduled code sessions - 13:00 daily and weekend mornings`
+- `4f0c64c brief: code session 2026-10-14`
 - `f8480a6 log: the four gates for 2026-10-14`
 - `2f42754 log: the 2026-10-14 session, and the two constraints it added`
 - `17249d4 publish: regenerate today's page so it stops saying two false things`
@@ -33,57 +35,50 @@ history is in `NIGHTLY_LOG.md`.
 - `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
 - `99ec010 growth: record the decision on the page, the lab scorecard and the plan`
 - `a3d2726 growth: review the waiting proposal and refuse it, with the measurement that decided it`
-- `eeff9e2 brief: data run 2026-10-13`
-- `a5e84b8 data: screener run 2026-10-13 - 501 scored, top: EXPE HST INCY APA BMY`
 
 ## The session's own account
 
-> 2026-10-14 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
+> 2026-10-14 (owner-run, morning) - two extra scheduled code sessions a day
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-13_060001.log`
-> ends "Run complete: shipped to main". Data loop published? **yes** -
-> `logs/datarun-2026-10-14_020002.log` ends "Data loop complete", HEALTH: PASS, claims gate 454
-> passed. Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days ago, bound 40), 4 effective**
-> - inside the bound, and the engine's own line in the data log agrees ("4 effective (29 rows) at
-> the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of 8 effective observations.
-> Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 2 days**).
-> **Tests:** before **2,234 passed / 1 failed**, after **2,274 passed / 0 failed**.
-> **Owner queue / rotation:** **the baseline was red**, which outranks both the owner queue and the
-> day's focus - and the failure turned out to be a real defect that had published four hours
-> earlier. Both owner items (the Factor Lab, the context layer) are **deferred for that**, named
-> here as rule 8 requires. The lab's next day is Friday 2026-10-23 anyway (2026-10-16 is a
-> retrospective); the context layer's queue item 4 is unworked and still next.
+> **Health (rule 8):** both loops ran today - `logs/datarun-2026-10-14_020002.log` ends "Data loop
+> complete", HEALTH: PASS; `logs/nightly-2026-10-14_060001.log` ends "Run complete: shipped to
+> main". Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days, bound 40), 4 effective**.
+> Priority 0 unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2
+> days).
+> **Tests:** before 2274 passed / 0 failed; after 2285 passed / 0 failed.
+> 
+> ### The owner asked
+> *"i want you to be doing more, scheduling more runs. I want to speed up the development of these
+> tools please"*
 > 
 > ### Did
+> - **`Screener Midday Session` (13:00 every day) and `Screener Weekend Session` (06:00 Sat-Sun)**,
+>   both `scripts/nightly-screener.ps1` with a new `-Slot`. Fourteen code sessions a week instead
+>   of five. Same gates, lock, merge and tag as the 06:00 session; their own once-a-day markers,
+>   logs (`nightly-<stamp>-midday.log`) and focus (`QUEUE`: carry on from the morning's Next).
+> - **They are built not to collide**, because the owner works in this same folder:
+>   `logs/.owner-session` stands every slot down before any git command; an extra slot that finds
+>   the tree dirty or off `main` stands down without stashing or switching anything (the 06:00
+>   slot still recovers real leftovers); a 429 writes `logs/.usage-limited` and the extra slots
+>   stand down for 24 hours. No logon trigger and no late catch-up for either.
+> - **Exercised on the real runner** before registering: on this branch with a dirty tree,
+>   `-Slot midday -DryRun` stood down with "the tree is dirty on 'owner/2026-10-14-more-sessions' -
+>   ... Nothing was stashed or switched"; with the owner marker present it stood down before any
+>   git command; `-Slot bogus` refused. `git stash list` empty and no lock left behind after each.
+> - `tests/test_extra_sessions.py`, 11 tests; the task-count test now counts five. The brief's row
+>   reads "Code session (latest)". CLAUDE.md and `prompts/nightly.md` say a session may not be the
+>   first today, and that owner-run sessions create and remove `logs/.owner-session`.
 > 
-> **The gate-1 baseline failed, and it was not flaky.**
-> `tests/test_input_churn.py::test_build_history_on_real_snapshots_reports_some_churn` -
-> "churn on most of the universe", 852 of 1002 comparison entries - green yesterday. It is a
-> tripwire on the real snapshot directory, so the question was which metric, not how to quiet it.
-> `research/measurements/2026-10-14-input-churn-which-metric.py`: **`dividend_yield_pct` went from
-> 99 NaN to 495 NaN of 501 in the run published at 02:00 this morning.**
+> ### Methodology changed
+> - None.
 > 
-> **1. The source dropped a field and the metric had no fallback.**
-> Measured in the scored caches: `dividend_yield` **402 of 501 on 2026-10-13, 6 of 501 on
-> 2026-10-14**. A live probe (`research/measurements/2026-10-14-dividend-field-probe.py`) found
-> `.info["dividendRate"]` served for **0 of 12** tickers while `dividendYield`,
-> `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `fiveYearAvgDividendYield`,
-> `lastDividendValue` and `payoutRatio` were all served **12 of 12**. The metric read that one
-> field and divided by the price; nothing else.
+> ### Gates
+> 1. **2285 passed / 0 failed** (baseline 2274 / 0). 2. `run_screener.py --dry-run`
+> **DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+> clean after the commit.
 > 
-> Fixed in `factor_engine.dividend_yield_from_fields`: the declared forward rate, then the trailing
-> twelve months paid, over the price, bounded at 25%, publishing which basis it used.
-> **`.info["dividendYield"]` is deliberately not read** - the probe measured it at **2.35 for a
-> stock yielding 2.31%**, already a percent, where older yfinance releases served the same field as
-> a fraction. A field whose units changed between releases is a silent 100x error waiting for the
-> release that changes them back; a dollar amount over our own price cannot be misread.
-> `METHODOLOGY_CHANGELOG.md` 2026-10-14, `tests/test_dividend_yield_source.py` (22).
-> **No score moved: `dividend_yield` carries weight 0 in both profiles.**
-> 
-> **2. Fixing the engine would not have fixed the page, which is the row-0.8 failure again.**
-> `generate_dashboard` derived the same quantity a **second** time from its own copy of
-> `dividendRate` - for the Company Snapshot row *and* for Sector Peers. Measured on the published
-> ...
+> **Machine state, rule 11:** `scripts/register-tasks.ps1` run after the merge and all five tasks
+> read back with `Get-ScheduledTask` - recorded in the commit that follows this one.
 
 ---
 
