@@ -497,6 +497,21 @@ never learn.
 **Code loop (6:00 AM, Mon-Fri)** - your session. Improves the system that
 produces and uses that evidence.
 
+**Extra code sessions (13:00 every day, 06:00 Sat-Sun) - owner direction 2026-10-14:** *"i want
+you to be doing more, scheduling more runs. I want to speed up the development of these tools
+please."* The same runner (`scripts/nightly-screener.ps1 -Slot midday|weekend`), the same four
+gates, the same merge and tag; fourteen code sessions a week instead of five. The 13:00 session
+carries on from the morning's `Next` (focus `QUEUE`); weekends work the top open item. So **a
+session may not be the first one today: read today's earlier entry before choosing work, and do
+not redo or quietly reverse a decision made a few hours earlier.**
+
+**Owner-run sessions share this folder with the scheduled ones.** An owner-run session creates
+`logs/.owner-session` when it starts (any content) and deletes it when it finishes; while it
+exists, and is under 8 hours old, every scheduled code session stands down before running a
+single git command. The extra slots also stand down on their own if they find the tree dirty or
+off `main`. Without the marker, a 13:00 session starting while an owner session sits on clean
+`main` between commits would switch branches underneath it.
+
 If you find the data loop has not run or is failing, **fixing it is the highest
 priority work available**, ahead of any feature. A stalled data loop means the
 tool stops getting better in the way that matters most.
@@ -614,7 +629,7 @@ already shipped to the live public site.
 
 | # | The constraint | Enforced by |
 |---|---|---|
-| -1 | Scheduled-task definitions stay in version control (`scripts/register-tasks.ps1`). The two loops keep **different** logon delays (data `PT3M`, code `PT20M`), and the loser of the shared repo lock **waits** - it must never exit instead. The third task, `Screener Option Quotes` (weekdays 20:00), **publishes nothing**: no repo lock, no mutating git command, writes only the gitignored `data/options/`, no logon trigger - that is what makes a third task safe without gates of its own | `tests/test_loop_mutual_exclusion.py`, `tests/test_option_quote_refresh_task.py` |
+| -1 | Scheduled-task definitions stay in version control (`scripts/register-tasks.ps1`). The two loops keep **different** logon delays (data `PT3M`, code `PT20M`), and the loser of the shared repo lock **waits** - it must never exit instead. The third task, `Screener Option Quotes` (weekdays 20:00), **publishes nothing**: no repo lock, no mutating git command, writes only the gitignored `data/options/`, no logon trigger - that is what makes a third task safe without gates of its own. **Two extra code sessions (owner, 2026-10-14): `Screener Midday Session` 13:00 daily and `Screener Weekend Session` 06:00 Sat-Sun** - the same runner with `-Slot`, so the same four gates, lock, merge and tag; each slot has its own once-a-day marker; no logon trigger, no late catch-up; **an extra slot never stashes or switches branches** - a dirty tree or one off `main` stands it down untouched; `logs/.owner-session` stands every slot down; a 429 stands the extra slots down for 24h | `tests/test_loop_mutual_exclusion.py`, `tests/test_option_quote_refresh_task.py`, `tests/test_extra_sessions.py` |
 | -1 | The watchdog runs **outside** the machine it watches, and must not alarm faster than two *consecutive* missed weekdays. A watchdog that cries wolf gets muted, and a muted watchdog still looks like coverage | `tests/test_loop_watchdog.py` |
 | -1 | The morning brief is published as a single-file commit built on `origin/main`. **Never go back to pushing a local ref** - from `finally`, that publishes work the gates just refused | `tests/test_brief_publish_safety.py` |
 | -1 | The `nightly/*` branch sweep keeps its `--merged origin/main` filter, and a failed delete stays non-fatal | `tests/test_branch_sweep.py` |
@@ -634,10 +649,12 @@ already shipped to the live public site.
 session:** a weekly usage ceiling exists and silently killed the 2026-08-14
 session with a 429. There is no per-session dollar cost to optimise - the owner
 runs Claude Max, so this is included subscription usage (owner correction
-2026-08-21; do not reintroduce the "~$6/session" figure). The 06:00 code loop is
-the only thing drawing on that quota, so **a code session is the scarce resource
-and a data run is always affordable.** That is the argument for one thing done
-properly over three done shallowly.
+2026-08-21; do not reintroduce the "~$6/session" figure). **Since 2026-10-14 there are up to two
+code sessions a day plus weekends**, by the owner's choice, and they share that quota with his own
+sessions. The runner records a 429 in `logs/.usage-limited` and the extra slots stand down for a
+day after one, so the 06:00 session keeps first call. A code session is still the scarce resource
+and a data run is always affordable - **more sessions is not a licence to do things shallowly; it
+is more sessions each doing one thing properly.**
 
 ### Open
 

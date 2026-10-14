@@ -24,6 +24,15 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-14 - More sessions, faster development.** Owner: *"i want you to be doing more,
+  scheduling more runs. I want to speed up the development of these tools please."*
+  **Done the same day (owner-run):** two extra scheduled code sessions - 13:00 every day and
+  06:00 on Saturday and Sunday - so fourteen a week instead of five, each through the same four
+  ship gates. They stand down rather than collide: when an owner session is marked in progress,
+  when the tree has someone's work in it, and for a day after a usage limit. Kept open so a
+  later session can report whether the extra sessions are producing work of the same standard
+  (the next retrospective should look), and so the owner can change the cadence here.
+
 Add items below. Anything under this heading is unclaimed work.
 
 <!-- Add items here, newest at the top. Free text, one item per bullet. -->

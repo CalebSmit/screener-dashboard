@@ -10,10 +10,19 @@
     Task Scheduler entries. If that machine were rebuilt, the routine would be
     gone with no record of how it had been configured.
 
-    Creates three tasks:
+    Creates five tasks:
       Screener Data Run             02:00 Mon-Fri  -> scripts/data-run.ps1
       Nightly Screener Improvement  06:00 Mon-Fri  -> scripts/nightly-screener.ps1
       Screener Option Quotes        20:00 Mon-Fri  -> scripts/refresh-option-quotes.ps1
+      Screener Midday Session       13:00 daily    -> scripts/nightly-screener.ps1 -Slot midday
+      Screener Weekend Session      06:00 Sat-Sun  -> scripts/nightly-screener.ps1 -Slot weekend
+
+    The last two were added 2026-10-14 on the owner's direction to speed development up. They
+    are the same runner as the 06:00 session - same four ship gates, same repo lock, same merge
+    and tag - with their own once-a-day markers. Like the quote refresh they have neither a
+    logon trigger nor a late catch-up: firing at an arbitrary hour is most likely to land on top
+    of the owner working in the repo, and the runner stands them down if it finds work in
+    progress anyway (scripts/nightly-screener.ps1, -Slot).
 
     The two loops also get an at-logon trigger so a run missed while the machine
     sat at the login screen is picked up when the owner next signs in. That is
@@ -107,6 +116,30 @@ $Specs = @(
         Limit       = (New-TimeSpan -Minutes 30)
         Description = 'Collects option quotes after the close into data/options/quotes.json, which the 02:00 run reads because the source serves no quotes at that hour. Touches no tracked file, runs no git command, takes no repo lock, and can never change a score.'
     }
+    @{
+        Name        = 'Screener Midday Session'
+        Script      = 'nightly-screener.ps1'
+        Arguments   = '-Slot midday'
+        At          = '1:00PM'
+        Days        = @('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+        # No logon trigger and no catch-up (see the doc comment): a late start is most likely
+        # to land on top of the owner working in the repo.
+        NoLogon     = $true
+        NoCatchUp   = $true
+        Limit       = (New-TimeSpan -Hours 4)
+        Description = 'Second autonomous Claude Code session of the day (owner, 2026-10-14). Same runner, same four ship gates and repo lock as the 06:00 session; stands down if an owner session or work in progress is found, or a usage limit was hit in the last 24h.'
+    }
+    @{
+        Name        = 'Screener Weekend Session'
+        Script      = 'nightly-screener.ps1'
+        Arguments   = '-Slot weekend'
+        At          = '6:00AM'
+        Days        = @('Saturday', 'Sunday')
+        NoLogon     = $true
+        NoCatchUp   = $true
+        Limit       = (New-TimeSpan -Hours 4)
+        Description = 'Weekend-morning autonomous Claude Code session (owner, 2026-10-14). Same runner, gates and lock as the weekday 06:00 session; catch-up focus; stands down on work in progress or a recent usage limit.'
+    }
 )
 
 Write-Host ""
@@ -121,13 +154,14 @@ foreach ($s in $Specs) {
         continue
     }
 
+    $extraArgs = if ($s.Arguments) { " $($s.Arguments)" } else { '' }
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
-        -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`"" `
+        -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`"$extraArgs" `
         -WorkingDirectory $Repo
 
+    $days = if ($s.Days) { $s.Days } else { @('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday') }
     $triggers = @(
-        New-ScheduledTaskTrigger -Weekly `
-            -DaysOfWeek Monday, Tuesday, Wednesday, Thursday, Friday -At $s.At
+        New-ScheduledTaskTrigger -Weekly -DaysOfWeek $days -At $s.At
     )
     if (-not $NoLogonCatchup -and -not $s.NoLogon) {
         $logon = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"

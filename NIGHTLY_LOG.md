@@ -10767,3 +10767,45 @@ the commits and again after the full suite.
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched and nothing here
 needed one. `.git/worktrees/tree` is still the stale registration two previous sessions recorded as
 un-removable under OneDrive; `git worktree list` still shows only the main checkout.
+
+## 2026-10-14 (owner-run, morning) - two extra scheduled code sessions a day
+
+**Health (rule 8):** both loops ran today - `logs/datarun-2026-10-14_020002.log` ends "Data loop
+complete", HEALTH: PASS; `logs/nightly-2026-10-14_060001.log` ends "Run complete: shipped to
+main". Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days, bound 40), 4 effective**.
+Priority 0 unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2
+days).
+**Tests:** before 2274 passed / 0 failed; after 2285 passed / 0 failed.
+
+### The owner asked
+*"i want you to be doing more, scheduling more runs. I want to speed up the development of these
+tools please"*
+
+### Did
+- **`Screener Midday Session` (13:00 every day) and `Screener Weekend Session` (06:00 Sat-Sun)**,
+  both `scripts/nightly-screener.ps1` with a new `-Slot`. Fourteen code sessions a week instead
+  of five. Same gates, lock, merge and tag as the 06:00 session; their own once-a-day markers,
+  logs (`nightly-<stamp>-midday.log`) and focus (`QUEUE`: carry on from the morning's Next).
+- **They are built not to collide**, because the owner works in this same folder:
+  `logs/.owner-session` stands every slot down before any git command; an extra slot that finds
+  the tree dirty or off `main` stands down without stashing or switching anything (the 06:00
+  slot still recovers real leftovers); a 429 writes `logs/.usage-limited` and the extra slots
+  stand down for 24 hours. No logon trigger and no late catch-up for either.
+- **Exercised on the real runner** before registering: on this branch with a dirty tree,
+  `-Slot midday -DryRun` stood down with "the tree is dirty on 'owner/2026-10-14-more-sessions' -
+  ... Nothing was stashed or switched"; with the owner marker present it stood down before any
+  git command; `-Slot bogus` refused. `git stash list` empty and no lock left behind after each.
+- `tests/test_extra_sessions.py`, 11 tests; the task-count test now counts five. The brief's row
+  reads "Code session (latest)". CLAUDE.md and `prompts/nightly.md` say a session may not be the
+  first today, and that owner-run sessions create and remove `logs/.owner-session`.
+
+### Methodology changed
+- None.
+
+### Gates
+1. **2285 passed / 0 failed** (baseline 2274 / 0). 2. `run_screener.py --dry-run`
+**DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
+clean after the commit.
+
+**Machine state, rule 11:** `scripts/register-tasks.ps1` run after the merge and all five tasks
+read back with `Get-ScheduledTask` - recorded in the commit that follows this one.

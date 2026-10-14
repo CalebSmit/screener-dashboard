@@ -348,7 +348,7 @@ def main() -> int:
     data_age, data_days = run_age(data_log)
     code_age, code_days = run_age(code_log)
     a(f"| Data run (2 AM) | **{data_state}** - last ran {data_age} |")
-    a(f"| Code session (6 AM) | **{code_state}** - last ran {code_age} |")
+    a(f"| Code session (latest) | **{code_state}** - last ran {code_age} |")
     if facts:
         a(f"| Dashboard data from | {facts.get('timestamp', '?')} |")
         a(f"| Stocks scored | {facts.get('scored', '?')} |")
