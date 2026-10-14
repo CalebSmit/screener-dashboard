@@ -178,8 +178,47 @@ class RunSnapshot:
         return set(self.ranks)
 
 
-def input_churn(current: RunSnapshot, baseline: RunSnapshot,
-                ticker: str) -> tuple[int, int] | None:
+def universe_wide_changes(current: RunSnapshot,
+                          baseline: RunSnapshot) -> frozenset[str]:
+    """Metric percentiles whose availability changed for **most** of the universe.
+
+    Input churn is a statement about one stock *relative to its peers*: FCX lost
+    two of its five growth metrics while every other stock kept theirs, so its
+    growth score moved because its own measurement changed. When a metric goes
+    missing for everybody, every stock renormalises the same way and there is
+    nothing per-stock left to explain - the event belongs at run level, where
+    ``scripts/check_run_health.py`` reports it.
+
+    ``input_churn`` already refuses to count a column one run does not carry, for
+    exactly this reason. But it tests the column's *presence*, and a source that
+    empties a column it still serves walks straight through. Measured 2026-10-14
+    (``research/measurements/2026-10-14-input-churn-which-metric.py``):
+    ``.info["dividendRate"]`` stopped being served, ``dividend_yield`` fell from
+    402 of 501 stocks to 6, and **85% of comparison entries recorded churn** -
+    which told **90** stock-comparisons that two of their inputs had changed when
+    one of the two had changed for all 501.
+
+    "Most" is **more than half**: the only non-arbitrary point on the scale, and
+    the bound ``tests/test_input_churn.py`` asserts this mechanism keeps. A
+    metric that half the universe loses is a different event, and one the run
+    comparison should still surface per stock.
+    """
+    shared_cols = current.metric_cols & baseline.metric_cols
+    shared_tickers = [t for t in current.ranks if t in baseline.ranks]
+    if not shared_cols or not shared_tickers:
+        return frozenset()
+    changed: dict[str, int] = {}
+    for ticker in shared_tickers:
+        now = current.missing_metrics.get(ticker, frozenset()) & shared_cols
+        before = baseline.missing_metrics.get(ticker, frozenset()) & shared_cols
+        for col in now ^ before:
+            changed[col] = changed.get(col, 0) + 1
+    half = len(shared_tickers) / 2
+    return frozenset(col for col, n in changed.items() if n > half)
+
+
+def input_churn(current: RunSnapshot, baseline: RunSnapshot, ticker: str,
+                universe_wide: frozenset[str] = frozenset()) -> tuple[int, int] | None:
     """``(lost, gained)`` metric percentiles for one ticker between two runs.
 
     ``lost`` was computable in ``baseline`` and is not in ``current``; ``gained``
@@ -191,8 +230,14 @@ def input_churn(current: RunSnapshot, baseline: RunSnapshot,
     time (``fy1_revision_3m_pct`` appears part-way through the directory), and
     counting a column that simply did not exist yet as a metric that went
     missing would flag the whole universe on the day a metric was added.
+
+    ``universe_wide`` names metrics that changed for most of the universe
+    between these two runs - a source event rather than this stock's - and is
+    excluded for the reasons in ``universe_wide_changes``. Callers that pass
+    nothing get the per-column comparison and no universe correction, which is
+    what a hand-built pair of snapshots wants.
     """
-    shared = current.metric_cols & baseline.metric_cols
+    shared = (current.metric_cols & baseline.metric_cols) - universe_wide
     if not shared:
         return None
     if ticker not in current.ranks or ticker not in baseline.ranks:
@@ -395,6 +440,9 @@ def _pick_lookback(kept: list[RunSnapshot]) -> RunSnapshot | None:
 def _compare(current: RunSnapshot, baseline: RunSnapshot) -> dict[str, dict]:
     """Per-ticker deltas from baseline to current."""
     out: dict[str, dict] = {}
+    # Computed once for the pair, not per ticker: a metric the whole universe
+    # lost is a source event and not this stock's churn.
+    universe_wide = universe_wide_changes(current, baseline)
     for ticker, rank in current.ranks.items():
         if ticker not in baseline.ranks:
             out[ticker] = {"new": True}
@@ -420,7 +468,7 @@ def _compare(current: RunSnapshot, baseline: RunSnapshot) -> dict[str, dict]:
         # inputs are stable. The >=2 arming rule lives in the consumer, not
         # here: the history records what happened, the summary decides what is
         # worth saying about it.
-        churn = input_churn(current, baseline, ticker)
+        churn = input_churn(current, baseline, ticker, universe_wide)
         if churn is not None and any(churn):
             entry["ch"] = [churn[0], churn[1]]
         out[ticker] = entry

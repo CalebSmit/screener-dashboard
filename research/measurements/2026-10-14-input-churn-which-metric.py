@@ -59,6 +59,23 @@ def main() -> None:
     print("  ch shapes: " + str(Counter(tuple(e['ch']) for _, _, e in flagged).most_common()))
     print("  by baseline: " + str(Counter(k for _, k, _ in flagged).most_common()))
 
+    # What a reader would actually be told. The record keeps every churn; the
+    # caveat on the page arms at stock_summary.MIN_INPUT_CHURN metrics, so the
+    # question that matters is how many stocks the outage *armed*.
+    import stock_summary as S
+    armed = [e for _, _, e in flagged
+             if sum(e["ch"]) >= S.MIN_INPUT_CHURN]
+    print(f"\nMIN_INPUT_CHURN={S.MIN_INPUT_CHURN}; armed (a caveat shown) "
+          f"{len(armed)} of {len(entries)}")
+    # Subtract one lost metric - the universe-wide one - and count again. The
+    # difference is the number of stocks told "two of your inputs changed"
+    # because of a source outage that hit everybody.
+    still = [e for _, _, e in flagged
+             if (max(0, e["ch"][0] - 1) + e["ch"][1]) >= S.MIN_INPUT_CHURN]
+    print(f"armed if the universe-wide metric is not counted: {len(still)} "
+          f"-> the outage armed the caveat for {len(armed) - len(still)} extra "
+          f"stock-comparisons")
+
     # Name the metric: rebuild the two snapshots the history compared.
     cur_date = dates[-1]
     cur = pd.read_parquet(idx[cur_date])
