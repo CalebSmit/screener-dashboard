@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 13 October 2026, 06:30
+# Morning Brief - Wednesday 14 October 2026, 02:21
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,17 +9,19 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (6 AM) | **completed** - last ran today |
-| Dashboard data from | 2026-10-13T02:00:02.873759 |
+| Dashboard data from | 2026-10-14T02:00:10.255065 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | EXPE, HST, INCY, APA, BMY |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (28 rows, but overlapping windows are not independent; 79 rows across all horizons), newest 2026-10-06 |
-| Context signals | Context signals: 4 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
-| Context coverage | options usable 484/501 (17 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+| Top 5 | EXPE, INCY, HST, APA, SNDK |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (29 rows, but overlapping windows are not independent; 81 rows across all horizons), newest 2026-10-07 |
+| Context signals | Context signals: 5 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
+| Context coverage | options usable 486/501 (15 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
 ## What changed in the repo
 
+- `ccbc795 data: screener run 2026-10-14 - 501 scored, top: EXPE INCY HST APA SNDK`
+- `d7c1b71 brief: code session 2026-10-13`
 - `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
 - `99ec010 growth: record the decision on the page, the lab scorecard and the plan`
 - `a3d2726 growth: review the waiting proposal and refuse it, with the measurement that decided it`
@@ -33,8 +35,6 @@ history is in `NIGHTLY_LOG.md`.
 - `d73e26f Factor Lab: the factors among large companies, and how a lab finding reaches a weight`
 - `447736d Factor Lab: every headline result inside its paper's sample and since, on the front page`
 - `573fd30 methodology page: the Risk and Size sections say what the Factor Lab measured`
-- `e1eee1a scripts/rehearse_publish.py: see the next data run's page before the data run does`
-- `9280df1 dashboard: the methodology loads when it is opened - found by rehearsing tonight's 02:00 publish`
 
 ## The session's own account
 
