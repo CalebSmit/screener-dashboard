@@ -164,7 +164,13 @@ def load_run_data(run_dir: Path) -> dict:
                          ("cash_bs", "_cash_bs"),
                          ("totalAssets", "_total_assets"),
                          ("totalEquity", "_total_equity"),
-                         ("dividendRate", "_dividend_rate"),
+                         # No `dividendRate` here on purpose. The yield is the
+                         # engine's `dividend_yield` column, computed once in
+                         # `factor_engine.dividend_yield_from_fields`; a second
+                         # derivation here is what left the page showing "None"
+                         # for 495 of 501 stocks on 2026-10-14 when the source
+                         # dropped that one field (CLAUDE.md row 0.8).
+                         ("_dividend_basis", "_dividend_basis"),
                          ("payoutRatio", "_payout_ratio"),
                          ("sharesOutstanding", "_shares_out"),
                          ("trailingEps", "_trailing_eps"),
@@ -1023,7 +1029,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
         if _cash is None:
             _cash = _safe(row.get("_cash_bs"))
         _price = _safe(row.get("_current_price"))
-        _div_rate = _safe(row.get("_dividend_rate"))
+        # The engine's number, not a second derivation of it.
+        _div_yield = _safe(row.get("dividend_yield"))
+        _div_basis = row.get("_dividend_basis")
+        _div_basis = _div_basis if isinstance(_div_basis, str) else None
 
         detail["financials"] = {
             "market_cap": _mcap,
@@ -1048,7 +1057,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "total_debt": _debt,
             "total_cash": _cash,
             "net_debt": round(_debt - _cash, 2) if (_debt is not None and _cash is not None) else None,
-            "dividend_yield": round(_div_rate / _price, 4) if (_div_rate is not None and _price is not None and _price > 0) else None,
+            "dividend_yield": round(_div_yield, 4) if _div_yield is not None else None,
+            "dividend_basis": _div_basis,
             "payout_ratio": _safe(row.get("_payout_ratio")),
             "shares_outstanding": _safe(row.get("_shares_out")),
             "trailing_eps": _safe(row.get("_trailing_eps")),
@@ -1086,7 +1096,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "roic": _safe(row.get("roic")),
             "roe": _safe(row.get("roe")),
             "debt_equity": _safe(row.get("debt_equity")),
-            "div_yield": round(_div_rate / _price, 4) if (_div_rate is not None and _price is not None and _price > 0) else None,
+            "div_yield": round(_div_yield, 4) if _div_yield is not None else None,
             "fcf_yield": _safe(row.get("fcf_yield")),
             "mcap": _mcap,
         }
@@ -3441,7 +3451,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 {{ label: 'Net Debt',        value: fmtBig(f.net_debt) }},
             ]}},
             {{ label: 'Shareholder', color: '#8e8c86', items: [
-                {{ label: 'Dividend Yield',  value: f.dividend_yield !== null ? fmtPct2(f.dividend_yield) : 'None' }},
+                {{ label: 'Dividend Yield',
+                   value: f.dividend_yield === null || f.dividend_yield === undefined ? '—'
+                          : (f.dividend_yield === 0 ? 'None' : fmtPct2(f.dividend_yield)),
+                   sub: f.dividend_yield ? (f.dividend_basis === 'trailing' ? 'last 12 months paid'
+                                            : (f.dividend_basis === 'forward' ? 'declared annual rate' : '')) : '' }},
                 {{ label: 'Payout Ratio',    value: f.payout_ratio !== null ? fmtPct2(f.payout_ratio) : '\u2014' }},
                 {{ label: 'Shares Out',      value: fmtShares(f.shares_outstanding) }},
             ]}},

@@ -326,6 +326,63 @@ def _coalesce(d: dict, *keys):
     return np.nan
 
 
+# --- Dividend yield -------------------------------------------------------
+# The annual dividend per share, in dollars, in the order the metric prefers it:
+# the declared forward rate, then the last twelve months actually paid. Both are
+# **dollars per share**, which is what makes the fallback safe - see
+# `dividend_yield_from_fields`.
+DIVIDEND_RATE_FIELDS = ("dividendRate", "trailingAnnualDividendRate")
+
+# A "yield" above this is not a yield, it is a unit error. The highest S&P 500
+# yields sit well under 10%, so the bound rejects only the impossible. Measured
+# 2026-10-14 (`research/measurements/2026-10-14-dividend-field-probe.py`): the
+# two fields above produce nothing near it, while `.info["dividendYield"]` -
+# which this deliberately does not read - returned 2.35 for a stock yielding
+# 2.31%.
+DIVIDEND_YIELD_MAX = 0.25
+
+# Which of the two rates a reading came from, so the page can say so rather than
+# label a trailing figure as the declared rate.
+DIVIDEND_BASIS = {"dividendRate": "forward", "trailingAnnualDividendRate": "trailing"}
+
+
+def dividend_yield_from_fields(d: dict) -> tuple[float, str | None]:
+    """``(annual dividend per share / price, which rate it came from)``.
+
+    Until 2026-10-14 this was `dividendRate / currentPrice` and nothing else.
+    That morning the source stopped serving `dividendRate` - 0 of 12 probed
+    tickers, against every sibling field still served - and the metric fell from
+    402 of 501 stocks to **6**, which took `tests/test_input_churn.py` red and
+    put "Dividend Yield: None" on the live page for Coca-Cola, J&J and Procter &
+    Gamble. `trailingAnnualDividendRate`, the last twelve months paid, is the
+    fallback.
+
+    **Dollar amounts only, on purpose.** `.info` also carries `dividendYield`,
+    and this does not read it: the 2026-10-14 probe measured it at 2.35 for a
+    stock yielding 2.31% - already a percent - while older yfinance releases
+    served the same field as a fraction. A field whose units changed between
+    releases is a silent 100x error waiting for the release that changes them
+    back; a dollar amount divided by our own price cannot be misread. The bound
+    is the belt to that brace.
+
+    One function, because the dashboard used to derive this a second time from
+    its own copy of `dividendRate` (`CLAUDE.md` row 0.8) and would have gone on
+    showing "None" after this was fixed.
+    """
+    price = _coalesce(d, "currentPrice", "price_latest")
+    if pd.isna(price) or price <= 0:
+        return np.nan, None
+    for field in DIVIDEND_RATE_FIELDS:
+        rate = _coalesce(d, field)
+        if pd.isna(rate) or rate < 0:
+            continue
+        y = float(rate) / float(price)
+        if y > DIVIDEND_YIELD_MAX:
+            continue
+        return y, DIVIDEND_BASIS[field]
+    return np.nan, None
+
+
 _STMT_VAL_STRICT = False  # Set True to track all statement lookup misses
 _STMT_VAL_MISSES: list = []  # Collected when _STMT_VAL_STRICT is True
 
@@ -887,6 +944,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["shortName"]          = _safe(info, "shortName", ticker_str)
         rec["earningsGrowth"]     = _safe(info, "earningsGrowth")
         rec["dividendRate"]       = _safe(info, "dividendRate")
+        # The fallback for it. The source stopped serving `dividendRate` on
+        # 2026-10-14 while still serving this; see dividend_yield_from_fields.
+        rec["trailingAnnualDividendRate"] = _safe(info, "trailingAnnualDividendRate")
         rec["payoutRatio"]        = _safe(info, "payoutRatio")
         # Bank-specific info fields (zero additional API cost — same .info dict)
         rec["returnOnEquity"]    = _safe(info, "returnOnEquity")
@@ -2609,13 +2669,10 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 rec["current_ratio"] = np.nan  # Banks: meaningless
 
             # C4. Dividend Yield (Valuation)
-            # dividendRate / currentPrice. Both already fetched.
-            _div_rate_c = d.get("dividendRate", np.nan)
-            rec["dividend_yield"] = (
-                (_div_rate_c / _cur_price_c)
-                if (pd.notna(_div_rate_c) and pd.notna(_cur_price_c) and _cur_price_c > 0)
-                else np.nan
-            )
+            # Annual dividend per share / price, from whichever rate the source
+            # served - see `dividend_yield_from_fields` for why dollars only.
+            rec["dividend_yield"], _div_basis = dividend_yield_from_fields(d)
+            rec["_dividend_basis"] = _div_basis
 
             # C5. Insider Ownership (Quality)
             # heldPercentInsiders from .info. Higher = more skin in the game.
