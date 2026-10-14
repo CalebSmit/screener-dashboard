@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 14 October 2026, 02:21
+# Morning Brief - Wednesday 14 October 2026, 06:40
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,6 +20,14 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `f8480a6 log: the four gates for 2026-10-14`
+- `2f42754 log: the 2026-10-14 session, and the two constraints it added`
+- `17249d4 publish: regenerate today's page so it stops saying two false things`
+- `1daf857 changelog: the dividend-yield defect, its fix and the second derivation it exposed`
+- `3e27f14 health: refuse a run where a weighted metric vanished across the universe`
+- `53d9c5f churn: a metric the whole universe lost is a source event, not one stock's`
+- `fa77fe7 fix: the source dropped dividendRate - restore the yield from the trailing rate`
+- `34859a8 brief: data run 2026-10-14`
 - `ccbc795 data: screener run 2026-10-14 - 501 scored, top: EXPE INCY HST APA SNDK`
 - `d7c1b71 brief: code session 2026-10-13`
 - `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
@@ -27,62 +35,54 @@ history is in `NIGHTLY_LOG.md`.
 - `a3d2726 growth: review the waiting proposal and refuse it, with the measurement that decided it`
 - `eeff9e2 brief: data run 2026-10-13`
 - `a5e84b8 data: screener run 2026-10-13 - 501 scored, top: EXPE HST INCY APA BMY`
-- `0bbd9c5 brief: list proposals waiting for a decision, with their age`
-- `97e7a29 Factor Lab experiment 9 (the largest fifth), and the nightly sessions set up to carry the work on`
-- `97ab4a8 research: value and momentum among large companies - no weight change, and a page that says why`
-- `5f39f6f research: what stands behind Growth's 13%, and what the category actually does`
-- `55ccf6e Factor Lab: what a holder who shorts nothing keeps of each factor among big companies`
-- `d73e26f Factor Lab: the factors among large companies, and how a lab finding reaches a weight`
-- `447736d Factor Lab: every headline result inside its paper's sample and since, on the front page`
-- `573fd30 methodology page: the Risk and Size sections say what the Factor Lab measured`
 
 ## The session's own account
 
-> 2026-10-13 (06:00) - the Growth proposal: reviewed, refused, and the weight stated as deliberate
+> 2026-10-14 - SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-12_060001.log`
-> ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-13_020001.log`
-> ends "Data loop complete", HEALTH: PASS, claims gate 371 passed. Evidence base at `1m`:
-> **28 rows, newest 2026-09-11 (32 days ago, bound 40), 4 effective** - inside the bound, and the
-> engine's own line in the data log agrees ("4 effective (28 rows) at the 1m horizon"). Priority 0:
-> unchanged, `allow_auto_apply` false, 4 of 8 effective observations. Top open roadmap item:
-> **0.13, the Factor Lab** (opened 2026-10-12, **age 1 day**).
-> **Tests:** before **2227 passed / 0 failed**, after **2235 passed / 0 failed**.
-> **Owner queue / rotation:** took the owner item - `OWNER_FOCUS.md`'s Factor Lab item and
-> `prompts/nightly.md` section 3 both say the waiting Growth proposal outranks the day's focus.
-> **Tuesday's product focus was therefore deferred**, deliberately and with the owner item named;
-> nothing in the dashboard was found broken on the way through.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-13_060001.log`
+> ends "Run complete: shipped to main". Data loop published? **yes** -
+> `logs/datarun-2026-10-14_020002.log` ends "Data loop complete", HEALTH: PASS, claims gate 454
+> passed. Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days ago, bound 40), 4 effective**
+> - inside the bound, and the engine's own line in the data log agrees ("4 effective (29 rows) at
+> the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of 8 effective observations.
+> Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 2 days**).
+> **Tests:** before **2,234 passed / 1 failed**, after **2,274 passed / 0 failed**.
+> **Owner queue / rotation:** **the baseline was red**, which outranks both the owner queue and the
+> day's focus - and the failure turned out to be a real defect that had published four hours
+> earlier. Both owner items (the Factor Lab, the context layer) are **deferred for that**, named
+> here as rule 8 requires. The lab's next day is Friday 2026-10-23 anyway (2026-10-16 is a
+> retrospective); the context layer's queue item 4 is unworked and still next.
 > 
 > ### Did
 > 
-> **Reviewed the proposal in section 7 of `research/2026-10-12-growth-category.md` (Growth 13% ->
-> 10%, Quality 22% -> 25%) and refused it.** The decision and its reasoning are section 10 of that
-> note; the status line is rewritten, so the morning brief's "Waiting for a decision" list is now
-> empty (`write_brief.open_proposals()` returns `[]`).
+> **The gate-1 baseline failed, and it was not flaky.**
+> `tests/test_input_churn.py::test_build_history_on_real_snapshots_reports_some_churn` -
+> "churn on most of the universe", 852 of 1002 comparison entries - green yesterday. It is a
+> tripwire on the real snapshot directory, so the question was which metric, not how to quiet it.
+> `research/measurements/2026-10-14-input-churn-which-metric.py`: **`dividend_yield_pct` went from
+> 99 NaN to 495 NaN of 501 in the run published at 02:00 this morning.**
 > 
-> **What the review added.** Section 7 measured one point - the composite's Spearman with the Growth
-> score is -0.01 at weight 13 and -0.06 at weight 10 - and argued from the evidence that growth as
-> the category measures it earns nothing of its own. One point cannot separate the two readings of
-> that evidence, because they predict different *curves*:
+> **1. The source dropped a field and the metric had no fallback.**
+> Measured in the scored caches: `dividend_yield` **402 of 501 on 2026-10-13, 6 of 501 on
+> 2026-10-14**. A live probe (`research/measurements/2026-10-14-dividend-field-probe.py`) found
+> `.info["dividendRate"]` served for **0 of 12** tickers while `dividendYield`,
+> `trailingAnnualDividendRate`, `trailingAnnualDividendYield`, `fiveYearAvgDividendYield`,
+> `lastDividendValue` and `payoutRatio` were all served **12 of 12**. The metric read that one
+> field and divided by the price; nothing else.
 > 
-> - *"Weight belongs where evidence is"* - move the 3 points; the curve is irrelevant.
-> - *"A trait that earns nothing should be neither rewarded nor penalised"* - the right weight is
->   whichever leaves the ranking neutral, and moving off it is a disimprovement.
+> Fixed in `factor_engine.dividend_yield_from_fields`: the declared forward rate, then the trailing
+> twelve months paid, over the price, bounded at 25%, publishing which basis it used.
+> **`.info["dividendYield"]` is deliberately not read** - the probe measured it at **2.35 for a
+> stock yielding 2.31%**, already a percent, where older yfinance releases served the same field as
+> a fraction. A field whose units changed between releases is a silent 100x error waiting for the
+> release that changes them back; a dollar amount over our own price cannot be misread.
+> `METHODOLOGY_CHANGELOG.md` 2026-10-14, `tests/test_dividend_yield_source.py` (22).
+> **No score moved: `dividend_yield` carries weight 0 in both profiles.**
 > 
-> `research/measurements/2026-10-13-growth-weight-sweep.py`, on the published run of 2026-10-13
-> 02:00 (501 stocks; the approximation reproduces the published ranking at Spearman 1.0000, 25 of
-> the top 25). Growth swept 0-26:
-> 
-> | Growth weight | 0 | 5 | 10 | **13** | 16 | 20 | 26 |
-> |---|---|---|---|---|---|---|---|
-> | composite's Spearman with the Growth score | -0.199 | -0.136 | **-0.060** | **-0.009** | +0.048 | +0.130 | +0.258 |
-> 
-> - Exposure is **not flat**: monotonic across the sweep, slope **+0.0181 of correlation per point**.
-> - **Zero exposure is at weight 13.5** (13.3 pro rata). The configured weight is 13.
-> - |exposure| <= 0.05 only over **weights 11-16**. The proposed 10 is just outside it.
-> - **Growth is the only category that runs against the composite's grain**: -0.388 against the mean
->   of the other seven, where every other category is between -0.055 and +0.158. Nothing else does
->   this job, so Growth's weight *is* the growth-exposure dial.
+> **2. Fixing the engine would not have fixed the page, which is the row-0.8 failure again.**
+> `generate_dashboard` derived the same quantity a **second** time from its own copy of
+> `dividendRate` - for the Company Snapshot row *and* for Sector Peers. Measured on the published
 > ...
 
 ---
