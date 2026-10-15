@@ -130,10 +130,15 @@ def test_the_classes_do_not_overlap():
             seen[f] = cls
 
 
+# v2 is the consumer the module exists for; nothing else at the root may read it.
+V2_MODULES = ("backtest_v2.py", "backtest_v2_returns.py")
+
+
 def test_no_production_module_and_not_backtest_v1_imports_it():
     pat = re.compile(r"^\s*(import pit_record|from pit_record)\b", re.M)
+    assert not pat.search((ROOT / "backtest.py").read_text(encoding="utf-8"))   # v1, by name
     for p in ROOT.glob("*.py"):
-        if p.name in ("pit_record.py", "conftest.py"):
+        if p.name in ("pit_record.py", "conftest.py") + V2_MODULES:
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
     for d in ("scripts",):

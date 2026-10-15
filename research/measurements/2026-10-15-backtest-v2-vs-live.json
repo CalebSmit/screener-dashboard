@@ -1,0 +1,28 @@
+{
+ "as_of": "2026-10-14",
+ "run": "135997e22055",
+ "live_scored": 501,
+ "v2_scored": 496,
+ "common": 496,
+ "not_built": {
+  "no_filings": [
+   "VYLR"
+  ]
+ },
+ "composite_spearman": 0.8805,
+ "top25_overlap": 15,
+ "top_decile_overlap": 35,
+ "top_decile_size": 49,
+ "median_abs_rank_change": 24.5,
+ "category_spearman": {
+  "valuation": 0.8839,
+  "quality": 0.8755,
+  "growth": 0.912,
+  "momentum": 0.9997,
+  "risk": 0.9996,
+  "size": 0.9559,
+  "investment": 0.9775
+ },
+ "regime": "NORMAL",
+ "risk_free": 0.04085000038146973
+}

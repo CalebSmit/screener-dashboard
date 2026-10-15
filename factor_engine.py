@@ -876,6 +876,68 @@ PRICE_SERIES_DERIVED_FIELDS = (
 )
 
 
+def price_history_fields(hist: pd.DataFrame) -> dict:
+    """The raw record's momentum and risk inputs from a daily history (13 months in the fetch).
+
+    Extracted 2026-10-15 from ``_fetch_single_ticker_inner`` so backtest v2 can build the same
+    fields from a *past* window with the same code (``plan/backtest-v2.md`` step 3; CLAUDE.md row
+    0.8's one-computation rule). ``hist`` is a daily frame with ``Close`` (split- and
+    dividend-adjusted, as ``history(auto_adjust=True)`` gives it), optionally ``Volume`` and
+    ``Stock Splits``. A series that mixes two price scales returns ``_price_series_rejected`` and
+    NaN for every ``PRICE_SERIES_DERIVED_FIELDS`` - never a number wrong by the split ratio.
+    """
+    rec: dict = {}
+    closes = hist["Close"].dropna()
+    daily_ret = np.log(closes / closes.shift(1)).dropna()
+    rec["price_latest"] = float(closes.iloc[-1])
+
+    # Refuse to derive metrics from a series that mixes two price
+    # scales.  Withholding them is the honest outcome: the
+    # alternative is a number indistinguishable from analysis that
+    # is wrong by the split ratio.  Repair is not attempted -
+    # MNST's series flipped scale on seven separate days, so there
+    # is no single factor that puts it right.
+    _integrity = check_price_series_integrity(closes, hist.get("Stock Splits"))
+    if _integrity is not None:
+        rec["_price_series_rejected"] = _integrity
+        for _f in PRICE_SERIES_DERIVED_FIELDS:
+            rec[_f] = np.nan
+        return rec
+
+    # Calendar-based lookback: find the closest trading day
+    # to each target date instead of using fixed index offsets
+    # (iloc[-22] ≈ 1 month but varies with holidays).
+    last_date = closes.index[-1]
+    for label, delta_days in [("price_1m_ago", 30),
+                              ("price_6m_ago", 182),
+                              ("price_12m_ago", 365)]:
+        target = last_date - pd.Timedelta(days=delta_days)
+        # Find the closest trading day on or before the target
+        mask = closes.index <= target
+        if mask.any():
+            rec[label] = float(closes.loc[mask].iloc[-1])
+        else:
+            rec[label] = np.nan
+
+    rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
+    # The daily figure it is annualised from, kept so the page can show
+    # "daily sd x 252^0.5" (metric_lineage.EQUATIONS["volatility"]).
+    rec["_vol_daily_sd"] = float(daily_ret.std()) if len(daily_ret) >= 200 else np.nan
+    rec["_daily_returns"] = {
+        dt.strftime("%Y-%m-%d"): v
+        for dt, v in zip(daily_ret.index, daily_ret.values)
+    }
+
+    # Avg daily dollar volume (63 trading days ≈ 3 months)
+    if "Volume" in hist.columns:
+        dv = hist["Close"] * hist["Volume"]
+        dv_63 = dv.tail(63).dropna()
+        rec["avg_daily_dollar_volume"] = (
+            float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
+        )
+    return rec
+
+
 def fetch_single_ticker(ticker_str: str, max_retries: int = 3,
                         per_request_delay: float = 0.0) -> dict:
     """Fetch all required data for one ticker via yfinance.
@@ -1313,58 +1375,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         try:
             hist = t.history(period="13mo", auto_adjust=True)
             if hist is not None and len(hist) >= 10:
+                # One function, shared with backtest v2 (pit_record.py's history needs the same
+                # momentum and risk inputs from a past window - one computation, never a second).
+                _ph = price_history_fields(hist)
+                rec.update(_ph)
                 closes = hist["Close"].dropna()
-                daily_ret = np.log(closes / closes.shift(1)).dropna()
-                rec["price_latest"] = float(closes.iloc[-1])
-
-                # Refuse to derive metrics from a series that mixes two price
-                # scales.  Withholding them is the honest outcome: the
-                # alternative is a number indistinguishable from analysis that
-                # is wrong by the split ratio.  Repair is not attempted -
-                # MNST's series flipped scale on seven separate days, so there
-                # is no single factor that puts it right.
-                _integrity = check_price_series_integrity(
-                    closes, hist.get("Stock Splits"))
-                if _integrity is not None:
-                    rec["_price_series_rejected"] = _integrity
-                    for _f in PRICE_SERIES_DERIVED_FIELDS:
-                        rec[_f] = np.nan
+                if "_price_series_rejected" in _ph:
                     warnings.warn(
-                        f"{ticker_str}: price history rejected - {_integrity}; "
+                        f"{ticker_str}: price history rejected - {_ph['_price_series_rejected']}; "
                         f"momentum and risk metrics withheld")
                 else:
-                    # Calendar-based lookback: find the closest trading day
-                    # to each target date instead of using fixed index offsets
-                    # (iloc[-22] ≈ 1 month but varies with holidays).
-                    last_date = closes.index[-1]
-                    for label, delta_days in [("price_1m_ago", 30),
-                                              ("price_6m_ago", 182),
-                                              ("price_12m_ago", 365)]:
-                        target = last_date - pd.Timedelta(days=delta_days)
-                        # Find the closest trading day on or before the target
-                        mask = closes.index <= target
-                        if mask.any():
-                            rec[label] = float(closes.loc[mask].iloc[-1])
-                        else:
-                            rec[label] = np.nan
-
-                    rec["volatility_1y"] = float(daily_ret.std() * np.sqrt(252)) if len(daily_ret) >= 200 else np.nan
-                    # The daily figure it is annualised from, kept so the page can show
-                    # "daily sd x 252^0.5" (metric_lineage.EQUATIONS["volatility"]).
-                    rec["_vol_daily_sd"] = float(daily_ret.std()) if len(daily_ret) >= 200 else np.nan
-                    rec["_daily_returns"] = {
-                        dt.strftime("%Y-%m-%d"): v
-                        for dt, v in zip(daily_ret.index, daily_ret.values)
-                    }
-
-                    # Avg daily dollar volume (63 trading days ≈ 3 months)
-                    if "Volume" in hist.columns:
-                        dv = hist["Close"] * hist["Volume"]
-                        dv_63 = dv.tail(63).dropna()
-                        rec["avg_daily_dollar_volume"] = (
-                            float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
-                        )
-
                     # Context only (2026-10-08, plan/context-layer.md): trend, range, recent
                     # move and volume from the same history - no extra API call, never scored.
                     try:
