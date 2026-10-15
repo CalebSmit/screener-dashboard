@@ -36,8 +36,19 @@ def cfg():
 
 @pytest.fixture(scope="session")
 def universe_df(cfg):
-    from factor_engine import get_sp500_tickers
-    return get_sp500_tickers(cfg)
+    """The committed universe, read from disk.
+
+    **Never ``get_sp500_tickers()``** - that goes to the network and, whenever a source
+    succeeds, rewrites the published ``sp500_tickers.json`` (CLAUDE.md priority 8). This
+    fixture is session-scoped, so the write landed in the teardown of whichever test
+    happened to request it first and only when the network was up *and* returned different
+    content, which is why the 2026-10-09 per-test write detector did not see it: it ran on a
+    day the fetch did not change the file. The loader's offline path is tested directly, with
+    the network stubbed, in ``TestGetSP500Tickers``.
+    """
+    import json as _json
+    return pd.DataFrame(_json.loads(
+        (Path(__file__).resolve().parent / "sp500_tickers.json").read_text(encoding="utf-8")))
 
 
 @pytest.fixture(scope="session")
@@ -111,6 +122,36 @@ class TestGetSP500Tickers:
 
     def test_no_duplicate_tickers(self, universe_df):
         assert universe_df["Ticker"].is_unique
+
+    def test_offline_fallback_reads_the_committed_universe_and_writes_nothing(self, cfg, monkeypatch):
+        """With every network source refused, the loader falls back to the committed file.
+
+        This is the only test that calls ``get_sp500_tickers`` - and it asserts the property
+        the suite needs, which is that the published ``sp500_tickers.json`` is not rewritten.
+        The live-network path is deliberately not exercised here; the 02:00 data loop runs it
+        five mornings a week, and a unit suite that depends on the network both writes
+        published artifacts and fails for reasons that are nothing to do with the code.
+        """
+        import json
+        import requests
+
+        import factor_engine
+
+        def refuse(*_a, **_kw):
+            raise OSError("TEST: network refused")
+
+        # ``get_sp500_tickers`` does ``import requests`` in its own body, so the patch has to
+        # land on the requests module, not on a factor_engine attribute (there is none).
+        monkeypatch.setattr(requests, "get", refuse)
+        path = Path(factor_engine.__file__).resolve().parent / "sp500_tickers.json"
+        before = path.read_bytes()
+
+        df = factor_engine.get_sp500_tickers(cfg)
+
+        assert path.read_bytes() == before, "the offline fallback must not rewrite the universe"
+        assert len(df) == len(json.loads(before.decode("utf-8")))
+        for col in ["Ticker", "Company", "Sector"]:
+            assert col in df.columns
 
 
 class TestGenerateSampleData:

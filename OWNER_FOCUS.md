@@ -221,6 +221,32 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-14 (13:00 session) - queue item 4's three open page-sentence findings are DONE, and
+    reading the paper turned up a correction the next session has to carry.** All three were the
+    same failure - a figure from a paper printed beside a number the paper did not measure.
+    **(a)** The put skew is now Xing, Zhang & Zhao's own construction (the out-of-the-money put
+    nearest 95% of the price minus the **at-the-money call**, not the mean of call and put at 90%),
+    with both implied volatilities printed beside it so the subtraction is checkable on the row.
+    The old measure was their skew *minus half of a different published signal*; measured on 25
+    names from the same option chains, the two **disagreed on the sign for 7 of 22 (32%)**, and the
+    old one produced +46.6 IV points for one stock where the paper's own 95th percentile is +19.92.
+    **(b)** The sentence now quotes the paper at the horizon a monthly reader can act on - 10.9% a
+    year held one week **and 6.5% held four** - and gives McLean & Pontiff's 58% post-publication
+    shrinkage as an upper bound. **(c)** Put/call open interest is off the page: it was a bare
+    *level* with no sentence, where the evidence is about flow and is spent within a week. It is
+    still logged, so its record keeps accruing.
+    **The correction:** the 10-12 note concluded that *every* option-implied signal decays faster
+    than this screener acts, listing XZZ as "weekly rebalanced" - it had the paper second-hand. The
+    paper's Table 4 measures the same spread at a **four-week** holding period (6.52% a year,
+    t 2.70) and out to 28 weeks with *rising* t-statistics. Withdrawn for XZZ, still standing for
+    the other three studies. It does **not** make the skew a candidate for the score, but the first
+    `1m` record from `context_eval.py` (window closes 2026-11-07) must be read as a test of a claim
+    the paper makes at that horizon - and the five log dates before today hold the old
+    construction, so they are excluded rather than spliced.
+    **No score moved** (rehearsal: `dashboard_data.js` byte-unchanged; context payload changed 0,
+    added 0, removed 941 - the withheld old skews and the open-interest row).
+    **Next: item 4's two remaining per-signal notes** - the macro backdrop and the track record -
+    then item 6, track-record hardening.
   - **2026-10-14 - deferred, and why.** The 06:00 session's test baseline was red: the source had
     stopped serving one `.info` field and the dividend yield had emptied for 495 of 501 stocks in the
     run published at 02:00, which also put "Dividend Yield: None" on the page for Coca-Cola, J&J and

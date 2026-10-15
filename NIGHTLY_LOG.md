@@ -10827,3 +10827,177 @@ read back with `Get-ScheduledTask` - recorded in the commit that follows this on
   (`write_brief.newest_session` skips dry runs and stand-downs). The brief was regenerated and
   reads "completed" again. `tests/test_morning_brief.py::TestTheNewestSession`, 3 tests.
 - **Gates for the addendum:** 2288 passed / 0 failed; dry-run, node and clean tree as above.
+
+## 2026-10-14 (13:00 session) - QUEUE. The options panel now cites a paper for the number it actually computes
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-14_060001.log`
+ends "Run complete: shipped to main". Data loop published? **yes** -
+`logs/datarun-2026-10-14_020002.log` ends "Data loop complete", HEALTH: PASS. (The 21:12 data run
+stood down correctly: "already completed successfully today".) Evidence base at `1m`: **29 rows,
+newest 2026-09-14 (30 days ago, bound 40), 4 effective** - inside the bound, and the data log's own
+line agrees ("4 effective (29 rows) at the 1m horizon"). Priority 0: unchanged, `allow_auto_apply`
+false, 4 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 2
+days**).
+**Tests:** before **2,288 passed / 1 error**, after **2,317 passed / 0 errors**.
+**Owner queue / rotation:** took the **context layer** (`plan/context-layer.md` item 4), which is
+what the 06:00 session's **Next** named and what it had deferred for a red gate. The Factor Lab is
+not deferred so much as **scheduled**: its own rule is one finished experiment on a Friday, and
+2026-10-16 is a retrospective, so its next day is 2026-10-23. No proposal is waiting for a decision.
+
+### Did
+
+**0. The baseline was red, and it was mine to fix before anything else.**
+`python -m pytest tests/ test_screener.py -q` gave **2,288 passed, 1 error**: the `conftest.py`
+tripwire reporting *"A test wrote published artifacts (restored): sp500_tickers.json"*. The same
+command was green at 06:40 and at the owner-run session after it.
+
+`test_screener.py`'s **session-scoped `universe_df` fixture** called
+`factor_engine.get_sp500_tickers()`, which goes to the network and **rewrites the published
+`sp500_tickers.json` whenever a source succeeds**. So the write happened only when the network was
+up *and* the fetched universe differed from the committed one - which is why the 2026-10-09 per-test
+write detector reported "exactly three tests" and missed this one: it ran on a day the fetch did not
+change the file. The module's own docstring had been promising "no network calls" since before any
+of this.
+
+That matters more than a flaky test, because **the runner re-runs all four gates before merging**: a
+gate-1 failure whose trigger is outside the repo blocks the unattended merge for a reason no session
+can reproduce. The fixture now reads the committed file, as `test_tiny_pipeline` already did.
+
+The loader keeps real coverage and gains the assertion that was missing: with every network source
+refused it falls back to the committed universe and leaves it **byte-identical**.
+`tests/test_published_artifact_isolation.py` (5) is the tripwire - an AST scan over all **98** test
+sources finds every call to a loader that writes a published artifact and fails unless it is that
+one stubbed test (verified non-vacuous: it finds exactly one call site and attributes it correctly).
+Two further tests stop a later session shortening `conftest.PROTECTED_PATHS` or downgrading its
+`pytest.fail` to a silent restore.
+
+**1. The put skew now is the measure the paper beside it measured.**
+`plan/context-layer.md` item 4 left three findings open, all the same shape: *a figure from a paper
+printed beside a number the paper did not measure.*
+
+Read from the paper (XZZ 2010, *JFQA* 45(3), pp. 644-645, eq. 1):
+`SKEW = IV(OTM put) - IV(ATM call)`, the put taken **nearest 0.95 moneyness within (0.80, 0.95)**,
+the call **nearest 1 within [0.95, 1.05]**, positive open interest, 10-60 days to expiry. This
+screener took the put nearest **0.90** and subtracted the **mean** of the ATM call and put. Since
+`mean(IV_atmc, IV_atmp) = IV_atmc + v/2` where `v` is the put-call IV spread, the old number was a
+0.90-moneyness skew **minus half of Cremers & Weinbaum's (2010) signal** - neither published
+quantity, under one paper's name.
+
+**Measured, 25 names, both constructions from the same fetched chain** so nothing is attributable to
+quotes moving (`research/measurements/2026-10-14-skew-construction-paired.py`): available 22 -> 23 of
+25; new minus old **mean -4.23 IV points, median -2.36**; Spearman 0.675; and **7 of 22 (32%)
+disagreed on the sign** - one construction called the skew steep where the other called it flat.
+Against the paper's own Table 1 distribution (mean +6.40, 95th percentile +19.92), the old measure
+produced **+46.56 points** for one stock; the new one produces nothing outside the paper's range.
+
+**Reported rather than tuned away:** our level sits ~7 points below theirs (median -0.20 vs +4.76).
+Strike granularity is **ruled out** - the realised gap between the two legs averages **0.064**
+against the paper's nominal 0.050, and a wider gap would make the skew *larger*. The likely cause is
+the universe: skew is a small-company phenomenon in XZZ's own data (steepest-skew quintile $4.29bn of
+market value against $13.8-14.7bn for the middle quintiles) and this screener ranks the S&P 500 only.
+The same pattern the Factor Lab keeps finding, and the standing reading rule applies.
+
+**2. The sentence quotes the horizon a monthly reader can act on, and the decay.** It gave only the
+one-week figure. The paper's Table 4 Panel B measures the same spread at **four weeks (6.52% a year,
+t 2.70)** and at 6-7% out to 28 weeks. The panel now gives one week and four, names the 10-60 day
+window and says when a stock's expiry is outside it, and states **McLean & Pontiff's 58%**
+post-publication shrinkage as an upper bound.
+
+**3. Put/call open interest is off the page.** A bare *level*, with no sentence at all, where the
+evidence concerns *flow*: Pan & Poteshman (2006) find publicly observable option volume has "very
+little, if any" predictability, and XZZ's own control for the public put-call **volume** ratio is
+t 3.62\*\*\* one week ahead and t 0.02, 1.81, 0.13, -0.70, 1.37, -0.56 at weeks 4-24. Removed from
+the panel and from the payload; **still logged** and still evaluated as `options_put_call_oi`.
+
+**4. Two defects the rehearsal and then *looking at the page* turned up.**
+- `_ctx_opt_skew` is computed at **fetch** time, so the newest full run holds the superseded value
+  and none of the new legs - the regenerated page printed the old number under the new sentence, for
+  one day. The skew is now published **as a unit**, number and both legs, or withheld. Payload
+  effect: unchanged 174,449, **changed 0, added 0, removed 941** (479 `osk`, 462 `opc`). The row
+  returns by itself at the next full fetch.
+- The out-of-window clause read *"wider than this expiry's N days"*, which is **backwards for a long
+  expiry** - and both directions are real (9 days for 51 stocks, 65-69 for the rest of the 68
+  outside). Now: *"this expiry is 65 days, outside that range"*.
+
+**Looked at it** (`research/measurements/2026-10-14-skew-row-on-the-page.py`; AAPL 23 days inside,
+ABT 9 outside, A 65 outside, at 1440 and 375px). The row reads **"Put skew (out-of-the-money put vs
+at-the-money call)  +5.0 pts"** over **"$305.00 put 35% - $340.00 call 30%  +5.0 pts"**, so the
+subtraction is on the row; the clause fires correctly in both directions; the card does not overflow
+at either width (410px desktop, 343px phone); and with the row withheld the panel still reads
+cleanly with no orphaned label. Deliberately not acted on: at 375px the value wraps to two lines
+because the label is long - the label stays long because "out-of-the-money put vs at-the-money call"
+teaches and "OTM vs ATM" does not, and the redesign is closed.
+
+### Evidence / research
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3) 641-662, **read from the paper**: definition and bands
+  pp. 644-645; Table 1 p. 647 (SKEW mean 6.40%, quartiles 2.40/4.76/8.43, 95th 19.92); Table 3
+  pp. 650-651 (quintile spread 0.16%/wk raw = 9.19%/yr t 2.19; FF3 alpha 0.21%/wk = **10.90%/yr
+  t 2.93**; volume-weighted variant 10.06%, t 2.07); Table 4 pp. 653-654 (holding periods and the
+  PCR controls). Conditions: 1996-2005 US, OptionMetrics, value-weighted quintiles of ~168 firms.
+- **McLean & Pontiff (2016)**, *JF* 71(1): **97 predictors, 26% lower out-of-sample, 58% lower
+  post-publication**, rejecting both "disappears entirely" and "does not change". Market-category
+  predictors (price/volume only, where an option measure sits) declined most, "although it is not
+  significantly different" - so no extra penalty is claimed on the page.
+- **Pan & Poteshman (2006)**, *RFS* 19(3), read from the author's copy: "the publicly observed option
+  volume has very little, if any, predictability for future stock prices".
+- **Cremers & Weinbaum (2010)** is cited **second-hand**, for the identity in the decomposition only;
+  not obtained, and no figure of theirs is on the page.
+- **A version trap worth remembering:** five McLean & Pontiff copies downloaded; the 2012-01, 2012-10
+  and 2013-05 working papers all say **82 characteristics and ~35%**, not 97 and 58%. Only the
+  "Journal of Finance, Forthcoming" manuscript carries the published figures. Citing off the first
+  PDF a search returns would have put a wrong number under a right-looking citation.
+
+### Methodology changed
+- **`METHODOLOGY_CHANGELOG.md` 2026-10-14 (13:00 session)** - documented defect: the skew's
+  construction, the sentence's horizon and decay, and the removal of the open-interest row.
+  **No weight, threshold, score, rank or composite moved** - every field is `_ctx_*`, and the
+  rehearsal's own diff shows `dashboard_data.js` **byte-unchanged**.
+
+### Tried and rejected
+- **Correcting only the sentence, which is what the plan's finding (a) asked for.** It would have
+  left a number on the page that no published study measured. The paper's construction costs a few
+  lines and we had the chain data, so the honest fix is to compute what is cited. The sentence
+  correction came with it.
+- **Keeping both measures** (the old one for series continuity, the new one for the page). Two skews
+  on a context panel is clutter, and the continuity is worth little: the `_ctx_opt_skew` series is
+  **five log dates**, all before the first forward window closes on 2026-11-07. Better to break it
+  now, say so, and exclude those dates than to splice two constructions later.
+- **Leaving the old values on the page until the 02:00 run refreshes them.** That is a page whose
+  sentence describes one construction and whose number is another - the defect being fixed.
+  Withholding the row for a day is the "say what cannot be shown" rule.
+- **Relaxing the `conftest` tripwire, or dropping `sp500_tickers.json` from its protected list.**
+  It was right; the fixture was wrong. The list is now itself under test.
+- **A full-universe measurement of the two constructions.** ~500 option-chain requests is what the
+  after-close cache exists to avoid. A 25-name paired sample answers the question; the limitation is
+  stated in the note.
+
+### Next
+- **`plan/context-layer.md` item 4's two remaining per-signal notes: the macro backdrop and the
+  track record.** They are the only panels with no research note of their own. Then item 6,
+  track-record hardening.
+- **Carry the XZZ correction forward.** When `context_eval.py` reports its first `1m` record (window
+  closes **2026-11-07**), read `_ctx_opt_skew` as a test of a claim the paper **does** make at that
+  horizon, not as a measurement of something known to be spent - and **exclude the five log dates
+  2026-10-08 to 10-14**, which hold the old construction. Do not splice them.
+- Friday 2026-10-16 is a **retrospective**; the Factor Lab's next experiment is 2026-10-23
+  (profitability, Novy-Marx 2013).
+
+**And the trigger was confirmed in passing.** Gate 2's `--dry-run` legitimately refreshed
+`sp500_tickers.json` from the network, and the whole diff is **one field**:
+`"McKesson Corporation"` -> `"McKesson"`. That is the entire content difference that made the
+tripwire fire at 21:20 and not at 06:40 - an upstream display-name edit. Reverted, not committed
+(it is not this session's work, and the 02:00 loop picks it up properly).
+
+### Gates
+1. **2,317 passed / 0 errors** (baseline **2,288 passed / 1 error** - the error was the
+pre-existing non-deterministic artifact write, fixed here, not a test weakened).
+2. `run_screener.py --dry-run` exit **0**. 3. `index.html` **554,892 bytes**; `dashboard_data.js`,
+`dashboard_context.js` and `lab_data.js` all pass `node --check` and open with their expected
+assignments; **`python scripts/rehearse_publish.py` PASSED** (the diff touches
+`generate_dashboard.py` and `claims.py`) - 300 page tests, claims gate 454, published files
+restored byte for byte.
+4. `git status --porcelain` clean after the commits and again after the full suite, with
+`sp500_tickers.json` reverted as above.
+
+**Machine state, rule 11:** nothing outstanding. No scheduled task was touched and nothing here
+needed one.
