@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 15 October 2026, 06:35
+# Morning Brief - Thursday 15 October 2026, 14:03
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -21,69 +21,69 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
-- `fc2755a log: 2026-10-15 06:00 session - the capex proposal decided, and the capex figure taken apart`
-- `4bc5cfd drilldown: the FCF-yield row says what the capex figure contains`
-- `36f608a capex proposal: reviewed and refused - the construction keeps the finance arm's cash flow`
-- `23afa6a brief: data run 2026-10-15`
-- `cfc228c data: screener run 2026-10-15 - 501 scored, top: EXPE APA HST INCY BMY`
-- `3b56c2a health: the filing check reports its SEC cache's age and flags it past two weeks`
-- `98ed268 capex proposal: the filed lease tags read, Ford ruled out, the tags cached weekly`
-- `5b95d97 brief: a daily row for the inputs' agreement with the SEC filings`
-- `258595d methodology page: the figures are checked against the filings - say so, and say what is not`
-- `31e60fc data trust: market value checked against the filed share counts`
-- `185d03b research: what capex should include in free-cash-flow yield - a proposal left for review`
-- `b1e5f6d drilldown: each stock's inputs checked against its own SEC filing; a dated test defused`
-- `43cebfc data trust: the inputs checked against the companies' own SEC filings`
-- `165596a brief: code session 2026-10-14-midday`
-- `0c8730d log: 2026-10-14 13:00 session - context-layer item 4's three findings closed`
+- `bdb5b75 log: the roll-forward, the dead provenance function, and the operating-income finding`
+- `18f8913 research: operating income is the least source-agreeing input, and three weighted metrics stand on it`
+- `a375e70 wip: the provenance sentences move to the function the page actually calls`
+- `9e3949a wip: the rolled twelve months on the page, in the methodology, and as a claim`
+- `e867764 wip: roll the last fiscal year forward instead of annualising three quarters`
+- `5a9e42c research: a per-stock fallback to the filings when the source is behind would add more noise than it removes`
+- `b6c6e86 provenance: say when a stock is scored a period behind its own filings`
+- `b35015e filing check: revenue is compared with the filed line nearest the run's figure, not the largest`
+- `ae36dcd fetch: a quarterly statement derived across a restatement is not summed (DuPont's revenue read a third low)`
+- `4ea8f9a nightly prompt: backtest v2 is not evidence either - and not for cutting a weight`
+- `56d212e backtest v1: the disclaimer quotes the measured look-ahead instead of an unsourced estimate`
+- `9d6ed87 methodology page: the point-in-time limitation quotes the measured look-ahead; 72.6% corrected to 72.5%`
+- `b6f7fd9 backtest v2: monthly rankings from what was known then, and the first honest look at returns`
+- `243a8b3 backtest v2: the engine's record rebuilt from SEC filings as of any date, and the look-ahead's fundamentals half measured`
+- `a46c53e brief: code session 2026-10-15`
 
 ## The session's own account
 
-> 2026-10-15 (06:00) - BUILD. The capex proposal reviewed and refused, and the capex figure taken apart on the page
+> 2026-10-15 (13:00 slot) - QUEUE. A quarter the source never published is rolled forward, not invented
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-14 13:00 slot ends
-> "shipped to main" (and an owner-run session ran after midnight today; its entry is above - this
-> is a second entry for today, not an edit of it). Data loop published? **yes** - 02:00 today,
-> HEALTH: PASS, "Data loop complete", 501 scored. Evidence base at `1m`: **30 rows, newest
-> 2026-09-15 (30 days ago, bound 40), 4 effective** - inside the bound, and the gate is 8.
-> Priority 0: `allow_auto_apply` still false, the engine still correctly refuses to propose.
-> Top open roadmap item: **0.13, the Factor Lab** - age **3 days**; not advanced today (its day is
-> Friday 2026-10-23, and an owner item outranked it).
-> **Tests:** before **2345 passed, 0 failed**; after **2353 passed, 1 skipped, 0 failed** (the skip
-> is the new test that compares the *committed* payload's notes with the filings - it has nothing to
-> compare until tonight's run publishes them, and the same test runs for real inside the data loop's
-> publish gate, against the regenerated payload).
-> **Owner queue / rotation:** took the top open owner item - the capex proposal waiting for a
-> decision since 2026-10-14. That is also a legitimate BUILD day: the decision came with code.
-> The Factor Lab item and the context-layer item were not advanced.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-15_060001.log`
+> ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-15_020001.log`
+> ends "Data loop complete", claims gate PASS (460 passed), published to main 02:22.
+> Evidence base at `1m` = **30 rows, newest 2026-09-15 (30 days ago, bound 40), 4 effective**
+> - inside the band, no action. Priority 0: `allow_auto_apply` still **false**, 4 effective against a
+> gate of 8. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 7 days**);
+> deferred today - see below.
+> **Tests:** before **2396 passed, 1 skipped**; after **2414 passed, 1 skipped**. Dry run OK;
+> `index.html` 558,545 bytes; `dashboard_data.js` and `dashboard_context.js` both `node --check` clean;
+> `scripts/rehearse_publish.py` PASSED (300 page tests, 473 claims).
+> **Owner queue / rotation:** this is the **fourth** session today (06:00, two owner-run, and this
+> 13:00 slot after the owner marker cleared). Carried on from the owner-run midday entry's **Next**.
+> Its Next asked whether scoring should ever read the filings when the source is behind or
+> inconsistent - I did **not** reopen that (it was measured and refused twice today), and instead took
+> the concrete, still-open residual the same line of work left behind:
+> `research/2026-10-14-yahoo-vs-sec.md` **section 4b**, which named three-quarter annualisation as
+> "a small, well-defined data fix for a later session". The context-layer owner item (macro and
+> track-record notes) was deferred to finish this end to end; nothing in it was started or lost.
 > 
 > ### Did
 > 
-> **Reviewed the open capex proposal and refused it, on a measurement its author had not made.**
-> The proposal (`research/2026-10-14-capex-definition.md` section 4) would have taken a captive
-> finance arm's lease purchases out of free-cash-flow capex for GM, DE, CAT and PCAR - GM's FCF
-> yield 0.3% -> 8.0%, its sector percentile about 10 -> 90, 7.9 composite points on the heaviest
-> metric in the screener (9.9 of 100). Section 4's figures all reproduce. What it had not looked at
-> is the **other half of the same ratio**:
+> **1. The main piece: the twelve months is rolled forward, not fabricated.** Re-measured section 4b
+> rather than trusting it. `_ltm_annualized` was true for **4 of 503** stocks on this run. For three it
+> touched one immaterial line each (COST and V: common stock dividend; GIS: interest expense). For
+> **BRK-B it touched nine lines** - revenue, operating income, net income, tax, pretax income, operating
+> cash flow, capex, D&A, interest - because the source does not carry its **2025-09-30 quarter at all**;
+> the columns run `2026-06-30, 2026-03-31, 2025-12-31, 2025-06-30, 2025-03-31`, so `_quarters_adjacent`
+> rightly refused to sum the first four and `sum(3) * 4/3` took over.
 > 
-> - **Its own sources define free cash flow on the segment, not on the consolidated company.** GM's
->   fiscal 2025 10-K, read today: *"net automotive cash provided by operating activities was $18.7
->   billion, capital expenditures were $9.2 billion"*. The consolidated operating cash flow for the
->   same year is **$26.87B**. The proposal removes the finance arm's capex and keeps its **$8.17B**
->   of operating cash flow. Caterpillar's 8-K of 2026-06-11 is the same shape - "MP&E free cash
->   flow", the industrial segments on both sides.
-> - **So the proposal's number is not GM's.** For fiscal 2025: today's construction $1.78B
->   (**-81%** against GM's own $9.5B unadjusted, $10.6B adjusted); the proposal's $17.57B
->   (**+85%**). The error is *exactly* the consolidated-minus-automotive operating-cash-flow gap.
-> - **A lease fleet is a three-legged cycle and the rule would count one and a half.** GM's own
->   tags, fiscal 2025: bought $15.79B, collected $7.80B of rentals (inside operating cash flow, so
->   **kept**), sold $10.10B at lease end (investing - counted by neither construction). Net
->   investment in the book was **$5.69B**, not $15.79B. Netting legs 1 and 3 lands nearest the
->   company's figure (+25%) and is **not buildable**: only GM of the four files the proceeds leg.
-> - **It would also put 9.9 composite points on the weekly SEC cache**, which scoring deliberately
->   never reads (a test enforces it). A failed refresh would silently restate four companies' capex.
-> - **Direction.** Both constructions are measurably wrong; the proposal's *promotes* a stock on a
->   number no source publishes. For a long-only screener those are not equivalent.
+> Against Berkshire's own filings for the same twelve months the published figures were **net income
+> 14.54% low, operating cash flow 6.09% low, revenue 10.23% high**.
+> 
+> The fix is not the annual statement (measured: it is *worse* on net income, -21.9%). It is the
+> identity every filer uses in its own 10-Q and that `sec_crosscheck.flow_ttm` already applies to the
+> filings: **fiscal year + year-to-date - year-to-date a year earlier**. Rebuilt that way BRK-B's
+> figures are **net income $85.768bn against $85.768bn filed, operating cash flow $46.634bn against
+> $46.634bn, capex $22.419bn against $22.419bn** - exact to the dollar on all three.
+> `factor_engine._ltm_rollforward`, tried between the four-quarter sum and the 4/3 fallback, current
+> period only, with guards on every term. It reads the two statements the fetch already holds and
+> **never a filing** - a test enforces that, because scoring deliberately does not touch the SEC cache
+> (CLAUDE.md 0.14), which is what made it the independent yardstick here.
+> 
+> **Said plainly, including what it does not fix:** BRK-B's revenue goes from +10.2% to **+12.2%** -
 > ...
 
 ---
