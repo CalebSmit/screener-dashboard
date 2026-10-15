@@ -559,8 +559,78 @@ def quarterly_statement_defect(q_fins, n_quarters: int = 4) -> str | None:
     return None
 
 
+def _ltm_rollforward(q_stmt, a_stmt, label):
+    """Trailing twelve months as the last fiscal year rolled forward: (value, how) or (nan, None).
+
+    WHY - 2026-10-15, ``research/2026-10-15-ttm-rollforward.py``. When the four most recent
+    quarters cannot be summed because the source never published one of them, the columns are
+    not adjacent and ``_stmt_val_ltm`` falls back to ``sum(3 quarters) * 4/3`` - which assumes
+    the missing quarter equalled the average of the other three. The twelve months is still
+    available from the same two statements, by the identity every filer uses in its own 10-Q:
+
+        TTM(E) = fiscal year + year-to-date(E) - year-to-date(E one year earlier)
+
+    Measured on Berkshire Hathaway, whose 2025-09-30 quarter the source does not carry, this
+    reproduces the company's own filed figure **to the dollar** - net income $85.768bn,
+    operating cash flow $46.634bn, capital expenditure $22.419bn - where 4/3 annualisation was
+    off by -14.5%, -6.1% and +0.1% respectively.
+
+    It reads only the quarterly and annual statements the fetch already holds. It never reads a
+    filing: scoring does not touch the SEC cache (CLAUDE.md 0.14), which stays the independent
+    yardstick that measured this.
+
+    Guards, so the identity cannot be applied where it does not hold: the annual column must
+    span a year (350-380 days of quarters either side of it is not checkable here, so the
+    fiscal-year end must be a quarter boundary ahead of the stub); the stub must be one to
+    three consecutive published quarters starting at the fiscal year end and ending at the
+    newest quarter the statement carries; and every stub quarter must have a published quarter
+    one year earlier, consecutively likewise. Anything else returns nan and the caller keeps
+    its existing behaviour.
+    """
+    try:
+        if q_stmt is None or a_stmt is None or q_stmt.empty or a_stmt.empty:
+            return np.nan, None
+        q_idx, a_idx = _find_stmt_label(q_stmt, label), _find_stmt_label(a_stmt, label)
+        if q_idx is None or a_idx is None:
+            return np.nan, None
+        q_row, a_row = _period_row(q_stmt, q_idx), _period_row(a_stmt, a_idx)
+        a_cols = [c for c in a_row.index if pd.notna(a_row[c])]
+        q_cols = [c for c in q_row.index if pd.notna(q_row[c])]
+        if not a_cols or not q_cols:
+            return np.nan, None
+        fy_end = max(pd.Timestamp(c) for c in a_cols)
+        fy = float(a_row[max(a_cols, key=lambda c: pd.Timestamp(c))])
+        q_dates = sorted((pd.Timestamp(c), c) for c in q_cols)
+
+        # the year-to-date stub: the published quarters after the fiscal year end
+        stub = [c for d, c in q_dates if d > fy_end]
+        if not 1 <= len(stub) <= 3 or stub[-1] != q_dates[-1][1]:
+            return np.nan, None
+        chain = [fy_end] + [pd.Timestamp(c) for c in stub]
+        if not all(75 <= (chain[i + 1] - chain[i]).days <= 105 for i in range(len(chain) - 1)):
+            return np.nan, None
+
+        # the same quarters one year earlier, each published
+        prior = []
+        for c in stub:
+            want = pd.Timestamp(c) - pd.Timedelta(days=365)
+            hit = [cc for d, cc in q_dates if abs((d - want).days) <= 20]
+            if len(hit) != 1:
+                return np.nan, None
+            prior.append(hit[0])
+        if len(set(map(str, prior))) != len(prior):
+            return np.nan, None
+
+        value = fy + sum(float(q_row[c]) for c in stub) - sum(float(q_row[c]) for c in prior)
+        how = (f"the fiscal year to {fy_end.date()} plus the {len(stub)} quarter(s) to "
+               f"{pd.Timestamp(stub[-1]).date()} less the same quarters a year earlier")
+        return float(value), how
+    except (KeyError, IndexError, TypeError, ValueError, AttributeError):
+        return np.nan, None
+
+
 def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
-                   partial_labels=None):
+                   partial_labels=None, annual=None, rolled_labels=None):
     """Compute LTM (sum of N quarters) from a quarterly statement DataFrame.
 
     Parameters
@@ -579,13 +649,19 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
     partial_labels : list or None
         If provided, the label is appended when partial annualization
         (3-of-4 quarters) is used, so callers can flag the ticker.
+    annual : pd.DataFrame or None
+        The matching annual statement. When given and the four quarters cannot be summed,
+        the twelve months is rolled forward from the last fiscal year instead of annualizing
+        three quarters - see ``_ltm_rollforward``.
+    rolled_labels : list or None
+        If provided, the label is appended when the roll-forward was used.
 
     Returns
     -------
     float
         Sum of the N quarterly values, or default if insufficient data.
-        If only 3 of 4 quarters are available (offset=0), annualizes
-        as sum * (4/3).
+        Failing that at offset=0: the roll-forward from ``annual`` if it is available, else
+        3 of 4 quarters annualized as sum * (4/3).
     """
     try:
         if stmt is None or stmt.empty:
@@ -614,6 +690,16 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
         if (len(row) >= offset + n_quarters and row.iloc[offset:offset + n_quarters].notna().all()
                 and _quarters_adjacent(cols, offset, n_quarters)):
             return float(row.iloc[offset:offset + n_quarters].sum())
+
+        # The four quarters cannot be summed. Before inventing the missing one, roll the last
+        # fiscal year forward - the same statements, and the identity the filer itself uses
+        # (2026-10-15; exact against BRK-B's filings where 4/3 was 14.5% out on net income).
+        if n_quarters == 4 and offset == 0 and annual is not None:
+            rolled, _how = _ltm_rollforward(stmt, annual, label)
+            if not np.isnan(rolled):
+                if rolled_labels is not None:
+                    rolled_labels.append(label)
+                return float(rolled)
 
         # Partial data: the latest 3 consecutive quarters at offset=0, annualized
         if (n_quarters == 4 and offset == 0 and len(row) >= 3 and row.iloc[:3].notna().all()
@@ -1145,30 +1231,31 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # typically provides only 4-5 quarters. When prior-year LTM is
         # unavailable, fall back to annual statement col=1 (prior year).
         _ltm_partial = []  # tracks labels where 3-of-4 quarter annualization was used
-        rec["totalRevenue"]           = _stmt_val_ltm(q_fins, "Total Revenue", partial_labels=_ltm_partial)
+        _ltm_rolled = []   # tracks labels rolled forward from the last fiscal year instead
+        rec["totalRevenue"]           = _stmt_val_ltm(q_fins, "Total Revenue", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         rec["totalRevenue_prior"]     = _stmt_val_ltm(q_fins, "Total Revenue", offset=4)
-        rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial)
+        rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         rec["grossProfit_prior"]      = _stmt_val_ltm(q_fins, "Gross Profit", offset=4)
         # Operating income first (2026-10-09 audit): Yahoo's "EBIT" row is pretax income plus
         # interest expense, so it carries non-operating gains - GOOGL's read $301.5B against
         # $147.6B of operating income, doubling its ROIC. ROIC, EV/EBITDA and net debt / EBITDA
         # are all operating measures (Greenblatt 2006; Koller et al., *Valuation*). "EBIT" only
         # where no operating-income line exists.
-        rec["ebit"]                   = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial)
+        rec["ebit"]                   = _stmt_val_ltm(q_fins, "Operating Income", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         if np.isnan(rec["ebit"]):
-            rec["ebit"]               = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial)
-        rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial)
-        rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial)
+            rec["ebit"]               = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
+        rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
+        rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         rec["netIncome_prior"]        = _stmt_val_ltm(q_fins, "Net Income", offset=4)
-        rec["incomeTaxExpense"]       = _stmt_val_ltm(q_fins, "Tax Provision", partial_labels=_ltm_partial)
+        rec["incomeTaxExpense"]       = _stmt_val_ltm(q_fins, "Tax Provision", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         if np.isnan(rec["incomeTaxExpense"]):
-            rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax", partial_labels=_ltm_partial)
-        rec["pretaxIncome"]           = _stmt_val_ltm(q_fins, "Pretax Income", partial_labels=_ltm_partial)
-        rec["costOfRevenue"]          = _stmt_val_ltm(q_fins, "Cost Of Revenue", partial_labels=_ltm_partial)
+            rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
+        rec["pretaxIncome"]           = _stmt_val_ltm(q_fins, "Pretax Income", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
+        rec["costOfRevenue"]          = _stmt_val_ltm(q_fins, "Cost Of Revenue", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         # Interest Expense: needed for interest_coverage candidate metric
-        rec["interestExpense"]        = _stmt_val_ltm(q_fins, "Interest Expense", partial_labels=_ltm_partial)
+        rec["interestExpense"]        = _stmt_val_ltm(q_fins, "Interest Expense", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         if np.isnan(rec["interestExpense"]):
-            rec["interestExpense"]    = _stmt_val_ltm(q_fins, "Interest Expense Non Operating", partial_labels=_ltm_partial)
+            rec["interestExpense"]    = _stmt_val_ltm(q_fins, "Interest Expense Non Operating", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
 
         # Fallback: if quarterly IS produced all NaN, try annual for everything
         if all(np.isnan(rec.get(k, np.nan)) for k in ["totalRevenue", "netIncome", "ebit"]):
@@ -1299,21 +1386,21 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["sharesBS_prior"]     = _stmt_val(_bs_src, "Share Issued", _bs_prior_col)
 
         # ---- Cash flow: LTM (sum of last 4 quarters) ----
-        rec["operatingCashFlow"]      = _stmt_val_ltm(q_cf, "Operating Cash Flow", partial_labels=_ltm_partial)
+        rec["operatingCashFlow"]      = _stmt_val_ltm(q_cf, "Operating Cash Flow", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         if np.isnan(rec["operatingCashFlow"]):
-            rec["operatingCashFlow"]  = _stmt_val_ltm(q_cf, "Total Cash From Operating", partial_labels=_ltm_partial)
-        rec["capex"]                  = _stmt_val_ltm(q_cf, "Capital Expenditure", partial_labels=_ltm_partial)
+            rec["operatingCashFlow"]  = _stmt_val_ltm(q_cf, "Total Cash From Operating", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
+        rec["capex"]                  = _stmt_val_ltm(q_cf, "Capital Expenditure", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         if np.isnan(rec["capex"]):
-            rec["capex"]              = _stmt_val_ltm(q_cf, "Capital Expenditures", partial_labels=_ltm_partial)
-        rec["dividendsPaid"]          = _stmt_val_ltm(q_cf, "Common Stock Dividend", partial_labels=_ltm_partial)
+            rec["capex"]              = _stmt_val_ltm(q_cf, "Capital Expenditures", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
+        rec["dividendsPaid"]          = _stmt_val_ltm(q_cf, "Common Stock Dividend", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         if np.isnan(rec["dividendsPaid"]):
-            rec["dividendsPaid"]      = _stmt_val_ltm(q_cf, "Dividends Paid", partial_labels=_ltm_partial)
+            rec["dividendsPaid"]      = _stmt_val_ltm(q_cf, "Dividends Paid", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         # D&A from cashflow (for computing GAAP EBITDA = EBIT + D&A)
-        rec["da_cf"]                  = _stmt_val_ltm(q_cf, "Depreciation And Amortization", partial_labels=_ltm_partial)
+        rec["da_cf"]                  = _stmt_val_ltm(q_cf, "Depreciation And Amortization", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         if np.isnan(rec["da_cf"]):
-            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation", partial_labels=_ltm_partial)
+            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Reconciled Depreciation", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         if np.isnan(rec["da_cf"]):
-            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion", partial_labels=_ltm_partial)
+            rec["da_cf"]              = _stmt_val_ltm(q_cf, "Depreciation Amortization Depletion", partial_labels=_ltm_partial, annual=cf, rolled_labels=_ltm_rolled)
         # No quarterly D&A (DAL, UAL, MAS on 2026-10-09): the last fiscal year's, from the annual
         # cash-flow statement. D&A moves slowly, and without it EBITDA fell back to Yahoo's
         # "EBITDA" row, which for these companies equals EBIT (2026-10-09 audit).
@@ -1350,6 +1437,17 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["_ltm_annualized_labels"] = list(set(_ltm_partial))
         else:
             rec["_ltm_annualized"] = False
+
+        # ---- LTM roll-forward flag (2026-10-15) ----
+        # The source had not published one of the four quarters, so the twelve months is the
+        # last fiscal year rolled forward rather than four quarters summed (_ltm_rollforward).
+        # Display only, like the flag above: a different route to the same twelve months, not a
+        # worse figure - it is the construction the company's own 10-Q uses.
+        if _ltm_rolled:
+            rec["_ltm_rolled"] = True
+            rec["_ltm_rolled_labels"] = sorted(set(_ltm_rolled))
+        else:
+            rec["_ltm_rolled"] = False
 
         # ---- Beneish M-Score data: ANNUAL statements (col 0 = current, col 1 = prior year) ----
         # Uses annual (not LTM/MRQ) because Beneish was designed for annual data
@@ -2874,6 +2972,9 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # -- Data provenance summary --
         rec["_data_source"] = d.get("_data_source", "unknown")
         rec["_ltm_annualized"] = d.get("_ltm_annualized", False)
+        # Which flows are the last fiscal year rolled forward, when any are (2026-10-15).
+        rec["_ltm_rolled"] = d.get("_ltm_rolled", False)
+        rec["_ltm_rolled_labels"] = d.get("_ltm_rolled_labels", None)
         # Why momentum/risk are blank for this name, when they are.
         rec["_price_series_rejected"] = d.get("_price_series_rejected", None)
         # Why the flows come from the annual statements, when they do (2026-10-15, DuPont).

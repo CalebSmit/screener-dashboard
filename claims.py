@@ -463,6 +463,35 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.ltm_rolled",
+        surface=DRILLDOWN,
+        asserts=(
+            "When the source never published one of a stock's four most recent quarters, the panel "
+            "says the twelve months shown is the last fiscal year plus the quarters since it less "
+            "the same quarters a year earlier, and names the lines that were built that way."
+        ),
+        made_true_by="factor_engine:_ltm_rollforward",
+        checked_by=(
+            "tests/test_ltm_rollforward.py::test_the_identity_is_the_fiscal_year_plus_the_stub_less_the_year_before",
+            "tests/test_ltm_rollforward.py::test_the_fetch_rolls_forward_and_records_which_lines_it_rolled",
+            "tests/test_ltm_rollforward.py::test_the_badge_states_the_identity_the_engine_uses",
+        ),
+    ),
+    Claim(
+        id="overview.ltm_rolled",
+        surface=OVERVIEW,
+        asserts=(
+            "The methodology page states the roll-forward identity, that it is the construction the "
+            "company's own 10-Q uses, and that 4/3 annualisation of three quarters remains only "
+            "where the roll-forward is unavailable."
+        ),
+        made_true_by="factor_engine:_ltm_rollforward",
+        checked_by=(
+            "tests/test_ltm_rollforward.py::test_the_methodology_page_states_the_roll_forward",
+        ),
+        detect=r"A quarter the source never published",
+    ),
+    Claim(
         id="overview.lookahead_size",
         surface=OVERVIEW,
         asserts=(
