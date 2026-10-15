@@ -195,6 +195,33 @@ def test_every_current_period_ltm_call_site_is_given_its_annual_statement():
     assert body.count("annual=fins") >= 12 and body.count("annual=cf") >= 9
 
 
+def test_the_badge_states_the_identity_the_engine_uses():
+    """The panel may not describe a different construction from the one in the code."""
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    assert '"ltm_rolled": bool(row.get("_ltm_rolled"))' in src
+    assert '"ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels"))' in src
+    i = src.index("if (fl.ltm_rolled)")
+    badge = src[i:i + 900]
+    for phrase in ("Twelve months rolled forward",
+                   "had not published one of the four",
+                   "last fiscal year plus the quarters since it",
+                   "less the same quarters a year earlier",
+                   "fl.ltm_rolled_labels"):
+        assert phrase in badge, phrase
+
+
+def test_the_methodology_page_states_the_roll_forward():
+    """Generated, so assert the generator - never the committed file (CLAUDE.md rule 10)."""
+    src = (ROOT / "run_screener.py").read_text(encoding="utf-8")
+    i = src.index("A quarter the source never published")
+    para = src[i:src.index("\n", i)]
+    for phrase in ("the quarters since it", "the same quarters a year earlier",
+                   "its own 10-Q", "14.5%", "sum × 4/3", "_ltm_rolled"):
+        assert phrase in para, phrase
+    # the old text claimed 4/3 was the only route
+    assert "the screener annualizes (sum × 4/3) but flags" not in src
+
+
 def test_the_roll_forward_never_reads_a_filing():
     """Scoring does not touch the SEC cache (CLAUDE.md 0.14) - the cache measures this, not feeds it."""
     src = (ROOT / "factor_engine.py").read_text(encoding="utf-8")

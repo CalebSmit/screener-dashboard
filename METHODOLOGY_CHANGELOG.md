@@ -3905,6 +3905,80 @@ comes out.
 
 ---
 
+## 2026-10-15 (13:00 slot) - A quarter the source never published is rolled forward, not invented
+
+**Area:** metric inputs - how a trailing-twelve-month flow is built when the four most recent
+quarters cannot be summed. Affects every LTM flow: revenue, gross profit, operating income,
+EBITDA, net income, tax, pretax income, cost of revenue, interest expense, operating cash flow,
+capex, dividends paid, D&A.
+
+**Changed:** `factor_engine._stmt_val_ltm` now tries a new `_ltm_rollforward` before its
+3-of-4 annualisation. Order: (1) sum four adjacent published quarters, unchanged; (2) **new** -
+the fiscal year rolled forward, `TTM(E) = fiscal year + year-to-date(E) - year-to-date(E one
+year earlier)`, from the same quarterly and annual statements; (3) `sum(3 quarters) * 4/3` as
+before, where (2) is unavailable. Guards: the stub must be one to three consecutive published
+quarters beginning at the fiscal-year end and ending at the newest quarter, each with a
+published quarter one year earlier. Only at the current period - the prior-year window
+(`offset=4`) never rolls forward.
+
+**Evidence - a documented, measured defect, and documented practice.**
+1. **The defect.** On the run of 2026-10-15, `_ltm_annualized` was true for 4 of 503 stocks.
+   For three it touched one immaterial line each (COST and V: common stock dividend; GIS:
+   interest expense). For **Berkshire Hathaway it touched nine lines including revenue, net
+   income, operating income, operating cash flow and capex**, because the source does not carry
+   its 2025-09-30 quarter at all - the published columns run
+   `2026-06-30, 2026-03-31, 2025-12-31, 2025-06-30, 2025-03-31`, so `_quarters_adjacent`
+   rightly refuses to sum the first four and 4/3 annualisation took over. Against Berkshire's
+   own filings for the same twelve months, the published figures were **net income 14.54% low,
+   operating cash flow 6.09% low, revenue 10.23% high**
+   (`research/measurements/2026-10-15-three-quarter-annualisation.py`).
+2. **The roll-forward is exact where the source and the filing agree on the line.** Rebuilt by
+   the identity, BRK-B's net income is **$85.768bn against $85.768bn filed**, operating cash
+   flow **$46.634bn against $46.634bn**, capex **$22.419bn against $22.419bn** - to the dollar
+   on all three (`research/measurements/2026-10-15-ttm-rollforward.py`).
+3. **Documented practice.** This is the construction the filers themselves use: a 10-Q reports
+   year-to-date against the same period a year earlier precisely so a twelve-month figure can
+   be rolled from the last 10-K, and it is the identity `sec_crosscheck.flow_ttm` already
+   applies to the filings ("ytd + prior fy - prior ytd"). 4/3 annualisation has no such
+   warrant: it asserts the unpublished quarter equalled the average of the other three, which
+   for a company whose revenue carries mark-to-market investment gains is an assumption with
+   nothing behind it.
+
+**What it does not fix, stated plainly.** BRK-B's revenue goes from +10.23% to **+12.23%**
+against the filed `Revenues` line - further away, not closer. That residual is the source's own
+revenue definition, not the construction: Yahoo's **annual** revenue for BRK-B is $410.522bn
+against the $371.444bn Berkshire filed for the same fiscal year, **+10.5% before any trailing
+arithmetic**, and the roll-forward inherits it. Revenue is the least-agreeing field in the whole
+filing check (90.5% within 0.5%, against 94.3% for net income and 98.8% for operating cash
+flow). The change removes a fabrication; it does not reconcile two definitions of revenue, and
+no claim here says it does.
+
+**Expected effect:** one stock. BRK-B's four trailing flows move as above; the other three
+annualised stocks keep 4/3 because their statements do not support the identity (COST and V
+have three stub quarters with only one matching quarter a year earlier; GIS's fiscal year is
+complete, so there is no stub). Measured over the eight stocks spot-checked live: **3 lines
+closer to the filing, 1 further, and no stock that did not use the roll-forward moved at all**
+(`research/measurements/2026-10-15-rollforward-blast-radius.py`; DuPont's movement in that
+output is this morning's negative-quarter fix, which the published payload predates).
+
+**Frontend, same commit (CLAUDE.md 0.8c):** the Data Provenance panel gains a "Twelve months
+rolled forward" badge naming the identity and the lines it was applied to (`ltm_rolled`,
+`ltm_rolled_labels`); the generated methodology page's LTM paragraph was rewritten - it had
+said 4/3 annualisation was the only route. Both sentences are registered claims
+(`drilldown.ltm_rolled`, `overview.ltm_rolled`).
+
+**Validated by:** `tests/test_ltm_rollforward.py`, 17 tests - the identity, each guard, that
+four adjacent quarters still win and the annual statement is not consulted, that the prior-year
+window never rolls, that the fetch records which lines it rolled, that every current-period
+call site is given its annual statement (a site left without it silently keeps the
+fabrication), and that `_ltm_rollforward` reads no filing. Full suite 2413 passed, 1 skipped
+against a baseline of 2396 passed, 1 skipped.
+
+**Applied by:** code session (manual), 2026-10-15 13:00 slot.
+**Rollback:** `good/2026-10-15`.
+
+---
+
 ## 2026-10-15 - Proposal REFUSED: capex keeps a captive finance arm's lease purchases, and the page now says what the figure contains
 
 **Area:** metric definition (`fcf_yield`) - **reviewed and not changed**; display and provenance.

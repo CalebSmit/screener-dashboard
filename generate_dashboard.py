@@ -60,6 +60,23 @@ def _safe(v):
     return v
 
 
+def _str_list(v):
+    """A statement-label list from the raw record as plain strings, or None.
+
+    The fetch stores these as a Python list, which a parquet round-trip returns as a numpy
+    array - truthiness on an array raises, so this never asks whether ``v`` is true.
+    """
+    if v is None:
+        return None
+    if isinstance(v, float) and math.isnan(v):
+        return None
+    try:
+        out = [str(x) for x in v]
+    except TypeError:
+        return None
+    return out or None
+
+
 def _find_latest_run() -> Path:
     """Find the most recent non-test run directory.
 
@@ -1187,6 +1204,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
             "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
             "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
+            # display-only: which flows are the last fiscal year rolled forward, because the
+            # source never published one of the four quarters (factor_engine._ltm_rollforward)
+            "ltm_rolled": bool(row.get("_ltm_rolled")) if pd.notna(row.get("_ltm_rolled")) else False,
+            "ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels")),
             # display-only: why the flows are the last fiscal year's (factor_engine.quarterly_statement_defect)
             "q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None,
             "stale_data": bool(row.get("_stale_data")) if pd.notna(row.get("_stale_data")) else False,
@@ -3799,6 +3820,16 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (fl.ltm_annualized) {{
             badges.push('<span class="flag-badge flag-mild">' +
                 '<span class="flag-icon">\u2139\ufe0f</span> LTM Partially Annualized (3 of 4 quarters)</span>');
+        }}
+
+        if (fl.ltm_rolled) {{
+            var rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml).join(', ');
+            badges.push('<span class="flag-badge flag-info">' +
+                '<span class="flag-icon">\u2139\ufe0f</span> Twelve months rolled forward' +
+                '<span class="flag-detail">the source had not published one of the four ' +
+                'quarters, so these lines are the last fiscal year plus the quarters since it ' +
+                'less the same quarters a year earlier' +
+                (rolledLines ? ': ' + rolledLines : '') + '</span></span>');
         }}
 
         if (fl.is_bank) {{
