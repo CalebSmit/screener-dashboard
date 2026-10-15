@@ -449,6 +449,20 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"checks the underlying figures against the companies' own SEC filings",
     ),
     Claim(
+        id="overview.lookahead_size",
+        surface=OVERVIEW,
+        asserts=(
+            "Scoring 2020-2026 on the filings as they then stood rather than as they stand today puts "
+            "the quoted share of stock-months in a different tenth of the ranking - the 2026-10-15 "
+            "measurement's fundamentals half; the rebuild sets no weight."
+        ),
+        made_true_by="pit_record:record_as_of",
+        checked_by=(
+            "tests/test_pit_record.py::test_the_methodology_page_quotes_the_measured_lookahead",
+        ),
+        detect=r"in a different tenth\*\* of the ranking",
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(
