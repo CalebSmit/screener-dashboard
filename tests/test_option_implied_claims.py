@@ -38,6 +38,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -116,6 +118,39 @@ def test_the_context_log_still_records_it_so_the_evidence_keeps_accruing():
     """Off the page is not out of the record - context_eval must still evaluate the signal."""
     src = (ROOT / "context_eval.py").read_text(encoding="utf-8")
     assert "_ctx_opt_pc_oi" in src and "options_put_call_oi" in src
+
+
+# --------------------------------------------------------------------------- publish as a unit
+def _ctx(extra: dict) -> dict:
+    """One stock's published context, from a raw row."""
+    row = dict({"_ctx_last_close": 100.0, "_ctx_opt_status": "ok",
+                "_ctx_opt_expiry": "2026-11-13", "_ctx_opt_days": 30}, **extra)
+    return gd._stock_context(row, "TEST", "2026-10-14") or {}
+
+
+def test_a_skew_without_its_legs_is_not_published():
+    """A run fetched before 2026-10-14 carries the superseded measure in ``_ctx_opt_skew``.
+
+    The panel's sentence names the paper's construction, so a number whose legs are missing
+    cannot be shown under it - it was produced by different arithmetic. Withholding the row is
+    the "say what cannot be shown" rule; it returns by itself at the next full fetch.
+    """
+    out = _ctx({"_ctx_opt_skew": 0.08, "_ctx_opt_skew_strike": 90.0})
+    assert "osk" not in out, "the old-construction skew is still being published"
+    assert "oskps" not in out and "oskw" not in out
+    # The rest of the options panel is unaffected - only the skew row goes.
+    assert out.get("os") == "ok"
+
+
+def test_a_skew_with_both_legs_is_published_whole():
+    out = _ctx({"_ctx_opt_skew": 0.08, "_ctx_opt_skew_strike": 90.0,
+                "_ctx_opt_skew_put_iv": 0.38, "_ctx_opt_skew_call_strike": 100.0,
+                "_ctx_opt_skew_call_iv": 0.30, "_ctx_opt_skew_in_window": True})
+    assert out["osk"] == pytest.approx(0.08)
+    assert out["oskp"] == pytest.approx(0.38) and out["oskc"] == pytest.approx(0.30)
+    assert out["oskps"] == 90.0 and out["oskcs"] == 100.0 and out["oskw"] is True
+    # The legs reproduce the number shown, which is what the row claims on its face.
+    assert out["oskp"] - out["oskc"] == pytest.approx(out["osk"])
 
 
 # --------------------------------------------------------------------------- the register

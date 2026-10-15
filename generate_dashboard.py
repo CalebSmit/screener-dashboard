@@ -573,6 +573,17 @@ def _stock_context(row, ticker: str, run_date) -> dict | None:
         out = {k: v for k, v in out.items() if not CTX_FIELDS[k].startswith("_ctx_opt")}
         out["os"] = options_cache.STATUS_CLOSED
 
+    # The skew is published as a unit - the number *and* the two implied volatilities it is the
+    # difference of - or not at all. The panel's sentence names Xing, Zhang & Zhao's
+    # construction, so a value whose legs are absent cannot be shown under it: it was computed
+    # by some other arithmetic. That is exactly the case for a run fetched before 2026-10-14,
+    # whose `_ctx_opt_skew` is the superseded 0.90-moneyness-minus-mean measure, and the row
+    # returns by itself at the next full fetch. "Say what cannot be shown" rather than print a
+    # number the sentence beside it does not describe.
+    if "osk" in out and not {"oskp", "oskc"} <= out.keys():
+        for key in ("osk", "oskps", "oskcs", "oskw"):
+            out.pop(key, None)
+
     wk = row.get("_ctx_weekly")
     if isinstance(wk, str) and wk:
         try:
@@ -8999,7 +9010,7 @@ def _js_context() -> str:
                 o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
                 if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             }
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there - over 1996-2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? ', <b>wider than this expiry&rsquo;s ' + c.od + ' days</b>, so their figures are quoted for context and not as a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there - over 1996-2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? ' - and <b>this expiry is ' + c.od + ' days, outside that range</b>, so their figures are context here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {

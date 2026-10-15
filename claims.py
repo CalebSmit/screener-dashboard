@@ -473,7 +473,10 @@ CLAIMS: tuple[Claim, ...] = (
             "period and 6.5% at four weeks, on options of 10-60 days; where this stock's expiry "
             "is outside that window the panel says the figures are context and not a reading of "
             "its number. The 58% post-publication shrinkage is McLean & Pontiff's (2016) average "
-            "across 97 predictors. Never scored."
+            "across 97 predictors. The number and its two legs are published as a unit, so a "
+            "skew whose legs are absent - a run fetched before 2026-10-14, carrying the "
+            "superseded measure - is withheld rather than shown under this sentence. "
+            "Never scored."
         ),
         made_true_by="context_signals:_xzz_skew",
         checked_by=(
@@ -487,6 +490,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_option_implied_claims.py::test_the_panel_quotes_the_four_week_figure_not_only_the_one_week_one",
             "tests/test_option_implied_claims.py::test_the_panel_states_the_post_publication_shrinkage",
             "tests/test_option_implied_claims.py::test_the_skew_row_prints_both_legs",
+            "tests/test_option_implied_claims.py::test_a_skew_without_its_legs_is_not_published",
+            "tests/test_option_implied_claims.py::test_a_skew_with_both_legs_is_published_whole",
             "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",
         ),
         caveat=(
