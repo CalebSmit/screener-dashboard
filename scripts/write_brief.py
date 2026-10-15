@@ -94,7 +94,7 @@ def outcome(lines: list[str]) -> tuple[str, list[str]]:
     notable = [
         ln.split("] ", 2)[-1].strip()
         for ln in lines
-        if "[ERROR]" in ln or "[WARN]" in ln
+        if "[ERROR]" in ln or "[WARN]" in ln or "ATTENTION - " in ln
     ]
     if "Data loop complete" in text or "shipped to main" in text:
         return "completed", notable

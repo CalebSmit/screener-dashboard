@@ -11001,3 +11001,37 @@ restored byte for byte.
 
 **Machine state, rule 11:** nothing outstanding. No scheduled task was touched and nothing here
 needed one.
+
+## 2026-10-14 (owner-run, evening) - the inputs checked against the companies' own filings
+
+**Health (rule 8):** today's 02:00 data run and 06:00 session ran before a Windows Update restart at
+09:29; the PC sat at the login screen until 21:09, so the 13:00 session and the 20:00 option-quote
+refresh were missed. Both were run by hand that evening (quotes 21:13: 483 of 503 usable, stamped
+2026-10-14; the 13:00 session 21:16-22:12, shipped, tagged `good/2026-10-14-2212`). Evidence base
+at `1m`: **29 rows, newest 2026-09-14 (30 days, bound 40), 4 effective**. Priority 0 unchanged.
+Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
+**Tests:** before 2,317 passed / 0 failed; after 2,330 passed / 0 failed.
+**Owner session marked:** `logs/.owner-session` created at the start, removed at the end.
+
+### The owner asked
+*"I need this thing to be really good and trustworthy ... just keep working until the next session."*
+
+### Did
+- **`research/2026-10-14-yahoo-vs-sec.md`** - every scored Yahoo input rebuilt from the company's
+  own XBRL filings for the same quarter (`research/measurements/2026-10-14-yahoo-vs-sec.py`).
+  Within 0.5%: total assets 99.8%, operating cash flow 98.8%, equity 97.9%, net income 94.3%,
+  revenue 88.5%. The larger disagreements examined are definitional; no Yahoo number was found
+  wrong for a comparable input. The first rebuild was itself wrong for FIX (a later 10-Q's
+  mis-tagged comparative), which is why each period is now taken as **first filed**.
+- **Capex is different by construction**: Yahoo's row adds intangible purchases and finance-arm
+  lease assets (GM $13.8B of $22.6B). Measured on FCF yield
+  (`research/measurements/2026-10-14-capex-definition.py`): top 25 at most 0.5 composite points;
+  GM 0.3% -> 8.0% yield, sector percentile 10 -> 90. **Not changed** - a definition question,
+  queued as `plan/factor-lab.md` question 6.
+- **`sec_crosscheck.py` in the data loop's health check, as a note**: per-field agreement counts
+  every morning, and an `ATTENTION -` line (shown in the brief) if any field disagrees by more
+  than 10% for more than 25 stocks. Offline, read-only, never fails a run.
+  `tests/test_sec_crosscheck.py`, 13 tests. Run on the newest real run: PASS, 11 s.
+
+### Methodology changed
+- None.
