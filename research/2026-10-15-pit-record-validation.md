@@ -166,24 +166,104 @@ zero point, behaving as it must.
   none of this. Under rule 5 no backtest number is quoted here as evidence for or against any weight,
   and none should be until v2 exists and 2027-02-11 has passed.
 
+## 5b. The same morning: v2's rankings built (`backtest_v2.py`)
+
+Section 5's item 1 was built in the same session, with items 2-3's data:
+
+- **`factor_engine.price_history_fields`** - the live fetch's momentum and risk inputs
+  (lookback prices, volatility, daily returns, dollar volume, the split-integrity guard) extracted
+  from `_fetch_single_ticker_inner` into one function the fetch and v2 both call. On the cached
+  daily history cut at the newest run's date it reproduces the run's own fields for **100% of ~500
+  stocks to within 0.5% (median difference 0.0000%)**.
+- **Daily history** for every constituent since 2018-06 (`cache/v2_daily.parquet`: adjusted close
+  for returns, split-adjusted close for valuation - the two series item 2 asked for) and the
+  index, total-return index and T-bill rate since 2015 (`cache/v2_index.parquet`).
+- **`backtest_v2.py`** scores every month-end 2020-01 .. 2026-09: the S&P 500 as it stood that
+  month (`universe_history`), records from `pit_record`, the month's prices and risk inputs, the
+  month's momentum-rule reading, the engine's own pipeline in the live run's order. Analyst inputs
+  and short interest have no free history, so **v2 scores the filings-and-prices screener**:
+  Revisions and `forward_eps_growth` at weight 0 (`v2_config`, 15.85 points), said in every output.
+  Members that cannot be scored are named in a census by reason - chiefly **no current record**,
+  i.e. they have left the index since (about 117 of 505 in early 2020, falling as the window nears
+  today): that is survivorship, step 2, counted rather than hidden.
+- **End to end at the newest date** (`research/measurements/2026-10-15-backtest-v2-vs-live.py`),
+  current constituents scored both ways under v2's weights: composite Spearman **0.881**, momentum
+  **0.9997**, risk **0.9996**, valuation 0.884, quality 0.876, growth 0.912. The price path is exact;
+  the gap is the filings-versus-Yahoo definitions of section 2, nothing else.
+
+**Still no returns.** Deciles against forward returns, with confidence intervals, are step 4, and
+nothing v2 produces decides anything before 2027-02-11 (rule 5).
+
+## 5c. The first honest look at returns - *Backtest observation, not decision-grade*
+
+`backtest_v2_returns.py` (step 4's harness) on `cache/v2_scores.parquet`: each month's ranking
+against the next month's total return, 80 months (2020-01 .. 2026-08), ~380-490 names a month.
+Monthly windows do not overlap, so each month is one observation and the interval is the
+month-to-month standard error. The same harness on a **diagnostic arm** - the identical pipeline,
+universe and prices, but every month scored on *today's* filings, which is v1's look-ahead built on
+purpose - shows what that look-ahead does to a result.
+
+| 80 months, 2020-01 .. 2026-08 | Composite IC, mean (95% interval) | Top tenth minus bottom, per month | Top tenth minus the universe, per month | Months the top tenth won |
+|---|---|---|---|---|
+| **v2 - filings as they stood** | **-0.002** (-0.029 to +0.026), t -0.11 | -0.52% (-1.45% to +0.40%) | -0.26% (-0.66% to +0.13%) | 47.5% |
+| *Diagnostic - today's filings every month* | *+0.050 (+0.029 to +0.071), t 4.71* | *+1.41%, t 4.67* | *+0.85%, t 5.00* | *72.5%* |
+
+Per category, v2 against the diagnostic arm (mean IC): valuation +0.006 / *+0.065 (t 4.9)*, growth
++0.000 / *+0.050 (t 4.9)*, investment -0.000 / *-0.035 (t -4.6)*, quality -0.002 / *+0.019*, size
++0.005 / *+0.009*, momentum +0.002 / *+0.002*, risk -0.024 / *-0.024*. **Momentum and risk read only
+prices, which are identical in both arms, and they agree to the third decimal - the check that the
+two arms differ by the filings alone.**
+
+**What this shows.**
+
+1. **Look-ahead manufactures a strategy.** On today's filings the same screener appears to beat
+   its universe by 0.85% a month - about 10% a year - with a t-statistic of 5, winning in 3 months of
+   4. Every bit of it comes from knowing the future: a company's 2026 earnings, read in 2021, make the
+   2021 stocks that went on to earn more look cheap and growing, and they are the ones that rose.
+   This is the result v1's design produces, and the reason CLAUDE.md rule 5 exists. It is now
+   measured rather than argued.
+2. **Without it, there is no detectable edge** in this version of the screener, over these 80
+   months, among the companies still in the index: an IC of -0.002 with an interval of +-0.027, and
+   no category distinguishable from zero.
+3. **That interval is wide, and this is the honest limit.** A month's IC varies with a standard
+   deviation of about 0.125, so 80 months pin the mean to +-0.027. A typical published multi-factor
+   rank IC is 0.02-0.05; 0.03 needs about 70 months to clear zero, 0.02 about 150. So this rules out
+   a *large* edge, not a typical one. It agrees with the Factor Lab's finding that the published
+   premia weakened after their samples ended and are about half-size among large companies
+   (`research/2026-10-12-factor-lab-findings.md`).
+
+**What it cannot say** (printed in every output, `backtest_v2_returns.CAVEATS`):
+
+- **Survivorship.** Names that have left the index since are not scored - ~117 of 505 in early
+  2020, falling toward zero by 2026 (`2026-10-15-backtest-v2-census.json`). Their direction of bias
+  here is unknown: removals are often poor performers, acquisitions often good ones.
+- **Not the published screener.** Revisions and forward EPS growth (15.85 points) carry no weight:
+  they have no free history. The analyst-revision literature is among the strongest for large
+  companies, so the published screener may differ from this one in exactly the part that matters.
+- **Today's weights over all six years**, and one market regime per month; an A/B of weightings
+  (step 4's second half) is not built.
+- **Rule 5.** No weight, metric or methodology change rests on any figure in this section before
+  2027-02-11, and none is proposed. It is a reason to keep research-led weights modest in their
+  claims, to keep the live IC record accruing, and to research the analyst-free categories among
+  large companies on a Monday - not a reason to change a number.
+
 ## 5. What v2 still needs
 
-In order (also in `plan/backtest-v2.md` step 3):
+Written first as a list of five; items 1-3 were built the same morning (section 5b). What remains:
 
-1. **The v2 scoring loop.** Per month: the point-in-time universe (`universe_history.members_on`),
-   records from `pit_record.record_as_of`, the panel price, analyst fields set to NaN (the honest
-   treatment - the engine renormalises within the category; report it as the filings-and-prices
-   screener and say so), the engine's composite, then deciles and forward returns. A name in the
-   month's universe with no current raw record (delisted) has no static fields or price here - that is
-   step 2's work, and v2 must count and report those names rather than drop them silently.
-2. **Two price series, not one.** Valuation needs the close as traded (split-adjusted only, so a
-   2020 market value is 2020's); returns need the total-return series. The panel has only the latter.
-3. **Daily prices for the risk metrics.** Volatility, beta, Jensen's alpha and the 13-month drawdown
-   (13.3pp of composite weight between them) are computed from daily returns; the monthly panel cannot reproduce
-   them. One adjusted daily history per name, cached, then the engine's own risk code per month.
-4. **Better tags where the rebuild is weakest:** EBITDA (operating income + D&A, 71-73% coverage) and
-   total debt. Each improvement is measurable with `2026-10-15-pit-record-vs-live.py`.
-5. Then step 2 (delisted names), step 4 (the A/B harness with confidence intervals) and step 5.
+1. ~~The v2 scoring loop~~ - **built**, `backtest_v2.py`.
+2. ~~Two price series~~ - **built**: valuation reads the split-adjusted close, returns the adjusted
+   close (`cache/v2_daily.parquet`).
+3. ~~Daily prices for the risk metrics~~ - **built**, through the fetch's own
+   `price_history_fields`.
+4. **Better tags where the rebuild is weakest:** EBITDA (operating income + D&A, 71-73% coverage)
+   and total debt. Each improvement is measurable with `2026-10-15-pit-record-vs-live.py`.
+5. **Step 2 - the names that left the index.** v2's census lists them per month; they need a
+   price history (the costed $199/yr feed, or the free partial coverage) and their filings (SEC
+   `companyfacts` serves delisted filers by CIK - `universe_history`'s `ticker_ciks.json` maps them).
+6. **Step 4 - the A/B harness**: forward returns, deciles and IC per month from
+   `cache/v2_scores.parquet`, with confidence intervals from non-overlapping windows, and the
+   survivorship gap reported beside every number. Then step 5.
 
 **Limits of this note.** Current constituents only. Analyst inputs frozen. Market value from filed
 share counts can miss multi-class structures (size correlates 0.96 with Yahoo's, not 1.0). The

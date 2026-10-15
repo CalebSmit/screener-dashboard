@@ -903,7 +903,14 @@ validated against today at Spearman 0.885, and it measured **the fundamentals ha
 at 72.6% of name-months - larger than the price half (60.1%); 75.8% together**
 (`research/2026-10-15-pit-record-validation.md`). **Do not import it from production or v1**, and
 **do not let `compute_metrics` read a raw field without a class in `pit_record.FIELD_CLASSES`** -
-`tests/test_pit_record.py` fails on either. Next: the v2 scoring loop (`plan/backtest-v2.md` step 3).
+`tests/test_pit_record.py` fails on either. **`backtest_v2.py` (same day) builds the monthly
+rankings** from those records, the point-in-time universe and the live fetch's own
+`factor_engine.price_history_fields` (one function for both - keep it that way), as the
+filings-and-prices screener (no analyst inputs; `v2_config`). **`backtest_v2_returns.py`** is step 4's
+harness (IC and spreads with month-to-month intervals). *Its first reading, not decision-grade:* IC
+-0.002 (+-0.027) over 80 months - against +0.050 (t 4.7) for the same pipeline fed today's filings,
+which is what look-ahead does to a result (`research/2026-10-15-pit-record-validation.md` 5c). Nothing
+either produces decides anything before 2027-02-11, and neither may be imported by production.
 `plan/backtest-v2.md` governs. The two measurements, both reproducible from
 committed inputs:
 

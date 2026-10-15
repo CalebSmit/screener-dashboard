@@ -11310,6 +11310,39 @@ v2 harness is what lets methodology be tested on history at all).
 - **Nothing.** No weight, metric, score or published file moved. Rule 5: no backtest number is
   evidence; the measurement above is about v1's construction, not about any factor.
 
+### Later the same morning - the v2 rankings built
+- **`factor_engine.price_history_fields`**: the fetch's price-history block extracted into one
+  function the fetch and v2 both call (behaviour unchanged - 210 fetch/price tests pass, and on
+  the cached history it reproduces the 02:00 run's fields for 100% of ~500 stocks).
+- **`backtest_v2.py`**: every month-end 2020-01 .. 2026-09 scored from the point-in-time universe,
+  `pit_record`, the month's prices and risk inputs and the month's momentum-rule reading, by the
+  engine's own pipeline, as the filings-and-prices screener (no analyst inputs - `v2_config`).
+  Members it cannot score are named by reason; early 2020 ~117 of 505 have left the index since
+  (survivorship, step 2). **No returns computed** (step 4; rule 5). `tests/test_backtest_v2.py`,
+  12 tests. End to end at the newest date: Spearman 0.881 against the live inputs under the same
+  weights, momentum 0.9997, risk 0.9996.
+- Found and fixed on the way: v2's history window passed no split dates, so the MNST
+  integrity guard could never arm (now it does, with a test); and the price cache wrote `BRK.B`
+  where the universe says `BRK-B` (v2 now normalises tickers itself, with a test).
+- Caches written (gitignored `cache/`): `v2_daily.parquet`, `v2_index.parquet`, `splits.parquet`,
+  `v2_scores.parquet`, `v2_census.json`.
+
+- **`backtest_v2_returns.py`** - step 4's harness: each month's ranking against the next month's
+  total return, IC and decile spreads with month-to-month 95% intervals, caveats printed in every
+  output. 6 tests. **Backtest observation, not decision-grade (rule 5):** over 80 months v2's IC is
+  **-0.002 (-0.029 to +0.026)** and its top tenth trailed the universe by 0.26% a month (interval
+  -0.66% to +0.13%) - no detectable edge, with an interval that cannot rule out a typical one (+-0.027
+  against typical 0.02-0.05). **The same pipeline fed today's filings** (a labelled diagnostic arm,
+  `--diagnostic-filings-as-of`) reads **+0.050, t 4.71**, top tenth +0.85% a month, t 5.0 - all of
+  it look-ahead. Momentum and risk, price-only, agree across the arms to the third decimal. Written
+  up in the note's section 5c with what it cannot say (survivorship ~117 of 505 names in 2020; no
+  Revisions or forward EPS growth; today's weights over six years). **No weight change proposed or
+  made.**
+
 ### Next (for whoever takes priority 3)
-- The v2 scoring loop, then the two price series and daily risk prices - `plan/backtest-v2.md` step
-  3 (a)-(d). Everything it needs to read is now on disk and tested.
+- Better EBITDA and debt tags (the rebuild's weakest fields); step 2 - the census's
+  `no_current_record` names (prices; filings by CIK via `ticker_ciks.json`); step 4's second half,
+  an A/B of two configurations with intervals. `plan/backtest-v2.md` step 3.
+- A Monday question the returns raise, for research and not for a weight: which of the analyst-free
+  categories, among large companies, carried any premium 2020-2026 - read against the Factor Lab's
+  large-company experiments (8, 9).

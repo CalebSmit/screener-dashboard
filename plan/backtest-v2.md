@@ -403,14 +403,21 @@ system talks itself into noise.
    previously recorded.
 3. Point-in-time fundamentals with reporting lags. **Record layer BUILT and VALIDATED 2026-10-15
    (owner-run): `pit_record.py`, `tests/test_pit_record.py`; the fundamentals half measured at 72.6%.**
-   **Next, in order** (`research/2026-10-15-pit-record-validation.md` section 5): (a) the v2 scoring
-   loop - per month the point-in-time universe, `pit_record.record_as_of`, the month's price, analyst
-   fields NaN (stated as the filings-and-prices screener), the engine's composite; delisted names
-   counted and reported, never silently dropped; (b) two price series - split-adjusted closes for
-   valuation, total-return for returns (the cached panel is dividend-adjusted, which understates a
-   dividend payer's historical market value: JPM 2020-06 by ~15%); (c) daily prices for volatility,
-   beta, alpha and drawdown (13.3pp); (d) better EBITDA and debt tags, each measured with
-   `research/measurements/2026-10-15-pit-record-vs-live.py`. **Data layer BUILT 2026-10-09 (owner-run):**
+   **The rankings half of v2 is BUILT the same morning: `backtest_v2.py`** (`tests/test_backtest_v2.py`)
+   scores every month-end 2020-01 .. 2026-09 from the point-in-time universe, `pit_record`, the
+   month's split-adjusted close for valuation, the live fetch's own `price_history_fields` on the
+   13 months of daily history for momentum and risk (exact against the live fetch), the month's
+   momentum-rule reading, and the engine's pipeline in the live order - as **the filings-and-prices
+   screener** (Revisions and `forward_eps_growth` at weight 0, `v2_config`). Members it cannot
+   score are named by reason in `cache/v2_census.json`. End to end at the newest date: 0.881
+   against the live inputs under the same weights, momentum and risk 0.9997 / 0.9996.
+   **Step 4's first half is BUILT too: `backtest_v2_returns.py`** - IC, decile spreads and their
+   month-to-month confidence intervals, caveats in every output. *Backtest observation, not
+   decision-grade (rule 5):* over 80 months v2's IC is **-0.002 (95% -0.029 to +0.026)**; the same
+   pipeline on today's filings (a labelled diagnostic arm, v1's look-ahead on purpose) shows **+0.050,
+   t 4.7** - the look-ahead manufactures the whole result. `research/2026-10-15-pit-record-validation.md`
+   section 5c. **Next:** (d) better EBITDA and debt tags; step 2 (the census's `no_current_record`
+   names - prices and filings by CIK); step 4's second half (A/B of two configs with intervals). **Data layer BUILT 2026-10-09 (owner-run):**
    `pit_fundamentals.PointInTime` answers instant / annual / quarter "as filed by date d" from the
    census's XBRL facts cache (restatements count from their filing date; comparatives in later
    filings change nothing; tag switches keep the series). Not imported by v1 or production
