@@ -267,6 +267,10 @@ CROSSCHECK_ATTENTION = 25          # 5% of the universe, about twice the noisies
 # own line, about three times that. A market value served at the wrong scale for a whole sector
 # or source would cross it the same morning.
 MARKET_VALUE_ATTENTION = 60
+# The SEC cache refreshes weekly (sec_fundamentals.FACTS_MAX_AGE_DAYS = 7). Twice that means the
+# refresh has been failing, and every comparison above is being made against older and older
+# filings without saying so.
+CACHE_STALE_DAYS = 14
 
 
 def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None:
@@ -293,6 +297,10 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
                 res.note("inputs not checked against SEC filings - no companyfacts cache yet")
                 return
             facts = pd.read_parquet(FACTS_PATH)
+            import time as _time
+            cache_days = (_time.time() - FACTS_PATH.stat().st_mtime) / 86400
+        else:
+            cache_days = None
         fields = [f for f in X.FIELDS if f[0] in CROSSCHECK_FIELDS]
         stats = X.summary(X.compare(payload, facts, fields))
     except Exception as exc:  # noqa: BLE001 - a note must never stop a publish
@@ -308,7 +316,14 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
     except Exception as exc:  # noqa: BLE001
         far = 0
         parts.append(f"market value not checked ({type(exc).__name__})")
+    if cache_days is not None:
+        parts.append(f"SEC cache {cache_days:.0f} days old")
     res.note("inputs against SEC filings: " + "; ".join(parts))
+    if cache_days is not None and cache_days > CACHE_STALE_DAYS:
+        res.note(f"ATTENTION - the SEC companyfacts cache is {cache_days:.0f} days old (it refreshes weekly; the "
+                 f"line is {CACHE_STALE_DAYS}). Its refresh has probably been failing - see "
+                 f"sec_fundamentals.refresh_companyfacts in the run log. The comparisons above are against "
+                 f"older filings than they should be.")
     if far > MARKET_VALUE_ATTENTION:
         res.note(f"ATTENTION - market value implies a share count more than 10% from the filed one for {far} "
                  f"stocks (the line is {MARKET_VALUE_ATTENTION}; 2026-10-14 had 22, mostly splits and "
