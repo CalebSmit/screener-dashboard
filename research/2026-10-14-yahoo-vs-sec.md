@@ -112,7 +112,29 @@ intangible purchases on top, by accident of which Yahoo row it reads. Whatever t
 should be a written choice with a source, not the row that happened to be there. Queued as
 `plan/factor-lab.md` question 6.
 
-## 4. What this suggests building (not built tonight)
+## 4b. Two checks that came back clean, and one small gap
+
+- **Revenue growth compares like with like, including across spin-offs.** The worry was that after
+  a spin-off the latest quarter would be set against last year's larger, pre-spin quarter.
+  `research/measurements/2026-10-14-revenue-growth-same-basis.py` rebuilt the year-ago quarter as
+  re-presented in the latest filing for 394 stocks: for all 8 whose year-ago quarter was restated
+  by more than 5% (DD -46%, APTV -39%, IFF -31%, OXY, BDX, MLM, HON, IP), the scored growth equals
+  the same-basis growth exactly - Yahoo serves the re-presented quarter. The 5 gaps over 10 points
+  with no restatement (CPT, PEG, VST, NTRS, EQT) are revenue-definition cases like those above.
+- **Three-quarter annualisation is rare and mostly harmless**: 4 stocks (BRK-B, V, COST, GIS). For
+  BRK-B it is material - revenue 10% high, net income 15% low against the filed twelve months -
+  and the filed quarter that Yahoo is missing is in the SEC cache. Filling it from the filing
+  instead of multiplying by 4/3 is a small, well-defined data fix for a later session (it changes
+  inputs, so it needs a changelog entry).
+
+## 4. What this suggests building
+
+**Built the same night (2026-10-14):** the standing check below runs in the data loop's health
+check, and each stock's Data Provenance panel now says which of its inputs agree with its own
+filing - "Checked against the company's own SEC filing for the same quarters: total assets,
+equity ... agree within 2%; revenue (83%) differs from it", with the usual reasons for a
+difference. 427 of 501 stocks carry the check on the run of 2026-10-14. The panel used to end
+"it cannot check that they are true"; for those stocks that is no longer the whole story.
 
 **A standing check of the inputs against the filings, in the data loop.** The dividend outage was a
 field vanishing; the next one could be a field changing scale or meaning, which the

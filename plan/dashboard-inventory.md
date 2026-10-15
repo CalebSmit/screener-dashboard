@@ -144,7 +144,11 @@ quiet ledger, the coverage-discount line when one applies, the composite; each r
 workings), **The workings** (was "Category Details"; now with **Download as CSV**), Rank History,
 Analyst Price Targets (de-boxed stat row), Company Snapshot (de-boxed), Sector Peers (**no
 green/red verdicts; a "Peer median" row**; the old colouring judged "better" on rules the screener
-does not use, e.g. a higher dividend yield), Data Provenance.
+does not use, e.g. a higher dividend yield), Data Provenance (**since 2026-10-14 it says which of the
+stock's inputs - total assets, equity, revenue, net income, operating cash flow - agree within 2% with
+the company's own SEC filing for the same quarters**, from `stock_detail[t].xchk`, built by
+`generate_dashboard._attach_filing_check` with `sec_crosscheck.py`; display-only, claim
+`drilldown.filing_check`; absent when the weekly SEC cache is not on the machine).
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 

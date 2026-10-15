@@ -432,6 +432,24 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
         ),
     ),
+    Claim(
+        id="drilldown.filing_check",
+        surface=DRILLDOWN,
+        asserts=(
+            "Data Provenance compares the run's own inputs - total assets, equity, revenue, net "
+            "income and operating cash flow - with the same quarters rebuilt from the company's "
+            "XBRL filings (each period as first filed; twelve months = year-to-date + prior fiscal "
+            "year - prior year-to-date), and calls a figure in agreement when it is within 2% of "
+            "the larger of the two. Capex and gross profit are not shown. It never enters a score."
+        ),
+        made_true_by="sec_crosscheck:compare",
+        checked_by=(
+            "tests/test_sec_crosscheck.py::test_a_mid_year_quarter_combines_the_cumulative_columns",
+            "tests/test_sec_crosscheck.py::test_each_period_is_taken_as_first_filed",
+            "tests/test_filing_check_in_the_drilldown.py::test_the_payload_carries_the_check_and_never_scores_it",
+            "tests/test_filing_check_in_the_drilldown.py::test_the_panel_calls_agreement_at_2_percent",
+        ),
+    ),
     # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
     Claim(
         id="context.expected_move",

@@ -244,7 +244,7 @@ def _records_from_latest_run(root: Path) -> list[dict]:
 
 def refresh(records: list[dict], root: str | os.PathLike | None = None,
             budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=print,
-            fetch=None, probe=None) -> dict:
+            fetch=None, probe=None, now: datetime | None = None) -> dict:
     """Fetch every stock's chain and store the readings that are usable.
 
     Only ``ok`` and ``partial`` readings are kept. A chain with no quotes contributes nothing, so
@@ -259,7 +259,10 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
     # in the evening, which is already tomorrow in UTC (:func:`market_session_date`). This date
     # is what the page names, what the staleness bound measures, and what the expiry choice and
     # the spans-a-report test are relative to, so all four move together.
-    today = market_session_date()
+    # ``now`` is for tests: a fixed instant keeps a dated fixture from going stale on the calendar
+    # (2026-10-14: a test written on 10-09 began failing on 10-15, when its reading turned six days
+    # old against the five-day bound).
+    today = market_session_date(now)
     fetch = fetch or _fetch_one
     probe = probe or (lambda t: (fetch(t, None, None, today) or {}).get("_ctx_opt_status"))
 
