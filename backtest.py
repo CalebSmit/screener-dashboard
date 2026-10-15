@@ -664,7 +664,13 @@ _BACKTEST_DISCLAIMER = (
     "#   2. LOOK-AHEAD BIAS: Fundamental scores (Valuation, Quality, Growth,\n"
     "#      Revisions — 75% of factor weight) are held constant from the latest\n"
     "#      snapshot. These were NOT available at historical rebalance dates.\n"
-    "# Estimated return inflation: 2-6% annualized. Sharpe inflation: 0.3-0.6.\n"
+    "# MEASURED SIZE (2026-10-15, research/2026-10-15-pit-record-validation.md 5c):\n"
+    "#   the same universe and scoring pipeline, scored on today's filings instead\n"
+    "#   of the filings as they stood, takes the top tenth from -0.26%/month against\n"
+    "#   its universe to +0.85%/month (t 5.0), and the monthly IC from -0.002 to\n"
+    "#   +0.050 (t 4.7). Look-ahead alone manufactures a ~13%/yr 'edge'. The figure\n"
+    "#   this disclaimer used to give ('2-6% annualized') was unsourced and too low.\n"
+    "#   The honest rankings are backtest_v2.py's; their returns, backtest_v2_returns.py.\n"
     "# Do NOT use these results for strategy validation or investor marketing.\n"
     "# ===========================================================================\n"
 )
@@ -696,6 +702,8 @@ def print_summary(bt_result, decile_perf_df, ic_summary, vtf_df,
     print(f"Months tested:            {n_months}")
     print(f"Universe size (avg):      {avg_universe} tickers/month")
     print(f"Survivorship bias:        YES (using current constituents)")
+    print(f"Look-ahead bias:          YES - measured 2026-10-15: on this pipeline it alone turns an IC of")
+    print(f"                          -0.002 into +0.050 (t 4.7). See backtest_v2.py for honest rankings.")
     # Determine if rolling fundamentals were available
     rolling_caches = list(CACHE_DIR.glob("factor_scores_*.parquet"))
     if rolling_caches:
