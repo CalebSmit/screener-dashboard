@@ -1,0 +1,1033 @@
+{
+ "run_dir": "135997e22055",
+ "as_of": "2026-10-15",
+ "n_live": 503,
+ "fields": {
+  "totalRevenue": {
+   "live": 502,
+   "coverage": 0.9701,
+   "within_2pct": 0.8542,
+   "within_10pct": 0.9589
+  },
+  "totalRevenue_prior": {
+   "live": 503,
+   "coverage": 0.9761,
+   "within_2pct": 0.9409,
+   "within_10pct": 0.9735
+  },
+  "grossProfit": {
+   "live": 450,
+   "coverage": 0.6467,
+   "within_2pct": 0.7938,
+   "within_10pct": 0.8969
+  },
+  "grossProfit_prior": {
+   "live": 450,
+   "coverage": 0.6578,
+   "within_2pct": 0.8851,
+   "within_10pct": 0.9155
+  },
+  "ebit": {
+   "live": 476,
+   "coverage": 0.9097,
+   "within_2pct": 0.4573,
+   "within_10pct": 0.7529
+  },
+  "ebitda": {
+   "live": 455,
+   "coverage": 0.7429,
+   "within_2pct": 0.3402,
+   "within_10pct": 0.7396
+  },
+  "netIncome": {
+   "live": 503,
+   "coverage": 0.9861,
+   "within_2pct": 0.8286,
+   "within_10pct": 0.9294
+  },
+  "netIncome_prior": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.9559,
+   "within_10pct": 0.978
+  },
+  "incomeTaxExpense": {
+   "live": 496,
+   "coverage": 0.9839,
+   "within_2pct": 0.8422,
+   "within_10pct": 0.9262
+  },
+  "pretaxIncome": {
+   "live": 501,
+   "coverage": 0.9202,
+   "within_2pct": 0.8395,
+   "within_10pct": 0.9328
+  },
+  "interestExpense": {
+   "live": 445,
+   "coverage": 0.7303,
+   "within_2pct": 0.8,
+   "within_10pct": 0.9169
+  },
+  "_rev_q0": {
+   "live": 496,
+   "coverage": 0.9778,
+   "within_2pct": 0.7959,
+   "within_10pct": 0.9113
+  },
+  "_rev_q4": {
+   "live": 496,
+   "coverage": 0.9778,
+   "within_2pct": 0.8103,
+   "within_10pct": 0.9134
+  },
+  "totalRevenue_3yr_ago": {
+   "live": 501,
+   "coverage": 0.976,
+   "within_2pct": 0.9264,
+   "within_10pct": 0.9673
+  },
+  "totalRevenue_annual": {
+   "live": 503,
+   "coverage": 0.9742,
+   "within_2pct": 0.9449,
+   "within_10pct": 0.9735
+  },
+  "totalRevenue_annual_prior": {
+   "live": 503,
+   "coverage": 0.9761,
+   "within_2pct": 0.9409,
+   "within_10pct": 0.9735
+  },
+  "ebit_annual": {
+   "live": 476,
+   "coverage": 0.9244,
+   "within_2pct": 0.4909,
+   "within_10pct": 0.7341
+  },
+  "ebit_prior": {
+   "live": 477,
+   "coverage": 0.9266,
+   "within_2pct": 0.5181,
+   "within_10pct": 0.7579
+  },
+  "_ni_a0": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.9519,
+   "within_10pct": 0.982
+  },
+  "_ni_a1": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.9559,
+   "within_10pct": 0.978
+  },
+  "_gp_a0": {
+   "live": 450,
+   "coverage": 0.6467,
+   "within_2pct": 0.8797,
+   "within_10pct": 0.9107
+  },
+  "_gp_a1": {
+   "live": 450,
+   "coverage": 0.6578,
+   "within_2pct": 0.8851,
+   "within_10pct": 0.9155
+  },
+  "_ta_a1": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.99,
+   "within_10pct": 0.996
+  },
+  "_ta_a2": {
+   "live": 501,
+   "coverage": 0.992,
+   "within_2pct": 0.9859,
+   "within_10pct": 0.998
+  },
+  "totalAssets": {
+   "live": 503,
+   "coverage": 0.996,
+   "within_2pct": 0.9082,
+   "within_10pct": 0.984
+  },
+  "totalAssets_prior": {
+   "live": 497,
+   "coverage": 0.996,
+   "within_2pct": 0.9091,
+   "within_10pct": 0.9919
+  },
+  "totalEquity": {
+   "live": 503,
+   "coverage": 0.998,
+   "within_2pct": 0.8984,
+   "within_10pct": 0.9801
+  },
+  "totalEquity_prior": {
+   "live": 496,
+   "coverage": 1.0,
+   "within_2pct": 0.875,
+   "within_10pct": 0.9738
+  },
+  "totalDebt_bs": {
+   "live": 499,
+   "coverage": 0.9659,
+   "within_2pct": 0.5913,
+   "within_10pct": 0.7925
+  },
+  "longTermDebt": {
+   "live": 492,
+   "coverage": 0.8374,
+   "within_2pct": 0.8204,
+   "within_10pct": 0.9345
+  },
+  "longTermDebt_prior": {
+   "live": 484,
+   "coverage": 0.8347,
+   "within_2pct": 0.8515,
+   "within_10pct": 0.9579
+  },
+  "currentAssets": {
+   "live": 457,
+   "coverage": 0.9168,
+   "within_2pct": 0.8616,
+   "within_10pct": 0.9547
+  },
+  "currentAssets_prior": {
+   "live": 452,
+   "coverage": 0.9137,
+   "within_2pct": 0.8814,
+   "within_10pct": 0.9637
+  },
+  "currentLiabilities": {
+   "live": 457,
+   "coverage": 0.9168,
+   "within_2pct": 0.8663,
+   "within_10pct": 0.9379
+  },
+  "currentLiabilities_prior": {
+   "live": 452,
+   "coverage": 0.9137,
+   "within_2pct": 0.8644,
+   "within_10pct": 0.9249
+  },
+  "cash_bs": {
+   "live": 503,
+   "coverage": 0.9901,
+   "within_2pct": 0.7972,
+   "within_10pct": 0.8715
+  },
+  "cash_sti_bs": {
+   "live": 479,
+   "coverage": 0.9916,
+   "within_2pct": 0.7179,
+   "within_10pct": 0.7895
+  },
+  "sharesBS": {
+   "live": 502,
+   "coverage": 0.8486,
+   "within_2pct": 0.9319,
+   "within_10pct": 0.9836
+  },
+  "sharesBS_prior": {
+   "live": 487,
+   "coverage": 0.9055,
+   "within_2pct": 0.9342,
+   "within_10pct": 0.966
+  },
+  "operatingCashFlow": {
+   "live": 500,
+   "coverage": 0.966,
+   "within_2pct": 0.8613,
+   "within_10pct": 0.9462
+  },
+  "capex": {
+   "live": 468,
+   "coverage": 0.8782,
+   "within_2pct": 0.7591,
+   "within_10pct": 0.8589
+  },
+  "dividendsPaid": {
+   "live": 399,
+   "coverage": 0.9098,
+   "within_2pct": 0.9339,
+   "within_10pct": 0.9725
+  },
+  "da_cf": {
+   "live": 498,
+   "coverage": 0.7751,
+   "within_2pct": 0.7332,
+   "within_10pct": 0.8653
+  },
+  "_beneish_net_receivables": {
+   "live": 496,
+   "coverage": 0.7641,
+   "within_2pct": 0.5541,
+   "within_10pct": 0.6623
+  },
+  "_beneish_net_receivables_p": {
+   "live": 497,
+   "coverage": 0.7545,
+   "within_2pct": 0.5653,
+   "within_10pct": 0.6693
+  },
+  "_beneish_revenue": {
+   "live": 503,
+   "coverage": 0.9742,
+   "within_2pct": 0.9449,
+   "within_10pct": 0.9735
+  },
+  "_beneish_revenue_p": {
+   "live": 503,
+   "coverage": 0.9761,
+   "within_2pct": 0.9409,
+   "within_10pct": 0.9735
+  },
+  "_beneish_cogs": {
+   "live": 452,
+   "coverage": 0.6327,
+   "within_2pct": 0.9021,
+   "within_10pct": 0.9336
+  },
+  "_beneish_cogs_p": {
+   "live": 452,
+   "coverage": 0.6438,
+   "within_2pct": 0.9038,
+   "within_10pct": 0.9347
+  },
+  "_beneish_current_assets": {
+   "live": 457,
+   "coverage": 0.9125,
+   "within_2pct": 0.9856,
+   "within_10pct": 0.9928
+  },
+  "_beneish_current_assets_p": {
+   "live": 457,
+   "coverage": 0.9103,
+   "within_2pct": 0.9928,
+   "within_10pct": 0.9928
+  },
+  "_beneish_ppe": {
+   "live": 488,
+   "coverage": 0.7602,
+   "within_2pct": 0.4124,
+   "within_10pct": 0.5337
+  },
+  "_beneish_ppe_p": {
+   "live": 489,
+   "coverage": 0.7751,
+   "within_2pct": 0.4011,
+   "within_10pct": 0.5198
+  },
+  "_beneish_total_assets": {
+   "live": 503,
+   "coverage": 0.994,
+   "within_2pct": 0.988,
+   "within_10pct": 0.992
+  },
+  "_beneish_total_assets_p": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.99,
+   "within_10pct": 0.996
+  },
+  "_beneish_depreciation": {
+   "live": 495,
+   "coverage": 0.7737,
+   "within_2pct": 0.7807,
+   "within_10pct": 0.8538
+  },
+  "_beneish_depreciation_p": {
+   "live": 497,
+   "coverage": 0.7767,
+   "within_2pct": 0.7772,
+   "within_10pct": 0.8523
+  },
+  "_beneish_sga": {
+   "live": 443,
+   "coverage": 0.6117,
+   "within_2pct": 0.9004,
+   "within_10pct": 0.9446
+  },
+  "_beneish_sga_p": {
+   "live": 446,
+   "coverage": 0.6121,
+   "within_2pct": 0.9084,
+   "within_10pct": 0.9451
+  },
+  "_beneish_lt_debt": {
+   "live": 488,
+   "coverage": 0.8689,
+   "within_2pct": 0.9198,
+   "within_10pct": 0.9646
+  },
+  "_beneish_lt_debt_p": {
+   "live": 488,
+   "coverage": 0.8689,
+   "within_2pct": 0.9245,
+   "within_10pct": 0.9741
+  },
+  "_beneish_current_liab": {
+   "live": 457,
+   "coverage": 0.9125,
+   "within_2pct": 0.9832,
+   "within_10pct": 0.9928
+  },
+  "_beneish_current_liab_p": {
+   "live": 457,
+   "coverage": 0.9103,
+   "within_2pct": 0.9856,
+   "within_10pct": 0.9928
+  },
+  "_beneish_net_income": {
+   "live": 503,
+   "coverage": 0.992,
+   "within_2pct": 0.9519,
+   "within_10pct": 0.982
+  },
+  "_beneish_ocf": {
+   "live": 502,
+   "coverage": 0.9721,
+   "within_2pct": 0.9898,
+   "within_10pct": 0.9898
+  },
+  "marketCap": {
+   "live": 503,
+   "coverage": 0.9622,
+   "within_2pct": 0.8698,
+   "within_10pct": 0.9483
+  },
+  "enterpriseValue": {
+   "live": 500,
+   "coverage": 0.962,
+   "within_2pct": 0.6175,
+   "within_10pct": 0.8337
+  },
+  "totalDebt": {
+   "live": 502,
+   "coverage": 0.9582,
+   "within_2pct": 0.6279,
+   "within_10pct": 0.7963
+  },
+  "totalCash": {
+   "live": 502,
+   "coverage": 0.992,
+   "within_2pct": 0.6747,
+   "within_10pct": 0.761
+  },
+  "sharesOutstanding": {
+   "live": 503,
+   "coverage": 0.9682,
+   "within_2pct": 0.8789,
+   "within_10pct": 0.9302
+  },
+  "bookValue": {
+   "live": 502,
+   "coverage": 0.8944,
+   "within_2pct": 0.755,
+   "within_10pct": 0.9065
+  },
+  "priceToBook": {
+   "live": 502,
+   "coverage": 0.8944,
+   "within_2pct": 0.755,
+   "within_10pct": 0.9065
+  },
+  "trailingEps": {
+   "live": 502,
+   "coverage": 0.9721,
+   "within_2pct": 0.6209,
+   "within_10pct": 0.9139
+  },
+  "returnOnEquity": {
+   "live": 471,
+   "coverage": 0.9915,
+   "within_2pct": 0.2141,
+   "within_10pct": 0.6874
+  },
+  "returnOnAssets": {
+   "live": 500,
+   "coverage": 0.988,
+   "within_2pct": 0.0688,
+   "within_10pct": 0.2955
+  },
+  "payoutRatio": {
+   "live": 501,
+   "coverage": 0.7106,
+   "within_2pct": 0.573,
+   "within_10pct": 0.8287
+  }
+ },
+ "metrics": {
+  "S": {
+   "fcf_yield": {
+    "weight": 9.9,
+    "bucket": "price_restatable",
+    "live": 461,
+    "rebuilt": 394,
+    "coverage": 0.8547,
+    "spearman": 0.9656,
+    "within_2pct": 0.7462,
+    "within_10pct": 0.8604
+   },
+   "roic": {
+    "weight": 6.38,
+    "bucket": "needs_point_in_time",
+    "live": 455,
+    "rebuilt": 419,
+    "coverage": 0.9209,
+    "spearman": 0.9314,
+    "within_2pct": 0.3365,
+    "within_10pct": 0.6611
+   },
+   "forward_eps_growth": {
+    "weight": 5.85,
+    "bucket": "needs_point_in_time",
+    "live": 492,
+    "rebuilt": 492,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "ev_ebitda": {
+    "weight": 5.5,
+    "bucket": "price_restatable",
+    "live": 452,
+    "rebuilt": 333,
+    "coverage": 0.7367,
+    "spearman": 0.8918,
+    "within_2pct": 0.3874,
+    "within_10pct": 0.7778
+   },
+   "return_12_1": {
+    "weight": 5.2,
+    "bucket": "recomputed",
+    "live": 499,
+    "rebuilt": 499,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "size_log_mcap": {
+    "weight": 5.0,
+    "bucket": "price_restatable",
+    "live": 503,
+    "rebuilt": 503,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "asset_growth": {
+    "weight": 5.0,
+    "bucket": "needs_point_in_time",
+    "live": 497,
+    "rebuilt": 493,
+    "coverage": 0.992,
+    "spearman": 0.9855,
+    "within_2pct": 0.8357,
+    "within_10pct": 0.8621
+   },
+   "gross_profit_assets": {
+    "weight": 4.84,
+    "bucket": "needs_point_in_time",
+    "live": 446,
+    "rebuilt": 291,
+    "coverage": 0.6525,
+    "spearman": 0.9656,
+    "within_2pct": 0.8144,
+    "within_10pct": 0.89
+   },
+   "fy1_revision_3m": {
+    "weight": 4.8,
+    "bucket": "needs_point_in_time",
+    "live": 497,
+    "rebuilt": 497,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "return_6m": {
+    "weight": 4.55,
+    "bucket": "recomputed",
+    "live": 500,
+    "rebuilt": 500,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "earnings_yield": {
+    "weight": 4.4,
+    "bucket": "price_restatable",
+    "live": 503,
+    "rebuilt": 496,
+    "coverage": 0.9861,
+    "spearman": 0.9928,
+    "within_2pct": 0.8286,
+    "within_10pct": 0.9294
+   },
+   "net_debt_to_ebitda": {
+    "weight": 4.4,
+    "bucket": "needs_point_in_time",
+    "live": 452,
+    "rebuilt": 333,
+    "coverage": 0.7367,
+    "spearman": 0.7866,
+    "within_2pct": 0.3483,
+    "within_10pct": 0.6336
+   },
+   "volatility": {
+    "weight": 4.286,
+    "bucket": "recomputed",
+    "live": 500,
+    "rebuilt": 500,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "piotroski_f_score": {
+    "weight": 3.52,
+    "bucket": "needs_point_in_time",
+    "live": 499,
+    "rebuilt": 484,
+    "coverage": 0.9699,
+    "spearman": 0.8449,
+    "within_2pct": 0.5971,
+    "within_10pct": 0.5971
+   },
+   "revenue_growth": {
+    "weight": 3.25,
+    "bucket": "needs_point_in_time",
+    "live": 503,
+    "rebuilt": 494,
+    "coverage": 0.9821,
+    "spearman": 0.9368,
+    "within_2pct": 0.7449,
+    "within_10pct": 0.7955
+   },
+   "jensens_alpha": {
+    "weight": 3.25,
+    "bucket": "price_derived_held",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "beta": {
+    "weight": 2.857,
+    "bucket": "recomputed",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "max_drawdown_1y": {
+    "weight": 2.857,
+    "bucket": "price_derived_held",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "ev_sales": {
+    "weight": 2.2,
+    "bucket": "price_restatable",
+    "live": 456,
+    "rebuilt": 446,
+    "coverage": 0.9781,
+    "spearman": 0.9967,
+    "within_2pct": 0.8767,
+    "within_10pct": 0.9664
+   },
+   "revenue_cagr_3yr": {
+    "weight": 1.95,
+    "bucket": "needs_point_in_time",
+    "live": 501,
+    "rebuilt": 487,
+    "coverage": 0.9721,
+    "spearman": 0.9662,
+    "within_2pct": 0.8973,
+    "within_10pct": 0.9425
+   },
+   "sustainable_growth": {
+    "weight": 1.95,
+    "bucket": "needs_point_in_time",
+    "live": 444,
+    "rebuilt": 438,
+    "coverage": 0.9865,
+    "spearman": 0.9908,
+    "within_2pct": 0.7991,
+    "within_10pct": 0.9018
+   },
+   "beneish_m_score": {
+    "weight": 1.76,
+    "bucket": "needs_point_in_time",
+    "live": 425,
+    "rebuilt": 363,
+    "coverage": 0.8541,
+    "spearman": 0.8704,
+    "within_2pct": 0.6556,
+    "within_10pct": 0.9229
+   },
+   "analyst_surprise": {
+    "weight": 1.5,
+    "bucket": "needs_point_in_time",
+    "live": 496,
+    "rebuilt": 496,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "price_target_upside": {
+    "weight": 1.35,
+    "bucket": "price_restatable",
+    "live": 498,
+    "rebuilt": 498,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "short_interest_ratio": {
+    "weight": 1.35,
+    "bucket": "needs_point_in_time",
+    "live": 501,
+    "rebuilt": 501,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "accruals": {
+    "weight": 1.1,
+    "bucket": "needs_point_in_time",
+    "live": 500,
+    "rebuilt": 480,
+    "coverage": 0.96,
+    "spearman": 0.9817,
+    "within_2pct": 0.8021,
+    "within_10pct": 0.8688
+   },
+   "consecutive_beat_streak": {
+    "weight": 1.0,
+    "bucket": "needs_point_in_time",
+    "live": 496,
+    "rebuilt": 496,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   }
+  },
+  "B": {
+   "fcf_yield": {
+    "weight": 9.9,
+    "bucket": "price_restatable",
+    "live": 461,
+    "rebuilt": 381,
+    "coverage": 0.8265,
+    "spearman": 0.9269,
+    "within_2pct": 0.5564,
+    "within_10pct": 0.7874
+   },
+   "roic": {
+    "weight": 6.38,
+    "bucket": "needs_point_in_time",
+    "live": 455,
+    "rebuilt": 411,
+    "coverage": 0.9033,
+    "spearman": 0.9312,
+    "within_2pct": 0.3285,
+    "within_10pct": 0.6594
+   },
+   "forward_eps_growth": {
+    "weight": 5.85,
+    "bucket": "needs_point_in_time",
+    "live": 492,
+    "rebuilt": 490,
+    "coverage": 0.9959,
+    "spearman": 1.0,
+    "within_2pct": 0.9939,
+    "within_10pct": 1.0
+   },
+   "ev_ebitda": {
+    "weight": 5.5,
+    "bucket": "price_restatable",
+    "live": 452,
+    "rebuilt": 320,
+    "coverage": 0.708,
+    "spearman": 0.8128,
+    "within_2pct": 0.3281,
+    "within_10pct": 0.7125
+   },
+   "return_12_1": {
+    "weight": 5.2,
+    "bucket": "recomputed",
+    "live": 499,
+    "rebuilt": 499,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "size_log_mcap": {
+    "weight": 5.0,
+    "bucket": "price_restatable",
+    "live": 503,
+    "rebuilt": 484,
+    "coverage": 0.9622,
+    "spearman": 0.9599,
+    "within_2pct": 0.9649,
+    "within_10pct": 0.9897
+   },
+   "asset_growth": {
+    "weight": 5.0,
+    "bucket": "needs_point_in_time",
+    "live": 497,
+    "rebuilt": 493,
+    "coverage": 0.992,
+    "spearman": 0.9855,
+    "within_2pct": 0.8357,
+    "within_10pct": 0.8621
+   },
+   "gross_profit_assets": {
+    "weight": 4.84,
+    "bucket": "needs_point_in_time",
+    "live": 446,
+    "rebuilt": 291,
+    "coverage": 0.6525,
+    "spearman": 0.9656,
+    "within_2pct": 0.8144,
+    "within_10pct": 0.89
+   },
+   "fy1_revision_3m": {
+    "weight": 4.8,
+    "bucket": "needs_point_in_time",
+    "live": 497,
+    "rebuilt": 497,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "return_6m": {
+    "weight": 4.55,
+    "bucket": "recomputed",
+    "live": 500,
+    "rebuilt": 500,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "earnings_yield": {
+    "weight": 4.4,
+    "bucket": "price_restatable",
+    "live": 503,
+    "rebuilt": 478,
+    "coverage": 0.9503,
+    "spearman": 0.9593,
+    "within_2pct": 0.7427,
+    "within_10pct": 0.8975
+   },
+   "net_debt_to_ebitda": {
+    "weight": 4.4,
+    "bucket": "needs_point_in_time",
+    "live": 452,
+    "rebuilt": 328,
+    "coverage": 0.7257,
+    "spearman": 0.7801,
+    "within_2pct": 0.3445,
+    "within_10pct": 0.6311
+   },
+   "volatility": {
+    "weight": 4.286,
+    "bucket": "recomputed",
+    "live": 500,
+    "rebuilt": 500,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "piotroski_f_score": {
+    "weight": 3.52,
+    "bucket": "needs_point_in_time",
+    "live": 499,
+    "rebuilt": 484,
+    "coverage": 0.9699,
+    "spearman": 0.8449,
+    "within_2pct": 0.5971,
+    "within_10pct": 0.5971
+   },
+   "revenue_growth": {
+    "weight": 3.25,
+    "bucket": "needs_point_in_time",
+    "live": 503,
+    "rebuilt": 494,
+    "coverage": 0.9821,
+    "spearman": 0.9368,
+    "within_2pct": 0.7449,
+    "within_10pct": 0.7955
+   },
+   "jensens_alpha": {
+    "weight": 3.25,
+    "bucket": "price_derived_held",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "beta": {
+    "weight": 2.857,
+    "bucket": "recomputed",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "max_drawdown_1y": {
+    "weight": 2.857,
+    "bucket": "price_derived_held",
+    "live": 0,
+    "rebuilt": 0,
+    "coverage": null
+   },
+   "ev_sales": {
+    "weight": 2.2,
+    "bucket": "price_restatable",
+    "live": 456,
+    "rebuilt": 429,
+    "coverage": 0.9408,
+    "spearman": 0.9677,
+    "within_2pct": 0.634,
+    "within_10pct": 0.8625
+   },
+   "revenue_cagr_3yr": {
+    "weight": 1.95,
+    "bucket": "needs_point_in_time",
+    "live": 501,
+    "rebuilt": 487,
+    "coverage": 0.9721,
+    "spearman": 0.9662,
+    "within_2pct": 0.8973,
+    "within_10pct": 0.9425
+   },
+   "sustainable_growth": {
+    "weight": 1.95,
+    "bucket": "needs_point_in_time",
+    "live": 444,
+    "rebuilt": 328,
+    "coverage": 0.7387,
+    "spearman": 0.9955,
+    "within_2pct": 0.7988,
+    "within_10pct": 0.9055
+   },
+   "beneish_m_score": {
+    "weight": 1.76,
+    "bucket": "needs_point_in_time",
+    "live": 425,
+    "rebuilt": 363,
+    "coverage": 0.8541,
+    "spearman": 0.8704,
+    "within_2pct": 0.6556,
+    "within_10pct": 0.9229
+   },
+   "analyst_surprise": {
+    "weight": 1.5,
+    "bucket": "needs_point_in_time",
+    "live": 496,
+    "rebuilt": 496,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "price_target_upside": {
+    "weight": 1.35,
+    "bucket": "price_restatable",
+    "live": 498,
+    "rebuilt": 498,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "short_interest_ratio": {
+    "weight": 1.35,
+    "bucket": "needs_point_in_time",
+    "live": 501,
+    "rebuilt": 501,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   },
+   "accruals": {
+    "weight": 1.1,
+    "bucket": "needs_point_in_time",
+    "live": 500,
+    "rebuilt": 480,
+    "coverage": 0.96,
+    "spearman": 0.9817,
+    "within_2pct": 0.8021,
+    "within_10pct": 0.8688
+   },
+   "consecutive_beat_streak": {
+    "weight": 1.0,
+    "bucket": "needs_point_in_time",
+    "live": 496,
+    "rebuilt": 496,
+    "coverage": 1.0,
+    "spearman": 1.0,
+    "within_2pct": 1.0,
+    "within_10pct": 1.0
+   }
+  }
+ },
+ "arms": {
+  "S": {
+   "scored": 503,
+   "common": 503,
+   "composite_spearman": 0.9334,
+   "top25_overlap": 19,
+   "top_decile_overlap": 43,
+   "top_decile_size": 50,
+   "median_abs_rank_change": 17.0,
+   "p90_abs_rank_change": 83.0,
+   "category_spearman": {
+    "valuation": 0.9496,
+    "quality": 0.8733,
+    "growth": 0.9756,
+    "momentum": 1.0,
+    "risk": 1.0,
+    "revisions": 1.0,
+    "size": 1.0,
+    "investment": 0.9775
+   }
+  },
+  "B": {
+   "scored": 503,
+   "common": 503,
+   "composite_spearman": 0.8851,
+   "top25_overlap": 16,
+   "top_decile_overlap": 35,
+   "top_decile_size": 50,
+   "median_abs_rank_change": 23.0,
+   "p90_abs_rank_change": 113.0,
+   "category_spearman": {
+    "valuation": 0.8831,
+    "quality": 0.868,
+    "growth": 0.9669,
+    "momentum": 1.0,
+    "risk": 1.0,
+    "revisions": 1.0,
+    "size": 0.9551,
+    "investment": 0.9775
+   }
+  }
+ }
+}

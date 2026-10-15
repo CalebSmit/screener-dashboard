@@ -75,6 +75,23 @@ it from cost of revenue). Median first-filing lag: **33 days** after a quarter, 
 Analyst estimates (9.0pp) and short interest have no free history, as expected. Facts cache:
 `data/sec/pit/facts.parquet` (gitignored; rebuild with the measurement script).
 
+### The record rebuilt and the second half measured - 2026-10-15 (owner-run)
+
+`research/2026-10-15-pit-record-validation.md`. **`pit_record.py` rebuilds the engine's raw record**
+(every statement field `compute_metrics` reads, plus market value / EV / book / EPS / ROE at a given
+price) from SEC facts filed by any date, so v2 scores history with the engine's own formulas - one
+computation, never a second. A test classifies every raw field the engine reads (statement / market /
+price history / no free history / static) and fails on an unclassified one.
+
+- **Checked against today:** rebuilt from filings and scored by the engine, the live ranking
+  reproduces at Spearman **0.933** (statement fields) / **0.885** (statement + market fields); the gaps
+  are definitional (EBITDA and total debt weakest).
+- **Measured, 81 months x ~485 names, 39,320 name-months:** the **fundamentals half moves 72.6%** of
+  name-months to a different decile (43.2% by two or more; v1's top decile kept 48%), the price half
+  60.1% (an independent reproduction of the 63.2% above), **both together 75.8%** - v1's top decile
+  holds 43% of what the screener would have said at the time. By year 80% (2020) falling to 2.6% in
+  2026-09. **The fundamentals half is the larger one.**
+
 ### What step 1 said was unmeasured (kept for the record)
 
 The **49.0pp fundamentals half**. SEC EDGAR's XBRL `companyconcept` endpoint is
@@ -384,7 +401,16 @@ system talks itself into noise.
    costed and chosen ($199/yr, Sharadar), and the decision is to buy it *after*
    step 3, not before. Free data covers 57% of the needed name-months, not the 40%
    previously recorded.
-3. Point-in-time fundamentals with reporting lags. **Data layer BUILT 2026-10-09 (owner-run):**
+3. Point-in-time fundamentals with reporting lags. **Record layer BUILT and VALIDATED 2026-10-15
+   (owner-run): `pit_record.py`, `tests/test_pit_record.py`; the fundamentals half measured at 72.6%.**
+   **Next, in order** (`research/2026-10-15-pit-record-validation.md` section 5): (a) the v2 scoring
+   loop - per month the point-in-time universe, `pit_record.record_as_of`, the month's price, analyst
+   fields NaN (stated as the filings-and-prices screener), the engine's composite; delisted names
+   counted and reported, never silently dropped; (b) two price series - split-adjusted closes for
+   valuation, total-return for returns (the cached panel is dividend-adjusted, which understates a
+   dividend payer's historical market value: JPM 2020-06 by ~15%); (c) daily prices for volatility,
+   beta, alpha and drawdown (13.3pp); (d) better EBITDA and debt tags, each measured with
+   `research/measurements/2026-10-15-pit-record-vs-live.py`. **Data layer BUILT 2026-10-09 (owner-run):**
    `pit_fundamentals.PointInTime` answers instant / annual / quarter "as filed by date d" from the
    census's XBRL facts cache (restatements count from their filing date; comparatives in later
    filings change nothing; tag switches keep the series). Not imported by v1 or production
