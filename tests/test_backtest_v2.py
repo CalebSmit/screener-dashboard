@@ -178,7 +178,9 @@ def test_the_cached_history_reproduces_the_live_fetch_exactly():
 def test_no_production_module_imports_it():
     pat = re.compile(r"^\s*(import backtest_v2|from backtest_v2)\b", re.M)
     for p in ROOT.glob("*.py"):
-        if p.name in ("backtest_v2.py", "conftest.py"):
+        # v2_experiments.py is the research engine built on v2 (2026-10-15) - research, not
+        # production, and test_v2_experiments.py keeps production from importing it in turn
+        if p.name in ("backtest_v2.py", "v2_experiments.py", "conftest.py"):
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
     for p in (ROOT / "scripts").rglob("*.py"):

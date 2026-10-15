@@ -213,6 +213,10 @@ def rank_month(metrics: pd.DataFrame, cfg: dict, state: dict) -> pd.DataFrame:
         if state.get("state") == "PANIC":
             month_cfg["factor_weights"] = fe.apply_momentum_regime(cfg["factor_weights"], "PANIC")
         df = fe.compute_composite(df, month_cfg)
+        # a weighting that scores only some categories (an experiment's narrow screen) can leave a
+        # stock with no composite at all; it is left out of that month's ranking, not ranked as a
+        # number it does not have. The published weighting never produces one.
+        df = df[df["Composite"].notna()].copy()
         df = fe.rank_stocks(df)
     return df
 
