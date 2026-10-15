@@ -214,6 +214,12 @@ Per category, v2 against the diagnostic arm (mean IC): valuation +0.006 / *+0.06
 prices, which are identical in both arms, and they agree to the third decimal - the check that the
 two arms differ by the filings alone.**
 
+**Robustness, the same evening.** Rescored after the rebuild's operating income was aligned with the
+live screener's (section 5, item 4 - restructuring and impairment charges added back; D&A filled):
+IC **-0.001** (95% -0.028 to +0.027), top tenth minus the universe -0.25% a month, every category's
+IC within 0.002 of the figures above (`research/measurements/2026-10-15-backtest-v2-returns-rebuild2.json`).
+The reading does not depend on how operating income is rebuilt.
+
 **What this shows.**
 
 1. **Look-ahead manufactures a strategy.** On today's filings the same screener appears to beat
@@ -256,8 +262,18 @@ Written first as a list of five; items 1-3 were built the same morning (section 
    close (`cache/v2_daily.parquet`).
 3. ~~Daily prices for the risk metrics~~ - **built**, through the fetch's own
    `price_history_fields`.
-4. **Better tags where the rebuild is weakest:** EBITDA (operating income + D&A, 71-73% coverage)
-   and total debt. Each improvement is measurable with `2026-10-15-pit-record-vs-live.py`.
+4. ~~Better tags where the rebuild is weakest~~ - **done the same evening**, and the reason was a
+   definition, not a tag: the live screener's operating income is the source's *pre-special-items*
+   row (`research/2026-10-15-earnings-definition.md`), so the rebuild now adds the filed
+   restructuring and impairment charges back to filed operating income (a combined tag standing for
+   its parts), and builds D&A from depreciation plus amortisation where the combined tag is missing.
+   Re-measured with `2026-10-15-pit-record-vs-live.py` (arm B): operating income within 10% of live
+   75% -> **81%**; D&A coverage 78% -> **95%**; EV/EBITDA coverage 71% -> **86%**, Spearman 0.81 ->
+   **0.84**; net debt / EBITDA coverage 72% -> **88%**, 0.78 -> **0.80**; median rank difference 23 ->
+   **20** places. The composite Spearman moved 0.885 -> **0.880**: more stocks now carry EV/EBITDA,
+   and the worst-matching of them weigh on the tails while the median moves closer. Sections 2-5c
+   above were measured with the earlier rebuild; rerun them before quoting a figure from them against
+   the current code. Total debt is still the weakest input.
 5. **Step 2 - the names that left the index.** v2's census lists them per month; they need a
    price history (the costed $199/yr feed, or the free partial coverage) and their filings (SEC
    `companyfacts` serves delisted filers by CIK - `universe_history`'s `ticker_ciks.json` maps them).

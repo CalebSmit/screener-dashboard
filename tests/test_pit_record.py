@@ -196,3 +196,27 @@ def test_the_methodology_page_quotes_the_measured_lookahead():
     assert f"**{share * 100:.1f}% of stock-months in a different tenth** of the ranking" in text
     assert "It does not set any weight on this page" in text
     assert "It does not reconstruct what was known at a past date" not in text
+
+
+def test_operating_income_is_rebuilt_before_restructuring_and_impairment_charges():
+    """The live source's "Operating Income" leaves out special charges (2026-10-15,
+    research/2026-10-15-earnings-definition.md), so v2 adds the filed charges back to the filed
+    operating income - a combined restructuring-and-impairment tag standing for its parts."""
+    rows = ROWS + [
+        ("OperatingIncomeLoss", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 300.0),
+        ("GoodwillImpairmentLoss", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 50.0),
+        ("RestructuringCharges", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 20.0),
+    ]
+    s = pr.statement_fields(_f(rows), "AAA", "2025-03-01")
+    assert s["ebit"] == pytest.approx(370.0)               # 300 + 50 + 20
+    both = rows + [("RestructuringCostsAndAssetImpairmentCharges", "2024-01-01", "2024-12-31",
+                    "2025-02-10", "10-K", 60.0)]
+    assert pr.statement_fields(_f(both), "AAA", "2025-03-01")["ebit"] == pytest.approx(360.0)  # never both
+    plain = ROWS + [("OperatingIncomeLoss", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 300.0)]
+    assert pr.statement_fields(_f(plain), "AAA", "2025-03-01")["ebit"] == pytest.approx(300.0)
+
+
+def test_d_and_a_falls_back_to_its_two_parts():
+    rows = ROWS + [("Depreciation", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 30.0),
+                   ("AmortizationOfIntangibleAssets", "2024-01-01", "2024-12-31", "2025-02-10", "10-K", 5.0)]
+    assert pr.statement_fields(_f(rows), "AAA", "2025-03-01")["da_cf"] == pytest.approx(35.0)

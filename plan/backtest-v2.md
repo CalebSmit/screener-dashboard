@@ -416,7 +416,12 @@ system talks itself into noise.
    decision-grade (rule 5):* over 80 months v2's IC is **-0.002 (95% -0.029 to +0.026)**; the same
    pipeline on today's filings (a labelled diagnostic arm, v1's look-ahead on purpose) shows **+0.050,
    t 4.7** - the look-ahead manufactures the whole result. `research/2026-10-15-pit-record-validation.md`
-   section 5c. **Next:** (d) better EBITDA and debt tags; step 2 (the census's `no_current_record`
+   section 5c. **(d) DONE the same evening:** the rebuild's operating income now adds back filed
+   restructuring and impairment charges, because the live screener's is the source's pre-special-items
+   row (`research/2026-10-15-earnings-definition.md`); D&A falls back to depreciation + amortisation.
+   EV/EBITDA coverage 71% -> 86%, net debt / EBITDA 72% -> 88%; composite Spearman 0.885 -> 0.880 (the
+   validation note, section 5 item 4). Total debt remains the weakest input.
+   **Next:** step 2 (the census's `no_current_record`
    names - prices and filings by CIK); step 4's second half (A/B of two configs with intervals). **Data layer BUILT 2026-10-09 (owner-run):**
    `pit_fundamentals.PointInTime` answers instant / annual / quarter "as filed by date d" from the
    census's XBRL facts cache (restatements count from their filing date; comparatives in later

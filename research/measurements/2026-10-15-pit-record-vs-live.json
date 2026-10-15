@@ -30,14 +30,14 @@
   "ebit": {
    "live": 476,
    "coverage": 0.9097,
-   "within_2pct": 0.4573,
-   "within_10pct": 0.7529
+   "within_2pct": 0.515,
+   "within_10pct": 0.8129
   },
   "ebitda": {
    "live": 455,
-   "coverage": 0.7429,
-   "within_2pct": 0.3402,
-   "within_10pct": 0.7396
+   "coverage": 0.8879,
+   "within_2pct": 0.3243,
+   "within_10pct": 0.7054
   },
   "netIncome": {
    "live": 503,
@@ -102,14 +102,14 @@
   "ebit_annual": {
    "live": 476,
    "coverage": 0.9244,
-   "within_2pct": 0.4909,
-   "within_10pct": 0.7341
+   "within_2pct": 0.5659,
+   "within_10pct": 0.8
   },
   "ebit_prior": {
    "live": 477,
    "coverage": 0.9266,
-   "within_2pct": 0.5181,
-   "within_10pct": 0.7579
+   "within_2pct": 0.5588,
+   "within_10pct": 0.7964
   },
   "_ni_a0": {
    "live": 503,
@@ -257,9 +257,9 @@
   },
   "da_cf": {
    "live": 498,
-   "coverage": 0.7751,
-   "within_2pct": 0.7332,
-   "within_10pct": 0.8653
+   "coverage": 0.9458,
+   "within_2pct": 0.6752,
+   "within_10pct": 0.7856
   },
   "_beneish_net_receivables": {
    "live": 496,
@@ -478,9 +478,9 @@
     "live": 455,
     "rebuilt": 419,
     "coverage": 0.9209,
-    "spearman": 0.9314,
-    "within_2pct": 0.3365,
-    "within_10pct": 0.6611
+    "spearman": 0.9338,
+    "within_2pct": 0.3866,
+    "within_10pct": 0.6969
    },
    "forward_eps_growth": {
     "weight": 5.85,
@@ -496,11 +496,11 @@
     "weight": 5.5,
     "bucket": "price_restatable",
     "live": 452,
-    "rebuilt": 333,
-    "coverage": 0.7367,
-    "spearman": 0.8918,
-    "within_2pct": 0.3874,
-    "within_10pct": 0.7778
+    "rebuilt": 402,
+    "coverage": 0.8894,
+    "spearman": 0.92,
+    "within_2pct": 0.4279,
+    "within_10pct": 0.801
    },
    "return_12_1": {
     "weight": 5.2,
@@ -576,11 +576,11 @@
     "weight": 4.4,
     "bucket": "needs_point_in_time",
     "live": 452,
-    "rebuilt": 333,
-    "coverage": 0.7367,
-    "spearman": 0.7866,
-    "within_2pct": 0.3483,
-    "within_10pct": 0.6336
+    "rebuilt": 402,
+    "coverage": 0.8894,
+    "spearman": 0.8082,
+    "within_2pct": 0.3955,
+    "within_10pct": 0.6592
    },
    "volatility": {
     "weight": 4.286,
@@ -741,9 +741,9 @@
     "live": 455,
     "rebuilt": 411,
     "coverage": 0.9033,
-    "spearman": 0.9312,
-    "within_2pct": 0.3285,
-    "within_10pct": 0.6594
+    "spearman": 0.9346,
+    "within_2pct": 0.3844,
+    "within_10pct": 0.6983
    },
    "forward_eps_growth": {
     "weight": 5.85,
@@ -759,11 +759,11 @@
     "weight": 5.5,
     "bucket": "price_restatable",
     "live": 452,
-    "rebuilt": 320,
-    "coverage": 0.708,
-    "spearman": 0.8128,
-    "within_2pct": 0.3281,
-    "within_10pct": 0.7125
+    "rebuilt": 388,
+    "coverage": 0.8584,
+    "spearman": 0.8437,
+    "within_2pct": 0.3428,
+    "within_10pct": 0.7242
    },
    "return_12_1": {
     "weight": 5.2,
@@ -839,11 +839,11 @@
     "weight": 4.4,
     "bucket": "needs_point_in_time",
     "live": 452,
-    "rebuilt": 328,
-    "coverage": 0.7257,
-    "spearman": 0.7801,
-    "within_2pct": 0.3445,
-    "within_10pct": 0.6311
+    "rebuilt": 396,
+    "coverage": 0.8761,
+    "spearman": 0.8024,
+    "within_2pct": 0.3939,
+    "within_10pct": 0.654
    },
    "volatility": {
     "weight": 4.286,
@@ -992,15 +992,15 @@
   "S": {
    "scored": 503,
    "common": 503,
-   "composite_spearman": 0.9334,
+   "composite_spearman": 0.9304,
    "top25_overlap": 19,
    "top_decile_overlap": 43,
    "top_decile_size": 50,
-   "median_abs_rank_change": 17.0,
-   "p90_abs_rank_change": 83.0,
+   "median_abs_rank_change": 15.0,
+   "p90_abs_rank_change": 86.60000000000002,
    "category_spearman": {
-    "valuation": 0.9496,
-    "quality": 0.8733,
+    "valuation": 0.9527,
+    "quality": 0.8676,
     "growth": 0.9756,
     "momentum": 1.0,
     "risk": 1.0,
@@ -1012,15 +1012,15 @@
   "B": {
    "scored": 503,
    "common": 503,
-   "composite_spearman": 0.8851,
+   "composite_spearman": 0.8798,
    "top25_overlap": 16,
-   "top_decile_overlap": 35,
+   "top_decile_overlap": 36,
    "top_decile_size": 50,
-   "median_abs_rank_change": 23.0,
-   "p90_abs_rank_change": 113.0,
+   "median_abs_rank_change": 20.0,
+   "p90_abs_rank_change": 116.40000000000003,
    "category_spearman": {
-    "valuation": 0.8831,
-    "quality": 0.868,
+    "valuation": 0.8828,
+    "quality": 0.8627,
     "growth": 0.9669,
     "momentum": 1.0,
     "risk": 1.0,

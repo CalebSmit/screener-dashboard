@@ -97,6 +97,16 @@ FACT_CONCEPTS = (
     "OperatingLeaseLiabilityNoncurrent", "OperatingLeaseLiabilityCurrent", "OperatingLeaseLiability",
     "FinanceLeaseLiabilityNoncurrent", "FinanceLeaseLiabilityCurrent",
     "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+    # The charges the source leaves out of its "Operating Income" (2026-10-15,
+    # research/2026-10-15-earnings-definition.md): backtest v2 adds them back to the filed operating
+    # income so its EBIT means what the live screener's does. And D&A where the combined tag is
+    # missing. Nothing in a published run reads them.
+    "RestructuringCharges", "GoodwillImpairmentLoss", "AssetImpairmentCharges",
+    "ImpairmentOfIntangibleAssetsExcludingGoodwill", "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill",
+    "ImpairmentOfLongLivedAssetsHeldForUse", "OtherAssetImpairmentCharges",
+    "GoodwillAndIntangibleAssetImpairment", "RestructuringCostsAndAssetImpairmentCharges",
+    "RestructuringSettlementAndImpairmentProvisions",
+    "Depreciation", "AmortizationOfIntangibleAssets",
 )
 # Concepts reported in shares rather than dollars (valuation_history.py's market value).
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",

@@ -11614,5 +11614,9 @@ marker cleared and shipped (`good/2026-10-15-1403`). Owner marker held again for
 ### Next
 - **The earnings-yield proposal waits for a second session** - section 6 of the note lists everything
   it touches (lineage equations, schema, methodology page, changelog) and what would refuse it.
-- D (better EBITDA and debt tags for backtest v2) if a session has room.
+- ~~D~~ **done the same evening:** backtest v2's rebuilt operating income now adds back filed
+  restructuring and impairment charges (the live screener's row is pre-special-items), and D&A falls
+  back to depreciation + amortisation - EV/EBITDA coverage 71% -> 86%, net debt / EBITDA 72% -> 88%,
+  median rank difference 23 -> 20 (composite Spearman 0.885 -> 0.880, tails). 2 tests. **v2 rescored:**
+  IC -0.001 (+-0.027), top tenth -0.25%/month against the universe - the honest reading is unchanged.
 
