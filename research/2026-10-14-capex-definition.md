@@ -19,7 +19,7 @@ Research-led (rule 4): no return of the screener's ranking is used.
 **Proposed, not built:** remove finance-arm lease purchases from capex for the five S&P 500
 companies with captive finance arms; leave everything else as it is. Section 4.
 
-**Proposal status: OPEN** - FCF capex excludes captive-finance lease assets for GM, F, DE, CAT, PCAR (section 4 of this note)
+**Proposal status: OPEN** - FCF capex excludes captive-finance lease assets for GM, DE, CAT, PCAR (section 4 of this note)
 
 ---
 
@@ -84,19 +84,32 @@ does today, and the note records the disagreement.
 
 **Rule:** for companies whose filings report a captive finance arm's purchases of equipment or
 vehicles for operating leases, FCF capex = Yahoo's `Capital Expenditure` minus those purchases.
-In the S&P 500 today: **GM, F, DE, CAT, PCAR** - a named, published list, because "is this a
+In the S&P 500 today: **GM, DE, CAT, PCAR** - a named, published list, because "is this a
 financing arm or the business itself?" is a judgement (United Rentals' rental fleet *is* its
 business and must stay in), and a list someone can read is more teachable than a heuristic.
 
+**The tags, read from each company's `companyfacts` the same night** (fiscal 2025, 10-K):
+
+| Company | Lease-purchase tag | FY2025 | Filed PP&E | Yahoo capex = PP&E + lease line? |
+|---|---|---|---|---|
+| GM | `PaymentsToAcquireLeasesHeldForInvestment` | $15.8B | $9.3B | yes (TTM $8.8B + $13.8B = $22.6B) |
+| DE | `PaymentsToAcquireEquipmentOnLease` | $2.9B | $1.4B | yes |
+| CAT | `PaymentsToAcquireEquipmentOnLease` | $1.5B | $2.8B | yes (TTM $2.87B + ~$1.7B = $4.58B) |
+| PCAR | `PaymentsToAcquireEquipmentOnLease` | $0.6B | $0.7B | yes |
+| F | `PaymentsToAcquireLoansAndLeasesHeldForInvestment` (loans too) | $55.7B | - | **no** - Yahoo's Ford capex ($9.7B) is already capital spending without Ford Credit's leases |
+
+**Ford is therefore out of the list**: Yahoo already reports it the way Ford does. The two tags were
+added to `sec_fundamentals.FACT_CONCEPTS` that night, so the next weekly refresh of the cache
+carries them and the rule can be built on filed figures, for the same trailing twelve months as
+the cash flow.
+
 **Why not built tonight:** it changes the heaviest metric's input; the evidence for the lease part
-is strong but the S&P Ratings captive criteria themselves were not obtained; and the implementing
-data - each company's tagged lease-purchase line, for the same trailing twelve months - is not in
-the SEC cache yet (`sec_fundamentals.FACT_CONCEPTS` would need the companies' own tags, and the
-cache refreshes weekly). A reviewer should check each of the five filings' tag first.
+is strong but the S&P Ratings captive criteria themselves were not obtained; and the cache will
+only carry the lease tags after its next weekly refresh.
 
 **Measured effect to expect:** GM's FCF-yield percentile from about 10 to about 90 within its
-sector (7.9 composite points), DE and PCAR smaller; no top-25 change from these five on the
-2026-10-14 run.
+sector (7.9 composite points); today DE sits at the 9th percentile, CAT the 21st and PCAR the 71st,
+and each would rise; no top-25 change from these four on the 2026-10-14 run.
 
 **What would be a good reason to refuse it:** the denominator argument in section 3, if a reviewer
 judges a half-consolidated ratio worse than a fully consolidated one; or if the S&P Ratings

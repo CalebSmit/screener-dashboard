@@ -25,9 +25,9 @@ Two things still outrank this file, and neither is negotiable:
 ## Open
 
 - **2026-10-14 (owner-run, late) - a second proposal is waiting for review: what capex means in
-  free-cash-flow yield.** `research/2026-10-14-capex-definition.md`. For the five S&P 500 companies
-  with captive finance arms (GM, Ford, Deere, Caterpillar, PACCAR), Yahoo's capex includes the
-  vehicles and equipment their finance arms buy to lease out; the companies themselves, and S&P
+  free-cash-flow yield.** `research/2026-10-14-capex-definition.md`. For four S&P 500 companies
+  with captive finance arms (GM, Deere, Caterpillar, PACCAR - Ford is already reported the right
+  way), Yahoo's capex includes the vehicles and equipment their finance arms buy to lease out; the companies themselves, and S&P
   Ratings, keep those out of industrial capex. GM's free-cash-flow yield reads 0.3% today against
   8.0% without them. **For the next session: review section 4 and decide**, the same way the
   Growth proposal was decided. It shows in the morning brief until someone does.

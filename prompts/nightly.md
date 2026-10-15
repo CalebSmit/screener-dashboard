@@ -192,7 +192,8 @@ import it. Three things to know before you start:
   decide by skimming, and do not leave it undecided. The 2026-10-12 Growth proposal is the worked
   example: the 2026-10-13 session measured what the note had not, found the proposal undercut its
   own premise, and refused it (that note's section 10). Open on 2026-10-14:
-  `research/2026-10-14-capex-definition.md` section 4 (finance-arm leases out of FCF capex).
+  `research/2026-10-14-capex-definition.md` section 4 (finance-arm leases out of FCF capex for
+  GM, DE, CAT, PCAR; the filed tags are in the note and in the SEC cache after its next refresh).
 - **Reading rules were written before the questions were researched** (same section of
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock
