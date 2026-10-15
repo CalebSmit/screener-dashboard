@@ -19,7 +19,14 @@ How a figure is rebuilt for the quarter ending E:
 * a **balance** is the instant value at E;
 * each period's value is the one **first filed** - later filings' comparative columns are where
   mis-tagged contexts appear (FIX's Q1 2026 10-Q tags a quarter's revenue as fiscal 2025's);
-* **revenue** takes the largest revenue concept reported at E, because the others are components.
+* **revenue** is compared with the company's filed revenue line **nearest** the run's figure
+  (2026-10-15). Companies file several "revenue" lines - gross and net, contract revenue and total -
+  and which one Yahoo reports varies: Williams' is the filing's ``Revenues`` to the dollar, Republic
+  Services' and Hasbro's the contract-revenue line, the ``Revenues`` tag being their gross figure.
+  The "largest line" rule used until then made all three look like disagreements. A corrupted
+  figure (DuPont's -$1.871bn derived quarter) still matches no line the company filed, so the check
+  keeps its point: is the run's number one the company actually reported? Camden's component tag
+  ($12.6M of non-rental income) is never nearest a $1.57bn figure.
 """
 from __future__ import annotations
 
@@ -80,8 +87,11 @@ def instant(f, end):
     return (first_filed(at), "instant") if not at.empty else (None, "no balance at that date")
 
 
-def sec_value(facts, concepts, kind: str, end, largest: bool = False):
-    """(value, concept, how) for one company's facts, or (None, None, why)."""
+def sec_value(facts, concepts, kind: str, end, largest: bool = False, near: float | None = None):
+    """(value, concept, how) for one company's facts, or (None, None, why).
+
+    The first concept in order with a value; with ``largest``, the largest; with ``near``, the one
+    closest to that figure (revenue - see the module docstring)."""
     rebuild = flow_ttm if kind == "flow" else instant
     got = []
     for c in concepts:
@@ -90,10 +100,12 @@ def sec_value(facts, concepts, kind: str, end, largest: bool = False):
             continue
         v, how = rebuild(f, end)
         if v is not None:
-            if not largest:
+            if not largest and near is None:
                 return v, c, how
             got.append((v, c, how))
     if got:
+        if near is not None:
+            return min(got, key=lambda g: abs(g[0] - near))
         return max(got, key=lambda g: abs(g[0]))
     return None, None, "no concept with a value at that date"
 
@@ -115,7 +127,8 @@ def compare(payload: dict, facts, fields=FIELDS):
             elif f_t is None:
                 rec["status"] = "not in SEC cache"
             else:
-                v, concept, how = sec_value(f_t, concepts, kind, pd.Timestamp(when), largest=(name == "revenue"))
+                v, concept, how = sec_value(f_t, concepts, kind, pd.Timestamp(when),
+                                            near=float(y) if name == "revenue" else None)
                 rec.update(sec=v, concept=concept, how=how)
                 if v is None:
                     rec["status"] = "no SEC value: " + how

@@ -80,6 +80,18 @@ separate reading of each 10-Q):
   trailing revenue read $4.70bn against ~$6.99bn filed. The fetch now rejects a quarterly statement
   with a negative-revenue quarter in its window and uses the annual statements (METHODOLOGY_CHANGELOG
   2026-10-15; 1 company of 503 affected, measured live).
+- **The check's revenue rule changed the same day** (`sec_crosscheck.sec_value(near=...)`): revenue is
+  compared with the company's filed revenue line *nearest* the run's figure, not the largest line -
+  which a corrupted figure still fails, because it matches no line the company filed. On the run of
+  2026-10-15: within 0.5% **363 -> 371 of 410** (88.5% -> 90.5%), over 10% **13 -> 8**. The eight:
+  MO (excise tax), MTB / IBKR / BX (financials' several revenue lines), BRK-B (three quarters
+  annualised), CPT (Yahoo's statement a quarter stale), DD (fixed from the next run) and **APTV - a
+  second restatement case, not fixable from Yahoo alone.** Aptiv's trailing revenue of $18.725bn is
+  the post-separation Q2-2026 ($3.274bn) plus three pre-separation quarters ($5.086bn, $5.153bn,
+  $5.212bn); its own Q2 10-Q restates Q1-2026 to $3.032bn. No quarter is negative, so the fetch's
+  rule cannot see it; the filing check does, and Aptiv's Data Provenance panel already says its revenue
+  differs from the filing. A general fix would read the filings inside scoring, which is a separate
+  decision (scoring deliberately never reads the weekly SEC cache) - left as a finding.
 
 **So: no evidence tonight of Yahoo serving a wrong number for any comparable input**, which is the
 reassuring result - with the honest qualifier that the check covers the inputs that have a clean
