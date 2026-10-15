@@ -11101,3 +11101,11 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   `SCREENER_OVERVIEW.md` regenerated; claim `overview.filing_check`; the test module joins the data
   loop's publish gate so the 02:00 run verifies the text it publishes.
 - **Tests:** 2,339 passed / 0 failed at the end of the evening (2,317 at its start).
+- **The morning brief gains an "Inputs vs SEC filings" row** (`write_brief.filing_check`), read
+  from the data run's health line: total assets, operating cash flow, net income and market value
+  agreement, and a pointer when an ATTENTION note fired. Left out, never guessed, when the run
+  printed no such line. 4 tests. Final count for the evening: **2,343 passed / 0 failed**.
+- **For the next session:** the 02:00 run is the first to publish the per-stock filing check, the
+  corrected methodology paragraph and the health note's counts - read the data log's
+  "inputs against SEC filings" line and the brief's new row first. Then the open proposal in the
+  brief (capex for the five captive-finance companies).
