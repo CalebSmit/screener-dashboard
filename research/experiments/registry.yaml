@@ -1,0 +1,170 @@
+# Pre-registered experiments for the research engine (v2_experiments.py).
+#
+# Every entry here was written and committed BEFORE it was run - the git history is the record.
+# A prediction is never edited after a run; a changed idea is a new entry with a new id. Results
+# are judged on the held-out months (2023-07 .. 2026-08), paired with the baseline on the same
+# stocks and months, against p < 0.05 / (number of experiments) and |t| >= 3.
+#
+# The universe and its limits (backtest_v2.py): the S&P 500 as it stood each month-end 2020-01 ..
+# 2026-08, rebuilt from SEC filings as they were filed, the stocks that have since left the index
+# missing (survivorship), and the analyst inputs absent (Revisions and forward EPS growth at weight
+# 0). Every experiment shares those limits; what differs between them is only the weighting.
+#
+# Registered 2026-10-15 (owner-run). Prior expectations come from the Factor Lab
+# (research/2026-10-12-factor-lab-findings.md, the large-company experiments 8 and 9, experiment
+# 10) and the papers named; the lab found most published premia weaker after their samples and
+# about half-size among large companies, so the default expectation for any single change over 80
+# months is "not distinguishable".
+
+experiments:
+  - id: baseline
+    hypothesis: The current weighting (the filings-and-prices screener, v2_config).
+    source: config.yaml, with backtest_v2.v2_config removing the inputs that have no free history.
+    prediction: IC near zero (the first reading, 2026-10-15, was -0.001 +- 0.027).
+    transform: {kind: baseline}
+
+  # ---- 1/N: is the weighting itself adding anything?
+  - id: equal-categories
+    hypothesis: Equal weight on every scored category does as well as the chosen weights.
+    source: DeMiguel, Garlappi & Uppal (2009), Review of Financial Studies 22(5) - optimised weights rarely beat 1/N out of sample.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: equal_categories}
+
+  # ---- each category alone: which carries the composite?
+  - id: only-valuation
+    hypothesis: Valuation alone ranks next month's returns.
+    source: Fama & French (1992); the lab - the earnings-yield gap among large companies reversed after 2007.
+    prediction: IC near zero or negative over 2020-2026; not distinguishable from the baseline.
+    transform: {kind: only_category, category: valuation}
+  - id: only-quality
+    hypothesis: Quality alone ranks next month's returns.
+    source: Novy-Marx (2013); Asness, Frazzini & Pedersen (2019); the lab - profitability is the factor that holds among large companies.
+    prediction: The highest IC of the single categories, positive; probably not distinguishable from the baseline in 38 months.
+    transform: {kind: only_category, category: quality}
+  - id: only-growth
+    hypothesis: Growth alone ranks next month's returns.
+    source: research/2026-10-12-growth-category.md - no published premium for growth as measured.
+    prediction: IC near zero; not distinguishable.
+    transform: {kind: only_category, category: growth}
+  - id: only-momentum
+    hypothesis: Momentum alone ranks next month's returns.
+    source: Jegadeesh & Titman (1993); the lab - large-company momentum about flat since 2000.
+    prediction: IC near zero with the widest month-to-month spread; not distinguishable.
+    transform: {kind: only_category, category: momentum}
+  - id: only-risk
+    hypothesis: The low-risk category alone ranks next month's returns.
+    source: Ang, Hodrick, Xing & Zhang (2006); Baker, Bradley & Wurgler (2011); the lab - similar return, lower volatility.
+    prediction: IC near zero or negative in a rising market, with the lowest volatility of the top tenth.
+    transform: {kind: only_category, category: risk}
+  - id: only-size
+    hypothesis: Size alone ranks next month's returns.
+    source: Fama & French (1992); the lab - between the two largest size groups the difference is small.
+    prediction: IC near zero; not distinguishable.
+    transform: {kind: only_category, category: size}
+  - id: only-investment
+    hypothesis: Investment (low asset growth) alone ranks next month's returns.
+    source: Cooper, Gulen & Schill (2008); Fama & French (2015); the lab - about half-size among large companies.
+    prediction: IC near zero; not distinguishable.
+    transform: {kind: only_category, category: investment}
+
+  # ---- leave one out: does any category hurt?
+  - id: drop-valuation
+    hypothesis: The composite without Valuation.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: valuation}
+  - id: drop-quality
+    hypothesis: The composite without Quality.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline; if any drop is worse, this one.
+    transform: {kind: drop_category, category: quality}
+  - id: drop-growth
+    hypothesis: The composite without Growth.
+    source: Leave-one-out ablation; research/2026-10-12-growth-category.md section 10 (Growth as the counterweight).
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: growth}
+  - id: drop-momentum
+    hypothesis: The composite without Momentum.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: momentum}
+  - id: drop-risk
+    hypothesis: The composite without Risk.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: risk}
+  - id: drop-size
+    hypothesis: The composite without Size.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: size}
+  - id: drop-investment
+    hypothesis: The composite without Investment.
+    source: Leave-one-out ablation.
+    prediction: Not distinguishable from the baseline.
+    transform: {kind: drop_category, category: investment}
+
+  # ---- published screens, built from the screener's own metrics
+  - id: magic-formula
+    hypothesis: Greenblatt's Magic Formula - cheap on operating earnings against enterprise value, high return on capital - ranks returns.
+    source: Greenblatt (2006), The Little Book That Beats the Market; EBIT/EV approximated by EV/EBITDA, return on capital by ROIC.
+    prediction: IC slightly positive; not distinguishable from the baseline.
+    transform:
+      kind: metrics
+      metrics: {valuation: {ev_ebitda: 50}, quality: {roic: 50}}
+  - id: piotroski-only
+    hypothesis: Piotroski's F-score alone ranks returns among large companies.
+    source: Piotroski (2000), Journal of Accounting Research 38 - the effect was concentrated in small, high book-to-market stocks.
+    prediction: IC near zero; not distinguishable.
+    transform:
+      kind: metrics
+      metrics: {quality: {piotroski_f_score: 100}}
+  - id: profitability-and-value
+    hypothesis: Gross profitability with value ranks better than either alone.
+    source: Novy-Marx (2013), JFE 108 - profitability and value are negatively correlated, so together they hedge; the lab's experiment 10.
+    prediction: IC positive and above only-quality and only-valuation; not distinguishable from the baseline.
+    transform:
+      kind: metrics
+      metrics: {valuation: {earnings_yield: 50}, quality: {gross_profit_assets: 50}}
+  - id: fcf-yield-only
+    hypothesis: Free-cash-flow yield, the screener's heaviest single metric, alone ranks returns.
+    source: Valuation's own construction (45% of Valuation); the lab's queued cash-flow-yield sort.
+    prediction: IC near zero; not distinguishable.
+    transform:
+      kind: metrics
+      metrics: {valuation: {fcf_yield: 100}}
+  - id: momentum-12-1-only
+    hypothesis: The classic 12-1 month return alone ranks returns.
+    source: Jegadeesh & Titman (1993); Asness, Moskowitz & Pedersen (2013).
+    prediction: IC near zero; not distinguishable.
+    transform:
+      kind: metrics
+      metrics: {momentum: {return_12_1: 100}}
+  - id: low-volatility-only
+    hypothesis: Low volatility alone ranks returns.
+    source: Ang et al. (2006); Frazzini & Pedersen (2014).
+    prediction: IC near zero or negative; the lowest top-tenth volatility of all.
+    transform:
+      kind: metrics
+      metrics: {risk: {volatility: 100}}
+
+  # ---- construction choices the screener already has switches for
+  - id: orthogonalised-categories
+    hypothesis: Removing the overlap between categories before combining them (Gram-Schmidt, the built-in switch) improves the ranking.
+    source: config.yaml factor_neutralization (built, switched off); the overlap of value and investment measured in the lab.
+    prediction: Not distinguishable from the baseline.
+    transform:
+      kind: config
+      set: {factor_neutralization.enabled: true, factor_neutralization.method: gram_schmidt}
+  - id: sector-relative-composite
+    hypothesis: Normalising the composite within each sector (the built-in switch) improves the ranking.
+    source: config.yaml sector_neutral.sector_relative_composite.
+    prediction: Not distinguishable from the baseline.
+    transform:
+      kind: config
+      set: {sector_neutral.sector_relative_composite: true}
+  - id: whole-market-percentiles
+    hypothesis: Ranking each metric across the whole market instead of within its sector does as well.
+    source: Asness, Porter & Stevens (2000), "Predicting stock returns using industry-relative firm characteristics" - industry-relative measures predicted better.
+    prediction: No better than the baseline, possibly worse.
+    transform: {kind: whole_market}
