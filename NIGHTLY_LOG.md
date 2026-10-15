@@ -11403,6 +11403,12 @@ owner marker through it, as the routine intends.
   are the period before." (claim `drilldown.newer_filing`, `tests/test_newer_filing.py`). The morning
   health note counts the ones over 30 days old. Display and reporting only - no score reads it.
 
+- **Measured, and not built: a per-stock fallback to the filings when the source is behind**
+  (`research/measurements/2026-10-15-staleness-stakes.py`; note `2026-10-14-yahoo-vs-sec.md` section
+  3c). Freshness gain: median 17.5 rank places for the 30 lagging stocks; definitions cost of
+  switching source for the same quarter: 20.5. A fallback would add more noise than it removes; the
+  lag is disclosed instead.
+
 ### Next
 - APTV-style restatement mixing and the source's stale quarters both point at the same question:
   should scoring ever read the filings when the source is demonstrably behind or inconsistent? It

@@ -173,6 +173,28 @@ should be a written choice with a source, not the row that happened to be there.
   instead of multiplying by 4/3 is a small, well-defined data fix for a later session (it changes
   inputs, so it needs a changelog entry).
 
+## 3c. When the source is behind: fall back to the filings, stock by stock? Measured: no (2026-10-15)
+
+On the run of 2026-10-15, **32 of 501 stocks were scored a quarter behind their own filings**, 16 by
+more than 70 days (AMZN, BAC, BA, BNY, TFC ...): the source lists the newer quarter as an empty
+column (`research/measurements/2026-10-15-statement-lag.py`). The obvious repair - score those stocks
+from their filings (`pit_record`) - was measured before anyone built it
+(`research/measurements/2026-10-15-staleness-stakes.py`, 30 of the 32 rebuildable):
+
+| The same 30 stocks, each rescored with everyone else unchanged | Median rank move |
+|---|---|
+| The **freshness gain**: filings as of the stale quarter -> filings as of the run date | **17.5** places (a third move 25+; CPRT 113, BAC 89; MU 28th -> 2nd) |
+| The **definitions cost**: the source -> the filings, for the *same* quarter | **20.5** places |
+| Both together: the source as served -> the filings as of the run date | 44 places |
+
+**So a per-stock fallback would add more noise than it removes**: the definitional gap between the
+source and the filings (the composite agrees at 0.88 across the universe, `research/2026-10-15-pit-record-validation.md`)
+is as large, stock for stock, as a quarter of staleness. Mixing two sources inside one cross-sectional
+ranking also breaks what a percentile means. The two coherent options are one source for every stock
+(a far larger decision, which the filings could support - section 2 of the validation note) or the
+source for every stock with the lag **disclosed**, which is what ships: Data Provenance says "A period
+behind the filings" and the morning health note counts the ones over 30 days old. Not proposed.
+
 ## 4. What this suggests building
 
 **Built the same night (2026-10-14):** the standing check below runs in the data loop's health

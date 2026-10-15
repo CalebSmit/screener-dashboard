@@ -1,0 +1,228 @@
+{
+ "run_date": "2026-10-15",
+ "stocks": 30,
+ "median_abs_rank_move": 17.5,
+ "share_moving_25_or_more": 0.333,
+ "max_abs_rank_move": 113,
+ "median_abs_composite_change": 1.105,
+ "top25_changed": [
+  "GEN",
+  "MPC",
+  "MU",
+  "TPR"
+ ],
+ "per_stock": [
+  {
+   "ticker": "CPRT",
+   "rank_stale": 368,
+   "rank_fresh": 255,
+   "move": 113,
+   "composite_change": 4.82
+  },
+  {
+   "ticker": "PEP",
+   "rank_stale": 305,
+   "rank_fresh": 210,
+   "move": 95,
+   "composite_change": 4.32
+  },
+  {
+   "ticker": "BAC",
+   "rank_stale": 189,
+   "rank_fresh": 100,
+   "move": 89,
+   "composite_change": 4.13
+  },
+  {
+   "ticker": "BNY",
+   "rank_stale": 187,
+   "rank_fresh": 117,
+   "move": 70,
+   "composite_change": 2.93
+  },
+  {
+   "ticker": "FLEX",
+   "rank_stale": 287,
+   "rank_fresh": 351,
+   "move": -64,
+   "composite_change": -2.63
+  },
+  {
+   "ticker": "CHRW",
+   "rank_stale": 139,
+   "rank_fresh": 199,
+   "move": -60,
+   "composite_change": -2.74
+  },
+  {
+   "ticker": "DRI",
+   "rank_stale": 257,
+   "rank_fresh": 305,
+   "move": -48,
+   "composite_change": -2.07
+  },
+  {
+   "ticker": "AEE",
+   "rank_stale": 90,
+   "rank_fresh": 137,
+   "move": -47,
+   "composite_change": -2.29
+  },
+  {
+   "ticker": "APH",
+   "rank_stale": 156,
+   "rank_fresh": 126,
+   "move": 30,
+   "composite_change": 1.34
+  },
+  {
+   "ticker": "MU",
+   "rank_stale": 28,
+   "rank_fresh": 2,
+   "move": 26,
+   "composite_change": 6.54
+  },
+  {
+   "ticker": "PAYX",
+   "rank_stale": 155,
+   "rank_fresh": 179,
+   "move": -24,
+   "composite_change": -1.08
+  },
+  {
+   "ticker": "COST",
+   "rank_stale": 246,
+   "rank_fresh": 270,
+   "move": -24,
+   "composite_change": -0.78
+  },
+  {
+   "ticker": "MRSH",
+   "rank_stale": 399,
+   "rank_fresh": 422,
+   "move": -23,
+   "composite_change": -1.35
+  },
+  {
+   "ticker": "CHD",
+   "rank_stale": 213,
+   "rank_fresh": 235,
+   "move": -22,
+   "composite_change": -1.03
+  },
+  {
+   "ticker": "CTAS",
+   "rank_stale": 248,
+   "rank_fresh": 229,
+   "move": 19,
+   "composite_change": 1.12
+  },
+  {
+   "ticker": "ILMN",
+   "rank_stale": 268,
+   "rank_fresh": 252,
+   "move": 16,
+   "composite_change": 0.64
+  },
+  {
+   "ticker": "CINF",
+   "rank_stale": 54,
+   "rank_fresh": 43,
+   "move": 11,
+   "composite_change": 1.53
+  },
+  {
+   "ticker": "STZ",
+   "rank_stale": 475,
+   "rank_fresh": 464,
+   "move": 11,
+   "composite_change": 1.77
+  },
+  {
+   "ticker": "TFC",
+   "rank_stale": 104,
+   "rank_fresh": 95,
+   "move": 9,
+   "composite_change": 0.77
+  },
+  {
+   "ticker": "ES",
+   "rank_stale": 47,
+   "rank_fresh": 39,
+   "move": 8,
+   "composite_change": 1.09
+  },
+  {
+   "ticker": "EXR",
+   "rank_stale": 81,
+   "rank_fresh": 73,
+   "move": 8,
+   "composite_change": 0.48
+  },
+  {
+   "ticker": "DAL",
+   "rank_stale": 69,
+   "rank_fresh": 76,
+   "move": -7,
+   "composite_change": -0.5
+  },
+  {
+   "ticker": "GIS",
+   "rank_stale": 473,
+   "rank_fresh": 478,
+   "move": -5,
+   "composite_change": -2.01
+  },
+  {
+   "ticker": "CPT",
+   "rank_stale": 79,
+   "rank_fresh": 74,
+   "move": 5,
+   "composite_change": 0.3
+  },
+  {
+   "ticker": "MKC",
+   "rank_stale": 491,
+   "rank_fresh": 494,
+   "move": -3,
+   "composite_change": -0.71
+  },
+  {
+   "ticker": "NKE",
+   "rank_stale": 371,
+   "rank_fresh": 368,
+   "move": 3,
+   "composite_change": 0.2
+  },
+  {
+   "ticker": "BA",
+   "rank_stale": 485,
+   "rank_fresh": 487,
+   "move": -2,
+   "composite_change": -0.99
+  },
+  {
+   "ticker": "CCL",
+   "rank_stale": 288,
+   "rank_fresh": 288,
+   "move": 0,
+   "composite_change": 0.12
+  },
+  {
+   "ticker": "LEN",
+   "rank_stale": 503,
+   "rank_fresh": 503,
+   "move": 0,
+   "composite_change": 0.2
+  },
+  {
+   "ticker": "AMZN",
+   "rank_stale": 404,
+   "rank_fresh": 404,
+   "move": 0,
+   "composite_change": -0.12
+  }
+ ],
+ "definitions_median_abs_rank_move": 20.5,
+ "source_to_fresh_filings_median_abs_rank_move": 44.0
+}
