@@ -105,6 +105,7 @@ FIELD_CLASSES = {
         "currentAssets", "currentAssets_prior", "currentLiabilities", "currentLiabilities_prior",
         "cash_bs", "cash_sti_bs", "sharesBS", "sharesBS_prior", "operatingCashFlow", "capex",
         "dividendsPaid", "da_cf", "_data_source", "_ltm_annualized", "_stmt_date_financials",
+        "_quarterly_rejected",
     ) + tuple(f"_beneish_{n}{s}" for n in BENEISH for s in ("", "_p")) + (
         "_beneish_net_income", "_beneish_ocf"),
     # fundamentals over a price: market_fields() at the caller's price
