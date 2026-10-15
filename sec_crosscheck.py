@@ -143,6 +143,101 @@ def summary(df) -> dict:
     return out
 
 
+# --------------------------------------------------------------- what the capex figure contains
+# 2026-10-15, research/2026-10-14-capex-definition.md section 5. Yahoo's `Capital Expenditure`
+# row is a sum, and for a company with a captive finance arm most of it can be the vehicles or
+# equipment that arm buys to lease to customers - 61% of GM's. The companies themselves report
+# free cash flow for the industrial business only, from that segment's own operating cash flow,
+# which this screener's consolidated ratio does not separate. Refusing to publish the figure, or
+# restating it, were both weighed and refused (section 5); saying what it contains is what is
+# left, and every number in the note below is the company's own filed figure.
+#
+# Display-only, like everything else in this module: a test fails if a scoring module imports it.
+LEASE_PURCHASE = ("PaymentsToAcquireLeasesHeldForInvestment", "PaymentsToAcquireEquipmentOnLease",
+                  "PaymentsToAcquireLoansAndLeasesHeldForInvestment")
+LEASE_PROCEEDS = ("ProceedsFromLeasesHeldForInvestment", "ProceedsFromSaleOfEquipmentOnLease")
+PPE_PURCHASE = ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets")
+# A share of capex below this is not worth a sentence on the row. 10% is a tenth of the metric's
+# input, pre-registered rather than fitted: on the 2026-10-15 cache it selects GM (61%), DE (69%),
+# CAT (37%) and PCAR (53%) - the four the proposal named - and nothing else.
+LEASE_SHARE_MIN = 0.10
+# The note tells the reader the lease purchases are *part of* the capex above, so that has to be
+# true of this company and not merely of the four that were checked by hand. It is asserted:
+# filed PP&E + filed lease purchases must come within 5% of the capex the run used. Ford is why -
+# it files $55.7B of loan and lease purchases, 5.8x its capex, because Yahoo's Ford capex already
+# excludes Ford Credit (section 4 of the note). Without this check the row would tell a reader
+# that 577% of Ford's capex was vehicles for lease.
+LEASE_RECONCILE_TOL = 0.05
+
+
+def lease_book(payload: dict, facts):
+    """``{ticker: {...}}`` for every stock whose own filings report purchases of assets to lease
+    out worth ``LEASE_SHARE_MIN`` or more of the capex the run used **and** account for the
+    difference between that capex and the company's filed property, plant and equipment.
+
+    Each value holds the run's ``capex``, the filed ``ppe`` and ``purchases`` it splits into, the
+    purchases' ``share`` of it, the ``proceeds`` leg where the company files one (only GM of the
+    four, 2026-10-15), the concepts the company tags, and the cash-flow quarter the twelve months
+    end at. Figures are rebuilt for the same period as the cash flow the run scored, by the same
+    code as the filing check above."""
+    import pandas as pd
+    facts = facts[facts["form"].isin(FORMS)]
+    by_ticker = dict(tuple(facts.groupby("ticker")))
+    out = {}
+    for t, det in (payload.get("stock_detail") or {}).items():
+        inp, asof = det.get("inp") or {}, det.get("asof") or {}
+        capex, when, f_t = inp.get("capex"), asof.get("cf"), by_ticker.get(t)
+        if capex is None or not when or f_t is None:
+            continue
+        capex = abs(float(capex))
+        if capex <= 0:
+            continue
+        end = pd.Timestamp(when)
+        purchases, concept, _ = sec_value(f_t, LEASE_PURCHASE, "flow", end)
+        if purchases is None or purchases <= 0:
+            continue
+        share = purchases / capex
+        if share < LEASE_SHARE_MIN or share > 1:
+            continue
+        ppe, ppe_concept, _ = sec_value(f_t, PPE_PURCHASE, "flow", end)
+        if ppe is None or abs(ppe + purchases - capex) > LEASE_RECONCILE_TOL * capex:
+            continue
+        proceeds, p_concept, _ = sec_value(f_t, LEASE_PROCEEDS, "flow", end)
+        out[t] = {"capex": capex, "ppe": float(ppe), "purchases": float(purchases),
+                  "share": round(share, 4),
+                  "proceeds": None if proceeds is None else float(proceeds),
+                  "concept": concept, "ppe_concept": ppe_concept, "proceeds_concept": p_concept,
+                  "asof": str(when)[:10]}
+    return out
+
+
+def _usd(v) -> str:
+    """$1.2B / $340M, the page's own scale for a cash-flow figure."""
+    a = abs(float(v))
+    return f"${a / 1e9:,.1f}B" if a >= 1e9 else f"${a / 1e6:,.0f}M"
+
+
+def lease_capex_note(entry: dict) -> str:
+    """The sentence the FCF-yield row carries for one stock, from `lease_book`'s filed figures.
+
+    Says three things and nothing else: how much of the capex above is assets bought to lease to
+    customers, the proceeds leg where the company files it, and that the company's own free cash
+    flow covers the industrial business only. It never says what to do about any of that - the
+    note is provenance, not a verdict (claim `drilldown.capex_lease_note`)."""
+    s = (f"The {_usd(entry['capex'])} of capital expenditure above is {_usd(entry['ppe'])} of "
+         f"property, plant and equipment plus {_usd(entry['purchases'])} "
+         f"({entry['share'] * 100:.0f}% of it) that this company's own filings report as equipment "
+         f"or vehicles bought to lease to customers - the asset side of its finance arm, which it "
+         f"tags {entry['concept']}.")
+    if entry.get("proceeds"):
+        s += (f" The {_usd(entry['proceeds'])} received when those assets are sold at the end of a "
+              f"lease is an investing receipt ({entry['proceeds_concept']}) and is in neither "
+              f"figure above.")
+    return s + (" A company with a finance arm reports free cash flow for its industrial business "
+                "only, starting from that segment's own operating cash flow; this ratio uses the "
+                "consolidated figure on both sides, so it is not the company's own measure.")
+
+
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
                   "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
                   "WeightedAverageNumberOfSharesOutstandingBasic")
