@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 14 October 2026, 08:16
+# Morning Brief - Wednesday 14 October 2026, 22:12
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,7 +7,7 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **failed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-14T02:00:10.255065 |
 | Stocks scored | 501 |
@@ -20,6 +20,12 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `0c8730d log: 2026-10-14 13:00 session - context-layer item 4's three findings closed`
+- `1091181 context: withhold a skew whose legs cannot show the construction, and fix the window clause`
+- `3cfd9b8 research: the skew construction, read from the papers, and a correction to the 10-12 note`
+- `c09d343 context: the put skew is the measure the paper the page cites measured`
+- `38503b7 tests: the suite no longer rewrites the published universe`
+- `88a93c1 brief: report the newest code session that actually ran; a dry run publishes nothing`
 - `c45178e brief: code session 2026-10-14-midday`
 - `dfd94fb routine: two extra scheduled code sessions - 13:00 daily and weekend mornings`
 - `4f0c64c brief: code session 2026-10-14`
@@ -29,56 +35,55 @@ history is in `NIGHTLY_LOG.md`.
 - `1daf857 changelog: the dividend-yield defect, its fix and the second derivation it exposed`
 - `3e27f14 health: refuse a run where a weighted metric vanished across the universe`
 - `53d9c5f churn: a metric the whole universe lost is a source event, not one stock's`
-- `fa77fe7 fix: the source dropped dividendRate - restore the yield from the trailing rate`
-- `34859a8 brief: data run 2026-10-14`
-- `ccbc795 data: screener run 2026-10-14 - 501 scored, top: EXPE INCY HST APA SNDK`
-- `d7c1b71 brief: code session 2026-10-13`
-- `1a027ac growth: record the refusal in the docs, and generalise the open-proposal test`
-- `99ec010 growth: record the decision on the page, the lab scorecard and the plan`
 
 ## The session's own account
 
-> 2026-10-14 (owner-run, morning) - two extra scheduled code sessions a day
+> 2026-10-14 (13:00 session) - QUEUE. The options panel now cites a paper for the number it actually computes
 > 
-> **Health (rule 8):** both loops ran today - `logs/datarun-2026-10-14_020002.log` ends "Data loop
-> complete", HEALTH: PASS; `logs/nightly-2026-10-14_060001.log` ends "Run complete: shipped to
-> main". Evidence base at `1m`: **29 rows, newest 2026-09-14 (30 days, bound 40), 4 effective**.
-> Priority 0 unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2
-> days).
-> **Tests:** before 2274 passed / 0 failed; after 2285 passed / 0 failed.
-> 
-> ### The owner asked
-> *"i want you to be doing more, scheduling more runs. I want to speed up the development of these
-> tools please"*
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-14_060001.log`
+> ends "Run complete: shipped to main". Data loop published? **yes** -
+> `logs/datarun-2026-10-14_020002.log` ends "Data loop complete", HEALTH: PASS. (The 21:12 data run
+> stood down correctly: "already completed successfully today".) Evidence base at `1m`: **29 rows,
+> newest 2026-09-14 (30 days ago, bound 40), 4 effective** - inside the bound, and the data log's own
+> line agrees ("4 effective (29 rows) at the 1m horizon"). Priority 0: unchanged, `allow_auto_apply`
+> false, 4 of 8 effective. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 2
+> days**).
+> **Tests:** before **2,288 passed / 1 error**, after **2,317 passed / 0 errors**.
+> **Owner queue / rotation:** took the **context layer** (`plan/context-layer.md` item 4), which is
+> what the 06:00 session's **Next** named and what it had deferred for a red gate. The Factor Lab is
+> not deferred so much as **scheduled**: its own rule is one finished experiment on a Friday, and
+> 2026-10-16 is a retrospective, so its next day is 2026-10-23. No proposal is waiting for a decision.
 > 
 > ### Did
-> - **`Screener Midday Session` (13:00 every day) and `Screener Weekend Session` (06:00 Sat-Sun)**,
->   both `scripts/nightly-screener.ps1` with a new `-Slot`. Fourteen code sessions a week instead
->   of five. Same gates, lock, merge and tag as the 06:00 session; their own once-a-day markers,
->   logs (`nightly-<stamp>-midday.log`) and focus (`QUEUE`: carry on from the morning's Next).
-> - **They are built not to collide**, because the owner works in this same folder:
->   `logs/.owner-session` stands every slot down before any git command; an extra slot that finds
->   the tree dirty or off `main` stands down without stashing or switching anything (the 06:00
->   slot still recovers real leftovers); a 429 writes `logs/.usage-limited` and the extra slots
->   stand down for 24 hours. No logon trigger and no late catch-up for either.
-> - **Exercised on the real runner** before registering: on this branch with a dirty tree,
->   `-Slot midday -DryRun` stood down with "the tree is dirty on 'owner/2026-10-14-more-sessions' -
->   ... Nothing was stashed or switched"; with the owner marker present it stood down before any
->   git command; `-Slot bogus` refused. `git stash list` empty and no lock left behind after each.
-> - `tests/test_extra_sessions.py`, 11 tests; the task-count test now counts five. The brief's row
->   reads "Code session (latest)". CLAUDE.md and `prompts/nightly.md` say a session may not be the
->   first today, and that owner-run sessions create and remove `logs/.owner-session`.
 > 
-> ### Methodology changed
-> - None.
+> **0. The baseline was red, and it was mine to fix before anything else.**
+> `python -m pytest tests/ test_screener.py -q` gave **2,288 passed, 1 error**: the `conftest.py`
+> tripwire reporting *"A test wrote published artifacts (restored): sp500_tickers.json"*. The same
+> command was green at 06:40 and at the owner-run session after it.
 > 
-> ### Gates
-> 1. **2285 passed / 0 failed** (baseline 2274 / 0). 2. `run_screener.py --dry-run`
-> **DRY-RUN PASSED**. 3. payload and lab files pass `node --check`. 4. `git status --porcelain`
-> clean after the commit.
+> `test_screener.py`'s **session-scoped `universe_df` fixture** called
+> `factor_engine.get_sp500_tickers()`, which goes to the network and **rewrites the published
+> `sp500_tickers.json` whenever a source succeeds**. So the write happened only when the network was
+> up *and* the fetched universe differed from the committed one - which is why the 2026-10-09 per-test
+> write detector reported "exactly three tests" and missed this one: it ran on a day the fetch did not
+> change the file. The module's own docstring had been promising "no network calls" since before any
+> of this.
 > 
-> **Machine state, rule 11:** `scripts/register-tasks.ps1` run after the merge and all five tasks
-> read back with `Get-ScheduledTask` - recorded in the commit that follows this one.
+> That matters more than a flaky test, because **the runner re-runs all four gates before merging**: a
+> gate-1 failure whose trigger is outside the repo blocks the unattended merge for a reason no session
+> can reproduce. The fixture now reads the committed file, as `test_tiny_pipeline` already did.
+> 
+> The loader keeps real coverage and gains the assertion that was missing: with every network source
+> refused it falls back to the committed universe and leaves it **byte-identical**.
+> `tests/test_published_artifact_isolation.py` (5) is the tripwire - an AST scan over all **98** test
+> sources finds every call to a loader that writes a published artifact and fails unless it is that
+> one stubbed test (verified non-vacuous: it finds exactly one call site and attributes it correctly).
+> Two further tests stop a later session shortening `conftest.PROTECTED_PATHS` or downgrading its
+> `pytest.fail` to a silent restore.
+> 
+> **1. The put skew now is the measure the paper beside it measured.**
+> `plan/context-layer.md` item 4 left three findings open, all the same shape: *a figure from a paper
+> ...
 
 ---
 
