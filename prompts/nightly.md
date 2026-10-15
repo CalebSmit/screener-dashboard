@@ -184,16 +184,15 @@ synthesis fits it to the other categories, and a changelog entry makes **one cha
 a time, of at most 3 points**. The lab never sets a parameter and no scoring module may
 import it. Three things to know before you start:
 
-- **A proposal is waiting for you.** `research/2026-10-12-growth-category.md`, section 7:
-  Growth 13 -> 10, Quality 22 -> 25, written up with the case against it by the session
-  that researched it, and left for a session that did not. **Review it and decide** - it
-  is an open `OWNER_FOCUS.md` item, so it outranks the day's focus. Build it with a
-  changelog entry, or refuse it and write down why; section 7 has the argument, four
-  reasons to refuse, and a **pre-flight** listing exactly which eight tests the change
-  trips and what each needs. Do not decide it by skimming, and do not leave it undecided.
-  When you have decided, rewrite the note's `**Proposal status: OPEN**` line (the morning
-  brief lists every open one with its age until you do). A future note that proposes a
-  change for someone else to decide carries the same line.
+- **Proposals wait for a second session.** A research note may end in a proposal its author
+  deliberately did not build, carrying the line `**Proposal status: OPEN** - <what>`. The morning
+  brief's "Waiting for a decision" section lists every open one with its age. **If one is listed,
+  review it and decide** before the day's focus - it is an open `OWNER_FOCUS.md` item. Build it
+  with a changelog entry, or refuse it and write down why; then rewrite the status line. Do not
+  decide by skimming, and do not leave it undecided. The 2026-10-12 Growth proposal is the worked
+  example: the 2026-10-13 session measured what the note had not, found the proposal undercut its
+  own premise, and refused it (that note's section 10). Open on 2026-10-14:
+  `research/2026-10-14-capex-definition.md` section 4 (finance-arm leases out of FCF capex).
 - **Reading rules were written before the questions were researched** (same section of
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock
