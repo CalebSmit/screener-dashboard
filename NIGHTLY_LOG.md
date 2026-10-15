@@ -11382,8 +11382,14 @@ owner marker through it, as the routine intends.
   ROIC 1.2% -> 2.7%; every other stock unchanged. METHODOLOGY_CHANGELOG 2026-10-15 (owner-run);
   `tests/test_negative_quarter.py`, 4 tests.
 
+- **The filing check compares revenue with the filed line nearest the run's figure** (not the
+  largest line): within 0.5% 363 -> 371 of 410, over 10% 13 -> 8. It also surfaced **APTV**, a second
+  restatement case the fetch cannot see (a post-separation quarter summed with three pre-separation
+  ones, none negative) - recorded in the note as a finding; reading filings inside scoring would be
+  its own decision.
+
 ### Next
-- The filing check's revenue comparison still uses "the largest revenue tag", which made WMB, RSG
-  and HAS look like disagreements; comparing against the filed revenue line nearest Yahoo's (a real
-  line, so a corrupted number still matches none) would leave the ATTENTION count for real defects.
+- APTV-style restatement mixing: is there a way to detect it from the source's own statements (a
+  quarter whose level breaks from the restated comparative), or does it need the filings in
+  scoring? A research question, not a patch.
 

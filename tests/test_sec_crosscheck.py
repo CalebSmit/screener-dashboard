@@ -231,3 +231,21 @@ def test_a_cache_that_stopped_refreshing_calls_attention_but_does_not_fail(tmp_p
     assert any(n.startswith("ATTENTION - the SEC companyfacts cache is 20 days old") for n in res.notes)
     assert h.CACHE_STALE_DAYS == 14
 
+
+def test_revenue_is_compared_with_the_filed_line_nearest_the_runs():
+    """Williams files Revenues of 12.20 and contract revenue of 15.43 for the same year; Yahoo
+    reports the first. Republic Services the other way round. Either agrees with a line the company
+    filed; a figure matching no line still disagrees (2026-10-15)."""
+    f = frame([fact("W", "Revenues", "2025-01-01", "2025-12-31", 12.2, "2026-02-10", "10-K"),
+               fact("W", "RevenueFromContractWithCustomerExcludingAssessedTax", "2025-01-01", "2025-12-31", 15.43,
+                    "2026-02-10", "10-K")])
+    assert X.sec_value(f, X.REVENUE, "flow", T("2025-12-31"), near=12.2)[:2] == (12.2, "Revenues")
+    assert X.sec_value(f, X.REVENUE, "flow", T("2025-12-31"), near=15.4)[0] == 15.43
+    v, _, _ = X.sec_value(f, X.REVENUE, "flow", T("2025-12-31"), near=4.7)
+    assert abs(4.7 - v) / max(abs(v), 4.7) > X.FAR            # a corrupted figure still disagrees
+    # Camden: the component tag is never nearest a whole-company figure
+    g = frame([fact("CPT", "Revenues", "2025-01-01", "2025-12-31", 1_570, "2026-02-10", "10-K"),
+               fact("CPT", "RevenueFromContractWithCustomerExcludingAssessedTax", "2025-01-01", "2025-12-31", 12.6,
+                    "2026-02-10", "10-K")])
+    assert X.sec_value(g, X.REVENUE, "flow", T("2025-12-31"), near=1_571.75)[1] == "Revenues"
+
