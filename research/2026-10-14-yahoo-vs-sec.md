@@ -75,6 +75,30 @@ separate reading of each 10-Q):
 reassuring result - with the honest qualifier that the check covers the inputs that have a clean
 XBRL counterpart, and the cache is up to a week behind.
 
+## 2b. Share counts and market value
+
+`research/measurements/2026-10-14-shares-vs-sec.py`. Market value feeds enterprise value, earnings
+yield, free-cash-flow yield and the size tilt, so it is checked as scoring uses it: market value /
+price (the share count Yahoo's market value implies) against the latest filed weighted-average
+diluted shares, for the 486 stocks with a filing from the last nine months.
+
+- **Within 5% for 91.8%**; 22 over 10% apart, 13 over 25%.
+- **Every gap over 10% examined has a cause other than a wrong market value:** splits after the
+  filed quarter (KLAC 10-for-1 on 2026-06-12, MNST 2-for-1 on 2026-08-11, APH 2-for-1 on
+  2026-09-03 - Yahoo has applied them, the filed counts predate them); partnership-unit structures
+  where market value counts every economic unit and the filing only the listed class (IBKR, TKO,
+  BX, CVNA); and two filers' own tagging errors (MCD's count tagged ~1,000,000x too small, WAT's
+  1,000x too large).
+- **The three 2026 splits are handled consistently downstream**: trailing EPS matches net income
+  over shares, analyst targets sit near the post-split price, and the 90-day estimate revision
+  compares post-split figures with split-adjusted ones (KLAC fy1 EPS 5.44 against 5.17 ninety days
+  earlier, a 0.15% revision). The split-scale guard (CLAUDE.md row 1.5) is doing its job.
+- Yahoo's *displayed* share count (Company Snapshot) is per share class for multi-class companies
+  (GOOGL 5.87B of 12.3B); market value is the whole company. Display only - nothing scores it.
+
+This check now runs in the data loop's health note beside the others, with its own attention line
+(60 stocks over 10%, about three times that day's resting count).
+
 ## 3. Capital expenditure: one definition, large effects for a few companies
 
 The screener's free cash flow is operating cash flow minus Yahoo's `Capital Expenditure` row

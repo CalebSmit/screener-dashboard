@@ -262,6 +262,11 @@ def check_metric_availability(res: Result) -> None:
 # definition for 46 stocks, and gross profit is compared for too few to say much.
 CROSSCHECK_FIELDS = ("total_assets", "operating_cash_flow", "equity", "net_income", "revenue")
 CROSSCHECK_ATTENTION = 25          # 5% of the universe, about twice the noisiest field's count
+# Market value against the filed share count has a higher resting level - splits after the
+# filed quarter and partnership-unit structures put 22 stocks over 10% on 2026-10-14 - so its
+# own line, about three times that. A market value served at the wrong scale for a whole sector
+# or source would cross it the same morning.
+MARKET_VALUE_ATTENTION = 60
 
 
 def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None:
@@ -295,7 +300,20 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
         return
     parts = [f"{name.replace('_', ' ')} {s['within_half_pct']}/{s['compared']} within 0.5% "
              f"({s['over_10pct']} over 10%)" for name, s in stats.items()]
+    try:
+        mv = X.market_value_check(payload, facts)
+        far = int(((mv["ratio"] - 1).abs() > X.FAR).sum())
+        parts.append(f"market value / price vs filed shares {int(((mv['ratio'] - 1).abs() <= 0.05).sum())}/{len(mv)} "
+                     f"within 5% ({far} over 10%)")
+    except Exception as exc:  # noqa: BLE001
+        far = 0
+        parts.append(f"market value not checked ({type(exc).__name__})")
     res.note("inputs against SEC filings: " + "; ".join(parts))
+    if far > MARKET_VALUE_ATTENTION:
+        res.note(f"ATTENTION - market value implies a share count more than 10% from the filed one for {far} "
+                 f"stocks (the line is {MARKET_VALUE_ATTENTION}; 2026-10-14 had 22, mostly splits and "
+                 f"partnership units). Every valuation ratio rests on market value. Not a refusal - see "
+                 f"research/2026-10-14-yahoo-vs-sec.md.")
     for name, s in stats.items():
         if s["over_10pct"] > CROSSCHECK_ATTENTION:
             res.note(f"ATTENTION - {name.replace('_', ' ')} differs from the companies' filings by more "
