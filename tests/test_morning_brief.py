@@ -250,3 +250,33 @@ class TestTheNewestSession:
         dry = runner[runner.index("    if ($DryRun) {"):]
         assert dry.index("$SkipBrief = $true") < dry.index("exit 0")
 
+
+class TestFilingCheckRow:
+    """The brief carries the data run's agreement with the SEC filings (2026-10-14), so the owner
+    sees every morning how well the inputs matched the companies' own figures."""
+
+    LINE = ("[02:20:31] [INFO]     ok   inputs against SEC filings: revenue 363/410 within 0.5% (13 over 10%); "
+            "net income 397/421 within 0.5% (7 over 10%); operating cash flow 406/411 within 0.5% (1 over 10%); "
+            "total assets 425/426 within 0.5% (0 over 10%); equity 417/426 within 0.5% (2 over 10%); "
+            "market value / price vs filed shares 447/487 within 5% (22 over 10%)")
+
+    def test_the_row_keeps_the_four_figures_that_sit_near_all(self):
+        assert wb.filing_check([self.LINE]) == (
+            "total assets 425/426 within 0.5%; operating cash flow 406/411 within 0.5%; "
+            "net income 397/421 within 0.5%; market value 447/487 within 5%")
+
+    def test_an_attention_note_is_pointed_to(self):
+        lines = [self.LINE, "[02:20:31] [INFO]     ok   ATTENTION - total assets differs from the companies' filings"]
+        assert wb.filing_check(lines).endswith("see the ATTENTION note below**")
+
+    def test_no_line_means_no_row_rather_than_a_guess(self):
+        assert wb.filing_check(["[02:20:31] [INFO] === Data loop complete ==="]) == ""
+        assert wb.filing_check([]) == ""
+
+    def test_the_brief_adds_the_row_only_when_there_is_one(self):
+        src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
+        assert "_filings = filing_check(tail(data_log))" in src and "if _filings:" in src
+        # the line it reads is the one the health check prints
+        health = (ROOT / "scripts" / "check_run_health.py").read_text(encoding="utf-8")
+        assert '"inputs against SEC filings: "' in health and wb.FILING_LINE == "inputs against SEC filings: "
+

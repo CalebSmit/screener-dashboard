@@ -303,6 +303,30 @@ def open_proposals(research_dir: Path | None = None, today: datetime | None = No
     return out
 
 
+FILING_LINE = "inputs against SEC filings: "
+
+
+def filing_check(lines: list[str]) -> str:
+    """The data run's agreement with the companies' own SEC filings, short enough for one row.
+
+    The health check prints one line per run (``check_inputs_against_filings``, 2026-10-14); this
+    keeps the four figures that sit near 100% when nothing is wrong. Empty when the run printed
+    none (an older run, or the cache missing) - the row is then left out, never guessed."""
+    import re
+    line = next((ln for ln in reversed(lines) if FILING_LINE in ln), "")
+    if not line:
+        return ""
+    body = line.split(FILING_LINE, 1)[1]
+    keep = []
+    for label, short in (("total assets", "total assets"), ("operating cash flow", "operating cash flow"),
+                         ("net income", "net income"), ("market value / price vs filed shares", "market value")):
+        m = re.search(re.escape(label) + r" (\d+)/(\d+) within (\S+)", body)
+        if m:
+            keep.append(f"{short} {m.group(1)}/{m.group(2)} within {m.group(3)}")
+    attention = any("ATTENTION - " in ln for ln in lines)
+    return "; ".join(keep) + (" - **see the ATTENTION note below**" if attention and keep else "")
+
+
 def last_log_entry() -> str:
     """The most recent dated section of NIGHTLY_LOG.md, lightly trimmed."""
     p = ROOT / "NIGHTLY_LOG.md"
@@ -374,6 +398,9 @@ def main() -> int:
             a(f"| Top 5 | {', '.join(facts['top5'])} |")
     a(f"| Evidence for weight changes | {ic_observations()} |")
     a(f"| Context signals | {context_record()} |")
+    _filings = filing_check(tail(data_log))
+    if _filings:
+        a(f"| Inputs vs SEC filings | {_filings} |")
     a(f"| Context coverage | {context_coverage()} |")
     a("")
 
