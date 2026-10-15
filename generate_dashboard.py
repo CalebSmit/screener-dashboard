@@ -770,7 +770,7 @@ def _facts(facts=None):
     return _FACTS_CACHE[key]
 
 
-def _attach_filing_check(stock_detail: dict, facts=None) -> int:
+def _attach_filing_check(stock_detail: dict, facts=None, run_date=None) -> int:
     """Add ``xchk`` = {short field: (Yahoo - filing) / larger} to every stock with at least one
     comparable figure. Reads the weekly SEC cache the run keeps (no network); returns how many
     stocks were checked, 0 when the cache is absent or anything fails - provenance must never
@@ -786,6 +786,14 @@ def _attach_filing_check(stock_detail: dict, facts=None) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"WARNING: filing check skipped ({type(exc).__name__}: {exc})")
         return 0
+    # a period the company has filed that the run's figures are behind (display-only, 2026-10-15)
+    try:
+        for ticker, nf in X.newer_filings({"stock_detail": stock_detail,
+                                           "kpis": {"run_timestamp": run_date}},
+                                          facts).items():
+            stock_detail[ticker]["newer_filing"] = nf
+    except Exception as exc:  # noqa: BLE001 - provenance must never stop a build
+        print(f"WARNING: newer-filing check skipped ({type(exc).__name__}: {exc})")
     checked = 0
     if df.empty or "rel_diff" not in df:
         return 0
@@ -1445,7 +1453,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
     _reconcile_scores(weights, stock_detail, run_data.get("cfg") or {})
 
     # Provenance, after the scores are settled: which inputs agree with the company's own filing.
-    _n_checked = _attach_filing_check(stock_detail)
+    # run_date: a rebuild of an old run must never count a filing made after it
+    _n_checked = _attach_filing_check(stock_detail, run_date=meta.get("start_time"))
     if _n_checked:
         print(f"Filing check: inputs compared with SEC filings for {_n_checked} stocks")
     _n_lease = _attach_capex_lease_note(stock_detail)
@@ -4292,6 +4301,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
         if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
         html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        if (s.newer_filing && s.newer_filing.end) {{
+            const nf = s.newer_filing;
+            html += '<p class="provenance-line provenance-limit" id="provenance-newer-filing"><strong>A period behind the filings.</strong> The company filed its ' +
+                escapeHtml(nf.form) + ' for the period to ' + fmtD(nf.end) + ' on ' + fmtD(nf.filed) +
+                '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>';
+        }}
         const xk = s.xchk || {{}};
         const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
         const listed = function(a) {{ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }};

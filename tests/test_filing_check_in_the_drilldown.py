@@ -65,7 +65,7 @@ def test_a_build_without_the_cache_omits_the_check_rather_than_failing():
 def test_the_check_runs_after_the_scores_are_settled():
     src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
     body = src[src.index("def prepare_dashboard_data"):]
-    assert body.index("_reconcile_scores(weights, stock_detail") < body.index("_attach_filing_check(stock_detail)")
+    assert body.index("_reconcile_scores(weights, stock_detail") < body.index("_attach_filing_check(stock_detail")
 
 
 def test_the_panel_calls_agreement_at_2_percent():

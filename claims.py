@@ -449,6 +449,20 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"checks the underlying figures against the companies' own SEC filings",
     ),
     Claim(
+        id="drilldown.newer_filing",
+        surface=DRILLDOWN,
+        asserts=(
+            "When the run's income statement for a stock ends a quarter or more before the newest "
+            "period the company had filed with the SEC by the run date, the panel names that filing "
+            "and its date and says the figures shown are the period before."
+        ),
+        made_true_by="sec_crosscheck:newer_filings",
+        checked_by=(
+            "tests/test_newer_filing.py::test_a_stock_behind_its_filings_is_named",
+            "tests/test_newer_filing.py::test_the_panel_says_the_figures_are_the_period_before",
+        ),
+    ),
+    Claim(
         id="overview.lookahead_size",
         surface=OVERVIEW,
         asserts=(

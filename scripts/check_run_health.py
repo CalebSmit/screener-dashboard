@@ -316,6 +316,17 @@ def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None
     except Exception as exc:  # noqa: BLE001
         far = 0
         parts.append(f"market value not checked ({type(exc).__name__})")
+    try:
+        # scored a period behind a filing the company made more than 30 days before the run - the
+        # source's lag, not the company's (2026-10-15: 16 stocks incl. AMZN, BAC, BA)
+        import pandas as _pd
+        _run = _pd.Timestamp(str((payload.get("kpis") or {}).get("run_timestamp") or _pd.Timestamp.today())[:10])
+        _late = sorted(t for t, nf in X.newer_filings(payload, facts).items()
+                       if (_run - _pd.Timestamp(nf["filed"])).days > 30)
+        parts.append(f"{len(_late)} stocks scored a period behind a filing over 30 days old"
+                     + (f" ({', '.join(_late[:8])}{'...' if len(_late) > 8 else ''})" if _late else ""))
+    except Exception as exc:  # noqa: BLE001
+        parts.append(f"filing lag not checked ({type(exc).__name__})")
     if cache_days is not None:
         parts.append(f"SEC cache {cache_days:.0f} days old")
     res.note("inputs against SEC filings: " + "; ".join(parts))

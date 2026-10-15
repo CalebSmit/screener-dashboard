@@ -142,6 +142,35 @@ def compare(payload: dict, facts, fields=FIELDS):
     return pd.DataFrame(rows)
 
 
+NEWER_FILING_DAYS = 45      # a period end this much later than the run's is a newer quarter, not a date wobble
+
+
+def newer_filings(payload: dict, facts, today=None) -> dict:
+    """``{ticker: {"end", "filed", "form"}}`` for every stock whose income statement in the run ends
+    a quarter or more before the newest period the company had filed with the SEC by the run date.
+
+    2026-10-15: 32 of 501 stocks were scored a quarter behind a filed 10-Q, 16 of them by more than
+    70 days (Amazon, Bank of America, Boeing - the source lists the newer quarter as a column with 4
+    or 5 rows and nothing in it). The engine is right not to read an empty column; the reader should
+    still know the figures are the quarter before, and why. Display and reporting only.
+    research/measurements/2026-10-15-statement-lag.py"""
+    import pandas as pd
+    run = pd.Timestamp(today) if today is not None else pd.Timestamp(
+        str((payload.get("kpis") or {}).get("run_timestamp") or pd.Timestamp.today())[:10])
+    f = facts[facts["form"].isin(("10-K", "10-Q")) & facts["start"].notna() & (facts["filed"] <= run)]
+    newest = {t: g.loc[g["end"].idxmax()] for t, g in f.groupby("ticker")}
+    out = {}
+    for t, det in (payload.get("stock_detail") or {}).items():
+        used = (det.get("asof") or {}).get("is")
+        r = newest.get(t)
+        if not used or r is None:
+            continue
+        if (r["end"] - pd.Timestamp(used)).days > NEWER_FILING_DAYS:
+            out[t] = {"end": str(r["end"].date()), "filed": str(pd.Timestamp(r["filed"]).date()),
+                      "form": str(r["form"])}
+    return out
+
+
 def summary(df) -> dict:
     """Per field: how many were compared, how many agree within 0.5%, how many differ by over 10%."""
     import pandas as pd

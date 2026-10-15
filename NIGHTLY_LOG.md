@@ -11388,8 +11388,24 @@ owner marker through it, as the routine intends.
   ones, none negative) - recorded in the note as a finding; reading filings inside scoring would be
   its own decision.
 
+- **Tried and rejected: catching APTV from the source's own statements** by checking that a fiscal
+  year's four quarters sum to its annual figure (`research/measurements/2026-10-15-quarters-vs-annual-scan.py`).
+  The source carries five quarters, so only 72 of 503 companies have all four of their last fiscal
+  year - APTV not among them - and none of the 72 is off by more than 2%. A rule that cannot see the
+  case it is for was not built.
+- **Measured: 32 of 501 stocks scored a period behind their own filings**
+  (`research/measurements/2026-10-15-statement-lag.py`); for 16 the newer 10-Q was over 70 days old
+  - AMZN, BAC, BA, BNY, TFC, CHD, APH and others. Not an engine fault: the source lists the newer
+  quarter as an empty column (4-5 rows, nothing in revenue or income), and the engine rightly reads
+  the last populated one. **Now said:** `sec_crosscheck.newer_filings` -> `stock_detail[t].newer_filing`
+  -> Data Provenance: "A period behind the filings. The company filed its 10-Q for the period to ...
+  on ...; the data source had not published that period when this run fetched, so the figures here
+  are the period before." (claim `drilldown.newer_filing`, `tests/test_newer_filing.py`). The morning
+  health note counts the ones over 30 days old. Display and reporting only - no score reads it.
+
 ### Next
-- APTV-style restatement mixing: is there a way to detect it from the source's own statements (a
-  quarter whose level breaks from the restated comparative), or does it need the filings in
-  scoring? A research question, not a patch.
+- APTV-style restatement mixing and the source's stale quarters both point at the same question:
+  should scoring ever read the filings when the source is demonstrably behind or inconsistent? It
+  would be a methodology decision with its own note (scoring has deliberately never read the
+  weekly SEC cache) - research, not a patch.
 
