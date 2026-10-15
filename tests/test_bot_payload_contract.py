@@ -84,3 +84,30 @@ def test_ties_share_a_rank(payload):
 def test_stock_detail_carries_the_price_the_sim_trades_at(payload):
     for t, price in [("AAA", 101.5), ("BRK-B", 480.0), ("CCC", 12.25)]:
         assert payload["stock_detail"][t]["price"] == pytest.approx(price)
+
+
+# Optional, display-only fields the bot also reads (2026-10-15, screener-bot
+# `signals.caveats_from`): its page and report show them beside each holding. A missing one
+# gives the bot no note, never a refusal - so a rename here would not stop a trade, it would
+# silently hide a note. Their shapes are pinned against the code that writes them.
+def test_the_optional_notes_the_bot_shows_keep_their_shape():
+    import ranking_audit as RA
+    import sec_crosscheck as X
+    # fign: {metric: sentence}, written by ranking_audit.attach
+    sd = {"HST": {"inp": {"netIncome": 1.027e9, "ebit": 0.893e9, "totalEquity": 6.4e9,
+                          "totalAssets": 13e9}, "raw": {}, "pct": {}}}
+    RA.attach(sd)
+    assert isinstance(sd["HST"]["fign"], dict)
+    assert all(isinstance(k, str) and isinstance(v, str) for k, v in sd["HST"]["fign"].items())
+    # newer_filing: {"end", "filed", "form"} as dates in ISO form
+    facts = pd.DataFrame([{"ticker": "A", "concept": "Revenues", "start": pd.Timestamp("2026-04-01"),
+                           "end": pd.Timestamp("2026-06-30"), "filed": pd.Timestamp("2026-07-31"),
+                           "form": "10-Q", "fp": "Q2", "val": 1.0}])
+    nf = X.newer_filings({"kpis": {"run_timestamp": "2026-10-15T02:00:00"},
+                          "stock_detail": {"A": {"asof": {"is": "2026-03-31"}}}}, facts)["A"]
+    assert set(nf) == {"end", "filed", "form"} and nf["end"] == "2026-06-30" and nf["filed"] == "2026-07-31"
+    # xchk: {short field: relative difference}, with the keys the bot names
+    assert {k for _, k in g._XCHK_FIELDS} <= {"ta", "eq", "rev", "ni", "ocf"}
+    # flags.q_rejected: a string or None
+    src = Path(g.__file__).read_text(encoding="utf-8")
+    assert '"q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None' in src
