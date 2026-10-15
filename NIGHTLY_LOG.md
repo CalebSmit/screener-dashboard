@@ -11588,3 +11588,31 @@ marker cleared and shipped (`good/2026-10-15-1403`). Owner marker held again for
   for byte. A retry around its restore, and a final check that the published files equal HEAD, would
   close it - a small, testable fix.
 
+## 2026-10-15 (owner-run, evening) - the owner's plan: publishing hardened, which earnings to score, the bot shows the screener's notes
+
+**Health:** unchanged from today's entries. Owner approved a four-block plan; A-C done here.
+
+### Did
+- **A. `scripts/rehearse_publish.py` cannot strand a published file** - a refused write retries with a
+  growing pause and each file is restored on its own (`good/2026-10-15-owner-16`; 2 tests).
+- **B. Which earnings should the screener score?** `research/2026-10-15-earnings-definition.md`,
+  **Proposal status: OPEN**. Measured: the source's "Operating Income" (what the screener reads) is
+  as-reported less "Special Income Charges"; its "Total Operating Income As Reported" equals the
+  filings **374 of 374**. Evidence read in full: Rouen, So & Wang (2021, *JFE*) - persistence 0.637
+  net income, 0.810 core earnings, 0.178 the excluded items; MSCI's EPS excludes non-recurring items
+  after tax (oil-and-gas impairments excepted); Nareit FFO; French's definitions. **Operating income:
+  no change** - the pre-special-items figure is the supported one, which answers the 13:00 session's
+  question. **Earnings yield: proposed** on "Normalized Income", for consistency with it - Spearman
+  0.996 with today, 24 stocks move 25+, top 25 unchanged. The five classic papers were behind access
+  controls; they are cited for direction only, and a reviewer should read them before any changelog
+  entry cites a figure.
+- **C. The bot shows the screener's notes beside each holding** (screener-bot `e5a9fa1`, 141 tests;
+  rehearsed; looked at 1440 dark and 375 light/dark): EXPE, HST, WDC and CF carry one. Display only -
+  the strategy never reads them. The screener's contract test pins the optional fields
+  (`good/2026-10-15-owner-17`).
+
+### Next
+- **The earnings-yield proposal waits for a second session** - section 6 of the note lists everything
+  it touches (lineage equations, schema, methodology page, changelog) and what would refuse it.
+- D (better EBITDA and debt tags for backtest v2) if a session has room.
+
