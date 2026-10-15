@@ -150,6 +150,18 @@ the company's own SEC filing for the same quarters**, from `stock_detail[t].xchk
 `generate_dashboard._attach_filing_check` with `sec_crosscheck.py`; display-only, claim
 `drilldown.filing_check`; absent when the weekly SEC cache is not on the machine).
 
+**A metric row can carry a note about this stock's own filings** (2026-10-15). Under the generic
+"Worth knowing" caveat, a quieter block headed "In this company's filings" renders
+`stock_detail[t].cavs[metric]` - prose built at run time, never derived in JS. Today one metric
+uses it: **FCF yield**, for the four companies whose filings report purchases of equipment or
+vehicles to lease out worth 10%+ of the capex the run used and which reconcile with it (GM, DE,
+CAT, PCAR), decomposing the capex figure and saying the company's own free cash flow covers its
+industrial business only. `sec_crosscheck.lease_book` / `lease_capex_note`,
+`generate_dashboard._attach_capex_lease_note`, claim `drilldown.capex_lease_note`,
+`tests/test_capex_lease_note.py`. Display-only, and the reason it exists is
+`research/2026-10-14-capex-definition.md` section 5 - the proposal to change the metric was
+refused. `cavs` is a general per-stock, per-metric slot: a new one needs a claim and its own test.
+
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 
 It wraps `openStockDetail` and `closeModal` rather than copying them, so every way of opening a

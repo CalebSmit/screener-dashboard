@@ -3902,3 +3902,71 @@ comes out.
 
 **Applied by:** code session (manual), 2026-10-14 13:00 slot.
 **Rollback:** `good/2026-10-14`.
+
+---
+
+## 2026-10-15 - Proposal REFUSED: capex keeps a captive finance arm's lease purchases, and the page now says what the figure contains
+
+**Area:** metric definition (`fcf_yield`) - **reviewed and not changed**; display and provenance.
+
+**The proposal** (`research/2026-10-14-capex-definition.md` section 4, left open by the
+2026-10-14 owner-run session): for the four S&P 500 companies whose filings report a captive
+finance arm's purchases of assets to lease out - GM, DE, CAT, PCAR - free-cash-flow capex would
+have been Yahoo's `Capital Expenditure` row **minus** those purchases. GM's FCF yield would have
+gone from 0.3% to 8.0%, its sector percentile from about 10 to about 90, its composite up 7.9
+points. FCF yield is 45% of Valuation and **9.9 of 100 composite points**, the heaviest single
+metric.
+
+**Changed:** nothing in scoring. Refused, with the measurement in section 5 of that note. Shipped
+instead: the drilldown's FCF-yield row carries a per-stock note, built from the company's own
+filings, wherever its filed purchases of assets for lease are **10% or more** of the capex the run
+used - how much of the capex that is, the proceeds leg where the company files it, and that a
+company with a finance arm reports free cash flow for its industrial business only. Display-only;
+`sec_fundamentals.FACT_CONCEPTS` gained the two lease-proceeds tags so the other end of the cycle
+can be shown.
+
+**Evidence - the proposal takes half of its own sources' definition.** Section 4's authority is
+that GM, Ford and Caterpillar all exclude the finance arm's lease purchases from capex. They do;
+and each of them also *starts from the industrial segment's own operating cash flow*, which the
+proposal does not. Read from the primary documents on 2026-10-15:
+
+* **GM**, fiscal 2025 Form 10-K (filed 2026-01-27): *"We measure adjusted automotive free cash
+  flow as automotive operating cash flow from operations less capital expenditures adjusted for
+  management actions. For the year ended December 31, 2025, net automotive cash provided by
+  operating activities was **$18.7 billion**, capital expenditures were $9.2 billion"* - against a
+  **consolidated** operating cash flow of **$26.87B** for the same year (filed XBRL). The gap,
+  **$8.17B**, is GM Financial and the eliminations.
+* **Caterpillar**, 8-K filed 2026-06-11 Ex. 99.1: "Machinery, Power & Energy (MP&E) free cash
+  flow" - the industrial segments on both sides.
+
+For GM's fiscal 2025, over the same twelve months: today's figure **$1.78B** (-81% against GM's
+own $9.5B unadjusted / $10.6B adjusted); the proposal's **$17.57B** (**+85%**). The proposal's
+error is exactly the consolidated-minus-automotive operating-cash-flow gap.
+
+**Evidence - the cycle has three legs and the proposal would count one and a half.** GM's own
+filings, fiscal 2025: bought $15.79B of lease vehicles
+(`PaymentsToAcquireLeasesHeldForInvestment`), collected $7.80B of rentals (`LeaseIncome`, inside
+operating cash flow and therefore **kept** by the proposal), sold $10.10B at lease end
+(`ProceedsFromLeasesHeldForInvestment`, in investing and counted by neither construction). Net
+investment in the book was **$5.69B**, not $15.79B. Netting legs 1 and 3 lands nearest the
+company's own number (+25%) and is **not buildable**: of the four companies only GM files the
+proceeds leg distinctly.
+
+**Evidence - coupling.** The rule needs filed figures *inside* the metric, so the weekly SEC cache
+would decide 9.9 points of composite weight for four stocks; scoring reads no SEC data today and a
+test enforces it. A failed refresh would silently restate their capex.
+
+**Direction.** Both constructions are measurably wrong; the proposal's promotes a stock on a
+number no source publishes, and the current one holds it back. For a long-only screener those are
+not equivalent, so the promoting construction is the worse default.
+
+**Expected effect:** no score, rank, composite or category score moves - nothing in scoring
+changed. On the page, the FCF-yield row gains a note for the stocks whose filings report material
+purchases of assets for lease (4 on the 2026-10-15 cache).
+
+**Validated by:** `tests/test_capex_lease_note.py`; claim `drilldown.capex_lease_note` in
+`claims.py`, which the data loop's publish gate runs; the measurement scripts listed in section 5
+of the note, each reproducible from committed inputs plus one `companyfacts` request per company.
+
+**Applied by:** code session (manual), 2026-10-15 06:00 slot.
+**Rollback:** `good/2026-10-14`.

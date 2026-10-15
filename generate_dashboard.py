@@ -755,6 +755,21 @@ _XCHK_FIELDS = (("total_assets", "ta"), ("equity", "eq"), ("revenue", "rev"),
 _FACTS_CACHE: dict = {}
 
 
+def _facts(facts=None):
+    """The weekly SEC `companyfacts` cache, read once per build (no network). ``None`` when there
+    is no cache - every caller is provenance and must carry on without it."""
+    if facts is not None:
+        return facts
+    from sec_fundamentals import FACTS_PATH
+    if not FACTS_PATH.exists():
+        return None
+    key = (str(FACTS_PATH), FACTS_PATH.stat().st_mtime)
+    if key not in _FACTS_CACHE:
+        _FACTS_CACHE.clear()
+        _FACTS_CACHE[key] = pd.read_parquet(FACTS_PATH)
+    return _FACTS_CACHE[key]
+
+
 def _attach_filing_check(stock_detail: dict, facts=None) -> int:
     """Add ``xchk`` = {short field: (Yahoo - filing) / larger} to every stock with at least one
     comparable figure. Reads the weekly SEC cache the run keeps (no network); returns how many
@@ -762,15 +777,9 @@ def _attach_filing_check(stock_detail: dict, facts=None) -> int:
     stop a build."""
     try:
         import sec_crosscheck as X
+        facts = _facts(facts)
         if facts is None:
-            from sec_fundamentals import FACTS_PATH
-            if not FACTS_PATH.exists():
-                return 0
-            key = (str(FACTS_PATH), FACTS_PATH.stat().st_mtime)
-            if key not in _FACTS_CACHE:
-                _FACTS_CACHE.clear()
-                _FACTS_CACHE[key] = pd.read_parquet(FACTS_PATH)
-            facts = _FACTS_CACHE[key]
+            return 0
         facts = facts[facts["ticker"].isin(list(stock_detail))]
         short = dict(_XCHK_FIELDS)
         df = X.compare({"stock_detail": stock_detail}, facts, [f for f in X.FIELDS if f[0] in short])
@@ -784,6 +793,30 @@ def _attach_filing_check(stock_detail: dict, facts=None) -> int:
         stock_detail[ticker]["xchk"] = {short[r.field]: round(float(r.rel_diff), 4) for r in rows.itertuples()}
         checked += 1
     return checked
+
+
+def _attach_capex_lease_note(stock_detail: dict, facts=None) -> int:
+    """Add ``cavs['fcf_yield']`` - what this stock's capex figure contains - to the stocks whose
+    own filings report purchases of assets to lease out worth 10% or more of it, and which
+    reconcile (``sec_crosscheck.lease_book``).
+
+    2026-10-15, `research/2026-10-14-capex-definition.md` section 5: the proposal to take those
+    purchases out of the metric was refused, because the ratio would then keep the finance arm's
+    operating cash flow and its debt while dropping its capex. Saying what the published figure
+    contains is what was shipped instead. Display-only - ``cavs`` is prose, it enters no score,
+    and like the filing check it must never stop a build."""
+    try:
+        import sec_crosscheck as X
+        facts = _facts(facts)
+        if facts is None:
+            return 0
+        book = X.lease_book({"stock_detail": stock_detail}, facts[facts["ticker"].isin(list(stock_detail))])
+        for t, entry in book.items():
+            stock_detail[t].setdefault("cavs", {})["fcf_yield"] = X.lease_capex_note(entry)
+        return len(book)
+    except Exception as exc:  # noqa: BLE001 - provenance never stops a build
+        print(f"WARNING: capex lease note skipped ({type(exc).__name__}: {exc})")
+        return 0
 
 
 def _input_mismatches(inp: dict, raw: dict) -> list:
@@ -1413,6 +1446,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
     _n_checked = _attach_filing_check(stock_detail)
     if _n_checked:
         print(f"Filing check: inputs compared with SEC filings for {_n_checked} stocks")
+    _n_lease = _attach_capex_lease_note(stock_detail)
+    if _n_lease:
+        print(f"Capex composition: {_n_lease} stocks carry a lease-purchase note on FCF yield")
 
     dashboard_json = {
         "kpis": kpis,
@@ -4603,6 +4639,12 @@ def _js_workings() -> str:
         }
 
         if (info.cav) h += `<div class="wk-caveat"><strong>Worth knowing.</strong> ${escapeHtml(info.cav)}</div>`;
+        // What this stock's own figures contain, where the filings say something the generic
+        // caveat cannot (today: a captive finance arm's lease purchases inside capex -
+        // research/2026-10-14-capex-definition.md section 5). Prose built at run time from
+        // filed figures; the page never derives it.
+        const stockCav = (s.cavs || {})[m];
+        if (stockCav) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s filings.</strong> ${escapeHtml(stockCav)}</div>`;
         return h + `</div>`;
     }
 
@@ -6892,6 +6934,9 @@ def _css() -> str:
         .wk-check-bad { color: var(--amber); }
         .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
         .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
+        /* A note about this company's own filed figures, not a warning about the metric: the
+           same shape, the neutral border. */
+        .wk-caveat-stock { border-left-color: var(--border-bright); }
         .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
         .contrib-row-link:hover { background: var(--bg-card-hover); }
         .chain-line {

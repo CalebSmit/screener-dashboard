@@ -466,6 +466,29 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_filing_check_in_the_drilldown.py::test_the_panel_calls_agreement_at_2_percent",
         ),
     ),
+    Claim(
+        id="drilldown.capex_lease_note",
+        surface=DRILLDOWN,
+        asserts=(
+            "On the FCF-yield row, for a stock whose own filings report purchases of equipment or "
+            "vehicles to lease to customers worth 10% or more of the capex the run used: the "
+            "capex figure is that company's filed property-plant-and-equipment purchases plus "
+            "those lease purchases (the two are shown and reconcile with the capex above to "
+            "within 5%, both rebuilt for the same twelve months as the cash flow); the proceeds "
+            "when such assets are sold at lease end are an investing receipt in neither figure, "
+            "and are shown only where the company files them; and the company's own free cash "
+            "flow measure covers its industrial business only, from that segment's operating "
+            "cash flow, which this consolidated ratio does not separate. It never enters a score."
+        ),
+        made_true_by="sec_crosscheck:lease_book",
+        checked_by=(
+            "tests/test_capex_lease_note.py::test_the_note_decomposes_the_capex_the_run_used",
+            "tests/test_capex_lease_note.py::test_a_company_whose_lease_line_is_not_inside_capex_gets_no_note",
+            "tests/test_capex_lease_note.py::test_the_proceeds_sentence_appears_only_when_the_company_files_them",
+            "tests/test_capex_lease_note.py::test_the_note_never_reaches_a_score",
+            "tests/test_capex_lease_note.py::test_the_published_payload_agrees_with_the_filings",
+        ),
+    ),
     # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
     Claim(
         id="context.expected_move",
