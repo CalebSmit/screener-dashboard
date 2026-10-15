@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=60e793466836" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=94543dfa995d" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -4143,6 +4143,7 @@
 <li><strong>Auto-reduce (metric-level):</strong> If any individual metric has more than 70% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.</li>
 <li><strong>Metric-level alerts:</strong> A warning is printed if any metric has more than 50% missing data across the universe.</li>
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
+<li><strong>Checked against the filings:</strong> each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (<code>sec_crosscheck.py</code>), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once - the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.</li>
 <li><strong>EV cross-validation:</strong> The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (<code>_ev_flag</code>). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).</li>
 <li><strong>LTM partial annualization tracking:</strong> When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with <code>_ltm_annualized = True</code> and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.</li>
 <li><strong>Channel-stuffing detection:</strong> Compares receivables with revenue over the last fiscal year, both from the same two annual statements, using Beneish's days-sales-in-receivables index (receivables / revenue, over the prior year's). At <strong>1.465 or more</strong> - the average among the earnings manipulators in Beneish (1999), against 1.031 among the rest - the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality. Not applied to any Financials stock: Beneish's sample excluded financial firms.</li>
@@ -4246,7 +4247,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p>Every stock carries three provenance fields: <code>_data_source</code> (where the data came from — e.g., "yfinance", "cache", "sample"), <code>_metric_count</code> (how many of the metrics that apply to that stock have a value), and <code>_metric_total</code> (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.</p>
 <h3>The Workings Behind Every Score</h3>
 <p>Open any stock and <strong>The workings</strong> section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for <em>this</em> stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.</p>
-<p>The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; <code>scripts/audit_stock.py</code> repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. What it cannot do is check that the underlying figures are true: they are as reported by each company and delivered by Yahoo Finance, and the workings show that they were used consistently.</p>
+<p>The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; <code>scripts/audit_stock.py</code> repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. Since 2026-10-14 it also checks the underlying figures against the companies' own SEC filings: total assets, equity, revenue, net income and operating cash flow are rebuilt from each company's XBRL filing for the same quarters, and every stock's Data Provenance panel says which agree within 2%. Measured that day, total assets agreed within 0.5% for 99.8% of the companies compared, operating cash flow for 98.8% and net income for 94.3%; the larger differences examined were definitions (a bank's revenue, profit belonging to minority shareholders, sales taxes), not wrong numbers (<code>research/2026-10-14-yahoo-vs-sec.md</code>). What it still cannot check is a figure with no counterpart in a filing - prices and analysts' estimates - and those are as delivered by Yahoo Finance.</p>
 <h3>DataValidation Sheet</h3>
 <p>The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (Beneish's receivables index at 1.465 or more), and beta overlap warnings (&lt;80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.</p>
 <hr />
@@ -4484,7 +4485,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>
                 <div>
                     <div class="footer-name">Multi-Factor Screener</div>
-                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-14 02:00 UTC</span> &middot; prices and filings from Yahoo Finance</div>
+                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-15 02:00 UTC</span> &middot; prices and filings from Yahoo Finance</div>
                 </div>
             </div>
             <nav class="footer-links" aria-label="Footer">
@@ -4497,7 +4498,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </footer>
     </div>
 
-    <script src="./dashboard_data.js?v=60e793466836"></script>
+    <script src="./dashboard_data.js?v=94543dfa995d"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -8018,9 +8019,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
             if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
-            if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
-            if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns - stocks with the steepest skew trailed those with the flattest by about 11% a year, risk-adjusted, in 1996-2005 (Xing, Zhang &amp; Zhao 2010), with smaller gaps in later data. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            if (c.osk !== undefined) {
+                o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
+                if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
+            }
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there - over 1996-2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? ' - and <b>this expiry is ' + c.od + ' days, outside that range</b>, so their figures are context here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -8681,7 +8684,26 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
         if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
         html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
-        html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but it cannot check that they are true.</p>';
+        const xk = s.xchk || {};
+        const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
+        const listed = function(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; };
+        const agree = [], differ = [];
+        XNAMES.forEach(function(p) {
+            const v = xk[p[0]];
+            if (v === undefined || v === null) return;
+            const a = Math.abs(v);
+            if (a <= 0.02) agree.push(p[1]); else differ.push(p[1] + ' (' + (a * 100).toFixed(a < 0.1 ? 1 : 0) + '%)');
+        });
+        if (agree.length || differ.length) {
+            let line = 'Checked against the company&rsquo;s own SEC filing for the same quarters: ';
+            if (agree.length) line += '<strong>' + listed(agree) + '</strong> ' + (agree.length === 1 ? 'agrees' : 'agree') + ' within 2%';
+            if (differ.length) line += (agree.length ? '; ' : '') + listed(differ) + ' ' + (differ.length === 1 ? 'differs' : 'differ') + ' from it';
+            html += '<p class="provenance-line" id="provenance-filing-check">' + line + '.</p>';
+            if (differ.length) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
+            html += '<p class="provenance-line provenance-limit">Every figure is as delivered by Yahoo Finance. The workings above rebuild every score from them, and the figures that have a counterpart in the filing are checked against it; the others cannot be checked here.</p>';
+        } else {
+            html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but this stock&rsquo;s figures could not be checked against its filings on this run.</p>';
+        }
         html += '</div>';
         container.innerHTML = html;
     }
@@ -8715,7 +8737,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         applyFilters();
         renderDefensibility();
         initUX();
-        loadContext("./dashboard_context.js?v=8b828def8ec2");
+        loadContext("./dashboard_context.js?v=771407d4fd6e");
     }
 
     </script>

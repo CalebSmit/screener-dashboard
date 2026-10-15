@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-14",
+ "as_of": "2026-10-15",
  "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
  "series": {
   "DGS10": {
@@ -7,16 +7,15 @@
    "label": "10-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 5.24,
-   "date": "2026-10-09",
-   "chg_1m": 0.41,
-   "chg_1y": 1.1,
-   "pct_10y": 99.7,
+   "last": 5.21,
+   "date": "2026-10-13",
+   "chg_1m": 0.25,
+   "chg_1y": 1.16,
+   "pct_10y": 99.6,
    "min_10y": 0.52,
    "max_10y": 5.31,
    "median_10y": 2.86,
    "spark": [
-    4.63,
     4.93,
     4.84,
     4.57,
@@ -172,10 +171,10 @@
     5.01,
     5.17,
     5.28,
-    5.24
+    5.24,
+    5.21
    ],
    "spark_d": [
-    "2023-10-13",
     "2023-10-20",
     "2023-10-27",
     "2023-11-03",
@@ -331,7 +330,8 @@
     "2026-09-18",
     "2026-09-25",
     "2026-10-02",
-    "2026-10-09"
+    "2026-10-09",
+    "2026-10-13"
    ]
   },
   "DGS2": {
@@ -339,16 +339,15 @@
    "label": "2-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 4.8,
-   "date": "2026-10-09",
-   "chg_1m": 0.37,
-   "chg_1y": 1.2,
-   "pct_10y": 94.1,
+   "last": 4.79,
+   "date": "2026-10-13",
+   "chg_1m": 0.16,
+   "chg_1y": 1.27,
+   "pct_10y": 93.9,
    "min_10y": 0.09,
    "max_10y": 5.19,
    "median_10y": 2.56,
    "spark": [
-    5.04,
     5.07,
     4.99,
     4.83,
@@ -504,10 +503,10 @@
     4.76,
     4.81,
     4.83,
-    4.8
+    4.8,
+    4.79
    ],
    "spark_d": [
-    "2023-10-13",
     "2023-10-20",
     "2023-10-27",
     "2023-11-03",
@@ -663,7 +662,8 @@
     "2026-09-18",
     "2026-09-25",
     "2026-10-02",
-    "2026-10-09"
+    "2026-10-09",
+    "2026-10-13"
    ]
   },
   "T10Y3M": {
@@ -671,11 +671,11 @@
    "label": "10-year minus 3-month yield",
    "unit": "pp",
    "freq": "daily",
-   "last": 0.95,
-   "date": "2026-10-13",
-   "chg_1m": 0.06,
-   "chg_1y": 0.92,
-   "pct_10y": 67.2,
+   "last": 0.91,
+   "date": "2026-10-14",
+   "chg_1m": 0.05,
+   "chg_1y": 0.9,
+   "pct_10y": 66.4,
    "min_10y": -1.89,
    "max_10y": 2.27,
    "median_10y": 0.52,
@@ -836,7 +836,7 @@
     0.93,
     1.09,
     0.99,
-    0.95
+    0.91
    ],
    "spark_d": [
     "2023-10-20",
@@ -995,7 +995,7 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-13"
+    "2026-10-14"
    ]
   },
   "T10Y2Y": {
@@ -1003,11 +1003,11 @@
    "label": "10-year minus 2-year yield",
    "unit": "pp",
    "freq": "daily",
-   "last": 0.42,
-   "date": "2026-10-13",
-   "chg_1m": 0.09,
-   "chg_1y": -0.11,
-   "pct_10y": 51.7,
+   "last": 0.37,
+   "date": "2026-10-14",
+   "chg_1m": 0.05,
+   "chg_1y": -0.18,
+   "pct_10y": 49.2,
    "min_10y": -1.08,
    "max_10y": 1.59,
    "median_10y": 0.39,
@@ -1168,7 +1168,7 @@
     0.36,
     0.45,
     0.44,
-    0.42
+    0.37
    ],
    "spark_d": [
     "2023-10-20",
@@ -1327,7 +1327,7 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-13"
+    "2026-10-14"
    ]
   },
   "BAA10Y": {
@@ -1335,16 +1335,15 @@
    "label": "Corporate credit spread (Baa over 10-year)",
    "unit": "pp",
    "freq": "daily",
-   "last": 1.45,
-   "date": "2026-10-09",
-   "chg_1m": -0.1,
-   "chg_1y": -0.24,
-   "pct_10y": 2.8,
+   "last": 1.46,
+   "date": "2026-10-13",
+   "chg_1m": -0.04,
+   "chg_1y": -0.26,
+   "pct_10y": 3.8,
    "min_10y": 1.36,
    "max_10y": 4.31,
    "median_10y": 1.94,
    "spark": [
-    1.82,
     1.88,
     1.88,
     1.86,
@@ -1500,10 +1499,10 @@
     1.4,
     1.46,
     1.47,
-    1.45
+    1.45,
+    1.46
    ],
    "spark_d": [
-    "2023-10-13",
     "2023-10-20",
     "2023-10-27",
     "2023-11-03",
@@ -1659,7 +1658,8 @@
     "2026-09-18",
     "2026-09-25",
     "2026-10-02",
-    "2026-10-09"
+    "2026-10-09",
+    "2026-10-13"
    ]
   },
   "VIXCLS": {
@@ -1667,16 +1667,15 @@
    "label": "VIX (expected S&P 500 volatility)",
    "unit": "",
    "freq": "daily",
-   "last": 15.21,
-   "date": "2026-10-12",
-   "chg_1m": -0.63,
-   "chg_1y": -6.45,
-   "pct_10y": 34.9,
+   "last": 15.27,
+   "date": "2026-10-13",
+   "chg_1m": -0.57,
+   "chg_1y": -3.76,
+   "pct_10y": 35.2,
    "min_10y": 9.14,
    "max_10y": 82.69,
    "median_10y": 16.93,
    "spark": [
-    19.32,
     21.71,
     21.27,
     14.91,
@@ -1833,10 +1832,9 @@
     14.87,
     15.31,
     14.84,
-    15.21
+    15.27
    ],
    "spark_d": [
-    "2023-10-13",
     "2023-10-20",
     "2023-10-27",
     "2023-11-03",
@@ -1993,7 +1991,7 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-12"
+    "2026-10-13"
    ]
   },
   "DFF": {
@@ -2002,7 +2000,7 @@
    "unit": "%",
    "freq": "daily",
    "last": 3.88,
-   "date": "2026-10-12",
+   "date": "2026-10-13",
    "chg_1m": 0.25,
    "chg_1y": -0.22,
    "pct_10y": 70.3,
@@ -2010,7 +2008,6 @@
    "max_10y": 5.33,
    "median_10y": 2.19,
    "spark": [
-    5.33,
     5.33,
     5.33,
     5.33,
@@ -2170,7 +2167,6 @@
     3.88
    ],
    "spark_d": [
-    "2023-10-13",
     "2023-10-20",
     "2023-10-27",
     "2023-11-03",
@@ -2327,7 +2323,7 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-12"
+    "2026-10-13"
    ]
   },
   "UNRATE": {
@@ -2423,16 +2419,15 @@
    "label": "Inflation (CPI, year over year)",
    "unit": "%",
    "freq": "monthly",
-   "last": 3.713,
-   "date": "2026-08-01",
-   "chg_1m": 0.173,
-   "chg_1y": 0.774,
-   "pct_10y": 74.6,
+   "last": 4.023,
+   "date": "2026-09-01",
+   "chg_1m": 0.31,
+   "chg_1y": 1.001,
+   "pct_10y": 77.1,
    "min_10y": 0.198,
    "max_10y": 8.979,
-   "median_10y": 2.7,
+   "median_10y": 2.731,
    "spark": [
-    3.687,
     3.251,
     3.133,
     3.316,
@@ -2466,10 +2461,10 @@
     4.27,
     3.727,
     3.54,
-    3.713
+    3.713,
+    4.023
    ],
    "spark_d": [
-    "2023-09-01",
     "2023-10-01",
     "2023-11-01",
     "2023-12-01",
@@ -2503,7 +2498,8 @@
     "2026-05-01",
     "2026-06-01",
     "2026-07-01",
-    "2026-08-01"
+    "2026-08-01",
+    "2026-09-01"
    ]
   },
   "ICSA": {
@@ -2846,25 +2842,25 @@
    "k": "curve",
    "state": "positive",
    "title": "Yield curve",
-   "text": "The 10-year yield is 0.95pp above the 3-month. An inverted curve (10-year below 3-month) has preceded every US recession since the late 1960s, with lags of roughly 6 to 24 months and at least one false alarm - it describes the cycle, it does not time it (Estrella & Mishkin 1998; the New York Fed's recession model uses this spread)."
+   "text": "The 10-year yield is 0.91pp above the 3-month. An inverted curve (10-year below 3-month) has preceded every US recession since the late 1960s, with lags of roughly 6 to 24 months and at least one false alarm - it describes the cycle, it does not time it (Estrella & Mishkin 1998; the New York Fed's recession model uses this spread)."
   },
   {
    "k": "credit",
    "state": "tight",
    "title": "Credit spreads",
-   "text": "Lower-grade corporate bonds yield 1.45pp over Treasuries, higher than 3% of the last ten years. Spreads widen when lenders want more for default risk; wide spreads have coincided with stress for indebted companies."
+   "text": "Lower-grade corporate bonds yield 1.46pp over Treasuries, higher than 4% of the last ten years. Spreads widen when lenders want more for default risk; wide spreads have coincided with stress for indebted companies."
   },
   {
    "k": "vol",
    "state": "normal",
    "title": "Volatility",
-   "text": "The VIX is 15.2, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016), which is why this screener already cuts momentum's weight when the universe is turbulent and raises it when calm."
+   "text": "The VIX is 15.3, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016), which is why this screener already cuts momentum's weight when the universe is turbulent and raises it when calm."
   },
   {
    "k": "inflation",
    "state": "above target",
    "title": "Inflation",
-   "text": "Consumer prices are 3.7% higher than a year earlier, against the Federal Reserve's 2% goal (measured there on a different index, PCE). Latest reading: 2026-08."
+   "text": "Consumer prices are 4.0% higher than a year earlier, against the Federal Reserve's 2% goal (measured there on a different index, PCE). Latest reading: 2026-09."
   },
   {
    "k": "jobs",
