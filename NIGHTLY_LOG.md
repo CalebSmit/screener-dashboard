@@ -11557,3 +11557,34 @@ gate: a gate firing for a quarter of the universe every morning is a gate that g
   (macro backdrop, track record), then item 6.
 - `research/2026-10-15-operating-income-source-gap.md` is a Monday, as question 7 in
   `plan/factor-lab.md`. Do not patch it.
+
+## 2026-10-15 (owner-run, afternoon) - the top five audited, the lab's tenth experiment, the bot's ties checked
+
+**Health:** unchanged from today's earlier entries (02:00 data run PASS; `1m` evidence 30 rows /
+newest 2026-09-15 / 4 effective; `allow_auto_apply` false). The 13:00 slot ran at 13:17 after the owner
+marker cleared and shipped (`good/2026-10-15-1403`). Owner marker held again for this session.
+
+### Did
+- **Owner: "look into the top 5 stocks ... make sure they should actually be there."**
+  `research/2026-10-15-top-five-audit.md`. EXPE, APA, INCY and BMY earned their places on correct
+  data; HST (#3) is flattered by ~$0.2bn of hotel-sale gains in net income. APA's beta of -0.94 is real
+  (the whole energy sector is negative this year, recomputed from cached prices). Expedia's
+  sustainable growth sits at its cap because buybacks left equity at 4.2% of assets.
+- **`ranking_audit.py`** makes it repeatable: a "Worth knowing" note on the metric affected in each
+  stock's view (50 stocks), and a "top 25, worth a look" line in the morning health note and brief.
+  Display and reporting only. `tests/test_ranking_audit.py`, 8 tests; claim `drilldown.ranking_audit`.
+- **Lab experiment 10, Novy-Marx (2013) profitability** - 6 of 6 within tolerances written first;
+  shipped as `good/2026-10-15-owner-14`. No weight change follows (see `plan/factor-lab.md` progress).
+- **Bot integration checked: ties.** EG and VLO share rank 6 today; the bot's `build_signals` already
+  treats ties as competition ranking and breaks them by ticker - nothing to fix.
+
+### Next
+- A Monday: earnings yield on earnings before non-recurring items - read Fairfield, Sweeney & Yohn
+  (1996) and the special-items literature, then write the proposal or not (the audit note's
+  section 4 has the 46-stock scope).
+- **`scripts/rehearse_publish.py` left `dashboard_data.js` modified once** when Windows refused a
+  write mid-run (`OSError: [Errno 22]`, OneDrive holding the file): its restore does not retry. I
+  restored the committed file with `git checkout` and the rerun passed with the files restored byte
+  for byte. A retry around its restore, and a final check that the published files equal HEAD, would
+  close it - a small, testable fix.
+

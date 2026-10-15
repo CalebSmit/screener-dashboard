@@ -304,6 +304,13 @@ def open_proposals(research_dir: Path | None = None, today: datetime | None = No
 
 
 FILING_LINE = "inputs against SEC filings: "
+TOP_LINE = "top 25, worth a look: "
+
+
+def top_of_ranking(lines: list[str]) -> str:
+    """The health check's top-25 line (``check_top_of_ranking``), as printed, or empty."""
+    line = next((ln for ln in reversed(lines) if TOP_LINE in ln), "")
+    return line.split(TOP_LINE, 1)[1].strip() if line else ""
 
 
 def filing_check(lines: list[str]) -> str:
@@ -404,6 +411,9 @@ def main() -> int:
     _filings = filing_check(tail(data_log))
     if _filings:
         a(f"| Inputs vs SEC filings | {_filings} |")
+    _top = top_of_ranking(tail(data_log))
+    if _top:
+        a(f"| Top 25, worth a look | {_top} |")
     a(f"| Context coverage | {context_coverage()} |")
     a("")
 

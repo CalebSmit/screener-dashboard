@@ -154,7 +154,11 @@ rejected a quarterly statement derived across a restatement (`stock_detail[t].fl
 from `factor_engine.quarterly_statement_defect`; DuPont on the day it was added). Data Provenance also says **"A period
 behind the filings"** (2026-10-15) when the stock's income statement ends a quarter or more before
 the newest period the company had filed by the run date (`stock_detail[t].newer_filing`, from
-`sec_crosscheck.newer_filings`; 32 stocks on its first day, AMZN among them).
+`sec_crosscheck.newer_filings`; 32 stocks on its first day, AMZN among them). Metric rows can carry a
+second kind of **"Worth knowing"** note (2026-10-15, `ranking_audit.stock_notes` into
+`stock_detail[t].fign`, headed "In this company's reported figures"): earnings yield when net income runs above 1.25x after-tax operating income
+(46 stocks, HST and WDC in the top 50), sustainable growth when equity is under 10% of assets and the
+measure is at its cap (EXPE). Claim `drilldown.ranking_audit`.
 
 **A metric row can carry a note about this stock's own filings** (2026-10-15). Under the generic
 "Worth knowing" caveat, a quieter block headed "In this company's filings" renders

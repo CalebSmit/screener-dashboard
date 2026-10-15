@@ -1479,6 +1479,14 @@ def prepare_dashboard_data(run_data: dict) -> str:
     if _n_checked:
         print(f"Filing check: inputs compared with SEC filings for {_n_checked} stocks")
     _n_lease = _attach_capex_lease_note(stock_detail)
+    # What to check before trusting a high rank (display-only prose; ranking_audit.py, 2026-10-15)
+    try:
+        import ranking_audit
+        _n_audit = ranking_audit.attach(stock_detail)
+        if _n_audit:
+            print(f"Ranking audit: a 'worth knowing' note on {_n_audit} stocks")
+    except Exception as exc:  # noqa: BLE001 - provenance must never stop a build
+        print(f"WARNING: ranking audit skipped ({type(exc).__name__}: {exc})")
     if _n_lease:
         print(f"Capex composition: {_n_lease} stocks carry a lease-purchase note on FCF yield")
 
@@ -4700,6 +4708,10 @@ def _js_workings() -> str:
         // filed figures; the page never derives it.
         const stockCav = (s.cavs || {})[m];
         if (stockCav) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s filings.</strong> ${escapeHtml(stockCav)}</div>`;
+        // What this stock's reported figures make worth a second look (ranking_audit.py,
+        // 2026-10-15): income from outside operations, an equity base hollowed out by buybacks.
+        const figNote = (s.fign || {})[m];
+        if (figNote) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s reported figures.</strong> ${escapeHtml(figNote)}</div>`;
         return h + `</div>`;
     }
 
