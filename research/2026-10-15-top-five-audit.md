@@ -74,6 +74,9 @@ Nothing here changes a score. `tests/test_ranking_audit.py`, 8 tests.
 
 ## 4. The methodology question it raises - for research, not yet a proposal
 
+*Researched the same afternoon: `research/2026-10-15-earnings-definition.md` - an OPEN proposal to put
+earnings yield on earnings without unusual items, and operating income left as it is.*
+
 Both caveats are the screener scoring exactly what it defines. Whether the definitions are right is a
 methodology question, and the honest status is: **not researched yet**.
 

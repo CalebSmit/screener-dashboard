@@ -1,3 +1,9 @@
+> **Answered the same day (owner-run): `research/2026-10-15-earnings-definition.md`.** The run's
+> operating income is the source's *pre-special-items* row; its "Total Operating Income As Reported"
+> row equals the filings 374 of 374. The persistence evidence and MSCI's practice support the
+> pre-special-items figure for ROIC and EV/EBITDA, so no change; the open proposal is to make
+> earnings yield consistent with it.
+
 # Operating income is the screener's least source-agreeing input, and three weighted metrics stand on it (2026-10-15, 13:00 slot)
 
 **Status: measured, not acted on.** This is a finding, not a proposal. Nothing here changed a

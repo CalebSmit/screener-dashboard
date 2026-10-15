@@ -1,0 +1,319 @@
+{
+ "coverage_ttm": {
+  "Operating Income": 451,
+  "Total Operating Income As Reported": 366,
+  "Net Income": 497,
+  "Normalized Income": 496
+ },
+ "agreement_with_filed_operating_income": {
+  "Operating Income": {
+   "compared": 380,
+   "within_0.5pct": 161,
+   "share_within_0.5pct": 0.4237,
+   "over_10pct": 90,
+   "median_abs_gap": 0.01619
+  },
+  "Total Operating Income As Reported": {
+   "compared": 374,
+   "within_0.5pct": 374,
+   "share_within_0.5pct": 1.0,
+   "over_10pct": 0,
+   "median_abs_gap": 0.0
+  }
+ },
+ "adjusted_vs_as_reported_ttm": {
+  "both": 365,
+  "identical_within_0.5pct": 160,
+  "differ_over_10pct": 74
+ },
+ "net_vs_normalized_ttm": {
+  "both": 496,
+  "identical_within_0.5pct": 156,
+  "differ_over_10pct": 138
+ },
+ "stakes": {
+  "OP": {
+   "composite_spearman": 0.989,
+   "median_abs_rank_move": 4.0,
+   "moved_25_or_more": 47,
+   "top25_out": [
+    "GEN"
+   ],
+   "top25_in": [
+    "MPC"
+   ],
+   "biggest_moves": {
+    "SOLV": {
+     "from": 319,
+     "to": 96
+    },
+    "GILD": {
+     "from": 50,
+     "to": 235
+    },
+    "FANG": {
+     "from": 271,
+     "to": 399
+    },
+    "KHC": {
+     "from": 263,
+     "to": 370
+    },
+    "WY": {
+     "from": 462,
+     "to": 379
+    },
+    "FE": {
+     "from": 136,
+     "to": 216
+    },
+    "XYZ": {
+     "from": 109,
+     "to": 189
+    },
+    "UDR": {
+     "from": 117,
+     "to": 42
+    },
+    "EL": {
+     "from": 292,
+     "to": 366
+    },
+    "CNC": {
+     "from": 54,
+     "to": 127
+    },
+    "COR": {
+     "from": 201,
+     "to": 266
+    },
+    "LYB": {
+     "from": 144,
+     "to": 203
+    }
+   },
+   "top10_after": [
+    "EXPE#1",
+    "HST#2",
+    "INCY#3",
+    "APA#4",
+    "BMY#5",
+    "DXCM#6",
+    "SNDK#7",
+    "BBY#8",
+    "DLTR#9",
+    "EG#10"
+   ]
+  },
+  "EY": {
+   "composite_spearman": 0.9959,
+   "median_abs_rank_move": 3.0,
+   "moved_25_or_more": 24,
+   "top25_out": [],
+   "top25_in": [],
+   "biggest_moves": {
+    "KHC": {
+     "from": 263,
+     "to": 167
+    },
+    "APTV": {
+     "from": 363,
+     "to": 277
+    },
+    "SOLV": {
+     "from": 319,
+     "to": 393
+    },
+    "FANG": {
+     "from": 271,
+     "to": 200
+    },
+    "UDR": {
+     "from": 117,
+     "to": 180
+    },
+    "LYB": {
+     "from": 144,
+     "to": 83
+    },
+    "GIS": {
+     "from": 422,
+     "to": 363
+    },
+    "PFE": {
+     "from": 221,
+     "to": 166
+    },
+    "BDX": {
+     "from": 342,
+     "to": 294
+    },
+    "ARE": {
+     "from": 475,
+     "to": 427
+    },
+    "CPT": {
+     "from": 90,
+     "to": 136
+    },
+    "LNT": {
+     "from": 244,
+     "to": 290
+    }
+   },
+   "top10_after": [
+    "EXPE#1",
+    "HST#2",
+    "INCY#3",
+    "APA#4",
+    "BMY#5",
+    "SNDK#6",
+    "BBY#7",
+    "EG#8",
+    "DXCM#9",
+    "SWK#10"
+   ]
+  },
+  "BOTH": {
+   "composite_spearman": 0.9923,
+   "median_abs_rank_move": 4.0,
+   "moved_25_or_more": 41,
+   "top25_out": [
+    "GEN"
+   ],
+   "top25_in": [
+    "MPC"
+   ],
+   "biggest_moves": {
+    "GILD": {
+     "from": 50,
+     "to": 222
+    },
+    "SOLV": {
+     "from": 319,
+     "to": 163
+    },
+    "CPT": {
+     "from": 90,
+     "to": 180
+    },
+    "EL": {
+     "from": 292,
+     "to": 372
+    },
+    "BEN": {
+     "from": 118,
+     "to": 194
+    },
+    "APTV": {
+     "from": 363,
+     "to": 297
+    },
+    "FANG": {
+     "from": 271,
+     "to": 336
+    },
+    "WY": {
+     "from": 462,
+     "to": 403
+    },
+    "BIIB": {
+     "from": 364,
+     "to": 305
+    },
+    "CRL": {
+     "from": 384,
+     "to": 440
+    },
+    "UDR": {
+     "from": 117,
+     "to": 61
+    },
+    "PFE": {
+     "from": 221,
+     "to": 168
+    }
+   },
+   "top10_after": [
+    "EXPE#1",
+    "HST#2",
+    "INCY#3",
+    "APA#4",
+    "BMY#5",
+    "SNDK#6",
+    "DXCM#7",
+    "EG#8",
+    "BBY#9",
+    "DLTR#10"
+   ]
+  }
+ },
+ "named": {
+  "EXPE": {
+   "rank_now": 1,
+   "OP": 1,
+   "EY": 1,
+   "BOTH": 1
+  },
+  "APA": {
+   "rank_now": 4,
+   "OP": 4,
+   "EY": 4,
+   "BOTH": 4
+  },
+  "HST": {
+   "rank_now": 2,
+   "OP": 2,
+   "EY": 2,
+   "BOTH": 2
+  },
+  "INCY": {
+   "rank_now": 3,
+   "OP": 3,
+   "EY": 3,
+   "BOTH": 3
+  },
+  "BMY": {
+   "rank_now": 5,
+   "OP": 5,
+   "EY": 5,
+   "BOTH": 5
+  },
+  "WDC": {
+   "rank_now": 44,
+   "OP": 44,
+   "EY": 57,
+   "BOTH": 56
+  },
+  "KHC": {
+   "rank_now": 263,
+   "OP": 370,
+   "EY": 167,
+   "BOTH": 243
+  },
+  "GIS": {
+   "rank_now": 422,
+   "OP": 472,
+   "EY": 363,
+   "BOTH": 443
+  },
+  "CVS": {
+   "rank_now": 78,
+   "OP": 100,
+   "EY": 65,
+   "BOTH": 90
+  },
+  "BA": {
+   "rank_now": 489,
+   "OP": 488,
+   "EY": 490,
+   "BOTH": 487
+  },
+  "CNC": {
+   "rank_now": 54,
+   "OP": 127,
+   "EY": 50,
+   "BOTH": 106
+  }
+ }
+}
