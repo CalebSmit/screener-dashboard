@@ -855,7 +855,14 @@ inputs agree within 0.5% for 99.8% of companies on total assets, 98.8% on operat
 97.9% on equity, 94.3% on net income and 88.5% on revenue; the larger disagreements examined are
 definitional (bank revenue, minority interests, excise taxes). **Capex is different by
 construction** (Yahoo's row adds intangibles and finance-arm lease assets) - question 6 in
-`plan/factor-lab.md`. `sec_crosscheck.py` (offline, read-only) now runs in the data loop's health
+`plan/factor-lab.md`, **decided 2026-10-15**: the proposal to subtract a captive's lease
+purchases was **refused** (it would keep the finance arm's operating cash flow and its debt while
+dropping its capex; GM's own 10-K starts from *automotive* operating cash flow of $18.7B against
+the consolidated $26.87B), and the FCF-yield row now decomposes the capex figure from the
+company's own filings instead - display-only, claim `drilldown.capex_lease_note`,
+`tests/test_capex_lease_note.py`. **Do not rebuild the refused rule without answering section 5.7
+of `research/2026-10-14-capex-definition.md`**, and note that any such rule puts 9.9 composite
+points on the weekly SEC cache, which scoring deliberately never reads. `sec_crosscheck.py` (offline, read-only) now runs in the data loop's health
 check as a **note**: per-field counts every morning, and an `ATTENTION -` line, surfaced in the
 brief, when any field disagrees by over 10% for more than **25** stocks (pre-registered; that day's
 counts were 0-13). Market value (market cap / price) against the filed share count is in

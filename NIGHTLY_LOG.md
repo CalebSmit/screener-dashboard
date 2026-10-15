@@ -11138,3 +11138,131 @@ days, bound 40), 4 effective**. Top open roadmap item: **0.13, the Factor Lab** 
   that kept failing would leave it comparing against older and older filings silently. The health
   note now ends with the cache's age, an `ATTENTION -` line fires past 14 days, and the brief's
   filing row says how old the cached filings are. 2 + 1 tests.
+
+---
+
+## 2026-10-15 (06:00) - BUILD. The capex proposal reviewed and refused, and the capex figure taken apart on the page
+
+**Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-14 13:00 slot ends
+"shipped to main" (and an owner-run session ran after midnight today; its entry is above - this
+is a second entry for today, not an edit of it). Data loop published? **yes** - 02:00 today,
+HEALTH: PASS, "Data loop complete", 501 scored. Evidence base at `1m`: **30 rows, newest
+2026-09-15 (30 days ago, bound 40), 4 effective** - inside the bound, and the gate is 8.
+Priority 0: `allow_auto_apply` still false, the engine still correctly refuses to propose.
+Top open roadmap item: **0.13, the Factor Lab** - age **3 days**; not advanced today (its day is
+Friday 2026-10-23, and an owner item outranked it).
+**Tests:** before **2345 passed, 0 failed**; after **2353 passed, 1 skipped, 0 failed** (the skip
+is the new test that compares the *committed* payload's notes with the filings - it has nothing to
+compare until tonight's run publishes them, and the same test runs for real inside the data loop's
+publish gate, against the regenerated payload).
+**Owner queue / rotation:** took the top open owner item - the capex proposal waiting for a
+decision since 2026-10-14. That is also a legitimate BUILD day: the decision came with code.
+The Factor Lab item and the context-layer item were not advanced.
+
+### Did
+
+**Reviewed the open capex proposal and refused it, on a measurement its author had not made.**
+The proposal (`research/2026-10-14-capex-definition.md` section 4) would have taken a captive
+finance arm's lease purchases out of free-cash-flow capex for GM, DE, CAT and PCAR - GM's FCF
+yield 0.3% -> 8.0%, its sector percentile about 10 -> 90, 7.9 composite points on the heaviest
+metric in the screener (9.9 of 100). Section 4's figures all reproduce. What it had not looked at
+is the **other half of the same ratio**:
+
+- **Its own sources define free cash flow on the segment, not on the consolidated company.** GM's
+  fiscal 2025 10-K, read today: *"net automotive cash provided by operating activities was $18.7
+  billion, capital expenditures were $9.2 billion"*. The consolidated operating cash flow for the
+  same year is **$26.87B**. The proposal removes the finance arm's capex and keeps its **$8.17B**
+  of operating cash flow. Caterpillar's 8-K of 2026-06-11 is the same shape - "MP&E free cash
+  flow", the industrial segments on both sides.
+- **So the proposal's number is not GM's.** For fiscal 2025: today's construction $1.78B
+  (**-81%** against GM's own $9.5B unadjusted, $10.6B adjusted); the proposal's $17.57B
+  (**+85%**). The error is *exactly* the consolidated-minus-automotive operating-cash-flow gap.
+- **A lease fleet is a three-legged cycle and the rule would count one and a half.** GM's own
+  tags, fiscal 2025: bought $15.79B, collected $7.80B of rentals (inside operating cash flow, so
+  **kept**), sold $10.10B at lease end (investing - counted by neither construction). Net
+  investment in the book was **$5.69B**, not $15.79B. Netting legs 1 and 3 lands nearest the
+  company's figure (+25%) and is **not buildable**: only GM of the four files the proceeds leg.
+- **It would also put 9.9 composite points on the weekly SEC cache**, which scoring deliberately
+  never reads (a test enforces it). A failed refresh would silently restate four companies' capex.
+- **Direction.** Both constructions are measurably wrong; the proposal's *promotes* a stock on a
+  number no source publishes. For a long-only screener those are not equivalent.
+
+Written up as section 5 of that note, with the four measurement scripts; `METHODOLOGY_CHANGELOG.md`
+2026-10-15; `OWNER_FOCUS.md` item moved to **Done**; `plan/factor-lab.md` question 6 and
+CLAUDE.md 0.14 rewritten. The brief's "Waiting for a decision" section is empty again.
+
+**Shipped the half that survives: the page now takes the capex figure apart.** Refusing leaves a
+-81% number in the heaviest metric, so the refusal is not the end of it - and the clean ratio
+**cannot be computed from free data** (a segment-level operating cash flow is MD&A prose, not an
+XBRL fact). What is computable is what the published figure contains. The FCF-yield row now
+carries a per-stock note built from the company's own filings wherever its filed purchases of
+assets for lease are 10% or more of the capex the run used. GM's reads: *"The $22.6B of capital
+expenditure above is $8.8B of property, plant and equipment plus $13.8B (61% of it) that this
+company's own filings report as equipment or vehicles bought to lease to customers ... The $10.3B
+received when those assets are sold at the end of a lease is an investing receipt ... A company
+with a finance arm reports free cash flow for its industrial business only ... so it is not the
+company's own measure."* Display-only; claim `drilldown.capex_lease_note`;
+`tests/test_capex_lease_note.py` (9).
+
+**The rule is a filed tag, not a list, and it has to reconcile.** The note asserts the lease
+purchases are *inside* the capex figure, so that is checked rather than assumed: filed PP&E plus
+filed lease purchases must come within 5% of the capex the run used. **This is what keeps Ford
+out** - Ford files $55.7B of loan and lease purchases against $9.67B of capex, because Yahoo
+already reports Ford the way Ford does, and without the check the row would have told readers 577%
+of Ford's capex was vehicles for lease. Measured across the universe
+(`research/measurements/2026-10-15-lease-capex-scope.py`): the tag-and-reconciliation rule selects
+**exactly the four companies section 4 named**, no others, and nothing in the top 25.
+
+**Looked at it** (rehearsal page, GM, Valuation workings open). At **1440px** the note sits under
+the amber "Worth knowing" block in the same shape with a quieter border - colour still means
+something - and reads as five lines beneath the inputs that now add up on screen: $605M free cash
+flow ÷ $178.6B enterprise value, capex -$22.6B, and then what the $22.6B is. At **375px** it
+wraps to fifteen lines with no overflow and the long XBRL tag breaks inside the column; it is a
+lot of text on a phone, but it is inside a panel the reader opened. `scripts/rehearse_publish.py`
+PASSED (300 page tests, claims gate 460), and the published files were restored byte for byte.
+
+**Machine state (rule 11):** forced the weekly `companyfacts` refresh myself rather than waiting
+for the cache to age out - 501 of 501 companies, 0 failed, 1,379,556 facts - because the two lease
+tags were added last night and the note cannot fire without them. Added the two **proceeds** tags
+in the same pass, so the other end of the cycle is on the page. Tonight's 02:00 run therefore
+publishes the notes.
+
+### Evidence / research
+- **General Motors, Form 10-K for fiscal 2025 (filed 2026-01-27)**, MD&A "Automotive Cash Flow"
+  and "Adjusted Automotive Free Cash Flow": automotive operating cash flow $18.7B (2024 $23.9B,
+  2023 $20.8B), capital expenditures $9.2B, management-action adjustments $1.1B. Read from
+  sec.gov, not from memory.
+- **Caterpillar, Form 8-K filed 2026-06-11, Ex. 99.1**: free cash flow is "Machinery, Power &
+  Energy (MP&E) free cash flow" - the industrial segments only.
+- **GM's own XBRL facts, fiscal 2025**: consolidated operating cash flow $26.87B,
+  `PaymentsToAcquireLeasesHeldForInvestment` $15.79B, `ProceedsFromLeasesHeldForInvestment`
+  $10.10B, `LeaseIncome` $7.80B; trailing twelve months to 2026-06-30, $23.20B / $13.79B / $10.32B.
+- Scripts, all reproducible: `research/measurements/2026-10-15-capex-proposal-review.py`,
+  `-captive-concepts.py`, `-captive-own-fcf.py`, `-gm-automotive-ocf.py`, `-lease-capex-scope.py`,
+  `-shot-capex-note.py`.
+
+### Methodology changed
+- **Nothing in scoring.** `METHODOLOGY_CHANGELOG.md` 2026-10-15 records the refusal with its
+  evidence, and the display change that replaced it. No score, rank, composite or category score
+  moved; the rehearsal's `dashboard_data.js` differs from the published one by the four notes
+  (+2,065 bytes) and nothing else.
+
+### Tried and rejected
+- **Netting the lease book** (capex = PP&E + purchases - lease-end proceeds). It is the
+  construction nearest GM's own figure (+25% against +85%), and it is **not buildable**: of the
+  four companies only GM files the proceeds leg distinctly, so a rule that netted where the tag
+  exists would add a fourth inconsistency. Recorded in section 5.2 rather than built - and it
+  would in any case have been my own construction, decided by its own author, which is the thing
+  the proposal process exists to prevent.
+- **Withholding FCF yield for these four** (the way index FCF screens drop Financials -
+  Solactive/Pacer, S&P DJI). Rejected: it needs the same "which companies" judgement as the
+  proposal, and it removes a number rather than explaining it, on four stocks whose other
+  valuation metrics would then carry a renormalised weight nobody asked for.
+
+### Next
+- **Context-layer queue item 4's two remaining per-signal notes** (the macro backdrop and the
+  track record have none), then item 6, track-record hardening - unchanged from the 13:00 session
+  of 2026-10-14. The Factor Lab's next experiment (profitability, Novy-Marx 2013) is for Friday
+  **2026-10-23**; 2026-10-16 is a retrospective.
+- If a later session wants to reopen capex, section **5.7** of the note lists the two things that
+  would do it, and neither is "the number looks too low".
