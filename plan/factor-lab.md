@@ -169,7 +169,7 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 2b | Experiment 2 again, on the authors' own portfolios | Momentum | Kent Daniel's website publishes the paper's decile returns | **Check its terms first.** If usable, the six portfolio-level misses should close; if they do not, that is a finding. |
 | 3 | Fama & French (2015), five factors | Valuation, Quality (profitability), Investment, Size | French 5-factor file (2x3) | **Shipped 2026-10-12.** 20 of 21 figures within tolerances written beforehand; profitability's volatility is outside by 0.01. After the paper's sample (2014 on) none of the four factors is distinguishable from zero - see `research/2026-10-12-factor-lab-findings.md` before reading anything into that. |
 | 4 | The size effect, and whether it reaches large stocks (Fama & French 1992) | Size | French size deciles | **Shipped 2026-10-12. The lab's first replication that mostly fails: 3 of 11 figures within** tolerances written beforehand. The paper's table uses only non-financial firms with accounting data; the library's groups hold every stock. It stays on the page as a miss. **The measurement that matters here:** the ninth size group out-earned the tenth by 0.07-0.14% a month in every period and weighting tried, distinguishable from zero only over the full century. `research/2026-10-12-factor-lab-findings.md` section 5. |
-| 5 | **Novy-Marx (2013), profitability** | Quality | French operating-profitability portfolios | **Next.** The library sorts on operating, not gross, profitability: that difference goes in "still needed". |
+| 5 | **Novy-Marx (2013), profitability** | Quality | French operating-profitability portfolios | **Shipped 2026-10-15 (owner-run) as experiment 10. 6 of 6 within** tolerances written first (0.10, wider than the 0.05 of a same-variable rerun, because the library sorts on operating profits over book equity where the paper uses gross profits over assets, and keeps the financial firms it drops). The paper reports **excess** returns, so `SORTS` takes `"excess": True` and the sort's data publishes the T-bill rate for its own months (`rf`); the comparison subtracts its average. Spread 0.215% a month against the paper's 0.31% - at the edge, as predicted. Since 2011: the same 0.215%, t 0.79, and the profitable end the calmest (volatility 4.1% against 5.9% a month). Read from the June 2012 accepted draft, Table 2 Panel A. |
 | 6 | Do riskier stocks earn more? Ang, Hodrick, Xing & Zhang (2006) | Risk | `Portfolios_Formed_on_VAR` | **Shipped 2026-10-12 as experiment 5. 5 of 11 within** tolerances written beforehand; the most volatile fifth was expected to miss and does (0.81% a month here, 0.09% in the paper). It is the first user of the **generic sorted-portfolio layout** (`kind: "sort"`, `factor_lab.SORTS`, `sort_run`, `sortRun`): a new sort now needs a `SORTS` entry, a record with its `sort` block and reference figures, and nothing on the page. The beta sort shipped the same night as **experiment 7** (Fama & French 1992, Table II Panel B: 7 of 11 within, and the flat relation between beta and return reproduces). Still open for Risk: the paper's own headline sort (`_RESVAR`). |
 | 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. Still open: the cash-flow-yield sort (`_CF-P`), which is nearer the screener's heaviest valuation measure, and the book-to-market panel of the same table. |
 | 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` (confirmed present) | A partial stand-in for the accounting-quality studies that cannot be rerun. |
@@ -225,6 +225,16 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-15 (owner-run) - experiment 10 shipped: Novy-Marx (2013), profitability.** The owner
+  asked for more in the lab and for whether the lab says the methodology should change. 6 of 6
+  within tolerances written before the comparison; the spread lands below the paper's for the two
+  reasons written down beforehand. **What it means for the weights: nothing to change.** Gross
+  profit against assets is 22% of Quality, and Quality 22% of the composite; the rerun supports
+  that measure at its strength in the paper's sample and shows it, like every other result here,
+  weaker and not yet distinguishable from zero since - while delivering lower volatility at the
+  profitable end, which is the Risk category's argument made by Quality's measure. Ten
+  experiments, 87 of 130 figures within tolerance.
 
 - **2026-10-12 (owner-run, past 23:00) - experiment 8 shipped: do the factors work among large
   companies?** Fama & French (2015) Table 4A's second block, the factors within each half of the
