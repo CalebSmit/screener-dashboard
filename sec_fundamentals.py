@@ -71,6 +71,11 @@ FACT_CONCEPTS = (
     # operating leases DE, CAT and PCAR buy. Cached so the open capex proposal can be decided
     # on filed figures; nothing reads them yet.
     "PaymentsToAcquireLeasesHeldForInvestment", "PaymentsToAcquireEquipmentOnLease",
+    # the other end of the same cycle, added 2026-10-15 while reviewing that proposal: a lease
+    # fleet is sold when the lease ends, and those proceeds are what makes the purchases a gross
+    # figure rather than an investment. Only GM files them distinctly
+    # (research/2026-10-14-capex-definition.md section 5).
+    "ProceedsFromLeasesHeldForInvestment", "ProceedsFromSaleOfEquipmentOnLease",
 )
 # Concepts reported in shares rather than dollars (valuation_history.py's market value).
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",

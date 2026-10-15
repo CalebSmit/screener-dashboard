@@ -24,14 +24,6 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
-- **2026-10-14 (owner-run, late) - a second proposal is waiting for review: what capex means in
-  free-cash-flow yield.** `research/2026-10-14-capex-definition.md`. For four S&P 500 companies
-  with captive finance arms (GM, Deere, Caterpillar, PACCAR - Ford is already reported the right
-  way), Yahoo's capex includes the vehicles and equipment their finance arms buy to lease out; the companies themselves, and S&P
-  Ratings, keep those out of industrial capex. GM's free-cash-flow yield reads 0.3% today against
-  8.0% without them. **For the next session: review section 4 and decide**, the same way the
-  Growth proposal was decided. It shows in the morning brief until someone does.
-
 - **2026-10-14 - More sessions, faster development.** Owner: *"i want you to be doing more,
   scheduling more runs. I want to speed up the development of these tools please."*
   **Done the same day (owner-run):** two extra scheduled code sessions - 13:00 every day and
@@ -323,6 +315,25 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 ## Done
 
 Completed items, newest first.
+
+- **2026-10-15 - the capex proposal: REVIEWED and REFUSED, and the page now says what the capex
+  figure contains.** Raised 2026-10-14 (owner-run) and decided by the next session, as the routine
+  requires. The proposal would have taken a captive finance arm's lease purchases out of
+  free-cash-flow capex for GM, Deere, Caterpillar and PACCAR - GM's FCF yield 0.3% -> 8.0%, its
+  sector percentile 10 -> 90, its composite up 7.9 points on the heaviest metric in the screener.
+  **It was refused because its own sources do not construct the ratio that way.** GM's fiscal 2025
+  10-K defines adjusted automotive free cash flow from **net automotive** operating cash flow of
+  $18.7B; the consolidated figure the screener uses is $26.87B. The proposal removes the finance
+  arm's capex and keeps its $8.17B of operating cash flow, which would publish $17.57B of free
+  cash flow against GM's own $9.5B - **85% too high**, where today's figure is 81% too low. The
+  whole lease cycle, from GM's own tags: $15.79B of vehicles bought, $7.80B of rentals collected
+  (inside operating cash flow, so the proposal keeps them), $10.10B received when the vehicles are
+  sold at lease end (counted by neither construction). **The clean ratio cannot be computed from
+  free data** - a segment-level operating cash flow is MD&A prose, not an XBRL fact - so what
+  shipped is the honest alternative: every affected stock's FCF-yield row now says, from its own
+  filings, how much of its capex is assets bought to lease out and that its own free-cash-flow
+  figure is the industrial business only. Section 5 of `research/2026-10-14-capex-definition.md`
+  has the measurements and the two things that would reopen it.
 
 - **2026-10-07 - Premium redesign and calculation transparency: finished.** Owner-run, five
   passes in one evening, verified in a real browser at 1440, 375 and 320px and live on the
