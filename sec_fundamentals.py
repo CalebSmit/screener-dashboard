@@ -76,11 +76,38 @@ FACT_CONCEPTS = (
     # figure rather than an investment. Only GM files them distinctly
     # (research/2026-10-14-capex-definition.md section 5).
     "ProceedsFromLeasesHeldForInvestment", "ProceedsFromSaleOfEquipmentOnLease",
+    # The rest of what the engine's raw record carries (2026-10-15, pit_record.py): enough to
+    # rebuild every statement field compute_metrics reads as it was filed by a past date -
+    # tax, pretax income and interest (ROIC, coverage), dividends (sustainable growth), short-term
+    # investments and current debt (net debt, enterprise value), and Beneish's receivables,
+    # PP&E and SG&A. Backtest v2 only; nothing in a published run reads them.
+    "IncomeTaxExpenseBenefit",
+    "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+    "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments",
+    "InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt",
+    "PaymentsOfDividends", "PaymentsOfDividendsCommonStock",
+    "ShortTermInvestments", "MarketableSecuritiesCurrent", "AvailableForSaleSecuritiesDebtSecuritiesCurrent",
+    "CashCashEquivalentsAndShortTermInvestments",
+    "DebtCurrent", "LongTermDebtCurrent", "ShortTermBorrowings", "CommercialPaper",
+    "LongTermDebtAndCapitalLeaseObligations", "LongTermDebtAndCapitalLeaseObligationsCurrent",
+    "AccountsReceivableNetCurrent", "ReceivablesNetCurrent",
+    "PropertyPlantAndEquipmentNet", "SellingGeneralAndAdministrativeExpense",
+    # Yahoo's "Total Debt" counts lease liabilities (MGM's is 4.9x its borrowings alone), and
+    # its cash falls back to the restricted-cash total some filers tag instead.
+    "OperatingLeaseLiabilityNoncurrent", "OperatingLeaseLiabilityCurrent", "OperatingLeaseLiability",
+    "FinanceLeaseLiabilityNoncurrent", "FinanceLeaseLiabilityCurrent",
+    "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
 )
 # Concepts reported in shares rather than dollars (valuation_history.py's market value).
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
                   "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
                   "WeightedAverageNumberOfSharesOutstandingBasic")
+# Shares outstanding at a date, for a point-in-time market value (pit_record.py, 2026-10-15): the
+# balance-sheet count, and the cover page's count (a ``dei`` fact, as of a date near filing).
+OUTSTANDING_CONCEPTS = ("CommonStockSharesOutstanding",)
+DEI_SHARE_CONCEPTS = ("EntityCommonStockSharesOutstanding",)
+# Per-share figures (unit USD/shares): diluted EPS, as Yahoo's trailing EPS is.
+EPS_CONCEPTS = ("EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted")
 
 
 def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool = False,
@@ -117,8 +144,13 @@ def refresh_companyfacts(tickers: list[str], edgar=None, log=print, force: bool 
             failed += 1
             continue
         gaap = (j.get("facts") or {}).get("us-gaap") or {}
-        for c, unit in [(c, "USD") for c in FACT_CONCEPTS] + [(c, "shares") for c in SHARE_CONCEPTS]:
-            for f in ((gaap.get(c) or {}).get("units") or {}).get(unit, []):
+        dei = (j.get("facts") or {}).get("dei") or {}
+        wanted = ([(gaap, c, "USD") for c in FACT_CONCEPTS]
+                  + [(gaap, c, "shares") for c in SHARE_CONCEPTS + OUTSTANDING_CONCEPTS]
+                  + [(dei, c, "shares") for c in DEI_SHARE_CONCEPTS]
+                  + [(gaap, c, "USD/shares") for c in EPS_CONCEPTS])
+        for ns, c, unit in wanted:
+            for f in ((ns.get(c) or {}).get("units") or {}).get(unit, []):
                 if f.get("form") in ("10-K", "10-Q", "10-K/A", "10-Q/A"):
                     rows.append((t, c, f.get("start"), f.get("end"), f.get("filed"), f.get("form"),
                                  f.get("fp"), f.get("val")))

@@ -11266,3 +11266,50 @@ publishes the notes.
   **2026-10-23**; 2026-10-16 is a retrospective.
 - If a later session wants to reopen capex, section **5.7** of the note lists the two things that
   would do it, and neither is "the number looks too low".
+
+## 2026-10-15 (owner-run, morning) - backtest v2's record layer: history scored from the filings, and the look-ahead's second half measured
+
+**Health (rule 8):** last code session ran? **yes** - 06:00 today, "shipped to main". Data loop
+published? **yes** - 02:00 today, HEALTH: PASS, "Data loop complete". Evidence base at `1m`: **30
+rows, newest 2026-09-15 (30 days ago, bound 40), 4 effective** - unchanged since 06:00. Priority 0:
+`allow_auto_apply` false. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age
+3 days**) - not advanced; this session took priority 3, at the owner's request to "speed up" (the
+v2 harness is what lets methodology be tested on history at all).
+**Owner-session marker** created at the start and deleted at the end, so the 13:00 session runs.
+
+### Did
+
+- **`pit_record.py` - the engine's raw record rebuilt from SEC filings as of any date.** v2 must
+  score history with the engine's own `compute_metrics`, never a second implementation of 29
+  formulas (row 0.8's rule), so the module rebuilds the *record* field for field: trailing-twelve-
+  month flows from year-to-dates, balance sheets now and a year ago, the fiscal-year fields Piotroski,
+  CAGR and Beneish read, and market value / EV / book / EPS / ROE at a price the caller gives. Latest
+  version filed by the date wins; a field the filings cannot supply is NaN, never today's value;
+  tag switches are one series (NVIDIA's revenue moved tags mid-2020 - found by the sanity check,
+  fixed, rerun); splits put filed share counts on a split-adjusted price's basis
+  (`cache/splits.parquet`, 1,510 splits). `tests/test_pit_record.py`, 12 tests, including a parser
+  that fails if `compute_metrics` reads a raw field with no class - it caught two on its first run.
+- **The SEC cache gained the concepts the record needs** (tax, pretax, interest, dividends,
+  short-term investments, current debt, leases, receivables, PP&E, SG&A, diluted EPS, share counts):
+  2,262,395 facts, 502 companies, 0 failed. Forced the refresh myself (rule 11). Nothing in a
+  published run reads the new concepts.
+- **Validated against today** (`research/measurements/2026-10-15-pit-record-vs-live.py`): the live
+  ranking reproduces at Spearman **0.933** from rebuilt statements, **0.885** with market fields too.
+  Found on the way: Yahoo's `*_prior` flows are the prior *fiscal year* for 503 of 503 records, and
+  Yahoo's total debt includes leases (MGM 4.9x its borrowings) - the rebuild follows both.
+- **Measured the fundamentals half of v1's look-ahead** (`...-lookahead-fundamentals-half.py`, 81
+  months, 39,320 name-months): **72.6% of name-months change decile** (43.2% by 2+, v1's top decile
+  48% kept), against **60.1% for the price half** (independently reproducing 2026-10-01's 63.2%) and
+  **75.8% for both**. 80% in 2020 falling to 2.6% in 2026-09. Checked: market values at 2020-06
+  match within the panel's known dividend drag (JPM ~15% low, inside the price half only); coverage
+  identical across arms.
+- **Write-up:** `research/2026-10-15-pit-record-validation.md`. `plan/backtest-v2.md` step 3 and
+  CLAUDE.md priority 3 rewritten with the next steps in order.
+
+### Methodology changed
+- **Nothing.** No weight, metric, score or published file moved. Rule 5: no backtest number is
+  evidence; the measurement above is about v1's construction, not about any factor.
+
+### Next (for whoever takes priority 3)
+- The v2 scoring loop, then the two price series and daily risk prices - `plan/backtest-v2.md` step
+  3 (a)-(d). Everything it needs to read is now on disk and tested.

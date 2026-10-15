@@ -1,0 +1,2224 @@
+{
+ "months": 81,
+ "summary": {
+  "price_half": {
+   "name_months": 39320,
+   "decile_changed": 0.6009,
+   "decile_2plus": 0.2703,
+   "top_decile_kept": 0.6209,
+   "median_monthly_spearman": 0.8274
+  },
+  "fundamentals_half": {
+   "name_months": 39320,
+   "decile_changed": 0.7255,
+   "decile_2plus": 0.4324,
+   "top_decile_kept": 0.4818,
+   "median_monthly_spearman": 0.6062
+  },
+  "total": {
+   "name_months": 39320,
+   "decile_changed": 0.7583,
+   "decile_2plus": 0.4851,
+   "top_decile_kept": 0.4325,
+   "median_monthly_spearman": 0.5371
+  },
+  "fundamentals_half_by_year": {
+   "2020": 0.8002,
+   "2021": 0.8031,
+   "2022": 0.7889,
+   "2023": 0.766,
+   "2024": 0.7459,
+   "2025": 0.6996,
+   "2026": 0.4043
+  }
+ },
+ "per_month": [
+  {
+   "month": "2020-01-01",
+   "price_half": {
+    "n": 468,
+    "decile_changed": 342,
+    "decile_2plus": 183,
+    "top_a": 47,
+    "top_kept": 23,
+    "spearman": 0.7573084889255409
+   },
+   "fundamentals_half": {
+    "n": 468,
+    "decile_changed": 371,
+    "decile_2plus": 231,
+    "top_a": 47,
+    "top_kept": 16,
+    "spearman": 0.5870062129776296
+   },
+   "total": {
+    "n": 468,
+    "decile_changed": 385,
+    "decile_2plus": 279,
+    "top_a": 47,
+    "top_kept": 14,
+    "spearman": 0.4575590552011119
+   }
+  },
+  {
+   "month": "2020-02-01",
+   "price_half": {
+    "n": 468,
+    "decile_changed": 332,
+    "decile_2plus": 185,
+    "top_a": 47,
+    "top_kept": 25,
+    "spearman": 0.7460753384236354
+   },
+   "fundamentals_half": {
+    "n": 468,
+    "decile_changed": 374,
+    "decile_2plus": 241,
+    "top_a": 47,
+    "top_kept": 17,
+    "spearman": 0.5732909835593957
+   },
+   "total": {
+    "n": 468,
+    "decile_changed": 386,
+    "decile_2plus": 276,
+    "top_a": 47,
+    "top_kept": 15,
+    "spearman": 0.4516438012812081
+   }
+  },
+  {
+   "month": "2020-03-01",
+   "price_half": {
+    "n": 468,
+    "decile_changed": 338,
+    "decile_2plus": 186,
+    "top_a": 47,
+    "top_kept": 24,
+    "spearman": 0.7464249673374127
+   },
+   "fundamentals_half": {
+    "n": 468,
+    "decile_changed": 371,
+    "decile_2plus": 235,
+    "top_a": 47,
+    "top_kept": 15,
+    "spearman": 0.5885635298414287
+   },
+   "total": {
+    "n": 468,
+    "decile_changed": 381,
+    "decile_2plus": 272,
+    "top_a": 47,
+    "top_kept": 15,
+    "spearman": 0.4665739196930707
+   }
+  },
+  {
+   "month": "2020-04-01",
+   "price_half": {
+    "n": 468,
+    "decile_changed": 325,
+    "decile_2plus": 182,
+    "top_a": 47,
+    "top_kept": 25,
+    "spearman": 0.7467750522206777
+   },
+   "fundamentals_half": {
+    "n": 468,
+    "decile_changed": 362,
+    "decile_2plus": 240,
+    "top_a": 47,
+    "top_kept": 18,
+    "spearman": 0.5636523000842094
+   },
+   "total": {
+    "n": 468,
+    "decile_changed": 390,
+    "decile_2plus": 270,
+    "top_a": 47,
+    "top_kept": 17,
+    "spearman": 0.4572952324312688
+   }
+  },
+  {
+   "month": "2020-05-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 334,
+    "decile_2plus": 191,
+    "top_a": 48,
+    "top_kept": 24,
+    "spearman": 0.7436376865227293
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 369,
+    "decile_2plus": 244,
+    "top_a": 48,
+    "top_kept": 18,
+    "spearman": 0.5325422754264679
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 391,
+    "decile_2plus": 269,
+    "top_a": 48,
+    "top_kept": 15,
+    "spearman": 0.4143993952590272
+   }
+  },
+  {
+   "month": "2020-06-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 334,
+    "decile_2plus": 187,
+    "top_a": 48,
+    "top_kept": 21,
+    "spearman": 0.7469393443566403
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 377,
+    "decile_2plus": 244,
+    "top_a": 48,
+    "top_kept": 16,
+    "spearman": 0.5329947668899859
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 390,
+    "decile_2plus": 281,
+    "top_a": 48,
+    "top_kept": 12,
+    "spearman": 0.412661824680303
+   }
+  },
+  {
+   "month": "2020-07-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 329,
+    "decile_2plus": 187,
+    "top_a": 48,
+    "top_kept": 22,
+    "spearman": 0.7555050277647286
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 360,
+    "decile_2plus": 239,
+    "top_a": 48,
+    "top_kept": 18,
+    "spearman": 0.5448217097786225
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 394,
+    "decile_2plus": 281,
+    "top_a": 48,
+    "top_kept": 11,
+    "spearman": 0.4181756158987584
+   }
+  },
+  {
+   "month": "2020-08-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 326,
+    "decile_2plus": 195,
+    "top_a": 48,
+    "top_kept": 22,
+    "spearman": 0.7428665185077613
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 376,
+    "decile_2plus": 258,
+    "top_a": 48,
+    "top_kept": 16,
+    "spearman": 0.5141907346436769
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 385,
+    "decile_2plus": 285,
+    "top_a": 48,
+    "top_kept": 13,
+    "spearman": 0.3837804018373776
+   }
+  },
+  {
+   "month": "2020-09-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 329,
+    "decile_2plus": 200,
+    "top_a": 48,
+    "top_kept": 23,
+    "spearman": 0.7240649256769042
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 384,
+    "decile_2plus": 264,
+    "top_a": 48,
+    "top_kept": 14,
+    "spearman": 0.49393791954142197
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 398,
+    "decile_2plus": 300,
+    "top_a": 48,
+    "top_kept": 10,
+    "spearman": 0.3410930693717525
+   }
+  },
+  {
+   "month": "2020-10-01",
+   "price_half": {
+    "n": 471,
+    "decile_changed": 330,
+    "decile_2plus": 193,
+    "top_a": 48,
+    "top_kept": 23,
+    "spearman": 0.7207613079268674
+   },
+   "fundamentals_half": {
+    "n": 471,
+    "decile_changed": 381,
+    "decile_2plus": 272,
+    "top_a": 48,
+    "top_kept": 14,
+    "spearman": 0.48174122720076046
+   },
+   "total": {
+    "n": 471,
+    "decile_changed": 406,
+    "decile_2plus": 295,
+    "top_a": 48,
+    "top_kept": 11,
+    "spearman": 0.3427338581863337
+   }
+  },
+  {
+   "month": "2020-11-01",
+   "price_half": {
+    "n": 472,
+    "decile_changed": 338,
+    "decile_2plus": 174,
+    "top_a": 48,
+    "top_kept": 23,
+    "spearman": 0.7446495302519223
+   },
+   "fundamentals_half": {
+    "n": 472,
+    "decile_changed": 393,
+    "decile_2plus": 270,
+    "top_a": 48,
+    "top_kept": 15,
+    "spearman": 0.49490120357087625
+   },
+   "total": {
+    "n": 472,
+    "decile_changed": 394,
+    "decile_2plus": 282,
+    "top_a": 48,
+    "top_kept": 12,
+    "spearman": 0.36755093240260367
+   }
+  },
+  {
+   "month": "2020-12-01",
+   "price_half": {
+    "n": 472,
+    "decile_changed": 326,
+    "decile_2plus": 190,
+    "top_a": 48,
+    "top_kept": 22,
+    "spearman": 0.7414673344836925
+   },
+   "fundamentals_half": {
+    "n": 472,
+    "decile_changed": 397,
+    "decile_2plus": 284,
+    "top_a": 48,
+    "top_kept": 17,
+    "spearman": 0.497263041397269
+   },
+   "total": {
+    "n": 472,
+    "decile_changed": 401,
+    "decile_2plus": 284,
+    "top_a": 48,
+    "top_kept": 14,
+    "spearman": 0.3442606693532932
+   }
+  },
+  {
+   "month": "2021-01-01",
+   "price_half": {
+    "n": 472,
+    "decile_changed": 331,
+    "decile_2plus": 175,
+    "top_a": 48,
+    "top_kept": 24,
+    "spearman": 0.7624195121896076
+   },
+   "fundamentals_half": {
+    "n": 472,
+    "decile_changed": 393,
+    "decile_2plus": 269,
+    "top_a": 48,
+    "top_kept": 15,
+    "spearman": 0.4953464833055585
+   },
+   "total": {
+    "n": 472,
+    "decile_changed": 396,
+    "decile_2plus": 285,
+    "top_a": 48,
+    "top_kept": 13,
+    "spearman": 0.35994103810628275
+   }
+  },
+  {
+   "month": "2021-02-01",
+   "price_half": {
+    "n": 474,
+    "decile_changed": 331,
+    "decile_2plus": 175,
+    "top_a": 48,
+    "top_kept": 21,
+    "spearman": 0.7833972072462545
+   },
+   "fundamentals_half": {
+    "n": 474,
+    "decile_changed": 387,
+    "decile_2plus": 253,
+    "top_a": 48,
+    "top_kept": 16,
+    "spearman": 0.4622294642014612
+   },
+   "total": {
+    "n": 474,
+    "decile_changed": 405,
+    "decile_2plus": 280,
+    "top_a": 48,
+    "top_kept": 14,
+    "spearman": 0.3444138551049763
+   }
+  },
+  {
+   "month": "2021-03-01",
+   "price_half": {
+    "n": 475,
+    "decile_changed": 336,
+    "decile_2plus": 172,
+    "top_a": 48,
+    "top_kept": 23,
+    "spearman": 0.7919558453710388
+   },
+   "fundamentals_half": {
+    "n": 475,
+    "decile_changed": 380,
+    "decile_2plus": 262,
+    "top_a": 48,
+    "top_kept": 16,
+    "spearman": 0.46901799755568785
+   },
+   "total": {
+    "n": 475,
+    "decile_changed": 402,
+    "decile_2plus": 276,
+    "top_a": 48,
+    "top_kept": 10,
+    "spearman": 0.3486426991626544
+   }
+  },
+  {
+   "month": "2021-04-01",
+   "price_half": {
+    "n": 475,
+    "decile_changed": 320,
+    "decile_2plus": 169,
+    "top_a": 48,
+    "top_kept": 28,
+    "spearman": 0.797973599742216
+   },
+   "fundamentals_half": {
+    "n": 475,
+    "decile_changed": 385,
+    "decile_2plus": 255,
+    "top_a": 48,
+    "top_kept": 18,
+    "spearman": 0.487207920468382
+   },
+   "total": {
+    "n": 475,
+    "decile_changed": 390,
+    "decile_2plus": 286,
+    "top_a": 48,
+    "top_kept": 15,
+    "spearman": 0.37496577905130635
+   }
+  },
+  {
+   "month": "2021-05-01",
+   "price_half": {
+    "n": 479,
+    "decile_changed": 321,
+    "decile_2plus": 164,
+    "top_a": 48,
+    "top_kept": 28,
+    "spearman": 0.7998950151008027
+   },
+   "fundamentals_half": {
+    "n": 479,
+    "decile_changed": 380,
+    "decile_2plus": 246,
+    "top_a": 48,
+    "top_kept": 19,
+    "spearman": 0.4993243405181962
+   },
+   "total": {
+    "n": 479,
+    "decile_changed": 408,
+    "decile_2plus": 270,
+    "top_a": 48,
+    "top_kept": 17,
+    "spearman": 0.4167538083376051
+   }
+  },
+  {
+   "month": "2021-06-01",
+   "price_half": {
+    "n": 480,
+    "decile_changed": 324,
+    "decile_2plus": 156,
+    "top_a": 48,
+    "top_kept": 28,
+    "spearman": 0.8054247986431635
+   },
+   "fundamentals_half": {
+    "n": 480,
+    "decile_changed": 377,
+    "decile_2plus": 245,
+    "top_a": 48,
+    "top_kept": 20,
+    "spearman": 0.5147485868849309
+   },
+   "total": {
+    "n": 480,
+    "decile_changed": 400,
+    "decile_2plus": 268,
+    "top_a": 48,
+    "top_kept": 18,
+    "spearman": 0.4296533582409312
+   }
+  },
+  {
+   "month": "2021-07-01",
+   "price_half": {
+    "n": 480,
+    "decile_changed": 330,
+    "decile_2plus": 157,
+    "top_a": 48,
+    "top_kept": 26,
+    "spearman": 0.8044926159090016
+   },
+   "fundamentals_half": {
+    "n": 480,
+    "decile_changed": 390,
+    "decile_2plus": 264,
+    "top_a": 48,
+    "top_kept": 18,
+    "spearman": 0.5163079297556716
+   },
+   "total": {
+    "n": 480,
+    "decile_changed": 398,
+    "decile_2plus": 264,
+    "top_a": 48,
+    "top_kept": 17,
+    "spearman": 0.4313525368116863
+   }
+  },
+  {
+   "month": "2021-08-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 321,
+    "decile_2plus": 153,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.7965433779219291
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 389,
+    "decile_2plus": 256,
+    "top_a": 49,
+    "top_kept": 21,
+    "spearman": 0.5408667111330974
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 402,
+    "decile_2plus": 274,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.4676720175559821
+   }
+  },
+  {
+   "month": "2021-09-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 326,
+    "decile_2plus": 158,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.7896009177386145
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 395,
+    "decile_2plus": 261,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5328112345713272
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 411,
+    "decile_2plus": 279,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.44035659164168056
+   }
+  },
+  {
+   "month": "2021-10-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 320,
+    "decile_2plus": 157,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.7924973165940378
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 383,
+    "decile_2plus": 256,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5324643220066019
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 399,
+    "decile_2plus": 281,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.42546708703648667
+   }
+  },
+  {
+   "month": "2021-11-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 329,
+    "decile_2plus": 158,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.7920070942854447
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 375,
+    "decile_2plus": 262,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.5059594181316485
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 400,
+    "decile_2plus": 280,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.4321419788874092
+   }
+  },
+  {
+   "month": "2021-12-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 312,
+    "decile_2plus": 149,
+    "top_a": 49,
+    "top_kept": 29,
+    "spearman": 0.8014170774739143
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 376,
+    "decile_2plus": 259,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5236433119542975
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 405,
+    "decile_2plus": 289,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.4640646985151871
+   }
+  },
+  {
+   "month": "2022-01-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 314,
+    "decile_2plus": 145,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8074075579731796
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 379,
+    "decile_2plus": 248,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.5512019173872226
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 404,
+    "decile_2plus": 277,
+    "top_a": 49,
+    "top_kept": 15,
+    "spearman": 0.4872977632784228
+   }
+  },
+  {
+   "month": "2022-02-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 309,
+    "decile_2plus": 152,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.8174092272359833
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 388,
+    "decile_2plus": 248,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5808322450363137
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 392,
+    "decile_2plus": 266,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5298816120447959
+   }
+  },
+  {
+   "month": "2022-03-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 306,
+    "decile_2plus": 161,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.8231174972496732
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 387,
+    "decile_2plus": 251,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5866283254693618
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 388,
+    "decile_2plus": 265,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.5359346389913792
+   }
+  },
+  {
+   "month": "2022-04-01",
+   "price_half": {
+    "n": 481,
+    "decile_changed": 309,
+    "decile_2plus": 151,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.814690334447047
+   },
+   "fundamentals_half": {
+    "n": 481,
+    "decile_changed": 395,
+    "decile_2plus": 252,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.5609843027473845
+   },
+   "total": {
+    "n": 481,
+    "decile_changed": 393,
+    "decile_2plus": 272,
+    "top_a": 49,
+    "top_kept": 15,
+    "spearman": 0.49960931041651274
+   }
+  },
+  {
+   "month": "2022-05-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 325,
+    "decile_2plus": 156,
+    "top_a": 49,
+    "top_kept": 29,
+    "spearman": 0.8184576824882508
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 383,
+    "decile_2plus": 248,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.5904587402374809
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 393,
+    "decile_2plus": 255,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.5536207610181717
+   }
+  },
+  {
+   "month": "2022-06-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 326,
+    "decile_2plus": 160,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8197049640479138
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 385,
+    "decile_2plus": 237,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.60684381286481
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 394,
+    "decile_2plus": 250,
+    "top_a": 49,
+    "top_kept": 13,
+    "spearman": 0.5710734986502348
+   }
+  },
+  {
+   "month": "2022-07-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 328,
+    "decile_2plus": 158,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8206827630816845
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 390,
+    "decile_2plus": 226,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.6080880670112668
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 385,
+    "decile_2plus": 255,
+    "top_a": 49,
+    "top_kept": 14,
+    "spearman": 0.5673671810487781
+   }
+  },
+  {
+   "month": "2022-08-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 330,
+    "decile_2plus": 160,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.8085220477716146
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 381,
+    "decile_2plus": 226,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.5854335001503521
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 381,
+    "decile_2plus": 251,
+    "top_a": 49,
+    "top_kept": 14,
+    "spearman": 0.5325608750533761
+   }
+  },
+  {
+   "month": "2022-09-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 333,
+    "decile_2plus": 159,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.8001415947732399
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 372,
+    "decile_2plus": 242,
+    "top_a": 49,
+    "top_kept": 22,
+    "spearman": 0.5819359901498015
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 376,
+    "decile_2plus": 254,
+    "top_a": 49,
+    "top_kept": 13,
+    "spearman": 0.5341672819380691
+   }
+  },
+  {
+   "month": "2022-10-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 316,
+    "decile_2plus": 159,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8011273908533076
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 377,
+    "decile_2plus": 238,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.5721481652274094
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 398,
+    "decile_2plus": 268,
+    "top_a": 49,
+    "top_kept": 11,
+    "spearman": 0.526978440395104
+   }
+  },
+  {
+   "month": "2022-11-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 332,
+    "decile_2plus": 154,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.8181522745916026
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 369,
+    "decile_2plus": 244,
+    "top_a": 49,
+    "top_kept": 23,
+    "spearman": 0.567549335502988
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 377,
+    "decile_2plus": 271,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.5196380145144958
+   }
+  },
+  {
+   "month": "2022-12-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 298,
+    "decile_2plus": 156,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8137460446213567
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 360,
+    "decile_2plus": 243,
+    "top_a": 49,
+    "top_kept": 22,
+    "spearman": 0.5594973367850106
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 383,
+    "decile_2plus": 268,
+    "top_a": 49,
+    "top_kept": 18,
+    "spearman": 0.5152061624558008
+   }
+  },
+  {
+   "month": "2023-01-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 314,
+    "decile_2plus": 147,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.8255093991232693
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 375,
+    "decile_2plus": 237,
+    "top_a": 49,
+    "top_kept": 23,
+    "spearman": 0.5720062597539114
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 376,
+    "decile_2plus": 266,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.523831977189143
+   }
+  },
+  {
+   "month": "2023-02-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 308,
+    "decile_2plus": 157,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.8278918973319532
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 374,
+    "decile_2plus": 237,
+    "top_a": 49,
+    "top_kept": 19,
+    "spearman": 0.5672650858274997
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 394,
+    "decile_2plus": 271,
+    "top_a": 49,
+    "top_kept": 14,
+    "spearman": 0.4955025385324699
+   }
+  },
+  {
+   "month": "2023-03-01",
+   "price_half": {
+    "n": 483,
+    "decile_changed": 316,
+    "decile_2plus": 151,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.8274361408048473
+   },
+   "fundamentals_half": {
+    "n": 483,
+    "decile_changed": 367,
+    "decile_2plus": 232,
+    "top_a": 49,
+    "top_kept": 23,
+    "spearman": 0.576483331375593
+   },
+   "total": {
+    "n": 483,
+    "decile_changed": 390,
+    "decile_2plus": 268,
+    "top_a": 49,
+    "top_kept": 17,
+    "spearman": 0.49883116821915396
+   }
+  },
+  {
+   "month": "2023-04-01",
+   "price_half": {
+    "n": 484,
+    "decile_changed": 324,
+    "decile_2plus": 159,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.8017389540970804
+   },
+   "fundamentals_half": {
+    "n": 484,
+    "decile_changed": 374,
+    "decile_2plus": 233,
+    "top_a": 49,
+    "top_kept": 23,
+    "spearman": 0.5555408291642046
+   },
+   "total": {
+    "n": 484,
+    "decile_changed": 389,
+    "decile_2plus": 276,
+    "top_a": 49,
+    "top_kept": 16,
+    "spearman": 0.475033886524167
+   }
+  },
+  {
+   "month": "2023-05-01",
+   "price_half": {
+    "n": 484,
+    "decile_changed": 317,
+    "decile_2plus": 157,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.8191697986560246
+   },
+   "fundamentals_half": {
+    "n": 484,
+    "decile_changed": 373,
+    "decile_2plus": 231,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.5749662524188784
+   },
+   "total": {
+    "n": 484,
+    "decile_changed": 397,
+    "decile_2plus": 271,
+    "top_a": 49,
+    "top_kept": 21,
+    "spearman": 0.4955201039005527
+   }
+  },
+  {
+   "month": "2023-06-01",
+   "price_half": {
+    "n": 485,
+    "decile_changed": 312,
+    "decile_2plus": 154,
+    "top_a": 49,
+    "top_kept": 30,
+    "spearman": 0.8256813506472294
+   },
+   "fundamentals_half": {
+    "n": 485,
+    "decile_changed": 370,
+    "decile_2plus": 243,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.585036983863522
+   },
+   "total": {
+    "n": 485,
+    "decile_changed": 391,
+    "decile_2plus": 269,
+    "top_a": 49,
+    "top_kept": 20,
+    "spearman": 0.49231698834192056
+   }
+  },
+  {
+   "month": "2023-07-01",
+   "price_half": {
+    "n": 485,
+    "decile_changed": 310,
+    "decile_2plus": 146,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.8289012428906528
+   },
+   "fundamentals_half": {
+    "n": 485,
+    "decile_changed": 371,
+    "decile_2plus": 227,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.6061736867743085
+   },
+   "total": {
+    "n": 485,
+    "decile_changed": 395,
+    "decile_2plus": 258,
+    "top_a": 49,
+    "top_kept": 20,
+    "spearman": 0.5302147918215103
+   }
+  },
+  {
+   "month": "2023-08-01",
+   "price_half": {
+    "n": 485,
+    "decile_changed": 312,
+    "decile_2plus": 149,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.831196138594259
+   },
+   "fundamentals_half": {
+    "n": 485,
+    "decile_changed": 367,
+    "decile_2plus": 228,
+    "top_a": 49,
+    "top_kept": 27,
+    "spearman": 0.6203523611302963
+   },
+   "total": {
+    "n": 485,
+    "decile_changed": 388,
+    "decile_2plus": 252,
+    "top_a": 49,
+    "top_kept": 22,
+    "spearman": 0.5370865344449982
+   }
+  },
+  {
+   "month": "2023-09-01",
+   "price_half": {
+    "n": 485,
+    "decile_changed": 311,
+    "decile_2plus": 142,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.8377881181662253
+   },
+   "fundamentals_half": {
+    "n": 485,
+    "decile_changed": 382,
+    "decile_2plus": 228,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.6222892258530921
+   },
+   "total": {
+    "n": 485,
+    "decile_changed": 393,
+    "decile_2plus": 253,
+    "top_a": 49,
+    "top_kept": 20,
+    "spearman": 0.5432028660733402
+   }
+  },
+  {
+   "month": "2023-10-01",
+   "price_half": {
+    "n": 486,
+    "decile_changed": 327,
+    "decile_2plus": 136,
+    "top_a": 49,
+    "top_kept": 29,
+    "spearman": 0.8403863125725723
+   },
+   "fundamentals_half": {
+    "n": 486,
+    "decile_changed": 372,
+    "decile_2plus": 222,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.6470607451866358
+   },
+   "total": {
+    "n": 486,
+    "decile_changed": 384,
+    "decile_2plus": 260,
+    "top_a": 49,
+    "top_kept": 21,
+    "spearman": 0.5695368740131479
+   }
+  },
+  {
+   "month": "2023-11-01",
+   "price_half": {
+    "n": 487,
+    "decile_changed": 316,
+    "decile_2plus": 130,
+    "top_a": 49,
+    "top_kept": 30,
+    "spearman": 0.8418370349838911
+   },
+   "fundamentals_half": {
+    "n": 487,
+    "decile_changed": 367,
+    "decile_2plus": 218,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.6832400438231852
+   },
+   "total": {
+    "n": 487,
+    "decile_changed": 380,
+    "decile_2plus": 256,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.5947656944517603
+   }
+  },
+  {
+   "month": "2023-12-01",
+   "price_half": {
+    "n": 487,
+    "decile_changed": 301,
+    "decile_2plus": 131,
+    "top_a": 49,
+    "top_kept": 33,
+    "spearman": 0.8437786686944109
+   },
+   "fundamentals_half": {
+    "n": 487,
+    "decile_changed": 364,
+    "decile_2plus": 203,
+    "top_a": 49,
+    "top_kept": 26,
+    "spearman": 0.6763720341459016
+   },
+   "total": {
+    "n": 487,
+    "decile_changed": 385,
+    "decile_2plus": 257,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.5792241531975341
+   }
+  },
+  {
+   "month": "2024-01-01",
+   "price_half": {
+    "n": 487,
+    "decile_changed": 302,
+    "decile_2plus": 141,
+    "top_a": 49,
+    "top_kept": 31,
+    "spearman": 0.8322950746306871
+   },
+   "fundamentals_half": {
+    "n": 487,
+    "decile_changed": 364,
+    "decile_2plus": 222,
+    "top_a": 49,
+    "top_kept": 25,
+    "spearman": 0.6611780387385412
+   },
+   "total": {
+    "n": 487,
+    "decile_changed": 383,
+    "decile_2plus": 266,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.5609429041927326
+   }
+  },
+  {
+   "month": "2024-02-01",
+   "price_half": {
+    "n": 489,
+    "decile_changed": 302,
+    "decile_2plus": 141,
+    "top_a": 49,
+    "top_kept": 33,
+    "spearman": 0.8435907284703441
+   },
+   "fundamentals_half": {
+    "n": 489,
+    "decile_changed": 375,
+    "decile_2plus": 226,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.6548068326424598
+   },
+   "total": {
+    "n": 489,
+    "decile_changed": 386,
+    "decile_2plus": 247,
+    "top_a": 49,
+    "top_kept": 21,
+    "spearman": 0.5828883726801463
+   }
+  },
+  {
+   "month": "2024-03-01",
+   "price_half": {
+    "n": 489,
+    "decile_changed": 307,
+    "decile_2plus": 136,
+    "top_a": 49,
+    "top_kept": 34,
+    "spearman": 0.842656052745656
+   },
+   "fundamentals_half": {
+    "n": 489,
+    "decile_changed": 371,
+    "decile_2plus": 228,
+    "top_a": 49,
+    "top_kept": 23,
+    "spearman": 0.6574917334135341
+   },
+   "total": {
+    "n": 489,
+    "decile_changed": 379,
+    "decile_2plus": 248,
+    "top_a": 49,
+    "top_kept": 24,
+    "spearman": 0.5737924217993823
+   }
+  },
+  {
+   "month": "2024-04-01",
+   "price_half": {
+    "n": 490,
+    "decile_changed": 308,
+    "decile_2plus": 135,
+    "top_a": 49,
+    "top_kept": 31,
+    "spearman": 0.8502755743669603
+   },
+   "fundamentals_half": {
+    "n": 490,
+    "decile_changed": 370,
+    "decile_2plus": 220,
+    "top_a": 49,
+    "top_kept": 28,
+    "spearman": 0.672015525054642
+   },
+   "total": {
+    "n": 490,
+    "decile_changed": 390,
+    "decile_2plus": 230,
+    "top_a": 49,
+    "top_kept": 22,
+    "spearman": 0.5952252694730278
+   }
+  },
+  {
+   "month": "2024-05-01",
+   "price_half": {
+    "n": 492,
+    "decile_changed": 286,
+    "decile_2plus": 132,
+    "top_a": 50,
+    "top_kept": 35,
+    "spearman": 0.8601425105534686
+   },
+   "fundamentals_half": {
+    "n": 492,
+    "decile_changed": 363,
+    "decile_2plus": 200,
+    "top_a": 50,
+    "top_kept": 24,
+    "spearman": 0.6989837164444878
+   },
+   "total": {
+    "n": 492,
+    "decile_changed": 382,
+    "decile_2plus": 229,
+    "top_a": 50,
+    "top_kept": 20,
+    "spearman": 0.6370742929045933
+   }
+  },
+  {
+   "month": "2024-06-01",
+   "price_half": {
+    "n": 493,
+    "decile_changed": 289,
+    "decile_2plus": 118,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.8659497788627606
+   },
+   "fundamentals_half": {
+    "n": 493,
+    "decile_changed": 374,
+    "decile_2plus": 205,
+    "top_a": 50,
+    "top_kept": 24,
+    "spearman": 0.7043478502531638
+   },
+   "total": {
+    "n": 493,
+    "decile_changed": 384,
+    "decile_2plus": 225,
+    "top_a": 50,
+    "top_kept": 22,
+    "spearman": 0.6433066527635707
+   }
+  },
+  {
+   "month": "2024-07-01",
+   "price_half": {
+    "n": 493,
+    "decile_changed": 294,
+    "decile_2plus": 118,
+    "top_a": 50,
+    "top_kept": 35,
+    "spearman": 0.8680791508720941
+   },
+   "fundamentals_half": {
+    "n": 493,
+    "decile_changed": 366,
+    "decile_2plus": 220,
+    "top_a": 50,
+    "top_kept": 26,
+    "spearman": 0.6993147638130743
+   },
+   "total": {
+    "n": 493,
+    "decile_changed": 373,
+    "decile_2plus": 226,
+    "top_a": 50,
+    "top_kept": 23,
+    "spearman": 0.6385497391578177
+   }
+  },
+  {
+   "month": "2024-08-01",
+   "price_half": {
+    "n": 493,
+    "decile_changed": 307,
+    "decile_2plus": 127,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.865198486160284
+   },
+   "fundamentals_half": {
+    "n": 493,
+    "decile_changed": 359,
+    "decile_2plus": 205,
+    "top_a": 50,
+    "top_kept": 22,
+    "spearman": 0.6977086867574597
+   },
+   "total": {
+    "n": 493,
+    "decile_changed": 390,
+    "decile_2plus": 225,
+    "top_a": 50,
+    "top_kept": 20,
+    "spearman": 0.6242251876721581
+   }
+  },
+  {
+   "month": "2024-09-01",
+   "price_half": {
+    "n": 494,
+    "decile_changed": 296,
+    "decile_2plus": 125,
+    "top_a": 50,
+    "top_kept": 32,
+    "spearman": 0.8646551590701294
+   },
+   "fundamentals_half": {
+    "n": 494,
+    "decile_changed": 373,
+    "decile_2plus": 206,
+    "top_a": 50,
+    "top_kept": 22,
+    "spearman": 0.6758076780972275
+   },
+   "total": {
+    "n": 494,
+    "decile_changed": 385,
+    "decile_2plus": 225,
+    "top_a": 50,
+    "top_kept": 23,
+    "spearman": 0.6093741815066284
+   }
+  },
+  {
+   "month": "2024-10-01",
+   "price_half": {
+    "n": 494,
+    "decile_changed": 292,
+    "decile_2plus": 104,
+    "top_a": 50,
+    "top_kept": 34,
+    "spearman": 0.8726016896336709
+   },
+   "fundamentals_half": {
+    "n": 494,
+    "decile_changed": 360,
+    "decile_2plus": 219,
+    "top_a": 50,
+    "top_kept": 24,
+    "spearman": 0.6849941254492148
+   },
+   "total": {
+    "n": 494,
+    "decile_changed": 386,
+    "decile_2plus": 224,
+    "top_a": 50,
+    "top_kept": 21,
+    "spearman": 0.6253344492904176
+   }
+  },
+  {
+   "month": "2024-11-01",
+   "price_half": {
+    "n": 495,
+    "decile_changed": 294,
+    "decile_2plus": 113,
+    "top_a": 50,
+    "top_kept": 29,
+    "spearman": 0.8735345533274067
+   },
+   "fundamentals_half": {
+    "n": 495,
+    "decile_changed": 376,
+    "decile_2plus": 200,
+    "top_a": 50,
+    "top_kept": 25,
+    "spearman": 0.6988674781260369
+   },
+   "total": {
+    "n": 495,
+    "decile_changed": 369,
+    "decile_2plus": 230,
+    "top_a": 50,
+    "top_kept": 26,
+    "spearman": 0.6338352888040337
+   }
+  },
+  {
+   "month": "2024-12-01",
+   "price_half": {
+    "n": 495,
+    "decile_changed": 283,
+    "decile_2plus": 105,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.882374070512754
+   },
+   "fundamentals_half": {
+    "n": 495,
+    "decile_changed": 353,
+    "decile_2plus": 203,
+    "top_a": 50,
+    "top_kept": 24,
+    "spearman": 0.6952996622563736
+   },
+   "total": {
+    "n": 495,
+    "decile_changed": 372,
+    "decile_2plus": 214,
+    "top_a": 50,
+    "top_kept": 24,
+    "spearman": 0.643612552042926
+   }
+  },
+  {
+   "month": "2025-01-01",
+   "price_half": {
+    "n": 495,
+    "decile_changed": 283,
+    "decile_2plus": 111,
+    "top_a": 50,
+    "top_kept": 32,
+    "spearman": 0.8788081530721814
+   },
+   "fundamentals_half": {
+    "n": 495,
+    "decile_changed": 368,
+    "decile_2plus": 206,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.6913460857303655
+   },
+   "total": {
+    "n": 495,
+    "decile_changed": 367,
+    "decile_2plus": 223,
+    "top_a": 50,
+    "top_kept": 28,
+    "spearman": 0.6368273822046127
+   }
+  },
+  {
+   "month": "2025-02-01",
+   "price_half": {
+    "n": 495,
+    "decile_changed": 279,
+    "decile_2plus": 111,
+    "top_a": 50,
+    "top_kept": 35,
+    "spearman": 0.8738742297429877
+   },
+   "fundamentals_half": {
+    "n": 495,
+    "decile_changed": 364,
+    "decile_2plus": 195,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.7080806756122425
+   },
+   "total": {
+    "n": 495,
+    "decile_changed": 364,
+    "decile_2plus": 230,
+    "top_a": 50,
+    "top_kept": 26,
+    "spearman": 0.6308908251567308
+   }
+  },
+  {
+   "month": "2025-03-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 277,
+    "decile_2plus": 109,
+    "top_a": 50,
+    "top_kept": 34,
+    "spearman": 0.8685342228624742
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 353,
+    "decile_2plus": 188,
+    "top_a": 50,
+    "top_kept": 26,
+    "spearman": 0.7235925943090296
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 362,
+    "decile_2plus": 229,
+    "top_a": 50,
+    "top_kept": 26,
+    "spearman": 0.6433882315849027
+   }
+  },
+  {
+   "month": "2025-04-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 266,
+    "decile_2plus": 108,
+    "top_a": 50,
+    "top_kept": 37,
+    "spearman": 0.8661667043644169
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 360,
+    "decile_2plus": 196,
+    "top_a": 50,
+    "top_kept": 29,
+    "spearman": 0.7164652532991675
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 365,
+    "decile_2plus": 228,
+    "top_a": 50,
+    "top_kept": 29,
+    "spearman": 0.636093551333873
+   }
+  },
+  {
+   "month": "2025-05-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 274,
+    "decile_2plus": 102,
+    "top_a": 50,
+    "top_kept": 35,
+    "spearman": 0.8741554915584969
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 352,
+    "decile_2plus": 187,
+    "top_a": 50,
+    "top_kept": 29,
+    "spearman": 0.7366214440380336
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 358,
+    "decile_2plus": 225,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.6618156976119829
+   }
+  },
+  {
+   "month": "2025-06-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 265,
+    "decile_2plus": 97,
+    "top_a": 50,
+    "top_kept": 37,
+    "spearman": 0.8983891516844981
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 349,
+    "decile_2plus": 192,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.7509402227504067
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 373,
+    "decile_2plus": 223,
+    "top_a": 50,
+    "top_kept": 28,
+    "spearman": 0.6885935762305577
+   }
+  },
+  {
+   "month": "2025-07-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 263,
+    "decile_2plus": 79,
+    "top_a": 50,
+    "top_kept": 38,
+    "spearman": 0.9085452477010858
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 354,
+    "decile_2plus": 181,
+    "top_a": 50,
+    "top_kept": 29,
+    "spearman": 0.7703003230385547
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 364,
+    "decile_2plus": 218,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.7124001094840898
+   }
+  },
+  {
+   "month": "2025-08-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 270,
+    "decile_2plus": 84,
+    "top_a": 50,
+    "top_kept": 35,
+    "spearman": 0.9130170841361014
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 360,
+    "decile_2plus": 177,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.7577380418963997
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 360,
+    "decile_2plus": 212,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.6953373855145741
+   }
+  },
+  {
+   "month": "2025-09-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 263,
+    "decile_2plus": 90,
+    "top_a": 50,
+    "top_kept": 37,
+    "spearman": 0.9228731981717643
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 334,
+    "decile_2plus": 166,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.7634885153750345
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 344,
+    "decile_2plus": 208,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.7061380059812594
+   }
+  },
+  {
+   "month": "2025-10-01",
+   "price_half": {
+    "n": 496,
+    "decile_changed": 240,
+    "decile_2plus": 75,
+    "top_a": 50,
+    "top_kept": 39,
+    "spearman": 0.9375574024879008
+   },
+   "fundamentals_half": {
+    "n": 496,
+    "decile_changed": 334,
+    "decile_2plus": 154,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.7945570647926246
+   },
+   "total": {
+    "n": 496,
+    "decile_changed": 337,
+    "decile_2plus": 187,
+    "top_a": 50,
+    "top_kept": 27,
+    "spearman": 0.7435902390817658
+   }
+  },
+  {
+   "month": "2025-11-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 230,
+    "decile_2plus": 71,
+    "top_a": 50,
+    "top_kept": 38,
+    "spearman": 0.936618322109225
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 323,
+    "decile_2plus": 147,
+    "top_a": 50,
+    "top_kept": 32,
+    "spearman": 0.8106774646010583
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 339,
+    "decile_2plus": 181,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.7598877336629719
+   }
+  },
+  {
+   "month": "2025-12-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 228,
+    "decile_2plus": 59,
+    "top_a": 50,
+    "top_kept": 39,
+    "spearman": 0.9451962645507943
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 313,
+    "decile_2plus": 145,
+    "top_a": 50,
+    "top_kept": 31,
+    "spearman": 0.8106910610381142
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 324,
+    "decile_2plus": 178,
+    "top_a": 50,
+    "top_kept": 30,
+    "spearman": 0.7655762917088741
+   }
+  },
+  {
+   "month": "2026-01-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 209,
+    "decile_2plus": 46,
+    "top_a": 50,
+    "top_kept": 44,
+    "spearman": 0.9546308665001882
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 313,
+    "decile_2plus": 134,
+    "top_a": 50,
+    "top_kept": 31,
+    "spearman": 0.8291434027945482
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 320,
+    "decile_2plus": 163,
+    "top_a": 50,
+    "top_kept": 32,
+    "spearman": 0.7968430290471873
+   }
+  },
+  {
+   "month": "2026-02-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 195,
+    "decile_2plus": 45,
+    "top_a": 50,
+    "top_kept": 41,
+    "spearman": 0.9579455802385315
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 294,
+    "decile_2plus": 104,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.8749588566220782
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 318,
+    "decile_2plus": 127,
+    "top_a": 50,
+    "top_kept": 34,
+    "spearman": 0.8570859005824327
+   }
+  },
+  {
+   "month": "2026-03-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 204,
+    "decile_2plus": 37,
+    "top_a": 50,
+    "top_kept": 38,
+    "spearman": 0.9637839108186046
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 284,
+    "decile_2plus": 103,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.8832585215472014
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 299,
+    "decile_2plus": 123,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.8683818942909938
+   }
+  },
+  {
+   "month": "2026-04-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 182,
+    "decile_2plus": 31,
+    "top_a": 50,
+    "top_kept": 44,
+    "spearman": 0.9716138948164268
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 256,
+    "decile_2plus": 78,
+    "top_a": 50,
+    "top_kept": 33,
+    "spearman": 0.9028697417999608
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 284,
+    "decile_2plus": 97,
+    "top_a": 50,
+    "top_kept": 34,
+    "spearman": 0.8858213814797397
+   }
+  },
+  {
+   "month": "2026-05-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 165,
+    "decile_2plus": 29,
+    "top_a": 50,
+    "top_kept": 42,
+    "spearman": 0.9747445833590219
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 230,
+    "decile_2plus": 56,
+    "top_a": 50,
+    "top_kept": 39,
+    "spearman": 0.9361521665345595
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 251,
+    "decile_2plus": 89,
+    "top_a": 50,
+    "top_kept": 38,
+    "spearman": 0.9205338165032443
+   }
+  },
+  {
+   "month": "2026-06-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 173,
+    "decile_2plus": 16,
+    "top_a": 50,
+    "top_kept": 45,
+    "spearman": 0.9769397657726215
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 218,
+    "decile_2plus": 48,
+    "top_a": 50,
+    "top_kept": 41,
+    "spearman": 0.9383961616883167
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 261,
+    "decile_2plus": 76,
+    "top_a": 50,
+    "top_kept": 37,
+    "spearman": 0.9208572379814411
+   }
+  },
+  {
+   "month": "2026-07-01",
+   "price_half": {
+    "n": 497,
+    "decile_changed": 132,
+    "decile_2plus": 5,
+    "top_a": 50,
+    "top_kept": 46,
+    "spearman": 0.9878375368286842
+   },
+   "fundamentals_half": {
+    "n": 497,
+    "decile_changed": 167,
+    "decile_2plus": 32,
+    "top_a": 50,
+    "top_kept": 43,
+    "spearman": 0.9628559598085766
+   },
+   "total": {
+    "n": 497,
+    "decile_changed": 204,
+    "decile_2plus": 43,
+    "top_a": 50,
+    "top_kept": 41,
+    "spearman": 0.9528701689226619
+   }
+  },
+  {
+   "month": "2026-08-01",
+   "price_half": {
+    "n": 499,
+    "decile_changed": 111,
+    "decile_2plus": 3,
+    "top_a": 50,
+    "top_kept": 46,
+    "spearman": 0.9923778710075544
+   },
+   "fundamentals_half": {
+    "n": 499,
+    "decile_changed": 35,
+    "decile_2plus": 5,
+    "top_a": 50,
+    "top_kept": 48,
+    "spearman": 0.9957738755280272
+   },
+   "total": {
+    "n": 499,
+    "decile_changed": 123,
+    "decile_2plus": 8,
+    "top_a": 50,
+    "top_kept": 47,
+    "spearman": 0.98850718110136
+   }
+  },
+  {
+   "month": "2026-09-01",
+   "price_half": {
+    "n": 499,
+    "decile_changed": 79,
+    "decile_2plus": 1,
+    "top_a": 50,
+    "top_kept": 48,
+    "spearman": 0.9958127996630848
+   },
+   "fundamentals_half": {
+    "n": 499,
+    "decile_changed": 13,
+    "decile_2plus": 1,
+    "top_a": 50,
+    "top_kept": 49,
+    "spearman": 0.9992012446502405
+   },
+   "total": {
+    "n": 499,
+    "decile_changed": 77,
+    "decile_2plus": 2,
+    "top_a": 50,
+    "top_kept": 49,
+    "spearman": 0.9949079032348322
+   }
+  }
+ ]
+}
