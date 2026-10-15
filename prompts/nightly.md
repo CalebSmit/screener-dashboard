@@ -123,6 +123,15 @@ single-digit number of *effective* (non-overlapping) observations against a
 gate of 8. Quote `_n_observations`, never `_n_raw_observations`. Both look like
 evidence and are not.
 
+**That includes backtest v2** (`backtest_v2.py`, `backtest_v2_returns.py`, built
+2026-10-15). It fixes the look-ahead, but it still leaves out every name that has
+left the index and every analyst input, and its first reading - an IC of -0.002
+with an interval of +-0.027 over 80 months - cannot tell "no edge" from a typical
+one. Do not cite it for a change, and in particular do not cut a weight "because
+the backtest shows no edge": that is rule 5's ban read backwards. It is a reason to
+research, on a Monday, which analyst-free categories carried any premium among
+large companies - not a number to act on.
+
 Never acceptable: "it's cleaner", "it's more modern", "best practice".
 
 **Monday - research.** Take one specific thing: a factor, a metric, a
