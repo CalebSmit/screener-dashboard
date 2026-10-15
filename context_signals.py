@@ -39,6 +39,23 @@ OPT_EARNINGS_WINDOW_DAYS = 60
 IV_MIN, IV_MAX = 0.03, 3.0
 MAX_REL_SPREAD = 0.60   # (ask - bid) / mid above this and the quote is not used
 
+# Xing, Zhang & Zhao (2010), JFQA 45(3), p. 644-645, read from the paper: SKEW is the implied
+# volatility of an out-of-the-money put minus that of an at-the-money *call*. A put is OTM when
+# strike/price is below 0.95 but above 0.80, and among those they take the one nearest 0.95; a
+# call is ATM when strike/price is in [0.95, 1.05], and among those the one nearest 1. They
+# require positive open interest and options of 10-60 days to expiry.
+#
+# These are the paper's numbers, not ours to tune: the page cites the paper's effect size, so
+# the measure under it has to be the paper's measure. Changed 2026-10-14 - before that this
+# screener took the put nearest 0.90 moneyness and subtracted the *mean* of the ATM call and
+# put, which is XZZ's skew plus half of Cremers & Weinbaum's (2010) put-call IV spread, i.e.
+# neither quantity. See research/2026-10-14-volatility-skew-construction.md.
+XZZ_PUT_LO, XZZ_PUT_HI = 0.80, 0.95     # OTM put moneyness band (exclusive)
+XZZ_PUT_TARGET = 0.95                   # pick the OTM put nearest this
+XZZ_CALL_LO, XZZ_CALL_HI = 0.95, 1.05   # ATM call moneyness band (inclusive)
+XZZ_CALL_TARGET = 1.0                   # pick the ATM call nearest this
+XZZ_DAYS_LO, XZZ_DAYS_HI = 10, 60       # the paper's time-to-expiration window
+
 
 def _sig(x: float, digits: int = 5):
     """Round to significant digits, for compact payload series."""
@@ -153,6 +170,58 @@ def choose_expiry(expiries, today: date, earnings_date: date | None):
     return best[1], False
 
 
+def _xzz_leg(frame: pd.DataFrame, spot: float, lo: float, hi: float, target: float,
+             inclusive: bool) -> tuple[float, float] | None:
+    """One leg of Xing, Zhang & Zhao's SKEW: (strike, IV) nearest ``target`` moneyness.
+
+    Candidates are restricted to the paper's moneyness band and, where the source reports it,
+    to contracts with positive open interest (the paper requires it). A missing or non-finite
+    open interest is **not** treated as zero - the quote is kept and the fact is not knowable
+    from the field - because dropping every contract whose OI the source omits would silently
+    shrink coverage on a display-only number.
+    """
+    if frame is None or frame.empty or not spot or spot <= 0:
+        return None
+    f = frame[["strike", "impliedVolatility"] + (["openInterest"] if "openInterest" in frame else [])].copy()
+    f["strike"] = pd.to_numeric(f["strike"], errors="coerce")
+    f["impliedVolatility"] = pd.to_numeric(f["impliedVolatility"], errors="coerce")
+    f["m"] = f["strike"] / spot
+    band = (f["m"] >= lo) & (f["m"] <= hi) if inclusive else (f["m"] > lo) & (f["m"] < hi)
+    ok = band & f["impliedVolatility"].between(IV_MIN, IV_MAX)
+    if "openInterest" in f:
+        oi = pd.to_numeric(f["openInterest"], errors="coerce")
+        ok &= ~(oi.notna() & (oi <= 0))
+    f = f[ok]
+    if f.empty:
+        return None
+    row = f.iloc[(f["m"] - target).abs().argsort().iloc[0]]
+    return float(row["strike"]), float(row["impliedVolatility"])
+
+
+def _xzz_skew(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, days) -> dict:
+    """Xing, Zhang & Zhao (2010) SKEW = IV(OTM put) - IV(ATM call), with both legs published.
+
+    Returns an empty dict when either leg is unavailable: a skew with one leg guessed is not
+    the paper's measure, and the panel prints nothing rather than a number it cannot source.
+    """
+    put = _xzz_leg(puts, spot, XZZ_PUT_LO, XZZ_PUT_HI, XZZ_PUT_TARGET, inclusive=False)
+    call = _xzz_leg(calls, spot, XZZ_CALL_LO, XZZ_CALL_HI, XZZ_CALL_TARGET, inclusive=True)
+    if put is None or call is None:
+        return {}
+    (pk, piv), (ck, civ) = put, call
+    return {
+        "_ctx_opt_skew": float(piv - civ),
+        "_ctx_opt_skew_strike": pk,
+        "_ctx_opt_skew_put_iv": piv,
+        "_ctx_opt_skew_call_strike": ck,
+        "_ctx_opt_skew_call_iv": civ,
+        # Whether this expiry is inside the paper's 10-60 day window. The expiry is chosen for
+        # the expected move (it may span a report), so a minority of stocks fall outside it and
+        # the page says so rather than quoting the paper's effect size as if it applied.
+        "_ctx_opt_skew_in_window": bool(days is not None and XZZ_DAYS_LO <= days <= XZZ_DAYS_HI),
+    }
+
+
 def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry: str,
                     today: date, spans_earnings: bool) -> dict:
     """What one expiry's chain says: the move it prices, implied vol, put skew, positioning.
@@ -162,9 +231,13 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
       *sqrt(2/pi), and the straddle is ~0.8*sigma*sqrt(T)*S - the same quantity), so this is the
       average move the options market is paying for, not a forecast of direction.
     - **ATM implied volatility** = mean of the ATM call and put IVs (annualised).
-    - **Put skew** = IV of the put nearest 90% of spot minus ATM IV (Xing, Zhang & Zhao 2010
-      document that steeper skew predicts lower subsequent returns - recorded here, not scored).
-    - **Put/call open interest** = total put OI / total call OI on that expiry.
+    - **Put skew** = Xing, Zhang & Zhao's (2010) SKEW: the IV of the OTM put nearest 0.95
+      moneyness minus the IV of the ATM call nearest 1 (see the ``XZZ_*`` constants for the
+      bands, which are the paper's). Steeper skew preceded weaker returns there - recorded
+      here, never scored.
+    - **Put/call open interest** = total put OI / total call OI on that expiry. Recorded for
+      the context log only; it is not shown on the page (2026-10-14 - a bare *level*, where
+      what little published evidence exists is about flow and is spent within a week).
     """
     out: dict = {"_ctx_opt_expiry": expiry, "_ctx_opt_spans_earnings": bool(spans_earnings)}
     try:
@@ -195,14 +268,7 @@ def options_context(calls: pd.DataFrame, puts: pd.DataFrame, spot: float, expiry
     ivs = [float(v) for v in ivs if v is not None and np.isfinite(v) and IV_MIN <= v <= IV_MAX]
     if len(ivs) == 2:
         out["_ctx_opt_iv"] = float(sum(ivs) / 2)
-    # put skew at ~90% moneyness
-    p90 = puts.iloc[(puts["strike"] - 0.9 * spot).abs().argsort()[:1]]
-    if len(p90) and "_ctx_opt_iv" in out:
-        k = float(p90["strike"].iloc[0])
-        iv90 = p90["impliedVolatility"].iloc[0]
-        if abs(k / spot - 0.9) <= 0.04 and iv90 is not None and np.isfinite(iv90) and IV_MIN <= iv90 <= IV_MAX:
-            out["_ctx_opt_skew"] = float(iv90 - out["_ctx_opt_iv"])
-            out["_ctx_opt_skew_strike"] = k
+    out.update(_xzz_skew(calls, puts, spot, out.get("_ctx_opt_days")))
     coi, poi = calls.get("openInterest"), puts.get("openInterest")
     if coi is not None and poi is not None:
         c_sum, p_sum = float(np.nansum(coi.values)), float(np.nansum(poi.values))

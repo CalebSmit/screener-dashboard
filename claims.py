@@ -462,6 +462,49 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="context.put_skew",
+        surface=DRILLDOWN,
+        asserts=(
+            "'Before you decide' gives put skew as Xing, Zhang & Zhao's (2010) SKEW: the "
+            "implied volatility of the out-of-the-money put nearest 0.95 moneyness (within "
+            "0.80-0.95) minus that of the at-the-money call nearest 1 (within 0.95-1.05), both "
+            "legs printed beside it so the subtraction can be checked on the row. The paper's "
+            "quintile spread is quoted as 10.9% a year risk-adjusted at a one-week holding "
+            "period and 6.5% at four weeks, on options of 10-60 days; where this stock's expiry "
+            "is outside that window the panel says the figures are context and not a reading of "
+            "its number. The 58% post-publication shrinkage is McLean & Pontiff's (2016) average "
+            "across 97 predictors. Never scored."
+        ),
+        made_true_by="context_signals:_xzz_skew",
+        checked_by=(
+            "tests/test_context_layer.py::test_skew_subtracts_the_atm_call_not_the_mean_of_call_and_put",
+            "tests/test_context_layer.py::test_skew_takes_the_otm_put_nearest_095_and_excludes_095_itself",
+            "tests/test_context_layer.py::test_skew_ignores_puts_outside_the_moneyness_band",
+            "tests/test_context_layer.py::test_skew_ignores_calls_outside_the_atm_band",
+            "tests/test_context_layer.py::test_skew_records_whether_the_expiry_is_inside_the_papers_window",
+            "tests/test_context_layer.py::test_skew_skips_contracts_the_source_reports_as_having_no_open_interest",
+            "tests/test_option_implied_claims.py::test_the_panel_states_the_papers_construction",
+            "tests/test_option_implied_claims.py::test_the_panel_quotes_the_four_week_figure_not_only_the_one_week_one",
+            "tests/test_option_implied_claims.py::test_the_panel_states_the_post_publication_shrinkage",
+            "tests/test_option_implied_claims.py::test_the_skew_row_prints_both_legs",
+            "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",
+        ),
+        caveat=(
+            "Fixed 2026-10-14, reading the paper (JFQA 45(3) p. 644-645, 649-654) rather "
+            "than a survey. Until then the panel cited the paper's ~11% a year beside a "
+            "different measure: this screener took the put nearest 0.90 moneyness and "
+            "subtracted the *mean* of the at-the-money call and put, which is XZZ's skew plus "
+            "half of Cremers & Weinbaum's (2010) put-call IV spread - neither published "
+            "quantity. The suite could not see it, because the only chain fixture gave the ATM "
+            "call and put the same IV, so the mean equalled the call. Two further gaps closed "
+            "the same day: only the one-week figure was quoted, where the paper's own Table 4 "
+            "measures a four-week holding period (6.52%, t 2.70) and 8-28 weeks (6-7%, t "
+            "3.7-4.3) - the horizons a monthly review cadence can act on - and no decay figure "
+            "was given at all. Measured on the 2026-10-14 cache: 413 of the 481 stocks with a "
+            "skew (85.9%) have an expiry inside the paper's 10-60 day window."
+        ),
+    ),
+    Claim(
         id="context.rate_sensitivity",
         surface=DRILLDOWN,
         asserts=(

@@ -532,7 +532,19 @@ CTX_FIELDS = {
     "r5": "_ctx_ret_5d", "r1m": "_ctx_ret_1m", "r3m": "_ctx_ret_3m", "vr": "_ctx_vol_ratio",
     "ox": "_ctx_opt_expiry", "od": "_ctx_opt_days", "oe": "_ctx_opt_spans_earnings", "om": "_ctx_opt_move",
     "ost": "_ctx_opt_straddle", "ok": "_ctx_opt_atm_strike", "oi": "_ctx_opt_iv", "osk": "_ctx_opt_skew",
-    "opc": "_ctx_opt_pc_oi", "os": "_ctx_opt_status", "oqd": "_ctx_opt_quote_date",
+    # The skew's two legs, published so the subtraction on the row can be checked from the row
+    # (CLAUDE.md row 0.8). ``oskw`` says whether this expiry is inside Xing, Zhang & Zhao's
+    # 10-60 day window, which decides whether the panel may quote their effect size.
+    "oskp": "_ctx_opt_skew_put_iv", "oskps": "_ctx_opt_skew_strike",
+    "oskc": "_ctx_opt_skew_call_iv", "oskcs": "_ctx_opt_skew_call_strike",
+    "oskw": "_ctx_opt_skew_in_window",
+    # ``_ctx_opt_pc_oi`` is deliberately NOT published (2026-10-14). It was a bare *level* with
+    # no sentence: Pan & Poteshman (2006) find publicly observable option volume has "very
+    # little, if any" predictability, and the closest public analogue in Xing, Zhang & Zhao's
+    # own controls (the put-call volume ratio) is significant one week out and at no horizon
+    # from four weeks. The context log still records it, so the evidence keeps accruing for
+    # ``context_eval`` - it is only off the page.
+    "os": "_ctx_opt_status", "oqd": "_ctx_opt_quote_date",
     "rb": "_ctx_rate_beta", "rr2": "_ctx_rate_r2", "rn": "_ctx_rate_n",
 }
 
@@ -8983,9 +8995,11 @@ def _js_context() -> str:
             if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
             if (rv !== undefined && rv !== null) o += '<tr class="ctx-sub"><td>Realised, past year</td><td class="num">' + cPlain(rv, 0) + '</td></tr>';
-            if (c.osk !== undefined) o += '<tr><td>Put skew (90% puts vs at the money)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
-            if (c.opc !== undefined) o += '<tr><td>Put / call open interest</td><td class="num">' + Number(c.opc).toFixed(2) + '</td></tr>';
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Steeper put skew has been followed by weaker returns - stocks with the steepest skew trailed those with the flattest by about 11% a year, risk-adjusted, in 1996-2005 (Xing, Zhang &amp; Zhao 2010), with smaller gaps in later data. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            if (c.osk !== undefined) {
+                o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
+                if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
+            }
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there - over 1996-2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? ', <b>wider than this expiry&rsquo;s ' + c.od + ' days</b>, so their figures are quoted for context and not as a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {

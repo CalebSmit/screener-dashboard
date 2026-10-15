@@ -128,6 +128,133 @@ def test_expected_move_is_the_atm_straddle_over_the_price():
     assert out["_ctx_opt_days"] == 29 and out["_ctx_opt_spans_earnings"] is True
 
 
+# --------------------------------------------------------------------------- XZZ put skew
+#
+# Xing, Zhang & Zhao (2010), JFQA 45(3) p. 644-645, read from the paper:
+#   SKEW = IV(OTM put, moneyness in (0.80, 0.95), nearest 0.95)
+#          - IV(ATM call, moneyness in [0.95, 1.05], nearest 1)
+# with positive open interest and 10-60 days to expiry.
+#
+# The suite could not previously tell this apart from what the code actually computed (the put
+# at 0.90 moneyness minus the *mean* of the ATM call and put), because ``_chain``'s ATM call and
+# put carry the same IV, so mean(call, put) == call. These fixtures break that symmetry on
+# purpose - that is the whole point of them.
+
+def _asym_chain(spot=100.0, atm_call_iv=0.30, atm_put_iv=0.40, oi=None):
+    """A chain whose ATM call and put IVs differ, so the benchmark leg is identifiable."""
+    strikes = [78, 85, 90, 95, 100, 105, 108]
+    #  moneyness: 0.78  0.85  0.90  0.95  1.00  1.05  1.08
+    base_oi = [500] * 7 if oi is None else oi
+    calls = pd.DataFrame({"strike": strikes,
+                          "bid": [22, 16, 11, 6.5, 3.0, 1.2, 0.6],
+                          "ask": [22.4, 16.4, 11.4, 6.9, 3.2, 1.4, 0.8],
+                          "impliedVolatility": [0.60, 0.33, 0.32, 0.31, atm_call_iv, 0.29, 0.28],
+                          "openInterest": base_oi})
+    puts = pd.DataFrame({"strike": strikes,
+                         "bid": [0.2, 0.4, 0.8, 1.5, 2.8, 6.0, 9.0],
+                         "ask": [0.4, 0.6, 1.0, 1.7, 3.0, 6.4, 9.4],
+                         "impliedVolatility": [0.99, 0.42, 0.38, 0.36, atm_put_iv, 0.29, 0.28],
+                         "openInterest": base_oi})
+    return calls, puts
+
+
+def _skew(calls, puts, spot=100.0, days=29):
+    return cs._xzz_skew(calls, puts, spot, days)
+
+
+def test_skew_subtracts_the_atm_call_not_the_mean_of_call_and_put():
+    """The defect this replaces: ours subtracted the mean, so it was XZZ's skew plus half of
+    Cremers & Weinbaum's put-call IV spread - neither published quantity."""
+    calls, puts = _asym_chain(atm_call_iv=0.30, atm_put_iv=0.40)
+    out = _skew(calls, puts)
+    # OTM put nearest 0.95 within (0.80, 0.95) is the 90 strike (0.95 itself is excluded).
+    assert out["_ctx_opt_skew"] == pytest.approx(0.38 - 0.30)
+    assert out["_ctx_opt_skew_call_iv"] == pytest.approx(0.30)
+    assert out["_ctx_opt_skew_put_iv"] == pytest.approx(0.38)
+    assert out["_ctx_opt_skew_strike"] == 90 and out["_ctx_opt_skew_call_strike"] == 100
+    # The old construction would have given 0.38 - mean(0.30, 0.40) = 0.03.
+    assert out["_ctx_opt_skew"] != pytest.approx(0.38 - 0.35)
+
+
+def test_skew_takes_the_otm_put_nearest_095_and_excludes_095_itself():
+    calls, puts = _asym_chain()
+    out = _skew(calls, puts)
+    assert out["_ctx_opt_skew_strike"] == 90, "0.95 is not OTM by the paper's definition"
+    # Drop the 90 strike and the next-nearest inside the band must be taken, not the 0.95 one.
+    puts2 = puts[puts["strike"] != 90]
+    assert _skew(calls, puts2)["_ctx_opt_skew_strike"] == 85
+
+
+def test_skew_ignores_puts_outside_the_moneyness_band():
+    """0.78 is below the paper's 0.80 floor, so a deep put cannot become the OTM leg."""
+    calls, puts = _asym_chain()
+    puts = puts[puts["strike"].isin([78, 100])]        # only an out-of-band put and the ATM one
+    assert _skew(calls, puts) == {}
+
+
+def test_skew_ignores_calls_outside_the_atm_band():
+    calls, puts = _asym_chain()
+    calls = calls[calls["strike"].isin([78, 108])]     # 0.78 and 1.08, both out of [0.95, 1.05]
+    assert _skew(calls, puts) == {}
+
+
+def test_skew_needs_both_legs_or_reports_nothing():
+    calls, puts = _asym_chain()
+    assert _skew(calls.iloc[0:0], puts) == {}
+    assert _skew(calls, puts.iloc[0:0]) == {}
+    assert _skew(calls, puts, spot=0) == {}
+
+
+def test_skew_skips_contracts_the_source_reports_as_having_no_open_interest():
+    """The paper requires positive open interest."""
+    calls, puts = _asym_chain(oi=[500, 500, 0, 500, 500, 500, 500])   # the 90 put/call are dead
+    out = _skew(calls, puts)
+    assert out["_ctx_opt_skew_strike"] == 85, "a zero-open-interest contract is not eligible"
+
+
+def test_skew_keeps_a_contract_whose_open_interest_the_source_omits():
+    """Missing is not zero: treating it as zero would shrink coverage on a display-only
+    number for a fact the field does not actually report."""
+    calls, puts = _asym_chain()
+    puts.loc[puts["strike"] == 90, "openInterest"] = np.nan
+    assert _skew(calls, puts)["_ctx_opt_skew_strike"] == 90
+    puts2 = puts.drop(columns=["openInterest"])
+    assert _skew(calls, puts2)["_ctx_opt_skew_strike"] == 90
+
+
+def test_skew_records_whether_the_expiry_is_inside_the_papers_window():
+    """The expiry is chosen for the expected move, so it is not always 10-60 days out, and the
+    page must not quote the paper's effect size as though it applied."""
+    calls, puts = _asym_chain()
+    assert _skew(calls, puts, days=29)["_ctx_opt_skew_in_window"] is True
+    assert _skew(calls, puts, days=10)["_ctx_opt_skew_in_window"] is True
+    assert _skew(calls, puts, days=60)["_ctx_opt_skew_in_window"] is True
+    assert _skew(calls, puts, days=9)["_ctx_opt_skew_in_window"] is False
+    assert _skew(calls, puts, days=69)["_ctx_opt_skew_in_window"] is False
+    assert _skew(calls, puts, days=None)["_ctx_opt_skew_in_window"] is False
+
+
+def test_skew_drops_implausible_implied_volatilities():
+    calls, puts = _asym_chain()
+    puts.loc[puts["strike"] == 90, "impliedVolatility"] = 9.0      # above IV_MAX
+    assert _skew(calls, puts)["_ctx_opt_skew_strike"] == 85
+    calls.loc[calls["strike"] == 100, "impliedVolatility"] = np.nan
+    assert _skew(calls, puts)["_ctx_opt_skew_call_strike"] in (95, 105)
+
+
+def test_skew_does_not_depend_on_the_atm_straddle_being_priceable():
+    """It uses the ATM *call* IV, so a put quote too wide to price a straddle from does not
+    remove the skew - the two readings fail independently."""
+    calls, puts = _asym_chain()
+    out = cs.options_context(calls, puts, 100.0, "2026-11-06", date(2026, 10, 8), False)
+    assert out["_ctx_opt_skew"] == pytest.approx(0.38 - 0.30)
+    wide_calls = calls.copy()
+    wide_calls.loc[wide_calls["strike"] == 100, ["bid", "ask"]] = [1.0, 6.0]
+    out2 = cs.options_context(wide_calls, puts, 100.0, "2026-11-06", date(2026, 10, 8), False)
+    assert "_ctx_opt_move" not in out2
+    assert out2["_ctx_opt_skew"] == pytest.approx(0.38 - 0.30)
+
+
 def test_stale_or_wide_quotes_give_no_move():
     calls, puts = _chain(call_bid=0.0, call_ask=0.0)
     out = cs.options_context(calls, puts, 100.0, "2026-11-06", date(2026, 10, 8), False)
