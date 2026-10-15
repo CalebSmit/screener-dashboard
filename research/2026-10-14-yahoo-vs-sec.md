@@ -70,6 +70,16 @@ separate reading of each 10-Q):
 - **Not yet explained:** RSG, HAS, APTV, WMB and DD revenue (11-21%), VMRK and BRK-B net income,
   VMRK equity, COIN operating cash flow. Each needs a look at the filing itself; until then they
   are disagreements, not errors on either side.
+- **Explained 2026-10-15 (owner-run), from each company's own revenue tags for the same quarters:**
+  **WMB** - Yahoo's $12.204bn is the filing's `Revenues` exactly; the check's "largest revenue tag"
+  rule picked the larger contract-revenue tag. **RSG** and **HAS** - Yahoo equals the filed
+  contract-revenue tag exactly; the `Revenues` tag is the larger, gross figure. **APTV** - both tags
+  agree with each other; the gap is the check's first-filed rule against restated quarters.
+  **BF-B** - net of excise tax (as MO). **DD - a real data defect, now fixed:** the source derived
+  Q4-2025 revenue as the restated year less the un-restated nine months (-$1.871bn), so the screener's
+  trailing revenue read $4.70bn against ~$6.99bn filed. The fetch now rejects a quarterly statement
+  with a negative-revenue quarter in its window and uses the annual statements (METHODOLOGY_CHANGELOG
+  2026-10-15; 1 company of 503 affected, measured live).
 
 **So: no evidence tonight of Yahoo serving a wrong number for any comparable input**, which is the
 reassuring result - with the honest qualifier that the check covers the inputs that have a clean

@@ -11361,3 +11361,29 @@ v2 harness is what lets methodology be tested on history at all).
 - A Monday question the returns raise, for research and not for a weight: which of the analyst-free
   categories, among large companies, carried any premium 2020-2026 - read against the Factor Lab's
   large-company experiments (8, 9).
+
+## 2026-10-15 (owner-run, midday) - a real data defect found by the filing check: DuPont's derived quarter
+
+**Health:** unchanged from this morning's owner entry (data loop PASS at 02:00, `1m` evidence 30 rows /
+newest 2026-09-15 / 4 effective). **The 13:00 midday session stood down** - this session held the
+owner marker through it, as the routine intends.
+
+### Did
+- **Worked the filing check's "not yet explained" list** (`research/2026-10-14-yahoo-vs-sec.md`).
+  WMB, RSG, HAS, APTV and BF-B are definitional - Yahoo's figure equals one of the company's own
+  revenue tags exactly; the check's "largest tag" and first-filed rules picked another. **DD was a
+  real defect:** the source served Q4-2025 revenue of -$1.871bn (the restated year less the
+  un-restated nine months across the Qnity spin-off), so the screener's trailing revenue read $4.70bn
+  against ~$6.99bn filed, and gross profit, operating income and net income carried the same quarter.
+- **Fixed in the fetch:** `factor_engine.quarterly_statement_defect` rejects a quarterly statement
+  with a negative-revenue quarter in its four-quarter window; income and cash flow then come from the
+  annual statements, and the stock says so (`_quarterly_rejected` -> a drilldown badge). Scanned live
+  over all 503: **DD is the only one.** Effect measured: DD rank 435 -> 424, EV/sales 4.02 -> 2.76,
+  ROIC 1.2% -> 2.7%; every other stock unchanged. METHODOLOGY_CHANGELOG 2026-10-15 (owner-run);
+  `tests/test_negative_quarter.py`, 4 tests.
+
+### Next
+- The filing check's revenue comparison still uses "the largest revenue tag", which made WMB, RSG
+  and HAS look like disagreements; comparing against the filed revenue line nearest Yahoo's (a real
+  line, so a corrupted number still matches none) would leave the ATTENTION count for real defects.
+

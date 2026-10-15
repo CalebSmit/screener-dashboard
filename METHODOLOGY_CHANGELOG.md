@@ -3970,3 +3970,32 @@ of the note, each reproducible from committed inputs plus one `companyfacts` req
 
 **Applied by:** code session (manual), 2026-10-15 06:00 slot.
 **Rollback:** `good/2026-10-14`.
+
+---
+
+## 2026-10-15 (owner-run) - Documented defect: a quarter derived across a spin-off made DuPont's revenue a third too low
+
+**Area:** input data (the fetch's trailing-twelve-month flows)
+**Changed:** `factor_engine.quarterly_statement_defect` rejects a quarterly income statement whose
+four most recent quarters include a negative revenue figure; the fetch then reads the income and
+cash-flow statements from the **annual** statements (the existing fallback path), and records why on
+the stock (`_quarterly_rejected`, shown in the drilldown as "Annual figures used ..."). Before, the
+four quarters were summed whatever they held.
+**Evidence (a documented failure):** the source derives a fiscal Q4 as the year less the nine months
+to Q3. Across DuPont's Qnity spin-off (2025-11) the year is restated to continuing operations and the
+nine months are not, so on 2026-10-15 it served Q4-2025 revenue of **-$1.871bn** and Q3-2025 of
+$3.072bn (pre-spin-off). Summed, trailing revenue read **$4.70bn against ~$6.99bn** in DuPont's
+filed quarters (`research/2026-10-14-yahoo-vs-sec.md` had listed DD as "not yet explained"); gross
+profit, operating income and net income carried the same derived quarter. A company does not report
+negative revenue; inside the window it is the signature of the derivation. **Scope, measured live
+over all 503 constituents:** 1 company (DD) - `research/measurements/2026-10-15-negative-quarter-scan.py`.
+**Expected effect:** DD only. Rescored on the run of 2026-10-15
+(`research/measurements/2026-10-15-negative-quarter-effect.py`): EV/sales 4.02 -> 2.76, EV/EBITDA
+18.6 -> 12.5, ROIC 1.2% -> 2.7%, gross profit / assets 6.6% -> 11.2%, FCF yield NaN -> 0.9%; composite
+40.28 -> 41.42, rank 435 -> 424 of 503; every other stock's composite rank-correlates 0.99997 with
+before. The annual figures are older (fiscal 2025) and include the year's filed net income, which is
+why earnings yield turns negative - that is the filed figure, where the quarterly sum was not one.
+**Validated by:** `tests/test_negative_quarter.py` (DuPont's served statement, end to end through the
+fetch); the full suite.
+**Applied by:** owner-run session, 2026-10-15.
+**Rollback:** `good/2026-10-15-owner-9`.

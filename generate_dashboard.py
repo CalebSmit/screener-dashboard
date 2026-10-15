@@ -1179,6 +1179,8 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
             "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
             "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
+            # display-only: why the flows are the last fiscal year's (factor_engine.quarterly_statement_defect)
+            "q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None,
             "stale_data": bool(row.get("_stale_data")) if pd.notna(row.get("_stale_data")) else False,
             "stmt_age_days": _safe(row.get("_stmt_age_days")),
         }
@@ -3777,6 +3779,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <span class="flag-icon">\u2139\ufe0f</span> Beta Overlap ${{fl.beta_overlap_pct.toFixed(0)}}%
                 <span class="flag-detail">(< 80% required)</span>
             </span>`);
+        }}
+
+        if (fl.q_rejected) {{
+            badges.push('<span class="flag-badge flag-warn">' +
+                '<span class="flag-icon">\u26a0\ufe0f</span> Annual figures used: the source&rsquo;s quarterly statement had ' +
+                escapeHtml(fl.q_rejected) + '</span>');
         }}
 
         if (fl.ltm_annualized) {{

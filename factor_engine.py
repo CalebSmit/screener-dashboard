@@ -527,6 +527,38 @@ def _stmt_val(stmt, label, col=0, default=np.nan):
         return default
 
 
+def quarterly_statement_defect(q_fins, n_quarters: int = 4) -> str | None:
+    """Why the latest quarters of a quarterly income statement cannot be summed, or None.
+
+    Found 2026-10-15 on DuPont: the source derives a fiscal Q4 as the year less the nine months to
+    Q3, and across a spin-off the year is restated to continuing operations while the nine months
+    are not - Q4-2025 revenue read -$1.871bn, and every trailing-twelve-month flow summed from the
+    statement inherited it (revenue $4.70bn against ~$6.99bn filed; operating income a third of the
+    real figure). A company does not report negative revenue; inside the window it is the signature
+    of that derivation, and the quarterly cash-flow statement is derived the same way. The caller
+    then uses the annual statements, as it already does when quarters are missing.
+    research/measurements/2026-10-15-negative-quarter-scan.py
+    """
+    try:
+        if q_fins is None or q_fins.empty:
+            return None
+        idx = _find_stmt_label(q_fins, "Total Revenue")
+        if idx is None:
+            return None
+        row = q_fins.loc[idx]
+        if isinstance(row, pd.DataFrame):
+            row = row.iloc[0]
+        cols = [c for c in _populated_columns(q_fins) if pd.notna(row.get(c))][:n_quarters]
+        neg = [(c, float(row[c])) for c in cols if float(row[c]) < 0]
+        if neg:
+            c, v = neg[0]
+            when = c.date() if hasattr(c, "date") else c
+            return f"quarterly revenue of {v / 1e9:.3f}bn for {when} - a derived quarter, not a filed one"
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+    return None
+
+
 def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
                    partial_labels=None):
     """Compute LTM (sum of N quarters) from a quarterly statement DataFrame.
@@ -1096,6 +1128,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         except (KeyError, IndexError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: cashflow fetch failed: {type(e).__name__}: {e}")
             cf = None
+
+        # A quarterly statement with a negative-revenue quarter in its window was derived across a
+        # restatement and cannot be summed (2026-10-15, DuPont): use the annual statements for the
+        # income statement and the cash-flow statement, and say so on the stock.
+        _q_defect = quarterly_statement_defect(q_fins)
+        if _q_defect is not None:
+            rec["_quarterly_rejected"] = _q_defect
+            warnings.warn(f"{ticker_str}: quarterly statements rejected - {_q_defect}; annual used")
+            q_fins = None
+            q_cf = None
 
         # ---- Income statement: LTM (sum of last 4 quarters) ----
         # Current-period flow metrics use LTM (sum of Q0..Q3).
@@ -2834,6 +2876,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         rec["_ltm_annualized"] = d.get("_ltm_annualized", False)
         # Why momentum/risk are blank for this name, when they are.
         rec["_price_series_rejected"] = d.get("_price_series_rejected", None)
+        # Why the flows come from the annual statements, when they do (2026-10-15, DuPont).
+        rec["_quarterly_rejected"] = d.get("_quarterly_rejected", None)
         _metric_keys = [
             "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
             "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score",

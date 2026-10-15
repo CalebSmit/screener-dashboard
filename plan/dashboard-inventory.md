@@ -148,7 +148,10 @@ does not use, e.g. a higher dividend yield), Data Provenance (**since 2026-10-14
 stock's inputs - total assets, equity, revenue, net income, operating cash flow - agree within 2% with
 the company's own SEC filing for the same quarters**, from `stock_detail[t].xchk`, built by
 `generate_dashboard._attach_filing_check` with `sec_crosscheck.py`; display-only, claim
-`drilldown.filing_check`; absent when the weekly SEC cache is not on the machine).
+`drilldown.filing_check`; absent when the weekly SEC cache is not on the machine). The flag badges gained
+**"Annual figures used: the source's quarterly statement had ..."** (2026-10-15) when the fetch
+rejected a quarterly statement derived across a restatement (`stock_detail[t].flags.q_rejected`,
+from `factor_engine.quarterly_statement_defect`; DuPont on the day it was added).
 
 **A metric row can carry a note about this stock's own filings** (2026-10-15). Under the generic
 "Worth knowing" caveat, a quieter block headed "In this company's filings" renders
