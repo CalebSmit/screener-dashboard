@@ -171,7 +171,7 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 4 | The size effect, and whether it reaches large stocks (Fama & French 1992) | Size | French size deciles | **Shipped 2026-10-12. The lab's first replication that mostly fails: 3 of 11 figures within** tolerances written beforehand. The paper's table uses only non-financial firms with accounting data; the library's groups hold every stock. It stays on the page as a miss. **The measurement that matters here:** the ninth size group out-earned the tenth by 0.07-0.14% a month in every period and weighting tried, distinguishable from zero only over the full century. `research/2026-10-12-factor-lab-findings.md` section 5. |
 | 5 | **Novy-Marx (2013), profitability** | Quality | French operating-profitability portfolios | **Shipped 2026-10-15 (owner-run) as experiment 10. 6 of 6 within** tolerances written first (0.10, wider than the 0.05 of a same-variable rerun, because the library sorts on operating profits over book equity where the paper uses gross profits over assets, and keeps the financial firms it drops). The paper reports **excess** returns, so `SORTS` takes `"excess": True` and the sort's data publishes the T-bill rate for its own months (`rf`); the comparison subtracts its average. Spread 0.215% a month against the paper's 0.31% - at the edge, as predicted. Since 2011: the same 0.215%, t 0.79, and the profitable end the calmest (volatility 4.1% against 5.9% a month). Read from the June 2012 accepted draft, Table 2 Panel A. |
 | 6 | Do riskier stocks earn more? Ang, Hodrick, Xing & Zhang (2006) | Risk | `Portfolios_Formed_on_VAR` | **Shipped 2026-10-12 as experiment 5. 5 of 11 within** tolerances written beforehand; the most volatile fifth was expected to miss and does (0.81% a month here, 0.09% in the paper). It is the first user of the **generic sorted-portfolio layout** (`kind: "sort"`, `factor_lab.SORTS`, `sort_run`, `sortRun`): a new sort now needs a `SORTS` entry, a record with its `sort` block and reference figures, and nothing on the page. The beta sort shipped the same night as **experiment 7** (Fama & French 1992, Table II Panel B: 7 of 11 within, and the flat relation between beta and return reproduces). Still open for Risk: the paper's own headline sort (`_RESVAR`). |
-| 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. Still open: the cash-flow-yield sort (`_CF-P`), which is nearer the screener's heaviest valuation measure, and the book-to-market panel of the same table. |
+| 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. The cash-flow-yield sort (`_CF-P`) **shipped 2026-10-15 as experiment 11** (Lakonishok, Shleifer & Vishny 1994; 11 of 11 within). Still open: the book-to-market panel of the same table. |
 | 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` (confirmed present) | A partial stand-in for the accounting-quality studies that cannot be rerun. |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French HML and momentum factors | The correlation the 2026-10-12 changelog entry leans on for sending freed weight to Valuation. Verify it. |
 | 8 | Results in their papers' samples and since (the question McLean & Pontiff 2016 study) | All | The experiments' own series | **Shipped 2026-10-12** as a table on the front page (`factor_lab.after_the_paper`): eleven headline results, each with its months. 9 of the 10 that claim a direction were weaker after their sample. A new experiment adds its row there. Still open: reproducing McLean & Pontiff's own figures, which needs their list of anomalies. |
@@ -225,6 +225,19 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-15 (owner-run, evening) - experiment 11 shipped: Lakonishok, Shleifer & Vishny (1994),
+  cash-flow yield.** The nearest public sort to the screener's heaviest single metric (FCF yield,
+  ~10% of the composite). The paper's Table 2 (NBER w4360) reports size-adjusted annual returns, so
+  `reproduce_sort` gained `relative` (each group against the average of the groups) and `scale`
+  (12, percent a year). Tolerances (2.0% a year a decile, 4.0 the spread) written before the run:
+  **11 of 11 within**, spread 11.05% a year against the paper's 8.4. **After the paper, the
+  weighting decides it** - high-minus-low cash-flow yield, % a month: equally weighted 0.47 (t 2.7)
+  1990-2026 and 0.15 (t 0.6) since 2007; **by market value 0.02 (t 0.1) since 1990 and -0.32
+  (t -1.0) since 2007.** A large-company book is the value-weighted one. **What it means for the
+  weights: nothing yet** - the public sort differs from the screener's metric in three ways
+  (capex not subtracted, shares not enterprise value, whole market not within sector), so it is a
+  question for a research note, not a reason. Eleven experiments, 98 of 141 figures within.
 
 - **2026-10-15 (owner-run) - experiment 10 shipped: Novy-Marx (2013), profitability.** The owner
   asked for more in the lab and for whether the lab says the methodology should change. 6 of 6

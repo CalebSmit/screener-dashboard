@@ -56,6 +56,7 @@ FRENCH_FILES = {
     "earnings_yield_portfolios": ("Portfolios_Formed_on_E-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "beta_portfolios": ("Portfolios_Formed_on_BETA_CSV.zip", "Value Weighted Returns -- Monthly"),
     "profitability_portfolios": ("Portfolios_Formed_on_OP_CSV.zip", "Average Value Weight Returns -- Monthly"),
+    "cash_flow_yield_portfolios": ("Portfolios_Formed_on_CF-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "split_value": ("6_Portfolios_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
@@ -90,6 +91,9 @@ SORTS = {
     # three terciles, then the five quintiles, then the ten deciles: the quintiles, as the paper
     "profitability": {"file": "profitability_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
                       "columns": [3, 4, 5, 6, 7], "excess": True},
+    # the file's last ten columns are the deciles; the first is companies with negative cash flow
+    "cash-flow-yield": {"file": "cash_flow_yield_portfolios", "ew": "Equal Weight Returns -- Monthly",
+                        "columns": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -102,8 +106,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth.
-ASSET_VERSION = 16
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh.
+ASSET_VERSION = 17
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1494,6 +1498,97 @@ EXPERIMENTS = [
             "ranks large companies only; experiment 8 finds profitability the one factor that holds up "
             "among large companies."),
     },
+    {
+        "id": "cash-flow-yield",
+        "kind": "sort",
+        "topic": "Valuation",
+        "title": "Does a high cash-flow yield pay?",
+        "tab": "Cash-flow yield",
+        "paper": {
+            "authors": "Josef Lakonishok, Andrei Shleifer and Robert W. Vishny",
+            "year": 1994,
+            "title": "Contrarian investment, extrapolation, and risk",
+            "journal": "Journal of Finance 49(5), 1541-1578",
+            "doi": "10.1111/j.1540-6261.1994.tb04772.x",
+        },
+        "claim": ("Sorting NYSE and AMEX stocks each year into ten groups by cash flow (earnings plus "
+                  "depreciation) against market value, the highest cash-flow yields beat the lowest by "
+                  "about 8% in the first year after the sort, size-adjusted, from 1968 to 1990 - the "
+                  "'value' stocks the market had priced for disappointment."),
+        "reference": {
+            "source": ("The NBER working paper (w4360, 1993), Table 2: size-adjusted returns "
+                       "of equal-weighted C/P deciles, held through the first year after formation (AB1), portfolios "
+                       "formed each April 1968-1989. The published article's table was not available to "
+                       "read; the working paper's text and table agree with each other (8.8% a year over "
+                       "five years, 42.9% cumulative). Its deciles are size-adjusted, so they are compared "
+                       "here as each decile against the average of the ten, in percent a year."),
+            "start": "196807", "end": "199006", "weighting": "ew", "relative": True, "scale": 12,
+            # Written 2026-10-15 BEFORE the comparison was run; nothing had been computed on this
+            # file. The paper's AB1 row, each decile minus its ten-decile average (0.72%), in percent
+            # a year. Wider than the 0.05%-a-month of experiments 4-7 (0.6% a year): the library
+            # forms its groups in June on NYSE breakpoints with NASDAQ stocks, adds deferred taxes to
+            # cash flow, and reports raw monthly returns compounded here as 12x the average month,
+            # where the paper used April formation, NYSE/AMEX, annual buy-and-hold and a size
+            # adjustment. Expected beforehand: the rise from low to high yield matches; the lowest
+            # decile (where the paper's -4.9% sits) is the likeliest to miss.
+            "figures": [
+                {"key": "mean1", "label": "Lowest cash-flow yield, against the average (% a year)", "paper": -5.62, "tolerance": 2.0, "where": "Table 2, AB1, less the ten-decile average"},
+                {"key": "mean2", "label": "Decile 2, against the average (% a year)", "paper": -1.92, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean3", "label": "Decile 3, against the average (% a year)", "paper": -0.92, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean4", "label": "Decile 4, against the average (% a year)", "paper": -0.72, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean5", "label": "Decile 5, against the average (% a year)", "paper": 0.28, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean6", "label": "Decile 6, against the average (% a year)", "paper": 0.18, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean7", "label": "Decile 7, against the average (% a year)", "paper": 0.68, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean8", "label": "Decile 8, against the average (% a year)", "paper": 2.48, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean9", "label": "Decile 9, against the average (% a year)", "paper": 2.78, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "mean10", "label": "Highest cash-flow yield, against the average (% a year)", "paper": 2.78, "tolerance": 2.0, "where": "Table 2, AB1"},
+                {"key": "spread", "label": "Highest cash-flow yield minus lowest (% a year)", "paper": 8.4, "tolerance": 4.0, "where": "Table 2, AB1, decile 10 minus decile 1"},
+            ],
+        },
+        "verdict_note": ("Every figure lands within its tolerance and the rise from the lowest yield to the "
+                         "highest matches. The public sort's spread is wider than the paper's, mostly at "
+                         "the low end - it keeps NASDAQ stocks, which the paper's sample did not."),
+        "sort": {
+            "data": "cash-flow-yield",
+            "groups": ["Lowest cash-flow yield", "Decile 2", "Decile 3", "Decile 4", "Decile 5", "Decile 6", "Decile 7", "Decile 8", "Decile 9", "Highest cash-flow yield"],
+            "ends": ["lowest cash-flow yield", "highest"],
+            "low": "group with the lowest cash-flow yield", "high": "group with the highest",
+            "spread": "Highest cash-flow yield minus lowest",
+            "accent": [9],
+            "key_accent": "The highest cash-flow yield - the end the screener's Valuation category favours",
+            "key_rest": "The other nine groups",
+            "chart": "by cash-flow yield",
+            "presets": [["The paper \u00b7 1968\u20131990", "196807", "199006"],
+                        ["After the paper \u00b7 1990\u2013now", "199007", "LAST"],
+                        ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["ew", "Equally \u00b7 paper"], ["vw", "By market value"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, companies with positive cash flow are put in one of ten groups by "
+                           "cash flow for the last fiscal year (earnings before extraordinary items, plus "
+                           "depreciation and deferred taxes) divided by market value, with the dividing "
+                           "lines drawn on New York Stock Exchange stocks."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Cash Flow/Price\"."],
+            ["Weighting", "Equal-weighted, as in the paper. The value-weighted version is one click away."],
+            ["Returns", "The comparison with the paper sets each group against the average of the ten, "
+                        "because the paper's returns are size-adjusted; the chart shows total returns."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper reports size-adjusted returns (each stock against companies of its size) and "
+            "holds each portfolio for a year from each April; the public file reports raw monthly returns "
+            "of portfolios formed each June, and includes NASDAQ stocks.",
+            "The paper's table was read from its 1993 NBER working paper; the published article's "
+            "version could not be opened.",
+            "Its stronger results are over five years after formation; only the first year is "
+            "compared here, the one that matches a monthly-rebalanced screen.",
+        ],
+        "in_the_screener": (
+            "Free-cash-flow yield is the screener's heaviest single metric - 45% of Valuation, about "
+            "10% of the composite - and it differs from this sort in two ways: it subtracts capital "
+            "spending from operating cash flow, and it divides by the value of the whole business "
+            "(enterprise value), not of the shares alone. It is also compared within each sector."),
+    },
 ]
 
 
@@ -1528,6 +1623,10 @@ TAKEAWAYS = {
                       "month on the public sort, against the paper's 0.31% - every figure within its "
                       "tolerance. Since the paper the gap has been about as large but cannot be told "
                       "from zero, and the profitable end has been the calmer one."),
+    "cash-flow-yield": ("High cash-flow yields beat low ones in the paper's sample, and equally weighted they "
+                        "still have since. Weighted by market value - where large companies count most - "
+                        "the gap has been about zero since 1990 and below zero since 2007, though not "
+                        "distinguishably."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -1539,10 +1638,12 @@ TAKEAWAYS = {
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
     {"category": "Valuation", "key": "valuation",
-     "experiments": ["earnings-yield", "five-factors", "big-and-small", "largest-fifth"],
-     "has": "Stocks sorted by earnings yield, and the value factor (book value against price).",
-     "gap": "The screener's heaviest valuation measure is free cash flow against the value of the whole "
-            "business. The library's sort on cash-flow yield is the nearest thing and is queued."},
+     "experiments": ["earnings-yield", "cash-flow-yield", "five-factors", "big-and-small", "largest-fifth"],
+     "has": "Stocks sorted by earnings yield and by cash-flow yield, and the value factor (book value "
+            "against price).",
+     "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
+            "the value of the whole business, compared within sectors. The public sorts use cash flow "
+            "before capital spending against the shares alone, across the whole market."},
     {"category": "Quality", "key": "quality", "experiments": ["profitability", "five-factors", "big-and-small"],
      "has": "Stocks sorted by profitability, and the profitability factor - robustly profitable "
             "companies minus weakly profitable ones.",
@@ -1725,7 +1826,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -1834,9 +1935,14 @@ def reproduce_sort(data: dict, exp: dict) -> dict:
     ref = exp["reference"]
     r = sort_run(data, ref["start"], ref["end"], ref["weighting"])
     rf = rf_mean(data, ref["start"], ref["end"]) if ref.get("excess") else 0.0
-    got = {"spread": r["spread"]["mean"]}
+    # ``relative``: each group against the average of all the groups - comparable with a paper
+    # that reports size-adjusted returns, whose groups average close to zero; ``scale``: the
+    # paper's unit (12 for percent a year from percent a month)
+    scale = ref.get("scale", 1)
+    centre = (sum(s["mean"] for s in r["groups"]) / len(r["groups"])) if ref.get("relative") else rf
+    got = {"spread": r["spread"]["mean"] * scale}
     for g, s in enumerate(r["groups"], 1):
-        got[f"mean{g}"], got[f"std{g}"] = s["mean"] - rf, s["std"]
+        got[f"mean{g}"], got[f"std{g}"] = (s["mean"] - centre) * scale, s["std"]
     rows = []
     for f in ref["figures"]:
         here = got[f["key"]]
