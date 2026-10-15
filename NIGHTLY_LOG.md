@@ -11115,3 +11115,26 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   that line. Ford is not affected (Yahoo's Ford capex already excludes Ford Credit's leases), so
   the proposal names four companies, not five. Both tags added to `sec_fundamentals.FACT_CONCEPTS`;
   the cache picks them up at its next weekly refresh. Nothing reads them yet.
+
+## 2026-10-15 (owner-run, after midnight) - integrity sweeps, and the filing check watches its own source
+
+**Health (rule 8):** unchanged from the 2026-10-14 entries - both loops ran 2026-10-14; the 02:00
+run of 2026-10-15 has not happened yet. Evidence base at `1m`: **29 rows, newest 2026-09-14 (31
+days, bound 40), 4 effective**. Top open roadmap item: **0.13, the Factor Lab** (age 3 days).
+**Owner session marked** (`logs/.owner-session`), removed at the end.
+
+### Did
+- **Payload invariants, checked on the published run**: 501 unique tickers, table and detail keys
+  identical, ranks in composite order (a competition ranking - ties share a rank, which is what the
+  bot accepts), every price positive, every category score within 0-100 (7 nulls, all coverage
+  gaps), trap flags boolean. Nothing wrong; and the bot validates the same things before it trades
+  (`bot/signals.build_signals`), so a second gate here would add little. Not built, on purpose.
+- **Analyst targets and estimates, the one input no filing can check**: 497 stocks; every mean
+  target inside its own high-low range; target / price from 0.57 to 1.78 (median 1.17 - analysts'
+  usual optimism, which a sector percentile neutralises); one stock under 3 analysts (TPL); three
+  FY2/FY1 estimate pairs far apart (MRK 2.67 -> 9.28, ARE, MOS) - charges in the current year's
+  consensus, which the EPS-basis guard already exists to catch. No defect.
+- **The filing check now watches its own source.** It depends on the weekly SEC cache; a refresh
+  that kept failing would leave it comparing against older and older filings silently. The health
+  note now ends with the cache's age, an `ATTENTION -` line fires past 14 days, and the brief's
+  filing row says how old the cached filings are. 2 + 1 tests.

@@ -201,3 +201,33 @@ def test_a_market_value_at_the_wrong_scale_calls_attention_but_does_not_fail():
     assert "market value / price vs filed shares 0/70 within 5% (70 over 10%)" in note
     assert any(n.startswith("ATTENTION - market value implies a share count") for n in res.notes)
     assert h.MARKET_VALUE_ATTENTION == 60
+
+
+# --------------------------------------------------------------------------- the cache's age
+def _cache_at(tmp_path, monkeypatch, days_old):
+    import os
+    import time
+    import sec_fundamentals
+    facts, pl = _facts_and_payload()
+    path = tmp_path / "facts.parquet"
+    facts.to_parquet(path)
+    stamp = time.time() - days_old * 86400
+    os.utime(path, (stamp, stamp))
+    monkeypatch.setattr(sec_fundamentals, "FACTS_PATH", path)
+    res = h.Result()
+    h.check_inputs_against_filings(pl, res)
+    return res
+
+
+def test_the_note_says_how_old_the_sec_cache_is(tmp_path, monkeypatch):
+    res = _cache_at(tmp_path, monkeypatch, 3)
+    note = next(n for n in res.notes if n.startswith("inputs against SEC filings: "))
+    assert note.endswith("SEC cache 3 days old") and not any("ATTENTION" in n for n in res.notes)
+
+
+def test_a_cache_that_stopped_refreshing_calls_attention_but_does_not_fail(tmp_path, monkeypatch):
+    res = _cache_at(tmp_path, monkeypatch, 20)
+    assert res.healthy
+    assert any(n.startswith("ATTENTION - the SEC companyfacts cache is 20 days old") for n in res.notes)
+    assert h.CACHE_STALE_DAYS == 14
+

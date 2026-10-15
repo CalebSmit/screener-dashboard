@@ -323,6 +323,9 @@ def filing_check(lines: list[str]) -> str:
         m = re.search(re.escape(label) + r" (\d+)/(\d+) within (\S+)", body)
         if m:
             keep.append(f"{short} {m.group(1)}/{m.group(2)} within {m.group(3)}")
+    age = re.search(r"SEC cache (\d+) days old", body)
+    if keep and age:
+        keep.append(f"filings cached {age.group(1)} days ago")
     attention = any("ATTENTION - " in ln for ln in lines)
     return "; ".join(keep) + (" - **see the ATTENTION note below**" if attention and keep else "")
 

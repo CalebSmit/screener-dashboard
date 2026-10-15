@@ -258,12 +258,12 @@ class TestFilingCheckRow:
     LINE = ("[02:20:31] [INFO]     ok   inputs against SEC filings: revenue 363/410 within 0.5% (13 over 10%); "
             "net income 397/421 within 0.5% (7 over 10%); operating cash flow 406/411 within 0.5% (1 over 10%); "
             "total assets 425/426 within 0.5% (0 over 10%); equity 417/426 within 0.5% (2 over 10%); "
-            "market value / price vs filed shares 447/487 within 5% (22 over 10%)")
+            "market value / price vs filed shares 447/487 within 5% (22 over 10%); SEC cache 6 days old")
 
     def test_the_row_keeps_the_four_figures_that_sit_near_all(self):
         assert wb.filing_check([self.LINE]) == (
             "total assets 425/426 within 0.5%; operating cash flow 406/411 within 0.5%; "
-            "net income 397/421 within 0.5%; market value 447/487 within 5%")
+            "net income 397/421 within 0.5%; market value 447/487 within 5%; filings cached 6 days ago")
 
     def test_an_attention_note_is_pointed_to(self):
         lines = [self.LINE, "[02:20:31] [INFO]     ok   ATTENTION - total assets differs from the companies' filings"]
