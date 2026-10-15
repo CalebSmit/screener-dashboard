@@ -872,6 +872,13 @@ and then only for the fields that sat near zero. **Each stock's Data Provenance 
 (`stock_detail[t].xchk`, `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`):
 which inputs agree within 2% with the filing. Display-only - a test fails if `xchk` or
 `sec_crosscheck` appears in a scoring module.
+**Operating income is settled (2026-10-15, owner-run): keep the source's "Operating Income" row.** It is
+as-reported less the source's "Special Income Charges"; the "Total Operating Income As Reported" row
+equals the filings 374 of 374. The persistence evidence (Rouen, So & Wang 2021) and MSCI's practice
+support the pre-special-items figure for ROIC and EV/EBITDA, so its disagreement with the filing is the
+definition, not a defect - **do not "fix" it by switching rows or to the filings.** The open question is
+earnings yield, which still uses net income *with* one-offs: **Proposal status: OPEN** in
+`research/2026-10-15-earnings-definition.md`, for a second session to decide.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
 item asked for deduplication and a test, and both landed: `record_dispersion` now

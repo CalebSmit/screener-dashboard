@@ -61,6 +61,19 @@ C = {
     "ocf": ("NetCashProvidedByUsedInOperatingActivities",),
     "capex": ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"),
     "d_and_a": ("DepreciationDepletionAndAmortization", "DepreciationAndAmortization"),
+    "depreciation": ("Depreciation",),
+    "amortization": ("AmortizationOfIntangibleAssets",),
+    # charges inside operating income that the source's "Operating Income" leaves out: a combined
+    # restructuring-and-impairment tag where a filer uses one, otherwise its parts (never both)
+    "special_combined": ("RestructuringCostsAndAssetImpairmentCharges",
+                         "RestructuringSettlementAndImpairmentProvisions"),
+    "restructuring": ("RestructuringCharges",),
+    "impairment_combined": ("GoodwillAndIntangibleAssetImpairment",),
+    "goodwill_impairment": ("GoodwillImpairmentLoss",),
+    "intangible_impairment": ("ImpairmentOfIntangibleAssetsExcludingGoodwill",
+                              "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill"),
+    "asset_impairment": ("AssetImpairmentCharges", "ImpairmentOfLongLivedAssetsHeldForUse"),
+    "other_impairment": ("OtherAssetImpairmentCharges",),
     "dividends": ("PaymentsOfDividendsCommonStock", "PaymentsOfDividends"),
     "sga": ("SellingGeneralAndAdministrativeExpense",),
     "assets": ("Assets",),
@@ -311,12 +324,29 @@ def statement_fields(facts: pd.DataFrame, ticker: str, as_of, filed: Filed | Non
         v = F.ttm("gross_profit", end)
         return v if np.isfinite(v) else F.ttm("revenue", end) - F.ttm("cogs", end)
 
+    def special_charges(get, end):
+        """Restructuring and impairment charges for the period, as filed - the items the live
+        source's "Operating Income" leaves out (research/2026-10-15-earnings-definition.md). A
+        combined tag stands for its parts; parts are summed only when no combined tag exists."""
+        comb = get("special_combined", end)
+        if np.isfinite(comb):
+            return abs(comb)
+        imp = get("impairment_combined", end)
+        if not np.isfinite(imp):
+            imp = _nan_sum(get("goodwill_impairment", end), get("intangible_impairment", end),
+                           get("asset_impairment", end), get("other_impairment", end))
+        total = _nan_sum(abs(imp) if np.isfinite(imp) else np.nan,
+                         abs(get("restructuring", end)) if np.isfinite(get("restructuring", end)) else np.nan)
+        return total if np.isfinite(total) else 0.0
+
     def ebit(get, end):
-        # operating income where tagged; otherwise EBIT = pretax income + interest expense, as the
-        # engine's fetch falls back from Yahoo's "Operating Income" row to its "EBIT" row
+        # Operating income before restructuring and impairment charges, which is what the live
+        # source's "Operating Income" row is (as reported less its "Special Income Charges";
+        # 2026-10-15). Where operating income is not tagged: EBIT = pretax income + interest, as
+        # the fetch falls back from that row to the source's "EBIT" row.
         v = get("operating_income", end)
         if np.isfinite(v):
-            return v
+            return v + special_charges(get, end)
         pt, ie = get("pretax", end), get("interest", end)
         return pt + abs(ie) if np.isfinite(pt) and np.isfinite(ie) else np.nan
 
@@ -335,6 +365,9 @@ def statement_fields(facts: pd.DataFrame, ticker: str, as_of, filed: Filed | Non
     r["grossProfit_prior"] = gp_fy(fy1) if fy1 is not None else np.nan
     r["ebit"] = ebit(F.ttm, q0)
     r["da_cf"] = F.ttm("d_and_a", q0)
+    if not np.isfinite(r["da_cf"]):
+        # filers without the combined tag: depreciation plus amortisation of intangibles
+        r["da_cf"] = _nan_sum(F.ttm("depreciation", q0), F.ttm("amortization", q0))
     if not np.isfinite(r["da_cf"]) and fy0 is not None:
         # no quarterly D&A: the last fiscal year's, as the engine's fetch does (``_da_annual``)
         r["da_cf"] = F.fy("d_and_a", fy0)
