@@ -11062,3 +11062,19 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   BRK-B.
 - **Gates:** full suite 2,336 passed / 0 failed; `rehearse_publish.py --full` PASSED; dry-run,
   node and clean tree as below.
+
+### Last item of the evening - the capex question researched, a proposal left for review
+
+- **`research/2026-10-14-capex-definition.md`.** Read from the documents: MSCI defines capex as
+  physical assets; S&P Global Ratings as "tangible and intangible" with capitalised development;
+  Damodaran wider still; GM, Ford and Caterpillar report free cash flow without their finance
+  arms' lease purchases, and S&P Ratings classes those as captive-finance assets. So: intangibles
+  disputed (unchanged, as the reading rules say), finance-arm leases one-sided.
+- **Proposal OPEN:** FCF capex excludes captive-finance lease purchases for GM, F, DE, CAT, PCAR (a
+  named list - United Rentals' fleet is its business and stays in). Not built: it changes the
+  heaviest metric's input, the S&P Ratings captive criteria were not obtained, and the tagged
+  lease lines are not in the SEC cache yet. The morning brief lists it until a session decides.
+- **A future-clock audit of the suite** (a throwaway pytest plugin, not committed, running the
+  suite 45 days ahead): 28 failures, all but the two options tests explained by the fake clock
+  itself (pandas cannot subtract the substituted date types), and those two read the real clock
+  consistently. No second expiry date found; the probe cannot see `pandas.Timestamp.now()`.
