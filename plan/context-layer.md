@@ -164,7 +164,9 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    (`research/2026-10-09-insider-purchases.md` - weakest in large caps, now said on the page), one-month
    reversal (`research/2026-10-09-short-term-reversal.md` - faded in plain form, survives sector-relative;
    the harness now tracks both), trend (21/200-day distance, AKS 2021, now recorded), put skew and the
-   rates note (addenda in `research/2026-10-09-context-panel-claims.md`). What stays open: each signal's
+   rates note (addenda in `research/2026-10-09-context-panel-claims.md`). **What stays open after
+   2026-10-14: the two signals with no note of their own - the macro backdrop and the track record**
+   (the options panel's note is done, and its three findings with it; see below). Plus each signal's
    *measured* record, which `context_eval.py` starts reporting after 2026-11-07. Original text:
    **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
    200-day trend (Faber 2007; Brock, Lakonishok & LeBaron 1992), one-month reversal (Jegadeesh 1990;
@@ -178,25 +180,48 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    Monday note on all four of its numbers (expected move, ATM IV, put skew, put/call open interest),
    literature and practice, with effect sizes and conditions.
 
-   **Its verdict, which settles a question this plan left open: the option-implied signals are NOT
-   candidates for the score, and that is a finding rather than a holding position.** Every one with
-   real support decays faster than this screener acts - Pan & Poteshman (2006) one day to one week,
-   Cremers & Weinbaum (2010) weekly, Fodor, Krieger & Doran (2011) a few weeks, Xing, Zhang & Zhao
-   (2010) weekly rebalanced; An, Ang, Bali & Cakici (2014) is the outlier at up to six months - against
-   a review cadence that is monthly at its fastest. Index providers exclude option-implied inputs from
-   factor selection for the same reason (MSCI's factor list is Barra fundamentals, price history and
-   analyst sentiment); derivatives desks use them because they trade daily. **A future `1m` record from
-   `context_eval.py` should be read with that prior: at one month these signals are largely spent.**
-   The panel's job is timing and sizing, which is what the owner asked for.
+   **Its verdict: the option-implied signals are NOT candidates for the score, and that is a finding
+   rather than a holding position.** Index providers exclude option-implied inputs from factor
+   selection (MSCI's factor list is Barra fundamentals, price history and analyst sentiment);
+   derivatives desks use them because they trade daily. The panel's job is timing and sizing, which
+   is what the owner asked for. **The verdict stands; one of its three legs does not** - see the
+   correction below.
 
-   Three page-sentence findings from that note, open for a later session (each needs a registered
-   claim; none touches a score): **(a)** the page attaches Xing, Zhang & Zhao's ~11%/yr to a skew it
-   does not compute - theirs is OTM put IV minus ATM *call* IV, ours subtracts the mean of ATM call
-   and put at 0.90 moneyness; **(b)** it omits the decay where a figure exists (McLean & Pontiff 2016:
-   58% post-publication, across 97 predictors); **(c)** put/call open interest is a bare number with no
-   sentence, and it is the *level*, where the evidence supports the *change* over weeks - Pan &
-   Poteshman find the public unsigned version carries "very little, if any" predictability. The note
-   leans to dropping that row, since the context log already records it for later study.
+   **Its three page-sentence findings are DONE 2026-10-14 (13:00 session)** -
+   `research/2026-10-14-volatility-skew-construction.md`, `METHODOLOGY_CHANGELOG.md` 2026-10-14
+   (13:00), claim `context.put_skew`, `tests/test_option_implied_claims.py` (12) and 11 new tests in
+   `tests/test_context_layer.py`. **No score moved.**
+
+   - **(a) The skew is now the paper's measure**, not a citation attached to something else.
+     `context_signals._xzz_skew`: the OTM put nearest 0.95 moneyness within (0.80, 0.95), minus the
+     **ATM call** nearest 1 within [0.95, 1.05], positive open interest, with the paper's 10-60 day
+     window recorded. The old measure was a 0.90-moneyness skew *minus half of Cremers & Weinbaum's
+     put-call IV spread* - neither published quantity. Measured on 25 names from the same chains:
+     **7 of 22 (32%) disagreed on the sign**, and the old one produced +46.6 IV points for one stock
+     against the paper's 95th percentile of +19.92. Both legs are now published, so the row shows
+     its own subtraction.
+   - **(b) The decay is stated**: McLean & Pontiff (2016), 58% lower post-publication across 97
+     predictors, as an upper bound. Read from the forthcoming-JF manuscript - the 2012/2013 working
+     papers say 82 and ~35%.
+   - **(c) Put/call open interest is off the page** and out of the payload; still logged and still
+     evaluated by `context_eval.py` as `options_put_call_oi`.
+
+   **A correction this produced, which the next session must carry
+   (`research/2026-10-14-volatility-skew-construction.md` §4):** the 10-12 note listed XZZ as
+   "weekly rebalanced" among signals that decay within a month, having had the paper second-hand.
+   **Table 4 Panel B measures the same spread at a four-week holding period - 6.52% a year, t 2.70 -
+   and at 6-7% with rising t-statistics out to 28 weeks**; the abstract says the predictability
+   "persists for at least 6 months". The note conflated rebalancing frequency with decay horizon.
+   **Withdrawn for XZZ**; it stands for Pan & Poteshman, Cremers & Weinbaum and Fodor et al. The
+   skew is still not a score candidate (the shrinkage above, and this layer's own observation gate),
+   but **do not read the first `1m` record as confirming something already known to be spent** - the
+   paper claims an effect at that horizon, so a flat reading is evidence against *it*. And the
+   `_ctx_opt_skew` series before 2026-10-14 is the old construction: **exclude those five log dates
+   (2026-10-08 to 10-14), do not splice them.**
+
+   One presentation note, deliberately not acted on: at 375px the skew row's value wraps to two
+   lines because the label is long. The label stays long because "out-of-the-money put vs
+   at-the-money call" teaches and "OTM vs ATM" does not, and the redesign is closed.
 5. **The evaluation harness - BUILT 2026-10-09 (owner-run).** `context_eval.py`: for every log date,
    the forward price return to the first log 30-40 days later (from the logs' own closes - no extra
    download), and per signal the Spearman IC across stocks; effective observations are the
