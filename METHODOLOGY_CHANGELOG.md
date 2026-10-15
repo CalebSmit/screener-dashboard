@@ -3967,12 +3967,25 @@ rolled forward" badge naming the identity and the lines it was applied to (`ltm_
 said 4/3 annualisation was the only route. Both sentences are registered claims
 (`drilldown.ltm_rolled`, `overview.ltm_rolled`).
 
-**Validated by:** `tests/test_ltm_rollforward.py`, 17 tests - the identity, each guard, that
+**Validated by:** `tests/test_ltm_rollforward.py`, 18 tests - the identity, each guard, that
 four adjacent quarters still win and the annual statement is not consulted, that the prior-year
 window never rolls, that the fetch records which lines it rolled, that every current-period
 call site is given its annual statement (a site left without it silently keeps the
-fabrication), and that `_ltm_rollforward` reads no filing. Full suite 2413 passed, 1 skipped
-against a baseline of 2396 passed, 1 skipped.
+fabrication), and that `_ltm_rollforward` reads no filing. Full suite **2414 passed, 1 skipped**
+against a baseline of 2396 passed, 1 skipped. `scripts/rehearse_publish.py` passed (300 page
+tests, 473 claims), and both provenance sentences were read in a browser at 1440 and 375px.
+
+**A defect found while wiring the frontend, and fixed here:** `renderFlagsWarnings` in
+`generate_dashboard.py` is **dead code** - nothing calls it, and its container `#modal-flags`
+does not exist in the page the generator writes. The quarterly-rejection badge added that
+morning sat in it and **could never have appeared on the live site**. Both sentences now live in
+`renderProvenance`, which the drilldown does call, and a test fails if either is put back in the
+dead function. The generic "Income and cash-flow figures are the sum of the last four reported
+quarters" line above them is now conditional, so the panel cannot state the general rule flatly
+above a sentence explaining that it did not apply. The other nine badges in the dead function
+(value trap, Beneish, channel stuffing, EV, beta overlap, bank-like, financial caveat,
+`ltm_annualized`) are **also invisible** and were left alone: deciding whether they belong
+somewhere or should go is a separate piece of work, recorded in `NIGHTLY_LOG.md` 2026-10-15.
 
 **Applied by:** code session (manual), 2026-10-15 13:00 slot.
 **Rollback:** `good/2026-10-15`.

@@ -221,6 +221,15 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-15 (13:00 slot) - deferred, and why, with nothing lost.** The session carried on from
+    the owner-run midday entry's Next instead: a measured input defect left open in
+    `research/2026-10-14-yahoo-vs-sec.md` section 4b, where the screener invented a quarter the
+    source had never published (Berkshire's net income was scored 14.5% below its own filing). It is
+    fixed and exact against the filings, and wiring its sentence onto the page turned up a live
+    defect - the drilldown function those badges live in is **never called**, so this morning's
+    quarterly-rejection badge could never have appeared. **Next for this item is unchanged:**
+    item 4's two remaining per-signal notes (macro backdrop, track record), then item 6,
+    track-record hardening. Nothing here was started, so nothing is half-done.
   - **2026-10-14 (13:00 session) - queue item 4's three open page-sentence findings are DONE, and
     reading the paper turned up a correction the next session has to carry.** All three were the
     same failure - a figure from a paper printed beside a number the paper did not measure.

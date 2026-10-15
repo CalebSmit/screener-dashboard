@@ -11415,3 +11415,145 @@ owner marker through it, as the routine intends.
   would be a methodology decision with its own note (scoring has deliberately never read the
   weekly SEC cache) - research, not a patch.
 
+## 2026-10-15 (13:00 slot) - QUEUE. A quarter the source never published is rolled forward, not invented
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-15_060001.log`
+ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-15_020001.log`
+ends "Data loop complete", claims gate PASS (460 passed), published to main 02:22.
+Evidence base at `1m` = **30 rows, newest 2026-09-15 (30 days ago, bound 40), 4 effective**
+- inside the band, no action. Priority 0: `allow_auto_apply` still **false**, 4 effective against a
+gate of 8. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 7 days**);
+deferred today - see below.
+**Tests:** before **2396 passed, 1 skipped**; after **2414 passed, 1 skipped**. Dry run OK;
+`index.html` 558,545 bytes; `dashboard_data.js` and `dashboard_context.js` both `node --check` clean;
+`scripts/rehearse_publish.py` PASSED (300 page tests, 473 claims).
+**Owner queue / rotation:** this is the **fourth** session today (06:00, two owner-run, and this
+13:00 slot after the owner marker cleared). Carried on from the owner-run midday entry's **Next**.
+Its Next asked whether scoring should ever read the filings when the source is behind or
+inconsistent - I did **not** reopen that (it was measured and refused twice today), and instead took
+the concrete, still-open residual the same line of work left behind:
+`research/2026-10-14-yahoo-vs-sec.md` **section 4b**, which named three-quarter annualisation as
+"a small, well-defined data fix for a later session". The context-layer owner item (macro and
+track-record notes) was deferred to finish this end to end; nothing in it was started or lost.
+
+### Did
+
+**1. The main piece: the twelve months is rolled forward, not fabricated.** Re-measured section 4b
+rather than trusting it. `_ltm_annualized` was true for **4 of 503** stocks on this run. For three it
+touched one immaterial line each (COST and V: common stock dividend; GIS: interest expense). For
+**BRK-B it touched nine lines** - revenue, operating income, net income, tax, pretax income, operating
+cash flow, capex, D&A, interest - because the source does not carry its **2025-09-30 quarter at all**;
+the columns run `2026-06-30, 2026-03-31, 2025-12-31, 2025-06-30, 2025-03-31`, so `_quarters_adjacent`
+rightly refused to sum the first four and `sum(3) * 4/3` took over.
+
+Against Berkshire's own filings for the same twelve months the published figures were **net income
+14.54% low, operating cash flow 6.09% low, revenue 10.23% high**.
+
+The fix is not the annual statement (measured: it is *worse* on net income, -21.9%). It is the
+identity every filer uses in its own 10-Q and that `sec_crosscheck.flow_ttm` already applies to the
+filings: **fiscal year + year-to-date - year-to-date a year earlier**. Rebuilt that way BRK-B's
+figures are **net income $85.768bn against $85.768bn filed, operating cash flow $46.634bn against
+$46.634bn, capex $22.419bn against $22.419bn** - exact to the dollar on all three.
+`factor_engine._ltm_rollforward`, tried between the four-quarter sum and the 4/3 fallback, current
+period only, with guards on every term. It reads the two statements the fetch already holds and
+**never a filing** - a test enforces that, because scoring deliberately does not touch the SEC cache
+(CLAUDE.md 0.14), which is what made it the independent yardstick here.
+
+**Said plainly, including what it does not fix:** BRK-B's revenue goes from +10.2% to **+12.2%** -
+further away. That residual is the source's own revenue definition, not the construction: Yahoo's
+**annual** revenue for BRK-B is $410.522bn against the **$371.444bn** Berkshire filed for the same
+fiscal year, +10.5% before any trailing arithmetic, and the roll-forward inherits it. The change
+removes a fabrication; it does not reconcile two definitions of revenue, and no sentence shipped
+tonight says it does.
+
+Blast radius, measured live over the eight spot-checked stocks: **3 lines closer to the filing, 1
+further, and no stock that did not use the roll-forward moved at all.** The three other annualised
+stocks keep 4/3 because their statements do not support the identity.
+`METHODOLOGY_CHANGELOG.md` 2026-10-15 (13:00 slot); `tests/test_ltm_rollforward.py`, 18 tests.
+
+**2. A live defect found while wiring the frontend: `renderFlagsWarnings` is dead code.** Nothing
+calls it and its container `#modal-flags` does not exist in the page the generator writes - confirmed
+in a browser (`hasFlagsEl: False`). **This morning's quarterly-rejection badge was put in it and
+could never have appeared on the live site.** Both that sentence and tonight's now live in
+`renderProvenance`, which the drilldown does call, and a test fails if either is put back. I also
+made the generic line above them conditional: the panel was about to say "Income and cash-flow
+figures are the sum of the last four reported quarters" directly above a sentence explaining that
+for this company they are not.
+
+**Looked at the page**, which is how the dead code surfaced in the first place: the two sentences
+were injected into a regenerated page and read at **1440 and 375px**. BRK-B's reads over 3 lines on
+desktop and 7 on a phone, DuPont's 2 and 5; both sit inside the viewport (no horizontal overflow at
+either width), **no page errors**, and on the phone the provenance block reads cleanly under the
+badge row. Screenshots in `logs/design/provenance-*.png`.
+
+**3. A second, larger finding - measured, written up, deliberately not acted on.** The same lens
+turned on `ebit`, which `sec_crosscheck` does not check and which carries weight through `roic`,
+`ev_ebitda` and `net_debt_ebitda`:
+
+| Input | compared | within 0.5% | over 10% |
+|---|---|---|---|
+| operating cash flow | 411 | 406 (98.8%) | 1 |
+| net income | 421 | 397 (94.3%) | 7 |
+| revenue | 410 | 371 (90.5%) | 8 |
+| **operating income** | **322** | **140 (43.5%)** | **70** |
+
+I then removed my own trailing rebuild from the comparison - the source's *annual* operating income
+against the filed *fiscal year*, one period, one concept: **158 of 375 (42.1%) within 0.5%, 90 (24%)
+over 10%**, none of them a period behind, and the source's figure the larger for **71%** - the
+direction you get when a charge the company put inside operating income is left out (GIS +68%, CVS
++55%, KHC and CNC sign flips). A minority, mostly real estate, goes the other way, and **38 companies
+stopped tagging the concept altogether**. `research/2026-10-15-operating-income-source-gap.md`.
+
+**Not acted on, for stated reasons:** "use the filing" is ruled out by the capex refusal earlier today
+(it would put three weighted metrics on the weekly SEC cache) and by the 20.5-rank definitional cost
+of mixing sources measured this morning - and the real-estate cases say the filed concept is not one
+thing either. It is a definitional question with an answer in the sources, so it is **question 7 in
+`plan/factor-lab.md`**, for a Monday. It is explicitly **not** a candidate for the filing check as a
+gate: a gate firing for a quarter of the universe every morning is a gate that gets muted.
+
+### Evidence / research
+- **A documented, reproducible defect**, which is the admissible kind: BRK-B's published trailing
+  flows against its own SEC filings, 14.5% / 6.1% / 10.2% out
+  (`research/measurements/2026-10-15-three-quarter-annualisation.py`).
+- **Documented practice:** the roll-forward is the construction filers use in their own 10-Qs - a
+  quarterly report states year-to-date against the same period a year earlier precisely so a
+  twelve-month figure can be rolled from the last 10-K - and it is the identity this repo already
+  applies to filings in `sec_crosscheck.flow_ttm`. 4/3 annualisation has no comparable warrant: it
+  asserts the unpublished quarter equalled the average of the other three.
+- **Exactness as validation:** three of four lines reproduce the filing to the dollar. That is a
+  stronger check than "closer on average", because an identity that is right reproduces exactly.
+- No backtest number and no IC figure is used anywhere above (rules 4 and 5).
+
+### Methodology changed
+- `METHODOLOGY_CHANGELOG.md` **2026-10-15 (13:00 slot)** - the roll-forward, its evidence, what it
+  does not fix, the one stock affected, and the dead-code defect fixed alongside it.
+- `SCREENER_OVERVIEW.md` regenerated from `build_screener_overview()` (rule 10): its LTM paragraph
+  had said 4/3 annualisation was the only route. Two new registered claims, `drilldown.ltm_rolled`
+  and `overview.ltm_rolled`.
+
+### Tried and rejected
+- **The annual statement as the fallback**, which is what section 4b's phrasing and this morning's
+  DuPont precedent both suggested. Measured against Berkshire's filings it is *worse* on net income
+  (-21.9% against -14.5%) and better on revenue and cash flow - mixed, so not a fix. The roll-forward
+  beats both because it is an identity rather than a substitution.
+- **Filling the missing quarter from the SEC cache.** Refused on the same grounds as the capex
+  proposal hours earlier: it puts scoring inputs on a weekly cache scoring deliberately never reads,
+  and mixes two definitions inside one trailing sum.
+- **Adding operating income to the data loop's filing check.** It would fire for ~24% of the universe
+  every morning. Written up instead.
+- **A first version of the annual operating-income measurement that reported 121 over 10%** - it
+  compared 2026 figures with fiscal years as old as 2010 for the 38 companies that stopped tagging
+  the concept. Corrected to 90, and the mistake is recorded in the note, because a filer that stops
+  tagging looks exactly like one that disagrees.
+
+### Next
+- **The nine other badges in `renderFlagsWarnings` are also invisible** - value trap, growth trap,
+  Beneish, channel stuffing, EV flag, beta overlap, bank-like, financial caveat, `ltm_annualized`.
+  Some are shown elsewhere (trap flags are on the table and in the summary); some may not be. One
+  session should check each against the live page and either rehome it or delete it, then remove the
+  dead function. That is a contained, high-value defect hunt and it is the single most valuable next
+  thing, because it is the same class of bug that hid a badge for a day.
+- Then back to the deferred owner item: context-layer queue item 4's two remaining per-signal notes
+  (macro backdrop, track record), then item 6.
+- `research/2026-10-15-operating-income-source-gap.md` is a Monday, as question 7 in
+  `plan/factor-lab.md`. Do not patch it.
