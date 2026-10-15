@@ -16,6 +16,24 @@
 # about half-size among large companies, so the default expectation for any single change over 80
 # months is "not distinguishable".
 
+# ---- 2012-2019: the period before the sample (registered 2026-10-15, evening)
+# Written after the first batch was read on 2020-2026 and BEFORE any month of 2012-2019 was built -
+# the commit that adds this block precedes the commit that adds those months to the ledger. The
+# rule, fixed now: every experiment above is rerun unchanged on 2012-01 .. 2019-12 and compared with
+# the baseline month by month. An experiment is CONFIRMED only if its 2012-2019 difference clears
+# p < 0.05 / (experiments registered) and |t| >= 3, and in the same direction as its 2020-2026
+# difference. Nothing else counts as a finding; p < 0.05 alone is reported as what chance gives
+# about one time in twenty. Source for the design: Linnainmaa & Roberts (2018), RFS 31(7).
+# Predictions: the baseline's 2012-2019 IC is positive but below 0.03 and not distinguishable from
+# zero at |t| >= 3; no experiment is confirmed; the momentum-only screens, which were the best in
+# the held-out months, are not better in 2012-2019. Known limit, larger than in 2020-2026: the
+# members that have since left the index are missing (survivorship), counted month by month in
+# the census.
+presample:
+  months: [2012-01-31, 2019-12-31]
+  rule: confirmed only at p < 0.05/N and |t| >= 3, same direction as 2020-2026
+  source: Linnainmaa & Roberts (2018), The History of the Cross-Section of Stock Returns, RFS 31(7)
+
 experiments:
   - id: baseline
     hypothesis: The current weighting (the filings-and-prices screener, v2_config).
@@ -163,6 +181,8 @@ experiments:
     transform:
       kind: config
       set: {sector_neutral.sector_relative_composite: true}
+    # added after the run, prediction unchanged: the run compared identical rankings in all 80 months
+    void: the switch changes only the display column Composite_Pct, never the ranking (factor_engine, since Phase 13) - the experiment tested nothing
   - id: whole-market-percentiles
     hypothesis: Ranking each metric across the whole market instead of within its sector does as well.
     source: Asness, Porter & Stevens (2000), "Predicting stock returns using industry-relative firm characteristics" - industry-relative measures predicted better.

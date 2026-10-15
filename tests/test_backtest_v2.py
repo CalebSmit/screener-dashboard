@@ -86,7 +86,7 @@ def test_a_mixed_scale_series_is_withheld_not_scored():
 
 
 # --------------------------------------------------------------------------- no look-ahead
-def _inputs(tickers=("AAA",), with_base=True):
+def _inputs(tickers=("AAA",), with_base=True, ciks=None):
     days = pd.bdate_range("2023-01-02", "2025-12-31")
     rows = []
     for t in tickers:
@@ -103,7 +103,7 @@ def _inputs(tickers=("AAA",), with_base=True):
                            "end": pd.Timestamp("2023-12-31"), "filed": pd.Timestamp("2024-02-10"),
                            "form": "10-K", "fp": "FY", "val": 100.0}])
     base = {t: {"Ticker": t, "sector": "Industrials"} for t in tickers} if with_base else {}
-    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base)
+    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base, ciks)
 
 
 def test_the_history_window_ends_at_the_month_end():
@@ -147,6 +147,32 @@ def test_the_census_accounts_for_every_member(monkeypatch):
     assert census["members"] == 2 and census["built"] == 1
     assert census["not_scoreable"] == {"no_current_record": ["GONE"]}
     assert census["built"] + sum(len(v) for v in census["not_scoreable"].values()) == census["members"]
+
+
+def test_a_renamed_member_is_found_under_its_current_symbol(monkeypatch):
+    """2026-10-15: v2's inputs are keyed by today's symbols, so a member listed under an old one
+    (FB in 2020, today META) was counted missing - 635 member-months of companies that never left
+    the index. The SEC registrant number survives the rename. Two old symbols never claim one
+    company, and a symbol that is itself a member that month is never borrowed."""
+    inp = _inputs(("AAA",), ciks={"OLD": 7, "OLD2": 7, "AAA": 7, "GONE": 9})
+
+    def snap(*tickers):
+        class Snap:
+            n_members = len(tickers)
+            staleness_days = 0
+        Snap.tickers = tickers
+        monkeypatch.setattr(v2.uh, "members_on", lambda as_of, allow_network=False: Snap)
+
+    snap("OLD", "GONE")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {"OLD": "AAA"} and census["built"] == 1
+    assert census["not_scoreable"] == {"no_current_record": ["GONE"]}
+    snap("OLD", "OLD2")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {"OLD": "AAA"} and census["not_scoreable"] == {"no_current_record": ["OLD2"]}
+    snap("OLD", "AAA")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {} and census["not_scoreable"] == {"no_current_record": ["OLD"]}
 
 
 # --------------------------------------------------------------------------- exactness on real data

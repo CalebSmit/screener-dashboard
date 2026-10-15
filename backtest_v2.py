@@ -93,7 +93,7 @@ class Inputs:
     """Everything v2 reads, loaded once, offline."""
 
     def __init__(self, daily: pd.DataFrame, index: pd.DataFrame, splits: pd.DataFrame,
-                 facts: pd.DataFrame, base: dict):
+                 facts: pd.DataFrame, base: dict, ciks: dict | None = None):
         daily = daily.copy()
         daily["date"] = pd.to_datetime(daily["date"])
         # one ticker form everywhere - the universe's (``BRK-B``, not ``BRK.B``); a cache written
@@ -109,6 +109,25 @@ class Inputs:
         self.facts = {t: g for t, g in facts.groupby("ticker")}
         self.empty_facts = facts.iloc[:0]
         self.base = base
+        # ticker -> SEC CIK for every symbol the membership history has used; the CIK survives a
+        # rename, so a member listed under an old symbol is found under its current one
+        self.ciks = ciks or {}
+        self._by_cik: dict = {}
+        for tk, cik in self.ciks.items():
+            if tk in base:
+                self._by_cik.setdefault(cik, []).append(tk)
+
+    def current_symbol(self, ticker: str, members: set, taken: set) -> str | None:
+        """The symbol a member listed as ``ticker`` trades and files under today, when it was
+        renamed (FB -> META, ANTM -> ELV): the one current symbol with the same SEC registrant
+        number that is not itself a member that month and not already claimed by another member.
+        ``None`` when there is none - a company that has since left the index stays missing, which
+        is the survivorship this cannot fix."""
+        cik = self.ciks.get(ticker)
+        if cik is None:
+            return None
+        cands = sorted(t for t in self._by_cik.get(cik, []) if t not in members and t not in taken)
+        return cands[0] if cands else None
 
     @classmethod
     def load(cls, root: Path = ROOT) -> "Inputs":
@@ -119,7 +138,19 @@ class Inputs:
         return cls(pd.read_parquet(root / "cache" / "v2_daily.parquet"),
                    pd.read_parquet(root / "cache" / "v2_index.parquet"),
                    pd.read_parquet(root / "cache" / "splits.parquet"),
-                   pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base)
+                   pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base,
+                   _load_ciks(root))
+
+
+def _load_ciks(root: Path) -> dict:
+    """The membership history's ticker -> CIK map (``data/universe_history/ticker_ciks.json``,
+    built from the same Wikipedia revisions as the membership), or ``{}`` without it."""
+    import json as _json
+    p = root / "data" / "universe_history" / "ticker_ciks.json"
+    try:
+        return {k: int(v) for k, v in _json.loads(p.read_text(encoding="utf-8"))["ciks"].items()}
+    except (OSError, KeyError, ValueError, TypeError):
+        return {}
 
 
 def history_window(g: pd.DataFrame, as_of: pd.Timestamp, splits: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -249,9 +280,15 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
     """(scores frame, census dict) for one month-end."""
     t = pd.Timestamp(as_of)
     snap = uh.members_on(as_of, allow_network=False)
-    records, missing = [], {}
+    records, missing, renamed = [], {}, {}
+    members = set(snap.tickers)
     for tk in snap.tickers:
-        rec, why = record_at(tk, inputs, t, filings_as_of)
+        sym = tk
+        if tk not in inputs.base:
+            cur = inputs.current_symbol(tk, members, set(renamed.values()))
+            if cur is not None:
+                sym = renamed[tk] = cur
+        rec, why = record_at(sym, inputs, t, filings_as_of)
         if rec is None:
             missing.setdefault(why, []).append(tk)
         else:
@@ -271,6 +308,7 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
               "built": len(records), "scored": int(len(out)),
               "dropped_by_engine_filters": len(records) - int(len(out)),
               "not_scoreable": {k: sorted(v) for k, v in missing.items()},
+              "renamed": dict(sorted(renamed.items())),
               "regime": state.get("state"), "risk_free": round(rf, 4)}
     return out, census
 

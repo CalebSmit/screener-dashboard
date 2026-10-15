@@ -58,6 +58,15 @@ RESULTS = EXP_DIR / "RESULTS.md"
 DISCOVERY = ("2020-01-31", "2023-06-30")
 HOLDOUT = ("2023-07-31", "2026-08-31")
 HLZ_T = 3.0                       # Harvey, Liu & Zhu (2016): the bar for a new factor's t-statistic
+# A third period, registered 2026-10-15 AFTER the first batch had been read on 2020-2026 and BEFORE
+# a single month of it was built: the eight years before the sample, which nobody here has looked
+# at. Testing a result on the history that precedes its sample is Linnainmaa & Roberts (2018), "The
+# history of the cross-section of stock returns", RFS 31(7) - most anomalies they tested that way
+# weakened or vanished. 96 months against the 38 held out, so it can see a difference about 0.6x
+# the size. Its limit is worse survivorship: the further back, the more members have since left
+# the index, and v2 only has the ones still in it (the census counts them per month).
+PRESAMPLE = ("2012-01-31", "2019-12-31")
+SAMPLE = (DISCOVERY[0], HOLDOUT[1])
 
 
 # --------------------------------------------------------------------------- configurations
@@ -122,6 +131,19 @@ def load_months() -> dict[str, tuple[pd.DataFrame, dict]]:
     return out
 
 
+def data_fingerprint(months: dict) -> dict:
+    """Which data an experiment ran on: a hash of every month's member list, and the count of
+    stock-months. Two runs compare only when it matches - a rebuild of the monthly records (a
+    fix to who is in them) is a new vintage, and the ledger says so."""
+    h = hashlib.sha256()
+    n = 0
+    for m in sorted(months):
+        tickers = sorted(map(str, months[m][0]["Ticker"]))
+        n += len(tickers)
+        h.update((m + ":" + ",".join(tickers) + ";").encode("utf-8"))
+    return {"data_hash": h.hexdigest()[:12], "stock_months": n}
+
+
 def forward_returns(months: list[str]) -> pd.DataFrame:
     daily = pd.read_parquet(ROOT / "cache" / "v2_daily.parquet")
     last = months[-1]
@@ -181,8 +203,11 @@ def _stats(x: pd.Series) -> dict:
 
 def summarise(pm: pd.DataFrame, base: pd.DataFrame | None) -> dict:
     out = {}
-    for name, (a, b) in (("discovery", DISCOVERY), ("holdout", HOLDOUT), ("all", ("0000", "9999"))):
+    for name, (a, b) in (("discovery", DISCOVERY), ("holdout", HOLDOUT), ("all", SAMPLE),
+                         ("presample", PRESAMPLE)):
         sl = pm[(pm.index >= a) & (pm.index <= b)]
+        if name == "presample" and sl["ic"].notna().sum() < 3:
+            continue                                    # not built yet: no row, not an empty one
         r = {"ic": _stats(sl["ic"]), "top_minus_universe": _stats(sl["top_minus_universe"]),
              "top_vol": round(float(sl["top"].std(ddof=1)), 5) if len(sl) > 2 else None}
         if base is not None:
@@ -216,6 +241,7 @@ def run(ids: list[str] | None = None) -> list[dict]:
     if not months:
         raise SystemExit("no cached monthly metrics - run backtest_v2.py first")
     fwd = forward_returns(sorted(months))
+    vintage = data_fingerprint(months)
     cfg0 = base_config()
     base_pm = per_month(rank_all(months, cfg0), fwd)
     results = []
@@ -228,6 +254,7 @@ def run(ids: list[str] | None = None) -> list[dict]:
             rank_all(months, cfg, whole_market=(tr["kind"] == "whole_market")), fwd)
         res = {"id": e["id"], "run_at": datetime.now().isoformat(timespec="seconds"),
                "commit": git_commit(), "config_hash": config_hash(cfg, tr), "months": int(len(pm)),
+               **vintage,
                "summary": summarise(pm, None if tr["kind"] == "baseline" else base_pm)}
         LEDGER.parent.mkdir(parents=True, exist_ok=True)
         with LEDGER.open("a", encoding="utf-8") as f:
@@ -241,8 +268,20 @@ def run(ids: list[str] | None = None) -> list[dict]:
 
 
 # --------------------------------------------------------------------------- the report
+def _presample_cells(s: dict) -> str:
+    p = s.get("presample")
+    if not p:
+        return " | "
+    vs = p.get("ic_vs_baseline", {})
+    return (f"{p['ic'].get('mean', 0):+.3f} ({p['ic'].get('t')})"
+            + (f" | {vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else " | -"))
+
+
+
 def verdict(e: dict, res: dict, n_tests: int) -> str:
     """The pre-registered prediction against what happened, in words, judged on the held-out months."""
+    if e.get("void"):
+        return "VOID - " + e["void"]
     s = res["summary"]
     if "ic_vs_baseline" not in s["holdout"]:
         return "baseline"
@@ -262,6 +301,27 @@ def verdict(e: dict, res: dict, n_tests: int) -> str:
     return "not distinguishable from the baseline"
 
 
+def verdict_presample(e: dict, res: dict, n_tests: int) -> str:
+    """The pre-registered rule for 2012-2019 (registry.yaml ``presample``), in words."""
+    if e.get("void"):
+        return "void"
+    s = res["summary"]
+    if "presample" not in s:
+        return "not run on 2012-2019"
+    if "ic_vs_baseline" not in s["presample"]:
+        return "baseline"
+    d, ref = s["presample"]["ic_vs_baseline"], s["all"]["ic_vs_baseline"]
+    bonf = 0.05 / max(n_tests, 1)
+    if d.get("p", 1) < bonf and abs(d.get("t", 0)) >= HLZ_T:
+        same = np.sign(d.get("mean", 0)) == np.sign(ref.get("mean", 0))
+        word = "better" if d["mean"] > 0 else "worse"
+        return (f"{word} in 2012-2019 beyond the multiple-testing bar, "
+                + ("the same direction as 2020-2026" if same else "the opposite direction to 2020-2026"))
+    if d.get("p", 1) < 0.05:
+        return "p < 0.05 in 2012-2019 only - about 1 in 20 would by chance"
+    return "not distinguishable in 2012-2019"
+
+
 def report() -> Path:
     reg = load_registry()
     latest = {}
@@ -272,6 +332,7 @@ def report() -> Path:
                 latest[r["id"]] = r
     runs = sum(1 for _ in LEDGER.read_text(encoding="utf-8").splitlines()) if LEDGER.exists() else 0
     n = len([e for e in reg if e["transform"]["kind"] != "baseline"])
+    vintages = sorted({r.get("data_hash", "before-fingerprint") for r in latest.values()})
     lines = ["# Research engine results", "",
              "Generated by `python v2_experiments.py report` from `ledger.jsonl` - do not edit by hand.",
              "Every experiment was registered, with its prediction, in `registry.yaml` before it ran; the git",
@@ -279,19 +340,24 @@ def report() -> Path:
              f"weighting on the same months. {n} experiments registered, {runs} runs in the ledger; the",
              f"multiple-testing bar is p < 0.05 / {n} = {0.05 / max(n, 1):.4f} and |t| >= {HLZ_T}.", "",
              "**Not decision-grade** (CLAUDE.md rule 5): " + " ".join(br.CAVEATS[:2]), "",
-             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t) | Top tenth vs universe, held out | Verdict |",
-             "|---|---|---|---|---|---|---|"]
+             ("Data: every row below ran on the same monthly records (" + vintages[0] + ")." if len(vintages) == 1
+              else "**Data: the rows below ran on more than one version of the monthly records ("
+                   + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
+                   "rows of different versions do not compare with each other. Rerun to bring them level."), "",
+             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t) | Top tenth vs universe, held out | Verdict | IC, 2012-19 | 2012-19 vs baseline (t) | 2012-19 verdict |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for e in reg:
         r = latest.get(e["id"])
         if not r:
-            lines.append(f"| {e['id']} | {e.get('prediction', '')} | not run | | | | |")
+            lines.append(f"| {e['id']} | {e.get('prediction', '')} | not run | | | | | | | |")
             continue
         s = r["summary"]
         vs = s["holdout"].get("ic_vs_baseline", {})
         lines.append(f"| {e['id']} | {e.get('prediction', '')} | {s['discovery']['ic'].get('mean', 0):+.3f} | "
                      f"{s['holdout']['ic'].get('mean', 0):+.3f} | "
                      + (f"{vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else "-")
-                     + f" | {s['holdout']['top_minus_universe'].get('mean', 0) * 100:+.2f}% a month | {verdict(e, r, n)} |")
+                     + f" | {s['holdout']['top_minus_universe'].get('mean', 0) * 100:+.2f}% a month | {verdict(e, r, n)} | "
+                     + _presample_cells(s) + f" | {verdict_presample(e, r, n)} |")
     lines += ["", "Each row's hypothesis and source are in `registry.yaml`.", ""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
     return RESULTS

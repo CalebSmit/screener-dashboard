@@ -118,3 +118,49 @@ def test_a_stock_with_no_composite_is_left_out_of_the_month_not_ranked(monkeypat
     cfg = {"data_quality": {"min_data_coverage_pct": 50}, "factor_weights": {}}
     out = v2.rank_month(df, cfg, {})
     assert list(out["Ticker"]) == ["A", "C"] and list(out["Rank"]) == [1, 2]
+
+
+def test_the_ledger_says_which_data_each_run_used():
+    """A rebuild of the monthly records is a new vintage; the fingerprint changes with the members."""
+    a = {"2024-01-31": (pd.DataFrame({"Ticker": ["A", "B"]}), {}), "2024-02-29": (pd.DataFrame({"Ticker": ["A"]}), {})}
+    b = {"2024-01-31": (pd.DataFrame({"Ticker": ["A", "B"]}), {}), "2024-02-29": (pd.DataFrame({"Ticker": ["A", "C"]}), {})}
+    fa, fb = X.data_fingerprint(a), X.data_fingerprint(b)
+    assert fa["stock_months"] == 3 and fb["stock_months"] == 4 and fa["data_hash"] != fb["data_hash"]
+    assert X.data_fingerprint(dict(reversed(list(a.items())))) == fa      # order-free
+
+
+def test_the_period_before_the_sample_is_fixed_and_judged_by_its_own_rule():
+    """Registered 2026-10-15 before any of its months was built (Linnainmaa & Roberts 2018)."""
+    assert X.PRESAMPLE == ("2012-01-31", "2019-12-31") and X.PRESAMPLE[1] < X.DISCOVERY[0]
+    assert X.SAMPLE == ("2020-01-31", "2026-08-31")
+    import yaml
+    reg = yaml.safe_load(X.REGISTRY.read_text(encoding="utf-8"))
+    assert reg["presample"]["months"] == ["2012-01-31", "2019-12-31"] or \
+        [str(m) for m in reg["presample"]["months"]] == ["2012-01-31", "2019-12-31"]
+
+    def res(p_mean, p_p, p_t, all_mean):
+        return {"summary": {"presample": {"ic_vs_baseline": {"mean": p_mean, "p": p_p, "t": p_t}},
+                            "all": {"ic_vs_baseline": {"mean": all_mean}}}}
+    e = {"id": "x"}
+    assert X.verdict_presample(e, res(0.04, 0.0001, 3.9, 0.01), 24).endswith("the same direction as 2020-2026")
+    assert X.verdict_presample(e, res(0.04, 0.0001, 3.9, -0.01), 24).endswith("the opposite direction to 2020-2026")
+    assert X.verdict_presample(e, res(0.02, 0.02, 2.3, 0.01), 24).startswith("p < 0.05 in 2012-2019 only")
+    assert X.verdict_presample(e, res(0.0, 0.9, 0.1, 0.01), 24) == "not distinguishable in 2012-2019"
+    assert X.verdict_presample(e, {"summary": {}}, 24) == "not run on 2012-2019"
+    assert X.verdict_presample({"id": "v", "void": "why"}, res(0.04, 0.0001, 3.9, 0.01), 24) == "void"
+
+
+def test_a_void_experiment_says_so_instead_of_a_verdict():
+    reg = {e["id"]: e for e in X.load_registry()}
+    assert reg["sector-relative-composite"]["void"]
+    r = {"summary": {"discovery": {"ic_vs_baseline": {"mean": 0, "p": 1}},
+                     "holdout": {"ic_vs_baseline": {"mean": 0, "p": 1, "t": 0}}}}
+    assert X.verdict(reg["sector-relative-composite"], r, 24).startswith("VOID - ")
+
+
+def test_months_before_the_sample_never_enter_the_sample_periods():
+    months = [d.strftime("%Y-%m-%d") for d in pd.date_range("2012-01-31", "2026-08-31", freq="ME")]
+    pm = _pm(list(np.linspace(-0.1, 0.1, len(months))), months)
+    s = X.summarise(pm, None)
+    assert s["presample"]["ic"]["n"] == 96
+    assert s["discovery"]["ic"]["n"] + s["holdout"]["ic"]["n"] == s["all"]["ic"]["n"] == 80
