@@ -255,6 +255,55 @@ def check_metric_availability(res: Result) -> None:
             res.note(f"{where} - carries no weight, so no score moved")
 
 
+# The fields compared with the filings, and the line above which a count of disagreements is
+# called out. Written 2026-10-14 from that day's measurement, before any run had been checked:
+# over 10% apart, total assets 0 stocks, operating cash flow 1, equity 2, net income 7, revenue
+# 13 (research/2026-10-14-yahoo-vs-sec.md). Capex and gross profit are left out: capex differs by
+# definition for 46 stocks, and gross profit is compared for too few to say much.
+CROSSCHECK_FIELDS = ("total_assets", "operating_cash_flow", "equity", "net_income", "revenue")
+CROSSCHECK_ATTENTION = 25          # 5% of the universe, about twice the noisiest field's count
+
+
+def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None:
+    """The run's inputs against the companies' own SEC figures - a NOTE, never a failure.
+
+    **2026-10-14.** The dividend outage was a field vanishing, which check_metric_availability
+    now catches. A field that changes scale or meaning while still being served passes every
+    check in this file: coverage is unchanged, and renormalisation keeps dispersion. Rebuilt
+    from the filings for the same quarter, total assets agreed with Yahoo within 0.5% for 99.8%
+    of companies that day, so a field disagreeing for dozens of companies at once is a source
+    event (sec_crosscheck.py; research/2026-10-14-yahoo-vs-sec.md).
+
+    **A note, not a gate**, until the counts have a few weeks of history: a gate on a
+    measurement nobody has watched yet jams the loop on its first odd morning, the same reason
+    weight-0 metrics are notes above. It reads the weekly SEC cache and nothing else - no
+    network - and anything going wrong here is reported and skipped, never raised.
+    """
+    sys.path.insert(0, str(ROOT))
+    try:
+        import sec_crosscheck as X
+        if facts is None:
+            from sec_fundamentals import FACTS_PATH
+            if not FACTS_PATH.exists():
+                res.note("inputs not checked against SEC filings - no companyfacts cache yet")
+                return
+            facts = pd.read_parquet(FACTS_PATH)
+        fields = [f for f in X.FIELDS if f[0] in CROSSCHECK_FIELDS]
+        stats = X.summary(X.compare(payload, facts, fields))
+    except Exception as exc:  # noqa: BLE001 - a note must never stop a publish
+        res.note(f"inputs not checked against SEC filings - {type(exc).__name__}: {exc}")
+        return
+    parts = [f"{name.replace('_', ' ')} {s['within_half_pct']}/{s['compared']} within 0.5% "
+             f"({s['over_10pct']} over 10%)" for name, s in stats.items()]
+    res.note("inputs against SEC filings: " + "; ".join(parts))
+    for name, s in stats.items():
+        if s["over_10pct"] > CROSSCHECK_ATTENTION:
+            res.note(f"ATTENTION - {name.replace('_', ' ')} differs from the companies' filings by more "
+                     f"than 10% for {s['over_10pct']} stocks (the line is {CROSSCHECK_ATTENTION}; 2026-10-14 "
+                     f"had 0-13 per field). A source changing a field's scale or meaning looks like this. "
+                     f"Not a refusal - see research/2026-10-14-yahoo-vs-sec.md.")
+
+
 def _weighted_metric_names() -> set[str] | None:
     """Every metric with weight in any profile, or None if that cannot be read.
 
@@ -354,6 +403,7 @@ def main() -> int:
     check_coverage(payload, res)
     check_metric_availability(res)
     check_dispersion(payload, res)
+    check_inputs_against_filings(payload, res)
 
     if not args.quiet:
         print(f"HEALTH CHECK for run {run_dir.name}")

@@ -849,6 +849,18 @@ three surprise metrics show their four quarters (`eq4`) with a test rebuilding e
 `scoring_schema` is 4. **What remains is Sharpe and Sortino** (weight 0, shown for reference) - low
 value; do them only if a session has nothing better.
 
+**0.14. The inputs against the companies' own filings (opened 2026-10-14, owner-run).**
+`research/2026-10-14-yahoo-vs-sec.md`. Rebuilt from SEC XBRL for the same quarter, the Yahoo
+inputs agree within 0.5% for 99.8% of companies on total assets, 98.8% on operating cash flow,
+97.9% on equity, 94.3% on net income and 88.5% on revenue; the larger disagreements examined are
+definitional (bank revenue, minority interests, excise taxes). **Capex is different by
+construction** (Yahoo's row adds intangibles and finance-arm lease assets) - question 6 in
+`plan/factor-lab.md`. `sec_crosscheck.py` (offline, read-only) now runs in the data loop's health
+check as a **note**: per-field counts every morning, and an `ATTENTION -` line, surfaced in the
+brief, when any field disagrees by over 10% for more than **25** stocks (pre-registered; that day's
+counts were 0-13). **Promote it to a gate only after a few weeks of counts show its normal range**,
+and then only for the fields that sat near zero.
+
 **0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
 item asked for deduplication and a test, and both landed: `record_dispersion` now
 **replaces** a date's row instead of appending, and `record_run_snapshot` removes
