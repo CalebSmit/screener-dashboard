@@ -859,7 +859,10 @@ construction** (Yahoo's row adds intangibles and finance-arm lease assets) - que
 check as a **note**: per-field counts every morning, and an `ATTENTION -` line, surfaced in the
 brief, when any field disagrees by over 10% for more than **25** stocks (pre-registered; that day's
 counts were 0-13). **Promote it to a gate only after a few weeks of counts show its normal range**,
-and then only for the fields that sat near zero.
+and then only for the fields that sat near zero. **Each stock's Data Provenance panel shows the same check**
+(`stock_detail[t].xchk`, `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`):
+which inputs agree within 2% with the filing. Display-only - a test fails if `xchk` or
+`sec_crosscheck` appears in a scoring module.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
 item asked for deduplication and a test, and both landed: `record_dispersion` now

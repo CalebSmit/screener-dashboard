@@ -44,6 +44,10 @@ import options_cache
 
 ROOT = Path(__file__).resolve().parent.parent
 TODAY = datetime.date(2026, 10, 9)
+# The instant the dated refresh tests run at: 18:00 Eastern on Friday 2026-10-09, so the session is
+# TODAY whatever the real calendar says. Without it, a fixture stamped TODAY aged past the cache's
+# five-day bound and the suite went red on 2026-10-15 (test_refresh_tests_do_not_read_the_calendar).
+TODAY_NOW = datetime.datetime(2026, 10, 9, 22, 0, tzinfo=datetime.timezone.utc)
 
 
 def _reading(status="ok", expiry="2026-11-06", quote_date="2026-10-08"):
@@ -160,7 +164,7 @@ def test_a_refresh_at_a_dead_hour_writes_nothing(tmp_path):
     """The failure this prevents: a 2 AM refresh replacing 400 good readings with 500 empties."""
     options_cache.save({"AAA": _reading()}, "2026-10-08", root=tmp_path)
     before = options_cache.cache_path(tmp_path).read_bytes()
-    stats = options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path,
+    stats = options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path, now=TODAY_NOW,
                                   log=lambda *_a: None,
                                   fetch=lambda *a, **k: {"_ctx_opt_status": "stale-quotes"})
     assert stats["live"] is False and stats["kept"] == 0
@@ -175,7 +179,7 @@ def test_a_refresh_keeps_only_usable_readings(tmp_path):
         return {"_ctx_opt_status": status, "_ctx_opt_expiry": exp, "_ctx_opt_move": 0.04}
 
     records = [{"Ticker": t, "price_latest": 10.0} for t in ("AAA", "BBB", "CCC", "DDD")]
-    stats = options_cache.refresh(records, root=tmp_path, log=lambda *_a: None, fetch=fetch,
+    stats = options_cache.refresh(records, root=tmp_path, now=TODAY_NOW, log=lambda *_a: None, fetch=fetch,
                                   probe=lambda _t: "ok")
     assert stats["kept"] == 2
     kept = options_cache.load(tmp_path)["readings"]
@@ -187,7 +191,7 @@ def test_a_refresh_stores_only_option_fields(tmp_path):
     """The cache is for quotes. Letting a trend or insider field in would mean the 02:00 run read
     a stale copy of data it fetches fresh every night."""
     exp = (TODAY + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-    options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path,
+    options_cache.refresh([{"Ticker": "AAA", "price_latest": 10.0}], root=tmp_path, now=TODAY_NOW,
                           log=lambda *_a: None, probe=lambda _t: "ok",
                           fetch=lambda *a, **k: {"_ctx_opt_status": "ok", "_ctx_opt_expiry": exp,
                                                  "_ctx_last_close": 10.0, "_ctx_insider": "[]"})
@@ -201,7 +205,7 @@ def test_a_refresh_merges_rather_than_dropping_stocks_it_did_not_reach(tmp_path)
     options_cache.save({"OLD": _reading(expiry=exp,
                                         quote_date=TODAY.strftime("%Y-%m-%d"))},
                        TODAY.strftime("%Y-%m-%d"), root=tmp_path)
-    options_cache.refresh([{"Ticker": "NEW", "price_latest": 10.0}], root=tmp_path,
+    options_cache.refresh([{"Ticker": "NEW", "price_latest": 10.0}], root=tmp_path, now=TODAY_NOW,
                           log=lambda *_a: None, probe=lambda _t: "ok",
                           fetch=lambda *a, **k: {"_ctx_opt_status": "ok", "_ctx_opt_expiry": exp})
     assert set(options_cache.load(tmp_path)["readings"]) == {"OLD", "NEW"}
@@ -212,7 +216,7 @@ def test_a_refresh_drops_entries_that_can_no_longer_be_served(tmp_path):
     exp = (TODAY + datetime.timedelta(days=40)).strftime("%Y-%m-%d")
     options_cache.save({"DEAD": _reading(expiry="2020-01-17", quote_date="2020-01-02")},
                        "2020-01-02", root=tmp_path)
-    options_cache.refresh([{"Ticker": "NEW", "price_latest": 10.0}], root=tmp_path,
+    options_cache.refresh([{"Ticker": "NEW", "price_latest": 10.0}], root=tmp_path, now=TODAY_NOW,
                           log=lambda *_a: None, probe=lambda _t: "ok",
                           fetch=lambda *a, **k: {"_ctx_opt_status": "ok", "_ctx_opt_expiry": exp})
     assert set(options_cache.load(tmp_path)["readings"]) == {"NEW"}
@@ -514,3 +518,17 @@ def test_last_trade_prices_are_not_used_in_place_of_quotes():
     src = (ROOT / "context_signals.py").read_text(encoding="utf-8")
     block = src[src.index("def _mid("):src.index("def choose_expiry(")]
     assert "lastPrice" not in block, "the straddle must come from bid/ask, not the last trade"
+
+
+def test_refresh_tests_do_not_read_the_calendar():
+    """Every refresh test in this module either passes a fixed instant or sets the clock itself.
+    A dated fixture checked against the real calendar is a test with an expiry date."""
+    import inspect
+    import sys
+    mod = sys.modules[__name__]
+    for name, fn in inspect.getmembers(mod, inspect.isfunction):
+        if not name.startswith("test_") or name == "test_refresh_tests_do_not_read_the_calendar":
+            continue
+        src = inspect.getsource(fn)
+        if "options_cache.refresh(" in src:
+            assert "now=TODAY_NOW" in src or "monkeypatch" in inspect.signature(fn).parameters, name

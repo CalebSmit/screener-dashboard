@@ -745,6 +745,47 @@ def _stock_inputs(row) -> dict:
     return inp
 
 
+# Each stock's inputs against its own SEC filing (sec_crosscheck.py; 2026-10-14,
+# research/2026-10-14-yahoo-vs-sec.md). Provenance for the drilldown - never scored, never in
+# raw/pct. Short keys keep it ~25 KB raw for the universe. Capex and gross profit are left out:
+# capex differs from the filed line by definition for ~45 stocks, and gross profit is compared
+# for too few to be worth a line.
+_XCHK_FIELDS = (("total_assets", "ta"), ("equity", "eq"), ("revenue", "rev"),
+                ("net_income", "ni"), ("operating_cash_flow", "ocf"))
+_FACTS_CACHE: dict = {}
+
+
+def _attach_filing_check(stock_detail: dict, facts=None) -> int:
+    """Add ``xchk`` = {short field: (Yahoo - filing) / larger} to every stock with at least one
+    comparable figure. Reads the weekly SEC cache the run keeps (no network); returns how many
+    stocks were checked, 0 when the cache is absent or anything fails - provenance must never
+    stop a build."""
+    try:
+        import sec_crosscheck as X
+        if facts is None:
+            from sec_fundamentals import FACTS_PATH
+            if not FACTS_PATH.exists():
+                return 0
+            key = (str(FACTS_PATH), FACTS_PATH.stat().st_mtime)
+            if key not in _FACTS_CACHE:
+                _FACTS_CACHE.clear()
+                _FACTS_CACHE[key] = pd.read_parquet(FACTS_PATH)
+            facts = _FACTS_CACHE[key]
+        facts = facts[facts["ticker"].isin(list(stock_detail))]
+        short = dict(_XCHK_FIELDS)
+        df = X.compare({"stock_detail": stock_detail}, facts, [f for f in X.FIELDS if f[0] in short])
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: filing check skipped ({type(exc).__name__}: {exc})")
+        return 0
+    checked = 0
+    if df.empty or "rel_diff" not in df:
+        return 0
+    for ticker, rows in df[df["status"] == "compared"].groupby("ticker"):
+        stock_detail[ticker]["xchk"] = {short[r.field]: round(float(r.rel_diff), 4) for r in rows.itertuples()}
+        checked += 1
+    return checked
+
+
 def _input_mismatches(inp: dict, raw: dict) -> list:
     """Metrics whose published value does NOT rebuild from the inputs published
     beside it. The page says so for these instead of showing a formula that fails."""
@@ -1367,6 +1408,11 @@ def prepare_dashboard_data(run_data: dict) -> str:
     # every category score and composite from the published numbers alone, with an
     # implementation that shares no code with the engine (calc_trace.py).
     _reconcile_scores(weights, stock_detail, run_data.get("cfg") or {})
+
+    # Provenance, after the scores are settled: which inputs agree with the company's own filing.
+    _n_checked = _attach_filing_check(stock_detail)
+    if _n_checked:
+        print(f"Filing check: inputs compared with SEC filings for {_n_checked} stocks")
 
     dashboard_json = {
         "kpis": kpis,
@@ -4202,7 +4248,26 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
         if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
         html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
-        html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but it cannot check that they are true.</p>';
+        const xk = s.xchk || {{}};
+        const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
+        const listed = function(a) {{ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }};
+        const agree = [], differ = [];
+        XNAMES.forEach(function(p) {{
+            const v = xk[p[0]];
+            if (v === undefined || v === null) return;
+            const a = Math.abs(v);
+            if (a <= 0.02) agree.push(p[1]); else differ.push(p[1] + ' (' + (a * 100).toFixed(a < 0.1 ? 1 : 0) + '%)');
+        }});
+        if (agree.length || differ.length) {{
+            let line = 'Checked against the company&rsquo;s own SEC filing for the same quarters: ';
+            if (agree.length) line += '<strong>' + listed(agree) + '</strong> ' + (agree.length === 1 ? 'agrees' : 'agree') + ' within 2%';
+            if (differ.length) line += (agree.length ? '; ' : '') + listed(differ) + ' ' + (differ.length === 1 ? 'differs' : 'differ') + ' from it';
+            html += '<p class="provenance-line" id="provenance-filing-check">' + line + '.</p>';
+            if (differ.length) html += '<p class="provenance-line provenance-limit">A difference usually means the two sources define the line differently - a bank&rsquo;s revenue, profit that belongs to minority shareholders, sales taxes - rather than that either figure is wrong.</p>';
+            html += '<p class="provenance-line provenance-limit">Every figure is as delivered by Yahoo Finance. The workings above rebuild every score from them, and the figures that have a counterpart in the filing are checked against it; the others cannot be checked here.</p>';
+        }} else {{
+            html += '<p class="provenance-line provenance-limit">Every figure is as reported by the company and delivered by Yahoo Finance. The screener checks that each is used consistently - the workings above rebuild every score from them - but this stock&rsquo;s figures could not be checked against its filings on this run.</p>';
+        }}
         html += '</div>';
         container.innerHTML = html;
     }}

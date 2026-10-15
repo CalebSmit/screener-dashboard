@@ -11035,3 +11035,30 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
 
 ### Methodology changed
 - None.
+
+### Later the same evening - the check on the page, and a test with an expiry date
+
+- **Each stock's Data Provenance panel now says which of its inputs agree with its own SEC
+  filing** (427 of 501 stocks on the 2026-10-14 run; MTB: "total assets, equity, net income and
+  operating cash flow agree within 2%; revenue (83%) differs from it", followed by the usual
+  reasons for a difference). It replaces "it cannot check that they are true" where a check was
+  possible. Display-only, never scored (`tests/test_filing_check_in_the_drilldown.py`, 5 tests),
+  registered as claim `drilldown.filing_check`. **Looked at it** on a page regenerated from the
+  newest full run, at 1440 and 375px: the line renders, wraps cleanly, no overflow, no console
+  errors. (At 375px the Browser pane showed the page behind the sheet; a headless Chrome at
+  375x812 measured the sheet at opacity 1 from 100 ms - the pane pauses animations while hidden.
+  Not a site defect.)
+- **A rehearsal caught a date bomb that would have made the 06:00 baseline red.**
+  `test_option_quote_hours.py::test_a_refresh_merges_rather_than_dropping_stocks_it_did_not_reach`
+  pinned its fixture to 2026-10-09 but let `options_cache.refresh` read the real clock; from
+  00:00 Eastern on 2026-10-15 the fixture was six days old against the five-day bound and the test
+  failed - which would also have failed the runner's own gate 1 and blocked the morning merge.
+  `refresh` takes an optional `now`; every dated refresh test passes one; a tripwire test fails
+  if a new refresh test reads the calendar. `test_a_refresh_keeps_only_usable_readings` had the
+  same shape with a 30-day fuse (2026-11-08).
+- **Two checks came back clean** (research note section 4b): revenue growth compares like with like
+  across spin-offs (all 8 restated year-ago quarters - DD, APTV, IFF, OXY, BDX, MLM, HON, IP - match
+  the same-basis growth exactly), and three-quarter annualisation affects 4 stocks, materially only
+  BRK-B.
+- **Gates:** full suite 2,336 passed / 0 failed; `rehearse_publish.py --full` PASSED; dry-run,
+  node and clean tree as below.
