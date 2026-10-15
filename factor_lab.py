@@ -55,6 +55,7 @@ FRENCH_FILES = {
     "variance_portfolios": ("Portfolios_Formed_on_VAR_CSV.zip", "Value Weighted Returns -- Monthly"),
     "earnings_yield_portfolios": ("Portfolios_Formed_on_E-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "beta_portfolios": ("Portfolios_Formed_on_BETA_CSV.zip", "Value Weighted Returns -- Monthly"),
+    "profitability_portfolios": ("Portfolios_Formed_on_OP_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "split_value": ("6_Portfolios_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
@@ -86,6 +87,9 @@ SORTS = {
     # five quintiles first, then the ten deciles
     "market-beta": {"file": "beta_portfolios", "ew": "Equal Weighted Returns -- Monthly",
                     "columns": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]},
+    # three terciles, then the five quintiles, then the ten deciles: the quintiles, as the paper
+    "profitability": {"file": "profitability_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
+                      "columns": [3, 4, 5, 6, 7], "excess": True},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -98,8 +102,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment.
-ASSET_VERSION = 15
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth.
+ASSET_VERSION = 16
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -360,9 +364,17 @@ def sort_data(name: str, raw_dir: Path = RAW_DIR) -> dict:
         raise ValueError(f"{fname}: the equal- and value-weighted tables cover different months")
     cols = spec["columns"]
     keep = [i for i in range(len(dates)) if all(vw[i][c] > MISSING and ew[i][c] > MISSING for c in cols)]
-    return {"months": [dates[i] for i in keep],
-            "vw": [[round(vw[i][c], 2) for i in keep] for c in cols],
-            "ew": [[round(ew[i][c], 2) for i in keep] for c in cols]}
+    out = {"months": [dates[i] for i in keep],
+           "vw": [[round(vw[i][c], 2) for i in keep] for c in cols],
+           "ew": [[round(ew[i][c], 2) for i in keep] for c in cols]}
+    if spec.get("excess"):
+        # the one-month T-bill rate (the factors file's RF) for the same months, for a paper that
+        # reports returns over it
+        mfile, mmark = FRENCH_FILES["factors_monthly"]
+        f_dates, f_rows, _ = read_table(raw_dir / mfile, mmark)
+        rf = {d: r[3] for d, r in zip(f_dates, f_rows)}
+        out["rf"] = [round(rf[m], 2) if m in rf else None for m in out["months"]]
+    return out
 
 
 def sort_run(data: dict, start: str, end: str, weighting: str = "vw") -> dict:
@@ -1390,6 +1402,98 @@ EXPERIMENTS = [
             "review of Valuation's and Momentum's weights rests on them, and on whether what "
             "experiment 8 shows for the larger half of companies also shows in the largest fifth."),
     },
+    {
+        "id": "profitability",
+        "kind": "sort",
+        "topic": "Quality",
+        "title": "Do profitable companies earn more?",
+        "tab": "Profitability",
+        "paper": {
+            "authors": "Robert Novy-Marx",
+            "year": 2013,
+            "title": "The other side of value: The gross profitability premium",
+            "journal": "Journal of Financial Economics 108(1), 1-28",
+            "doi": "10.1016/j.jfineco.2013.01.003",
+        },
+        "claim": ("Sorted into five groups by gross profits (sales minus the cost of goods sold) against "
+                  "assets, the most profitable fifth of companies beat the least profitable by 0.31% a "
+                  "month from 1963 to 2010, weighting each company by its market value - even though "
+                  "profitable companies tend to carry high prices against their book value."),
+        "reference": {
+            "source": ("The paper, Table 2, Panel A: value-weighted average excess returns (over the "
+                       "one-month T-bill) of quintiles sorted on gross profits-to-assets, NYSE break "
+                       "points, financial firms excluded, July 1963 to December 2010. Read from the "
+                       "accepted draft of June 2012, whose Table 2 is the published one (0.31% a "
+                       "month, t 2.49, both in its text and in the published abstract)."),
+            "start": "196307", "end": "201012", "weighting": "vw", "excess": True,
+            # Written 2026-10-15 BEFORE the comparison was run; nothing had been computed on this
+            # file. Wider than the 0.05 of experiments 4-7, which rerun a table on the same
+            # variable the library sorts on: here the library sorts on a DIFFERENT profitability -
+            # operating profits (also net of selling, general and administrative costs and
+            # interest) against book equity, not gross profits against assets - and keeps the
+            # financial firms the paper drops. The paper's own footnote 4 says keeping financials
+            # cuts its spread to 0.25%. Expected beforehand: the pattern rises with profitability
+            # and the spread lands below 0.31; a miss is a finding about the two measures, not a
+            # number to tune.
+            "figures": [
+                {"key": "mean1", "label": "Least profitable fifth: average excess month (%)", "paper": 0.31, "tolerance": 0.10, "where": "Table 2 A"},
+                {"key": "mean2", "label": "Profitability quintile 2: average excess month (%)", "paper": 0.41, "tolerance": 0.10, "where": "Table 2 A"},
+                {"key": "mean3", "label": "Profitability quintile 3: average excess month (%)", "paper": 0.52, "tolerance": 0.10, "where": "Table 2 A"},
+                {"key": "mean4", "label": "Profitability quintile 4: average excess month (%)", "paper": 0.41, "tolerance": 0.10, "where": "Table 2 A"},
+                {"key": "mean5", "label": "Most profitable fifth: average excess month (%)", "paper": 0.62, "tolerance": 0.10, "where": "Table 2 A"},
+                {"key": "spread", "label": "Most profitable minus least, a month (%)", "paper": 0.31, "tolerance": 0.10, "where": "Table 2 A (H-L)"},
+            ],
+        },
+        "verdict_note": ("Every figure lands within its tolerance, and the pattern - returns rising with "
+                         "profitability - matches. The spread is at the edge of its range, below the "
+                         "paper's, as expected beforehand: the public file sorts on a narrower "
+                         "profitability and keeps the financial companies the paper drops, which the "
+                         "paper itself reports lowers its spread."),
+        "sort": {
+            "data": "profitability",
+            "groups": ["Least profitable", "Quintile 2", "Quintile 3", "Quintile 4", "Most profitable"],
+            "ends": ["least profitable", "most"],
+            "low": "least profitable fifth", "high": "most profitable fifth",
+            "spread": "Most profitable minus least",
+            "accent": [4],
+            "key_accent": "The most profitable fifth - the end the screener's Quality category favours",
+            "key_rest": "The other four groups",
+            "chart": "by operating profitability",
+            "presets": [["The paper \u00b7 1963\u20132010", "196307", "201012"],
+                        ["After the paper \u00b7 2011\u2013now", "201101", "LAST"],
+                        ["Since 2000", "200001", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["vw", "By market value \u00b7 paper"], ["ew", "Equally"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, US-listed companies are put in one of five groups by operating "
+                           "profits for the last fiscal year (sales minus the cost of goods sold, selling "
+                           "and administrative costs and interest) divided by book equity, with the "
+                           "dividing lines drawn on New York Stock Exchange stocks."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Operating Profitability\"."],
+            ["Weighting", "By market value, as in the paper's table. The equal-weighted version is one "
+                          "click away."],
+            ["Returns", "The comparison with the paper subtracts the T-bill rate's average over the same "
+                        "months, as the paper's table does; the chart shows total returns."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper sorts on gross profits against total assets; the public file sorts on operating "
+            "profits against book equity. Novy-Marx argues gross profit is the cleaner measure because "
+            "it sits above the costs companies spend on growth (advertising, research), and finds "
+            "operating-profit measures weaker in his sample. The screener's Quality category uses both "
+            "kinds: gross profit against assets, and return on invested capital.",
+            "The paper leaves out financial companies; the public file keeps them. The paper's own "
+            "footnote 4 reports that keeping them lowers its spread from 0.31% to 0.25% a month.",
+            "The paper's stronger result is after adjusting for value (its Fama-French alpha of 0.52% a "
+            "month), because profitable companies tend to have low book-to-market ratios. That is not "
+            "reproduced here.",
+        ],
+        "in_the_screener": (
+            "Quality is 22% of the composite, and gross profit against assets - this paper's measure - is "
+            "22% of Quality. The screener compares it within each sector, which this sort does not, and "
+            "ranks large companies only; experiment 8 finds profitability the one factor that holds up "
+            "among large companies."),
+    },
 ]
 
 
@@ -1420,6 +1524,10 @@ TAKEAWAYS = {
     "largest-fifth": ("In the largest fifth of companies, past winners beat past losers by nearly 8% a year "
                       "from 1927 to 2011, as the paper found. Since 2000 the gap has averaged under 3% a year "
                       "and cannot be told from zero. Value there was never reliably different from zero."),
+    "profitability": ("The most profitable fifth of companies beat the least profitable by about 0.2% a "
+                      "month on the public sort, against the paper's 0.31% - every figure within its "
+                      "tolerance. Since the paper the gap has been about as large but cannot be told "
+                      "from zero, and the profitable end has been the calmer one."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -1435,8 +1543,9 @@ CATEGORY_MAP = [
      "has": "Stocks sorted by earnings yield, and the value factor (book value against price).",
      "gap": "The screener's heaviest valuation measure is free cash flow against the value of the whole "
             "business. The library's sort on cash-flow yield is the nearest thing and is queued."},
-    {"category": "Quality", "key": "quality", "experiments": ["five-factors", "big-and-small"],
-     "has": "The profitability factor - robustly profitable companies minus weakly profitable ones.",
+    {"category": "Quality", "key": "quality", "experiments": ["profitability", "five-factors", "big-and-small"],
+     "has": "Stocks sorted by profitability, and the profitability factor - robustly profitable "
+            "companies minus weakly profitable ones.",
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
             "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
             "year by year, for decades. The library's portfolios sorted on accruals can stand in for part "
@@ -1615,7 +1724,8 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(a["small_big"]["mean"], len(a["months"]), a["small_big"]["t"]),
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
-    for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0)):
+    for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
+                         ("profitability", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -1708,13 +1818,25 @@ def reproduce_size(size: dict, exp: dict) -> dict:
             "nine_ten": r["nine_ten"]}
 
 
+def rf_mean(data: dict, start: str, end: str) -> float:
+    """The one-month T-bill rate's average over a period, percent a month, from the sort's own
+    published ``rf`` (the library's RF for the same months)."""
+    vals = [r for m, r in zip(data["months"], data["rf"]) if start <= m <= end and r is not None]
+    return sum(vals) / len(vals)
+
+
 def reproduce_sort(data: dict, exp: dict) -> dict:
-    """A sorted-portfolio experiment at the paper's sample and weighting, against its table."""
+    """A sorted-portfolio experiment at the paper's sample and weighting, against its table.
+
+    With ``reference["excess"]`` the paper reports returns over T-bills, so each group's average
+    has the T-bill rate's average over the same months taken off - the mean of a difference is
+    the difference of the means, exactly. The spread between two groups is unchanged by it."""
     ref = exp["reference"]
     r = sort_run(data, ref["start"], ref["end"], ref["weighting"])
+    rf = rf_mean(data, ref["start"], ref["end"]) if ref.get("excess") else 0.0
     got = {"spread": r["spread"]["mean"]}
     for g, s in enumerate(r["groups"], 1):
-        got[f"mean{g}"], got[f"std{g}"] = s["mean"], s["std"]
+        got[f"mean{g}"], got[f"std{g}"] = s["mean"] - rf, s["std"]
     rows = []
     for f in ref["figures"]:
         here = got[f["key"]]

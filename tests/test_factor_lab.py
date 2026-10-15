@@ -147,7 +147,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -161,7 +161,10 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
         if exp["kind"] in ("crashes", "factors", "size", "sort", "split"):
             figs = exp["reference"]["figures"]
-            assert len({f["key"] for f in figs}) == len(figs) >= 10
+            # at least one figure per group a sort reports, plus the spread between its ends (a
+            # decile sort gives 11, a quintile sort 6); every other kind reports ten or more
+            least = len(exp["sort"]["groups"]) + 1 if exp["kind"] == "sort" else 10
+            assert len({f["key"] for f in figs}) == len(figs) >= least
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
@@ -1120,4 +1123,19 @@ def test_a_scene_can_be_sent_as_a_link_and_a_month_read_off_the_chart():
             assert errors == []
         finally:
             browser.close()
+
+
+def test_the_profitability_sort_rises_with_profitability_as_the_paper_found(published):
+    """Experiment 10 (2026-10-15): Novy-Marx (2013) on the public operating-profitability sort. The
+    tolerances were written before the comparison; the public file sorts on a narrower measure and
+    keeps financial firms, so a spread below the paper's was expected and is what came out."""
+    exp = next(x for x in published["experiments"] if x["id"] == "profitability")
+    r = exp["result"]
+    assert (r["within"], r["total"]) == (6, 6)
+    assert exp["reference"]["excess"] is True and exp["reference"]["weighting"] == "vw"
+    assert r["means"][-1] > r["means"][0]                          # profitable beat unprofitable
+    spread = next(x for x in r["rows"] if x["key"] == "spread")
+    assert 0 < spread["here"] < spread["paper"]                    # positive, and below the paper's
+    data = published["sorts"]["profitability"]
+    assert len(data["rf"]) == len(data["months"])                   # excess rebuilt from the page's own data
 
