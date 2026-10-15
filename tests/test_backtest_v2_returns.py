@@ -83,3 +83,19 @@ def test_no_production_module_imports_it():
         if p.name in ("backtest_v2_returns.py", "conftest.py"):
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
+
+
+def test_v1s_disclaimer_quotes_the_measured_lookahead_not_a_guess():
+    """backtest.py v1 used to print an unsourced '2-6% annualized' inflation; the measured effect
+    of look-ahead alone on this pipeline is about 1.1% a month. Its figures must be the record's."""
+    import json
+    src = (ROOT / "backtest.py").read_text(encoding="utf-8")
+    assert "2-6% annualized" not in src.replace("('2-6% annualized')", "")
+    honest = json.loads((ROOT / "research" / "measurements" / "2026-10-15-backtest-v2-returns.json")
+                        .read_text(encoding="utf-8"))
+    la = json.loads((ROOT / "research" / "measurements" / "2026-10-15-backtest-v2-returns-lookahead.json")
+                    .read_text(encoding="utf-8"))
+    assert f"{honest['top_minus_universe']['mean'] * 100:.2f}%/month" in src            # -0.26
+    assert f"+{la['top_minus_universe']['mean'] * 100:.2f}%/month (t {la['top_minus_universe']['t']:.1f})" in src
+    assert f"{honest['ic']['mean']:.3f}" in src and f"+{la['ic']['mean']:.3f}" in src
+    assert "research/2026-10-15-pit-record-validation.md" in src

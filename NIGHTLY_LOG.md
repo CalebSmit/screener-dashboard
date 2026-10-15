@@ -11348,6 +11348,12 @@ v2 harness is what lets methodology be tested on history at all).
   `scripts/rehearse_publish.py` PASSED. **Correction made on the way:** this entry and the note first
   said 72.6% - a rounded fraction rounded again; the exact share is 28,525 / 39,320 = 72.5%.
 
+- **`backtest.py` v1's disclaimer** gave an unsourced "2-6% annualized" return inflation; it now
+  quotes the measurement (look-ahead alone: top tenth -0.26% -> +0.85% a month, IC -0.002 -> +0.050)
+  and points at v2, in the CSV header and the printed summary. Defects untouched, as decided. A test
+  holds the figures to the measurement JSON. (`INSTITUTIONAL_AUDIT_REPORT_V2.md` still carries the
+  old estimate; it is a dated audit and was left as the record of what was believed then.)
+
 ### Next (for whoever takes priority 3)
 - Better EBITDA and debt tags (the rebuild's weakest fields); step 2 - the census's
   `no_current_record` names (prices; filings by CIK via `ticker_ciks.json`); step 4's second half,
