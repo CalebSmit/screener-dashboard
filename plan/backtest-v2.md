@@ -86,7 +86,7 @@ price history / no free history / static) and fails on an unclassified one.
 - **Checked against today:** rebuilt from filings and scored by the engine, the live ranking
   reproduces at Spearman **0.933** (statement fields) / **0.885** (statement + market fields); the gaps
   are definitional (EBITDA and total debt weakest).
-- **Measured, 81 months x ~485 names, 39,320 name-months:** the **fundamentals half moves 72.6%** of
+- **Measured, 81 months x ~485 names, 39,320 name-months:** the **fundamentals half moves 72.5%** of
   name-months to a different decile (43.2% by two or more; v1's top decile kept 48%), the price half
   60.1% (an independent reproduction of the 63.2% above), **both together 75.8%** - v1's top decile
   holds 43% of what the screener would have said at the time. By year 80% (2020) falling to 2.6% in
@@ -402,7 +402,7 @@ system talks itself into noise.
    step 3, not before. Free data covers 57% of the needed name-months, not the 40%
    previously recorded.
 3. Point-in-time fundamentals with reporting lags. **Record layer BUILT and VALIDATED 2026-10-15
-   (owner-run): `pit_record.py`, `tests/test_pit_record.py`; the fundamentals half measured at 72.6%.**
+   (owner-run): `pit_record.py`, `tests/test_pit_record.py`; the fundamentals half measured at 72.5%.**
    **The rankings half of v2 is BUILT the same morning: `backtest_v2.py`** (`tests/test_backtest_v2.py`)
    scores every month-end 2020-01 .. 2026-09 from the point-in-time universe, `pit_record`, the
    month's split-adjusted close for valuation, the live fetch's own `price_history_fields` on the

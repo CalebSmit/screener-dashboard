@@ -178,3 +178,21 @@ def test_a_tag_switch_inside_a_trailing_year_still_builds_it():
             (R2, "2020-01-27", "2020-04-26", "2020-05-21", "10-Q", 3080.0)]
     F = pr.Filed(_f(rows), "AAA", "2020-06-30")
     assert F.ttm("revenue", pd.Timestamp("2020-04-26")) == pytest.approx(10918 + 3080 - 2220)
+
+
+def test_the_methodology_page_quotes_the_measured_lookahead():
+    """The page's point-in-time limitation quotes the 2026-10-15 measurement, from its JSON, and
+    says the rebuild sets no weight (claim ``overview.lookahead_size``)."""
+    import json
+    import yaml
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    text = run_screener.build_screener_overview(cfg)
+    m = json.loads((ROOT / "research" / "measurements" / "2026-10-15-lookahead-fundamentals-half.json")
+                   .read_text(encoding="utf-8"))
+    pm = m["per_month"]                                 # exact, not a rounded fraction rounded again
+    share = (sum(r["fundamentals_half"]["decile_changed"] for r in pm)
+             / sum(r["fundamentals_half"]["n"] for r in pm))
+    assert f"**{share * 100:.1f}% of stock-months in a different tenth** of the ranking" in text
+    assert "It does not set any weight on this page" in text
+    assert "It does not reconstruct what was known at a past date" not in text

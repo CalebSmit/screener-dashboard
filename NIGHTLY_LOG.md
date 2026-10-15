@@ -11298,7 +11298,7 @@ v2 harness is what lets methodology be tested on history at all).
   Found on the way: Yahoo's `*_prior` flows are the prior *fiscal year* for 503 of 503 records, and
   Yahoo's total debt includes leases (MGM 4.9x its borrowings) - the rebuild follows both.
 - **Measured the fundamentals half of v1's look-ahead** (`...-lookahead-fundamentals-half.py`, 81
-  months, 39,320 name-months): **72.6% of name-months change decile** (43.2% by 2+, v1's top decile
+  months, 39,320 name-months): **72.5% of name-months change decile** (43.2% by 2+, v1's top decile
   48% kept), against **60.1% for the price half** (independently reproducing 2026-10-01's 63.2%) and
   **75.8% for both**. 80% in 2020 falling to 2.6% in 2026-09. Checked: market values at 2020-06
   match within the panel's known dividend drag (JPM ~15% low, inside the price half only); coverage
@@ -11338,6 +11338,15 @@ v2 harness is what lets methodology be tested on history at all).
   up in the note's section 5c with what it cannot say (survivorship ~117 of 505 names in 2020; no
   Revisions or forward EPS growth; today's weights over six years). **No weight change proposed or
   made.**
+
+- **The methodology page's point-in-time limitation now quotes the measurement** (generator
+  `run_screener.build_screener_overview`, regenerated): 72.5% of stock-months land in a different
+  tenth when 2020-2026 is scored on the filings as they stood, a research rebuild exists, and it sets
+  no weight. No return figure is published - whether the page should say anything about v2's
+  returns is the owner's call. Claim `overview.lookahead_size`, checked by
+  `tests/test_pit_record.py`, now in the data loop's claims gate (473 pass);
+  `scripts/rehearse_publish.py` PASSED. **Correction made on the way:** this entry and the note first
+  said 72.6% - a rounded fraction rounded again; the exact share is 28,525 / 39,320 = 72.5%.
 
 ### Next (for whoever takes priority 3)
 - Better EBITDA and debt tags (the rebuild's weakest fields); step 2 - the census's

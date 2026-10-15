@@ -119,8 +119,8 @@ arms is *when* the filings are read, never *where from*. Deciles as `backtest._a
 | | Name-months in a different decile | 2+ deciles | v1's top decile kept | Median monthly Spearman |
 |---|---|---|---|---|
 | Price half (V0 -> V1) | **60.1%** | 27.0% | 62.1% | 0.827 |
-| **Fundamentals half (V1 -> PIT)** | **72.6%** | **43.2%** | **48.2%** | **0.606** |
-| Both (V0 -> PIT) | **75.8%** | 48.5% | 43.3% | 0.537 |
+| **Fundamentals half (V1 -> PIT)** | **72.5%** | **43.2%** | **48.2%** | **0.606** |
+| Both (V0 -> PIT) | **75.8%** | 48.5% | 43.2% | 0.537 |
 
 *For scale: an unrelated ranking moves 90% of names and keeps 10% of a top decile.*
 
@@ -158,7 +158,7 @@ zero point, behaving as it must.
   says v1 decides nothing; this is the size of the reason. The 2026-10-01 note called its 63.2% "a
   lower bound"; the measured total is **75.8%**, and it is still a bound - the 9.0pp of analyst inputs
   stay frozen in every arm here, and survivorship (11.4% of the panel) is separate.
-- **The fundamentals half is the larger half** (72.6% against 60.1%), which confirms the plan's
+- **The fundamentals half is the larger half** (72.5% against 60.1%), which confirms the plan's
   2026-10-01 re-sequencing: point-in-time fundamentals before the point-in-time universe.
 - **It is now fixable for free.** Everything V0 -> PIT moved is rebuilt from SEC filings and a price
   panel, both free, by the engine's own code. The record a v2 needs exists and is tested.

@@ -113,6 +113,9 @@ MODULES: tuple[tuple[str, str], ...] = (
      "the large-company value and momentum figures on the page match the lab's data"),
     ("tests/test_momentum_panic_rule.py",
      "the page describes the momentum regime rule the engine actually applies"),
+    # Added 2026-10-15: the point-in-time limitation quotes the measured look-ahead from its JSON.
+    ("tests/test_pit_record.py",
+     "the page's look-ahead figure is the 2026-10-15 measurement, and the rebuild sets no weight"),
     ("tests/test_factor_lab.py",
      "the page's 'Rerun the research' paragraph matches the experiments that exist, "
      "and the lab's scorecard carries the screener's own weights"),

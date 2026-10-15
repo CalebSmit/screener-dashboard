@@ -900,7 +900,7 @@ in the same module.
 `pit_record.py` rebuilds the engine's raw record from SEC filings as of any date, so v2 scores
 history with the engine's own `compute_metrics` (never a second implementation of the formulas);
 validated against today at Spearman 0.885, and it measured **the fundamentals half of v1's look-ahead
-at 72.6% of name-months - larger than the price half (60.1%); 75.8% together**
+at 72.5% of name-months - larger than the price half (60.1%); 75.8% together**
 (`research/2026-10-15-pit-record-validation.md`). **Do not import it from production or v1**, and
 **do not let `compute_metrics` read a raw field without a class in `pit_record.FIELD_CLASSES`** -
 `tests/test_pit_record.py` fails on either. **`backtest_v2.py` (same day) builds the monthly

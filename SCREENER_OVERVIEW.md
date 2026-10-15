@@ -497,7 +497,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
-3. **Point-in-time:** The screener uses the latest available financial data. It does not reconstruct what was known at a past date, which means backtests carry look-ahead bias for fundamental metrics.
+3. **Point-in-time:** The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: *measured 2026-10-15*, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts **72.5% of stock-months in a different tenth** of the ranking. A research rebuild that reads each month's filings as they were filed now exists (`pit_record.py`, `backtest_v2.py`; `research/2026-10-15-pit-record-validation.md`). It does not set any weight on this page, and nothing it produces will before 2027-02-11.
 
 4. **Analyst coverage:** The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.
 
