@@ -11109,3 +11109,9 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   corrected methodology paragraph and the health note's counts - read the data log's
   "inputs against SEC filings" line and the brief's new row first. Then the open proposal in the
   brief (capex for the five captive-finance companies).
+- **The capex proposal made decidable.** Each captive's lease-purchase tag read from its own
+  `companyfacts`: GM `PaymentsToAcquireLeasesHeldForInvestment`; DE, CAT, PCAR
+  `PaymentsToAcquireEquipmentOnLease` - and for all four, Yahoo's capex is exactly filed PP&E plus
+  that line. Ford is not affected (Yahoo's Ford capex already excludes Ford Credit's leases), so
+  the proposal names four companies, not five. Both tags added to `sec_fundamentals.FACT_CONCEPTS`;
+  the cache picks them up at its next weekly refresh. Nothing reads them yet.

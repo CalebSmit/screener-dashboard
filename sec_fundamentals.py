@@ -66,6 +66,11 @@ FACT_CONCEPTS = (
     "LiabilitiesCurrent",
     # capital expenditure as NVDA, AMZN and V tag it (valuation_history.py)
     "PaymentsToAcquireProductiveAssets",
+    # a captive finance arm's purchases of assets to lease out (2026-10-14,
+    # research/2026-10-14-capex-definition.md): GM's leased vehicles, and the equipment on
+    # operating leases DE, CAT and PCAR buy. Cached so the open capex proposal can be decided
+    # on filed figures; nothing reads them yet.
+    "PaymentsToAcquireLeasesHeldForInvestment", "PaymentsToAcquireEquipmentOnLease",
 )
 # Concepts reported in shares rather than dollars (valuation_history.py's market value).
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
