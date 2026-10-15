@@ -7,6 +7,28 @@ No production code follows from this note today. It ends with four recommendatio
 which are changes to *what the page says*, not to any score. The options signal is context-only
 and this note does not argue for changing that — it argues the opposite, with sources.
 
+> ### Correction, 2026-10-14 — read this before §4 and §5
+>
+> **One conclusion below is wrong and is withdrawn: that Xing–Zhang–Zhao's skew decays faster
+> than this screener acts.** This note had XZZ second-hand from a survey. Read from the paper,
+> its **Table 4 Panel B** measures the same quintile spread at a **four-week** holding period —
+> **6.52% a year, t 2.70** — and at 6–7% a year with *rising* t-statistics (3.73 → 4.31) out to
+> **28 weeks**; the abstract and §I say the predictability "persists for at least 6 months".
+> §4 below conflated the paper's weekly *rebalancing* with its decay *horizon*.
+>
+> §5's headline sentence — "Every option-implied signal with real support in the literature
+> decays faster than this screener acts" — is therefore **not true of XZZ**. It stands for Pan &
+> Poteshman, Cremers & Weinbaum and Fodor et al., whose horizons are as described.
+>
+> **What still holds:** the skew is not a candidate for the score today, for the other two
+> reasons given here (post-publication shrinkage, and the context layer's own observation gate),
+> and all three findings in "Findings against what the page does today" were correct and are now
+> fixed. **What changes:** the prior for reading the first `1m` record from `context_eval.py`.
+> Do not expect nothing at one month; the paper claims something there.
+>
+> Full working, the construction the page now computes, and the measured effect of the change:
+> **`research/2026-10-14-volatility-skew-construction.md`**.
+
 ---
 
 ## 1. The question

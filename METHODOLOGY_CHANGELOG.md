@@ -3799,3 +3799,106 @@ field carries on, which is the intended failure mode.
 
 **Applied by:** morning session (manual).
 **Rollback:** the tag before this merge, `good/2026-10-13`.
+
+---
+
+## 2026-10-14 (13:00 session) - Documented defect: the put skew was not the measure the page's citation measured
+
+**Area:** context-layer signal definition (display only - no score, weight or threshold moved)
+
+**Changed:** three things, all in the options panel of "Before you decide".
+
+1. **The skew's construction**, `context_signals.options_context` ->
+   `context_signals._xzz_skew`:
+
+   | | before | after |
+   |---|---|---|
+   | OTM put leg | IV of the put nearest **0.90** x spot, within +/-0.04 | IV of the put nearest **0.95** moneyness, within (0.80, 0.95) |
+   | benchmark leg | **mean** of the ATM call and ATM put IVs | the **ATM call** IV, nearest moneyness 1 within [0.95, 1.05] |
+   | liquidity | none | positive open interest where the source reports it |
+   | window | not recorded | `_ctx_opt_skew_in_window`: is this expiry inside 10-60 days |
+
+   Both legs are now published (`_ctx_opt_skew_put_iv`, `_ctx_opt_skew_strike`,
+   `_ctx_opt_skew_call_iv`, `_ctx_opt_skew_call_strike`), so the row shows its own
+   subtraction - "$90.00 put 38% - $100.00 call 30%" against "+8.0 pts" (CLAUDE.md row 0.8).
+
+2. **The sentence.** It quoted only the one-week figure ("about 11% a year"), with no decay
+   figure and no statement of the construction. It now names the construction, quotes
+   **10.9% a year at a one-week holding period and 6.5% at four weeks**, names the paper's
+   10-60 day option window and says when this stock's expiry is outside it, and gives
+   **McLean & Pontiff's 58%** post-publication shrinkage as an upper bound on all of it.
+
+3. **Put/call open interest is removed** from the page and from the payload
+   (`generate_dashboard.CTX_FIELDS`). It is still written to `data/context_log/` and
+   evaluated by `context_eval.py` as `options_put_call_oi`.
+
+**Evidence:** a documented, measured defect plus three papers read from the paper, not from a
+survey. Full working: `research/2026-10-14-volatility-skew-construction.md`.
+
+- **Xing, Zhang & Zhao (2010)**, *JFQA* 45(3) 641-662, definition at **pp. 644-645** eq. (1):
+  `SKEW = VOL_OTMP - VOL_ATMC`, the OTM put with strike/price below 0.95 and above 0.80 taken
+  nearest 0.95, the ATM call with strike/price in [0.95, 1.05] taken nearest 1, positive open
+  interest, 10-60 days to expiration. The screener's old measure was neither this nor anything
+  else published: since `mean(IV_atmc, IV_atmp) = IV_atmc + v/2` where `v` is the put-call IV
+  spread, it was a 0.90-moneyness skew **minus half of Cremers & Weinbaum's (2010) signal**.
+  Their own robustness checks (footnotes 3-4) cover alternative *moneyness* measures and a
+  volume-weighted variant; none covers substituting the mean for the ATM call.
+- **Effect sizes, Table 3 Panel A and Table 4 Panel B:** quintile spread 0.16%/week raw
+  (9.19%/yr, t 2.19) and 0.21%/week Fama-French-3-adjusted (**10.90%/yr, t 2.93**) held one
+  week; **6.52%/yr (t 2.70)** held four weeks; 6-7%/yr out to 28 weeks with t rising to 4.31.
+  Conditions: 1996-2005 US, OptionMetrics, value-weighted quintiles of ~168 firms, formed on
+  the previous week's Tuesday-to-Tuesday average skew with a day skipped.
+- **McLean & Pontiff (2016)**, *JF* 71(1): **97 predictors, returns 26% lower out-of-sample
+  and 58% lower post-publication**, rejecting both "disappears entirely" and "does not
+  change". Read from the "Journal of Finance, Forthcoming" manuscript - the 2012/2013 working
+  papers say 82 predictors and ~35%, and citing those would have put a wrong number on the
+  page under a right-looking citation.
+- **For the removal:** Pan & Poteshman (2006), *RFS* 19(3), find "the publicly observed option
+  volume has very little, if any, predictability for future stock prices"; and XZZ's own
+  control for the public put-call **volume** ratio is t 3.62*** one week ahead and t 0.02,
+  1.81, 0.13, -0.70, 1.37, -0.56 at weeks 4-24 (Table 4 Panel A). Both concern *flow*; the
+  page showed a *level*, of open interest, with no sentence at all.
+
+**Measured: how much the construction changed the number.** 25 names, every 20th in the
+committed universe, both measures from the **same fetched chain**
+(`research/measurements/2026-10-14-skew-construction-paired.py`): available 22 -> **23** of 25;
+new minus old **mean -4.23 IV points, median -2.36**, range -40.39 to +3.47; Spearman 0.675;
+and **7 of 22 (32%) disagreed on the sign** - one construction called the skew steep where the
+other called it flat. Against the paper's Table 1 distribution (mean +6.40, 95th +19.92 points),
+the old measure produced **+46.56** for one stock and the new produces nothing outside the
+paper's range (`2026-10-14-skew-distribution-vs-paper.py`).
+
+**Reported, not tuned away:** our level sits ~7 points below the paper's (median -0.20 against
++4.76). Strike granularity is ruled out as the cause - the realised gap between the two legs
+averages 0.064 against the paper's nominal 0.050, and a wider gap would make the skew larger.
+The likely cause is the universe: skew is a small-company phenomenon in XZZ's own data (their
+steepest-skew quintile averages $4.29bn of market value against $13.8-14.7bn for the middle
+quintiles) and this screener ranks the S&P 500 only.
+
+**Expected effect:** **no score, rank, composite or category score moves** - every field is
+`_ctx_*` and CLAUDE.md row "ctx" keeps those out of `raw`, `pct`, the category scores and the
+composite. On the page, 480-odd stocks show a different skew number, two extra sub-figures, and
+one fewer row. Payload: five context keys added, one removed.
+
+**A correction this carries, which outlives the entry:**
+`research/2026-10-12-option-implied-signals.md` concluded that *every* option-implied signal
+with real support decays faster than this screener acts, listing XZZ as "weekly rebalanced".
+That conflated the paper's rebalancing frequency with its decay horizon. **Withdrawn for XZZ**
+(Table 4 Panel B above; the abstract says the predictability "persists for at least 6 months").
+It still holds for Pan & Poteshman, Cremers & Weinbaum and Fodor et al. The skew is still **not
+a candidate for the score** - the post-publication shrinkage and the context layer's own
+observation gate are untouched - but the first `1m` record from `context_eval.py` (window closes
+2026-11-07) must now be read as a **test of a claim the paper makes at that horizon**, not as a
+measurement of something already known to be spent. The `_ctx_opt_skew` series before
+2026-10-14 is the old construction: **exclude those five log dates, do not splice them.**
+
+**Validated by:** `tests/test_option_implied_claims.py` (11) and 11 new tests in
+`tests/test_context_layer.py`; `claims.py` entry `context.put_skew` with 11 `checked_by`
+entries, which the data loop's publish gate runs. The suite had been unable to see the defect:
+its only option-chain fixture gave the ATM call and put the same IV, so `mean(call, put)` equalled
+`call` and the old assertion `skew == 0.38 - 0.30` was true of **both** constructions. The added
+`_asym_chain` fixture breaks that symmetry and one test asserts the old arithmetic is not what
+comes out.
+
+**Applied by:** code session (manual), 2026-10-14 13:00 slot.
+**Rollback:** `good/2026-10-14`.

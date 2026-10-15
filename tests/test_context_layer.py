@@ -242,6 +242,30 @@ def test_skew_drops_implausible_implied_volatilities():
     assert _skew(calls, puts)["_ctx_opt_skew_call_strike"] in (95, 105)
 
 
+def test_skew_picks_the_nearest_eligible_strike_after_filtering():
+    """``_xzz_leg`` filters, then takes the nearest moneyness by position. Filtering leaves a
+    non-contiguous index, which is where a positional pick silently goes wrong - so this uses
+    asymmetric distances on a real strike grid rather than a tie.
+
+    Measured on the live MMM chain 2026-10-14 (spot $164.46): the grid holds 160 and 170 and no
+    165, so the at-the-money call is 160 at 0.973 (distance 0.027), not 170 at 1.034 (0.034).
+    """
+    strikes = [120, 130, 140, 150, 160, 170, 180]
+    spot = 164.46
+    #  moneyness:  0.730 0.790 0.851 0.912 0.973 1.034 1.095
+    calls = pd.DataFrame({"strike": strikes,
+                          "impliedVolatility": [0.9, 0.8, 0.7, 0.6, 0.485, 0.468, 0.45],
+                          "openInterest": [5, 5, 5, 5, 61, 34, 5]})
+    puts = pd.DataFrame({"strike": strikes,
+                         "impliedVolatility": [0.95, 0.85, 0.75, 0.65, 0.55, 0.5, 0.48],
+                         "openInterest": [5, 5, 5, 5, 5, 5, 5]})
+    out = _skew(calls, puts, spot=spot)
+    assert out["_ctx_opt_skew_call_strike"] == 160, "0.973 is nearer to 1 than 1.034 is"
+    # Eligible puts are 140 (0.851) and 150 (0.912); 160 is 0.973, above the 0.95 ceiling.
+    assert out["_ctx_opt_skew_strike"] == 150
+    assert out["_ctx_opt_skew"] == pytest.approx(0.65 - 0.485)
+
+
 def test_skew_does_not_depend_on_the_atm_straddle_being_priceable():
     """It uses the ATM *call* IV, so a put quote too wide to price a straddle from does not
     remove the skew - the two readings fail independently."""
