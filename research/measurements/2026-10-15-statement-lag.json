@@ -1,0 +1,296 @@
+{
+ "run_date": "2026-10-15",
+ "compared": 501,
+ "a_quarter_or_more_behind": 32,
+ "share": 0.0639,
+ "stocks": [
+  {
+   "ticker": "FDXF",
+   "used": "2025-11-30",
+   "filed_end": "2026-05-31",
+   "filed_on": "2026-08-05",
+   "days_behind": 182,
+   "days_since_filed": 71,
+   "data_source": "annual"
+  },
+  {
+   "ticker": "MU",
+   "used": "2026-05-31",
+   "filed_end": "2026-09-03",
+   "filed_on": "2026-10-09",
+   "days_behind": 95,
+   "days_since_filed": 6,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "PAYX",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-09-24",
+   "days_behind": 92,
+   "days_since_filed": 21,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "DAL",
+   "used": "2026-06-30",
+   "filed_end": "2026-09-30",
+   "filed_on": "2026-10-09",
+   "days_behind": 92,
+   "days_since_filed": 6,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CTAS",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-10-07",
+   "days_behind": 92,
+   "days_since_filed": 8,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "MKC",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-10-01",
+   "days_behind": 92,
+   "days_since_filed": 14,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CCL",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-09-29",
+   "days_behind": 92,
+   "days_since_filed": 16,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CPRT",
+   "used": "2026-04-30",
+   "filed_end": "2026-07-31",
+   "filed_on": "2026-09-29",
+   "days_behind": 92,
+   "days_since_filed": 16,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "STZ",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-10-07",
+   "days_behind": 92,
+   "days_since_filed": 8,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "LEN",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-10-02",
+   "days_behind": 92,
+   "days_since_filed": 13,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "MRSH",
+   "used": "2026-06-30",
+   "filed_end": "2026-09-30",
+   "filed_on": "2026-10-15",
+   "days_behind": 92,
+   "days_since_filed": 0,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "NKE",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-31",
+   "filed_on": "2026-10-02",
+   "days_behind": 92,
+   "days_since_filed": 13,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CHRW",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CINF",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-27",
+   "days_behind": 91,
+   "days_since_filed": 80,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "AEE",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-08-03",
+   "days_behind": 91,
+   "days_since_filed": 73,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "ES",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-08-03",
+   "days_behind": 91,
+   "days_since_filed": 73,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "BAC",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "AMZN",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "DRI",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-30",
+   "filed_on": "2026-10-02",
+   "days_behind": 91,
+   "days_since_filed": 13,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CHD",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "TFC",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "BNY",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "CPT",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "COST",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-30",
+   "filed_on": "2026-10-07",
+   "days_behind": 91,
+   "days_since_filed": 8,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "GIS",
+   "used": "2026-05-31",
+   "filed_end": "2026-08-30",
+   "filed_on": "2026-09-23",
+   "days_behind": 91,
+   "days_since_filed": 22,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "BA",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-28",
+   "days_behind": 91,
+   "days_since_filed": 79,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "EXR",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "APH",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-30",
+   "filed_on": "2026-07-31",
+   "days_behind": 91,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "ILMN",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-28",
+   "filed_on": "2026-07-31",
+   "days_behind": 89,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "FLEX",
+   "used": "2026-03-31",
+   "filed_end": "2026-06-26",
+   "filed_on": "2026-07-31",
+   "days_behind": 87,
+   "days_since_filed": 76,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "DPZ",
+   "used": "2026-06-30",
+   "filed_end": "2026-09-06",
+   "filed_on": "2026-10-13",
+   "days_behind": 68,
+   "days_since_filed": 2,
+   "data_source": "quarterly"
+  },
+  {
+   "ticker": "PEP",
+   "used": "2026-06-30",
+   "filed_end": "2026-09-05",
+   "filed_on": "2026-10-08",
+   "days_behind": 67,
+   "days_since_filed": 7,
+   "data_source": "quarterly"
+  }
+ ]
+}

@@ -151,7 +151,10 @@ the company's own SEC filing for the same quarters**, from `stock_detail[t].xchk
 `drilldown.filing_check`; absent when the weekly SEC cache is not on the machine). The flag badges gained
 **"Annual figures used: the source's quarterly statement had ..."** (2026-10-15) when the fetch
 rejected a quarterly statement derived across a restatement (`stock_detail[t].flags.q_rejected`,
-from `factor_engine.quarterly_statement_defect`; DuPont on the day it was added).
+from `factor_engine.quarterly_statement_defect`; DuPont on the day it was added). Data Provenance also says **"A period
+behind the filings"** (2026-10-15) when the stock's income statement ends a quarter or more before
+the newest period the company had filed by the run date (`stock_detail[t].newer_filing`, from
+`sec_crosscheck.newer_filings`; 32 stocks on its first day, AMZN among them).
 
 **A metric row can carry a note about this stock's own filings** (2026-10-15). Under the generic
 "Worth knowing" caveat, a quieter block headed "In this company's filings" renders
