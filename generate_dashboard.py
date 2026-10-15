@@ -3811,26 +3811,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </span>`);
         }}
 
-        if (fl.q_rejected) {{
-            badges.push('<span class="flag-badge flag-warn">' +
-                '<span class="flag-icon">\u26a0\ufe0f</span> Annual figures used: the source&rsquo;s quarterly statement had ' +
-                escapeHtml(fl.q_rejected) + '</span>');
-        }}
-
         if (fl.ltm_annualized) {{
             badges.push('<span class="flag-badge flag-mild">' +
                 '<span class="flag-icon">\u2139\ufe0f</span> LTM Partially Annualized (3 of 4 quarters)</span>');
         }}
 
-        if (fl.ltm_rolled) {{
-            var rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml).join(', ');
-            badges.push('<span class="flag-badge flag-info">' +
-                '<span class="flag-icon">\u2139\ufe0f</span> Twelve months rolled forward' +
-                '<span class="flag-detail">the source had not published one of the four ' +
-                'quarters, so these lines are the last fiscal year plus the quarters since it ' +
-                'less the same quarters a year earlier' +
-                (rolledLines ? ': ' + rolledLines : '') + '</span></span>');
-        }}
 
         if (fl.is_bank) {{
             badges.push('<span class="flag-badge flag-info">' +
@@ -4331,7 +4316,24 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         if (a.is) parts.push('Income statement as of <strong>' + fmtD(a.is) + '</strong>');
         if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
         if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
-        html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        // The general rule, unless this stock is one of the exceptions spelled out below it -
+        // saying "the sum of the last four quarters" above a sentence explaining that it is not
+        // would be a contradiction on the same panel (2026-10-15).
+        const ltmLead = (fl.ltm_rolled || fl.q_rejected)
+            ? 'Income and cash-flow figures cover the last twelve months, built for this company as described below.'
+            : 'Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise.';
+        html += '<p class="provenance-line">' + ltmLead + ' Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        const listed = function(a) {{ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }};
+        if (fl.q_rejected) {{
+            html += '<p class="provenance-line provenance-limit" id="provenance-q-rejected"><strong>Annual figures used.</strong> The income and cash-flow figures here are this company&rsquo;s latest annual statement, because its quarterly statement could not be summed: the source served ' +
+                escapeHtml(fl.q_rejected) + '.</p>';
+        }}
+        if (fl.ltm_rolled) {{
+            const rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml);
+            html += '<p class="provenance-line provenance-limit" id="provenance-ltm-rolled"><strong>Twelve months rolled forward.</strong> The source had not published one of this company&rsquo;s four most recent quarters, so ' +
+                (rolledLines.length ? listed(rolledLines) + ' ' + (rolledLines.length === 1 ? 'is' : 'are') : 'these figures are') +
+                ' the last fiscal year plus the quarters since it, less the same quarters a year earlier - the construction the company uses in its own 10-Q.</p>';
+        }}
         if (s.newer_filing && s.newer_filing.end) {{
             const nf = s.newer_filing;
             html += '<p class="provenance-line provenance-limit" id="provenance-newer-filing"><strong>A period behind the filings.</strong> The company filed its ' +
@@ -4340,7 +4342,6 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
         const xk = s.xchk || {{}};
         const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
-        const listed = function(a) {{ return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }};
         const agree = [], differ = [];
         XNAMES.forEach(function(p) {{
             const v = xk[p[0]];

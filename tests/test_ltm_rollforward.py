@@ -195,19 +195,72 @@ def test_every_current_period_ltm_call_site_is_given_its_annual_statement():
     assert body.count("annual=fins") >= 12 and body.count("annual=cf") >= 9
 
 
+def _generator_function(name: str) -> str:
+    """One JS function's source out of the generator, by brace depth."""
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    i = src.index(f"function {name}(")
+    depth, j = 0, src.index("{", i)
+    k = j
+    while True:
+        if src.startswith("{{", k):
+            depth += 1
+            k += 2
+        elif src.startswith("}}", k):
+            depth -= 1
+            k += 2
+            if depth == 0:
+                return src[i:k]
+        else:
+            k += 1
+
+
 def test_the_badge_states_the_identity_the_engine_uses():
     """The panel may not describe a different construction from the one in the code."""
     src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
     assert '"ltm_rolled": bool(row.get("_ltm_rolled"))' in src
     assert '"ltm_rolled_labels": _str_list(row.get("_ltm_rolled_labels"))' in src
-    i = src.index("if (fl.ltm_rolled)")
-    badge = src[i:i + 900]
+    fn = _generator_function("renderProvenance")
+    i = fn.index("if (fl.ltm_rolled)")
+    sentence = fn[i:i + 1100]
     for phrase in ("Twelve months rolled forward",
-                   "had not published one of the four",
+                   "had not published one of this company",
                    "last fiscal year plus the quarters since it",
                    "less the same quarters a year earlier",
+                   "its own 10-Q",
                    "fl.ltm_rolled_labels"):
-        assert phrase in badge, phrase
+        assert phrase in sentence, phrase
+    # `listed` is used by this sentence and is a const: it must be declared before it
+    assert fn.index("const listed = function") < i
+
+
+def test_the_provenance_sentences_are_in_the_function_the_page_calls():
+    """Found 2026-10-15: ``renderFlagsWarnings`` is dead - never called, and its container
+    ``#modal-provenance``'s sibling ``#modal-flags`` does not exist in the page the generator
+    writes. The quarterly-rejection badge added that morning sat in it and could never appear.
+    Both provenance sentences now live in ``renderProvenance``, which the drilldown does call.
+    """
+    src = (ROOT / "generate_dashboard.py").read_text(encoding="utf-8")
+    prov = _generator_function("renderProvenance")
+    assert "if (fl.q_rejected)" in prov and "if (fl.ltm_rolled)" in prov
+    assert "renderProvenance(" in src.replace("function renderProvenance(", "", 1)
+    assert "id=\"modal-provenance\"" in src or "'modal-provenance'" in src
+    # and nothing may be added to the dead one expecting it to show
+    dead = _generator_function("renderFlagsWarnings")
+    assert "fl.q_rejected" not in dead and "fl.ltm_rolled" not in dead
+    assert src.count("renderFlagsWarnings") == 1, (
+        "renderFlagsWarnings is now called - give it a container and re-check its badges")
+
+
+def test_the_panel_does_not_contradict_itself_about_how_the_twelve_months_was_built():
+    """The general rule may not be stated flatly above a sentence saying it did not apply."""
+    prov = _generator_function("renderProvenance")
+    i = prov.index("const ltmLead")
+    lead = prov[i:prov.index("Prices are the last close", i)]
+    assert "fl.ltm_rolled || fl.q_rejected" in lead
+    assert "built for this company as described below" in lead
+    assert "the sum of the last four reported quarters" in lead   # kept for every other stock
+    # and the exception sentences come after the lead, so "below" is true
+    assert i < prov.index("if (fl.q_rejected)") and i < prov.index("if (fl.ltm_rolled)")
 
 
 def test_the_methodology_page_states_the_roll_forward():
