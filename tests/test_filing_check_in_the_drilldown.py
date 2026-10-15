@@ -48,9 +48,12 @@ def test_the_payload_carries_the_check_and_never_scores_it():
     assert "xchk" not in det["A"]["raw"] and "xchk" not in det["A"]["pct"]
     assert set(det["A"]["xchk"]) <= {k for _, k in g._XCHK_FIELDS}     # capex is never shown
     # nothing a scoring module reads mentions it
+    # (run_screener.py may name the module in the methodology prose it writes; it may not import it)
+    import re
     for name in ("factor_engine.py", "run_screener.py", "portfolio_constructor.py", "calc_trace.py"):
         src = (ROOT / name).read_text(encoding="utf-8", errors="replace")
-        assert "xchk" not in src and "sec_crosscheck" not in src, name
+        assert "xchk" not in src, name
+        assert not re.search(r"^\s*(import sec_crosscheck|from sec_crosscheck)\b", src, flags=re.M), name
 
 
 def test_a_build_without_the_cache_omits_the_check_rather_than_failing():
@@ -83,3 +86,23 @@ def test_the_sentences_carry_no_advice():
     html = g.generate_html()
     panel = html[html.index("function renderProvenance(s)"):html.index("// INIT")]
     assert advice_terms_in(panel) == []
+
+
+def test_the_methodology_page_says_the_figures_are_checked_and_what_cannot_be():
+    """The page used to say the screener 'cannot check that the underlying figures are true'.
+    Since 2026-10-14 it checks the ones with a counterpart in a filing; the sentence says so, quotes
+    that day's measurement as that day's, and still names what cannot be checked."""
+    import yaml
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    text = run_screener.build_screener_overview(cfg)
+    assert "What it cannot do is check that the underlying figures are true" not in text
+    assert "checks the underlying figures against the companies' own SEC filings" in text
+    assert "What it still cannot check is a figure with no counterpart in a filing" in text
+    assert "**Checked against the filings:**" in text and "it never stops a run" in text
+    # the figures quoted are the research note's, measured that day
+    note = (ROOT / "research" / "2026-10-14-yahoo-vs-sec.md").read_text(encoding="utf-8")
+    for row in ("| Total assets | 426 | 99.8% |", "| Operating cash flow | 411 | 98.8% |", "| Net income | 421 | 94.3% |"):
+        assert row in note, row
+    for figure in ("99.8%", "98.8%", "94.3%"):
+        assert figure in text

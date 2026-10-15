@@ -11091,3 +11091,13 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   cannot age. Writing those tests caught a real flaw: `sec_crosscheck.summary` raised when a field
   had nothing to compare, which would have turned the whole note into "not checked" - fixed.
 - Gates: full suite, dry-run, node, clean tree, publish rehearsal - see the commit.
+
+### Last - the methodology page stops saying the figures cannot be checked
+
+- The public page said the screener "cannot check that the underlying figures are true". It now
+  says what is checked against the filings (with that day's measured agreement, dated), that each
+  stock's Data Provenance shows its own check, and what still cannot be checked (prices, analysts'
+  estimates). The data-quality list gains "Checked against the filings". Generator only;
+  `SCREENER_OVERVIEW.md` regenerated; claim `overview.filing_check`; the test module joins the data
+  loop's publish gate so the 02:00 run verifies the text it publishes.
+- **Tests:** 2,339 passed / 0 failed at the end of the evening (2,317 at its start).

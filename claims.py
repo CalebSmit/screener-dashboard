@@ -433,6 +433,22 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="overview.filing_check",
+        surface=OVERVIEW,
+        asserts=(
+            "The run checks total assets, equity, revenue, net income and operating cash flow against "
+            "the companies' own XBRL filings for the same quarters and shows the result per stock; the "
+            "agreement rates quoted are the 2026-10-14 measurement; prices and analysts' estimates "
+            "have no counterpart in a filing and are not checked."
+        ),
+        made_true_by="sec_crosscheck:compare",
+        checked_by=(
+            "tests/test_filing_check_in_the_drilldown.py::test_the_methodology_page_says_the_figures_are_checked_and_what_cannot_be",
+            "tests/test_sec_crosscheck.py::test_a_mid_year_quarter_combines_the_cumulative_columns",
+        ),
+        detect=r"checks the underlying figures against the companies' own SEC filings",
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(
