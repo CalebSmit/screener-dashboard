@@ -55,20 +55,52 @@ def newest_full_run(runs: Path) -> Path:
     return max(full, key=lambda d: (d / "05_final_scored.parquet").stat().st_mtime)
 
 
-def with_installed(new_files: dict[Path, bytes], action):
-    """Write `new_files`, run `action()`, and restore what was there - also when it raises.
-    Returns (action's result, whether every file is back to its original bytes)."""
-    before = {p: (p.read_bytes() if p.exists() else None) for p in new_files}
-    try:
-        for p, data in new_files.items():
-            p.write_bytes(data)
-        result = action()
-    finally:
-        for p, data in before.items():
+WRITE_ATTEMPTS = 6       # a synced folder can refuse a write for a moment (OneDrive, 2026-10-15)
+
+
+def _write(p: Path, data: bytes | None, attempts: int = WRITE_ATTEMPTS, pause: float = 0.5) -> None:
+    """Write (or, for None, remove) a file, retrying a refused write with a growing pause.
+
+    2026-10-15: Windows refused a write to ``dashboard_data.js`` mid-rehearsal (``OSError: [Errno
+    22] Invalid argument`` - the synced folder holding the file), the exception escaped the
+    restore, and the published file was left as the rehearsal's version until it was restored by
+    hand. A refused write is retried; one that keeps failing is still raised."""
+    import time
+    for i in range(attempts):
+        try:
             if data is None:
                 p.unlink(missing_ok=True)
             else:
                 p.write_bytes(data)
+            return
+        except OSError:
+            if i == attempts - 1:
+                raise
+            time.sleep(pause * (i + 1))
+
+
+def with_installed(new_files: dict[Path, bytes], action):
+    """Write `new_files`, run `action()`, and restore what was there - also when it raises.
+    Returns (action's result, whether every file is back to its original bytes).
+
+    Every file is restored on its own: a write that fails after its retries does not leave the
+    files after it un-restored, and the failure is raised only once all have been tried."""
+    before = {p: (p.read_bytes() if p.exists() else None) for p in new_files}
+    try:
+        for p, data in new_files.items():
+            _write(p, data)
+        result = action()
+    finally:
+        failed = []
+        for p, data in before.items():
+            try:
+                _write(p, data)
+            except OSError as exc:
+                failed.append((p, exc))
+        if failed:
+            names = ", ".join(p.name for p, _ in failed)
+            raise OSError(f"could not restore {names} after {WRITE_ATTEMPTS} attempts each - restore "
+                          f"them with `git checkout -- <file>` before anything else") from failed[0][1]
     restored = all((p.read_bytes() if p.exists() else None) == data for p, data in before.items())
     return result, restored
 

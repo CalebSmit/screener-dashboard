@@ -65,3 +65,48 @@ def test_it_installs_exactly_the_files_the_site_serves():
 def test_the_nightly_prompt_requires_it_when_a_generator_changes():
     prompt = (ROOT / "prompts" / "nightly.md").read_text(encoding="utf-8")
     assert "scripts/rehearse_publish.py" in prompt
+
+
+def test_a_refused_write_is_retried_and_every_file_still_comes_back(tmp_path, monkeypatch):
+    """2026-10-15: a synced folder refused one write mid-rehearsal and the published file stayed
+    modified. Now a refused write is retried, and each file is restored on its own."""
+    import rehearse_publish as rp
+    a, b = tmp_path / "dashboard_data.js", tmp_path / "index.html"
+    a.write_bytes(b"live-a")
+    b.write_bytes(b"live-b")
+    real = rp.Path.write_bytes
+    refusals = {"n": 0}
+
+    def flaky(self, data):
+        # the first restore of the payload is refused twice, as Windows did
+        if self.name == "dashboard_data.js" and data == b"live-a" and refusals["n"] < 2:
+            refusals["n"] += 1
+            raise OSError(22, "Invalid argument")
+        return real(self, data)
+
+    monkeypatch.setattr(rp.Path, "write_bytes", flaky)
+    monkeypatch.setattr(rp, "WRITE_ATTEMPTS", 4)
+    result, restored = rp.with_installed({a: b"new-a", b: b"new-b"}, lambda: "ran")
+    assert result == "ran" and restored and refusals["n"] == 2
+    assert a.read_bytes() == b"live-a" and b.read_bytes() == b"live-b"
+
+
+def test_a_write_that_never_succeeds_still_restores_the_others_and_says_so(tmp_path, monkeypatch):
+    import rehearse_publish as rp
+    a, b = tmp_path / "dashboard_data.js", tmp_path / "index.html"
+    a.write_bytes(b"live-a")
+    b.write_bytes(b"live-b")
+    real = rp.Path.write_bytes
+
+    def stuck(self, data):
+        if self.name == "dashboard_data.js" and data == b"live-a":
+            raise OSError(22, "Invalid argument")
+        return real(self, data)
+
+    monkeypatch.setattr(rp.Path, "write_bytes", stuck)
+    monkeypatch.setattr(rp, "WRITE_ATTEMPTS", 2)
+    monkeypatch.setattr(rp.time if hasattr(rp, "time") else __import__("time"), "sleep", lambda s: None)
+    with pytest.raises(OSError, match="could not restore dashboard_data.js"):
+        rp.with_installed({a: b"new-a", b: b"new-b"}, lambda: None)
+    assert b.read_bytes() == b"live-b"                     # the file after it was still restored
+
