@@ -858,7 +858,9 @@ construction** (Yahoo's row adds intangibles and finance-arm lease assets) - que
 `plan/factor-lab.md`. `sec_crosscheck.py` (offline, read-only) now runs in the data loop's health
 check as a **note**: per-field counts every morning, and an `ATTENTION -` line, surfaced in the
 brief, when any field disagrees by over 10% for more than **25** stocks (pre-registered; that day's
-counts were 0-13). **Promote it to a gate only after a few weeks of counts show its normal range**,
+counts were 0-13). Market value (market cap / price) against the filed share count is in
+the same note with its own line of **60** (22 over 10% on 2026-10-14: splits after the filed
+quarter, partnership units, filers' tagging errors). **Promote it to a gate only after a few weeks of counts show its normal range**,
 and then only for the fields that sat near zero. **Each stock's Data Provenance panel shows the same check**
 (`stock_detail[t].xchk`, `generate_dashboard._attach_filing_check`, claim `drilldown.filing_check`):
 which inputs agree within 2% with the filing. Display-only - a test fails if `xchk` or

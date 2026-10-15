@@ -168,3 +168,36 @@ def test_the_brief_shows_an_attention_line():
     state, notable = wb.outcome(["[02:20:30] [INFO]     ok   ATTENTION - total assets differs from the filings",
                                  "[02:21:30] [INFO] === Data loop complete ==="])
     assert state == "completed" and any("ATTENTION - total assets" in n for n in notable)
+
+
+
+# --------------------------------------------------------------------------- market value
+def _share_fact(t, end, val, filed="2026-08-01"):
+    return fact(t, "WeightedAverageNumberOfDilutedSharesOutstanding",
+                str((pd.Timestamp(end) - pd.Timedelta(days=90)).date()), end, val, filed)
+
+
+def _mv_payload(**caps):
+    # The run's own date: "recent" is measured from it, so the test does not age (the 2026-10-15 lesson).
+    return {"kpis": {"run_timestamp": "2026-10-14T02:00:00"},
+            "stock_detail": {t: {"financials": {"market_cap": mc}, "price": px} for t, (mc, px) in caps.items()}}
+
+
+def test_market_value_is_compared_with_the_latest_recent_filed_share_count():
+    facts = frame([_share_fact("A", "2026-06-30", 100.0), _share_fact("A", "2026-03-31", 90.0, "2026-05-01"),
+                   _share_fact("OLD", "2015-09-30", 5.0, "2015-11-01")])
+    mv = X.market_value_check(_mv_payload(A=(2_100.0, 20.0), OLD=(100.0, 1.0)), facts)
+    assert list(mv["ticker"]) == ["A"]                                    # a 2015 count says nothing about today
+    assert mv.iloc[0]["implied"] == 105.0 and mv.iloc[0]["ratio"] == pytest.approx(1.05)
+
+
+def test_a_market_value_at_the_wrong_scale_calls_attention_but_does_not_fail():
+    caps = {f"T{i}": (100_000.0, 1.0) for i in range(70)}                 # served 1,000x too large
+    facts = frame([_share_fact(t, "2026-06-30", 100.0) for t in caps])
+    res = h.Result()
+    h.check_inputs_against_filings(_mv_payload(**caps), res, facts=facts)
+    assert res.healthy and not res.failures
+    note = next(n for n in res.notes if n.startswith("inputs against SEC filings: "))
+    assert "market value / price vs filed shares 0/70 within 5% (70 over 10%)" in note
+    assert any(n.startswith("ATTENTION - market value implies a share count") for n in res.notes)
+    assert h.MARKET_VALUE_ATTENTION == 60

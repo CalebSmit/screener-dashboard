@@ -11078,3 +11078,16 @@ Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, age 2 days).
   suite 45 days ahead): 28 failures, all but the two options tests explained by the fake clock
   itself (pandas cannot subtract the substituted date types), and those two read the real clock
   consistently. No second expiry date found; the probe cannot see `pandas.Timestamp.now()`.
+
+### After midnight - market value against the filed share counts
+
+- `research/measurements/2026-10-14-shares-vs-sec.py`, note section 2b: market value / price
+  agrees with the filed diluted share count within 5% for 91.8% of 486 stocks; every gap over 10%
+  traced to a split after the filed quarter (KLAC, MNST, APH - per-share inputs checked consistent
+  across all three), a partnership-unit structure (IBKR, TKO, BX, CVNA) or a filer's own tagging
+  error (MCD, WAT). No wrong market value found.
+- **Added to the data loop's health note** (`sec_crosscheck.market_value_check`) with its own
+  attention line at 60. It measures "recent" from the run's own date, not the clock, so its tests
+  cannot age. Writing those tests caught a real flaw: `sec_crosscheck.summary` raised when a field
+  had nothing to compare, which would have turned the whole note into "not checked" - fixed.
+- Gates: full suite, dry-run, node, clean tree, publish rehearsal - see the commit.

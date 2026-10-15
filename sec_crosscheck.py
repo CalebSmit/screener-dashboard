@@ -131,9 +131,51 @@ def compare(payload: dict, facts, fields=FIELDS):
 
 def summary(df) -> dict:
     """Per field: how many were compared, how many agree within 0.5%, how many differ by over 10%."""
+    import pandas as pd
     out = {}
+    if df.empty:
+        return out
     for name in df["field"].unique():
         c = df[(df["field"] == name) & (df["status"] == "compared")]
-        a = c["rel_diff"].abs()
+        # a field with nothing compared has no rel_diff column at all, not an empty one
+        a = c["rel_diff"].abs() if "rel_diff" in c else pd.Series(dtype=float)
         out[name] = {"compared": int(len(c)), "within_half_pct": int((a <= 0.005).sum()), "over_10pct": int((a > FAR).sum())}
     return out
+
+
+SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
+                  "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
+                  "WeightedAverageNumberOfSharesOutstandingBasic")
+SHARES_RECENT_DAYS = 270
+
+
+def market_value_check(payload: dict, facts, today=None):
+    """Market value / price - the share count scoring implicitly uses - against the latest filed
+    weighted-average share count (a quarter ending within 9 months). One row per stock with
+    ``ratio`` = implied / filed. Added 2026-10-14: within 5% for 91.8% of stocks; the gaps over
+    10% traced to splits after the filed quarter (KLAC, APH, MNST), partnership-unit structures
+    (IBKR, TKO, BX, CVNA) and two filers' own scale errors (MCD, WAT)."""
+    import pandas as pd
+    if today is None:                       # the run's own date, so a fixture never ages (2026-10-15)
+        stamp = (payload.get("kpis") or {}).get("run_timestamp")
+        today = pd.Timestamp(str(stamp)[:10]) if stamp else pd.Timestamp.now()
+    today = pd.Timestamp(today)
+    f = facts[facts["concept"].isin(SHARE_CONCEPTS) & facts["start"].notna()]
+    f = f[(f["end"] - f["start"]).dt.days.between(80, 100) & (f["end"] >= today - pd.Timedelta(days=SHARES_RECENT_DAYS))]
+    by_ticker = dict(tuple(f.groupby("ticker")))
+    rows = []
+    for t, det in (payload.get("stock_detail") or {}).items():
+        mc, px = (det.get("financials") or {}).get("market_cap"), det.get("price")
+        g = by_ticker.get(t)
+        if not mc or not px or px <= 0 or g is None:
+            continue
+        for c in SHARE_CONCEPTS:
+            h = g[g["concept"] == c]
+            if h.empty:
+                continue
+            last = h[h["end"] == h["end"].max()].sort_values("filed").iloc[0]
+            if last["val"] > 0:
+                rows.append({"ticker": t, "implied": mc / px, "filed": float(last["val"]),
+                             "ratio": (mc / px) / float(last["val"])})
+            break
+    return pd.DataFrame(rows, columns=["ticker", "implied", "filed", "ratio"])
