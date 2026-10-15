@@ -449,6 +449,21 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"checks the underlying figures against the companies' own SEC filings",
     ),
     Claim(
+        id="drilldown.ranking_audit",
+        surface=DRILLDOWN,
+        asserts=(
+            "Where a stock's net income is more than 1.25 times its operating income after a 21% "
+            "tax, the earnings-yield row says the difference is income from outside operations; "
+            "where its equity is under 10% of total assets and sustainable growth is at its 100% "
+            "cap, that row says the measure reflects the small equity base."
+        ),
+        made_true_by="ranking_audit:stock_notes",
+        checked_by=(
+            "tests/test_ranking_audit.py::test_earnings_lifted_by_income_outside_operations_are_said",
+            "tests/test_ranking_audit.py::test_a_buyback_thinned_equity_base_is_said_when_the_measure_is_at_its_cap",
+        ),
+    ),
+    Claim(
         id="drilldown.newer_filing",
         surface=DRILLDOWN,
         asserts=(

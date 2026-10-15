@@ -273,6 +273,23 @@ MARKET_VALUE_ATTENTION = 60
 CACHE_STALE_DAYS = 14
 
 
+def check_top_of_ranking(payload: dict, res: Result) -> None:
+    """A NOTE naming the top-25 stocks whose rank rests on something worth a second look
+    (``ranking_audit.top_flags``, 2026-10-15): earnings lifted by non-operating income, equity
+    thinned by buybacks, an input off the company's filing, statements a period behind. Never a
+    refusal - each is the data as defined, said out loud."""
+    try:
+        import ranking_audit as RA
+        flags = RA.top_flags(payload)
+    except Exception as exc:  # noqa: BLE001
+        res.note(f"top of the ranking not audited - {type(exc).__name__}: {exc}")
+        return
+    if not flags:
+        res.note(RA.TOP_LINE + "nothing")
+        return
+    res.note(RA.TOP_LINE + "; ".join(f"{f['ticker']} (#{f['rank']}: {', '.join(f['why'])})" for f in flags))
+
+
 def check_inputs_against_filings(payload: dict, res: Result, facts=None) -> None:
     """The run's inputs against the companies' own SEC figures - a NOTE, never a failure.
 
@@ -448,6 +465,7 @@ def main() -> int:
     check_metric_availability(res)
     check_dispersion(payload, res)
     check_inputs_against_filings(payload, res)
+    check_top_of_ranking(payload, res)
 
     if not args.quiet:
         print(f"HEALTH CHECK for run {run_dir.name}")
