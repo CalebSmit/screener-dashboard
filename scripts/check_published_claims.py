@@ -103,6 +103,8 @@ MODULES: tuple[tuple[str, str], ...] = (
     # generator* rather than through the committed file, which is the better way
     # (rule 10) and was the one the gate's membership tripwire could not see. 83
     # tests, 12.9s measured.
+    ("tests/test_filing_check_in_the_drilldown.py",
+     "the methodology page and the drilldown say what is checked against the SEC filings, and what is not"),
     ("tests/test_growth_category.py",
      "the Growth section's claims hold for the run being published - that the "
      "ranking taken whole is close to growth-neutral, which is why the weight "
