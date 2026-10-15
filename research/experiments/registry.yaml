@@ -188,3 +188,27 @@ experiments:
     source: Asness, Porter & Stevens (2000), "Predicting stock returns using industry-relative firm characteristics" - industry-relative measures predicted better.
     prediction: No better than the baseline, possibly worse.
     transform: {kind: whole_market}
+
+  # ---- batch 2, registered 2026-10-15 evening, before any run of them and before any 2012-2019
+  # month was scored; judged by the same rules on both periods
+  - id: value-and-momentum
+    hypothesis: Earnings yield and the 12-1 month return together rank better than either alone, because the two are negatively correlated.
+    source: Asness, Moskowitz & Pedersen (2013), Value and Momentum Everywhere, Journal of Finance 68(3).
+    prediction: IC positive in both periods; not distinguishable from the baseline at the multiple-testing bar.
+    transform:
+      kind: metrics
+      metrics: {valuation: {earnings_yield: 50}, momentum: {return_12_1: 50}}
+  - id: 52-week-high
+    hypothesis: Nearness to the 52-week high ranks returns (the anchoring explanation of momentum).
+    source: George & Hwang (2004), The 52-Week High and Momentum Investing, Journal of Finance 59(5).
+    prediction: Not distinguishable from the baseline.
+    transform:
+      kind: metrics
+      metrics: {momentum: {proximity_52w_high: 100}}
+  - id: profitability-and-low-volatility
+    hypothesis: Return on capital with low volatility - the defensive screen - ranks returns with a calmer top tenth.
+    source: Novy-Marx (2016), Understanding Defensive Equity, NBER w20591 - defensive returns are largely profitability and size; Frazzini & Pedersen (2014).
+    prediction: Not distinguishable from the baseline; among the lowest top-tenth volatility of the multi-metric screens.
+    transform:
+      kind: metrics
+      metrics: {quality: {roic: 50}, risk: {volatility: 50}}
