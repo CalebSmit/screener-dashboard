@@ -18,7 +18,13 @@ growing at all.
      observations from the adjacent Friday.
   5. Nothing ever called `compute_live_ic()`, so live_ic_history.csv held the
      same 3 rows from February 2026 for 183 days.
+  6. (2026-10-16) A horizon was measured on the 02:00 run the day it came due,
+     before its end close existed, against the previous close; the truncated
+     price frame was cached; and a later horizon's pass rewrote the IC rows.
 """
+
+import sys
+import types
 
 import numpy as np
 import pandas as pd
@@ -488,3 +494,154 @@ class TestTrendsUseEffectiveCount:
         result = ie.propose_weight_changes(min_observations=8)
         assert result["status"] == "insufficient_data"
         assert result["n_observations"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Defect 6 (2026-10-16): a horizon measured before its end close existed
+#
+# The data loop runs at 02:00, before that day's close. On the morning of
+# D+30 the newest close is D+29, and `_nearest_price` (either direction, within
+# 7 days) used it as the 1-month end; the truncated frame was cached under the
+# (D, D+30) key and served on every later run; the 3-month pass then
+# re-measured 1w/1m with complete data and rewrote their IC rows. Measured: 25
+# of 31 `1m` IC rows were on the short window.
+# ---------------------------------------------------------------------------
+
+def _yf_frame(prices):
+    """What yfinance.download returns for several tickers."""
+    return pd.concat({"Close": prices}, axis=1)
+
+
+@pytest.fixture
+def fake_yfinance(monkeypatch):
+    """A stand-in yfinance module whose download serves a settable frame."""
+    state = {"frame": None, "calls": []}
+
+    def download(tickers, start=None, end=None, **_kw):
+        state["calls"].append((start, end))
+        f = state["frame"]
+        return _yf_frame(f.loc[(f.index >= start) & (f.index < end)])
+
+    monkeypatch.setitem(sys.modules, "yfinance", types.SimpleNamespace(download=download))
+    return state
+
+
+@pytest.fixture
+def settable_price_fetch(monkeypatch):
+    """Like stub_price_fetch, but the test chooses the frame each call returns."""
+    state = {"frame": _fake_prices()}
+
+    def _fetch(tickers, start_date, end_date):
+        return state["frame"]
+
+    monkeypatch.setattr(ie, "_fetch_prices_for_returns", _fetch)
+    return state
+
+
+class TestHorizonEndClose:
+    def test_a_frame_ending_the_day_before_the_end_leaves_the_horizon_unfilled(
+            self, settable_price_fetch):
+        """The bug itself. 2026-03-02 + 30 days is Wednesday 2026-04-01; at
+        02:00 that morning the newest close is 03-31. The old rule took it."""
+        _write_snapshot("2026-03-02", "aaaaaaaaaaaa")
+        full = _fake_prices()
+        ie.compute_forward_returns("2026-03-10")                 # 1w recorded
+
+        settable_price_fetch["frame"] = full[full.index <= "2026-03-31"]
+        ie.compute_forward_returns("2026-04-01")
+        perf = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH)
+        assert perf["fwd_return_1m"].isna().all(), "measured to the day before the end"
+        assert ie.compute_live_ic(horizon="1m") is None
+
+        settable_price_fetch["frame"] = full
+        ie.compute_forward_returns("2026-04-02")                 # the retry
+        perf = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH).set_index("ticker")
+        t = TICKERS[0]
+        expected = full.loc["2026-04-01", t] / full.loc["2026-03-02", t] - 1
+        assert perf.loc[t, "fwd_return_1m"] == pytest.approx(expected)
+
+    def test_the_end_close_is_never_an_earlier_one(self):
+        s = pd.Series([100.0, 101.0], index=pd.to_datetime(["2026-03-30", "2026-03-31"]))
+        assert ie._horizon_end_close(s, pd.Timestamp("2026-04-01")) is None
+        assert np.isnan(ie._compute_fwd_return(s, pd.Timestamp("2026-03-02"), 30, 100.0))
+
+    def test_a_weekend_end_resolves_to_monday_not_friday(self):
+        # 2026-04-04 is a Saturday
+        s = pd.Series([110.0, 120.0], index=pd.to_datetime(["2026-04-03", "2026-04-06"]))
+        assert ie._horizon_end_close(s, pd.Timestamp("2026-04-04")) == 120.0
+
+    def test_a_holiday_end_resolves_to_the_next_trading_day(self):
+        # 2026-09-07 is Labor Day: no close
+        s = pd.Series([50.0, 51.0, 52.0],
+                      index=pd.to_datetime(["2026-09-04", "2026-09-08", "2026-09-09"]))
+        assert ie._horizon_end_close(s, pd.Timestamp("2026-09-07")) == 51.0
+
+    def test_the_forward_search_is_bounded(self):
+        s = pd.Series([50.0, 60.0], index=pd.to_datetime(["2026-09-01", "2026-09-20"]))
+        assert ie._horizon_end_close(s, pd.Timestamp("2026-09-07")) is None
+
+    def test_a_recorded_horizon_is_not_rewritten_by_a_later_pass(self, settable_price_fetch):
+        """The 3-month pass used to re-measure 1w and 1m and rewrite their IC rows."""
+        _write_snapshot("2026-03-02", "aaaaaaaaaaaa")
+        ie.compute_forward_returns("2026-04-03")                 # 1w + 1m
+        before = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH).set_index("ticker")
+        assert before["fwd_return_1m"].notna().all()
+
+        settable_price_fetch["frame"] = _fake_prices(seed=99)    # different prices
+        ie.compute_forward_returns("2026-06-15")                 # 3m comes due
+        after = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH).set_index("ticker")
+
+        assert after["fwd_return_3m"].notna().any()
+        pd.testing.assert_series_equal(before["fwd_return_1w"], after["fwd_return_1w"])
+        pd.testing.assert_series_equal(before["fwd_return_1m"], after["fwd_return_1m"])
+
+
+class TestPriceCacheCompleteness:
+    def test_an_incomplete_window_is_not_cached(self, fake_yfinance):
+        full = _fake_prices()
+        fake_yfinance["frame"] = full[full.index <= "2026-03-31"]
+        got = ie._fetch_prices_for_returns(TICKERS, "2026-03-02", "2026-04-01")
+
+        assert got is not None and got.index.max() == pd.Timestamp("2026-03-31")
+        assert not (ie.PRICE_CACHE_DIR / "prices_2026-03-02_2026-04-01.parquet").exists()
+
+    def test_a_complete_window_is_cached(self, fake_yfinance):
+        fake_yfinance["frame"] = _fake_prices()
+        ie._fetch_prices_for_returns(TICKERS, "2026-03-02", "2026-04-01")
+        assert (ie.PRICE_CACHE_DIR / "prices_2026-03-02_2026-04-01.parquet").exists()
+
+    def test_a_truncated_cache_file_is_refetched(self, fake_yfinance):
+        """The frames cached before the fix are short; they must not be served."""
+        full = _fake_prices()
+        path = ie.PRICE_CACHE_DIR / "prices_2026-03-02_2026-04-01.parquet"
+        full[(full.index >= "2026-02-25") & (full.index <= "2026-03-31")].to_parquet(path)
+
+        fake_yfinance["frame"] = full
+        got = ie._fetch_prices_for_returns(TICKERS, "2026-03-02", "2026-04-01")
+        assert len(fake_yfinance["calls"]) == 1, "served the truncated cache"
+        assert got.index.max() >= pd.Timestamp("2026-04-01")
+
+    def test_a_complete_cache_file_is_served(self, fake_yfinance):
+        full = _fake_prices()
+        full[full.index <= "2026-04-08"].to_parquet(
+            ie.PRICE_CACHE_DIR / "prices_2026-03-02_2026-04-01.parquet")
+        fake_yfinance["frame"] = full
+        ie._fetch_prices_for_returns(TICKERS, "2026-03-02", "2026-04-01")
+        assert fake_yfinance["calls"] == []
+
+    def test_a_bar_dated_today_is_dropped(self, fake_yfinance):
+        today = pd.Timestamp(pd.Timestamp.now().date())
+        idx = pd.bdate_range(end=today - pd.Timedelta(days=1), periods=30).append(
+            pd.DatetimeIndex([today]))
+        fake_yfinance["frame"] = pd.DataFrame(
+            {t: np.linspace(100, 130, len(idx)) for t in TICKERS}, index=idx)
+        start = idx[0].strftime("%Y-%m-%d")
+        got = ie._fetch_prices_for_returns(TICKERS, start, today.strftime("%Y-%m-%d"))
+        assert today not in got.index
+        assert not any(ie.PRICE_CACHE_DIR.iterdir()), "cached a window ending today"
+
+    def test_a_mostly_empty_last_bar_is_not_a_close(self):
+        f = _fake_prices(days=10)
+        f.iloc[-1, 1:] = np.nan                     # one ticker of 60 has a value
+        assert ie._last_complete_close(f) == f.index[-2]
+        assert ie._last_complete_close(None) is None

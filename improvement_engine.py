@@ -87,8 +87,21 @@ IC_COLUMNS = [
 ]
 
 # Forward-return horizons and their calendar length in days. A snapshot is
-# eligible for a horizon once it is at least this old.
+# eligible for a horizon once it is at least this old - and is *measured* only
+# once the prices actually contain a close on or after its end date (see
+# _horizon_end_close below).
 HORIZON_DAYS = {"1w": 7, "1m": 30, "3m": 90}
+
+# How far past a horizon's calendar end the engine will look for the first
+# trading close. A weekend plus a holiday is 3 days; the longest NYSE closure
+# since 1933 (2001-09-11 to 09-14) pushes a Tuesday end to the next Monday, 6
+# days. Past this a ticker's return is left missing (a halted stock), not
+# borrowed from an earlier close.
+HORIZON_END_FORWARD_DAYS = 7
+
+# Calendar padding past a price fetch's window end. It must cover
+# HORIZON_END_FORWARD_DAYS, and yfinance's `end` is exclusive.
+PRICE_FETCH_END_PAD_DAYS = 9
 
 
 # =========================================================================
@@ -365,6 +378,14 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
     therefore never be filled in, and since ``optimization_horizon`` is '1m' the
     improvement engine had, and would have kept having, nothing to propose from.
     Eligibility is now tracked per (run_date, horizon).
+
+    A horizon's end is the first close on or after D + span (calendar days).
+    It is measured only when the fetched prices contain such a close, and once
+    measured it is never re-measured (2026-10-16). Before that, the 02:00 data
+    loop measured a horizon on the morning it came due - when its end close did
+    not exist yet - and `_nearest_price` silently used the close before it;
+    the 3-month pass then re-measured the shorter horizons and rewrote their
+    IC rows. See METHODOLOGY_CHANGELOG.md 2026-10-16.
     """
     current_dt = pd.Timestamp(current_date)
 
@@ -405,12 +426,16 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         if not _is_market_day(snap_date_str):
             continue
 
-        # Which horizons are old enough to measure, and is any of them new?
+        # Which horizons are old enough to measure and not yet recorded? A
+        # horizon is written once: re-measuring an already-filled one used to
+        # rewrite published IC rows whenever a longer horizon came due.
         days_elapsed = (current_dt - snap_dt).days
-        computable = {h for h, span in HORIZON_DAYS.items() if days_elapsed >= span}
-        if not computable:
-            continue
-        if computable <= filled_horizons.get(snap_date_str, set()):
+        filled = filled_horizons.get(snap_date_str, set())
+        needed = {
+            h for h, span in HORIZON_DAYS.items()
+            if days_elapsed >= span and h not in filled
+        }
+        if not needed:
             continue
 
         # Load snapshot
@@ -433,7 +458,7 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
         # growing without limit as the snapshot ages.
         window_end = min(
             current_dt,
-            snap_dt + timedelta(days=max(HORIZON_DAYS[h] for h in computable)),
+            snap_dt + timedelta(days=max(HORIZON_DAYS[h] for h in needed)),
         )
         prices = _fetch_prices_for_returns(
             tickers,
@@ -441,6 +466,25 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
             window_end.strftime("%Y-%m-%d"),
         )
         if prices is None or prices.empty:
+            continue
+
+        # A horizon is measured only once the prices reach its end. The data
+        # loop runs at 02:00, before that day's close, so on the morning a
+        # horizon comes due its end close does not exist yet. Measuring then
+        # used to substitute the previous close - for 25 of 31 `1m` IC rows on
+        # 2026-10-16. Leaving it unfilled means the next run retries it.
+        last_close = _last_complete_close(prices)
+        ready = {
+            h for h in needed
+            if last_close is not None
+            and last_close >= snap_dt + timedelta(days=HORIZON_DAYS[h])
+        }
+        if not ready:
+            logger.info(
+                f"Forward returns for {snap_date_str}: prices end "
+                f"{last_close.date() if last_close is not None else 'nowhere'}, "
+                f"before the {'/'.join(sorted(needed))} horizon end; will retry."
+            )
             continue
 
         # Phase 11: detect metric percentile columns in this snapshot
@@ -460,12 +504,15 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
             if base_price is None or base_price <= 0:
                 continue
 
-            # Compute returns for each horizon
-            fwd_1w = _compute_fwd_return(ticker_prices, snap_dt, 7, base_price)
-            fwd_1m = _compute_fwd_return(ticker_prices, snap_dt, 30, base_price) if days_elapsed >= 30 else np.nan
-            fwd_3m = _compute_fwd_return(ticker_prices, snap_dt, 90, base_price) if days_elapsed >= 90 else np.nan
-
-            if np.isnan(fwd_1w):
+            # Only the horizons that are complete and not yet recorded. NaN
+            # elsewhere leaves an earlier value alone: normalization's
+            # groupby().last() skips NaN.
+            fwd = {
+                h: (_compute_fwd_return(ticker_prices, snap_dt, span, base_price)
+                    if h in ready else np.nan)
+                for h, span in HORIZON_DAYS.items()
+            }
+            if all(np.isnan(v) for v in fwd.values()):
                 continue
 
             new_rows.append({
@@ -477,9 +524,7 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
                 **{cs: row.get(cs, np.nan) for cs in CATEGORY_SCORES},
                 # Phase 11: metric percentile columns for per-metric IC
                 **{col: row.get(col, np.nan) for col in pct_cols_in_snap},
-                "fwd_return_1w": fwd_1w,
-                "fwd_return_1m": fwd_1m,
-                "fwd_return_3m": fwd_3m,
+                **{f"fwd_return_{h}": fwd[h] for h in HORIZON_DAYS},
             })
 
     if not new_rows:
@@ -506,25 +551,36 @@ def _fetch_prices_for_returns(
     start_date: str,
     end_date: str,
 ) -> pd.DataFrame | None:
-    """Fetch daily close prices from yfinance. Caches in price_cache/."""
+    """Fetch daily close prices from yfinance. Caches in price_cache/.
+
+    The cache is keyed on the requested window (start, end), so a frame is
+    cached - and a cached frame trusted - only if it reaches a complete close
+    on or after `end_date`. A frame fetched before that close existed is
+    returned for the caller to judge but never stored: stored, it was served
+    unchanged under the same key on every later run (2026-10-16).
+    """
     cache_key = f"{start_date}_{end_date}"
     cache_path = PRICE_CACHE_DIR / f"prices_{cache_key}.parquet"
+    window_end = pd.Timestamp(end_date)
 
     if cache_path.exists():
         try:
             cached = pd.read_parquet(cache_path)
             # Check if we have enough tickers
             missing = set(tickers) - set(cached.columns)
-            if len(missing) < len(tickers) * 0.1:  # < 10% missing
+            last_close = _last_complete_close(cached)
+            if (len(missing) < len(tickers) * 0.1  # < 10% missing
+                    and last_close is not None and last_close >= window_end):
                 return cached
         except Exception:
             pass
 
     try:
         import yfinance as yf
-        # Extend range slightly for nearest-price lookups
+        # Extend range for the base-price lookup behind the start and the
+        # forward-only horizon-end lookup past the end.
         start_dt = pd.Timestamp(start_date) - timedelta(days=5)
-        end_dt = pd.Timestamp(end_date) + timedelta(days=5)
+        end_dt = window_end + timedelta(days=PRICE_FETCH_END_PAD_DAYS)
         data = yf.download(
             tickers,
             start=start_dt.strftime("%Y-%m-%d"),
@@ -541,11 +597,67 @@ def _fetch_prices_for_returns(
             prices = data[["Close"]]
             prices.columns = tickers[:1]
 
-        prices.to_parquet(cache_path)
+        # A bar dated today is not a close yet: fetched during the session it
+        # is the latest trade. Never let one stand as a horizon's end.
+        prices = prices.copy()
+        prices.index = pd.DatetimeIndex(prices.index)
+        if prices.index.tz is not None:
+            prices.index = prices.index.tz_localize(None)
+        prices = prices[prices.index < pd.Timestamp(datetime.now().date())]
+        if prices.empty:
+            return None
+
+        last_close = _last_complete_close(prices)
+        if last_close is not None and last_close >= window_end:
+            prices.to_parquet(cache_path)
+        else:
+            logger.info(
+                f"Prices for {cache_key} end "
+                f"{last_close.date() if last_close is not None else 'nowhere'}, "
+                f"before the window end; not cached."
+            )
         return prices
     except Exception as e:
         logger.warning(f"Price fetch failed: {e}")
         return None
+
+
+def _last_complete_close(prices: pd.DataFrame | None) -> pd.Timestamp | None:
+    """The latest date on which at least half the tickers have a close.
+
+    A fetch can end in a bar that is almost entirely empty - several cached
+    frames end in a row with 500 of 502 closes missing - so the frame's last
+    index is not evidence that the day closed.
+    """
+    if prices is None or len(prices) == 0:
+        return None
+    counts = prices.notna().sum(axis=1)
+    threshold = max(1, 0.5 * prices.shape[1])
+    complete = counts[counts >= threshold]
+    if complete.empty:
+        return None
+    return pd.Timestamp(complete.index.max())
+
+
+def _horizon_end_close(prices: pd.Series, target_dt: pd.Timestamp) -> float | None:
+    """The first close on or after `target_dt`, within HORIZON_END_FORWARD_DAYS.
+
+    Forward only. A horizon whose calendar end falls on a weekend or holiday
+    ends at the next trading day's close; if the series has no such close the
+    return is missing. The nearest-in-either-direction rule this replaces chose
+    Friday for a Saturday end, and chose the previous day's close whenever the
+    end close had not been published yet.
+    """
+    prices = prices.dropna()
+    if prices.empty:
+        return None
+    prices.index = pd.DatetimeIndex(prices.index)
+    after = prices[prices.index >= target_dt]
+    if after.empty:
+        return None
+    if (after.index[0] - target_dt).days > HORIZON_END_FORWARD_DAYS:
+        return None
+    return float(after.iloc[0])
 
 
 def _nearest_price(prices: pd.Series, target_dt: pd.Timestamp) -> float | None:
@@ -571,9 +683,9 @@ def _compute_fwd_return(
     days_forward: int,
     base_price: float,
 ) -> float:
-    """Compute forward return from base_dt + days_forward."""
+    """Forward return to the first close on or after base_dt + days_forward."""
     target_dt = base_dt + timedelta(days=days_forward)
-    fwd_price = _nearest_price(prices, target_dt)
+    fwd_price = _horizon_end_close(prices, target_dt)
     if fwd_price is None or fwd_price <= 0:
         return np.nan
     return (fwd_price - base_price) / base_price

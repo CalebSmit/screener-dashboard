@@ -4224,3 +4224,95 @@ coverage; the coverage figure is the mean of the published `cov`). Both are in
 
 **Applied by:** session, 2026-10-16 (fix branch).
 **Rollback:** `good/2026-10-16`.
+
+---
+
+## 2026-10-16 - Evidence-base correction: forward returns were measured to a close that did not exist yet
+
+**Area:** improvement engine - forward-return measurement (`improvement_engine.compute_forward_returns`,
+`_fetch_prices_for_returns`, new `_horizon_end_close` / `_last_complete_close`). **Not a methodology
+change:** no category weight, metric weight, threshold, gate, `allow_auto_apply` (still `false`) or the
+effective-observation count (`_effective_observations`) changed. It changes what the evidence base
+*contains*, which is why it is recorded here.
+
+**The defect (documented failure, measured).** The data loop runs at 02:00, before that day's close.
+`compute_forward_returns` treated a horizon as complete once `span` calendar days had elapsed, so on
+the morning of D+30 it measured the 1-month return when the newest close was D+29 (or the Friday
+before). Three things then kept the wrong number:
+1. `_nearest_price` picked the nearest close within 7 days **in either direction**, so it silently
+   used the earlier close instead of reporting the end as missing;
+2. `_fetch_prices_for_returns` cached that short frame under the fixed `(D, D+span)` key and served it
+   on every later run - 68 of the 83 cached frames have no complete close at their window end;
+3. when the 3-month horizon came due, its pass re-measured 1w and 1m from a complete frame and
+   `compute_live_ic` rewrote those horizons, so IC rows that had been reported changed silently.
+The same happened to every `1w` row (D+7 at 02:00 has only D+6's close) and to February's frames,
+some of which were fetched mid-session and end in an intraday bar.
+
+**Changed.**
+- A horizon ends at the **first close on or after D + span** (`_horizon_end_close`): forward only,
+  within 7 calendar days (a weekend plus a holiday is 3; the longest closure since 1933, September
+  2001, is 6). A
+  Saturday end resolves to Monday, a holiday to the next session - never to the close before.
+- A horizon is measured only when the fetched prices contain a complete close (at least half the
+  tickers) on or after that end; otherwise it is left unfilled and the next run retries it.
+- A price frame is cached - and a cached frame trusted - only if it reaches its window end; the short
+  frames already on disk are therefore refetched rather than served. A bar dated today is dropped
+  before anything is measured or cached (fetched in session, it is the last trade, not a close).
+- A horizon, once recorded, is not re-measured by a later horizon's pass, so a reported IC row no
+  longer moves when the 3-month return comes due.
+
+**Repair** (`scripts/repair_forward_return_horizons.py`, one-off, run 2026-10-16). Every filled
+forward-return cell was re-measured under the rule above; a cell the engine had left empty stays empty
+(that would be a coverage change, not this correction). Prices: the engine's own cached frames where
+they reach the end (final bar excluded), else the main checkout's `cache/v2_daily.parquet` adjusted
+closes, else one batched yfinance download (24 tickers). The two local sources agree to 9.8e-8 at the
+99th percentile over 38,520 shared ticker-windows; the one large disagreement (0.50) is MNST, whose
+July frames in the engine cache carry a split yfinance had not yet adjusted. Cells changed: **1w
+7,980, 1m 11,954, 3m 498**; emptied because the end close is not yet published (2026-09-16 1m, 2026-10-09
+1w) or no source has the ticker: 1w 554, 1m 537.
+
+**Measured, before -> after (composite IC).** At `1m`, **25 of 31 rows were on the short window**:
+24 changed and one (2026-09-16, end 2026-10-16) is withdrawn until its close exists. The six that did
+not change are February-April dates whose 1m had already been re-measured by their 3-month pass.
+
+| run_date | 1m before | 1m after | | run_date | 1m before | 1m after |
+|---|---|---|---|---|---|---|
+| 2026-07-28 | 0.0050 | 0.0023 | | 2026-08-31 | 0.1106 | 0.1223 |
+| 2026-07-29 | -0.1735 | -0.1709 | | 2026-09-01 | 0.0703 | 0.0967 |
+| 2026-08-10 | -0.0144 | 0.0109 | | 2026-09-02 | 0.0847 | 0.0829 |
+| 2026-08-12 | 0.0713 | 0.0694 | | 2026-09-03 | 0.0768 | 0.0663 |
+| 2026-08-14 | 0.0777 | 0.1148 | | 2026-09-04 | 0.0874 | 0.0783 |
+| 2026-08-20 | 0.1139 | 0.0740 | | 2026-09-07 | 0.0161 | 0.0438 |
+| 2026-08-21 | 0.1056 | 0.0633 | | 2026-09-08 | 0.0439 | 0.0819 |
+| 2026-08-24 | 0.0431 | -0.0067 | | 2026-09-09 | 0.0846 | 0.0505 |
+| 2026-08-25 | 0.0109 | 0.0351 | | 2026-09-10 | 0.0109 | 0.0273 |
+| 2026-08-26 | 0.0255 | 0.0379 | | 2026-09-11 | 0.0227 | 0.0368 |
+| 2026-08-27 | 0.0563 | 0.0853 | | 2026-09-14 | -0.0104 | 0.0491 |
+| 2026-08-28 | 0.0668 | 0.0911 | | 2026-09-15 | 0.0348 | 0.0350 |
+| | | | | 2026-09-16 | 0.0464 | *withdrawn* |
+
+Largest 1m move 0.059 (2026-09-14); median of the 24 moves 0.024. Spot-checked: the stored 2026-09-08
+value (0.0439) reproduces exactly from the 2026-10-07 close, the corrected one (0.0819) from 2026-10-08's.
+At `1w`, 28 rows changed (median 0.025, largest 0.136 on 2026-10-01) and 2026-10-09 is withdrawn; at
+`3m`, one row moved by 0.0009 (2026-02-23, whose end fell on a Sunday before Memorial Day and is now the
+Tuesday close). The full per-row table, all horizons, is printed by the script.
+
+**Effective (non-overlapping) observations - unchanged:** 1m 31 rows / **4** effective -> 30 rows /
+**4**; 1w 48 / 14 -> 47 / 14; 3m 6 / 1 -> 6 / 1. Newest `1m` run_date 2026-09-16 -> **2026-09-15**
+(31 days before today, inside the 40-day tripwire). The average 1m composite IC moved 0.044 -> 0.050
+over the 30 shared rows; per rule 4 that is not evidence for anything, and it is recorded only so no
+one mistakes the correction for a change in the screener.
+
+**Expected effect:** the next data run retries 2026-09-16 (1m) and 2026-10-09 (1w) and fills them from
+their real end closes; every new horizon is filled one run later than before (the morning after its
+end close), and once filled it stays put.
+
+**Validated by:** `tests/test_evidence_integrity.py` `TestHorizonEndClose` and
+`TestPriceCacheCompleteness` (12 tests: a frame ending the day before the end leaves the horizon
+unfilled and the retry fills it to the right close; Saturday -> Monday; Labor Day -> Tuesday; a
+truncated cache file is refetched, an incomplete window is not cached, a bar dated today is dropped; a
+recorded horizon survives the 3-month pass). 10 of the 12 fail against the code as it stood this
+morning. The existing evidence-integrity tests pass unchanged.
+
+**Applied by:** owner-run session (subagent), 2026-10-16.
+**Rollback:** revert the commits; `git checkout good/2026-10-16 -- improvement/` restores the files.
