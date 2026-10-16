@@ -194,6 +194,18 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
   payload, so they change on the 2026-10-19 02:00 run; `scripts/rehearse_publish.py` checked them against the
   page tests and the claims gate.
 
+### P2 - the system details: touch, focus, selection, phones
+
+- **Touch targets** (`@media (pointer: coarse)`): measured at 375px, 40-odd controls were under 40px tall,
+  the guide's "Hide" 28x23. Every control is now at least 40px on a touch screen; a mouse keeps the compact sizes.
+- **One focus ring**: tabbing the page found the brand ring on half the controls and the browser's thin grey
+  default on the rest; the filter fields' 12% glow was close to invisible. One 2px accent ring for everything,
+  a visible ring on fields, an accent edge on reporting rows.
+- **Selected text** in the accent rather than the browser's bright default.
+- **The stock sheet on a phone**: its tool row ran 13px past the padding at 375 and was clipped at 320; the list
+  position (which repeats the header's rank) is hidden below 420px and the tabs fade at their edge. The hero's
+  eyebrow drops "S&P 500" below 420px so it stays on one line.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).
