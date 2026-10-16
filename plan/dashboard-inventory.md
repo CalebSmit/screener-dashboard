@@ -13,6 +13,48 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Ten functional fixes, 2026-10-16 - `tests/test_dashboard_interaction.py`
+
+No number, rank or sentence in the payload changed (payload byte-identical). What a later session must
+know before touching these:
+- **Section headers are keyboard buttons.** Every `.section-header` (and the drilldown's
+  `.collapsible-header`) carries `role="button" tabindex="0" aria-expanded`; the page headers also carry
+  `aria-controls="<section>-body"` and each `.section-body` has that id. Enter and Space are one
+  delegated listener in `_js_ux` (it also covers `.mover-row`, now `tabindex="0"`). `aria-expanded` is
+  kept true to the class by `syncSectionAria` in `toggleSection` plus a `MutationObserver`
+  (`watchSectionAria`, called first in INIT), because several paths edit the `collapsed` class directly.
+- **A closed section body is `visibility: hidden`**, flipped after the fade by a delayed `visibility`
+  transition on the collapsed rule, so it leaves the tab order and the close still animates. The print
+  block shows every body (`visibility: visible; transition: none`). Opening is immediate, but a child
+  with its own `transition: all` is focusable a frame later - wait on `checkVisibility()` in tests.
+- **The holdings add box** works from the keyboard: arrows move through the results
+  (`aria-activedescendant`, `.peer-search-item.sel`), Enter adds the picked result, else the exact
+  ticker typed, else the first result.
+- **My Holdings keeps a saved name this run did not score** (`HOLDING_TICKER_RE`, "." stored as "-") and
+  renders it last as an unscored card stating it is not in this run's ranking, with its last rank when
+  `history.series` still has one. Only ticker-shaped strings survive a read. `DECISIONS.md` row 5.
+- **Fonts never block first paint**: the Google Fonts CSS is `rel="preload" as="style"` swapped to a
+  stylesheet on load, with a `<noscript>` stylesheet. Before, a stalled font request held
+  DOMContentLoaded past 60 s.
+- **The table's change column (`rankDelta`) reads the ~1-month window** (`H.compare.m1`, falling back to
+  `prev` only when no such run exists - one window for the whole column), and moves under
+  `H.noise.material_threshold` are drawn in neutral ink (`.delta-cell.sub`, no pos/neg). The header
+  tooltip names the comparison date and the threshold (`rankDeltaTitle`).
+- **Track record tile and section meta** name both benchmarks: equal-weight (RSP) and the S&P 500 (SPY).
+- **History**: an opened sheet records `history.state.pushed`; a user close of a pushed entry calls
+  `history.back()` (popstate then finds the sheet already closed), a sheet opened from a direct link
+  only clears the hash. Three open/close cycles used to leave three dead Back presses.
+- **Shortcuts respect the topmost dialog**: "/" does nothing while `topDialog()` is open; Esc closes only
+  the sheet when it is on top of Methodology.
+- **The context file failing is said, not hidden**: the Context filter's listener is registered in
+  `setupFilters`; `ctxFilterState()` disables Uptrend / Downtrend / Insider buying with "(loading)" or
+  "(not loaded)" until the file lands or if it fails, while "Reports within 14 days" (main payload) always
+  works; Market and Track say "the context data could not be loaded" (`ctxMissing`), not "not available
+  for this run". Market/Track toggles are wrapped at script load (`wrapContextSections`).
+- **Deep links**: `#stock=BRK.B` resolves to `BRK-B`; a ticker not in the run toasts "No stock T in this
+  run" and clears the hash (`rejectStockHash`), on load and on popstate.
+- **Footer disclaimer** at full opacity: 5.8:1 (was 4.46:1).
+
 ## The investor pass, 2026-10-15 (owner-run, night) - `plan/dashboard-investor-pass.md`
 
 Presentation only (payload byte-identical). What a session must know before touching these:
@@ -225,7 +267,7 @@ stock gets all of this. `tests/test_dashboard_navigation.py` (18).
 | Feature | How |
 |---|---|
 | **Search palette** | Ctrl/Cmd+K or the top-bar button: any stock by ticker, company or sector (ticker match first, then rank), recent stocks when empty, and actions (every section, Methodology, the comparison, the guide, shortcuts). Arrow keys + Enter |
-| **Stock links** | `#stock=TICKER` opens that stock on load. Opening from a closed sheet **pushes** one history entry (the back gesture closes the sheet instead of leaving the site); stepping **replaces** it; closing clears the hash. Copy link in the toolbar. Tab title becomes the ticker |
+| **Stock links** | `#stock=TICKER` opens that stock on load. Opening from a closed sheet **pushes** one history entry (the back gesture closes the sheet instead of leaving the site); stepping **replaces** it; closing a pushed sheet goes back one entry (2026-10-16), closing one opened from a link clears the hash. `#stock=BRK.B` resolves to BRK-B; a ticker not in the run is named in a toast and the hash cleared. Copy link in the toolbar. Tab title becomes the ticker |
 | **Stepping** | `J` / `K` (or the toolbar arrows) move through the table's **current filter and sort**; a stock opened from outside that list steps through the full ranking |
 | **Compare** | `C` or the toolbar adds the open stock (up to four, kept per browser in `screener_ux_compare`); a tray at the bottom opens **Side by side**: composite and rank, eight category scores with bars and points (highest per row marked), metric coverage, trap flags, price vs mean target; then **where the composite gap comes from** - per-category point differences (plus a coverage-discount line only when one of the pair is discounted) that add up to the gap. Registered claim `compare.composite_gap`; payload checks in `test_calculation_reproducibility.py` |
 | **Workings CSV** | "Download as CSV" in The workings: composite from category points, each category from metric percentile x weight share, and every reported input. A browser test rebuilds the composite and a category from the file alone |
@@ -326,6 +368,11 @@ the `change` / `change_driver` / `flags` / `confidence` sentences lifted from
 `stock_detail[t]["summary"]`. Above it, a concentration line (names, sectors,
 largest sector share, count inside the top 25 and top 100, trap-flag count) -
 the honest half of "how much / does it fit", since the list holds no weights.
+
+**Changed 2026-10-16:** a saved ticker this run did not score is **kept** in storage and rendered last
+as an unscored card ("<T> is not in this run's ranking: it has left the S&P 500 or its data could not be
+fetched."), with its last rank where the history still carries one. Until then the read dropped it and
+the next write erased it. The fit and concentration lines read the scored names only. `DECISIONS.md` row 5.
 
 **Added 2026-09-17:** the `input_churn` sentence joined `HOLDINGS_FACTS`, and a
 cadence note now sits above the concentration line (see the two sections below).
