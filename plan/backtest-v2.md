@@ -112,12 +112,22 @@ share `cache/v2_metrics/`.
   data (`symbol_reused`); otherwise today's symbol stands and its as-of filings decide (holding-company
   reorganisations, stale CIKs in the revision). Rebuilt both eras and reran everything the same night.
 - **Coverage is the binding limit now:** 58% of members in 2012, 78% in 2019, 81% in 2020, 96% in
-  2025. Size's 2012-2019 IC tracks it (+0.033 where coverage is lowest, -0.004 where highest) - the
-  survivorship signature. The owner decided 2026-10-15 to use no paid data, so this gap is narrowed with free sources or stated, not bought.
+  2025. Survivorship is a plausible explanation of Size's 2012-2019 lead over the baseline, and this
+  data cannot separate it from the passage of time. The owner decided 2026-10-15 to use no paid data, so this gap is narrowed with free sources or stated, not bought.
+  *Corrected 2026-10-16 (audit).* This line said Size's IC "tracks" coverage (+0.033 in the
+  lowest-coverage third of months, -0.004 in the highest) and called that "the survivorship
+  signature". Coverage correlates **0.998** with the month index, so a coverage tercile is an era
+  tercile. Within 2012-2019 Size's monthly IC correlates with coverage no more than the baseline's
+  does (**-0.126 against -0.122**), and Size-minus-baseline against coverage is **r -0.08 (t -1.06)**
+  over 176 months and **+0.012** within 2012-2019. The test that could separate the two is the free
+  extended-universe rebuild queued in `plan/research-engine.md` (item 8d), with its prediction stated
+  there. Reproduce: `research/measurements/2026-10-16-coverage-by-month.json` with the ledger's
+  `ic_by_month`; `research_page.size_coverage_relation`.
 - **The research engine** (`v2_experiments.py`): 27 pre-registered experiments, 176 months, none
   distinguishable from the baseline; the baseline's own IC is ~0 in both eras; the look-ahead arm is
-  the positive control (t 4.71). Power: the smallest IC difference it can see at its bar is 0.066
-  (38 held-out months) and 0.039 (96 months of 2012-2019).
+  the positive control (t 4.71). Power: the smallest IC difference it can see at its bar is 0.070
+  (38 held-out months) and 0.040 (96 months of 2012-2019). *(Corrected 2026-10-16: 0.066 and 0.039
+  were on the normal curve; the bar is now Student's t, 3.35 at 38 months.)*
 
 ### What step 1 said was unmeasured (kept for the record)
 
