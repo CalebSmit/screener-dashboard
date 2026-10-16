@@ -11657,7 +11657,9 @@ run against each other - so it can be shown to people and trusted (a bot first, 
 ### Not done / next
 - No weight change and none proposed (rules 4, 5; and nothing passed).
 - Per-month CIKs for 2020-2026 (the reuse guard covers 2014-2019 only; IR 2020-01/02 is the known case).
-- Monday candidate: Risk's 10% - a defensive tilt to state, or a return claim the data does not support
-  (the low-risk screens were worst in both eras, never significant).
+- Risk's 10% checked from the ledger the same night: it lowers the top tenth's volatility (3.31% vs
+  3.51% a month 2012-2019; 4.79% vs 5.19% 2020-2026) at no measurable return cost - what the page
+  claims for it. No change.
+- Months of record to show an IC of 0.05 at t >= 3: ~85; of 0.03: ~236. Said in the note, section 5.
 - Survivorship is now v2's binding limit; the deferred delisted-price feed has a concrete use.
 

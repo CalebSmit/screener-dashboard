@@ -233,7 +233,14 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    eight months of daily logs away.** `tests/test_context_eval.py`. Nightly: nothing to do until
    November except keep the logs complete; then read the brief line monthly.
 6. **Track record hardening.** Prices for names that left the index (some tickers fail to download -
-   EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25); a turnover/cost
+   EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25). *Diagnosed
+   2026-10-15 (owner-run):* **four are renames** - the SEC CIK in `data/universe_history/ticker_ciks.json`
+   maps EQR->VMRK, BK->BNY, MMC->MRSH, SATS->ECHO, each priced under its new symbol (backtest v2's
+   `Inputs.current_symbol` is the same rule). The rest left the index (acquired); their prices at each
+   run are in `improvement/snapshots/*` as `price_at_scoring` (CTRA to 2026-07-28, EA to 07-29), which
+   would let a basket hold them to delisting instead of dropping them - label those as price return,
+   not total return. On 2026-10-15 the unpriced picks were q1 CTRA, EA, HOLX and q5 SATS; the top-25
+   basket had none; a turnover/cost
    estimate; whether RSP is the right benchmark after cap-weighted leadership; never list current
    holdings (the Model Portfolio decision, 2026-08-26).
 7. **Macro - Sahm DONE 2026-10-09 (owner-run):** the backdrop reads FRED's `SAHMREALTIME` (unemployment
