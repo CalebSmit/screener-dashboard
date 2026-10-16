@@ -1202,3 +1202,46 @@ def test_the_value_and_momentum_rerun_is_the_paper_s_table_on_big_companies(publ
     assert rows["corr_resid"]["paper"] == -0.53 and rows["sharpe_combo"]["paper"] == 0.63
     assert rows["corr_resid"]["here"] < 0                                 # the hedge is there, if milder
 
+
+# --------------------------------------------------------------------------- the 2026-10-16 audit
+def _open(pw, width: int = 1200):
+    """A chromium page at a width, collecting page errors; skips where no browser can start."""
+    try:
+        browser = pw.chromium.launch()
+    except Exception as exc:  # noqa: BLE001
+        pytest.skip(f"no usable chromium: {exc}")
+    page = browser.new_page(viewport={"width": width, "height": 900})
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    return browser, page, errors
+
+
+def _goto(page, exp_id: str) -> None:
+    page.goto(PAGE.as_uri() + "#" + exp_id, wait_until="load", timeout=60000)
+    page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE().id === '{exp_id}'", timeout=30000)
+
+
+def test_see_every_figure_scrolls_to_the_comparison_and_keeps_the_experiment():
+    """The verdict's "See every figure" link once rewrote the address to #x-against, which the
+    scene reader took for an unknown experiment: the overview replaced the page. It now scrolls to
+    the comparison and leaves the experiment, and its address, where they were."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                page.click(".verdict a[href='#x-against']")
+                assert page.evaluate("window.LAB_STATE().id") == exp["id"]
+                assert page.evaluate("location.hash") == "#" + exp["id"]
+                top = page.evaluate("document.getElementById('x-against').getBoundingClientRect().top")
+                assert -2 <= top < 900, (exp["id"], top)                     # in view (a scroll lands to the sub-pixel)
+            # the same address typed by hand is read the same way, and the scene's address comes back
+            last = fl.EXPERIMENTS[-1]["id"]
+            page.evaluate("location.hash = '#x-against'")
+            page.wait_for_function(f"location.hash === '#{last}'", timeout=10000)
+            assert page.evaluate("window.LAB_STATE().id") == last
+            assert errors == []
+        finally:
+            browser.close()
+

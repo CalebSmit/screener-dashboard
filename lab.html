@@ -195,6 +195,7 @@ pre { margin: 12px 0 0; padding: 14px; border: 1px solid var(--border); border-r
 footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); max-width: 80ch; }
 footer p { margin: 0 0 8px; }
 .next { margin-top: 28px; font-size: 14.5px; max-width: 72ch; }
+h3[id^="x-"] { scroll-margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -236,6 +237,7 @@ footer p { margin: 0 0 8px; }
     const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
     const seg = (id, label, items) => `<div><span class="ctl-label" id="l-${id}">${label}</span><div class="seg" role="group" aria-labelledby="l-${id}" id="c-${id}">${items}</div></div>`;
     let current = null;                                  // { id, settings(), result() } of the experiment on screen
+    let sceneHash = '';                                  // the address of the scene on screen
     window.LAB_STATE = () => current ? { id: current.id, settings: current.settings(), result: current.result() } : null;
 
     // ------------------------------------------------------------------ shared pieces
@@ -359,7 +361,8 @@ footer p { margin: 0 0 8px; }
     }
     function writeScene(id, S, ref) {
         const query = Object.keys(S).filter(k => S[k] !== ref[k]).map(k => k + '=' + encodeURIComponent(S[k] === null ? 'none' : S[k])).join('&');
-        try { history.replaceState(null, '', '#' + id + (query ? '?' + query : '')); } catch (e) { /* a sandboxed page may refuse; the scene still works */ }
+        sceneHash = '#' + id + (query ? '?' + query : '');
+        try { history.replaceState(null, '', sceneHash); } catch (e) { /* a sandboxed page may refuse; the scene still works */ }
     }
     const logTicks = (lo, hi) => { const out = []; for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) out.push([p, dollars(Math.pow(10, p))]);
         if (out.length < 2) { out.length = 0; [lo + (hi - lo) * .1, (lo + hi) / 2, hi - (hi - lo) * .1].forEach(v => out.push([v, dollars(Math.pow(10, v))])); }
@@ -1085,6 +1088,7 @@ footer p { margin: 0 0 8px; }
             return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}">${esc(x.tab || x.title)}</a>`).join('')}</div>` : ''; }).join('');
     function show() {
         const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
+        sceneHash = location.hash;
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
         if (i < 0) {
             current = overview(root.firstChild);
@@ -1108,7 +1112,30 @@ footer p { margin: 0 0 8px; }
         }
         tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === X.id ? 'page' : 'false'));
     }
-    window.addEventListener('hashchange', () => { show(); window.scrollTo(0, tabs.offsetTop - 12); });
+    // A link inside an experiment ("See every figure") points at a section of the page, not at a
+    // scene. Left to the browser it would rewrite the address to "#x-against", which the scene
+    // reader takes for an experiment it does not know and answers with the overview. So it
+    // scrolls to its section and leaves the address - and the scene in it - alone.
+    function toSection(id) {
+        const el = document.getElementById(id);
+        if (!el || D.experiments.some(x => x.id === id)) return false;
+        el.scrollIntoView({ block: 'start' });
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: true });
+        return true;
+    }
+    document.addEventListener('click', e => {
+        const a = e.target.closest ? e.target.closest('a[href^="#x-"]') : null;
+        if (a && toSection(a.getAttribute('href').slice(1))) e.preventDefault();
+    });
+    window.addEventListener('hashchange', () => {
+        const scene = parseScene();
+        if (scene.id !== 'overview' && toSection(scene.id)) {            // typed or pasted, the same rule,
+            try { if (sceneHash) history.replaceState(null, '', sceneHash); } catch (e) { /* the scene still works */ }
+            return;                                                      // and the address goes back to the scene
+        }
+        show(); window.scrollTo(0, tabs.offsetTop - 12);
+    });
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
