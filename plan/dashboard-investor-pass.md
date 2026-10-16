@@ -70,6 +70,13 @@ statement, never louder than the primary action.
   Quality, Risk, Across the factors) from a `group` field on each experiment record.
 - Header nav "Top 5" is "Leaders", matching its section.
 
+## Phase 5 - DONE 2026-10-15 (owner-run)
+
+- **Before you decide**: each card's research paragraph (`.ctx-why`) is clamped to three quiet lines and
+  opens on a select - the reading leads, the citations stay one click away (nothing removed).
+- **Rank history**: the "±N ranks" band label moved from inside the plot (where it sat on the line) to the
+  axis row between the two dates.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption

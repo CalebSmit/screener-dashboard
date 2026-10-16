@@ -3371,6 +3371,12 @@
         @media (max-width: 760px) { .mh-price { display: none; } }
 
         /* the sector heatmap speaks as quietly as the table: ink, not paint */
+        /* context cards: the reading first, the research clamped beneath it */
+        .ctx-why { font-size: 12.5px; line-height: 1.6; color: var(--text-muted); cursor: pointer;
+                   display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .ctx-why:hover { color: var(--text-secondary); }
+        .ctx-why.open { display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible; color: var(--text-secondary); }
+        .rank-chart .rc-band-label { fill: var(--text-muted); }
         .sm-table td.sm { background: none; font-weight: 500;
             color: color-mix(in srgb, var(--text-primary) calc(25% + var(--t) * 75%), var(--text-muted)); }
         .sec-meta.sec-meta-plain { color: var(--text-muted); }
@@ -7752,7 +7758,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (thr) {
             const y1 = Y(Math.max(lo, last[1] - thr)), y2 = Y(Math.min(hi, last[1] + thr));
             band = '<rect x="' + L + '" y="' + y1.toFixed(1) + '" width="' + iw + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '" class="rc-band"/>' +
-                   '<text x="' + (L + 6) + '" y="' + (y1 + 12).toFixed(1) + '" class="rc-band-label">&plusmn;' + thr + ' ranks: ordinary run-to-run variation</text>';
+                   // on the axis row, between the two dates: inside the plot it sat on the line (2026-10-15)
+                   '<text x="' + ((L + W - R) / 2).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="middle" class="rc-band-label">shaded: &plusmn;' + thr + ' ranks, ordinary run-to-run variation</text>';
         }
         const lx = X(last[0]), ly = Y(last[1]);
         return '<figure class="rank-chart" data-lo="' + lo + '" data-hi="' + hi + '">' +
@@ -8481,6 +8488,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
     }
     // The context file loads after the page is usable; until it lands, context surfaces say so.
+    // The research behind each context reading is kept, clamped to three lines and opened with a
+    // select (investor pass, 2026-10-15): the number leads, the citations stay one click away.
+    document.addEventListener('click', e => {
+        const p = e.target.closest && e.target.closest('.ctx-why');
+        if (p && !e.target.closest('a')) p.classList.toggle('open');
+    });
     let CTX_LOADED = false, CTX_FAILED = false;
     function loadContext(src) {
         reportingMeta();
