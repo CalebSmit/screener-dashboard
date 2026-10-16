@@ -3487,7 +3487,7 @@
         .ctx-card td:last-child { white-space: nowrap; padding-left: 12px; }
         /* tabular figures where they align - the value column - and normal figures in the label, which is prose:
            Inter's tabular setting widened every hyphen in "out-of-the-money" */
-        .ctx-table td:first-child, .ctx-fs { font-variant-numeric: normal; }
+        .ctx-table td:first-child, .ctx-fs, .rp-co { font-variant-numeric: normal; }
         .why-panel > summary { display: inline-flex; align-items: center; gap: 8px; }
         /* the Methodology dialog names the document in its header, so the document's own title, subtitle and
            rule are not repeated under it; the run's momentum reading is a quiet note, not body text */
@@ -8831,17 +8831,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (avgJ !== null) {
                 const jColor = avgJ >= 0.85 ? '#0ca30c' : avgJ >= 0.70 ? '#fab219' : '#e66767';
                 const jLabel = avgJ >= 0.85 ? 'Robust' : avgJ >= 0.70 ? 'Moderate' : 'Sensitive';
-                summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + jColor + '"></i>Stability: ' + jLabel + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
+                summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + jColor + '"></i>Stability ' + String(jLabel).toLowerCase() + ' (' + (avgJ * 100).toFixed(0) + '%)</span>';
             }
         }
         if (dq.eps_mismatch_count !== undefined) {
             const mColor = dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219';
-            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + mColor + '"></i>EPS Flags: ' + dq.eps_mismatch_count + '</span>';
+            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + mColor + '"></i>' + dq.eps_mismatch_count + ' EPS flags</span>';
         }
         if (dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined) {
             const cov = (dq.avg_metric_coverage * 100).toFixed(0);
             const cColor = dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : dq.avg_metric_coverage >= 0.60 ? '#fab219' : '#e66767';
-            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + cColor + '"></i>Data: ' + cov + '% complete</span>';
+            summaryHtml += '<span class="def-badge"><i class="def-dot" style="background:' + cColor + '"></i>Data ' + cov + '% complete</span>';
         }
         document.getElementById('defensibility-summary').innerHTML = summaryHtml;
 

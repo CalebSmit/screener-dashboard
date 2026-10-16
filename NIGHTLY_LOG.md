@@ -12005,3 +12005,52 @@ a measurement the note had not made, so measure before deciding. After that, 0.1
   question, because rule 5 correctly benches the backtest until 2027-02-11 and rule 4 benches the
   IC series. That is the right conservatism, but it means the project's central claim will stay
   unproven by construction until then. Worth deciding whether a day should point at it.
+
+## 2026-10-16 (owner-run, day) - the professional pass: copy, typography and system details on all three pages
+
+**Health (rule 8):** last code session ran? **yes** - `logs/nightly-2026-10-16_060001.log` (the retrospective)
+ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log`
+"Data loop complete", HEALTH: PASS. Evidence base at `1m` = **31 rows, newest 2026-09-16 (30 days, bound 40), 4
+effective**. Priority 0: `allow_auto_apply` **false**, 4 effective against 8. Top open roadmap item: **0.11, the
+context layer** (opened 2026-10-08, **age 8 days**) - not touched; the owner asked for this work.
+
+**Owner:** *"keep making ui/ux improvements please. Really go deep, like a professional front end designer would
+do. make it feel like a a professional did this. no signs of ai lanuage anywhere, or that it looks like it was
+vibe coded. It needs to be premium"*
+
+### Did
+Seven passes, each merged and tagged (`good/2026-10-16-owner-11` to `-17`), each with the full suite, the dry
+run, `node --check`, a clean tree and `scripts/rehearse_publish.py`. The record, item by item, is
+`plan/dashboard-investor-pass.md` "The professional pass".
+
+- **Started from an audit, not a guess**: every visible text node on the page and in a stock sheet, every focus
+  ring reached by Tab, every tap target at 375px, every glyph used as an icon.
+- **Copy (P1, P4, P5)**: about 50 page strings and the methodology document rewritten in one plain register; no
+  "X, not Y" reflex, no em-dash asides, one disclaimer location. The methodology's headings are statements, and
+  the whole document is typeset in one pass (`run_screener._typeset_md`): a spaced en dash for a dash, a true
+  minus in a formula, code untouched. The lab typesets what it draws the same way.
+- **Dates**: one reader-facing format ("Sep 16"), including the summary sentences (`stock_summary._fmt_day`).
+- **System (P2, P3, P6)**: 40px touch targets on touch screens, one focus ring (the filter fields had none
+  visible), selection colour, one disclosure chevron (five different glyphs before), one heading case, bars drawn
+  above their reference line, favicons on all three pages, non-breaking hyphens where tabular figures widened them.
+
+### Found on the way
+- **A false statement on the live page**: the Market backdrop said the screener "cuts momentum's weight when the
+  universe is turbulent and **raises it when calm**". Since 2026-10-12 the rule only cuts, and only in the panic
+  state. Fixed in `market_context.py`.
+- **A false statement in the methodology**: candidate metrics were ones "the self-improving engine may activate";
+  the engine may not change a weight (`allow_auto_apply` false since 2026-08-20). The opening also promised to
+  explain "its picks" and the summary asked which stocks "look best"; both framed the ranking as a recommendation.
+- **"62th", "2th", "3th percentile"** on the Market cards; the footer's fallback would have shown the reader's own
+  clock as the data time.
+- **My own process slip**: in P4 I ran the full suite, then added `tests/test_overview_typesetting.py`, ran only
+  that file and merged. The claims gate's membership tripwire failed on main for about 20 minutes until P5 added
+  the test to `scripts/check_published_claims.py`. **`good/2026-10-16-owner-14` therefore tags a commit with that
+  one failing test** (the page itself was unaffected). The tag is left in place rather than deleted; use
+  `good/2026-10-16-owner-15` or later as a rollback point. Recorded as a memory: gate 1 runs on the exact tree
+  being merged.
+
+### Live when
+The page changes are live now. The summary sentences, Market notes, history notes and weight-profile labels are
+built into the payload, so they change with the **2026-10-19 02:00** data run; the rehearsal checked them against
+the page tests and the claims gate.
