@@ -31,14 +31,23 @@ import os
 import shutil
 import stat
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from run_context import run_start_time  # noqa: E402 - the one "when did this run start"
+
 RUNS = ROOT / "runs"
 LOGS = ROOT / "logs"
 
 DEFAULT_KEEP_RUNS = 20
 DEFAULT_KEEP_LOGS = 60
+# A runs/ folder with no meta.json that nothing has written to for this long is a dry run or a
+# crashed run, not one in progress (a full run takes ~20 minutes to reach meta.json).
+HUSK_MIN_AGE_HOURS = 6
 
 # Never delete these, whatever the retention count says.
 PROTECTED_DIRS = {"improvement", "cache", "validation", "research", "plan", "prompts"}
@@ -104,9 +113,29 @@ def _remove_tree(d: Path) -> bool:
     return True
 
 
-def prune_runs(keep: int, dry: bool) -> tuple[int, int]:
+def _newest_write(d: Path) -> float:
+    """The latest mtime of the folder or anything in it - a run in progress keeps writing run.log."""
+    newest = d.stat().st_mtime
+    try:
+        for f in d.rglob("*"):
+            newest = max(newest, f.stat().st_mtime)
+    except OSError:
+        pass
+    return newest
+
+
+def _run_order_key(d: Path) -> datetime:
+    """Newest-first order for completed runs: ``meta.json`` ``start_time``, the same key
+    ``run_context.latest_run_dir`` uses, so the run the generator calls "latest" is always
+    inside the retention window. A ``meta.json`` without a readable start falls back to mtime."""
+    started = run_start_time(d)
+    return started if started is not None else datetime.fromtimestamp(d.stat().st_mtime)
+
+
+def prune_runs(keep: int, dry: bool, now: float | None = None) -> tuple[int, int]:
     if not RUNS.exists():
         return 0, 0
+    now = time.time() if now is None else now
     dirs = [d for d in RUNS.iterdir() if d.is_dir()]
 
     # Partition first. An emptied husk gets a FRESH mtime from the deletion
@@ -117,14 +146,26 @@ def prune_runs(keep: int, dry: bool) -> tuple[int, int]:
     # lost (runs/ is gitignored scratch and the evidence base lives in
     # improvement/), but the logic was wrong.
     #
-    # Empty directories are never worth keeping and are never counted against
-    # the retention budget.
-    populated, husks = [], []
+    # **Only a folder with meta.json is a run** (2026-10-16). `run_screener.py
+    # --dry-run` creates a folder holding config.yaml and run.log and exits
+    # before step 10 writes meta.json; so does any run that crashes early. Those
+    # are non-empty, so they used to count against the retention budget as if
+    # they were runs: on 2026-10-16 runs/ held 34 such husks and ONE real run,
+    # so a handful more dry runs would have evicted the newest real run - the
+    # one `generate_dashboard.py` regenerates from and `check_run_health.py`
+    # judges. A folder without meta.json never counts, and once nothing has
+    # written to it for HUSK_MIN_AGE_HOURS it is pruned (a full run writes its
+    # meta.json within the hour; a run in progress keeps writing run.log, so its
+    # folder is never old enough). Empty directories go immediately, as before.
+    runs, husks = [], []
     for d in dirs:
-        (populated if os.listdir(d) else husks).append(d)
+        if (d / "meta.json").exists():
+            runs.append(d)
+        elif not os.listdir(d) or (now - _newest_write(d)) > HUSK_MIN_AGE_HOURS * 3600:
+            husks.append(d)
 
-    populated.sort(key=lambda d: d.stat().st_mtime, reverse=True)
-    doomed = husks + populated[keep:]
+    runs.sort(key=_run_order_key, reverse=True)
+    doomed = husks + runs[keep:]
     freed = 0
     for d in doomed:
         if d.name in PROTECTED_DIRS:          # belt and braces
