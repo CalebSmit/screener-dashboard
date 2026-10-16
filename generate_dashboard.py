@@ -1779,7 +1779,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     </div>
                     <div class="chart-container" style="flex:0.5">
                         <div class="chart-title-row">
-                            <h3 class="chart-title" style="margin-bottom:0">Trap Rate by Sector</h3>
+                            <h3 class="chart-title" style="margin-bottom:0">Trap rate by sector</h3>
                             <div class="toggle-btns">
                                 <button class="toggle-btn active" id="btn-trap-vt" onclick="setTrapType('vt')">Value</button>
                                 <button class="toggle-btn" id="btn-trap-gt" onclick="setTrapType('gt')">Growth</button>
@@ -1807,12 +1807,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">How Stable Is the Ranking?</h3>
+                        <h3 class="chart-title">How stable is the ranking?</h3>
                         <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> A score of 0.85 or more means almost no change; below 0.70 means the ranking is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
                     <div class="chart-container" style="flex:1">
-                        <h3 class="chart-title">Are the Factors Independent?</h3>
+                        <h3 class="chart-title">Are the factors independent?</h3>
                         <p class="chart-desc">Spearman correlations between the 8 factor scores. <strong>Low values = independent signals.</strong> Shading deepens with the size of the correlation, and pairs above 0.7 are outlined: they are measuring similar things, which reduces the effective number of independent dimensions.</p>
                         <div id="correlation-heatmap"></div>
                     </div>
@@ -9743,6 +9743,16 @@ def _css_investor() -> str:
            beside the sentence-case "How it adds up" and "The workings"; uppercase stays for tile labels */
         #stock-modal .summary-title, #stock-modal .about-title { font-family: var(--font-body); font-size: 14px; font-weight: 600;
             letter-spacing: 0; text-transform: none; color: var(--text-primary); }
+        /* one segmented control: the analytics toggles were solid accent buttons in 11px caps-weight type
+           beside the quiet seg-control every other section uses */
+        .toggle-btns { border-radius: 8px; }
+        .toggle-btn { background: transparent; font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
+            letter-spacing: 0; padding: 5px 12px; }
+        .toggle-btn.active { background: var(--accent-glow); color: var(--accent-text); }
+        /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
+           filing dates in Before you decide) */
+        .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: none; }
+        .tr-caveats a:hover, #modal-context a:not([class]):hover { text-decoration: underline; text-underline-offset: 2px; }
         /* the composite card repeated the header's rank and composite word for word; the eight scores now
            open the sheet directly */
         #modal-score-row > .modal-score-card.composite { display: none; }
