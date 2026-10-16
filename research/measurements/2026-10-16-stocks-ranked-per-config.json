@@ -1,0 +1,338 @@
+{
+ "what": "How many stocks does each research-engine configuration actually rank? (2026-10-16 audit)",
+ "data": {
+  "data_hash": "d8cb038fff2b",
+  "stock_months": 67308
+ },
+ "configs": {
+  "baseline": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "equal-categories": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "only-valuation": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 318.1,
+    "mean_common_with_baseline": 318.1
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 429.6,
+    "mean_common_with_baseline": 429.6
+   }
+  },
+  "only-quality": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 325.9,
+    "mean_common_with_baseline": 325.9
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "only-growth": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 323.7,
+    "mean_common_with_baseline": 323.7
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 439.8,
+    "mean_common_with_baseline": 439.8
+   }
+  },
+  "only-momentum": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.1,
+    "mean_common_with_baseline": 327.1
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "only-risk": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 326.9,
+    "mean_common_with_baseline": 326.9
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.0,
+    "mean_common_with_baseline": 440.0
+   }
+  },
+  "only-size": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 318.4,
+    "mean_common_with_baseline": 318.4
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 429.7,
+    "mean_common_with_baseline": 429.7
+   }
+  },
+  "only-investment": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 325.9,
+    "mean_common_with_baseline": 325.9
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 439.6,
+    "mean_common_with_baseline": 439.6
+   }
+  },
+  "drop-valuation": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-quality": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-growth": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-momentum": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-risk": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-size": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "drop-investment": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "magic-formula": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 269.0,
+    "mean_common_with_baseline": 267.9
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 372.4,
+    "mean_common_with_baseline": 372.4
+   }
+  },
+  "piotroski-only": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 294.4,
+    "mean_common_with_baseline": 294.3
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 430.7,
+    "mean_common_with_baseline": 430.5
+   }
+  },
+  "profitability-and-value": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 326.1,
+    "mean_common_with_baseline": 324.6
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 436.0,
+    "mean_common_with_baseline": 435.9
+   }
+  },
+  "fcf-yield-only": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 212.5,
+    "mean_common_with_baseline": 212.5
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 348.1,
+    "mean_common_with_baseline": 348.0
+   }
+  },
+  "momentum-12-1-only": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 331.1,
+    "mean_common_with_baseline": 326.8
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 441.1,
+    "mean_common_with_baseline": 439.8
+   }
+  },
+  "low-volatility-only": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 331.4,
+    "mean_common_with_baseline": 326.9
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 441.5,
+    "mean_common_with_baseline": 440.0
+   }
+  },
+  "orthogonalised-categories": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "whole-market-percentiles": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 327.2,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 440.1,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "value-and-momentum": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 331.7,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 441.5,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "52-week-high": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 332.5,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 442.4,
+    "mean_common_with_baseline": 440.1
+   }
+  },
+  "profitability-and-low-volatility": {
+   "presample": {
+    "months": 96,
+    "mean_stocks": 331.8,
+    "mean_common_with_baseline": 327.2
+   },
+   "sample": {
+    "months": 80,
+    "mean_stocks": 441.5,
+    "mean_common_with_baseline": 440.1
+   }
+  }
+ },
+ "earnings_yield_vs_gross_profit_assets": {
+  "months": 176,
+  "raw_spearman_mean": 0.047,
+  "within_sector_percentile_corr_mean": 0.045
+ }
+}
