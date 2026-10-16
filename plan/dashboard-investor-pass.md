@@ -47,12 +47,25 @@ statement, never louder than the primary action.
 - **A defect the grid exposed and fixed**: Reporting, Market and Track drew their charts *before* the
   section opened, so they measured the width of the closed tile; they now open, then draw.
 
+## Phase 2 - DONE 2026-10-15 (owner-run)
+
+- **Rankings table, quiet heat**: no blue wash behind 4,000 score cells; each score's ink brightens with
+  its value (18% to 100% of the primary ink), so strengths read first and weaknesses recede; the
+  composite is the brightest column; rank change in quieter green and red.
+- **The stock sheet**: the eight-score panel moved above "Why it ranks here" (and its jump link first -
+  `tests/test_dashboard_navigation.py` pins the new order); the header adds the last price beside rank and
+  composite (not on a phone, where the header is full); the lead sentence larger, group labels in
+  sentence case.
+
+## Phase 3 - DONE 2026-10-15 (owner-run)
+
+- The sector heatmap and the factor-correlation grid use the same quiet ink as the table (the correlation
+  grid keeps a lighter wash and its outlines on pairs above 0.7).
+- "Top 5 Stocks" is "Leading the ranking" and "Full Universe Rankings" is "The full ranking", each with one
+  line saying what it holds and what selecting does.
+
 ## Next (in order)
 
-1. **Rankings table**: quieter heat (the category cells' blue wash competes with the composite), rank
-   change as a small muted chip, a clearer composite column, row hover; keep every number.
-2. **Drilldown header**: price, rank, composite and the eight-score profile at the top of the sheet,
-   before the narrative; the narrative's lead sentence set larger, its section labels quieter.
-3. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
+1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
    12.5), uppercase labels used only for tile labels, consistent 14px radii on panels.
 4. **research.html and lab.html** in the same voice as the front page (their bars and headers).
