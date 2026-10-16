@@ -1562,6 +1562,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <style>
 {_css_ux()}
 {_css_context()}
+{_css_investor()}
     </style>
 </head>
 <body>
@@ -1599,14 +1600,15 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="hero" aria-labelledby="hero-title">
             <div class="hero-text">
                 <p class="hero-eyebrow" id="hero-eyebrow">S&amp;P 500 &middot; daily run</p>
-                <h2 class="hero-title" id="hero-title">Factor rankings</h2>
-                <p class="hero-sub">Every stock scored on eight factors against its own sector, and every number behind each score one click away. A research and teaching tool, not investment advice.</p>
+                <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
+                <p class="hero-sub">Every company scored against its own sector on value, quality, growth, momentum, risk, analyst revisions, size and investment &mdash; with every number behind every score one click away.</p>
+                <p class="hero-note">Decision support for research and teaching. Not investment advice.</p>
             </div>
             <div class="hero-actions">
                 <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
                 <button type="button" class="hero-btn" onclick="openMethodology()">How it works</button>
-                <a class="hero-btn hero-link" href="research.html" title="The ranking tested on 2012-2026 history">Has it been tested?</a>
-                <a class="hero-btn hero-link" href="lab.html" title="The research behind the screener, rerun">Factor Lab</a>
+                <a class="hero-btn hero-link" href="research.html" title="The ranking tested on 2012-2026 history">Has it been tested? <span class="hl-arrow" aria-hidden="true">&rarr;</span></a>
+                <a class="hero-btn hero-link" href="lab.html" title="The research behind the screener, rerun">Factor Lab <span class="hl-arrow" aria-hidden="true">&rarr;</span></a>
             </div>
         </section>
 
@@ -1622,13 +1624,13 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
              per browser; reopened from the search palette. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores per stock.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Eight scores per company.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
                 <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The weights are a choice &mdash; the rankings&rsquo; Weighting menu shows the order with a Value, Growth or Momentum emphasis. The rank is a description of the numbers, not a verdict on the company.</div></li>
                 <li><span class="guide-n">3</span><div><strong>Every number is checkable.</strong> Open any stock to see the inputs, formulas and peers behind each score, and the arithmetic that adds them up.</div></li>
             </ol>
             <div class="guide-foot">
-                <span>A screening tool for research and teaching. Not investment advice.</span>
-                <button type="button" class="guide-close" onclick="dismissGuide()">Got it</button>
+                <span></span>
+                <button type="button" class="guide-close" onclick="dismissGuide()" aria-label="Hide this explanation">Hide</button>
             </div>
         </section>
 
@@ -1652,6 +1654,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             size of move, and it never asks for a cost basis. See the footnote
             copy in renderHoldings() for the sources.
         -->
+        <div class="sec-grid" id="sec-grid">
         <section class="section collapsible-section collapsed" id="sec-holdings">
             <div class="section-header" onclick="toggleSection('sec-holdings')">
                 <h2 class="section-title" style="margin:0">My Holdings <span class="holdings-count" id="holdings-count"></span></h2>
@@ -1683,6 +1686,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="section-header" onclick="toggleSection('sec-changed')">
                 <h2 class="section-title" style="margin:0">What Changed</h2>
                 <span class="sec-meta" id="meta-changed"></span>
+                <span class="sec-blurb">Who moved up and down the ranking, and which scores moved them.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1713,6 +1717,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="section-header" onclick="toggleSection('sec-reporting')">
                 <h2 class="section-title" style="margin:0">Reporting Soon</h2>
                 <span class="sec-meta" id="meta-reporting"></span>
+                <span class="sec-blurb">Earnings dates in the next two weeks, with the move options are pricing.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="reporting-body"></div></div>
@@ -1723,6 +1728,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="section-header" onclick="toggleSection('sec-market')">
                 <h2 class="section-title" style="margin:0">Market Backdrop</h2>
                 <span class="sec-meta" id="meta-market"></span>
+                <span class="sec-blurb">Rates, credit, volatility and jobs &mdash; context beside the scores, never in them.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="market-body"></div></div>
@@ -1733,6 +1739,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="section-header" onclick="toggleSection('sec-track')">
                 <h2 class="section-title" style="margin:0">Track Record</h2>
                 <span class="sec-meta" id="meta-track"></span>
+                <span class="sec-blurb">How the ranking&rsquo;s top names have actually done since each run.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="track-body"></div></div>
@@ -1743,6 +1750,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="section-header" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor Analytics</h2>
                 <span class="sec-meta">Sector &times; factor scores &middot; trap rates by sector</span>
+                <span class="sec-blurb">How each sector scores on each factor, and where trap flags cluster.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1780,6 +1788,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <h2 class="section-title" style="margin:0">Defensibility &amp; Diagnostics</h2>
                     <div class="defensibility-summary" id="defensibility-summary"></div>
                 </div>
+                <span class="sec-blurb">Would small changes to the weights reshuffle the top? Do two factors measure the same thing?</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1801,6 +1810,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         </section>
 
         <!-- Full Universe Table -->
+        </div>
+
         <section class="section collapsible-section" id="sec-universe">
             <div class="section-header" onclick="toggleSection('sec-universe')">
                 <h2 class="section-title" style="margin:0">Full Universe Rankings</h2>
@@ -2187,7 +2198,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const n = k.universe_size || 0;
         const pct = v => n ? Math.round(v / n * 100) + '%' : '';
         // 1. what was ranked
-        const cards = [kpiCard('Ranked this run', n, 'S&amp;P 500 stocks, on 8 factors')];
+        const cards = [kpiCard('Ranked this run', n, 'S&amp;P 500 companies, on eight factors')];
         // 2. what moved - the time dimension, if this run has comparable history
         const mvKey = (H && H.movers) ? (H.movers.m1 ? 'm1' : (H.movers.prev ? 'prev' : null)) : null;
         if (mvKey && H.compare && H.compare[mvKey]) {{
@@ -2197,17 +2208,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }} else {{
             cards.push(kpiCard('Average composite', fmt(k.avg_composite, 'score'), 'across the universe'));
         }}
-        // 3. caveats on the list
-        cards.push(kpiCard('Trap flags', `${{k.value_traps}} <span class="kpi-sep">/</span> ${{k.growth_traps || 0}}`,
-            `value / growth &middot; ${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks`));
-        // 4. how this run was weighted
+        // 3. how the ranking has done - the track record lives in the context file, which lands
+        //    after the page is usable; the tile says so until it does (fillTrackKpi)
+        cards.push(kpiCard('Track record', '<span id="kpi-track-v">&hellip;</span>',
+            '<span id="kpi-track-s">the top 25 against the equal-weight S&amp;P 500</span>', 'kpi-track'));
+        // 4. caveats on the list, or how this run was weighted when the regime rule moved it
         const fw = (D.weights || {{}}).factor_weights || {{}}, bw = (D.weights || {{}}).base_factor_weights || {{}};
         if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {{
             cards.push(kpiCard('Momentum weight', fmtWeight(fw.momentum),
                 `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the momentum regime rule this run`));
         }} else {{
-            cards.push(kpiCard('Metric coverage', (D.data_quality && D.data_quality.avg_metric_coverage != null)
-                ? (D.data_quality.avg_metric_coverage * 100).toFixed(0) + '%' : '&mdash;', 'of applicable metrics, on average'));
+            cards.push(kpiCard('Trap flags', `${{k.value_traps}} <span class="kpi-sep">/</span> ${{k.growth_traps || 0}}`,
+                `value / growth &middot; ${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks`));
         }}
         const html = cards.join('');
         document.getElementById('kpi-row').innerHTML = html;
@@ -2233,8 +2245,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         sec.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
     }}
 
-    function kpiCard(label, value, sub) {{
-        return `<div class="kpi-card">
+    function kpiCard(label, value, sub, id) {{
+        return `<div class="kpi-card"${{id ? ' id="' + id + '"' : ''}}>
             <div class="kpi-label">${{label}}</div>
             <div class="kpi-value">${{value}}</div>
             <div class="kpi-sub">${{sub}}</div>
@@ -2276,12 +2288,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }};
 
         document.getElementById('top5-row').innerHTML = top5.map((h, i) => {{
+            // A profile read left to right: eight columns on one 0-100 scale, the value printed
+            // under each, a faint line at 50 (typical for the sector).
             const cells = catKeys.map(c => {{
                 const val = h[c] || 0;
-                return `<div class="top5-factor">
-                    <span class="top5-factor-label">${{catLabels[c]}}</span>
-                    <span class="top5-factor-val">${{fmt(val,'score')}}</span>
-                    <div class="top5-factor-bar"><div class="top5-factor-fill" style="width:${{val}}%"></div></div>
+                return `<div class="t5-col" title="${{catLabels[c]}} ${{fmt(val,'score')}}">
+                    <div class="t5-track"><div class="t5-fill${{val >= 70 ? ' hi' : ''}}" style="height:${{Math.max(2, val)}}%"></div></div>
+                    <span class="t5-v">${{Math.round(val)}}</span>
+                    <span class="t5-l">${{catLabels[c]}}</span>
                 </div>`;
             }}).join('');
 
@@ -2294,7 +2308,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     </div>
                     <div class="top5-score"><span class="top5-composite">${{fmt(h.composite,'score')}}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
-                <div class="top5-factors">${{cells}}</div>
+                <div class="t5-profile" aria-label="Category scores">${{cells}}</div>
             </div>`;
         }}).join('');
     }}
@@ -9457,8 +9471,9 @@ def _js_context() -> str:
     (function wrapReporting() {
         const _ts = toggleSection;
         toggleSection = function(id) {
+            const out = _ts.apply(this, arguments);
             if (id === 'sec-reporting' && !RP_DONE) { RP_DONE = true; renderReporting(); }
-            return _ts.apply(this, arguments);
+            return out;
         };
     })();
 
@@ -9478,6 +9493,15 @@ def _js_context() -> str:
             const tot = T.total || {};
             const f = v => (v === null || v === undefined) ? '-' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
             mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal-weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
+            const kv = document.getElementById('kpi-track-v'), ks = document.getElementById('kpi-track-s');
+            if (kv && ks) {
+                kv.textContent = f(tot.top);
+                ks.textContent = 'top 25 since ' + cDate(T.start) + ', against ' + f(tot.RSP) + ' for the equal-weight S&P 500';
+                const card = document.getElementById('kpi-track');
+                if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
+                    card.onclick = () => goToSection('sec-track');
+                    card.onkeydown = e => { if (e.key === 'Enter') goToSection('sec-track'); }; }
+            }
         }
     }
     // The context file loads after the page is usable; until it lands, context surfaces say so.
@@ -9504,7 +9528,8 @@ def _js_context() -> str:
                 if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
             });
         };
-        el.onerror = () => { CTX_FAILED = true; CTX_LOADED = true; initContext(); };
+        el.onerror = () => { CTX_FAILED = true; CTX_LOADED = true; initContext();
+            const kv = document.getElementById('kpi-track-v'); if (kv) kv.textContent = 'not loaded'; };
         document.body.appendChild(el);
     }
 
@@ -9515,14 +9540,114 @@ def _js_context() -> str:
         initContext.wrapped = true;
         const _ts = toggleSection;
         toggleSection = function(id) {
+            const out = _ts.apply(this, arguments);
             if (id === 'sec-market' && !MK_DONE) { MK_DONE = true; renderMarket(); }
             if (id === 'sec-track' && !TR_DONE) { TR_DONE = true; renderTrack(); }
-            return _ts.apply(this, arguments);
+            return out;
         };
         const sel = document.getElementById('filter-ctx');
         if (sel) sel.addEventListener('change', applyFilters);
     }
 """
+
+
+def _css_investor() -> str:
+    """The investor pass (2026-10-15, owner: "make it look really nice and expensive ... guide the
+    users' eyes"). Presentation only: no number, rank or sentence changes. Emitted last, so at equal
+    specificity it wins. ``plan/dashboard-investor-pass.md`` records what changed and why."""
+    return """
+        /* ---- HERO: one statement, one primary action ---- */
+        .hero { padding: 44px 0 28px; align-items: flex-end; }
+        .hero-eyebrow { color: var(--text-muted); letter-spacing: .08em; }
+        .hero-title { font-size: 40px; font-weight: 650; letter-spacing: -.03em; line-height: 1.08; max-width: 18ch; text-wrap: balance; }
+        .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
+        .hero-note { margin: 8px 0 0; font-size: 13px; color: var(--text-muted); }
+        .hero-actions { align-items: center; gap: 10px; }
+        .hero-btn { height: 40px; padding: 0 18px; border-radius: 10px; }
+        a.hero-link { background: transparent; border-color: transparent; color: var(--text-secondary); padding: 0 10px; }
+        a.hero-link:hover { color: var(--text-primary); border-color: transparent; background: var(--bg-card); }
+        .hl-arrow { margin-left: 6px; transition: transform var(--t-fast) ease-out; }
+        a.hero-link:hover .hl-arrow { transform: translateX(2px); }
+        @media (max-width: 760px) {
+            .hero { padding: 24px 0 18px; }
+            .hero-title { font-size: 28px; }
+            .hero-sub { font-size: 14.5px; }
+            a.hero-link { background: var(--bg-card); border-color: var(--border); }
+        }
+
+        /* ---- AT A GLANCE ---- */
+        .kpi-row { gap: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg-card); }
+        .kpi-row .kpi-card { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 20px 24px; }
+        .kpi-row .kpi-card + .kpi-card { border-left: 1px solid var(--border); }
+        .kpi-label { letter-spacing: .06em; }
+        .kpi-value { font-size: 30px; font-weight: 600; }
+        .kpi-card.kpi-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
+        .kpi-card.kpi-link:hover { background: var(--bg-card-hover); }
+        @media (max-width: 760px) {
+            .kpi-row .kpi-card { padding: 14px 16px; }
+            .kpi-row .kpi-card + .kpi-card { border-left: 0; }
+            .kpi-row .kpi-card:nth-child(even) { border-left: 1px solid var(--border); }
+            .kpi-row .kpi-card:nth-child(n+3) { border-top: 1px solid var(--border); }
+            .kpi-value { font-size: 24px; }
+        }
+
+        /* ---- THE GUIDE: three plain statements, no tutorial furniture ---- */
+        .guide { background: transparent; border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                 border-radius: 0; padding: 18px 0 14px; box-shadow: none; }
+        .guide-steps { gap: 28px; }
+        .guide .guide-n { display: none; }
+        .guide-steps li { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+        .guide-steps li strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; font-size: 13.5px; }
+        .guide-foot { border-top: 0; padding-top: 10px; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+        .guide-close { background: transparent; border: 0; color: var(--text-muted); font-size: 12.5px; padding: 4px 0; height: auto; }
+        .guide-close:hover { color: var(--text-primary); background: transparent; }
+
+        /* ---- TOP 5: the eight scores as one profile ---- */
+        .top5-row { gap: 12px; }
+        .top5-card { border-radius: 14px; padding: 18px 18px 14px; transition: border-color var(--t-fast) ease-out, transform var(--t-fast) ease-out; }
+        .top5-card:hover { transform: translateY(-1px); }
+        .top5-ticker { font-size: 22px; letter-spacing: -.02em; }
+        .top5-composite { font-size: 30px; letter-spacing: -.03em; }
+        .t5-profile { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .t5-col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
+        .t5-track { position: relative; height: 46px; border-radius: 3px; background: var(--bg-elevated); overflow: hidden; }
+        .t5-track::after { content: ''; position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: var(--border-bright); opacity: .7; }
+        .t5-fill { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 2px 2px 0 0; }
+        .t5-fill.hi { background: var(--accent); }
+        .t5-v { margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; }
+        .t5-l { font-size: 10px; color: var(--text-muted); text-align: center; letter-spacing: .02em; }
+        @media (max-width: 760px) {
+            /* five cards in a row you swipe, not five screens you scroll */
+            .top5-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 2px 16px 10px;
+                        scrollbar-width: none; }
+            .top5-row::-webkit-scrollbar { display: none; }
+            .top5-card { flex: 0 0 84%; scroll-snap-align: start; }
+        }
+
+        /* ---- THE SECTIONS: tiles that state their headline number ---- */
+        .sec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 8px 0 36px; }
+        .sec-grid > .collapsible-section { margin: 0; padding: 0 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card);
+                                           transition: border-color var(--t-fast) ease-out, background var(--t-fast) ease-out; min-width: 0; }
+        .sec-grid > .collapsible-section.collapsed:hover { border-color: var(--border-bright); background: var(--bg-card-hover); }
+        .sec-grid > .collapsible-section:not(.collapsed), .sec-grid > #sec-holdings { grid-column: 1 / -1; }
+        .sec-grid .section-header { flex-wrap: wrap; align-items: center; row-gap: 6px; border-bottom: 0; padding: 18px 0; }
+        .sec-grid .section-header .section-title { flex: 1 1 auto; font-size: 16px !important; }
+        .sec-grid .section-header .section-chevron { order: 2; }
+        .sec-grid .sec-meta { order: 3; flex: 1 0 100%; display: block; margin: 0; font-size: 14px; color: var(--text-primary); font-variant-numeric: tabular-nums;
+                              white-space: normal; }
+        .sec-grid .sec-meta:empty { display: none; }
+        .sec-blurb { display: none; }
+        .sec-grid .sec-blurb { order: 4; flex: 1 0 100%; display: block; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+        .sec-grid .collapsible-section:not(.collapsed) .sec-blurb { display: none; }
+        .sec-grid .collapsible-section:not(.collapsed) .section-header { border-bottom: 1px solid var(--border); }
+        .sec-grid .defensibility-header-left { flex: 1 1 0; min-width: 0; }
+        @media (max-width: 760px) {
+            .sec-grid { grid-template-columns: 1fr; gap: 10px; }
+            .sec-grid > .collapsible-section { padding: 0 16px; }
+            .sec-grid .sec-meta { display: block; font-size: 13.5px; }
+            .sec-grid .section-header { padding: 15px 0; }
+        }
+    """
 
 
 def _css_context() -> str:
