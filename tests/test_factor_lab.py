@@ -905,7 +905,7 @@ def test_the_methodology_links_each_category_to_its_experiments():
     for c in fl.CATEGORY_MAP:
         name = {"revisions": "Analyst Revisions"}.get(c["key"], c["category"])
         if c["experiments"]:
-            part = re.search(re.escape(name) + r" - (.*?)(?:; [A-Z]|\. Growth)", para)
+            part = re.search(re.escape(name) + r" [-–] (.*?)(?:; [A-Z]|\. Growth)", para)
             assert part, name
             assert set(re.findall(r"lab\.html#([a-z-]+)\)", part.group(1))) == set(c["experiments"]), name
         else:

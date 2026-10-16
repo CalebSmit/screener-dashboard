@@ -194,7 +194,7 @@ def test_the_configured_thresholds_are_the_pre_registered_ones(cfg):
 
 def test_the_overview_states_the_rule_the_engine_applies(cfg):
     text = run_screener.build_screener_overview(cfg)
-    para = next(l for l in text.splitlines() if l.startswith("**Momentum regime rule - currently on.**"))
+    para = next(l for l in text.splitlines() if l.startswith("**Momentum regime rule – currently on.**"))
     for must in ("past 24 months is negative", "past 126 trading days is above 20.6% a year",
                  "multiplied by 0.70", "split equally between Quality and Valuation",
                  "never raises Momentum's weight", "33 of 442 month-ends (7.5%)",

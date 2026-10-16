@@ -282,7 +282,7 @@ def test_overview_states_the_coverage_discount_from_config(generated_overview, c
         pytest.skip("coverage discount disabled in config")
     threshold = int(cov["threshold"] * 100)
     rate = int(cov["penalty_rate"] * 100)
-    assert "coverage discount described under Data Quality Safeguards" in generated_overview
+    assert "coverage discount described under Data quality safeguards" in generated_overview
     assert f"a stock below {threshold}% metric coverage" in generated_overview
     assert f"{rate}%" in generated_overview
 

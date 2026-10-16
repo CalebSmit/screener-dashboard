@@ -16,6 +16,7 @@ import copy
 import csv
 import logging
 import math
+import re
 import shutil
 import sys
 import time
@@ -288,7 +289,7 @@ def build_screener_overview(cfg: dict) -> str:
         f" One adjustment is applied after that weighted average: a stock below "
         f"{_cov_thr}% metric coverage has its composite multiplied by "
         f"`1 - (({_cov_thr}% - coverage) x {_cov_rate}%)` - the coverage discount "
-        f"described under Data Quality Safeguards below - so for those stocks the "
+        f"described under Data quality safeguards below - so for those stocks the "
         f"composite sits slightly below the sum of the category contributions. "
         f"**\"Coverage\" here means the share of the metrics that carry weight "
         f"in that stock's score** - {len(_w_bank)} for a bank-like stock and "
@@ -415,7 +416,7 @@ def build_screener_overview(cfg: dict) -> str:
         redist_to = pio.get("redistribute_to", [])
         redist_labels = [_METRIC_LABELS.get(m, m) for m in redist_to]
         reduction_pct = int(reduction * 100)
-        pio_text = f"""## Piotroski Conditional Weighting
+        pio_text = f"""## Piotroski conditional weighting
 
 The Piotroski F-Score is a broad checklist of financial health signals — but its predictive power varies depending on how expensive a stock is. For cheap stocks (high valuation score), the F-Score is highly predictive: it separates genuinely undervalued companies from deteriorating ones. For expensive stocks (low valuation score), the F-Score is less informative because the market has already priced in quality.
 
@@ -426,7 +427,7 @@ Bank-like stocks are unaffected — their quality weights are already tailored.
 ---
 """
     else:
-        pio_text = """## Piotroski Conditional Weighting
+        pio_text = """## Piotroski conditional weighting
 
 Currently **disabled**. The Piotroski F-Score weight is applied uniformly regardless of valuation score.
 
@@ -481,23 +482,23 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     max_workers = fetch.get("max_workers", 3)
     inter_batch_delay = fetch.get("inter_batch_delay", 3.0)
 
-    md = f"""# Multi-Factor Stock Screener — How It Works
+    md = f"""# How the screener works
 
-**A plain-language guide to what the screener does, why it does it, and how it arrives at its picks.**
-
----
-
-## What Is This?
-
-This is a quantitative stock screener. It takes every company in the S&P 500 (roughly 500 stocks), measures each one across up to {n_total} financial metrics, combines those measurements into a single composite score (0-100), and ranks the entire universe from best to worst.
-
-Not every stock sees all {n_total} metrics. The screener uses {n_generic} generic metrics for most stocks and a separate set of {n_bank_only} bank-specific metrics for financial companies (banks, insurers, credit companies). In practice, any individual stock is scored on about {n_generic} metrics — the set just differs depending on whether the company is a bank or not. The full metric registry (`METRIC_COLS`) has {n_registry} entries: {n_total} carry scoring weight today ({n_generic} generic + {n_bank_only} bank-specific) plus {n_candidate} candidate metrics held at weight 0 that the self-improving engine may activate if they demonstrate predictive power.
-
-The core idea: no single number tells you whether a stock is a good investment. A stock can look cheap but be cheap for a reason (declining business, high risk). By scoring across multiple independent dimensions — {', '.join(factor_labels[f] for f in active_factors).lower()} — the screener surfaces companies that are strong across the board, not just on one axis.
+**What the screener measures, how it scores and ranks the S&P 500, and why each choice was made.**
 
 ---
 
-## Where Does the Data Come From?
+## Overview
+
+The screener scores every company in the S&P 500 (about 500 stocks) on up to {n_total} financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.
+
+No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones, so each stock is scored on about {n_generic}. The full metric registry (`METRIC_COLS`) has {n_registry} entries: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
+
+No single number describes a company well: a low price can reflect a declining business or high risk. Scoring {', '.join(factor_labels[f] for f in active_factors).lower()} separately favours companies that are strong on several of them at once.
+
+---
+
+## Data sources
 
 All data is pulled from **Yahoo Finance** via the `yfinance` Python library. For each stock, the screener fetches:
 
@@ -512,9 +513,9 @@ Data is fetched in batches of {batch_size} tickers with {max_workers} concurrent
 
 ---
 
-## The {n_factors} Factor Categories
+## The {n_factors} factor categories
 
-Every stock is evaluated in {n_factors} categories. Each category captures a different dimension of investment merit.
+Every stock is scored in {n_factors} categories, each measuring a different aspect of the business or its stock.
 
 **Rerun the research.** The [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html) reruns published studies behind these categories on public data and shows how far each rerun lands from its paper: Valuation - [earnings yield](https://calebsmit.github.io/screener-dashboard/lab.html#earnings-yield), [cash-flow yield](https://calebsmit.github.io/screener-dashboard/lab.html#cash-flow-yield), [value and momentum together](https://calebsmit.github.io/screener-dashboard/lab.html#value-and-momentum), [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors), [among large companies](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small), [in the largest fifth](https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth); Quality - [profitability](https://calebsmit.github.io/screener-dashboard/lab.html#profitability), [accruals](https://calebsmit.github.io/screener-dashboard/lab.html#accruals), [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors), [among large companies](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small); Momentum - [risk-managed momentum](https://calebsmit.github.io/screener-dashboard/lab.html#risk-managed-momentum), [momentum crashes](https://calebsmit.github.io/screener-dashboard/lab.html#momentum-crashes), [value and momentum together](https://calebsmit.github.io/screener-dashboard/lab.html#value-and-momentum), [among large companies](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small), [in the largest fifth](https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth); Risk - [volatility](https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility), [market beta](https://calebsmit.github.io/screener-dashboard/lab.html#market-beta); Size - [the size effect](https://calebsmit.github.io/screener-dashboard/lab.html#size-effect), [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors); Investment - [the five factors](https://calebsmit.github.io/screener-dashboard/lab.html#five-factors), [among large companies](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small). Growth and Analyst Revisions have nothing there yet, and the lab's front page says why.
 
@@ -528,13 +529,13 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(val_w, _VAL_DESCRIPTIONS)}
 
-**Bank-like stocks** use a different weight set (see [Bank-Specific Scoring](#bank-specific-scoring) below):
+**Bank-like stocks** use a different weight set (see [bank-specific scoring](#bank-specific-scoring) below):
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
 {_metric_table(val_bank_w, _VAL_DESCRIPTIONS)}
 
-**Why these?** Traditional P/E ratios are distorted by capital structure, one-time charges, and accounting choices. Enterprise value-based metrics strip away those distortions. FCF Yield gets the heaviest weight because cash flow is the hardest number for management to manipulate — it's cash in the door. For banks, EV-based metrics are meaningless (deposits are both liabilities and the core business), so P/B replaces them.
+**Rationale.** Traditional P/E ratios are distorted by capital structure, one-time charges, and accounting choices. Enterprise value-based metrics strip away those distortions. FCF Yield gets the heaviest weight because cash flow is the hardest number for management to manipulate — it's cash in the door. For banks, EV-based metrics are meaningless (deposits are both liabilities and the core business), so P/B replaces them.
 
 **Among large companies.** The value premium of the textbooks is mostly a small-company result. Sorted on book value against price, the largest fifth of US stocks earned 3.7% a year more at the high end than at the low end over 1926-2011 and 2.2% after adjusting for market risk, neither reliably different from zero (Israel & Moskowitz 2013); of a large-company premium on that measure, Asness, Frazzini, Israel & Moskowitz (2015) write "Perhaps there never was." Two findings in the same papers bear on this category. Measures built on earnings and cash flow produced larger premia among the largest stocks than book value did, and those are the measures weighted here; book value carries no weight outside banks. And among the largest stocks nearly all of the premium came from the high-value group running ahead of the market rather than the low-value group falling behind it, which is the part a holder who shorts nothing keeps. The [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small) reruns the split between small and large companies; `research/2026-10-12-value-and-momentum-among-large-companies.md` has the review.
 
@@ -556,7 +557,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(qual_bank_w, _QUAL_DESCRIPTIONS)}
 
-**Why these?** A cheap stock is only a good investment if the underlying business is sound. ROIC is the single best measure of business quality — the ROIC formula deducts only *excess* cash (cash beyond 2% of revenue) from invested capital, preventing cash-rich companies like AAPL or GOOG from showing artificially inflated returns. For banks, ROIC is meaningless (invested capital = deposits + equity), so ROE and ROA replace it. The Piotroski F-Score catches deteriorating businesses by checking 9 binary signals about whether profitability, leverage, and efficiency are improving or declining. Accruals catch companies whose reported earnings aren't backed by real cash.
+**Rationale.** A cheap stock is only a good investment if the underlying business is sound. ROIC is the single best measure of business quality — the ROIC formula deducts only *excess* cash (cash beyond 2% of revenue) from invested capital, preventing cash-rich companies like AAPL or GOOG from showing artificially inflated returns. For banks, ROIC is meaningless (invested capital = deposits + equity), so ROE and ROA replace it. The Piotroski F-Score catches deteriorating businesses by checking 9 binary signals about whether profitability, leverage, and efficiency are improving or declining. Accruals catch companies whose reported earnings aren't backed by real cash.
 
 ---
 
@@ -568,7 +569,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(grow_w, _GROWTH_DESCRIPTIONS)}
 
-**Why these?** Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). Revenue growth and the three-year revenue CAGR measure what has already happened, at two horizons. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up. The PEG ratio is computed and shown but carries no weight: it divides a valuation by a growth rate, so it would count Valuation a second time inside Growth.
+**Rationale.** Forward EPS Growth gets the most weight because it's forward-looking (the market prices in the future, not the past). Revenue growth and the three-year revenue CAGR measure what has already happened, at two horizons. Sustainable Growth acts as a sanity check — if a company is growing faster than its sustainable rate, it may need external financing to keep it up. The PEG ratio is computed and shown but carries no weight: it divides a valuation by a growth rate, so it would count Valuation a second time inside Growth.
 
 **What the research says, and what this category does.** Growth is the one category here with no published return premium behind it. Index providers treat growth as a *style* - a description of what kind of company this is - not as a factor that has been rewarded: MSCI's factor research sets it aside as one that has not earned a premium over long periods, and MSCI's and S&P's multi-factor indexes are built without it. The studies nearest these metrics are flat to negative. Companies with the fastest past sales growth went on to earn less, including among large companies at the same valuation (Lakonishok, Shleifer & Vishny 1994); earnings growth does not persist beyond chance (Chan, Karceski & Lakonishok 2003); and analysts' one-year growth forecasts added nothing once momentum, revisions and earnings surprises were counted (Da & Warachka 2011). What the category does in this screener is act as a counterweight: fast-growing companies tend to score lower on Valuation, Investment and Size, so Growth's {fw.get('growth', 0)}% offsets part of the pull of those categories toward companies that are not growing. Read a high Growth score as a description of the company, not as evidence about its return. The full review is `research/2026-10-12-growth-category.md`.
 
@@ -584,7 +585,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(mom_w, _MOM_DESCRIPTIONS)}
 
-**Why these?** Decades of academic research (Jegadeesh & Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal — the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.
+**Rationale.** Decades of academic research (Jegadeesh & Titman, 1993) show that stocks that have gone up tend to keep going up over 3-12 month horizons. The skip-month convention (excluding the most recent month) is the standard academic momentum signal — the last month is excluded because very recent winners tend to experience a brief pullback. Both metrics use calendar-based date targeting instead of fixed index offsets, which ensures consistent lookback periods regardless of holidays or trading day variations.
 
 **Among large companies, and lately.** In the published record momentum is the factor that holds up best in the largest stocks: in the largest fifth of US stocks, past winners beat past losers by 7.5% a year over 1927-2011 (Israel & Moskowitz 2013). Only about 38% of the risk-adjusted gap came from winners running ahead of the market; the rest was losers falling behind it, which a holder who shorts nothing does not collect. The years since 2000 are weaker than anything those studies cover. On the public data the [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small) uses, momentum among big companies averaged about 0.6% a month from 1963 to 1999 and about 0.1% a month since 2000 - the lowest stretch of that length in the record - and about 0.3% a month since 2000 outside the panic state the rule below watches for. So this category's weight rests on the long record, on how well momentum has combined with value (Asness, Frazzini, Israel & Moskowitz 2015), and on its place in MSCI's and S&P's factor sets - not on the last quarter-century. `research/2026-10-12-value-and-momentum-among-large-companies.md` has the review.
 
@@ -600,7 +601,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(risk_w, _RISK_DESCRIPTIONS)}
 
-**Why these?** All else equal, less volatile stocks are preferable — the "low volatility anomaly": over long periods, more volatile and higher-beta stocks have not earned reliably more than calmer ones, so the extra risk has not been paid for. Rerun on public data in the Factor Lab ([volatility](https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility), [market beta](https://calebsmit.github.io/screener-dashboard/lab.html#market-beta)), that form of the result holds. The stronger claim sometimes made - that volatile stocks earn much less - shows up mainly among small, extremely volatile stocks, which this screener does not rank. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are *dispersion* measures: they describe how much a stock moves, not how well it did.
+**Rationale.** All else equal, less volatile stocks are preferable — the "low volatility anomaly": over long periods, more volatile and higher-beta stocks have not earned reliably more than calmer ones, so the extra risk has not been paid for. Rerun on public data in the Factor Lab ([volatility](https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility), [market beta](https://calebsmit.github.io/screener-dashboard/lab.html#market-beta)), that form of the result holds. The stronger claim sometimes made - that volatile stocks earn much less - shows up mainly among small, extremely volatile stocks, which this screener does not rank. Volatility measures total risk, Beta measures systematic risk, and Max Drawdown captures worst-case loss — a stock that drops 50% needs a 100% gain to recover. All three are *dispersion* measures: they describe how much a stock moves, not how well it did.
 
 **Why not Sharpe and Sortino?** They were scored here until 2026-09-02, at 15% each. Both are `(12-month return − risk-free rate) ÷ some measure of dispersion`, so they share their numerator with the momentum signal. Across the S&P 500 the spread in returns is far wider than the spread in volatility, so the numerator dominates: measured on the published payload, Sharpe correlates **+0.944** with the 12-1 month return but only **+0.025** with volatility. Scoring them inside Risk meant a stock was rated safer because it had gone up — which pushed the Risk and Momentum category scores to a **+0.516** correlation, the highest of any pair in the screener. Removing them drops that to **+0.150**. Both ratios are still computed and shown on each stock's detail page; they are simply no longer scored as risk. See `METHODOLOGY_CHANGELOG.md` 2026-09-02.
 
@@ -616,7 +617,7 @@ Every stock is evaluated in {n_factors} categories. Each category captures a dif
 |--------|--------|-----------------|
 {_metric_table(rev_w, _REV_DESCRIPTIONS)}
 
-**Why these?** Estimate revisions and analyst targets are among the most powerful short-term return predictors. **{rev_heaviest} gets the highest weight** because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh & Lakonishok (1996, *Journal of Finance* 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a **+7.7% six-month decile spread** on IBES data 1977–93.
+**Rationale.** Estimate revisions and analyst targets are among the most powerful short-term return predictors. **{rev_heaviest} gets the highest weight** because it is the one metric here that measures what the category is named for — analysts revising their forecasts. Chan, Jegadeesh & Lakonishok (1996, *Journal of Finance* 51(5)) found the analyst-revision leg of earnings momentum to be the strongest of the three they tested, a **+7.7% six-month decile spread** on IBES data 1977–93.
 
 The surprise family — Analyst Surprise and Beat Score — is *backward*-looking: it records companies beating a past estimate and bets that the price keeps drifting afterwards. That drift is what the literature calls post-earnings-announcement drift, and Martineau (2022, *Critical Finance Review* 11(4)) finds it has been **absent in large caps since 2006**, with a significantly *negative* coefficient over 2016–19. Since this is an S&P 500 screener, that is exactly this universe — which is why the surprise family was cut from 78% of the category to 45% on 2026-09-10, and to 25% on 2026-10-09 when Earnings Acceleration (the latest surprise minus the one before) left the score: it marked a stock down for having beaten the previous quarter, though surprises tend to repeat. The revision metric now carries nearly half the category.
 
@@ -658,7 +659,7 @@ When coverage drops below 30% (e.g., many stocks lack prior-year asset data), th
 
 ---
 
-## Bank-Specific Scoring
+## Bank-specific scoring
 
 Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningless for banks, insurers, and credit companies. Their "debt" is deposits (the raw material of their business), they don't have conventional capital expenditures, and enterprise value metrics break down when liabilities include customer deposits.
 
@@ -676,21 +677,21 @@ All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the outp
 
 ---
 
-## How the Score Is Calculated
+## How the score is calculated
 
 The scoring pipeline has six steps:
 
-### Step 1: Collect Raw Data
+### Step 1: Collect the raw data
 For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction.
 
 Several inputs arrive from **two places** — Yahoo's summary fields and the filed statements — and the screener prefers one but uses the other when the first is missing: total debt and cash for Enterprise Value prefer the summary figure (it matches Yahoo's own EV definition), while invested capital for ROIC prefers the balance sheet (so equity, debt and cash come from one filing). Since 2026-09-25 those fallbacks actually fire; before that a bug meant they never did, and three S&P 500 companies lost a metric on every run despite the data being present. See `METHODOLOGY_CHANGELOG.md` 2026-09-25. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
 
-### Step 2: Flag Outliers (but do not change them)
+### Step 2: Flag outliers, without altering them
 Every metric below is scored by its **rank** within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does **not** clip extreme values: it records them in the data-quality log (the tails beyond the {out_lo}st and {out_hi}th percentiles) and scores the number it actually fetched.
 
 Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.
 
-### Step 3: Rank Within Sectors
+### Step 3: Rank within sectors
 Each metric is converted to a **sector-relative percentile** (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.
 
 For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better." The percentile uses the midpoint rule - the k-th lowest of n stocks scores (k - 0.5) / n x 100 - so a metric averages exactly 50 whichever way it points. (Until 2026-10-09 it was k / n, which averaged 50 + 50/n for higher-is-better metrics and 50 - 50/n once flipped, a tilt that grew in small sectors.)
@@ -699,7 +700,7 @@ For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B,
 
 {pt_text}
 
-### Step 4: Combine Into Category Scores
+### Step 4: Combine into category scores
 Within each of the {n_factors} categories, the individual metric percentiles are combined using the configured weights. For example, the generic Valuation score is:
 
 ```
@@ -716,7 +717,7 @@ Valuation (bank) = {bank_val_formula}
 
 This produces {n_factors} category scores (0-100 each).
 
-### Step 5: Combine Into Composite Score
+### Step 5: Combine into the composite
 The {n_factors} category scores are combined using the category weights:
 
 ```
@@ -734,14 +735,14 @@ So a stock's momentum score may be multiplied by something other than the {fw.ge
 
 **The composite is cardinal, and it is not a percentile.** The weighted average above is kept as a 0-100 score with its magnitude intact, and that score is the ranking key — so a stock twenty points clear of the field and one a tenth of a point clear are not both reported as 100.{cov_step} The universe percentile is a **separate** column, `Composite_Pct` (`rank(pct=True) * 100`, "better than X% of stocks"), carried for display only. So do not read a composite of 95 as "better than 95% of the universe" — read it as 95 points out of 100. See Limitation 8.
 
-### Step 6: Apply Trap Filters & Rank
+### Step 6: Apply trap flags and rank
 After computing composite scores, the screener applies value trap and growth trap filters (see below), then produces the final ranking.
 
 ---
 
 {pio_text}
 
-## Data Quality Safeguards
+## Data quality safeguards
 
 The screener includes several layers of data quality protection:
 
@@ -763,7 +764,7 @@ The screener includes several layers of data quality protection:
 
 ---
 
-## Value Trap Detection
+## Value-trap detection
 
 A stock can score well on valuation (cheap!) but be cheap for a reason — declining business, negative momentum, or analysts cutting estimates. A stock is flagged as a potential value trap only if it is **cheap** — a Valuation score in the top {100 - vt_cheap}% of the universe — **and** it falls in the bottom {vt_quality_floor}% of **at least two** of these three categories:
 
@@ -781,7 +782,7 @@ By default, value-trap-flagged stocks are {vt_action} from the model portfolio (
 
 ---
 
-## Growth Trap Detection
+## Growth-trap detection
 
 The mirror image of a value trap: a stock can score well on growth but be growing unsustainably — high growth with poor quality and/or deteriorating analyst sentiment. A stock is flagged as a potential growth trap only if its Growth Score is **above** the {gt_growth_ceil}th percentile (high growth) **and** at least one of these holds:
 
@@ -798,7 +799,7 @@ By default, growth-trap-flagged stocks are {gt_action} from the model portfolio 
 
 ---
 
-## Portfolio Construction
+## Portfolio construction
 
 **This is an Excel/artifact output, not a dashboard feature.** The dashboard was
 never the place for it and stopped showing it on 2026-08-26: a named, fixed list
@@ -821,7 +822,7 @@ If a sector would exceed its cap, the excess stocks are dropped and replaced by 
 
 ---
 
-## What Gets Output
+## Outputs
 
 The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 7 sheets (a ReadMe/Disclaimers sheet leads the workbook):
 
@@ -850,7 +851,7 @@ Additional outputs:
 
 ---
 
-## Factor-Exposure Diagnostics
+## Factor-exposure diagnostics
 
 A standalone script (`factor_exposure.py`) is available for analyzing how much of the portfolio's returns are explained by known academic risk factors. It runs a Fama-French 5-factor + Momentum (UMD) regression:
 
@@ -883,23 +884,23 @@ Every screener run is assigned a unique run ID and tracked via `RunContext`. Thi
 
 ---
 
-## Defensibility & Transparency Features
+## Defensibility and transparency
 
 The screener includes several features designed to make its outputs auditable and defensible:
 
-### Weight Sensitivity Analysis
+### Weight sensitivity
 After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 ranking changes using **Jaccard similarity** (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.
 
-### EPS Basis Mismatch Detection
+### EPS basis mismatches
 Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of forward-to-trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with `_eps_basis_mismatch = True`. This alerts users that the forward EPS growth and PEG ratio metrics may be distorted by a GAAP/non-GAAP mismatch rather than a genuine change in earnings expectations. Flagged stocks appear highlighted in the DataValidation sheet.
 
-### Factor Correlation Matrix
+### Factor correlation
 A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.
 
-### Data Provenance
+### Data provenance
 Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many of the metrics that apply to that stock have a value), and `_metric_total` (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.
 
-### The Workings Behind Every Score
+### The workings behind every score
 Open any stock and **The workings** section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for *this* stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.
 
 The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; `scripts/audit_stock.py` repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. Since 2026-10-14 it also checks the underlying figures against the companies' own SEC filings: total assets, equity, revenue, net income and operating cash flow are rebuilt from each company's XBRL filing for the same quarters, and every stock's Data Provenance panel says which agree within 2%. Measured that day, total assets agreed within 0.5% for 99.8% of the companies compared, operating cash flow for 98.8% and net income for 94.3%; the larger differences examined were definitions (a bank's revenue, profit belonging to minority shareholders, sales taxes), not wrong numbers (`research/2026-10-14-yahoo-vs-sec.md`). What it still cannot check is a figure with no counterpart in a filing - prices and analysts' estimates - and those are as delivered by Yahoo Finance.
@@ -909,7 +910,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 ---
 
-## Key Design Decisions & Why
+## Design decisions
 
 | Decision | Why |
 |----------|-----|
@@ -939,7 +940,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 ---
 
-## Limitations to Be Aware Of
+## Limitations
 
 1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade — individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.
 
@@ -967,7 +968,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 ---
 
-## Quick Start
+## Running it yourself
 
 ```bash
 # Run the screener on the full S&P 500
@@ -992,20 +993,62 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
 ## Summary
 
-The screener answers one question: **"Which S&P 500 stocks look best when measured across {', '.join(factor_labels[f] for f in active_factors).lower()} — all at once?"**
+The screener answers one question: **how does each S&P 500 company compare with its sector peers on {', '.join(factor_labels[f] for f in active_factors).lower()}, taken together?**
 
-It does this by:
-1. Pulling financial data for ~500 stocks from Yahoo Finance
-2. Computing up to {n_total} financial metrics across {n_factors} categories ({n_generic} generic + {n_bank_only} bank-specific, depending on company type)
-3. Ranking each metric within its sector (so comparisons are fair)
-4. Weighting and combining into a single 0-100 composite score (with bank-specific weights for financial companies and conditional Piotroski weighting)
-5. Flagging potential value traps (cheap and weak on 2 of 3) and growth traps (high growth and weak quality or revisions)
-6. Applying a liquidity filter to ensure tradeability
-7. Reporting how stable that ranking is when the weights are nudged
+It does this in seven steps:
+1. Pull financial data for about 500 stocks from Yahoo Finance.
+2. Compute up to {n_total} metrics across {n_factors} categories ({n_generic} general and {n_bank_only} bank-specific, by company type).
+3. Rank each metric within its sector, so a bank is compared with banks.
+4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for financial companies and conditional Piotroski weighting.
+5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
+6. Apply a liquidity filter.
+7. Report how stable the ranking is when the weights shift.
 
-The result is a disciplined, repeatable, multi-dimensional ranking that avoids the tunnel vision of looking at any single metric in isolation.
+Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.
 """
-    return md
+    return _typeset_md(md)
+
+
+# --- typesetting -------------------------------------------------------------
+# The page was written over many sessions and its dashes drifted: em dashes, hyphens used as dashes and
+# hyphens used as minus signs, about 130 in all (2026-10-16). One pass at the end sets each correctly -
+# a spaced en dash for a dash, a true minus for a minus - and leaves code spans and blocks alone, so the
+# text can be written plainly and still publish consistently.
+_FENCE = re.compile(r"```.*?```", re.S)
+_CODE = re.compile(r"`[^`\n]*`")
+
+
+def _typeset_md(text: str) -> str:
+    out, last = [], 0
+    for m in _FENCE.finditer(text):
+        out.append(_typeset_prose(text[last:m.start()]))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(_typeset_prose(text[last:]))
+    return "".join(out)
+
+
+def _typeset_prose(s: str) -> str:
+    parts, last = [], 0
+    for m in _CODE.finditer(s):
+        parts.append(_typeset_dashes(s[last:m.start()]))
+        parts.append(m.group(0))
+        last = m.end()
+    parts.append(_typeset_dashes(s[last:]))
+    return "".join(parts)
+
+
+def _typeset_dashes(s: str) -> str:
+    s = s.replace(" \u2014 ", " \u2013 ")
+
+    def one(m: "re.Match") -> str:
+        before, after = s[max(0, m.start() - 80):m.start()], s[m.end():m.end() + 40]
+        minus = (before.count("(") > before.count(")")          # inside a formula's parentheses
+                 or "+" in before[-25:]                          # "MC + Debt - Cash"
+                 or (before[-1:].isdigit() and after[:1].isdigit()))
+        return " \u2212 " if minus else " \u2013 "
+
+    return re.sub(r"(?<=\S) - (?=\S)", one, s)
 
 
 def generate_screener_overview(cfg: dict) -> None:
