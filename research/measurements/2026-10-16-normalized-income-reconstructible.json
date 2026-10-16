@@ -1,0 +1,377 @@
+{
+ "source": "2026-10-16-normalized-income-same-column.json",
+ "scanned": 503,
+ "failed": 0,
+ "annual": {
+  "companies": 503,
+  "kinds": {
+   "rebuilt from served rows (base: Net Income)": 345,
+   "no adjustment: normalized equals net": 111,
+   "ADJUSTED, and the served rows do not rebuild it": 35,
+   "no Normalized Income for the period - nothing to score": 5,
+   "ADJUSTED, but no unusual-items row to explain it": 4,
+   "no Net Income for the period": 2,
+   "rebuilt from served rows (base: Net Income Common Stockholders)": 1
+  },
+  "adjusted_by_the_source": 385,
+  "rebuilt_from_served_rows": 346,
+  "share_rebuilt": 0.8987,
+  "median_unexplained_gap_usd": 29000000.0,
+  "served_rate_vs_tax_provision_over_pretax": {
+   "checked": 371,
+   "within_1pp": 328,
+   "median_gap_pp": 0.02
+  },
+  "quarters_short": null,
+  "cases": [
+   {
+    "ticker": "IBM",
+    "why": "served rows do not rebuild it",
+    "net": 10593000000.0,
+    "nics": 10593000000.0,
+    "normalized": 11336884700.0,
+    "unusual": -1029000000.0,
+    "tax_effect": -263115300.0,
+    "took_out": -743884700.0,
+    "unusual_less_tax_effect": -765884700.0,
+    "gap": 22000000.0
+   },
+   {
+    "ticker": "GE",
+    "why": "served rows do not rebuild it",
+    "net": 8704000000.0,
+    "nics": 8704000000.0,
+    "normalized": 8674015000.0,
+    "unusual": -85000000.0,
+    "tax_effect": -11985000.0,
+    "took_out": 29985000.0,
+    "unusual_less_tax_effect": -73015000.0,
+    "gap": 103000000.0
+   },
+   {
+    "ticker": "PFE",
+    "why": "served rows do not rebuild it",
+    "net": 7771000000.0,
+    "nics": 7771000000.0,
+    "normalized": 14416416600.0,
+    "unusual": -8962000000.0,
+    "tax_effect": -2291583400.0,
+    "took_out": -6645416600.0,
+    "unusual_less_tax_effect": -6670416600.0,
+    "gap": 25000000.0
+   },
+   {
+    "ticker": "HON",
+    "why": "served rows do not rebuild it",
+    "net": 4729000000.0,
+    "nics": 4729000000.0,
+    "normalized": 5595960000.0,
+    "unusual": -1435000000.0,
+    "tax_effect": -264040000.0,
+    "took_out": -866960000.0,
+    "unusual_less_tax_effect": -1170960000.0,
+    "gap": 304000000.0
+   },
+   {
+    "ticker": "AMD",
+    "why": "served rows do not rebuild it",
+    "net": 4335000000.0,
+    "nics": 4335000000.0,
+    "normalized": 3979860000.0,
+    "unusual": 366000000.0,
+    "tax_effect": 76860000.0,
+    "took_out": 355140000.0,
+    "unusual_less_tax_effect": 289140000.0,
+    "gap": 66000000.0
+   },
+   {
+    "ticker": "DHR",
+    "why": "served rows do not rebuild it",
+    "net": 3614000000.0,
+    "nics": 3614000000.0,
+    "normalized": 3793800000.0,
+    "unusual": -228000000.0,
+    "tax_effect": -34200000.0,
+    "took_out": -179800000.0,
+    "unusual_less_tax_effect": -193800000.0,
+    "gap": 14000000.0
+   },
+   {
+    "ticker": "IP",
+    "why": "served rows do not rebuild it",
+    "net": -3516000000.0,
+    "nics": -3516000000.0,
+    "normalized": -319680000.0,
+    "unusual": -2998000000.0,
+    "tax_effect": -479680000.0,
+    "took_out": -3196320000.0,
+    "unusual_less_tax_effect": -2518320000.0,
+    "gap": 678000000.0
+   },
+   {
+    "ticker": "APP",
+    "why": "no unusual-items row",
+    "net": 3333764000.0,
+    "normalized": 3433195000.0,
+    "unusual": null,
+    "tax_effect": 0.0
+   },
+   {
+    "ticker": "JCI",
+    "why": "served rows do not rebuild it",
+    "net": 3291000000.0,
+    "nics": 3291000000.0,
+    "normalized": 2060800000.0,
+    "unusual": -635000000.0,
+    "tax_effect": -76200000.0,
+    "took_out": 1230200000.0,
+    "unusual_less_tax_effect": -558800000.0,
+    "gap": 1789000000.0
+   },
+   {
+    "ticker": "D",
+    "why": "served rows do not rebuild it",
+    "net": 2998000000.0,
+    "nics": 2954000000.0,
+    "normalized": 3453001000.0,
+    "unusual": -517000000.0,
+    "tax_effect": -75999000.0,
+    "took_out": -455001000.0,
+    "unusual_less_tax_effect": -441001000.0,
+    "gap": 14000000.0
+   },
+   {
+    "ticker": "TT",
+    "why": "served rows do not rebuild it",
+    "net": 2918600000.0,
+    "nics": 2918600000.0,
+    "normalized": 2968043200.0,
+    "unusual": -15400000.0,
+    "tax_effect": -2956800.0,
+    "took_out": -49443200.0,
+    "unusual_less_tax_effect": -12443200.0,
+    "gap": 37000000.0
+   },
+   {
+    "ticker": "COF",
+    "why": "served rows do not rebuild it",
+    "net": 2453000000.0,
+    "nics": 2181000000.0,
+    "normalized": 3094926786.49715,
+    "unusual": -1100000000.0,
+    "tax_effect": -93073213.50285,
+    "took_out": -641926786.49715,
+    "unusual_less_tax_effect": -1006926786.49715,
+    "gap": 365000000.0
+   },
+   {
+    "ticker": "OXY",
+    "why": "served rows do not rebuild it",
+    "net": 2326000000.0,
+    "nics": 1612000000.0,
+    "normalized": 1936700000.0,
+    "unusual": 190000000.0,
+    "tax_effect": 62700000.0,
+    "took_out": 389300000.0,
+    "unusual_less_tax_effect": 127300000.0,
+    "gap": 262000000.0
+   },
+   {
+    "ticker": "EMR",
+    "why": "served rows do not rebuild it",
+    "net": 2293000000.0,
+    "nics": 2293000000.0,
+    "normalized": 2622246000.0,
+    "unusual": -442000000.0,
+    "tax_effect": -104754000.0,
+    "took_out": -329246000.0,
+    "unusual_less_tax_effect": -337246000.0,
+    "gap": 8000000.0
+   },
+   {
+    "ticker": "EBAY",
+    "why": "served rows do not rebuild it",
+    "net": 2031000000.0,
+    "nics": 2031000000.0,
+    "normalized": 1986482878.196792,
+    "unusual": 11000000.0,
+    "tax_effect": 1482878.196792,
+    "took_out": 44517121.80320811,
+    "unusual_less_tax_effect": 9517121.803208001,
+    "gap": 35000000.00000011
+   }
+  ]
+ },
+ "ttm": {
+  "companies": 503,
+  "kinds": {
+   "rebuilt from served rows (base: Net Income)": 265,
+   "no adjustment: normalized equals net": 125,
+   "ADJUSTED, but no unusual-items row to explain it": 51,
+   "ADJUSTED, and the served rows do not rebuild it": 30,
+   "no Normalized Income for the period - nothing to score": 23,
+   "the period itself could not be formed": 5,
+   "no Net Income for the period": 4
+  },
+  "adjusted_by_the_source": 346,
+  "rebuilt_from_served_rows": 265,
+  "share_rebuilt": 0.7659,
+  "median_unexplained_gap_usd": 44500000.0,
+  "served_rate_vs_tax_provision_over_pretax": {
+   "checked": 289,
+   "within_1pp": 0,
+   "median_gap_pp": 64.53
+  },
+  "quarters_short": {
+   "Total Unusual Items: 0 of 4 quarters": 119,
+   "Total Unusual Items: 3 of 4 quarters": 39,
+   "Total Unusual Items: 2 of 4 quarters": 24,
+   "Normalized Income: 3 of 4 quarters": 22,
+   "Tax Effect Of Unusual Items: 3 of 4 quarters": 22,
+   "Total Unusual Items: 1 of 4 quarters": 13,
+   "Normalized Income: 1 of 4 quarters": 1
+  },
+  "cases": [
+   {
+    "ticker": "NVDA",
+    "why": "no unusual-items row",
+    "net": 192879000000.0,
+    "normalized": 186390215000.0,
+    "unusual": null,
+    "tax_effect": 1282215000.0
+   },
+   {
+    "ticker": "T",
+    "why": "served rows do not rebuild it",
+    "net": 21558000000.0,
+    "nics": 21414000000.0,
+    "normalized": 22196854009.378662,
+    "unusual": -620000000.0,
+    "tax_effect": -47145990.621336,
+    "took_out": -638854009.3786621,
+    "unusual_less_tax_effect": -572854009.378664,
+    "gap": 65999999.99999809
+   },
+   {
+    "ticker": "MS",
+    "why": "no unusual-items row",
+    "net": 20155000000.0,
+    "normalized": 20298141349.30823,
+    "unusual": null,
+    "tax_effect": -34858650.69177
+   },
+   {
+    "ticker": "C",
+    "why": "no unusual-items row",
+    "net": 17839000000.0,
+    "normalized": 18440568724.744164,
+    "unusual": null,
+    "tax_effect": -250431275.255838
+   },
+   {
+    "ticker": "AXP",
+    "why": "no unusual-items row",
+    "net": 11445000000.0,
+    "normalized": 11521489320.38835,
+    "unusual": null,
+    "tax_effect": -19510679.61165
+   },
+   {
+    "ticker": "PM",
+    "why": "no unusual-items row",
+    "net": 10874000000.0,
+    "normalized": 11385000000.0,
+    "unusual": null,
+    "tax_effect": 0.0
+   },
+   {
+    "ticker": "IBM",
+    "why": "served rows do not rebuild it",
+    "net": 10725000000.0,
+    "nics": 10725000000.0,
+    "normalized": 11445672494.064934,
+    "unusual": -926000000.0,
+    "tax_effect": -185327505.935066,
+    "took_out": -720672494.0649338,
+    "unusual_less_tax_effect": -740672494.064934,
+    "gap": 20000000.00000024
+   },
+   {
+    "ticker": "TMUS",
+    "why": "no unusual-items row",
+    "net": 10560000000.0,
+    "normalized": 10773782000.0,
+    "unusual": null,
+    "tax_effect": -64218000.0
+   },
+   {
+    "ticker": "COF",
+    "why": "served rows do not rebuild it",
+    "net": 10520000000.0,
+    "nics": 10166000000.0,
+    "normalized": 11252938579.539055,
+    "unusual": -1415000000.0,
+    "tax_effect": -310061420.460944,
+    "took_out": -732938579.5390549,
+    "unusual_less_tax_effect": -1104938579.539056,
+    "gap": 372000000.0000012
+   },
+   {
+    "ticker": "PEP",
+    "why": "no unusual-items row",
+    "net": 10451000000.0,
+    "normalized": 10555531371.960373,
+    "unusual": null,
+    "tax_effect": -28468628.039628
+   },
+   {
+    "ticker": "AMAT",
+    "why": "no unusual-items row",
+    "net": 9267000000.0,
+    "normalized": 9497622852.233677,
+    "unusual": null,
+    "tax_effect": -34377147.766323
+   },
+   {
+    "ticker": "MPC",
+    "why": "no unusual-items row",
+    "net": 8554000000.0,
+    "normalized": 8414944471.466602,
+    "unusual": null,
+    "tax_effect": 25944471.466603
+   },
+   {
+    "ticker": "HON",
+    "why": "served rows do not rebuild it",
+    "net": 8213000000.0,
+    "nics": 8213000000.0,
+    "normalized": 5074614220.275904,
+    "unusual": 3787000000.0,
+    "tax_effect": 952614220.2759039,
+    "took_out": 3138385779.7240963,
+    "unusual_less_tax_effect": 2834385779.7240963,
+    "gap": 304000000.0
+   },
+   {
+    "ticker": "OXY",
+    "why": "served rows do not rebuild it",
+    "net": 7254000000.0,
+    "nics": 6532000000.0,
+    "normalized": 3702353846.153846,
+    "unusual": 179000000.0,
+    "tax_effect": 8353846.153845996,
+    "took_out": 3551646153.846154,
+    "unusual_less_tax_effect": 170646153.846154,
+    "gap": 3381000000.0
+   },
+   {
+    "ticker": "LIN",
+    "why": "no unusual-items row",
+    "net": 7244000000.0,
+    "normalized": 7195805000.0,
+    "unusual": null,
+    "tax_effect": 14805000.0
+   }
+  ]
+ }
+}
