@@ -246,9 +246,10 @@ def test_a_month_without_a_cached_universe_is_skipped_and_said(monkeypatch, tmp_
 
 
 def test_a_reused_symbol_is_never_scored_as_todays_company(monkeypatch):
-    """2026-10-15: in 2012-2019 a symbol can have belonged to another company. Where that month's
-    revision lists a CIK that differs from today's company under the symbol, today's company is not
-    scored in its place - the member is found under its own current symbol, or counted."""
+    """2026-10-15: a symbol can have belonged to another company. Where today's filer under the
+    symbol was itself another member that month (JCI's filings today are Tyco's), today's data is
+    never scored in its place; a registrant change with no such member (a holding-company
+    reorganisation, or a stale CIK in the revision) leaves today's symbol, and its filings decide."""
     class Snap:
         tickers = ("AAA",)
         n_members = 1
@@ -258,9 +259,14 @@ def test_a_reused_symbol_is_never_scored_as_todays_company(monkeypatch):
         {"Ticker": [r["Ticker"] for r in recs]}))
     monkeypatch.setattr(v2, "rank_month", lambda m, cfg, st: m.assign(Composite=50.0, Rank=1))
     monkeypatch.setattr(v2, "save_metrics", lambda *a, **k: None)
-    reused = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 99}})
+    # today's AAA filer (CIK 7) was another member, OTH, that month: AAA's data is OTH's
+    reused = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 99, "OTH": 7}})
     _, census = v2.build_month("2024-06-28", reused, v2.v2_config(CFG))
     assert census["built"] == 0 and census["not_scoreable"] == {"symbol_reused": ["AAA"]}
+    # a holding-company reorganisation or a stale CIK in the revision: today's symbol stands
+    reorg = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 99}})
+    _, census = v2.build_month("2024-06-28", reorg, v2.v2_config(CFG))
+    assert census["built"] == 1 and census["not_scoreable"] == {}
     same = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 7}})
     _, census = v2.build_month("2024-06-28", same, v2.v2_config(CFG))
     assert census["built"] == 1 and census["renamed"] == {}

@@ -206,8 +206,31 @@ def _stats(x: pd.Series) -> dict:
     t = m / se if se > 0 else 0.0
     # two-sided p from the t-statistic with a normal approximation (n >= 30 here)
     p = math.erfc(abs(t) / math.sqrt(2))
-    return {"n": n, "mean": round(m, 5), "se": round(se, 5), "t": round(t, 2), "p": round(p, 4),
-            "ci95": [round(m - 1.96 * se, 5), round(m + 1.96 * se, 5)]}
+    out = {"n": n, "mean": round(m, 5), "se": round(se, 5), "t": round(t, 2), "p": round(p, 4),
+           "ci95": [round(m - 1.96 * se, 5), round(m + 1.96 * se, 5)]}
+    out.update(_dependence(x.values.astype(float)))
+    return out
+
+
+NW_LAGS = 3   # Newey & West (1987) with a Bartlett kernel; 3 lags ~ 4 * (n/100)^(2/9) at n = 38-96
+
+
+def _dependence(x: np.ndarray) -> dict:
+    """Whether the month-to-month independence the plain t assumes holds (queue item 3,
+    2026-10-15): the lag-1 autocorrelation, and the t-statistic with Newey-West standard errors.
+    Where the two t's differ materially, the Newey-West one is the honest one."""
+    n = len(x)
+    if n < 10:
+        return {}
+    d = x - x.mean()
+    g0 = float(d @ d) / n
+    if g0 <= 0:
+        return {"ac1": 0.0, "t_nw": 0.0}
+    lrv = g0
+    for k in range(1, NW_LAGS + 1):
+        lrv += 2 * (1 - k / (NW_LAGS + 1)) * float(d[k:] @ d[:-k]) / n
+    se_nw = math.sqrt(max(lrv, 1e-18) / n)
+    return {"ac1": round(float(d[1:] @ d[:-1]) / n / g0, 3), "t_nw": round(float(x.mean()) / se_nw, 2)}
 
 
 def summarise(pm: pd.DataFrame, base: pd.DataFrame | None) -> dict:
@@ -264,7 +287,10 @@ def run(ids: list[str] | None = None) -> list[dict]:
         res = {"id": e["id"], "run_at": datetime.now().isoformat(timespec="seconds"),
                "commit": git_commit(), "config_hash": config_hash(cfg, tr), "months": int(len(pm)),
                **vintage,
-               "summary": summarise(pm, None if tr["kind"] == "baseline" else base_pm)}
+               "summary": summarise(pm, None if tr["kind"] == "baseline" else base_pm),
+               # the monthly series themselves (2026-10-15), so a later check reads them, not a rerun
+               "ic_by_month": {m: round(float(v), 5) for m, v in pm["ic"].items() if pd.notna(v)},
+               "tmu_by_month": {m: round(float(v), 6) for m, v in pm["top_minus_universe"].items() if pd.notna(v)}}
         LEDGER.parent.mkdir(parents=True, exist_ok=True)
         with LEDGER.open("a", encoding="utf-8") as f:
             f.write(json.dumps(res) + "\n")
@@ -498,7 +524,10 @@ def run_evaluations(ids: list[str] | None = None) -> list[dict]:
             continue
         pm = simulate_bot(inputs, fwd, e["rule"])
         res = {"id": e["id"], "kind": "evaluation", "run_at": datetime.now().isoformat(timespec="seconds"),
-               "commit": git_commit(), "months": int(len(pm)), **vintage, "summary": summarise_evaluation(pm)}
+               "commit": git_commit(), "months": int(len(pm)), **vintage, "summary": summarise_evaluation(pm),
+               "by_month": {m: {k: (round(float(r[k]), 6) if pd.notna(r[k]) else None)
+                                for k in ("ret", "universe", "index", "turnover")}
+                            for m, r in pm.iterrows()}}
         with LEDGER.open("a", encoding="utf-8") as f:
             f.write(json.dumps(res) + "\n")
         results.append(res)

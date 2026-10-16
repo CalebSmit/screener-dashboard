@@ -298,17 +298,27 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
     records, missing, renamed = [], {}, {}
     members = set(snap.tickers)
     then = inputs.month_ciks.get(as_of, {})
+    then_symbol = {c: s for s, c in then.items()}
     for tk in snap.tickers:
         sym = tk
         cik_then, cik_now = then.get(tk), inputs.ciks.get(tk)
         if tk in inputs.base and cik_then is not None and cik_now is not None and cik_then != cik_now:
-            # the symbol belonged to another company that month (a reused ticker): never score
-            # today's company in its place - find that company under its current symbol, or count it
+            # The month's revision names a different registrant for the symbol than today's.
+            # Three cases, told apart by where the two registrants were that month:
+            # 1. the then-company trades today under another symbol (IR in 2020 is TT today):
+            #    score it there;
+            # 2. today's registrant was itself a member that month under another symbol (JCI's
+            #    filings today are Tyco's, and TYC was a member until 2016): today's data is that
+            #    other member's, so this one is counted, never scored with it;
+            # 3. neither - a holding-company reorganisation (Exxon, Disney, Cigna) or a stale CIK
+            #    in the revision (Fox, Xerox in early 2020): today's symbol stands, and the filings
+            #    as of the month decide (a new registrant has none before it existed).
             cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
-            if cur is None:
+            if cur is not None:
+                sym = renamed[tk] = cur
+            elif then_symbol.get(cik_now) not in (None, tk):
                 missing.setdefault("symbol_reused", []).append(tk)
                 continue
-            sym = renamed[tk] = cur
         elif tk not in inputs.base:
             cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
             if cur is not None:

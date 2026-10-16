@@ -7,24 +7,24 @@
  "months": 80,
  "ic": {
   "n_months": 80,
-  "mean": -1e-05,
+  "mean": -3e-05,
   "se": 0.01375,
   "ci95": [
-   -0.02697,
-   0.02694
+   -0.02698,
+   0.02692
   ],
   "t": -0.0,
   "share_positive": 0.487
  },
  "spread_top_minus_bottom": {
   "n_months": 80,
-  "mean": -0.00486,
-  "se": 0.00452,
+  "mean": -0.00493,
+  "se": 0.0045,
   "ci95": [
-   -0.01371,
-   0.00399
+   -0.01375,
+   0.00389
   ],
-  "t": -1.08,
+  "t": -1.1,
   "share_positive": 0.487
  },
  "top_minus_universe": {
@@ -35,71 +35,71 @@
    -0.00609,
    0.00131
   ],
-  "t": -1.26,
+  "t": -1.27,
   "share_positive": 0.463
  },
  "category_ic": {
   "valuation": {
    "n_months": 80,
-   "mean": 0.00787,
+   "mean": 0.00785,
    "se": 0.01524,
    "ci95": [
-    -0.022,
-    0.03775
+    -0.02202,
+    0.03773
    ],
    "t": 0.52,
    "share_positive": 0.463
   },
   "quality": {
    "n_months": 80,
-   "mean": -0.00023,
-   "se": 0.01076,
+   "mean": -0.00026,
+   "se": 0.01075,
    "ci95": [
-    -0.02131,
-    0.02085
+    -0.02133,
+    0.02081
    ],
    "t": -0.02,
    "share_positive": 0.525
   },
   "growth": {
    "n_months": 80,
-   "mean": 0.00072,
+   "mean": 0.00069,
    "se": 0.01356,
    "ci95": [
-    -0.02587,
-    0.0273
+    -0.0259,
+    0.02727
    ],
    "t": 0.05,
    "share_positive": 0.512
   },
   "momentum": {
    "n_months": 80,
-   "mean": 0.00211,
+   "mean": 0.00218,
    "se": 0.01878,
    "ci95": [
-    -0.03469,
-    0.03892
+    -0.03464,
+    0.03899
    ],
-   "t": 0.11,
+   "t": 0.12,
    "share_positive": 0.537
   },
   "risk": {
    "n_months": 80,
-   "mean": -0.02335,
+   "mean": -0.02333,
    "se": 0.02437,
    "ci95": [
-    -0.07112,
-    0.02442
+    -0.0711,
+    0.02443
    ],
    "t": -0.96,
    "share_positive": 0.5
   },
   "size": {
    "n_months": 80,
-   "mean": 0.00541,
+   "mean": 0.00542,
    "se": 0.01046,
    "ci95": [
-    -0.0151,
+    -0.01508,
     0.02592
    ],
    "t": 0.52,
@@ -121,36 +121,36 @@
   {
    "month": "2020-01-31",
    "n": 396,
-   "ic": 0.04038,
-   "ic_valuation_score": -0.08376,
-   "ic_quality_score": 0.06082,
-   "ic_growth_score": 0.11751,
-   "ic_momentum_score": 0.0445,
-   "ic_risk_score": 0.06222,
-   "ic_size_score": -0.02847,
-   "ic_investment_score": -0.12716,
+   "ic": 0.04181,
+   "ic_valuation_score": -0.084,
+   "ic_quality_score": 0.0602,
+   "ic_growth_score": 0.11797,
+   "ic_momentum_score": 0.04611,
+   "ic_risk_score": 0.06657,
+   "ic_size_score": -0.02974,
+   "ic_investment_score": -0.12883,
    "top": -0.09767,
-   "bottom": -0.09194,
-   "universe": -0.08519,
-   "spread": -0.00573,
-   "top_minus_universe": -0.01249
+   "bottom": -0.09183,
+   "universe": -0.08508,
+   "spread": -0.00585,
+   "top_minus_universe": -0.01259
   },
   {
    "month": "2020-02-29",
    "n": 399,
-   "ic": 0.12041,
-   "ic_valuation_score": -0.09351,
-   "ic_quality_score": 0.2058,
-   "ic_growth_score": 0.08542,
-   "ic_momentum_score": 0.12306,
-   "ic_risk_score": 0.19014,
-   "ic_size_score": -0.16595,
-   "ic_investment_score": -0.12764,
+   "ic": 0.11762,
+   "ic_valuation_score": -0.09491,
+   "ic_quality_score": 0.20415,
+   "ic_growth_score": 0.08259,
+   "ic_momentum_score": 0.12632,
+   "ic_risk_score": 0.18696,
+   "ic_size_score": -0.16388,
+   "ic_investment_score": -0.12594,
    "top": -0.17305,
-   "bottom": -0.2409,
-   "universe": -0.16701,
-   "spread": 0.06785,
-   "top_minus_universe": -0.00604
+   "bottom": -0.23507,
+   "universe": -0.16683,
+   "spread": 0.06202,
+   "top_minus_universe": -0.00622
   },
   {
    "month": "2020-03-31",
@@ -291,7 +291,7 @@
   {
    "month": "2020-11-30",
    "n": 407,
-   "ic": -0.23958,
+   "ic": -0.23956,
    "ic_valuation_score": -0.10617,
    "ic_quality_score": -0.10668,
    "ic_growth_score": -0.16987,
@@ -393,11 +393,11 @@
   {
    "month": "2021-05-31",
    "n": 417,
-   "ic": 0.02387,
+   "ic": 0.02389,
    "ic_valuation_score": -0.17218,
    "ic_quality_score": 0.23927,
    "ic_growth_score": 0.32965,
-   "ic_momentum_score": -0.10101,
+   "ic_momentum_score": -0.10078,
    "ic_risk_score": 0.10543,
    "ic_size_score": -0.10468,
    "ic_investment_score": -0.21911,
@@ -432,7 +432,7 @@
    "ic_quality_score": 0.00385,
    "ic_growth_score": 0.08346,
    "ic_momentum_score": 0.1608,
-   "ic_risk_score": -0.05304,
+   "ic_risk_score": -0.05294,
    "ic_size_score": 0.04661,
    "ic_investment_score": -0.13112,
    "top": 0.02274,
@@ -444,12 +444,12 @@
   {
    "month": "2021-08-31",
    "n": 419,
-   "ic": -0.12152,
+   "ic": -0.12149,
    "ic_valuation_score": 0.01318,
    "ic_quality_score": -0.15411,
    "ic_growth_score": -0.14743,
    "ic_momentum_score": -0.0765,
-   "ic_risk_score": -0.16174,
+   "ic_risk_score": -0.16169,
    "ic_size_score": 0.04798,
    "ic_investment_score": 0.14408,
    "top": -0.04612,

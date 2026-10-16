@@ -104,12 +104,13 @@ share `cache/v2_metrics/`.
 
 - **Renames:** members listed under an old symbol are found under the current one by SEC CIK
   (`Inputs.current_symbol`) - 635 member-months in 2020-2026, 2,332 in 2012-2019. v2's 2020-2026 IC
-  on the corrected records: **-0.00001** (`research/measurements/2026-10-15-backtest-v2-returns-renames.json`).
-- **Reused symbols:** where a month's revision lists a CIK (mid-2014 on;
-  `data/universe_history/ciks_by_month.json`) that differs from today's company under the symbol, it
-  is never scored as today's company (`symbol_reused`). **2020-2026 months have no per-month CIKs yet**
-  - fetch them from the revids in `ticker_ciks.json` and rebuild; the one known case is IR in
-  2020-01/02.
+  on the corrected records: **-0.00003** (`research/measurements/2026-10-15-backtest-v2-returns-renames.json`).
+- **Reused symbols:** every month from mid-2014 has its revision's own CIKs
+  (`data/universe_history/ciks_by_month.json`). Where they differ from today's under a symbol: the
+  then-company is scored under its current symbol (IR -> TT), or - when today's filer was itself
+  another member that month (JCI/Tyco, CB/ACE) - the symbol is counted, never scored with that member's
+  data (`symbol_reused`); otherwise today's symbol stands and its as-of filings decide (holding-company
+  reorganisations, stale CIKs in the revision). Rebuilt both eras and reran everything the same night.
 - **Coverage is the binding limit now:** 58% of members in 2012, 78% in 2019, 81% in 2020, 96% in
   2025. Size's 2012-2019 IC tracks it (+0.033 where coverage is lowest, -0.004 where highest) - the
   survivorship signature. This is the concrete use the deferred delisted-price feed was waiting for.
