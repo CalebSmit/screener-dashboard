@@ -357,7 +357,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_claims_register.py::test_overview_states_the_coverage_discount_from_config",
         ),
-        detect=r"coverage discount described under Data Quality Safeguards",
+        detect=r"coverage discount described under Data quality safeguards",
     ),
     Claim(
         id="overview.limitation8",
@@ -836,7 +836,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_momentum_panic_rule.py::test_panic_needs_both_conditions",
             "tests/test_momentum_panic_rule.py::test_the_rule_only_ever_cuts_momentum",
         ),
-        detect=r"Momentum regime rule - currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
+        detect=r"Momentum regime rule [-–] currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
     ),
     Claim(
         id="overview.factor_premia_since_2014",

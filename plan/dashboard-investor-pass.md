@@ -218,6 +218,23 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
   (the section and its features are unchanged). The search palette gains the three sections it was missing
   (Reporting soon, Market backdrop, Track record).
 
+### P4 - the Methodology document
+
+- **Headings as statements, in sentence case**: "What Is This?", "Where Does the Data Come From?", "Key Design
+  Decisions & Why", "Limitations to Be Aware Of" and the rest are "Overview", "Data sources", "Design
+  decisions", "Limitations"; "Quick Start" is "Running it yourself"; each category's "Why these?" is "Rationale."
+- **The opening and the summary rewritten.** The subtitle promised to explain "how it arrives at its *picks*"
+  and the summary asked which stocks "look best"; both framed the ranking as a recommendation. The opening also
+  said the candidate metrics are ones "the self-improving engine may activate", false since 2026-08-20
+  (`allow_auto_apply` is false; a weight changes only through research and a changelog entry).
+- **One typesetting pass** (`run_screener._typeset_md`, `tests/test_overview_typesetting.py`): about 130 dashes
+  in three forms become a spaced en dash for a dash and a true minus inside a formula ("(Net Income − Operating
+  Cash Flow)"); code is untouched. Three patterns that matched the old hyphen (a claim's detector, two tests) now
+  accept the en dash.
+- **In the dialog**: the document's own title and subtitle are hidden under the dialog's header, which already
+  names it; the doubled section rules (a markdown rule plus the heading's border) are one; the run's momentum
+  reading is a quiet note with a human date.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).

@@ -4088,11 +4088,11 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const m = (D.weights || {{}}).momentum_regime;
         if (!body || !m || body.querySelector('.method-run-note')) return;
         const pc = v => (v * 100).toFixed(1) + '%';
-        let h = '<strong>This run&rsquo;s market-state check.</strong> ';
+        let h = '<strong>Momentum rule, this run.</strong> ';
         if (m.state === 'UNKNOWN' || m.vol == null || m.ret == null) {{
             h += 'The index history could not be read, so the momentum regime rule made no change.';
         }} else {{
-            h += 'S&amp;P 500 total return to ' + escapeHtml(String(m.as_of)) + ': ' + (m.ret < 0 ? '&minus;' : '+') + pc(Math.abs(m.ret)) +
+            h += 'S&amp;P 500 total return to ' + escapeHtml(prettyDate(m.as_of)) + ': ' + (m.ret < 0 ? '&minus;' : '+') + pc(Math.abs(m.ret)) +
                 ' over ' + m.return_window_months + ' months, with realised volatility of ' + pc(m.vol) + ' a year over ' +
                 m.vol_window_days + ' trading days. ' + (m.state === 'PANIC'
                     ? 'The return is negative and volatility is above ' + pc(m.vol_threshold) + ', so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.'
@@ -9809,6 +9809,16 @@ def _css_investor() -> str:
             -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
         .why-panel[open] > summary::before, details.holdings-concentration[open] > summary::after { transform: none; }
         .why-panel > summary { display: inline-flex; align-items: center; gap: 8px; }
+        /* the Methodology dialog names the document in its header, so the document's own title, subtitle and
+           rule are not repeated under it; the run's momentum reading is a quiet note, not body text */
+        .methodology-body > h1:first-of-type, .methodology-body > h1:first-of-type + p,
+        .methodology-body > h1:first-of-type + p + hr { display: none; }
+        .methodology-body .method-run-note { padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+            background: var(--bg-card); font-size: 13.5px; color: var(--text-secondary); }
+        .methodology-body .method-run-note strong { color: var(--text-primary); }
+        /* each section was divided twice: the markdown rule and the heading's own top border */
+        .methodology-body > hr { display: none; }
+        .methodology-body :not(pre) > code { padding: 1px 5px; margin: 0; }
         /* one corner radius for panels: the diagnostics cards were the last at 10px */
         .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
