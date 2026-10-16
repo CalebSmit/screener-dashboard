@@ -86,6 +86,70 @@ class TestRetention:
         assert len(list(fake_runs.iterdir())) == 6, "dry run deleted something"
 
 
+def _dry_run_husk(runs: Path, name: str, mtime: float) -> Path:
+    """What `run_screener.py --dry-run` leaves: config.yaml and run.log, no meta.json."""
+    d = runs / name
+    d.mkdir()
+    for f in ("config.yaml", "run.log"):
+        (d / f).write_text("x", encoding="utf-8")
+        os.utime(d / f, (mtime, mtime))
+    os.utime(d, (mtime, mtime))
+    return d
+
+
+def _started(runs: Path, name: str, start: str, mtime: float) -> Path:
+    d = runs / name
+    d.mkdir()
+    (d / "meta.json").write_text('{"start_time": "%s"}' % start, encoding="utf-8")
+    os.utime(d, (mtime, mtime))
+    return d
+
+
+class TestDryRunHusks:
+    """2026-10-16: runs/ held 34 dry-run folders (config.yaml + run.log, no meta.json) and
+    ONE real run. Non-empty, they counted against the 20-run budget as if they were runs,
+    so a few more dry runs would have evicted the run the generator regenerates from."""
+
+    NOW = 10_000_000.0
+    OLD = NOW - (prune.HUSK_MIN_AGE_HOURS + 1) * 3600
+
+    def test_dry_runs_never_displace_a_real_run(self, fake_runs):
+        real = _started(fake_runs, "real", "2026-10-16T02:00:03", self.OLD - 86_400)
+        for i in range(34):
+            _dry_run_husk(fake_runs, f"dry{i:02d}", self.OLD + i)
+        prune.prune_runs(keep=20, dry=False, now=self.NOW)
+        assert [p.name for p in fake_runs.iterdir()] == ["real"]
+        assert real.exists()
+
+    def test_an_old_metaless_folder_is_pruned_even_under_budget(self, fake_runs):
+        _dry_run_husk(fake_runs, "dry", self.OLD)
+        n, _ = prune.prune_runs(keep=20, dry=False, now=self.NOW)
+        assert n == 1 and not list(fake_runs.iterdir())
+
+    def test_a_run_in_progress_is_left_alone(self, fake_runs):
+        """No meta.json yet, but run.log was written minutes ago."""
+        d = _dry_run_husk(fake_runs, "inflight", self.OLD)
+        os.utime(d / "run.log", (self.NOW - 600, self.NOW - 600))
+        n, _ = prune.prune_runs(keep=20, dry=False, now=self.NOW)
+        assert n == 0 and d.exists()
+
+    def test_retention_orders_runs_by_start_time_not_mtime(self, fake_runs):
+        """The same key as run_context.latest_run_dir, so "latest" is always kept."""
+        _started(fake_runs, "newest", "2026-10-16T02:00:00", mtime=1_000)
+        _started(fake_runs, "middle", "2026-10-15T02:00:00", mtime=5_000)
+        _started(fake_runs, "oldest", "2026-10-14T02:00:00", mtime=9_000)
+        prune.prune_runs(keep=2, dry=False, now=self.NOW)
+        assert sorted(p.name for p in fake_runs.iterdir()) == ["middle", "newest"]
+
+    def test_the_run_the_generator_calls_latest_survives(self, fake_runs):
+        import run_context
+        for i in range(8):
+            _started(fake_runs, f"r{i}", f"2026-10-{10 + i:02d}T02:00:00", mtime=9_000 - i)
+        latest = run_context.latest_run_dir(fake_runs)
+        prune.prune_runs(keep=5, dry=False, now=self.NOW)
+        assert latest.exists()
+
+
 class TestReadOnly:
     def test_removes_a_read_only_directory(self, fake_runs):
         """OneDrive marks synced folders read-only; os.rmdir refuses them."""

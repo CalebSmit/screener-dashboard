@@ -332,7 +332,8 @@ class TestMetricAvailability:
     def test_it_is_wired_into_main(self):
         src = (Path(__file__).resolve().parent.parent / "scripts"
                / "check_run_health.py").read_text(encoding="utf-8")
-        assert "check_metric_availability(res)" in src.split("def main(")[1]
+        # with the run, so the newest snapshot is checked to be this run's (2026-10-16)
+        assert "check_metric_availability(res, run_dir)" in src.split("def main(")[1]
 
 
 class TestPayloadLoading:
@@ -347,3 +348,174 @@ class TestPayloadLoading:
             "window.SCREENER_DATA = " + json.dumps(_payload(n=3)) + ";",
             encoding="utf-8")
         assert len(h.load_payload(tmp_path)["table_data"]) == 3
+
+
+# --------------------------------------------------------------------------- 2026-10-16
+def _run_dir(tmp_path, run_id="bbb", start="2026-10-14T02:00:03.815047",
+             end="2026-10-14T02:18:18.810369", payload=True, stamp=None, cfg="",
+             tickers=None):
+    """A run folder as run_screener.py leaves it: fetch evidence, meta, config, payload."""
+    d = tmp_path / "runs" / run_id
+    d.mkdir(parents=True)
+    for f in h.FETCH_EVIDENCE:
+        (d / f).write_bytes(b"x")
+    (d / "meta.json").write_text(json.dumps({
+        "run_id": run_id, "start_time": start, "end_time": end,
+        "cli_flags": {"refresh": False, "tickers": tickers}}), encoding="utf-8")
+    (d / "config.yaml").write_text(cfg or "improvement:\n  enabled: true\n", encoding="utf-8")
+    if payload:
+        p = _payload()
+        p["kpis"] = {"run_timestamp": start if stamp is None else stamp}
+        (d / "dashboard_data.js").write_text(
+            "window.SCREENER_DATA = " + json.dumps(p) + ";", encoding="utf-8")
+    return d
+
+
+def _main(monkeypatch, run_dir, capsys):
+    monkeypatch.setattr(sys, "argv", ["check_run_health.py", "--run-dir", str(run_dir)])
+    code = h.main()
+    return code, capsys.readouterr().out
+
+
+class TestThePayloadIsThisRuns:
+    """The root `dashboard_data.js` is the last *published* run. The run folder lacks a
+    payload only when run_screener.py's step 12 failed (a WARNING there), and the fallback
+    to the root then had this gate approving yesterday's page."""
+
+    def test_no_fallback_to_the_published_payload(self, tmp_path, monkeypatch):
+        (tmp_path / "dashboard_data.js").write_text(
+            "window.SCREENER_DATA = " + json.dumps(_payload(n=3)) + ";", encoding="utf-8")
+        monkeypatch.setattr(h, "ROOT", tmp_path)
+        run = _run_dir(tmp_path, payload=False)
+        assert h.load_payload(run) is None
+
+    def test_a_run_without_its_own_payload_cannot_be_evaluated(self, tmp_path, monkeypatch,
+                                                                capsys):
+        run = _run_dir(tmp_path, payload=False)
+        code, out = _main(monkeypatch, run, capsys)
+        assert code == 2
+        assert "no dashboard_data.js of its own" in out
+        assert "PASS" not in out
+
+    def test_a_payload_stamped_by_another_run_cannot_be_evaluated(self, tmp_path, monkeypatch,
+                                                                  capsys):
+        run = _run_dir(tmp_path, stamp="2026-10-13T02:00:01.000001")
+        code, out = _main(monkeypatch, run, capsys)
+        assert code == 2
+        assert "not this run's" in out and "2026-10-13T02:00:01" in out
+
+    def test_a_payload_with_no_stamp_is_not_this_runs(self, tmp_path):
+        run = _run_dir(tmp_path, stamp="")
+        assert "not this run's" in h.payload_run_mismatch(h.load_payload(run), run)
+
+    def test_the_runs_own_stamp_matches(self, tmp_path):
+        run = _run_dir(tmp_path)
+        assert h.payload_run_mismatch(h.load_payload(run), run) is None
+
+    def test_the_stamp_is_the_one_the_generator_writes(self):
+        """kpis.run_timestamp is meta.json's start_time, copied verbatim."""
+        src = (Path(__file__).resolve().parent.parent / "generate_dashboard.py").read_text(
+            encoding="utf-8")
+        assert '"run_timestamp": meta.get("start_time", "")' in src
+
+    def test_data_run_discards_on_exit_2(self):
+        """Exit 2 is only a refusal because the data loop treats it as one."""
+        ps = (Path(__file__).resolve().parent.parent / "scripts" / "data-run.ps1").read_text(
+            encoding="utf-8")
+        block = ps.split("scripts/check_run_health.py')")[1].split("# --- Regenerate")[0]
+        assert "$health.ExitCode -eq 1" in block
+        tail = block.split("elseif ($health.ExitCode -ne 0)")[1]
+        assert "Stop-Run" in tail and "discarded" in tail
+
+
+class TestTheSnapshotIsThisRuns:
+    """record_run_snapshot failing is a WARNING in run_screener.py. The availability check
+    then compared yesterday with the day before and said PASS about a run it never saw."""
+
+    _snapshots = staticmethod(TestMetricAvailability._snapshots)
+
+    def test_this_runs_snapshot_is_compared(self, tmp_path, monkeypatch):
+        self._snapshots(tmp_path, monkeypatch, set())
+        run = _run_dir(tmp_path, run_id="bbb")
+        res = h.Result()
+        h.check_metric_availability(res, run)
+        assert res.healthy and not res.unevaluable
+        assert any("no metric changed availability" in n for n in res.notes)
+
+    def test_a_newest_snapshot_from_an_earlier_day_cannot_be_evaluated(self, tmp_path,
+                                                                       monkeypatch):
+        self._snapshots(tmp_path, monkeypatch, {"roic_pct"})
+        run = _run_dir(tmp_path, run_id="ccc", start="2026-10-15T02:00:00",
+                       end="2026-10-15T02:18:00")
+        res = h.Result()
+        h.check_metric_availability(res, run)
+        assert res.unevaluable and "2026-10-14_bbb.parquet" in res.unevaluable[0]
+        assert not res.failures, "an old pair must not be judged as if it were this run"
+
+    def test_a_same_day_snapshot_from_another_run_cannot_be_evaluated(self, tmp_path,
+                                                                      monkeypatch):
+        self._snapshots(tmp_path, monkeypatch, set())
+        run = _run_dir(tmp_path, run_id="zzz")
+        res = h.Result()
+        h.check_metric_availability(res, run)
+        assert res.unevaluable and "not this run's" in res.unevaluable[0]
+
+    def test_no_snapshots_at_all_cannot_be_evaluated(self, tmp_path, monkeypatch):
+        import history as H
+        d = tmp_path / "empty"
+        d.mkdir()
+        monkeypatch.setattr(H, "SNAPSHOTS_DIR", d)
+        res = h.Result()
+        h.check_metric_availability(res, _run_dir(tmp_path))
+        assert res.unevaluable
+
+    def test_the_first_ever_snapshot_is_this_runs_and_passes(self, tmp_path, monkeypatch):
+        d = self._snapshots(tmp_path, monkeypatch, set())
+        (d / "2026-10-13_aaa.parquet").unlink()
+        res = h.Result()
+        h.check_metric_availability(res, _run_dir(tmp_path, run_id="bbb"))
+        assert not res.unevaluable and res.healthy
+        assert any("fewer than two snapshots" in n for n in res.notes)
+
+    def test_a_run_that_records_no_snapshot_by_design_is_a_note(self, tmp_path, monkeypatch):
+        self._snapshots(tmp_path, monkeypatch, set())
+        off = _run_dir(tmp_path, run_id="off", cfg="improvement:\n  enabled: false\n")
+        res = h.Result()
+        h.check_metric_availability(res, off)
+        assert not res.unevaluable and res.healthy
+        assert any("improvement.enabled: false" in n for n in res.notes)
+
+        sub = _run_dir(tmp_path, run_id="sub", tickers="AAPL,MSFT")
+        res = h.Result()
+        h.check_metric_availability(res, sub)
+        assert not res.unevaluable and res.healthy
+        assert any("--tickers" in n for n in res.notes)
+
+    def test_main_exits_2_when_the_snapshot_is_missing(self, tmp_path, monkeypatch, capsys):
+        self._snapshots(tmp_path, monkeypatch, set())
+        _history(tmp_path, monkeypatch)
+        run = _run_dir(tmp_path, run_id="ccc", start="2026-10-15T02:00:00",
+                       end="2026-10-15T02:18:00")
+        code, out = _main(monkeypatch, run, capsys)
+        assert code == 2, out
+        assert "MISSING" in out and "HEALTH: cannot evaluate" in out
+
+    def test_main_passes_on_a_complete_run(self, tmp_path, monkeypatch, capsys):
+        self._snapshots(tmp_path, monkeypatch, set())
+        _history(tmp_path, monkeypatch)
+        code, out = _main(monkeypatch, _run_dir(tmp_path, run_id="bbb"), capsys)
+        assert code == 0, out
+        assert "HEALTH: PASS" in out
+
+    def test_a_real_failure_still_exits_1(self, tmp_path, monkeypatch, capsys):
+        """Exit 1 also cleans improvement/snapshots in data-run.ps1, so it takes precedence."""
+        self._snapshots(tmp_path, monkeypatch, set())
+        _history(tmp_path, monkeypatch)
+        run = _run_dir(tmp_path, run_id="ccc", start="2026-10-15T02:00:00",
+                       end="2026-10-15T02:18:00")
+        p = _payload(price=False)
+        p["kpis"] = {"run_timestamp": "2026-10-15T02:00:00"}
+        (run / "dashboard_data.js").write_text(
+            "window.SCREENER_DATA = " + json.dumps(p) + ";", encoding="utf-8")
+        code, out = _main(monkeypatch, run, capsys)
+        assert code == 1, out

@@ -36,6 +36,51 @@ ROOT = Path(__file__).resolve().parent
 RUNS_DIR = ROOT / "runs"
 
 
+def run_start_time(run_dir: Path) -> datetime | None:
+    """When a run started, read from its own ``meta.json`` - never the folder's mtime.
+
+    None when the folder has no readable ``meta.json`` or no parseable ``start_time``. A
+    timezone-aware stamp is converted to local naive time so every run compares on one clock
+    (``RunContext`` writes naive local time).
+    """
+    try:
+        with open(Path(run_dir) / "meta.json", encoding="utf-8") as f:
+            raw = json.load(f).get("start_time") or ""
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone().replace(tzinfo=None)
+    return dt
+
+
+def latest_run_dir(runs_dir: Path | None = None) -> Path | None:
+    """The most recent completed run: the newest ``meta.json`` ``start_time`` under ``runs/``.
+
+    **One definition for every reader** (2026-10-16). ``check_run_health`` used to pick the
+    newest folder by *filesystem mtime* while ``generate_dashboard`` picked by ``start_time``, so
+    the data loop's health gate and the generator it then ran could judge and publish two
+    different runs - and OneDrive rewrites folder mtimes when it syncs, which is why the
+    generator had already moved off mtime. Only a folder with a parseable ``meta.json`` counts
+    (``save_metadata`` writes it at step 10, so a run that crashed earlier, a ``--dry-run`` husk
+    or a run still in progress is never "latest"); folders named ``test*`` are fixtures.
+    Returns None when there is no such folder. ``tests/test_latest_run.py``.
+    """
+    runs_dir = Path(runs_dir) if runs_dir is not None else RUNS_DIR
+    if not runs_dir.is_dir():
+        return None
+    dated = []
+    for d in runs_dir.iterdir():
+        if not d.is_dir() or d.name.startswith("test"):
+            continue
+        started = run_start_time(d)
+        if started is not None:
+            dated.append((started, d.name, d))
+    if not dated:
+        return None
+    return max(dated)[2]
+
+
 class _JSONFormatter(logging.Formatter):
     """Structured JSON log formatter."""
 

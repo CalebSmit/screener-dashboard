@@ -41,6 +41,8 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))   # run_context, history, factor_engine live at the root
 RUNS_DIR = ROOT / "runs"
 DISPERSION_HISTORY = ROOT / "improvement" / "dispersion_history.csv"
 
@@ -70,6 +72,10 @@ class Result:
     def __init__(self) -> None:
         self.failures: list[str] = []
         self.notes: list[str] = []
+        # An artifact the run itself should have written is absent or belongs to another run:
+        # exit 2, "could not evaluate", which data-run.ps1 treats as a discard. Kept apart from
+        # `failures` (exit 1, the run is degraded) so the log says which it was.
+        self.unevaluable: list[str] = []
 
     def fail(self, msg: str) -> None:
         self.failures.append(msg)
@@ -77,21 +83,26 @@ class Result:
     def note(self, msg: str) -> None:
         self.notes.append(msg)
 
+    def cannot_evaluate(self, msg: str) -> None:
+        self.unevaluable.append(msg)
+
     @property
     def healthy(self) -> bool:
         return not self.failures
 
 
 def latest_run_dir() -> Path | None:
-    if not RUNS_DIR.exists():
-        return None
-    candidates = [
-        d for d in RUNS_DIR.iterdir()
-        if d.is_dir() and (d / "meta.json").exists() and not d.name.startswith("test_")
-    ]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda d: d.stat().st_mtime)
+    """The run this gate judges: ``run_context.latest_run_dir``, keyed on ``meta.json``
+    ``start_time``.
+
+    Until 2026-10-16 this picked the newest folder by **filesystem mtime** while
+    ``generate_dashboard._find_latest_run`` - the generator ``data-run.ps1`` runs straight after
+    this gate - picked by ``start_time``. OneDrive rewrites folder mtimes when it syncs, so the
+    two could name different runs: the gate approving one and the generator publishing another.
+    One function now answers for both.
+    """
+    from run_context import latest_run_dir as _shared
+    return _shared(RUNS_DIR)
 
 
 def check_fetch_happened(run_dir: Path, res: Result) -> None:
@@ -108,9 +119,17 @@ def check_fetch_happened(run_dir: Path, res: Result) -> None:
 
 
 def load_payload(run_dir: Path) -> dict | None:
+    """The payload **this run** wrote, from its own folder - or None.
+
+    **No fallback to the project root** (removed 2026-10-16). The root ``dashboard_data.js`` is
+    whatever was last published. The run folder lacks a payload in exactly one case - step 12 of
+    ``run_screener.py`` (dashboard generation) failed, which the screener reports only as a
+    WARNING - and in that case the fallback had this gate judging *yesterday's* published page
+    and approving it, after which ``data-run.ps1`` went on to regenerate and publish a page the
+    gate had never seen. A missing run payload is a missing artifact of the run itself: the
+    caller exits 2, which ``data-run.ps1`` treats as a discard.
+    """
     path = run_dir / "dashboard_data.js"
-    if not path.exists():
-        path = ROOT / "dashboard_data.js"
     if not path.exists():
         return None
     text = path.read_text(encoding="utf-8")
@@ -118,6 +137,30 @@ def load_payload(run_dir: Path) -> dict | None:
         return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
     except (ValueError, json.JSONDecodeError) as exc:
         raise ValueError(f"dashboard_data.js did not parse: {exc}") from exc
+
+
+def _run_meta(run_dir: Path) -> dict:
+    try:
+        return json.loads((run_dir / "meta.json").read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def payload_run_mismatch(payload: dict, run_dir: Path) -> str | None:
+    """Why the payload is not this run's, or None if it is.
+
+    ``kpis.run_timestamp`` is copied verbatim from ``meta.json`` ``start_time`` by the
+    generator, so a payload from any other run - a stale copy, a file left by an earlier run
+    under the same folder name - cannot carry this run's stamp.
+    """
+    started = _run_meta(run_dir).get("start_time")
+    if not started:
+        return f"run {run_dir.name} has no meta.json start_time to match the payload against"
+    stamp = (payload.get("kpis") or {}).get("run_timestamp")
+    if stamp != started:
+        return (f"the payload in {run_dir.name} is not this run's: kpis.run_timestamp is "
+                f"{stamp!r}, the run's meta.json start_time is {started!r}")
+    return None
 
 
 def check_coverage(payload: dict, res: Result) -> None:
@@ -178,7 +221,62 @@ def check_price_derived_coverage(payload: dict, res: Result) -> None:
             res.note(f"{cat} coverage {present}/{n} ({cov:.0%})")
 
 
-def check_metric_availability(res: Result) -> None:
+def _snapshot_expected(run_dir: Path) -> str | None:
+    """None if this run should have recorded a snapshot, else the reason it deliberately did not.
+
+    Mirrors ``run_screener.py`` step 13: no snapshot when the run's own config snapshot sets
+    ``improvement.enabled: false``, or for a ``--tickers`` subset run (``meta.json``
+    ``cli_flags.tickers``) - recording a subset would replace the universe's observation.
+    """
+    if ((_run_meta(run_dir).get("cli_flags") or {}).get("tickers")):
+        return "a --tickers subset run records no snapshot"
+    try:
+        import yaml
+        cfg = yaml.safe_load((run_dir / "config.yaml").read_text(encoding="utf-8")) or {}
+        if (cfg.get("improvement") or {}).get("enabled", True) is False:
+            return "the run's config sets improvement.enabled: false, so it records no snapshot"
+    except (OSError, ValueError, ImportError, AttributeError):
+        pass
+    return None
+
+
+def _newest_snapshot_is_this_runs(run_dir: Path, index: dict, res: Result) -> bool:
+    """True if the newest snapshot was written by this run; otherwise records why and is False.
+
+    **2026-10-16.** The comparison below takes the two newest snapshots and calls the newer one
+    "this run". ``record_run_snapshot`` failing is only a WARNING in ``run_screener.py`` (step
+    13), and then the two newest are *yesterday and the day before*: the gate compared two old
+    runs, said PASS about this one, and ``check_dispersion`` - which drops the history's last row
+    as this run's - quietly measured against a baseline missing its newest day. A snapshot
+    this run should have written and did not is a missing artifact of the run itself, so it is
+    ``cannot_evaluate`` (exit 2, a discard), the same as a missing payload.
+
+    The file is ``improvement/snapshots/{run_date}_{run_id}.parquet``; both halves must match.
+    The run date is the date of the run's start or end (step 13 stamps ``datetime.now()``).
+    """
+    why_not = _snapshot_expected(run_dir)
+    if why_not:
+        res.note(f"metric availability not checked - {why_not}")
+        return False
+    meta = _run_meta(run_dir)
+    run_id = str(meta.get("run_id") or run_dir.name)
+    run_dates = {str(meta.get(k) or "")[:10] for k in ("start_time", "end_time")} - {""}
+    if not index:
+        res.cannot_evaluate(f"no improvement snapshot at all - run {run_id} should have "
+                            f"written one at step 13 (record_run_snapshot)")
+        return False
+    newest = max(index)
+    path = Path(index[newest])
+    if newest not in run_dates or path.stem != f"{newest}_{run_id}":
+        res.cannot_evaluate(
+            f"the newest improvement snapshot is {path.name}, not this run's "
+            f"({'/'.join(sorted(run_dates)) or '?'}_{run_id}.parquet) - record_run_snapshot "
+            f"failed or wrote elsewhere, so this run's metric availability cannot be compared")
+        return False
+    return True
+
+
+def check_metric_availability(res: Result, run_dir: Path | None = None) -> None:
     """A metric that goes missing for most of the universe is a source event.
 
     **2026-10-14**: the source stopped serving ``.info["dividendRate"]`` and
@@ -204,6 +302,9 @@ def check_metric_availability(res: Result) -> None:
     **none** is a note: it is display-only, and jamming the evidence loop over a
     row in the Company Snapshot is the wrong trade - the same reasoning as the
     node and pytest fallbacks in both publish paths.
+
+    Given ``run_dir`` (``main`` always passes it), the newest snapshot must be **this run's**
+    (``_newest_snapshot_is_this_runs``) or the run cannot be evaluated.
     """
     sys.path.insert(0, str(ROOT))
     try:
@@ -214,6 +315,8 @@ def check_metric_availability(res: Result) -> None:
 
     index = H.snapshot_index()
     dates = sorted(index)
+    if run_dir is not None and not _newest_snapshot_is_this_runs(run_dir, index, res):
+        return
     if len(dates) < 2:
         res.note("metric availability not checked - fewer than two snapshots")
         return
@@ -458,11 +561,18 @@ def main() -> int:
         return 2
 
     if payload is None:
-        print("HEALTH: cannot evaluate - no dashboard_data.js found")
+        print(f"HEALTH: cannot evaluate - run {run_dir.name} has no dashboard_data.js of its own "
+              f"(run_screener.py step 12, dashboard generation, failed or was skipped). The root "
+              f"payload is the last published run, not this one, so it is not judged instead.")
+        return 2
+
+    mismatch = payload_run_mismatch(payload, run_dir)
+    if mismatch:
+        print(f"HEALTH: cannot evaluate - {mismatch}")
         return 2
 
     check_coverage(payload, res)
-    check_metric_availability(res)
+    check_metric_availability(res, run_dir)
     check_dispersion(payload, res)
     check_inputs_against_filings(payload, res)
     check_top_of_ranking(payload, res)
@@ -473,13 +583,20 @@ def main() -> int:
             print(f"  ok   {n}")
         for f in res.failures:
             print(f"  FAIL {f}")
+        for u in res.unevaluable:
+            print(f"  MISSING {u}")
 
-    if res.healthy:
-        print("HEALTH: PASS - safe to publish")
-        return 0
+    if res.failures:
+        print(f"HEALTH: FAIL - {len(res.failures)} problem(s). Do not publish.")
+        return 1
 
-    print(f"HEALTH: FAIL - {len(res.failures)} problem(s). Do not publish.")
-    return 1
+    if res.unevaluable:
+        print(f"HEALTH: cannot evaluate - {len(res.unevaluable)} artifact(s) of this run "
+              f"missing: {'; '.join(res.unevaluable)}")
+        return 2
+
+    print("HEALTH: PASS - safe to publish")
+    return 0
 
 
 if __name__ == "__main__":
