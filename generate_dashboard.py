@@ -5203,13 +5203,13 @@ def _css() -> str:
         .seg-control { display: inline-flex; border: 1px solid var(--border-bright); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
         .seg-btn {
             background: transparent; border: 0; color: var(--text-secondary);
-            font-family: var(--font-body); font-size: .82rem; padding: 6px 12px;
+            font-family: var(--font-body); font-size: 13px; padding: 6px 12px;
             cursor: pointer; transition: background .12s, color .12s;
         }
         .seg-btn + .seg-btn { border-left: 1px solid var(--border-bright); }
         .seg-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
         .seg-btn.active { background: var(--accent-glow); color: var(--accent-text); }
-        .changed-caption { font-size: .82rem; color: var(--text-secondary); line-height: 1.5; }
+        .changed-caption { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
         .changed-caption strong { color: var(--text-primary); font-weight: 600; }
         .profile-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-card); font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
         .profile-note strong { color: var(--text-primary); font-weight: 600; }
@@ -5227,33 +5227,33 @@ def _css() -> str:
         }
         .mover-row:hover { background: var(--bg-card-hover); border-color: var(--border-bright); }
         .mover-id { grid-area: id; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-        .mover-ticker { font-family: var(--font-body); font-weight: 600; color: var(--text-primary); font-size: .88rem; }
-        .mover-name { color: var(--text-secondary); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mover-ticker { font-family: var(--font-body); font-weight: 600; color: var(--text-primary); font-size: 14px; }
+        .mover-name { color: var(--text-secondary); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .spark { grid-area: spark; display: block; }
-        .spark-empty { grid-area: spark; color: var(--text-muted); font-size: .78rem; }
+        .spark-empty { grid-area: spark; color: var(--text-muted); font-size: 12.5px; }
         .mover-delta {
             grid-area: delta; text-align: right; font-family: var(--font-body);
-            font-size: .88rem; font-weight: 600; white-space: nowrap;
+            font-size: 14px; font-weight: 600; white-space: nowrap;
         }
-        .mover-arrow { font-size: .7rem; margin-right: 2px; }
+        .mover-arrow { font-size: 11px; margin-right: 2px; }
         .mover-delta.pos, .delta-cell.pos { color: var(--green); }
         .mover-delta.neg, .delta-cell.neg { color: var(--red); }
-        .mover-meta { grid-area: meta; font-size: .74rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .mover-meta { grid-area: meta; font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .mover-driver { color: var(--text-secondary); }
         .mover-driver.muted, .delta-cell.muted { color: var(--text-muted); }
-        .mover-none { padding: 10px; color: var(--text-muted); font-size: .82rem; }
+        .mover-none { padding: 10px; color: var(--text-muted); font-size: 13px; }
         .rt-badge {
-            font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+            font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
             color: var(--amber); background: var(--amber-dim);
             border: 1px solid rgba(210,153,34,.35); border-radius: 4px;
             padding: 1px 5px; cursor: help; white-space: nowrap;
         }
         .changed-footnote {
             margin-top: var(--gap); padding-top: 12px; border-top: 1px solid var(--border);
-            font-size: .76rem; color: var(--text-secondary); line-height: 1.6;
+            font-size: 12px; color: var(--text-secondary); line-height: 1.6;
         }
         .changed-footnote strong { color: var(--amber); }
-        .delta-cell { font-size: .8rem; white-space: nowrap; }
+        .delta-cell { font-size: 13px; white-space: nowrap; }
         #universe-table.no-history .delta-cell,
         #universe-table.no-history #th-rank-delta { display: none; }
 
@@ -5267,23 +5267,23 @@ def _css() -> str:
             font-family: var(--font-body); transition: color .15s, border-color .15s;
         }
         .holdings-clear-btn:hover { color: var(--red); border-color: var(--red); }
-        .holdings-empty { padding: 18px 4px; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
+        .holdings-empty { padding: 18px 4px; color: var(--text-secondary); font-size: 13.5px; line-height: 1.6; }
         .holdings-empty p { margin: 0 0 6px; }
-        .holdings-empty-sub { color: var(--text-muted); font-size: .78rem; }
+        .holdings-empty-sub { color: var(--text-muted); font-size: 12.5px; }
         .holdings-fit-line {
-            font-size: .8rem; color: var(--text-secondary); line-height: 1.7;
+            font-size: 13px; color: var(--text-secondary); line-height: 1.7;
             padding: 8px 10px; margin-bottom: 12px;
             background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
         }
         .holdings-fit-line strong { color: var(--text-primary); }
         .holdings-concentration {
-            font-size: .78rem; color: var(--text-secondary); line-height: 1.65;
+            font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;
             padding: 10px 12px; margin-bottom: 12px;
             background: var(--bg-elevated); border: 1px solid var(--border);
             border-left: 3px solid var(--accent); border-radius: 8px;
         }
         .holdings-conc-title {
-            margin: 0 0 6px; font-size: .72rem; letter-spacing: .08em;
+            margin: 0 0 6px; font-size: 11.5px; letter-spacing: .08em;
             text-transform: uppercase; color: var(--text-muted); font-weight: 600;
         }
         .holdings-concentration p { margin: 0 0 7px; }
@@ -5296,37 +5296,37 @@ def _css() -> str:
         .holding-card:hover { border-color: var(--border-bright); }
         .holding-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .holding-rank {
-            font-family: var(--font-body); font-size: .8rem; color: var(--text-muted);
+            font-family: var(--font-body); font-size: 13px; color: var(--text-muted);
             min-width: 44px;
         }
         .holding-ticker {
             background: none; border: none; padding: 0; cursor: pointer;
-            font-family: var(--font-heading); font-weight: 600; font-size: .95rem;
+            font-family: var(--font-heading); font-weight: 600; font-size: 15px;
             color: var(--accent);
         }
         .holding-ticker:hover { text-decoration: underline; }
         .holding-company {
-            color: var(--text-secondary); font-size: .8rem;
+            color: var(--text-secondary); font-size: 13px;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;
         }
-        .holding-sector { color: var(--text-muted); font-size: .72rem; }
+        .holding-sector { color: var(--text-muted); font-size: 11.5px; }
         .holding-flag {
-            font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+            font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
             color: var(--red); border: 1px solid rgba(248,81,73,.35);
             border-radius: 4px; padding: 1px 5px; white-space: nowrap;
         }
         .holding-spacer { flex: 1; }
-        .holding-delta { font-size: .74rem; white-space: nowrap; cursor: help; }
+        .holding-delta { font-size: 12px; white-space: nowrap; cursor: help; }
         .holding-delta-up { color: var(--green); }
         .holding-delta-down { color: var(--red); }
         .holding-delta-flat, .holding-delta-none { color: var(--text-muted); }
         .holding-composite {
-            font-family: var(--font-body); font-size: .9rem; font-weight: 600;
+            font-family: var(--font-body); font-size: 14px; font-weight: 600;
             color: var(--text-primary); cursor: help;
         }
         .holding-remove {
             background: none; border: none; color: var(--text-muted);
-            font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 2px;
+            font-size: 17px; line-height: 1; cursor: pointer; padding: 0 2px;
         }
         .holding-remove:hover { color: var(--red); }
         .holding-cats {
@@ -5338,21 +5338,21 @@ def _css() -> str:
             background: var(--bg-elevated); padding: 5px 6px; min-width: 0;
         }
         .holding-cat-name {
-            display: block; font-size: .64rem; text-transform: uppercase;
+            display: block; font-size: 10px; text-transform: uppercase;
             letter-spacing: .04em; color: var(--text-muted);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .holding-cat-val {
-            display: block; font-family: var(--font-body); font-size: .82rem;
+            display: block; font-family: var(--font-body); font-size: 13px;
             color: var(--text-primary); white-space: nowrap;
         }
-        .holding-cat-nodata .holding-cat-val { font-size: .68rem; color: var(--text-muted); }
-        .holding-cat-move { font-size: .66rem; margin-left: 4px; }
+        .holding-cat-nodata .holding-cat-val { font-size: 11px; color: var(--text-muted); }
+        .holding-cat-move { font-size: 10.5px; margin-left: 4px; }
         .holding-cat-move-up { color: var(--green); }
         .holding-cat-move-down { color: var(--red); }
         .holding-notes { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
         .holding-note {
-            margin: 0 0 4px; font-size: .78rem; line-height: 1.55;
+            margin: 0 0 4px; font-size: 12.5px; line-height: 1.55;
             color: var(--text-secondary);
         }
         .holding-note:last-child { margin-bottom: 0; }
@@ -5374,13 +5374,13 @@ def _css() -> str:
         /* Stated, not shouted. The cadence is a framing fact a reader should
            meet before the rank changes, not an alert. */
         .cadence-note {
-            margin: 0 0 8px; font-size: .78rem; line-height: 1.6;
+            margin: 0 0 8px; font-size: 12.5px; line-height: 1.6;
             color: var(--text-secondary);
         }
         .cadence-note strong { color: var(--text-primary); }
         .holdings-footnote {
             margin-top: var(--gap); padding-top: 12px; border-top: 1px solid var(--border);
-            font-size: .76rem; color: var(--text-secondary); line-height: 1.65;
+            font-size: 12px; color: var(--text-secondary); line-height: 1.65;
         }
         .holdings-footnote p { margin: 0 0 8px; }
         .holdings-footnote p:last-child { margin-bottom: 0; }
@@ -5398,15 +5398,15 @@ def _css() -> str:
         .modal-history-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .modal-spark { flex-shrink: 0; }
         .modal-hist-block { margin-top: 14px; }
-        .modal-hist-head { font-size: .8rem; color: var(--text-primary); margin-bottom: 6px; }
+        .modal-hist-head { font-size: 13px; color: var(--text-primary); margin-bottom: 6px; }
         .modal-hist-head .pos { color: var(--green); }
         .modal-hist-head .neg { color: var(--red); }
-        .mini-table { width: 100%; max-width: 320px; border-collapse: collapse; font-size: .8rem; }
+        .mini-table { width: 100%; max-width: 320px; border-collapse: collapse; font-size: 13px; }
         .mini-table td { padding: 3px 8px 3px 0; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
         .mini-table td.num { text-align: right; font-family: var(--font-body); }
         .mini-table td.pos { color: var(--green); }
         .mini-table td.neg { color: var(--red); }
-        .modal-note { margin-top: 12px; font-size: .74rem; color: var(--text-muted); line-height: 1.5; }
+        .modal-note { margin-top: 12px; font-size: 12px; color: var(--text-muted); line-height: 1.5; }
         .muted { color: var(--text-muted); }
         @media (max-width: 780px) {
             .movers-grid { grid-template-columns: 1fr; }
