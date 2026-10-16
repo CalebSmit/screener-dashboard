@@ -7077,8 +7077,13 @@ def _css() -> str:
         .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
         .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
         /* A note about this company's own filed figures, not a warning about the metric: the
-           same shape, the neutral border. */
-        .wk-caveat-stock { border-left-color: var(--border-bright); }
+           same shape, the neutral border. These notes name the XBRL tag the company applied, so a
+           reader can find the figure in the filing, and some of those are one unbreakable 59-
+           character token - ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill. Without
+           `anywhere` it is clipped at the panel's edge at 375px (seen on Gilead, rank 53,
+           2026-10-16), and the clip does not widen the document, so a scrollWidth check cannot
+           see it. The tag has to be readable or it is not provenance. */
+        .wk-caveat-stock { border-left-color: var(--border-bright); overflow-wrap: anywhere; }
         .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
         .contrib-row-link:hover { background: var(--bg-card-hover); }
         .chain-line {

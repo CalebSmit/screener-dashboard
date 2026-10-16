@@ -196,6 +196,20 @@ def test_a_build_without_the_cache_says_nothing_rather_than_failing():
     assert all("cavs" not in d for d in det.values())
 
 
+def test_a_long_filing_tag_can_wrap():
+    """The note names the tag so a reader can find the figure in the filing, and the longest is
+    `ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill` - 59 characters, one unbreakable
+    token. Without `overflow-wrap: anywhere` it is clipped at the panel's edge at 375px (seen on
+    Gilead, rank 53, 2026-10-16). The clip does not widen the document, so a `scrollWidth` check
+    cannot see it - which is why this is pinned on the rule rather than on a viewport."""
+    longest = max(X.SPECIAL_ITEM_CONCEPTS, key=len)
+    assert len(longest) >= 55, longest
+    html = g.generate_html()
+    assert re.search(r"\.wk-caveat-stock\s*\{[^}]*overflow-wrap:\s*anywhere", html), \
+        "the stock-note block must break a long tag rather than clip it"
+    assert "In this company&rsquo;s filings." in html
+
+
 def test_it_does_not_overwrite_the_capex_note():
     """Both notes live in `cavs`, keyed by metric. One must not clear the other."""
     det = _details()

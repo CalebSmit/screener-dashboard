@@ -598,6 +598,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_special_item_note.py::test_the_largest_single_tag_is_used_never_a_sum",
             "tests/test_special_item_note.py::test_a_charge_below_the_threshold_gets_no_note",
             "tests/test_special_item_note.py::test_the_recurrence_clause_counts_the_filed_years",
+            "tests/test_special_item_note.py::test_a_long_filing_tag_can_wrap",
             "tests/test_special_item_note.py::test_the_note_never_reaches_a_score",
             "tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings",
         ),
