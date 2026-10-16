@@ -690,9 +690,10 @@ STAT_LABELS = {"max": "Best month (%)", "min": "Worst month (%)", "mean": "Mean,
 
 # How far a reproduced figure may sit from the paper's and still count as matching. Written
 # 2026-10-12, after the first comparison was seen, as round numbers a reader can argue with:
-# a quarter of a tenth on a ratio, one point on an annual percentage, three points on a
-# single extreme month. The page prints every raw difference beside the verdict, so a
-# stricter reader does not have to accept them.
+# 0.05 on the Sharpe ratio (half of a tenth), one point on an annual percentage (the mean and
+# the volatility), one on excess kurtosis, 0.15 on skewness, and three points on a single
+# extreme month (the best and the worst). The page prints every raw difference beside the
+# verdict, so a stricter reader does not have to accept them.
 TOLERANCES = {"max": 3.0, "min": 3.0, "mean": 1.0, "std": 1.0, "kurt": 1.0, "skew": 0.15,
               "sharpe": 0.05}
 
@@ -1732,7 +1733,7 @@ EXPERIMENTS = [
                 {"key": "spread", "label": "Lowest accruals minus highest (% a year)", "paper": 10.4, "tolerance": 4.0, "where": "Table 6, size-adjusted, year t+1, hedge portfolio (0.104)"},
             ],
         },
-        "verdict_note": ("Six of eleven figures within tolerance. The direction reproduces - low accruals beat "
+        "verdict_note": ("The direction reproduces - low accruals beat "
                          "high in the paper's years, t 4.7 - but the library's gradient is flatter: the spread "
                          "is half the paper's and the deciles next to the ends miss, as expected beforehand from "
                          "a weaker measure of accruals (no depreciation term, scaled by book equity rather than "
@@ -1830,7 +1831,7 @@ EXPERIMENTS = [
                 {"key": "corr_resid", "label": "Correlation of value with momentum, after the market", "paper": -0.53, "tolerance": 0.15, "where": "Table I A, last row"},
             ],
         },
-        "verdict_note": ("Seven of ten figures within tolerance. Each premium and the mix's average return "
+        "verdict_note": ("Each premium and the mix's average return "
                          "match the paper; the hedge is milder here (-0.22 after the market, against -0.53), so "
                          "the mix is more volatile and its Sharpe ratio lower (0.49 against 0.63). The likeliest "
                          "reason is the library pricing value at the previous December, which the record's "

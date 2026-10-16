@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 45 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 58 tests (counted 2026-10-16; recount rather than trust it): the arithmetic, the parity, the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must

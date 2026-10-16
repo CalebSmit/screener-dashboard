@@ -1457,3 +1457,33 @@ def test_a_chart_can_be_read_month_by_month_from_the_keyboard():
         finally:
             browser.close()
 
+
+def test_on_a_phone_no_table_slides_sideways():
+    """At 375 px the largest-fifth live table was 3 px wider than its column, so it slid under a
+    thumb. Every scene's tables now fit; the equations and the code are meant to scroll, and do."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw, width=375)
+        try:
+            for exp_id in ["overview"] + [x["id"] for x in fl.EXPERIMENTS]:
+                _goto(page, exp_id)
+                wide = page.evaluate("[...document.querySelectorAll('.tablewrap')].filter(w => w.scrollWidth > w.clientWidth)"
+                                     ".map(w => (w.querySelector('table') || {}).id)")
+                assert wide == [], (exp_id, wide)
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_a_verdict_note_does_not_repeat_the_count_the_verdict_prints():
+    """The verdict line prints "N of M figures match the paper"; experiments 12 and 13's notes
+    opened by saying it again in words."""
+    for exp in fl.EXPERIMENTS:
+        note = exp.get("verdict_note", "")
+        assert not re.match(r"\w+ of \w+ figures", note), exp["id"]
+    # and the comment on the momentum tolerances says what they are
+    src = (ROOT / "factor_lab.py").read_text(encoding="utf-8")
+    assert "a quarter of a tenth on a ratio" not in src and "0.05 on the Sharpe ratio" in src
+    assert fl.TOLERANCES["sharpe"] == 0.05
+
