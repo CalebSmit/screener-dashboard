@@ -64,6 +64,12 @@ statement, never louder than the primary action.
 - "Top 5 Stocks" is "Leading the ranking" and "Full Universe Rankings" is "The full ranking", each with one
   line saying what it holds and what selecting does.
 
+## Phase 4 - DONE 2026-10-15 (owner-run)
+
+- The Factor Lab's menu: fourteen "Experiment N" chips became five labelled groups (Momentum, Value,
+  Quality, Risk, Across the factors) from a `group` field on each experiment record.
+- Header nav "Top 5" is "Leaders", matching its section.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption

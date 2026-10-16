@@ -51,6 +51,12 @@ h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw
 .tabs a span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 .tabs a:hover { background: var(--bg-card-hover); color: var(--text-primary); text-decoration: none; }
 .tabs a[aria-current="page"] { background: var(--accent-glow); border-color: var(--accent); color: var(--text-primary); }
+/* grouped menu (2026-10-15): each group a labelled run of quiet chips */
+.tabs { gap: 10px 22px; align-items: center; }
+.tabs .tg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tabs .tg-l { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-right: 4px; }
+.tabs a { padding: 6px 12px; font-size: 13.5px; border-radius: 999px; }
+@media (max-width: 599px) { .tabs .tg { flex-wrap: nowrap; flex: none; } }
 /* On a phone the experiments are one row you swipe, not a stack that pushes the page down. */
 @media (max-width: 599px) { .tabs { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 6px;
     scrollbar-width: none; scroll-snap-type: x proximity; } .tabs::-webkit-scrollbar { display: none; }
@@ -198,8 +204,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=19"></script>
-<script src="lab_engine.js?v=19"></script>
+<script src="lab_data.js?v=20"></script>
+<script src="lab_engine.js?v=20"></script>
 <script>
 (function () {
     'use strict';
@@ -1055,8 +1061,13 @@ footer p { margin: 0 0 8px; }
     // ------------------------------------------------------------------ the page
     const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall, 'combo': together };
     const tabs = document.getElementById('tabs');
-    tabs.innerHTML = '<a href="#overview" data-id="overview"><span>Start here</span>Overview</a>' +
-        D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.tab || x.title)}</a>`).join('');
+    // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
+    // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
+    const GROUPS = ['Momentum', 'Value', 'Quality', 'Risk', 'Across the factors'];
+    D.experiments.forEach(x => { if (GROUPS.indexOf(x.group || 'More') < 0) GROUPS.push(x.group || 'More'); });
+    tabs.innerHTML = '<div class="tg tg-start"><a href="#overview" data-id="overview">Overview</a></div>' +
+        GROUPS.map(g => { const xs = D.experiments.filter(x => (x.group || 'More') === g);
+            return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}">${esc(x.tab || x.title)}</a>`).join('')}</div>` : ''; }).join('');
     function show() {
         const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';

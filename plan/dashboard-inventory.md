@@ -13,6 +13,28 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## The investor pass, 2026-10-15 (owner-run, night) - `plan/dashboard-investor-pass.md`
+
+Presentation only (payload byte-identical). What a session must know before touching these:
+- **Hero**: title "The S&P 500, ranked on eight factors", `.hero-note` disclaimer; actions are one primary
+  button, "How it works", and the two proof pages as `a.hero-link` text links.
+- **At a glance** (`renderKPIs`): Ranked / Moved materially / **Track record** (`#kpi-track`, filled by
+  `contextMetas()` once `dashboard_context.js` lands, "not loaded" on failure) / Trap flags (or the
+  momentum weight when the regime rule moved it). Metric coverage lives in Diagnostics.
+- **Leading the ranking** (`#sec-top5`, nav "Leaders"): each card's eight scores as a column profile
+  (`.t5-profile`); a swipe row on a phone.
+- **Section tiles**: Holdings ... Diagnostics are wrapped in `#sec-grid` - two columns of tiles, each with
+  `.sec-meta` (its headline number) and `.sec-blurb`; an open tile spans the row. **Sections that draw
+  charts open first and draw second** (the toggle wrappers in `_js` and `initContext`) - a chart drawn
+  in a closed tile measures half the width.
+- **The full ranking** (`#sec-universe`): score cells carry no background; their ink brightens with the
+  score (`--v`). The sector heatmap does the same (`--t`).
+- **Stock sheet**: `#modal-score-row` comes **before** `#modal-summary`, and the jump links follow
+  (`test_the_drilldown_reads_in_the_order_its_jump_links_promise`); the header adds the last price
+  (`.mh-price`, hidden on a phone).
+- **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
+  Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
+
 ## Added 2026-10-15 (owner-run, night) - the evidence and the lab, one click from the top
 
 - **`research.html` - "Has it been tested?"** A companion page (like `lab.html`), **generated** by
