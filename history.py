@@ -367,16 +367,15 @@ def select_comparable_runs(
         last = kept[-1]
         if snap.ranks == last.ranks:
             excluded.append({"date": snap.date, "reason": "duplicate_of_previous",
-                             "detail": f"ranks identical to {last.date} "
-                                       "(re-run off cache, not a new observation)"})
+                             "detail": f"a re-run of {last.date} with identical ranks"})
             continue
         rho = rank_continuity(snap, last)
         if rho is not None and rho < MIN_RANK_CONTINUITY:
             excluded.append({
                 "date": snap.date, "reason": "rank_discontinuity",
                 "detail": (f"rank correlation {rho:.2f} with {last.date}, "
-                           f"below {MIN_RANK_CONTINUITY:.2f} - the ranking is "
-                           "not comparable to the rest of the series"),
+                           f"below {MIN_RANK_CONTINUITY:.2f}, so not comparable with the "
+                           "rest of the series"),
             })
             continue
         kept.append(snap)

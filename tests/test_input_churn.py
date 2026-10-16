@@ -384,7 +384,7 @@ def test_malformed_ch_is_ignored_not_raised(bad):
 def test_sentence_names_the_count_and_the_baseline():
     text = S._sentence_input_churn(_delta(3, 0), COMPARE)
     assert "3 of the metrics" in text
-    assert "2026-08-20" in text and "28 days ago" in text
+    assert "Aug 20, 2026" in text and "28 days ago" in text
 
 
 def test_sentence_distinguishes_lost_from_gained():
@@ -451,7 +451,7 @@ def test_uses_the_same_baseline_as_the_change_sentences():
 def test_falls_back_to_prev_when_that_is_the_chosen_baseline():
     delta = {"prev": {"dr": -3, "ch": [2, 0]}}
     text = S._sentence_input_churn(delta, COMPARE)
-    assert text and "2026-09-16" in text
+    assert text and "Sep 16, 2026" in text
 
 
 # ---------------------------------------------------------------------------

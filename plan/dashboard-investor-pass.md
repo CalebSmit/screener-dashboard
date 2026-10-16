@@ -165,6 +165,35 @@ statement, never louder than the primary action.
 - **Checked and left alone**: the first paint before the 6 MB data file lands already shows skeletons in
   the new 2x2 shape; the lab's experiment view reads cleanly at 1440 and 375.
 
+## The professional pass - 2026-10-16 (owner-run, day)
+
+Owner: *"keep making ui/ux improvements please. Really go deep, like a professional front end designer
+would do ... no signs of ai language anywhere, or that it looks like it was vibe coded."*
+
+### P1 - copy, dates and details (the audit came first: every visible text node on the page and a sheet)
+
+- **Voice.** About 50 strings rewritten in one register: short declarative sentences, specific numbers, no
+  "X, not Y" reflex, no em-dash asides, "we" removed, the disclaimer stated in the hero and footer rather than
+  four times. Kept on purpose, because tests and settled decisions hold them: the summary's "never says whether
+  to buy, sell or hold", the track record's "not a portfolio to follow", the cadence line's "not by itself a
+  reason to act", the storage note's "not an account and is not backed up", and the rank sentence's "not a
+  percentile" (the 2026-10-07 correction). They now read as statements, not as hedges.
+- **Dashes.** Spaced hyphens used as dashes ("estimate - a beat or miss") and em-dash asides were rewritten
+  out of the page's own copy, the summary sentences, the Market notes and the history notes.
+- **Dates.** One reader-facing format, "Sep 16" (the year only when it is not the run's): the tiles, What
+  Changed, the stock sheet's history, the rank chart line, the Market cards, the track-record table and the
+  footer (which printed "2026-10-16 02:00 UTC" under a hero saying "Oct 16, 2026, 2:00 AM CDT", and with no
+  stamp would have printed the reader's own clock as the data time). The summary sentences use "Sep 16, 2026"
+  (`stock_summary._fmt_day`, which had read "4 Nov 2026").
+- **Defects found by reading every line**: the Market cards printed "62th", "2th" and "3th percentile"; and
+  the VIX note said the screener "cuts momentum's weight when the universe is turbulent and **raises it when
+  calm**", false since the rule was rebuilt on 2026-10-12 (it cuts only in the panic state and never raises).
+- **One disclosure icon**: the tiles' SVG chevron replaces a text "▼" (stock sheet), "▸" (notes) and "›"
+  (holdings), drawn as a CSS mask so it takes the text colour.
+- **Live with the next data run**: the summary sentences, Market notes and history notes are built into the
+  payload, so they change on the 2026-10-19 02:00 run; `scripts/rehearse_publish.py` checked them against the
+  page tests and the claims gate.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).
