@@ -253,6 +253,12 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
 - **The weight-profile notes** read "Bank weighting: ..." and "Piotroski halved: ..." (they printed "bank
   weighting - banks and ..."); `factor_engine.WEIGHT_PROFILE_LABELS`, live with the next data run.
 
+### P7 - last details
+
+- Company names in the Reporting table use normal figures (a scan for hyphenated words set in tabular figures
+  found "Snap-On"); the Diagnostics tile's badges read "Stability moderate (75%)", "100 EPS flags", "Data 96%
+  complete" rather than Title Case labels with colons.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).
