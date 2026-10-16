@@ -221,6 +221,33 @@ def _max_pos_note(scheme: str, num_stocks: int, max_pos: float) -> str:
 # ---------------------------------------------------------------------------
 # Factor Engine integration (with resilience)
 # ---------------------------------------------------------------------------
+def _research_engine_sentence(path: Path | None = None) -> str:
+    """What the research engine found, from the numbers it publishes
+    (``research/experiments/summary.json``; claim ``overview.research_engine``). The page states the
+    result of the test it ran on itself, not only the flattering live record (2026-10-15)."""
+    import json
+    path = path or Path(__file__).resolve().parent / "research" / "experiments" / "summary.json"
+    try:
+        s = json.loads(path.read_text(encoding="utf-8"))
+        pre, post = s["baseline_ic"]["presample"], s["baseline_ic"]["all"]
+        months = s["months"]["presample"] + s["months"]["all"]
+        alts, better = int(s["alternatives"]), int(s["better"])
+    except (OSError, KeyError, TypeError, ValueError):
+        return ""
+
+    def ic(x: float) -> str:
+        return "0.000" if abs(x) < 0.0005 else f"{x:+.3f}"
+    beaten = "none of" if better == 0 else f"{better} of"
+    return (f" **Tested against history, 2026-10-15:** run on that rebuild over {months} months "
+            f"(2012-2026), the ranking's average monthly rank correlation with the next month's return was "
+            f"**{ic(pre)}** in 2012-2019 and **{ic(post)}** in 2020-2026 - indistinguishable from zero - and "
+            f"{beaten} the {alts} alternative weightings registered in advance did measurably better "
+            f"(`research/2026-10-15-research-engine-first-batch.md`). That test lacks the analyst inputs and "
+            f"the companies that have since left the index, so it is not the last word - but on public data "
+            f"this ranking has not been shown to predict returns, which is why this page presents it as "
+            f"decision support, not a forecast.")
+
+
 def build_screener_overview(cfg: dict) -> str:
     """Build the text of SCREENER_OVERVIEW.md from the live config.
 
@@ -920,7 +947,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
 2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
-3. **Point-in-time:** The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: *measured 2026-10-15*, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts **72.5% of stock-months in a different tenth** of the ranking. A research rebuild that reads each month's filings as they were filed now exists (`pit_record.py`, `backtest_v2.py`; `research/2026-10-15-pit-record-validation.md`). It does not set any weight on this page, and nothing it produces will before 2027-02-11.
+3. **Point-in-time:** The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: *measured 2026-10-15*, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts **72.5% of stock-months in a different tenth** of the ranking. A research rebuild that reads each month's filings as they were filed now exists (`pit_record.py`, `backtest_v2.py`; `research/2026-10-15-pit-record-validation.md`). It does not set any weight on this page, and nothing it produces will before 2027-02-11.{_research_engine_sentence()}
 
 4. **Analyst coverage:** The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.
 

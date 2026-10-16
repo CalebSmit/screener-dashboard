@@ -230,3 +230,26 @@ def test_the_statistics_say_when_months_are_not_independent():
     ar = pd.Series(0.01 + e[1:] + 0.9 * e[:-1])                       # strongly dependent months
     s2 = X._stats(ar)
     assert s2["ac1"] > 0.3 and abs(s2["t_nw"]) < abs(s2["t"])           # the honest t is smaller
+
+
+def test_the_methodology_page_quotes_the_engine_s_own_summary():
+    """Claim ``overview.research_engine`` (2026-10-15): the page states what the engine found, from
+    ``summary.json``, which must be exactly what the engine computes from its committed ledger."""
+    import yaml
+    import run_screener
+    latest = {}
+    for line in X.LEDGER.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            r = json.loads(line)
+            latest[r["id"]] = r
+    published = json.loads(X.SUMMARY.read_text(encoding="utf-8"))
+    assert published == json.loads(json.dumps(X.summary_for_page(X.load_registry(), latest)))
+    text = run_screener.build_screener_overview(
+        yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")))
+    ic = lambda x: "0.000" if abs(x) < 0.0005 else f"{x:+.3f}"                       # noqa: E731
+    assert f"**{ic(published['baseline_ic']['presample'])}** in 2012-2019" in text
+    assert f"**{ic(published['baseline_ic']['all'])}** in 2020-2026" in text
+    assert f"the {published['alternatives']} alternative weightings registered in advance" in text
+    assert "this ranking has not been shown to predict returns" in text
+    if published["better"] == 0:
+        assert "none of the" in text

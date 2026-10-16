@@ -521,6 +521,21 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"in a different tenth\*\* of the ranking",
     ),
     Claim(
+        id="overview.research_engine",
+        surface=OVERVIEW,
+        asserts=(
+            "Run on the point-in-time rebuild over 2012-2026, the ranking's mean monthly rank "
+            "correlation with the next month's return is quoted for each era from the research "
+            "engine's own published summary, with the count of pre-registered alternatives that "
+            "cleared its bar; and the page says the ranking has not been shown to predict returns."
+        ),
+        made_true_by="v2_experiments:summary_for_page",
+        checked_by=(
+            "tests/test_v2_experiments.py::test_the_methodology_page_quotes_the_engine_s_own_summary",
+        ),
+        detect=r"Tested against history, 2026-10-15",
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(
