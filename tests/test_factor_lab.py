@@ -1333,3 +1333,33 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         finally:
             browser.close()
 
+
+def test_every_printed_difference_agrees_with_its_verdict_against_the_printed_tolerance(published):
+    """Experiment 8's profitability among big companies differs from the paper by 0.0325 against a
+    tolerance of 0.03. Printed to two places it read "+0.03 / ±0.03 / outside", which a reader
+    checking the arithmetic cannot reconcile. Every row on every experiment is read off the page
+    here: the printed difference, compared with the printed tolerance, gives the printed verdict."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    num = lambda t: float(t.strip().replace("−", "-").replace("±", "").replace("+", ""))  # noqa: E731
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            checked = 0
+            for built in published["experiments"]:
+                _goto(page, built["id"])
+                cells = page.evaluate("[...document.querySelectorAll('#t-ref tbody tr:not(.group)')]"
+                                      ".map(tr => [...tr.cells].map(td => td.textContent))")
+                assert len(cells) == built["result"]["total"], built["id"]
+                for row, c in zip(built["result"]["rows"], cells):
+                    diff, tol, verdict = num(c[3]), num(c[4]), c[5]
+                    assert verdict == ("within" if row["within"] else "outside")
+                    assert (abs(diff) <= tol) == row["within"], (built["id"], row["label"], c)
+                    assert diff == pytest.approx(row["diff"], abs=0.006)              # and it is the difference
+                    checked += 1
+            assert checked == sum(x["result"]["total"] for x in published["experiments"])
+            big = {r["key"]: r for r in published["experiments"][7]["result"]["rows"]}["mean_profitability_big"]
+            assert 0.03 < big["diff"] < 0.035 and not big["within"]                   # the row the audit found
+            assert errors == []
+        finally:
+            browser.close()
+

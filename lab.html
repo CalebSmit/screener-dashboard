@@ -279,6 +279,19 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <details><summary>Show the code this page just ran</summary><pre id="x-code"></pre></details>
         </section>`;
     }
+    // One row of "Against the paper", for every layout. The difference is printed to as many places
+    // as it takes for its comparison with the printed tolerance to agree with the verdict: a
+    // difference of 0.0325 against ±0.03 reads +0.033 and "outside", never +0.03 and "outside".
+    function diffText(r) {
+        const sign = r.diff < 0 ? '−' : '+', a = Math.abs(r.diff);
+        if (r.count) return sign + Math.round(a);
+        const places = (String(r.tolerance).split('.')[1] || '').length;
+        for (let d = Math.max(2, places); d <= 12; d++) { const t = a.toFixed(d); if ((+t <= r.tolerance) === r.within) return sign + t; }
+        return sign + String(a);
+    }
+    const refRow = r => `<tr><td>${esc(r.label)}${r.where ? ` <span class="where">${esc(r.where)}</span>` : ''}</td>` +
+        `<td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${diffText(r)}</td>` +
+        `<td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
     // Under every comparison, from one place: that the tolerances live in the build, when they were
     // written against when the figures were first seen (the record's own account), and the source.
     const tolNote = X => { const R = X.reference;
@@ -452,7 +465,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         let h = '', leg = '';
         res0.rows.forEach(r => {
             if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
-            h += `<tr><td>${esc(r.label)}</td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+            h += refRow(r);
         });
         document.querySelector('#t-ref tbody').innerHTML = h;
 
@@ -552,8 +565,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length;
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${r.count ? (r.diff < 0 ? '−' : '+') + Math.abs(Math.round(r.diff)) : sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
         document.querySelector('#t-worst tbody').innerHTML = res0.worst.map(w =>
             `<tr><td>${mon(w.month)}</td><td>${f2(w.here)}</td><td>${w.paper === null ? '<span class="muted">not in its list</span>' : f2(w.paper)}</td></tr>`).join('');
         document.getElementById('x-worst-note').textContent = res0.missed.length
@@ -641,8 +653,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
 
         function render() {
             const r = last = E.factorRun(F, KEYS, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -737,8 +748,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
 
         function render() {
             const r = last = E.sizeRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -813,8 +823,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
 
         function render() {
             const r = last = E.sortRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -911,8 +920,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length;
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
 
         function render() {
             const r = last = E.splitRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -989,8 +997,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build. Treat the numbers below as unverified.';
         }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
 
         function render() {
             const r = last = E.comboRun(Z, F, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
