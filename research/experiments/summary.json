@@ -6,10 +6,28 @@
  "data_hash": "d8cb038fff2b",
  "baseline_ic": {
   "presample": -0.00282,
-  "all": -3e-05
+  "all": -3e-05,
+  "pooled": -0.00155
  },
  "months": {
   "presample": 96,
-  "all": 80
- }
+  "all": 80,
+  "pooled": 176
+ },
+ "baseline_ic_ci95": {
+  "presample": [
+   -0.0229,
+   0.0173
+  ],
+  "all": [
+   -0.0274,
+   0.0273
+  ],
+  "pooled": [
+   -0.018,
+   0.0149
+  ]
+ },
+ "pooled_t": -0.19,
+ "pooled_detectable": 0.0319
 }

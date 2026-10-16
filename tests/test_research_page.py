@@ -88,3 +88,136 @@ def test_the_dashboard_sends_readers_to_the_evidence_and_the_lab():
     assert 'href="research.html"' in footer[:footer.index("</nav>")]
     assert "window.location.href = 'research.html'" in html                      # the search palette
     assert 'the ranking tested on 2012&ndash;2026 history</a>' in html           # the track record
+
+
+# --------------------------------------------------------------------------- the 2026-10-16 audit
+import copy  # noqa: E402
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+
+def _page_text(page: str) -> str:
+    text = re.sub(r"<style.*?</style>", " ", page, flags=re.S)
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))
+
+
+def test_the_size_sentence_claims_no_more_than_the_coverage_data_can_show():
+    """Item 1: coverage rises with the calendar almost exactly, so the across-era relation cannot tell
+    survivorship from time. Recomputed here from the ledger and the committed coverage file, the page
+    must print the within-era correlations and call survivorship a hypothesis it cannot separate."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    assert "disappears where coverage is fullest" not in page
+    assert "follows a gap in the data rather than the market" not in page
+    latest = _latest()
+    cov = pd.Series({m: v["coverage"] for m, v in json.loads(rp.COVERAGE.read_text(encoding="utf-8"))["months"].items()})
+    df = pd.DataFrame({"s": pd.Series(latest["only-size"]["ic_by_month"]),
+                       "b": pd.Series(latest["baseline"]["ic_by_month"]), "c": cov}).dropna().sort_index()
+    assert len(df) == 176
+    r_time = np.corrcoef(df["c"], np.arange(len(df)))[0, 1]
+    assert r_time > 0.99                                    # coverage is, for practical purposes, the calendar
+    pre = df[df.index <= "2019-12-31"]
+    r_s, r_b = pre["s"].corr(pre["c"]), pre["b"].corr(pre["c"])
+    r_d = (pre["s"] - pre["b"]).corr(pre["c"])
+    t_d = r_d * np.sqrt((len(pre) - 2) / (1 - r_d ** 2))
+    assert f">{rp.num(r_s)}</span> and <span class=\"num\">{rp.num(r_b)}</span>" in page
+    assert f">{r_time:.3f}</span>" in page
+    text = _page_text(page)
+    assert "Survivorship could explain it" in text and "cannot separate that explanation from the passage of time" in text
+    if abs(t_d) < 2:
+        assert "about as much as the current weighting's did" in text
+
+
+def test_every_outcome_known_screen_is_marked_and_the_pre_registration_sentence_is_qualified():
+    """Item 2: the seven screens whose 2020-2026 outcome was committed before registration carry a
+    dagger wherever they are named, and step 1 says only their 2012-2019 test is blind."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    flagged = [e for e in X.load_registry() if e.get("outcome_known_at_registration")]
+    assert len(flagged) == 7
+    for e in flagged:
+        assert page.count(rp.display_label(e)) >= 2, e["id"]          # the chart and the table
+        assert rp.display_label(e).endswith(rp.KNOWN_MARK)
+    step1 = page[page.index("before</em> it was run."):]
+    step1 = step1[:step1.index("</li>")]
+    assert "seven of them" in step1 and "only the 2012&ndash;2019 test is blind" in step1
+
+
+def test_the_page_says_the_pairing_is_by_month_and_states_the_universe_difference():
+    """Item 3: each configuration ranks its own stocks; the page says so with the committed counts."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    assert "on the same stocks" not in page
+    per = json.loads(rp.PER_CONFIG.read_text(encoding="utf-8"))["configs"]
+    assert "The pairing is by month" in page
+    assert f'ranked <span class="num">{per["baseline"]["sample"]["mean_stocks"]:.0f}</span> stocks a month' in page
+
+
+def test_every_headline_figure_carries_its_interval_from_the_ledger():
+    """Item 4: each era's IC with its 95% interval from the ledger's own standard error (Student's t),
+    and the pooled 176-month estimate with its interval and what it could detect."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    base = _latest()["baseline"]
+    for era, lab in (("presample", "2012&ndash;2019"), ("all", "2020&ndash;2026")):
+        st = base["summary"][era]["ic"]
+        q = X.t_critical(0.05, st["n"] - 1)
+        lo, hi = round(st["mean"] - q * st["se"], 4), round(st["mean"] + q * st["se"], 4)
+        assert (f'>{rp.num(st["mean"])}</span> over {lab} (95% interval '
+                f'<span class="num">{rp.num(lo)} to {rp.num(hi)}</span>)') in page
+    series = pd.Series(base["ic_by_month"])
+    m, se = round(series.mean(), 5), round(series.std(ddof=1) / np.sqrt(len(series)), 5)
+    q = X.t_critical(0.05, len(series) - 1)
+    assert f'Pooled over all <span class="num">{len(series)}</span> months it was <span class="num">{rp.num(m)}</span>' in page
+    assert f'<span class="num">{rp.num(round(m - q * se, 4))} to {rp.num(round(m + q * se, 4))}</span>' in page
+    assert f'<span class="num">{X.detectable(se, 1, len(series)):.3f}</span> at a t-statistic of 3' in page
+    assert rp.num(-0.0229) == "&minus;0.023" and "&minus;0.023 to +0.017" in page    # the audit's figures
+    assert "&minus;0.027 to +0.027" in page
+
+
+def test_the_band_and_the_pass_bar_are_named_separately_and_a_t_of_3_5_is_never_called_indistinguishable():
+    """Item 4: the band is the 80%-power detectable difference; the pass bar is drawn on its own,
+    and a row beyond the bar is described as beyond it."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    assert "cannot be told apart from zero" not in page
+    assert "smallest difference the test could reliably detect" in page and "pass bar" in page
+    assert page.count('class="tick"') == 2 * page.count('class="dot-row"')
+    reg, latest = X.load_registry(), copy.deepcopy(_latest())
+    target = "drop-growth"
+    latest[target]["summary"]["presample"]["ic_vs_baseline"].update({"mean": 0.035, "se": 0.01, "t": 3.5, "n": 96})
+    built = rp.build(reg, latest, X.summary_for_page(reg, latest), X.detectable, X.load_evaluations())
+    aria = re.search(r'aria-label="Without Growth: [^"]*"', built).group(0)
+    assert "beyond the pass bar" in aria and "inside" not in aria
+    assert "cannot be told apart" not in built
+
+
+def test_the_trading_rule_sentence_follows_each_period_s_sign_and_t():
+    """Item 5: the comparison is the average scored stock (survivors), labelled as such, with
+    intervals; the sentence is generated, so it cannot say "in every period" for a gap that is
+    distinguishable in one period only."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    assert "Against the equal-weighted S&amp;P&nbsp;500" not in page and "in every period" not in page
+    assert "Against the average scored stock" in page and "members still listed today" in page
+    b = _latest()["bot-rule-v1.1"]["summary"]
+    for k, lab in (("presample", "2012&ndash;2019"), ("discovery", "2020 &ndash; mid-2023"), ("holdout", "mid-2023 &ndash; 2026")):
+        st = b[k]["excess"]
+        word = "below" if st["mean"] < 0 else "above"
+        verdict = "larger than chance readily produces" if X.p_value(st) < 0.05 else "within the noise"
+        assert re.search(rf"In {re.escape(lab)} it returned <span class=\"num\">[0-9.]+%</span> a month {word} "
+                         rf"that average \(t&nbsp;{st['t']:+.2f}\), a gap {verdict}\.", page), k
+    flipped = copy.deepcopy(b)
+    flipped["discovery"]["excess"].update({"t": -0.5, "mean": -0.001})
+    assert "2020 &ndash; mid-2023 it returned" in rp.bot_sentence(flipped, [("discovery", "2020 &ndash; mid-2023")], X.p_value)
+    assert "within the noise" in rp.bot_sentence(flipped, [("discovery", "2020 &ndash; mid-2023")], X.p_value)
+
+
+def test_within_sector_screens_are_labelled_so_on_the_page_with_their_note():
+    """Item 6: single-metric screens and Size on its own are within-sector versions of market-wide
+    papers; the page labels them and carries the note."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    import html as _html
+    for e in X.load_registry():
+        if e.get("construction_note"):
+            assert rp.display_label(e).startswith(_html.escape(rp.label(e["id"]) + rp.WITHIN_SECTOR)), e["id"]
+            assert rp.display_label(e) in page, e["id"]
+            assert _html.escape(e["construction_note"]) in page, e["id"]
+    for name in ("12-1 month return alone (within sector)", "Size alone (within sector)",
+                 "Low volatility alone (within sector)", "Nearness to the 52-week high (within sector)"):
+        assert name in page

@@ -25,8 +25,21 @@ search for the best number:
 2. **Held-out months.** Discovery 2020-01..2023-06, held out 2023-07..2026-08, fixed in code.
 3. **Every test counts.** The ledger keeps every run, including the 25 superseded by a data fix; the
    significance bar is p < 0.05 / (experiments registered) = **0.0019** for 27, and |t| >= 3.
-4. **Paired with the baseline**, month by month on the same stocks, so the comparison is on the
-   difference, not on two noisy levels.
+4. **Paired with the baseline**, month by month, so the comparison is on the
+   difference, not on two noisy levels. *(Corrected 2026-10-16: this said "on the same stocks". The
+   pairing is by month only. Each configuration ranks the stocks it has enough weighted data to
+   score, so a narrow screen's IC is computed on a smaller set than the baseline's;
+   `research/measurements/2026-10-16-stocks-ranked-per-config.json` counts them. Pairing on each
+   month's common stocks, with a full rerun, is queued in `plan/research-engine.md` item 8a.)*
+
+> **Disclosure, 2026-10-16 (audit).** Seven of the batch-1 entries, each category on its own
+> (`only-valuation` .. `only-investment`), had their 2020-2026 outcome computed and committed before
+> they were registered: backtest v2's returns measurements publish each category score's IC
+> (`research/measurements/2026-10-15-backtest-v2-returns.json`, commit `b6f7fd9` at 11:31, and
+> `-rebuild2.json`, `710f610` at 16:55), and the registry's first commit is `ab983cc` at 17:13. The
+> ledger's first runs of those seven match the rebuild2 figures to about four decimals. For them only
+> the 2012-2019 test is blind. The registry now says so (`outcome_known_at_registration`), the
+> report and the public page mark them, and `v2_experiments.run` refuses an undisclosed case.
 
 **The data.** Backtest v2 (`backtest_v2.py`): each month's S&P 500 members as they stood (Wikipedia
 revision history), each company's statements as filed with the SEC *by that month-end*
@@ -112,6 +125,21 @@ coverage -0.17 (t -2.27). The baseline's IC shows no such relation (-0.02, t -0.
 rises with time, so the two are entangled, but the direction is the one survivorship predicts and
 the Size number should be read as an artefact until a survivorship-free source says otherwise.
 
+> **Correction, 2026-10-16 (audit).** The paragraph above claims more than this data can show.
+> Coverage correlates **0.998** with the month index (57% of members in 2012, rising steadily to 97%
+> in 2026), so "the lowest-coverage third of months" is the earliest third, and the across-era
+> relation cannot tell survivorship from the passage of time. The part of the data that could
+> separate them says nothing either way: within 2012-2019 Size's monthly IC correlates with coverage
+> **-0.126** and the baseline's **-0.122**, and the Size-minus-baseline difference against coverage
+> is **r +0.012** within 2012-2019 and **r -0.08 (t -1.06)** over all 176 months. Survivorship
+> remains a plausible hypothesis for Size's lead, stated as such, and the test that could settle it
+> is a rebuild that adds the departed members from free filings and prices, queued with its
+> prediction in `plan/research-engine.md` (item 8d): if survivorship drives the lead, Size's
+> 2012-2019 difference from the baseline falls from +0.028 to below +0.014, and the hypothesis is
+> falsified if it stays at +0.020 or more. The public page now states the hypothesis and generates
+> its sentence from `research_page.size_coverage_relation`
+> (`research/measurements/2026-10-16-coverage-by-month.json` with the ledger's `ic_by_month`).
+
 ## 5. What the design can and cannot see
 
 A pre-registered, paired, held-out test is only worth its power. The paired standard error of an IC
@@ -122,6 +150,13 @@ excellent (Grinold & Kahn 2000), and factor premia among large companies are abo
 all-stock size (the Lab's experiments 8 and 9) - so a real improvement could easily sit below what
 this can see. So
 "not distinguishable" here is not "no difference"; it is "no difference large enough to see".
+
+> **Correction, 2026-10-16 (audit).** The bar above came from the normal curve. On 38 held-out
+> months the exact two-sided critical value for p < 0.05/27 is **3.35** (Student's t, 37 degrees of
+> freedom), and **3.20** on 96 months; the engine now uses the t-distribution throughout
+> (`v2_experiments.t_critical`). The smallest reliably detectable difference becomes **0.070** held
+> out and **0.040** in 2012-2019. No verdict changed: the only comparison near p = 0.05, Size alone
+> in 2012-2019 (t 1.95), moves from p 0.051 to 0.054.
 
 **How long a record would it take?** The baseline's IC moves about **0.12** from month to month
 (0.123 in 2020-2026, 0.100 in 2012-2019). With 80% power and the 2020-2026 spread, a true monthly IC

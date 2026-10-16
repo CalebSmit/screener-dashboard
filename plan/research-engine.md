@@ -14,8 +14,8 @@ weights: under CLAUDE.md rules 4 and 5 nothing it reports moves a weight before 
 then a result is a research question that a note and a changelog entry must answer.
 
 **Its first answer, which governs how to read every later one:** none of 27 ideas beats the current
-weighting; the baseline's IC is ~0 in both eras; the design can see an IC difference of about 0.04
-(2012-2019) to 0.07 (held-out months) and no smaller; a live record needs about 7½ years to show an IC of
+weighting; the baseline's IC is ~0 in both eras; the design can see an IC difference of about 0.040
+(2012-2019) to 0.070 (held-out months) and no smaller (Student's t since 2026-10-16); a live record needs about 7½ years to show an IC of
 0.05 at t >= 3. "Not distinguishable" here means "not large enough to see", never "equal".
 
 ## The rules (enforced by `tests/test_v2_experiments.py` where code can enforce them)
@@ -24,6 +24,11 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    source (a paper or documented practice), prediction - committed and pushed before its first run.
    `run` refuses an unregistered id. A prediction is never edited after a run; a changed idea is a
    new id. A broken experiment is marked `void:` with the reason, prediction untouched.
+   **An idea whose result is already on file is not pre-registered** (2026-10-16): `run` refuses an
+   id whose statistic appears in a committed `research/measurements/*.json` older than the id's
+   registration commit, unless the entry discloses it with `outcome_known_at_registration`
+   (`v2_experiments.refuse_known_outcomes`). Disclosure fields may be added to an entry after it ran;
+   its hypothesis, prediction and transform may not change.
 2. **Every run is kept** (`ledger.jsonl`, append-only, with the data version it used). The
    significance bar counts every experiment ever registered (p < 0.05/N, |t| >= 3).
 3. **A data fix reruns everything.** Rows from different data versions do not compare; the report
@@ -74,6 +79,65 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
 6. **New ideas come from Monday notes.** Each Monday research note that ends with a testable claim
    registers one experiment for it. That is the route by which the engine grows - one sourced idea
    at a time - and the multiple-testing bar tightens as it does, which is correct.
+7. **DONE 2026-10-16 (audit of `research.html`): the page now claims only what the ledger supports.**
+   Size's lead is stated as a survivorship hypothesis the data cannot separate from time (the
+   sentence is generated, `research_page.size_coverage_relation`); the seven `only-*` entries whose
+   2020-2026 outcome was committed before registration carry `outcome_known_at_registration` and a
+   dagger, and `run` refuses an undisclosed case (`refuse_known_outcomes`); the pairing is described
+   as by month; headline ICs carry 95% intervals and a pooled 176-month estimate; the chart separates
+   the detectable band from the pass bar; the trading-rule sentence is generated from each period's
+   sign and t; within-sector screens say so (`construction_note`); p-values and critical values are
+   Student's t (no verdict changed). Tests: `tests/test_research_page.py`, `tests/test_v2_experiments.py`.
+8. **Queued by the same audit, specified, NOT built.** In this order:
+
+   **(a) Pair on each month's common stocks, then rerun everything.** Today each configuration's IC
+   is computed on the stocks *it* ranks (`backtest_v2.rank_month` filters on coverage of the
+   configuration's own weighted metrics), so a narrow screen is judged on fewer stocks: free-cash-flow
+   yield alone ranks 348 stocks a month against the baseline's 440 in 2020-2026, and 213 against 327
+   in 2012-2019
+   (`research/measurements/2026-10-16-stocks-ranked-per-config.json`). Spec: in `per_month`, take
+   each month's ticker intersection of the experiment's and the baseline's rankings (both with a
+   next-month return), compute **both** ICs and both top-tenth spreads on that intersection, and
+   record `n_common` per month in the ledger row beside `ic_by_month`. The baseline's own row keeps
+   its full-universe IC (it is the published reading). This changes what every comparison measures,
+   so it is a method change: register it in `registry.yaml`'s header comment with the date, bump a
+   `method_version` field written to every ledger row, and **rerun every registered experiment and
+   evaluation** (rule 3); the report must refuse to mix method versions the way it flags data
+   versions. Expected: no verdict changes (the differences are far below what the design can see),
+   which is the point of checking.
+
+   **(b) Provenance hardening.** Every ledger row records `git describe --dirty` and the SHA-256 of
+   each result-affecting source file (`v2_experiments.py`, `backtest_v2.py`,
+   `backtest_v2_returns.py`, `factor_engine.py`, `pit_record.py`, `config.yaml`, `registry.yaml`).
+   `run` and `evaluate` refuse on a dirty tree for those paths. The data fingerprint widens from the
+   member list to the content: a hash of each month's metrics parquet, of `cache/v2_daily.parquet`,
+   of the SEC facts and splits files the months were built from, and the base run id. `report`
+   flags mixed baseline `config_hash` values across rows the way it flags mixed data versions.
+
+   **(c) The positive control, in the ledger.** The look-ahead arm (today's filings for every
+   month, IC +0.050, t 4.71 on 2020-2026) is the page's evidence that the test can see a signal, but
+   it lives in a measurement file. Record it as a ledger row of `kind: control` on the current data
+   version, rerun with everything else. Add a synthetic calibration test: inject a known signal
+   (a score equal to next month's return plus noise scaled to a target IC of 0.03, 0.05 and 0.10)
+   into a copy of one era's months, and assert the engine's paired comparison reports a difference
+   within its interval of the injected one and detects 0.10 at the bar.
+
+   **(d) The free extended-universe rebuild - the survivorship test.** SEC filings exist for
+   departed members; prices are the gap. Build the months with the departed members whose last
+   prices can be reconstructed from free sources (8-K deal prices, final closes stated in filings),
+   measure how much of the 2012-2019 coverage gap it closes, and rerun `only-size` against the
+   baseline on it. **Pre-registerable prediction, to commit before the rebuild exists:** if
+   survivorship drives Size's 2012-2019 lead, its difference from the baseline falls from **+0.028**
+   to **below +0.014**; the survivorship explanation is **falsified if it stays at +0.020 or
+   more**. Sources: Linnainmaa & Roberts (2018), RFS 31(7), on testing anomalies in the history
+   before their samples; Shumway (1997), J. Finance 52(1), on the delisting-return bias in
+   survivor-only data. No paid data (owner, 2026-10-15).
+
+   **(e) Measure today's sector and industry taxonomy on historical months before changing it.**
+   v2 assigns each historical member today's sector (the engine ranks within sector, so this sets
+   every peer group). Measure, on the months where a point-in-time classification can be had free
+   (SEC SIC codes by filing date), how many members change sector and how far their within-sector
+   percentiles move. Change nothing until that number is in a note.
 
 ## Things not to do
 
