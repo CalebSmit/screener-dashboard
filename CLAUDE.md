@@ -196,6 +196,11 @@ improving.
    **If it exceeds 40, finding out why is that session's work, whatever the
    rotation says.**
 
+   **Items under "Open" carry an opened date and no age** - compute the age in
+   the log. A hand-written "age 1 day" was still saying 1 day eight days later
+   (removed 2026-10-16), and a number that can be wrong in the file a session
+   reads first is worse than no number.
+
    The roadmap line is there for the same reason, added 2026-09-04. Between
    2026-08-25 and 2026-09-03 nine sessions all produced real work and **not one
    north-star item shipped** - seven correctness fixes, a research note and two
@@ -708,7 +713,7 @@ The *coverage filter* that excludes thin stocks reads the same weighted coverage
 day; measured: no stock's inclusion changed).
 
 **0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
-it now (opened 2026-10-08, age 1 day).** Technicals, options, insider trades, a market backdrop and
+it now (opened 2026-10-08).** Technicals, options, insider trades, a market backdrop and
 the ranking's track record, all context-only (settled row "ctx"). `OWNER_FOCUS.md` has the open item
 and `plan/context-layer.md` the ordered queue. Queue items 1 and 3 are done; **item 2 was measured
 and fixed in code 2026-10-09** - the options panel was empty for every stock on every scheduled run

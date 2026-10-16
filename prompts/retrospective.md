@@ -65,7 +65,7 @@ Do not rely on impressions. Go and look:
   direction that matters. Do not "close" either; look for the next sibling
   artifact instead.
 
-- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 965 lines across four
+- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 lines across four
   retrospectives. It grows back every fortnight by the same mechanism: an item
   closes and its record stays in "Open", in the one file every session must read
   before it starts. **Expect to move 100+ lines every time, and do it whatever
