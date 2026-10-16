@@ -697,7 +697,10 @@ def test_new_copy_carries_no_advice_language():
 
 def test_the_data_loop_commits_the_context_outputs():
     ps = (ROOT / "scripts" / "data-run.ps1").read_text(encoding="utf-8")
-    block = ps[ps.index("$DataArtifacts"):]
+    # Anchor on the assignment, not the bare token: comments elsewhere in the
+    # script legitimately mention $DataArtifacts, and on 2026-10-16 one did,
+    # which sent this test reading a comment instead of the array.
+    block = ps[ps.index("$DataArtifacts = @("):]
     block = block[:block.index(")")]
     for a in ("data/market_context.json", "data/track_record.json", "data/context_log", "dashboard_context.js"):
         assert a in block, a

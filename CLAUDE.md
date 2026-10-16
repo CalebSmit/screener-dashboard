@@ -680,45 +680,18 @@ is more sessions each doing one thing properly.**
 
 ### Open
 
-**0.8. Calculation transparency and the premium redesign - CLOSED 2026-10-07.** Owner:
-*"I actually decided that I want you to finish up all UI/UX work in here tonight. And make the nightly sessions just focus on what it was previously focusing on, making sure the methodology is sound. And improving this tool overall every single night."* Finished that night across five owner-run passes; what shipped is in
-`plan/dashboard-inventory.md` and `NIGHTLY_LOG.md` 2026-10-07. **Nightly sessions do not take
-on design or fine-tuning work**; the page's standing correctness rules (row 0.8 and 0.8c above)
-still bind. The paragraph below is the record of how it got there.
+**0.8 and 0.9 are CLOSED** (2026-10-07 and 2026-10-09). Calculation transparency, the premium
+redesign, and the four methodology questions the transparency build surfaced. The record and the
+numbers moved to `DECISIONS.md` ("0.8/0.9, closed") on 2026-10-16. What still binds:
 
-*Record:* first version of every stage shipped 2026-10-07 by an owner-run session
-(`OWNER_FOCUS.md`, two items). `plan/calculation-transparency.md` and
-`plan/dashboard-redesign-master.md` each carry a **"Status, 2026-10-07 evening"** table of what
-is built and, per stage, what the deep pass should do. Highlights: the page now prints the
-weights the engine used; every metric opens to its formula, inputs and peer rank; **4,010/4,010
-category scores and 502/502 composites rebuild from the payload and the build refuses to publish
-otherwise**; `scripts/audit_stock.py --all` independently reproduces 502/502; DOM nodes
-9,928 -> 2,779, transitioned elements 662 -> 99, row click to paint 70 ms, payload gzipped flat.
-**Be critical in the deep pass:** a first version built in one sitting is not "perfect", and
-the owner asked for perfect. Look at every surface at 1440 and 375px, say what you saw, and fix
-what is still not premium. No scoring change; explanation and presentation only.
-**Pass 2 shipped the same night** (owner: *"be creative"*): a search palette (Ctrl/Cmd+K),
-`#stock=TICKER` links, J/K stepping, Compare with the composite gap decomposed (claim
-`compare.composite_gap`), a workings CSV, Add to Holdings from the sheet, analytics rows that
-filter the table, Peers without green/red verdicts, and Chart.js removed (nothing used it). **The
-nightly fine-tuning list is `plan/dashboard-redesign-master.md` "Status, pass 2"** - it supersedes
-the evening table where they overlap; start by testing what pass 2 shipped on the live site. The
-navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`); keep it that way, so every
-way of opening a stock keeps links and stepping.
-
-**0.9. Four methodology questions the transparency build surfaced - ANSWERED 2026-10-09
-(owner-run).** Each has a research note or a documented-defect entry in
-`METHODOLOGY_CHANGELOG.md` 2026-10-09: **(a)** `operating_leverage` to weight 0 (85 of its 95
-negatives were margin squeezes ranked best; the literature finds higher operating leverage earns
-*more*; MSCI and AQR quality do not use it) - `research/2026-10-09-operating-leverage.md`;
-**(b)** `revenue_growth` and Piotroski signals 3/8/9 now compare periods exactly a year apart
-(the old comparison spanned 12-23 months by fiscal calendar) -
-`research/2026-10-09-revenue-growth-window.md`; **(c)** one EBITDA for both ratios and the
-snapshot; **(d)** labels "6-1M Return" and "Max Drawdown (13M)". **Found the same day by the same lens:**
-`forward_eps_growth` (45% of Growth) spanned 13-24 months and mixed GAAP with adjusted EPS; it is now
-MSCI's 12-month forward construction (`research/2026-10-09-forward-eps-growth.md`). **Their combined measured effect on the
-first live run is the changelog's "Measured: the day's changes" entry (2026-10-09 evening)** - read it before
-touching any of them again.
+- **Nightly sessions do not take on design or fine-tuning work** (owner, 2026-10-07). Rows 0.8
+  and 0.8c above are correctness rules and still apply; `plan/dashboard-redesign-master.md` is
+  history, not a queue.
+- The navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`) - keep it that way,
+  or some routes to a stock lose links and stepping.
+- Before touching `operating_leverage`, `revenue_growth`, Piotroski 3/8/9, EBITDA or
+  `forward_eps_growth`, read the changelog's **"Measured: the day's changes"** entry
+  (2026-10-09 evening) and the five `research/2026-10-09-*` notes behind them.
 
 **T0a's standing constraint:** `claims.py` registers every sentence that says how a
 number is computed, with the code that makes it true and the test that checks it.
@@ -769,110 +742,80 @@ effect size is attributed to a construction the page does not compute; the post-
 omitted; put/call open interest is a bare *level* where the evidence supports the *change*).
 Next: item 4's remaining per-signal notes (macro backdrop, track record), then item 6.
 
-**0.12. Metric audit residuals - research, do not patch (opened 2026-10-09, age 0 days).**
-Two audit passes over every weighted metric fixed nine defects the same day
-(`research/2026-10-09-metric-audit.md`, changelog "metric audit" entries). Four findings are
-judgement calls and need a Monday-style note before any change: **(a) DONE 2026-10-09 - GICS sub-industry rule built (`tests/test_bank_like.py`; 13 stocks to the generic set, 0 by default):** which financials are
-"bank-like" - 26 of 59 reach the bank metric set only by the default for an unlisted industry
-(asset managers, insurance brokers, broker-dealers; TROW 100th percentile on equity ratio, AON 8th on
-P/B); **(b) DONE 2026-10-09 - weight 0, points to the non-surprise metrics:** `earnings_acceleration` (20% of Revisions) correlated -0.54 with the prior quarter's
-surprise, so it penalises a stock that beat last quarter (surprises autocorrelate - Bernard & Thomas
-1990); **(c) MEASURED, no change:** accruals counted three times within Quality - correlation 0.49 with Beneish, 0.00 with Piotroski, 13 points in all;
-**(d) DONE 2026-10-09:** net debt now nets cash and short-term investments, as enterprise value does. **The
-momentum regime rule was REBUILT 2026-10-12 (owner-run)** as pre-registered in
-`research/2026-10-09-momentum-regime.md`: momentum's weight is cut x0.70 (freed weight half to Quality,
-half to Valuation) only in Daniel & Moskowitz's panic state - S&P 500 total-return index 24-month return
-negative **and** 126-day volatility above a fixed 20.6% - and never raised
-(`factor_engine.market_panic_state`; changelog 2026-10-12 evening). Not in force today, so no score moved.
-**Do not re-fit the three numbers to recent data or to results** - they are set in advance from the index's
-own history, and `tests/test_momentum_panic_rule.py` pins them; change the research note and the changelog
-first. The run's reading is in `effective_weights.json` and the dashboard's Methodology view. With this,
-**0.12 is closed**.
+**0.12. Metric audit residuals - CLOSED 2026-10-12.** Nine defects fixed and four judgement
+calls answered; the record moved to `DECISIONS.md` ("0.12, closed") on 2026-10-16
+(`research/2026-10-09-metric-audit.md`, the changelog's "metric audit" entries). Two
+constraints survive it:
 
-**0.13. The Factor Lab (opened 2026-10-12, age 0 days).** Owner item; `OWNER_FOCUS.md` has it
-and `plan/factor-lab.md` the ordered queue and the rules. Experiment 1 (Barroso & Santa-Clara 2015)
-shipped the same day: 13 of 14 figures within tolerance, one marked outside. Experiment 2 (Daniel &
-Moskowitz 2016, the study behind the momentum regime rule) followed that night: 9 of 15 within
-tolerances written beforehand, the misses all traceable to the paper building its own portfolios.
-Experiment 3 (Fama & French 2015, the five factors) made it three: 20 of 21 within. **Read
-`research/2026-10-12-factor-lab-findings.md`** - the three results weakened after their samples ended
-and value and investment are largely one bet; neither is a reason to move a weight yet, and both are
-research questions for a Monday. Experiment 4 (Fama & French 1992, size) is the first that mostly **fails** - 3 of 11 within,
-because the paper's sample is a different set of companies - and is published that way. Experiments
-5-7 (volatility, earnings yield, market beta) use a **generic sorted-portfolio layout**
-(`factor_lab.SORTS`, `kind: "sort"`): a new sort is a record and a file entry, no page work. The lab
-opens on an overview with a category map; adding an experiment means updating `TAKEAWAYS`,
-`CATEGORY_MAP` and the methodology's "Rerun the research" paragraph together (tests insist).
-Experiment 8 measures the factors **among large companies** (kind `split`): value, investment and
-momentum are about half-size there and profitability is the one that holds. **How a lab finding
-reaches a weight is written down - `plan/factor-lab.md`, "From the lab to the weights"**: the lab
-raises a question (the front page's scorecard, `factor_lab.scorecard`, which carries the weights
-from `config.yaml` and fails a test if they part company), a research note answers it, a changelog
-entry makes one change at a time. Five questions are ranked there; **Growth's 13% was first**. The
-lab still sets nothing itself. **Question 1 is researched** (`research/2026-10-12-growth-category.md`):
-no published premium stands behind growth as the category measures it, and its job in the
-composite is a counterweight to Valuation, Investment and Size. **Its proposal - Growth 13 -> 10,
-Quality 22 -> 25 - was reviewed and REFUSED 2026-10-13** (section 10 of the note). The measurement
-that decided it: net growth exposure is **monotonic in the weight**, crosses zero at **13.5**, and
-stays within 0.05 of neutral only over **11-16**, because Growth is the one category whose score
-runs against the rest (**-0.388** against the mean of the other seven). So if growth earns nothing,
-the supported exposure is zero and 13 points is what delivers it - **cutting the weight of an
-unrewarded-but-offsetting category does not remove a position on growth, it takes one**, in a
-direction the four evidence strands do not agree on. The page now says this
-(`tests/test_growth_category.py`, in the data loop's publish gate; the committed ranking must stay
-within 0.05 of growth-neutral or the claim fails). **The open Growth question is composition, not
-weight** - `revenue_growth` against `asset_growth`, and whether growth in profitability belongs in
-Quality (note section 11). **Question 2 is researched too**
-(`research/2026-10-12-value-and-momentum-among-large-companies.md`): large-company value was never
-reliable on book value and is better supported on the earnings and cash-flow measures the screener
-uses; large-company momentum is strong in every published sample and flat on the public data since
-2000. Lab and literature disagree, so the weight stays - **do not cut Momentum on the lab's number
-alone, and do not quote an all-stock premium for either category on the methodology page again**
-(`tests/test_large_company_evidence.py` holds the page's figures to the lab's data).
-Experiment 9 (Israel & Moskowitz 2013, the largest fifth of companies) reuses experiment 8's
-layout through an optional `split` record on the experiment; 5 of 12 within, the four
-largest-fifth figures all matching. **`prompts/nightly.md` section 3 now carries the lab, the
-route to a weight, the waiting proposal and how to read a paper** - keep it true when any of
-them changes. The Growth proposal was pre-flighted (the note's section 7 lists the eight tests it
-trips). Friday 2026-10-16 is a retrospective; the lab's next day is 2026-10-23. **A note that
-proposes a change for someone else to decide carries `**Proposal status: OPEN** - <what>`; the
-morning brief lists every open one with its age (`write_brief.open_proposals`), and whoever
-decides rewrites the line.**
-**Friday is the lab's day**, one finished experiment a session. Experiments 10-12 shipped 2026-10-15 (owner-run):
-profitability (Novy-Marx 2013), cash-flow yield (Lakonishok, Shleifer & Vishny 1994) and accruals (Sloan 1996) -
-twelve experiments, 104 of 152 figures within. Experiment 13 (value and momentum together, Asness, Moskowitz &
-Pedersen 2013) shipped the same night with a new layout, kind `combo`: 7 of 10 within; 13 experiments, 111 of 162. A paper with no DOI carries a stable `url`. The standing rules: the
-lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
-run, and a replication that fails is a research finding to write up, not a number to tune away.
+- **The momentum panic rule's three numbers are set in advance and are never re-fitted** -
+  S&P 500 total-return 24-month return negative **and** 126-day volatility above a fixed
+  20.6%, momentum x0.70, freed weight split to Quality and Valuation, never raised
+  (`factor_engine.market_panic_state`, `tests/test_momentum_panic_rule.py`). Do not tune them
+  to recent data or to results; change `research/2026-10-09-momentum-regime.md` and the
+  changelog first. The run's reading is in `effective_weights.json`.
+- **Accruals are counted three times inside Quality** (0.49 with Beneish, 0.00 with Piotroski,
+  13 points in all) - measured, deliberately unchanged. Do not "discover" it again.
 
-**0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07, age 0
-days).** A data change, not design - the residual of the transparency work. Every metric's
-calculation is one click away on the page, but for volatility, beta, drawdown, Jensen's alpha,
-Sharpe/Sortino and the four analyst-history metrics the page can only describe the inputs
-(`metric_lineage.SOURCES`), because the run does not keep them: the per-quarter EPS actuals and
-estimates, the risk-free rate and the market's 12-month return. Keep them in the raw fetch,
-publish them as inputs, and give each an `EQUATIONS` entry (exact where the arithmetic allows) -
-the equation tests then hold them to the engine like the other 25.
+**0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
+`plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day**, one finished
+experiment a session; next lab Friday is 2026-10-23. Thirteen experiments as of 2026-10-15,
+**111 of 162 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
+("0.13, the lab's first thirteen experiments") on 2026-10-16.
 
-*Measured 2026-10-08, re-measure rather than trusting it
-(`research/measurements/2026-10-08-equation-coverage.py`): of 29 weighted metrics **15 carry an
-exact equation (58.0% of composite weight), 5 an inexact one (19.5%) and 9 none at all
-(22.6%)**. Of that 22.6%, Piotroski (3.30%) and Beneish (1.54%) already list their signals and
-indices, so the genuine gap is the seven history-based metrics - 17.8%.*
+**The rules, which do not move:**
 
-**`max_drawdown_1y` is done (2026-10-08) and is the pattern to copy:** the two closes the
+- The lab **never justifies a screener parameter by itself** and no scoring module may import
+  it; tolerances are written into `factor_lab.py` **before** a comparison is run; a replication
+  that fails is a research finding to publish, not a number to tune away.
+- **The route from the lab to a weight is `plan/factor-lab.md`, "From the lab to the weights":**
+  the lab raises a question (the front page's scorecard, `factor_lab.scorecard`, carries
+  `config.yaml`'s weights and fails a test if they part company), a research note answers it from
+  the literature and from practice, a changelog entry makes **one change at a time**.
+- **A note proposing a change for someone else to decide carries `**Proposal status: OPEN** -
+  <what>`.** The morning brief lists every open one with its age
+  (`write_brief.open_proposals`); whoever decides rewrites the line.
+- A new experiment moves five things together or the suite fails: `EXPERIMENTS`, `TAKEAWAYS`,
+  `CATEGORY_MAP`, the methodology's "Rerun the research" paragraph, and `ASSET_VERSION` with the
+  two `?v=` tags in `lab.html`. A paper with no DOI carries a stable `url`.
+- `prompts/nightly.md` section 3 carries the lab, the route to a weight and how to read a paper -
+  keep it true when any of them changes.
+
+**What the first two questions settled** (read the notes before reopening either):
+
+- **Growth's 13% stays** - proposal Growth 13 -> 10 / Quality 22 -> 25 **REFUSED 2026-10-13**
+  (`research/2026-10-12-growth-category.md` section 10). Net growth exposure is monotonic in the
+  weight, crosses zero at **13.5**, and is within 0.05 of neutral only over **11-16**, because
+  Growth is the one category running against the rest (**-0.388** against the mean of the other
+  seven). If growth earns nothing the supported exposure is zero, and 13 points is what delivers
+  it: **cutting an unrewarded-but-offsetting category's weight does not remove a position on
+  growth, it takes one.** `tests/test_growth_category.py` is in the publish gate and fails if the
+  committed ranking leaves 0.05 of growth-neutral. **The open Growth question is composition, not
+  weight** - `revenue_growth` against `asset_growth`, and whether growth in profitability belongs
+  in Quality (note section 11).
+- **Momentum's weight stays** (`research/2026-10-12-value-and-momentum-among-large-companies.md`):
+  large-company value was never reliable on book value and is better supported on the earnings and
+  cash-flow measures this screener uses; large-company momentum is strong in every published
+  sample and flat on public data since 2000. Lab and literature disagree, so the weight stands -
+  **do not cut Momentum on the lab's number alone, and never quote an all-stock premium for either
+  category on the methodology page** (`tests/test_large_company_evidence.py`).
+
+Questions 3, 4 and 5 in the plan are open Mondays.
+
+**0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
+A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
+(2026-10-09, smoke-tested live: AAPL, JPM, NVDA reproduce to 4dp): Jensen's alpha prints its four
+CAPM terms, beta its covariance / variance, volatility its daily standard deviation x 252^0.5,
+and the three surprise metrics show their four quarters. **What remains is Sharpe and Sortino**
+(weight 0, shown for reference) - low value; do them only if a session has nothing better.
+
+Two things to carry forward. **The pattern to copy is `max_drawdown_1y`:** the two closes the
 fall was measured between are computed **where the metric is computed**, stored as
-`_mdd_peak` / `_mdd_trough`, published through `ENGINE_KEYS`, and divided on the row. One
-computation, published - never a second one in the generator or in JS (row 0.8). Writing that
-equation is also what exposed the log-return compounding error, which is the argument for
-doing the rest: *you cannot write a metric's arithmetic down without checking it.*
-
-**(a)-(d) ALL BUILT 2026-10-09 (owner-run)** and smoke-tested live (AAPL, JPM, NVDA reproduce to
-4dp): Jensen's alpha prints its four CAPM terms, beta its covariance / variance, volatility its daily
-standard deviation x 252^0.5 (all engine-published `_ja_*`, `_beta_cov/_var`, `_vol_sd`), and the
-three surprise metrics show their four quarters (`eq4`) with a test rebuilding each from them.
-`scoring_schema` is 4. **What remains is Sharpe and Sortino** (weight 0, shown for reference) - low
-value; do them only if a session has nothing better.
+`_mdd_peak` / `_mdd_trough`, published through `ENGINE_KEYS`, and divided on the row - one
+computation, published, never a second one in the generator or in JS (row 0.8). And the argument
+for finishing it: writing that equation down is what exposed the log-return compounding error -
+*you cannot write a metric's arithmetic down without checking it.* Coverage was measured
+2026-10-08 (`research/measurements/2026-10-08-equation-coverage.py`) at 15 exact equations of 29
+weighted metrics, 58.0% of composite weight; **re-measure rather than trusting that number.**
 
 **0.14. The inputs against the companies' own filings (opened 2026-10-14, owner-run).**
 `research/2026-10-14-yahoo-vs-sec.md`. Rebuilt from SEC XBRL for the same quarter, the Yahoo
@@ -905,28 +848,12 @@ definition, not a defect - **do not "fix" it by switching rows or to the filings
 earnings yield, which still uses net income *with* one-offs: **Proposal status: OPEN** in
 `research/2026-10-15-earnings-definition.md`, for a second session to decide.
 
-**0.6. One observation per run date - CLOSED 2026-10-08.** Open since 2026-08-11. The
-item asked for deduplication and a test, and both landed: `record_dispersion` now
-**replaces** a date's row instead of appending, and `record_run_snapshot` removes
-superseded files for its date - which is the rule `compute_forward_returns` already
-applied when reading them, so the three now agree. Measured before the fix:
-`dispersion_history.csv` held **52 rows for 45 distinct dates** (2026-04-14 four
-times) and `improvement/snapshots` **79 files for 52 dates**;
-`scripts/repair_one_observation_per_date.py` collapsed both, and
-`live_ic_history.csv` / `performance_history.csv` came out byte-identical, so this
-removed a latent distortion of `check_run_health`'s trailing dispersion median
-rather than correcting a live one.
-
-**A third file had the same defect and was found the same day, by the session's own rescoring
-run adding a row to it: `factor_vol_history.csv`, 72 rows for 52 dates, 2026-02-21 appearing
-nine times.** That one feeds **scoring** - `adjust_momentum_weight` ranks the run's momentum
-dispersion against every row and the percentile sets the momentum weight. Deduplicating moved
-the distribution (p75 26.59 -> 26.27) without flipping the regime, so the published run was
-unaffected; it was capable of it. The constraint that stays: **every append-once-per-run file
-holds one row per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
-`factor_vol_history.csv` - with a tripwire on the real files.
-`tests/test_one_observation_per_run_date.py`, 11 tests. A fourth such file gets its tripwire
-in the same module.
+**0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
+("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row
+per run date** - `dispersion_history.csv`, `improvement/snapshots/` and
+`factor_vol_history.csv`, the last of which feeds *scoring* through
+`adjust_momentum_weight`. A fourth such file gets its tripwire in the same module.
+`tests/test_one_observation_per_run_date.py`, 11 tests.
 
 **3. Backtest v2 - step 1 is DONE on both halves; step 3's record layer is BUILT (2026-10-15).**
 `pit_record.py` rebuilds the engine's raw record from SEC filings as of any date, so v2 scores
@@ -995,10 +922,8 @@ publish. v2 must apply it **per rebalance month from that month's regime** -
 reading the current run's regime is a third look-ahead vector, inside the weights
 rather than the metrics.
 
-**4's residual - DONE 2026-10-09 (owner-run).** The What Changed panel opens with a run-level
-overview (`run_overview.py`, claim `history.run_overview`): who moved past the noise threshold,
-which categories the movement came from (weighted, direction-free), how many of the top 25 held. Its
-pair, Reporting Soon, shipped 2026-10-08. The 2026-08-10 owner directive's pieces are all built.
+**4's residual - DONE 2026-10-09.** The 2026-08-10 owner directive's pieces are all built
+(`run_overview.py`, Reporting Soon); see `DECISIONS.md` "0.10, 4, 8".
 
 **5's residual: the hold band - settled 2026-09-16 as "not yet", with a date.**
 The strict top-25 rule wastes **31-47%** of the trades it implies at every
@@ -1037,7 +962,5 @@ row 0.8. `plan/investor-profiles.md`.
 **7. Investment-club readiness** - can a student open this on a phone and
 understand what they're looking at?
 
-**8. Test isolation - DONE 2026-10-09 (owner-run).** A per-test write detector found exactly three
-tests writing published files; all three now use `tmp_path` or the committed universe, and
-`conftest.py` is a tripwire that restores the files and **fails the session** if any test writes
-one.
+**8. Test isolation - DONE 2026-10-09.** `conftest.py` is a tripwire: it restores published
+artifacts and **fails the session** if any test wrote one. See `DECISIONS.md` "0.10, 4, 8".
