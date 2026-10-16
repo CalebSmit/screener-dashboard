@@ -1476,6 +1476,61 @@ def test_on_a_phone_no_table_slides_sideways():
             browser.close()
 
 
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(published, tmp_path):
+    """The "Here" column of every comparison is computed in the browser (E.compare and the six
+    E.compare* functions) and must be the build's, row by row, to 1e-9 - with the same verdicts."""
+    script = tmp_path / "against.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "const rows = X => { const R = X.reference;\n"
+        "  if (X.kind === 'risk-managed') return E.compare(R, E.run(D.momentum, R), D.tolerances, D.stat_labels);\n"
+        "  if (X.kind === 'crashes') return E.compareCrashes(D.momentum, D.market, R);\n"
+        "  if (X.kind === 'factors') return E.compareFactors(D.factors, D.factor_keys, R);\n"
+        "  if (X.kind === 'size') return E.compareSize(D.size, R);\n"
+        "  if (X.kind === 'sort') return E.compareSort(D.sorts[X.sort.data], R);\n"
+        "  if (X.kind === 'split') return E.compareSplit(D[(X.split || {}).data || 'split'], R);\n"
+        "  if (X.kind === 'combo') return E.compareCombo(D.split, D.factors, R);\n"
+        "  throw new Error('no comparison for ' + X.kind); };\n"
+        "console.log(JSON.stringify(D.experiments.map(X => rows(X).map(r => [r.here, r.within]))));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT)], capture_output=True, text=True, timeout=120)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    assert len(got) == len(published["experiments"])
+    for js, built in zip(got, published["experiments"]):
+        rows = built["result"]["rows"]
+        assert len(js) == len(rows), built["id"]
+        for (here, within), row in zip(js, rows):
+            assert here == pytest.approx(row["here"], rel=0, abs=1e-9), (built["id"], row["label"])
+            assert within == row["within"], (built["id"], row["label"])
+    html = PAGE.read_text(encoding="utf-8")
+    for fn in ("E.compareCrashes(", "E.compareFactors(", "E.compareSize(", "E.compareSort(", "E.compareSplit(", "E.compareCombo("):
+        assert fn in html, fn                                                       # the page fills its table from them
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for built in published["experiments"]:                                  # in step: no warning anywhere
+                _goto(page, built["id"])
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, built["id"]
+            # a build whose one published row has drifted from the page's arithmetic is called out
+            tamper = ("Object.defineProperty(window, 'LAB_DATA', { configurable: true, get() { return this.__d; },"
+                      " set(v) { v.experiments.forEach(x => { if (x.kind === 'sort' || x.kind === 'split' || x.kind === 'combo')"
+                      " x.result.rows[0].here += 0.5; }); this.__d = v; } });")
+            page2 = browser.new_page(viewport={"width": 1200, "height": 900})
+            page2.add_init_script(tamper)
+            for exp_id in ("profitability", "largest-fifth", "value-and-momentum"):
+                _goto(page2, exp_id)
+                assert page2.evaluate("document.getElementById('x-mismatch').hidden") is False, exp_id
+                assert "disagrees with the build" in page2.inner_text("#x-mismatch")
+            assert errors == []
+        finally:
+            browser.close()
+
+
 def test_a_verdict_note_does_not_repeat_the_count_the_verdict_prints():
     """The verdict line prints "N of M figures match the paper"; experiments 12 and 13's notes
     opened by saying it again in words."""

@@ -38,11 +38,11 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | Piece | Job |
 |---|---|
 | `factor_lab.py` | **The reference.** Parses the source files, defines every calculation, holds each experiment's record (`EXPERIMENTS`), and builds `lab_data.js`. |
-| `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them. |
+| `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them - including each experiment's comparison with its paper (`compare`, `compareCrashes`, `compareFactors`, `compareSize`, `compareSort`, `compareSplit`, `compareCombo`), from which the page fills "Against the paper". |
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 58 tests (counted 2026-10-16; recount rather than trust it): the arithmetic, the parity, the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
+| `tests/test_factor_lab.py` | 59 tests (counted 2026-10-16; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must

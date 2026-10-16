@@ -227,8 +227,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=21"></script>
-<script src="lab_engine.js?v=21"></script>
+<script src="lab_data.js?v=22"></script>
+<script src="lab_engine.js?v=22"></script>
 <script>
 (function () {
     'use strict';
@@ -298,6 +298,10 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     const refRow = r => `<tr><td>${esc(r.label)}${r.where ? ` <span class="where">${esc(r.where)}</span>` : ''}</td>` +
         `<td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${diffText(r)}</td>` +
         `<td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+    // "Against the paper" is filled from this page's own arithmetic (E.compare*), so a row whose
+    // figure or verdict leaves the build's is counted into the layout's warning.
+    const rowDrift = (now, res0) => Math.abs(now.length - res0.rows.length) + now.filter((r, i) =>
+        !res0.rows[i] || Math.abs(r.here - res0.rows[i].here) > 1e-9 || r.within !== res0.rows[i].within).length;
     // Under every comparison, from one place: that the tolerances live in the build, when they were
     // written against when the figures were first seen (the record's own account), and the source.
     const tolNote = X => { const R = X.reference;
@@ -491,12 +495,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
 
         // the fixed comparison, from the build; the page recomputes it and says so if they differ
         const rowsNow = E.compare(REF, E.run(M, refState()), D.tolerances, D.stat_labels);
-        const drift = rowsNow.filter((r, i) => Math.abs(r.here - res0.rows[i].here) > 1e-9).length;
+        const drift = rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
         const legName = { plain: 'Plain momentum', managed: 'Risk-managed momentum' };
         let h = '', leg = '';
-        res0.rows.forEach(r => {
+        rowsNow.forEach(r => {
             if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
             h += refRow(r);
         });
@@ -595,10 +599,11 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
 
         // the build's four-state table at the reference settings, recomputed here
         const now = E.crashRun(M, MK, refState());
-        const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length;
+        const rowsNow = E.compareCrashes(M, MK, REF);
+        const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
-            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s) or figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
         document.querySelector('#t-worst tbody').innerHTML = res0.worst.map(w =>
             `<tr><td>${mon(w.month)}</td><td>${f2(w.here)}</td><td>${w.paper === null ? '<span class="muted">not in its list</span>' : f2(w.paper)}</td></tr>`).join('');
         document.getElementById('x-worst-note').textContent = res0.missed.length
@@ -681,12 +686,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eq">value<sub>t</sub> &nbsp;=&nbsp; a + b·market<sub>t</sub> + s·size<sub>t</sub> + r·profitability<sub>t</sub> + c·investment<sub>t</sub> + e<sub>t</sub><small>The intercept a is what the other four leave unexplained. Near zero means the factor adds nothing they do not already carry.</small></div>`);
         document.getElementById('x-code').textContent = E.factorRun.toString() + '\n\n' + E.ols.toString();
 
-        const now = E.factorRun(F, KEYS, { start: REF.start, end: REF.end });
+        const now = E.factorRun(F, KEYS, { start: REF.start, end: REF.end }), rowsNow = E.compareFactors(F, KEYS, REF);
         const drift = KEYS.filter(k => Math.abs(now.stats[k].mean - res0.stats[k].mean) > 1e-9 || Math.abs(now.stats[k].t - res0.stats[k].t) > 1e-9).length +
-            (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0);
+            (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.factorRun(F, KEYS, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -777,11 +782,11 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eq">difference between two groups &nbsp;=&nbsp; mean of ( one group's return − the other's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
         document.getElementById('x-code').textContent = E.sizeRun.toString();
 
-        const now = E.sizeRun(Z, refState());
-        const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0);
+        const now = E.sizeRun(Z, refState()), rowsNow = E.compareSize(Z, REF);
+        const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.sizeRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -854,11 +859,11 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eq">difference between the end groups &nbsp;=&nbsp; mean of ( last group's return − first group's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
         document.getElementById('x-code').textContent = E.sortRun.toString();
 
-        const now = E.sortRun(Z, refState());
-        const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0);
+        const now = E.sortRun(Z, refState()), rowsNow = E.compareSort(Z, REF);
+        const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.sortRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -951,11 +956,11 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eq">the factor among ${esc(BIG)} &nbsp;=&nbsp; ( held group − market ) + ( market − shorted group )<small>Each side is averaged over the period on its own, with its own t-statistic.</small></div>`);
         document.getElementById('x-code').textContent = E.splitRun.toString();
 
-        const now = E.splitRun(Z, refState());
-        const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length;
+        const now = E.splitRun(Z, refState()), rowsNow = E.compareSplit(Z, REF);
+        const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.splitRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -1027,12 +1032,12 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="eq">correlation after the market &nbsp;=&nbsp; the correlation of what is left of each spread once the part that moves with the market is taken out</div>`);
         document.getElementById('x-code').textContent = E.comboRun.toString();
 
-        const now = E.comboRun(Z, F, refState());
-        if (Math.abs(now.combo.sharpe - res0.sharpe.combo) > 1e-9 || Math.abs(now.corr_resid - res0.corr_resid) > 1e-9) {
+        const now = E.comboRun(Z, F, refState()), rowsNow = E.compareCombo(Z, F, REF);
+        if (Math.abs(now.combo.sharpe - res0.sharpe.combo) > 1e-9 || Math.abs(now.corr_resid - res0.corr_resid) > 1e-9 || rowDrift(rowsNow, res0)) {
             const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build. Treat the numbers below as unverified.';
         }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(refRow).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.comboRun(Z, F, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');

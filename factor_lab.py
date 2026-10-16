@@ -114,8 +114,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
 # 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
-# 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match).
-ASSET_VERSION = 21
+# 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
+# 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them.
+ASSET_VERSION = 22
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
