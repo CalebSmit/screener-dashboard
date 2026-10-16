@@ -11763,9 +11763,13 @@ section for what a later session must know.
   sizes, mapped onto one half-pixel scale); one 14px panel radius on all three pages; the research page's
   ~190 monospace figures now Inter tabular; a 5px sideways scroll at 320px fixed. `OWNER_FOCUS.md` Done.
 
-### Not done, and why
-- The Reporting table cuts company names at 31 characters mid-word (the longest `Company` in `table_data` is 31); the cut is in the payload's `Company`
-  field, so a presentation pass cannot fix it without changing the payload. Left for a data session.
+### Found on the way
+- **Company names cut mid-word - FIXED at the fetch, live from the next data run.** The source caps
+  `shortName` at 31 characters: 78 of 501 names were cut on the page ("Booking Holdings Inc. Common St").
+  `Company` now prefers `longName` from the same `.info` dict (no extra request), falling back to
+  `shortName`. Verified through `fetch_single_ticker` + `compute_metrics` on JBHT, BKNG and FDX live.
+  Display only; `tests/test_company_name.py` (4) pins it and that no metric reads the field. Today's page
+  is unchanged until the 2026-10-19 02:00 run fetches.
 - Inter's tabular figures widen hyphens in the tiles' headlines ("value - trap"); the standing rule is
   tabular figures everywhere, so it stays.
 
