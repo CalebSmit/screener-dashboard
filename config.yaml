@@ -197,7 +197,9 @@ factor_neutralization:
 sector_neutral:
   enabled: true
   gics_level: 'Sector'  # NOT ENFORCED (Phase 13/F38): sector grouping is hardwired to the 'Sector' column; this key is descriptive only (Industry-level neutrality not implemented).
-  sector_relative_composite: false  # If true, min-max normalize composite within each sector
+  sector_relative_composite: false  # DISPLAY ONLY since Phase 13: if true, Composite_Pct is the percentile within the sector;
+                                    # the ranking key stays the cardinal composite (factor_engine). Found 2026-10-15 when the
+                                    # research engine's sector-relative-composite experiment changed no rank in 80 months.
 
 # Momentum regime rule (factor_engine.market_panic_state / adjust_momentum_weight).
 # Momentum's weight is cut (x0.70; the freed weight goes half to quality, half to valuation)

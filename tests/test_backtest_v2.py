@@ -85,8 +85,15 @@ def test_a_mixed_scale_series_is_withheld_not_scored():
         assert np.isnan(f[k]) if not isinstance(f[k], dict) else False
 
 
+@pytest.fixture(autouse=True)
+def _no_writes_to_the_real_metrics_cache(monkeypatch, tmp_path):
+    """build_month caches each month's metrics; a test's synthetic month must never land in
+    cache/v2_metrics/, where the research engine would read it (found 2026-10-15: 2024-06-28)."""
+    monkeypatch.setattr(v2, "METRICS_DIR", tmp_path / "v2_metrics")
+
+
 # --------------------------------------------------------------------------- no look-ahead
-def _inputs(tickers=("AAA",), with_base=True):
+def _inputs(tickers=("AAA",), with_base=True, ciks=None, month_ciks=None):
     days = pd.bdate_range("2023-01-02", "2025-12-31")
     rows = []
     for t in tickers:
@@ -103,7 +110,7 @@ def _inputs(tickers=("AAA",), with_base=True):
                            "end": pd.Timestamp("2023-12-31"), "filed": pd.Timestamp("2024-02-10"),
                            "form": "10-K", "fp": "FY", "val": 100.0}])
     base = {t: {"Ticker": t, "sector": "Industrials"} for t in tickers} if with_base else {}
-    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base)
+    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base, ciks, month_ciks)
 
 
 def test_the_history_window_ends_at_the_month_end():
@@ -149,6 +156,32 @@ def test_the_census_accounts_for_every_member(monkeypatch):
     assert census["built"] + sum(len(v) for v in census["not_scoreable"].values()) == census["members"]
 
 
+def test_a_renamed_member_is_found_under_its_current_symbol(monkeypatch):
+    """2026-10-15: v2's inputs are keyed by today's symbols, so a member listed under an old one
+    (FB in 2020, today META) was counted missing - 635 member-months of companies that never left
+    the index. The SEC registrant number survives the rename. Two old symbols never claim one
+    company, and a symbol that is itself a member that month is never borrowed."""
+    inp = _inputs(("AAA",), ciks={"OLD": 7, "OLD2": 7, "AAA": 7, "GONE": 9})
+
+    def snap(*tickers):
+        class Snap:
+            n_members = len(tickers)
+            staleness_days = 0
+        Snap.tickers = tickers
+        monkeypatch.setattr(v2.uh, "members_on", lambda as_of, allow_network=False: Snap)
+
+    snap("OLD", "GONE")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {"OLD": "AAA"} and census["built"] == 1
+    assert census["not_scoreable"] == {"no_current_record": ["GONE"]}
+    snap("OLD", "OLD2")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {"OLD": "AAA"} and census["not_scoreable"] == {"no_current_record": ["OLD2"]}
+    snap("OLD", "AAA")
+    _, census = v2.build_month("2024-06-28", inp, v2.v2_config(CFG))
+    assert census["renamed"] == {} and census["not_scoreable"] == {"no_current_record": ["OLD"]}
+
+
 # --------------------------------------------------------------------------- exactness on real data
 def test_the_cached_history_reproduces_the_live_fetch_exactly():
     """Where the cache and a run's raw fetch overlap, the shared function on the cached window
@@ -178,7 +211,9 @@ def test_the_cached_history_reproduces_the_live_fetch_exactly():
 def test_no_production_module_imports_it():
     pat = re.compile(r"^\s*(import backtest_v2|from backtest_v2)\b", re.M)
     for p in ROOT.glob("*.py"):
-        if p.name in ("backtest_v2.py", "conftest.py"):
+        # v2_experiments.py is the research engine built on v2 (2026-10-15) - research, not
+        # production, and test_v2_experiments.py keeps production from importing it in turn
+        if p.name in ("backtest_v2.py", "v2_experiments.py", "conftest.py"):
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
     for p in (ROOT / "scripts").rglob("*.py"):
@@ -209,3 +244,23 @@ def test_a_month_without_a_cached_universe_is_skipped_and_said(monkeypatch, tmp_
     census = json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
     assert census[0]["month"] == "2024-06-30" and census[0]["skipped"].startswith("no cached universe")
 
+
+def test_a_reused_symbol_is_never_scored_as_todays_company(monkeypatch):
+    """2026-10-15: in 2012-2019 a symbol can have belonged to another company. Where that month's
+    revision lists a CIK that differs from today's company under the symbol, today's company is not
+    scored in its place - the member is found under its own current symbol, or counted."""
+    class Snap:
+        tickers = ("AAA",)
+        n_members = 1
+        staleness_days = 0
+    monkeypatch.setattr(v2.uh, "members_on", lambda as_of, allow_network=False: Snap)
+    monkeypatch.setattr(v2, "metrics_month", lambda recs, cfg, mr, rf: pd.DataFrame(
+        {"Ticker": [r["Ticker"] for r in recs]}))
+    monkeypatch.setattr(v2, "rank_month", lambda m, cfg, st: m.assign(Composite=50.0, Rank=1))
+    monkeypatch.setattr(v2, "save_metrics", lambda *a, **k: None)
+    reused = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 99}})
+    _, census = v2.build_month("2024-06-28", reused, v2.v2_config(CFG))
+    assert census["built"] == 0 and census["not_scoreable"] == {"symbol_reused": ["AAA"]}
+    same = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 7}})
+    _, census = v2.build_month("2024-06-28", same, v2.v2_config(CFG))
+    assert census["built"] == 1 and census["renamed"] == {}

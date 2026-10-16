@@ -147,7 +147,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -1138,4 +1138,17 @@ def test_the_profitability_sort_rises_with_profitability_as_the_paper_found(publ
     assert 0 < spread["here"] < spread["paper"]                    # positive, and below the paper's
     data = published["sorts"]["profitability"]
     assert len(data["rf"]) == len(data["months"])                   # excess rebuilt from the page's own data
+
+
+def test_the_cash_flow_yield_sort_is_compared_as_the_paper_reports_it(published):
+    """Experiment 11 (2026-10-15): Lakonishok, Shleifer & Vishny (1994), Table 2 of the working paper.
+    Its returns are size-adjusted and annual, so each decile is compared against the average of the
+    ten, in percent a year (``relative`` and ``scale``). Tolerances were written before the run."""
+    exp = next(x for x in published["experiments"] if x["id"] == "cash-flow-yield")
+    ref, r = exp["reference"], exp["result"]
+    assert ref["relative"] is True and ref["scale"] == 12 and ref["weighting"] == "ew"
+    assert (r["within"], r["total"]) == (11, 11)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert sum(rows[f"mean{g}"]["here"] for g in range(1, 11)) == pytest.approx(0.0, abs=1e-6)
+    assert rows["mean10"]["here"] > rows["mean1"]["here"] and rows["spread"]["here"] > 0
 

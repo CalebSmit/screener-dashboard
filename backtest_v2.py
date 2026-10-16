@@ -93,7 +93,8 @@ class Inputs:
     """Everything v2 reads, loaded once, offline."""
 
     def __init__(self, daily: pd.DataFrame, index: pd.DataFrame, splits: pd.DataFrame,
-                 facts: pd.DataFrame, base: dict):
+                 facts: pd.DataFrame, base: dict, ciks: dict | None = None,
+                 month_ciks: dict | None = None):
         daily = daily.copy()
         daily["date"] = pd.to_datetime(daily["date"])
         # one ticker form everywhere - the universe's (``BRK-B``, not ``BRK.B``); a cache written
@@ -109,6 +110,28 @@ class Inputs:
         self.facts = {t: g for t, g in facts.groupby("ticker")}
         self.empty_facts = facts.iloc[:0]
         self.base = base
+        # ticker -> SEC CIK for every symbol the membership history has used; the CIK survives a
+        # rename, so a member listed under an old symbol is found under its current one
+        self.ciks = ciks or {}
+        # month-end -> {symbol: CIK} as that month's revision listed them (from mid-2014; the older
+        # revisions carry no CIK column): who a symbol belonged to *then*
+        self.month_ciks = month_ciks or {}
+        self._by_cik: dict = {}
+        for tk, cik in self.ciks.items():
+            if tk in base:
+                self._by_cik.setdefault(cik, []).append(tk)
+
+    def current_symbol(self, ticker: str, members: set, taken: set, cik: int | None = None) -> str | None:
+        """The symbol a member listed as ``ticker`` trades and files under today, when it was
+        renamed (FB -> META, ANTM -> ELV): the one current symbol with the same SEC registrant
+        number that is not itself a member that month and not already claimed by another member.
+        ``None`` when there is none - a company that has since left the index stays missing, which
+        is the survivorship this cannot fix."""
+        cik = cik if cik is not None else self.ciks.get(ticker)
+        if cik is None:
+            return None
+        cands = sorted(t for t in self._by_cik.get(cik, []) if t not in members and t not in taken)
+        return cands[0] if cands else None
 
     @classmethod
     def load(cls, root: Path = ROOT) -> "Inputs":
@@ -119,7 +142,30 @@ class Inputs:
         return cls(pd.read_parquet(root / "cache" / "v2_daily.parquet"),
                    pd.read_parquet(root / "cache" / "v2_index.parquet"),
                    pd.read_parquet(root / "cache" / "splits.parquet"),
-                   pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base)
+                   pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base,
+                   _load_ciks(root), _load_month_ciks(root))
+
+
+def _load_month_ciks(root: Path) -> dict:
+    """``data/universe_history/ciks_by_month.json`` (2026-10-15): each month's own symbol -> CIK."""
+    import json as _json
+    p = root / "data" / "universe_history" / "ciks_by_month.json"
+    try:
+        raw = _json.loads(p.read_text(encoding="utf-8"))
+        return {m: {k: int(v) for k, v in d["ciks"].items()} for m, d in raw.items() if d.get("ciks")}
+    except (OSError, KeyError, ValueError, TypeError, AttributeError):
+        return {}
+
+
+def _load_ciks(root: Path) -> dict:
+    """The membership history's ticker -> CIK map (``data/universe_history/ticker_ciks.json``,
+    built from the same Wikipedia revisions as the membership), or ``{}`` without it."""
+    import json as _json
+    p = root / "data" / "universe_history" / "ticker_ciks.json"
+    try:
+        return {k: int(v) for k, v in _json.loads(p.read_text(encoding="utf-8"))["ciks"].items()}
+    except (OSError, KeyError, ValueError, TypeError):
+        return {}
 
 
 def history_window(g: pd.DataFrame, as_of: pd.Timestamp, splits: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -186,13 +232,22 @@ def record_at(ticker: str, inputs: Inputs, as_of: pd.Timestamp, filings_as_of: p
     return rec, None
 
 
-def score_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: float,
-                state: dict) -> pd.DataFrame:
-    """The live run's scoring order, on one month's records."""
+def metrics_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: float) -> pd.DataFrame:
+    """The slow, weight-independent half of a month's scoring: every stock's metrics."""
     with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
         warnings.simplefilter("ignore")
         df = fe.compute_metrics(records, market_returns, cfg, risk_free_rate=rf)
-        df = df[~df.get("_skipped", pd.Series(False, index=df.index)).fillna(False)].copy()
+        return df[~df.get("_skipped", pd.Series(False, index=df.index)).fillna(False)].copy()
+
+
+def rank_month(metrics: pd.DataFrame, cfg: dict, state: dict) -> pd.DataFrame:
+    """The fast half: a month's metrics to its ranking under ``cfg``'s weights, in the live
+    run's order (coverage filter, universe filter, sector percentiles, transform, categories, the
+    month's regime, composite, rank). Split out 2026-10-15 so an experiment that only changes
+    weights reruns this and not the fetch-shaped half (``v2_experiments.py``)."""
+    with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+        warnings.simplefilter("ignore")
+        df = metrics.copy()
         mc, applicable = fe.applicable_coverage(df, cfg)
         need = (applicable * cfg["data_quality"]["min_data_coverage_pct"] / 100).apply(lambda x: max(1, int(x)))
         df = df[mc >= need].copy()
@@ -204,23 +259,73 @@ def score_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: f
         if state.get("state") == "PANIC":
             month_cfg["factor_weights"] = fe.apply_momentum_regime(cfg["factor_weights"], "PANIC")
         df = fe.compute_composite(df, month_cfg)
+        # a weighting that scores only some categories (an experiment's narrow screen) can leave a
+        # stock with no composite at all; it is left out of that month's ranking, not ranked as a
+        # number it does not have. The published weighting never produces one.
+        df = df[df["Composite"].notna()].copy()
         df = fe.rank_stocks(df)
     return df
+
+
+def score_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: float,
+                state: dict) -> pd.DataFrame:
+    """The live run's scoring order, on one month's records."""
+    return rank_month(metrics_month(records, cfg, market_returns, rf), cfg, state)
+
+
+METRICS_DIR = CACHE / "v2_metrics"
+
+
+def save_metrics(as_of: str, metrics: pd.DataFrame, state: dict, path: Path | None = None) -> Path:
+    """One month's metrics, for experiments to re-rank without recomputing them. Columns holding
+    lists or dicts (per-stock detail the ranking never reads) are kept as JSON text."""
+    import json as _json
+    out = metrics.copy()
+    for c in out.columns:
+        if out[c].dtype == object and out[c].map(lambda v: isinstance(v, (list, dict, tuple))).any():
+            out[c] = out[c].map(lambda v: _json.dumps(v, default=str) if isinstance(v, (list, dict, tuple)) else v)
+    out["_month_state"] = state.get("state")
+    p = path or (METRICS_DIR / f"{as_of}.parquet")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(p)
+    return p
 
 
 def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timestamp | None = None):
     """(scores frame, census dict) for one month-end."""
     t = pd.Timestamp(as_of)
     snap = uh.members_on(as_of, allow_network=False)
-    records, missing = [], {}
+    records, missing, renamed = [], {}, {}
+    members = set(snap.tickers)
+    then = inputs.month_ciks.get(as_of, {})
     for tk in snap.tickers:
-        rec, why = record_at(tk, inputs, t, filings_as_of)
+        sym = tk
+        cik_then, cik_now = then.get(tk), inputs.ciks.get(tk)
+        if tk in inputs.base and cik_then is not None and cik_now is not None and cik_then != cik_now:
+            # the symbol belonged to another company that month (a reused ticker): never score
+            # today's company in its place - find that company under its current symbol, or count it
+            cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
+            if cur is None:
+                missing.setdefault("symbol_reused", []).append(tk)
+                continue
+            sym = renamed[tk] = cur
+        elif tk not in inputs.base:
+            cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
+            if cur is not None:
+                sym = renamed[tk] = cur
+        rec, why = record_at(sym, inputs, t, filings_as_of)
         if rec is None:
             missing.setdefault(why, []).append(tk)
         else:
             records.append(rec)
     mr, rf, state = market_inputs(inputs, t, cfg.get("momentum_regime"))
-    df = score_month(records, cfg, mr, rf, state)
+    metrics = metrics_month(records, cfg, mr, rf)
+    if filings_as_of is None:
+        try:
+            save_metrics(as_of, metrics, state)
+        except Exception as exc:  # noqa: BLE001 - a cache for experiments must never stop a build
+            print(f"{as_of}: metrics not cached ({type(exc).__name__}: {exc})", flush=True)
+    df = rank_month(metrics, cfg, state)
     cats = [c for c in cfg["factor_weights"] if f"{c}_score" in df]
     out = df[["Ticker", "Composite", "Rank"] + [f"{c}_score" for c in cats]].copy()
     out.insert(0, "month", as_of)
@@ -228,6 +333,7 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
               "built": len(records), "scored": int(len(out)),
               "dropped_by_engine_filters": len(records) - int(len(out)),
               "not_scoreable": {k: sorted(v) for k, v in missing.items()},
+              "renamed": dict(sorted(renamed.items())),
               "regime": state.get("state"), "risk_free": round(rf, 4)}
     return out, census
 
@@ -241,6 +347,9 @@ def main():
     ap.add_argument("--diagnostic-filings-as-of", default="",
                     help="DIAGNOSTIC: read every month's filings as of this date (v1's look-ahead, on "
                          "purpose); writes v2_scores_lookahead*.parquet, never the v2 result")
+    ap.add_argument("--tag", default="", help="a separate output for another period, e.g. _presample "
+                    "(2012-2019, registered 2026-10-15): v2_scores<tag>.parquet / v2_census<tag>.json, so "
+                    "it never replaces the 2020-2026 result. Monthly metrics share cache/v2_metrics/")
     args = ap.parse_args()
     global SCORES_PATH, CENSUS_PATH
     tag = ""
@@ -250,6 +359,10 @@ def main():
         tag = "_lookahead"
         SCORES_PATH = CACHE / "v2_scores_lookahead.parquet"
         CENSUS_PATH = CACHE / "v2_census_lookahead.json"
+    elif args.tag:
+        tag = args.tag
+        SCORES_PATH = CACHE / f"v2_scores{tag}.parquet"
+        CENSUS_PATH = CACHE / f"v2_census{tag}.json"
     if args.merge:
         parts = [CACHE / f"v2_scores{tag}.shard{k}.parquet" for k in range(args.merge)]
         cens = [CACHE / f"v2_census{tag}.shard{k}.json" for k in range(args.merge)]

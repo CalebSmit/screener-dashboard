@@ -11620,3 +11620,44 @@ marker cleared and shipped (`good/2026-10-15-1403`). Owner marker held again for
   median rank difference 23 -> 20 (composite Spearman 0.885 -> 0.880, tails). 2 tests. **v2 rescored:**
   IC -0.001 (+-0.027), top tenth -0.25%/month against the universe - the honest reading is unchanged.
 
+## 2026-10-15 (owner-run, night) - the research engine: 27 pre-registered ideas over 176 months, and an untouched 2012-2019 test
+
+**Health (rule 8):** last code session ran? **yes** - `logs/nightly-2026-10-15_131743-midday.log` ends
+"Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-15_020001.log`
+"Data loop complete", HEALTH PASS. Evidence base at `1m` = **30 rows, newest 2026-09-15 (30 days, bound
+40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 effective against 8. Top open roadmap
+item: **0.11, the context layer** (opened 2026-10-08, **age 7 days**) - not touched tonight; the owner
+asked for this work instead.
+
+**Owner's request:** test the methodology as automated research loops are built - many literature ideas
+run against each other - so it can be shown to people and trusted (a bot first, a fund's method later).
+
+### Did
+- **The engine** (`v2_experiments.py`): pre-registration (`research/experiments/registry.yaml`, committed
+  before each run - batch 1 17:13, the 2012-2019 rule 18:03, batch 2 18:22), discovery/held-out split
+  fixed in code, every run in `ledger.jsonl` with the data version it used, Bonferroni over every
+  registered experiment plus |t| >= 3, paired with the baseline month by month. `RESULTS.md` generated.
+- **Result:** none of 26 alternatives beats the current weighting in 2020-2026 or in the untouched
+  2012-2019 (the baseline's IC is ~0 in both: -0.00001 and -0.003). Chance-level everywhere (one p <
+  0.05 per era against 1.3 expected). The design sees an IC difference of 0.066 (held out) / 0.039
+  (2012-2019) at its bar; the look-ahead arm is the positive control (t 4.71). Size's 2012-2019 lead
+  tracks coverage (+0.033 lowest-coverage third, -0.004 highest) - survivorship, stated before measured.
+  `research/2026-10-15-research-engine-first-batch.md`.
+- **Three defects found by running it:** `sector_relative_composite` changes only a display column
+  since Phase 13 (experiment void; `config.yaml`'s false comment corrected); renamed members counted as
+  missing (recovered by CIK: 635 member-months 2020-2026, 2,332 in 2012-2019; IC unchanged at
+  -0.00001); reused symbols (IR, JCI, Q, SNDK) now never scored as today's company. Plus two tests that
+  wrote a synthetic month into the real metrics cache (harmless - under 50 stocks - and now isolated).
+- **v2 extended to 2012** (`research/measurements/2026-10-15-presample-inputs.py`, tracked; membership
+  96 months validated, CIKs per month from 2014-05; prices from 2010; `--tag _presample`). Coverage
+  58% (2012) -> 78% (2019).
+- **Lab experiment 11**, Lakonishok, Shleifer & Vishny (1994) cash-flow yield: 11 of 11 within; by
+  market value the premium is ~0 since 1990 (t 0.1), below zero since 2007 (t -1.0). Lab: 98 of 141.
+
+### Not done / next
+- No weight change and none proposed (rules 4, 5; and nothing passed).
+- Per-month CIKs for 2020-2026 (the reuse guard covers 2014-2019 only; IR 2020-01/02 is the known case).
+- Monday candidate: Risk's 10% - a defensive tilt to state, or a return claim the data does not support
+  (the low-risk screens were worst in both eras, never significant).
+- Survivorship is now v2's binding limit; the deferred delisted-price feed has a concrete use.
+
