@@ -1122,6 +1122,10 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["sharesOutstanding"]  = _safe(info, "sharesOutstanding")
         rec["sector"]             = _safe(info, "sector", "Unknown")
         rec["shortName"]          = _safe(info, "shortName", ticker_str)
+        # The source caps shortName at 31 characters, which cut 78 of 501 names mid-word on the page
+        # ("Booking Holdings Inc. Common St"); longName is the full legal name from the same .info
+        # dict, so it costs no request. Display only - no metric reads either (2026-10-16).
+        rec["longName"]           = _safe(info, "longName")
         rec["earningsGrowth"]     = _safe(info, "earningsGrowth")
         rec["dividendRate"]       = _safe(info, "dividendRate")
         # The fallback for it. The source stopped serving `dividendRate` on
@@ -1978,7 +1982,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
     for d in raw_data:
         rec = {
             "Ticker": d.get("Ticker"),
-            "Company": _coalesce(d, "shortName", "Ticker"),
+            "Company": _coalesce(d, "longName", "shortName", "Ticker"),
             "Sector": d.get("sector", "Unknown"),
         }
 

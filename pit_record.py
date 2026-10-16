@@ -137,7 +137,7 @@ FIELD_CLASSES = {
                         "_fy2_eps_current", "_next_fy_end", "shortRatio", "shortPercentOfFloat",
                         "heldPercentInsiders", "dividendRate", "_evol", "_roe5"),
     # who the company is, not what it reported
-    "static": ("Ticker", "shortName", "sector", "industry", "_gics_sector", "_gics_sub"),
+    "static": ("Ticker", "longName", "shortName", "sector", "industry", "_gics_sector", "_gics_sub"),
 }
 
 
