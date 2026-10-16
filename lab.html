@@ -984,7 +984,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), among big companies, each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)}</p>
+            ${X.against_note ? `<p class="note" id="x-against-note">${esc(X.against_note)}</p>` : ''}<p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">value &nbsp;=&nbsp; high book-to-market − low, each month; momentum &nbsp;=&nbsp; high past return − low</div>
             <div class="eq">the mix &nbsp;=&nbsp; ( value + momentum ) ÷ 2, each month</div>

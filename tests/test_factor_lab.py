@@ -1201,6 +1201,16 @@ def test_the_value_and_momentum_rerun_is_the_paper_s_table_on_big_companies(publ
     rows = {r["key"]: r for r in exp["result"]["rows"]}
     assert rows["corr_resid"]["paper"] == -0.53 and rows["sharpe_combo"]["paper"] == 0.63
     assert rows["corr_resid"]["here"] < 0                                 # the hedge is there, if milder
+    # the mix's volatility and Sharpe ratio follow from the correlation, and the page says so once
+    # (2026-10-16 audit); nothing about the figures or their tolerances changed for it
+    assert {r["key"] for r in exp["result"]["rows"] if not r["within"]} == {"std_combo", "sharpe_combo", "corr_resid"}
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean_value": (3.7, 1.2), "mean_momentum": (5.4, 1.2), "mean_combo": (4.6, 1.2),
+        "std_value": (12.8, 2.0), "std_momentum": (16.4, 2.0), "std_combo": (7.2, 2.0),
+        "sharpe_value": (0.29, 0.10), "sharpe_momentum": (0.33, 0.10), "sharpe_combo": (0.63, 0.10),
+        "corr_resid": (-0.53, 0.15)}
+    assert "follow mechanically from how strongly value and momentum move against each other" in exp["against_note"]
+    assert "X.against_note" in PAGE.read_text(encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- the 2026-10-16 audit
@@ -1273,7 +1283,7 @@ def test_each_experiment_says_when_its_tolerances_were_written(published):
         try:
             for exp in fl.EXPERIMENTS:
                 _goto(page, exp["id"])
-                note = page.inner_text("#x-against ~ p.note")
+                note = page.locator("#x-against ~ p.note", has_text="written down in the build").inner_text()
                 assert fl.TOLERANCES_WRITTEN[exp["reference"]["tolerances_written"]] in note, exp["id"]
                 assert exp["reference"].get("tolerances_note", "")[:40] in note, exp["id"]
             assert errors == []

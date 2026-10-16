@@ -1835,6 +1835,11 @@ EXPERIMENTS = [
                          "the mix is more volatile and its Sharpe ratio lower (0.49 against 0.63). The likeliest "
                          "reason is the library pricing value at the previous December, which the record's "
                          "open details explain."),
+        # printed under the comparison: three of the misses are one difference, said once
+        "against_note": ("Given each spread's own average and volatility, the mix's volatility and Sharpe ratio "
+                         "follow mechanically from how strongly value and momentum move against each other - "
+                         "the correlation in the last row - so those two misses restate that one difference "
+                         "rather than adding to it."),
         "conditions": [
             ["Portfolios", "Value is high book-to-market minus low; momentum is high past 12-month return "
                            "(skipping the last month) minus low. Each is measured among big companies - the "
