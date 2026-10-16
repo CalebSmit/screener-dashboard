@@ -206,6 +206,18 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
   position (which repeats the header's rank) is hidden below 420px and the tabs fade at their edge. The hero's
   eyebrow drops "S&P 500" below 420px so it stays on one line.
 
+### P3 - component craft, inspected at 2x
+
+- **Leader cards**: the 50 reference line was drawn over the bars and cut every filled column; the fills now sit
+  above it, so the line marks only the empty track.
+- **Hyphens in tabular headlines**: Inter's tabular-figure setting widens the ordinary hyphen ("value - trap",
+  "10y - 3m"); the non-breaking hyphen keeps its width (measured 21.1px against 25.5px for "a-b" at 14px), so
+  the compound words inside the tiles' and summary panel's headlines use U+2011. Figures stay tabular.
+- **One heading case**: the seven tile titles were Title Case beside sentence-case section headers, nav and
+  headings; all are sentence case. "Defensibility & Diagnostics" is "Diagnostics", as the nav already said
+  (the section and its features are unchanged). The search palette gains the three sections it was missing
+  (Reporting soon, Market backdrop, Track record).
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).
