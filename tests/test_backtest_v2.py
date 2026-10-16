@@ -85,8 +85,15 @@ def test_a_mixed_scale_series_is_withheld_not_scored():
         assert np.isnan(f[k]) if not isinstance(f[k], dict) else False
 
 
+@pytest.fixture(autouse=True)
+def _no_writes_to_the_real_metrics_cache(monkeypatch, tmp_path):
+    """build_month caches each month's metrics; a test's synthetic month must never land in
+    cache/v2_metrics/, where the research engine would read it (found 2026-10-15: 2024-06-28)."""
+    monkeypatch.setattr(v2, "METRICS_DIR", tmp_path / "v2_metrics")
+
+
 # --------------------------------------------------------------------------- no look-ahead
-def _inputs(tickers=("AAA",), with_base=True, ciks=None):
+def _inputs(tickers=("AAA",), with_base=True, ciks=None, month_ciks=None):
     days = pd.bdate_range("2023-01-02", "2025-12-31")
     rows = []
     for t in tickers:
@@ -103,7 +110,7 @@ def _inputs(tickers=("AAA",), with_base=True, ciks=None):
                            "end": pd.Timestamp("2023-12-31"), "filed": pd.Timestamp("2024-02-10"),
                            "form": "10-K", "fp": "FY", "val": 100.0}])
     base = {t: {"Ticker": t, "sector": "Industrials"} for t in tickers} if with_base else {}
-    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base, ciks)
+    return v2.Inputs(daily, index, pd.DataFrame(columns=["ticker", "date", "ratio"]), facts, base, ciks, month_ciks)
 
 
 def test_the_history_window_ends_at_the_month_end():
@@ -237,3 +244,23 @@ def test_a_month_without_a_cached_universe_is_skipped_and_said(monkeypatch, tmp_
     census = json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
     assert census[0]["month"] == "2024-06-30" and census[0]["skipped"].startswith("no cached universe")
 
+
+def test_a_reused_symbol_is_never_scored_as_todays_company(monkeypatch):
+    """2026-10-15: in 2012-2019 a symbol can have belonged to another company. Where that month's
+    revision lists a CIK that differs from today's company under the symbol, today's company is not
+    scored in its place - the member is found under its own current symbol, or counted."""
+    class Snap:
+        tickers = ("AAA",)
+        n_members = 1
+        staleness_days = 0
+    monkeypatch.setattr(v2.uh, "members_on", lambda as_of, allow_network=False: Snap)
+    monkeypatch.setattr(v2, "metrics_month", lambda recs, cfg, mr, rf: pd.DataFrame(
+        {"Ticker": [r["Ticker"] for r in recs]}))
+    monkeypatch.setattr(v2, "rank_month", lambda m, cfg, st: m.assign(Composite=50.0, Rank=1))
+    monkeypatch.setattr(v2, "save_metrics", lambda *a, **k: None)
+    reused = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 99}})
+    _, census = v2.build_month("2024-06-28", reused, v2.v2_config(CFG))
+    assert census["built"] == 0 and census["not_scoreable"] == {"symbol_reused": ["AAA"]}
+    same = _inputs(("AAA",), ciks={"AAA": 7}, month_ciks={"2024-06-28": {"AAA": 7}})
+    _, census = v2.build_month("2024-06-28", same, v2.v2_config(CFG))
+    assert census["built"] == 1 and census["renamed"] == {}

@@ -918,7 +918,13 @@ harness (IC and spreads with month-to-month intervals). *Its first reading, not 
 -0.002 (+-0.027) over 80 months - against +0.050 (t 4.7) for the same pipeline fed today's filings,
 which is what look-ahead does to a result (`research/2026-10-15-pit-record-validation.md` 5c). Nothing
 either produces decides anything before 2027-02-11, and neither may be imported by production.
-`plan/backtest-v2.md` governs. The two measurements, both reproducible from
+`plan/backtest-v2.md` governs. **Evening, same day: v2 runs 2012-2026 (176 months) and the research
+engine** (`v2_experiments.py`; pre-registered in `research/experiments/registry.yaml`, every run in
+`ledger.jsonl`) has run 27 experiments: **none beats the current weighting, the baseline's IC is ~0 in
+both eras, and the design can only see an IC difference of ~0.04-0.07**
+(`research/2026-10-15-research-engine-first-batch.md`). A new experiment is registered and committed
+**before** it runs, with a source and a prediction; a data fix reruns them all (the report flags mixed
+data versions); never register a variation of a near-miss. The two measurements, both reproducible from
 committed inputs:
 
 | Bias | Size, on the name-month panel | Source |

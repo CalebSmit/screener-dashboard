@@ -92,6 +92,32 @@ price history / no free history / static) and fails on an unclassified one.
   holds 43% of what the screener would have said at the time. By year 80% (2020) falling to 2.6% in
   2026-09. **The fundamentals half is the larger one.**
 
+### Extended to 2012, renames recovered, and the research engine - 2026-10-15 evening (owner-run)
+
+`research/2026-10-15-research-engine-first-batch.md`. **v2 now runs 2012-01 .. 2026-08 (176 months).**
+The 2012-2019 membership came from the same Wikipedia revision history (96 months, all validated) and
+was registered as an untouched test *before* it was built; prices from 2010 and the index from 2008
+(`research/measurements/2026-10-15-presample-inputs.py`, a tracked builder - the earlier price cache
+had been built from a scratch script). Built with `--tag _presample` so it never replaces the
+2020-2026 result (`cache/v2_scores_presample.parquet`, `v2_census_presample.json`); monthly metrics
+share `cache/v2_metrics/`.
+
+- **Renames:** members listed under an old symbol are found under the current one by SEC CIK
+  (`Inputs.current_symbol`) - 635 member-months in 2020-2026, 2,332 in 2012-2019. v2's 2020-2026 IC
+  on the corrected records: **-0.00001** (`research/measurements/2026-10-15-backtest-v2-returns-renames.json`).
+- **Reused symbols:** where a month's revision lists a CIK (mid-2014 on;
+  `data/universe_history/ciks_by_month.json`) that differs from today's company under the symbol, it
+  is never scored as today's company (`symbol_reused`). **2020-2026 months have no per-month CIKs yet**
+  - fetch them from the revids in `ticker_ciks.json` and rebuild; the one known case is IR in
+  2020-01/02.
+- **Coverage is the binding limit now:** 58% of members in 2012, 78% in 2019, 81% in 2020, 96% in
+  2025. Size's 2012-2019 IC tracks it (+0.033 where coverage is lowest, -0.004 where highest) - the
+  survivorship signature. This is the concrete use the deferred delisted-price feed was waiting for.
+- **The research engine** (`v2_experiments.py`): 27 pre-registered experiments, 176 months, none
+  distinguishable from the baseline; the baseline's own IC is ~0 in both eras; the look-ahead arm is
+  the positive control (t 4.71). Power: the smallest IC difference it can see at its bar is 0.066
+  (38 held-out months) and 0.039 (96 months of 2012-2019).
+
 ### What step 1 said was unmeasured (kept for the record)
 
 The **49.0pp fundamentals half**. SEC EDGAR's XBRL `companyconcept` endpoint is

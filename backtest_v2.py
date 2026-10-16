@@ -93,7 +93,8 @@ class Inputs:
     """Everything v2 reads, loaded once, offline."""
 
     def __init__(self, daily: pd.DataFrame, index: pd.DataFrame, splits: pd.DataFrame,
-                 facts: pd.DataFrame, base: dict, ciks: dict | None = None):
+                 facts: pd.DataFrame, base: dict, ciks: dict | None = None,
+                 month_ciks: dict | None = None):
         daily = daily.copy()
         daily["date"] = pd.to_datetime(daily["date"])
         # one ticker form everywhere - the universe's (``BRK-B``, not ``BRK.B``); a cache written
@@ -112,18 +113,21 @@ class Inputs:
         # ticker -> SEC CIK for every symbol the membership history has used; the CIK survives a
         # rename, so a member listed under an old symbol is found under its current one
         self.ciks = ciks or {}
+        # month-end -> {symbol: CIK} as that month's revision listed them (from mid-2014; the older
+        # revisions carry no CIK column): who a symbol belonged to *then*
+        self.month_ciks = month_ciks or {}
         self._by_cik: dict = {}
         for tk, cik in self.ciks.items():
             if tk in base:
                 self._by_cik.setdefault(cik, []).append(tk)
 
-    def current_symbol(self, ticker: str, members: set, taken: set) -> str | None:
+    def current_symbol(self, ticker: str, members: set, taken: set, cik: int | None = None) -> str | None:
         """The symbol a member listed as ``ticker`` trades and files under today, when it was
         renamed (FB -> META, ANTM -> ELV): the one current symbol with the same SEC registrant
         number that is not itself a member that month and not already claimed by another member.
         ``None`` when there is none - a company that has since left the index stays missing, which
         is the survivorship this cannot fix."""
-        cik = self.ciks.get(ticker)
+        cik = cik if cik is not None else self.ciks.get(ticker)
         if cik is None:
             return None
         cands = sorted(t for t in self._by_cik.get(cik, []) if t not in members and t not in taken)
@@ -139,7 +143,18 @@ class Inputs:
                    pd.read_parquet(root / "cache" / "v2_index.parquet"),
                    pd.read_parquet(root / "cache" / "splits.parquet"),
                    pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base,
-                   _load_ciks(root))
+                   _load_ciks(root), _load_month_ciks(root))
+
+
+def _load_month_ciks(root: Path) -> dict:
+    """``data/universe_history/ciks_by_month.json`` (2026-10-15): each month's own symbol -> CIK."""
+    import json as _json
+    p = root / "data" / "universe_history" / "ciks_by_month.json"
+    try:
+        raw = _json.loads(p.read_text(encoding="utf-8"))
+        return {m: {k: int(v) for k, v in d["ciks"].items()} for m, d in raw.items() if d.get("ciks")}
+    except (OSError, KeyError, ValueError, TypeError, AttributeError):
+        return {}
 
 
 def _load_ciks(root: Path) -> dict:
@@ -282,10 +297,20 @@ def build_month(as_of: str, inputs: Inputs, cfg: dict, filings_as_of: pd.Timesta
     snap = uh.members_on(as_of, allow_network=False)
     records, missing, renamed = [], {}, {}
     members = set(snap.tickers)
+    then = inputs.month_ciks.get(as_of, {})
     for tk in snap.tickers:
         sym = tk
-        if tk not in inputs.base:
-            cur = inputs.current_symbol(tk, members, set(renamed.values()))
+        cik_then, cik_now = then.get(tk), inputs.ciks.get(tk)
+        if tk in inputs.base and cik_then is not None and cik_now is not None and cik_then != cik_now:
+            # the symbol belonged to another company that month (a reused ticker): never score
+            # today's company in its place - find that company under its current symbol, or count it
+            cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
+            if cur is None:
+                missing.setdefault("symbol_reused", []).append(tk)
+                continue
+            sym = renamed[tk] = cur
+        elif tk not in inputs.base:
+            cur = inputs.current_symbol(tk, members, set(renamed.values()), cik=cik_then)
             if cur is not None:
                 sym = renamed[tk] = cur
         rec, why = record_at(sym, inputs, t, filings_as_of)
@@ -322,6 +347,9 @@ def main():
     ap.add_argument("--diagnostic-filings-as-of", default="",
                     help="DIAGNOSTIC: read every month's filings as of this date (v1's look-ahead, on "
                          "purpose); writes v2_scores_lookahead*.parquet, never the v2 result")
+    ap.add_argument("--tag", default="", help="a separate output for another period, e.g. _presample "
+                    "(2012-2019, registered 2026-10-15): v2_scores<tag>.parquet / v2_census<tag>.json, so "
+                    "it never replaces the 2020-2026 result. Monthly metrics share cache/v2_metrics/")
     args = ap.parse_args()
     global SCORES_PATH, CENSUS_PATH
     tag = ""
@@ -331,6 +359,10 @@ def main():
         tag = "_lookahead"
         SCORES_PATH = CACHE / "v2_scores_lookahead.parquet"
         CENSUS_PATH = CACHE / "v2_census_lookahead.json"
+    elif args.tag:
+        tag = args.tag
+        SCORES_PATH = CACHE / f"v2_scores{tag}.parquet"
+        CENSUS_PATH = CACHE / f"v2_census{tag}.json"
     if args.merge:
         parts = [CACHE / f"v2_scores{tag}.shard{k}.parquet" for k in range(args.merge)]
         cens = [CACHE / f"v2_census{tag}.shard{k}.json" for k in range(args.merge)]

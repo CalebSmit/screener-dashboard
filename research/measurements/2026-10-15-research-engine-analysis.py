@@ -34,7 +34,7 @@ def main() -> None:
     rows = []
     for e in reg:
         r = latest.get(e["id"])
-        if not r or e["transform"]["kind"] == "baseline":
+        if not r or e["transform"]["kind"] == "baseline" or e.get("void"):
             continue
         s = r["summary"]
         rows.append((e["id"], s["discovery"]["ic"]["mean"], s["holdout"]["ic"]["mean"],
@@ -66,6 +66,36 @@ def main() -> None:
     sig_h = sum(1 for r in rows if r[4]["p"] < 0.05)
     print(f"p < 0.05 against the baseline: {sig_d} in discovery, {sig_h} held out "
           f"(expected by chance alone: {0.05 * n:.1f} each)")
+
+    # 4. the period before the sample (registered before it was built)
+    pre = [(e["id"], latest[e["id"]]["summary"]) for e in reg
+           if e["id"] in latest and "presample" in latest[e["id"]]["summary"] and not e.get("void")]
+    if not pre:
+        return
+    base = dict(pre).get("baseline")
+    if base:
+        b = base["presample"]
+        print(f"\n2012-2019: baseline IC {b['ic']['mean']:+.4f} (t {b['ic']['t']}, n {b['ic']['n']}); "
+              f"top tenth minus universe {b['top_minus_universe']['mean'] * 100:+.2f}% a month "
+              f"(t {b['top_minus_universe']['t']}); 2020-2026 IC {base['all']['ic']['mean']:+.4f}")
+    rows2 = [(i, s) for i, s in pre if "ic_vs_baseline" in s["presample"]]
+    m = len(rows2)
+    print(f"\n{'experiment':34} {'IC 12-19':>9} {'t':>6} {'d 12-19':>8} {'t':>6} {'d 20-26':>8} {'t':>6}")
+    for i, s in sorted(rows2, key=lambda x: -x[1]["presample"]["ic_vs_baseline"]["mean"]):
+        d, a2 = s["presample"]["ic_vs_baseline"], s["all"]["ic_vs_baseline"]
+        print(f"{i:34} {s['presample']['ic']['mean']:+9.4f} {s['presample']['ic']['t']:+6.2f} "
+              f"{d['mean']:+8.4f} {d['t']:+6.2f} {a2['mean']:+8.4f} {a2['t']:+6.2f}")
+    agree2 = sum(1 for _, s in rows2 if math.copysign(1, s["presample"]["ic_vs_baseline"]["mean"])
+                 == math.copysign(1, s["all"]["ic_vs_baseline"]["mean"]))
+    sig2 = sum(1 for _, s in rows2 if s["presample"]["ic_vs_baseline"]["p"] < 0.05)
+    bar2 = sum(1 for _, s in rows2 if s["presample"]["ic_vs_baseline"]["p"] < 0.05 / m
+               and abs(s["presample"]["ic_vs_baseline"]["t"]) >= 3)
+    ses2 = sorted(s["presample"]["ic_vs_baseline"]["se"] for _, s in rows2)
+    print(f"\n2012-2019 vs 2020-2026 differences agree in sign for {agree2} of {m} (chance {m / 2:.1f}); "
+          f"p < 0.05 for {sig2} (chance {0.05 * m:.1f}); past the engine's bar: {bar2}")
+    med2 = ses2[len(ses2) // 2]
+    print(f"2012-2019 paired SE median {med2:.4f}: detectable at the engine's bar (80% power) "
+          f"{(max(_z_two_sided(0.05 / m), 3.0) + 0.84) * med2:.4f}")
 
 
 def _z_two_sided(alpha: float) -> float:

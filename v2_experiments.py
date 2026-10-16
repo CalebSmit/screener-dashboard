@@ -125,6 +125,11 @@ def config_hash(cfg: dict, tr: dict) -> str:
 def load_months() -> dict[str, tuple[pd.DataFrame, dict]]:
     out = {}
     for p in sorted(v2.METRICS_DIR.glob("*.parquet")):
+        try:
+            if not pd.Timestamp(p.stem).is_month_end:
+                continue                                # only month-ends are months
+        except ValueError:
+            continue
         df = pd.read_parquet(p)
         state = {"state": df["_month_state"].iloc[0] if "_month_state" in df and len(df) else "UNKNOWN"}
         out[p.stem] = (df.drop(columns=["_month_state"], errors="ignore"), state)
@@ -340,6 +345,9 @@ def report() -> Path:
              f"weighting on the same months. {n} experiments registered, {runs} runs in the ledger; the",
              f"multiple-testing bar is p < 0.05 / {n} = {0.05 / max(n, 1):.4f} and |t| >= {HLZ_T}.", "",
              "**Not decision-grade** (CLAUDE.md rule 5): " + " ".join(br.CAVEATS[:2]), "",
+             "**2012-2019 carries heavier survivorship** - 58% of members present in 2012, 78% in 2019 "
+             "(`cache/v2_census_presample.json`); read `research/2026-10-15-research-engine-first-batch.md` "
+             "section 4 before any number in the last three columns.", "",
              ("Data: every row below ran on the same monthly records (" + vintages[0] + ")." if len(vintages) == 1
               else "**Data: the rows below ran on more than one version of the monthly records ("
                    + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
