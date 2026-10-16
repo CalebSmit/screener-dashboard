@@ -82,26 +82,15 @@ def _find_latest_run() -> Path:
 
     Uses the start_time field inside meta.json (not filesystem mtime)
     to avoid issues with OneDrive or other sync tools touching files.
+    The rule lives in ``run_context.latest_run_dir`` and is shared with
+    ``scripts/check_run_health.py``, so the data loop's health gate judges the
+    same run this generator then publishes (2026-10-16).
     """
-    runs_dir = ROOT / "runs"
-    candidates = []
-    for d in runs_dir.iterdir():
-        if d.is_dir() and not d.name.startswith("test"):
-            meta = d / "meta.json"
-            if meta.exists():
-                candidates.append(d)
-    if not candidates:
+    from run_context import latest_run_dir
+    found = latest_run_dir(ROOT / "runs")
+    if found is None:
         raise FileNotFoundError("No valid run directories found in runs/")
-
-    def _run_start_time(d: Path) -> str:
-        try:
-            with open(d / "meta.json") as f:
-                return json.load(f).get("start_time", "")
-        except (OSError, json.JSONDecodeError, KeyError):
-            return ""
-
-    candidates.sort(key=_run_start_time, reverse=True)
-    return candidates[0]
+    return found
 
 
 # ---------------------------------------------------------------------------

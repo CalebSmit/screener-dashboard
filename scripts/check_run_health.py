@@ -41,6 +41,8 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))   # run_context, history, factor_engine live at the root
 RUNS_DIR = ROOT / "runs"
 DISPERSION_HISTORY = ROOT / "improvement" / "dispersion_history.csv"
 
@@ -83,15 +85,17 @@ class Result:
 
 
 def latest_run_dir() -> Path | None:
-    if not RUNS_DIR.exists():
-        return None
-    candidates = [
-        d for d in RUNS_DIR.iterdir()
-        if d.is_dir() and (d / "meta.json").exists() and not d.name.startswith("test_")
-    ]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda d: d.stat().st_mtime)
+    """The run this gate judges: ``run_context.latest_run_dir``, keyed on ``meta.json``
+    ``start_time``.
+
+    Until 2026-10-16 this picked the newest folder by **filesystem mtime** while
+    ``generate_dashboard._find_latest_run`` - the generator ``data-run.ps1`` runs straight after
+    this gate - picked by ``start_time``. OneDrive rewrites folder mtimes when it syncs, so the
+    two could name different runs: the gate approving one and the generator publishing another.
+    One function now answers for both.
+    """
+    from run_context import latest_run_dir as _shared
+    return _shared(RUNS_DIR)
 
 
 def check_fetch_happened(run_dir: Path, res: Result) -> None:
