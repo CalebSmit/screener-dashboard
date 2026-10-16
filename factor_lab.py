@@ -112,8 +112,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo).
-ASSET_VERSION = 19
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment).
+ASSET_VERSION = 20
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
