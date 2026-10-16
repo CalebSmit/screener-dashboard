@@ -81,6 +81,34 @@ def membership(force: bool) -> None:
         time.sleep(0.5)
 
 
+def month_ciks(force: bool) -> None:
+    """Every cached month's own CIK column (added the same night for 2020-2026, whose membership was
+    cached before CIKs were kept per month): the cached revision is fetched again by its id, so the
+    membership itself is untouched."""
+    cache = uh.load_cache()
+    by_month = json.loads(BY_MONTH.read_text(encoding="utf-8")) if BY_MONTH.exists() else {}
+    session = uh._session()
+    todo = [d for d in sorted(cache) if force or d not in by_month]
+    print(f"per-month CIKs: {len(todo)} months to fetch", flush=True)
+    for i, as_of in enumerate(todo, 1):
+        revid = cache[as_of].revid
+        for attempt in range(3):
+            try:
+                html = uh.fetch_revision_html(revid, session=session)
+                break
+            except Exception as exc:  # noqa: BLE001
+                print(f"  retry {as_of}: {exc}", flush=True)
+                time.sleep(5 * (attempt + 1))
+        else:
+            raise SystemExit(f"could not fetch {as_of}")
+        ciks = uh.parse_ticker_ciks(html)
+        by_month[as_of] = {"revid": revid, "ciks": dict(sorted(ciks.items()))}
+        print(f"  [{i}/{len(todo)}] {as_of}: {len(ciks)} CIKs", flush=True)
+        if i % 6 == 0 or i == len(todo):
+            BY_MONTH.write_text(json.dumps(dict(sorted(by_month.items())), indent=1), encoding="utf-8")
+        time.sleep(0.5)
+
+
 def _download(symbols: list[str], start: str) -> pd.DataFrame:
     import yfinance as yf
     frames = []
@@ -126,12 +154,14 @@ def prices(force: bool) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true")
-    ap.add_argument("--only", choices=["membership", "prices"], default=None)
+    ap.add_argument("--only", choices=["membership", "prices", "ciks"], default=None)
     a = ap.parse_args()
     if a.only in (None, "membership"):
         membership(a.force)
     if a.only in (None, "prices"):
         prices(a.force)
+    if a.only in (None, "ciks"):
+        month_ciks(a.force)
     return 0
 
 

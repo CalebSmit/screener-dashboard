@@ -57,6 +57,7 @@ FRENCH_FILES = {
     "beta_portfolios": ("Portfolios_Formed_on_BETA_CSV.zip", "Value Weighted Returns -- Monthly"),
     "profitability_portfolios": ("Portfolios_Formed_on_OP_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "cash_flow_yield_portfolios": ("Portfolios_Formed_on_CF-P_CSV.zip", "Value Weight Returns -- Monthly"),
+    "accruals_portfolios": ("Portfolios_Formed_on_AC_CSV.zip", "Value Weighted Returns -- Monthly"),
     "split_value": ("6_Portfolios_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
@@ -94,6 +95,11 @@ SORTS = {
     # the file's last ten columns are the deciles; the first is companies with negative cash flow
     "cash-flow-yield": {"file": "cash_flow_yield_portfolios", "ew": "Equal Weight Returns -- Monthly",
                         "columns": [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]},
+    # the file's last ten columns are the deciles, lowest accruals first; listed here highest first,
+    # so the last group is the low-accrual end the paper buys and the screener favours, and the
+    # spread (last minus first) is the paper's hedge return
+    "accruals": {"file": "accruals_portfolios", "ew": "Equal Weighted Returns -- Monthly",
+                 "columns": [14, 13, 12, 11, 10, 9, 8, 7, 6, 5]},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -106,8 +112,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh.
-ASSET_VERSION = 17
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth.
+ASSET_VERSION = 18
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1589,6 +1595,101 @@ EXPERIMENTS = [
             "spending from operating cash flow, and it divides by the value of the whole business "
             "(enterprise value), not of the shares alone. It is also compared within each sector."),
     },
+    {
+        "id": "accruals",
+        "kind": "sort",
+        "topic": "Quality",
+        "title": "Do companies whose earnings are mostly accruals do worse?",
+        "tab": "Accruals",
+        "paper": {
+            "authors": "Richard G. Sloan",
+            "year": 1996,
+            "title": "Do stock prices fully reflect information in accruals and cash flows about future earnings?",
+            "journal": "The Accounting Review 71(3), 289-315",
+            # no DOI exists for this article; JSTOR's stable address is its permanent reference
+            "url": "https://www.jstor.org/stable/248290",
+        },
+        "claim": ("Earnings made of accruals - working capital building up on the balance sheet rather than "
+                  "cash coming in - persist less than earnings backed by cash, and the market does not seem "
+                  "to notice. Sorting NYSE and AMEX companies each year into ten groups by accruals, the "
+                  "lowest-accrual group beat the highest by 10.4% in the following year, size-adjusted, "
+                  "over 1962-1991."),
+        "reference": {
+            "source": ("Table 6, first column: time-series means of equal-weighted, size-adjusted returns held "
+                       "through the year after formation, 40,679 firm-years 1962-1991 (lowest decile +4.9%, "
+                       "t 2.65; highest -5.5%, t -3.98; hedge 10.4%, t 4.71). Read from the published "
+                       "article; its text layer carries only the two end rows, so the eight middle rows were "
+                       "read from the rendered page. Its returns are size-adjusted, so each decile is compared "
+                       "against the average of the ten (0.11% a year in the paper), in percent a year."),
+            "start": "196307", "end": "199206", "weighting": "ew", "relative": True, "scale": 12,
+            # The order these were written in, because it matters: the two ends and the spread, with
+            # their tolerances, were written BEFORE any comparison, when only the end rows of the table
+            # had been read (its text layer lacked the rest), and were then compared - 1 of 3 within.
+            # The full table was then read from the rendered page. The ends' paper values were
+            # corrected from "against zero" to "against the paper's own ten-decile average" (0.11%),
+            # which moved neither verdict; their 3.0 tolerances were kept as written, neither widened
+            # nor narrowed. The eight middle deciles were added with experiment 11's 2.0, written
+            # before THEY were compared.
+            "figures": [
+                {"key": "mean10", "label": "Lowest accruals, against the average (% a year)", "paper": 4.79, "tolerance": 3.0, "where": "Table 6, size-adjusted, year t+1, lowest decile (0.049) less the ten-decile average (0.0011)"},
+                {"key": "mean9", "label": "Decile 2, against the average (% a year)", "paper": 2.69, "tolerance": 2.0, "where": "Table 6, decile 2 (0.028)"},
+                {"key": "mean8", "label": "Decile 3, against the average (% a year)", "paper": 2.29, "tolerance": 2.0, "where": "Table 6, decile 3 (0.024)"},
+                {"key": "mean7", "label": "Decile 4, against the average (% a year)", "paper": 1.09, "tolerance": 2.0, "where": "Table 6, decile 4 (0.012)"},
+                {"key": "mean6", "label": "Decile 5, against the average (% a year)", "paper": -0.01, "tolerance": 2.0, "where": "Table 6, decile 5 (0.001)"},
+                {"key": "mean5", "label": "Decile 6, against the average (% a year)", "paper": 0.89, "tolerance": 2.0, "where": "Table 6, decile 6 (0.010)"},
+                {"key": "mean4", "label": "Decile 7, against the average (% a year)", "paper": -0.31, "tolerance": 2.0, "where": "Table 6, decile 7 (-0.002)"},
+                {"key": "mean3", "label": "Decile 8, against the average (% a year)", "paper": -2.21, "tolerance": 2.0, "where": "Table 6, decile 8 (-0.021)"},
+                {"key": "mean2", "label": "Decile 9, against the average (% a year)", "paper": -3.61, "tolerance": 2.0, "where": "Table 6, decile 9 (-0.035)"},
+                {"key": "mean1", "label": "Highest accruals, against the average (% a year)", "paper": -5.61, "tolerance": 3.0, "where": "Table 6, highest decile (-0.055) less the ten-decile average"},
+                {"key": "spread", "label": "Lowest accruals minus highest (% a year)", "paper": 10.4, "tolerance": 4.0, "where": "Table 6, size-adjusted, year t+1, hedge portfolio (0.104)"},
+            ],
+        },
+        "verdict_note": ("Six of eleven figures within tolerance. The direction reproduces - low accruals beat "
+                         "high in the paper's years, t 4.7 - but the library's gradient is flatter: the spread "
+                         "is half the paper's and the deciles next to the ends miss, as expected beforehand from "
+                         "a weaker measure of accruals (no depreciation term, scaled by book equity rather than "
+                         "assets). Published as a miss; the tolerances stay as written."),
+        "sort": {
+            "data": "accruals",
+            "groups": ["Highest accruals", "Decile 9", "Decile 8", "Decile 7", "Decile 6", "Decile 5", "Decile 4", "Decile 3", "Decile 2", "Lowest accruals"],
+            "ends": ["highest accruals", "lowest"],
+            "low": "group with the highest accruals", "high": "group with the lowest",
+            "spread": "Lowest accruals minus highest",
+            "accent": [9],
+            "key_accent": "The lowest accruals - the end the screener's Quality category favours",
+            "key_rest": "The other nine groups",
+            "chart": "by accruals, highest first",
+            "presets": [["The paper \u00b7 1963\u20131992", "196307", "199206"],
+                        ["After the paper \u00b7 1992\u2013now", "199207", "LAST"],
+                        ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["ew", "Equally \u00b7 paper"], ["vw", "By market value"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, companies are put in one of ten groups by accruals - the change in "
+                           "operating working capital per share over the last fiscal year, divided by book "
+                           "equity per share - with the dividing lines drawn on New York Stock Exchange stocks."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Accruals\"."],
+            ["Weighting", "Equal-weighted, as in the paper. The value-weighted version is one click away."],
+            ["Returns", "The comparison with the paper sets each end against the average of the ten, "
+                        "because the paper's returns are size-adjusted; the chart shows total returns."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper measures accruals as the change in non-cash current assets less the change in "
+            "current liabilities (excluding short-term debt and taxes payable) less depreciation, over "
+            "average total assets; the library uses the change in operating working capital over book "
+            "equity, with no depreciation term.",
+            "The paper holds each group for a year from four months after the fiscal year end and "
+            "adjusts for size; the public file reports raw monthly returns of groups formed each June.",
+            "The table's middle rows are not in the published PDF's text layer and were read from the "
+            "rendered page; the two ends and the spread were compared before they were read (the "
+            "tolerances' comment in the source records the order).",
+        ],
+        "in_the_screener": (
+            "Accruals are 5% of the Quality category, scored lower-is-better, as Sloan's result implies; "
+            "the screener's measure is net income less operating cash flow over total assets, and it is "
+            "compared within each sector."),
+    },
 ]
 
 
@@ -1623,6 +1724,9 @@ TAKEAWAYS = {
                       "month on the public sort, against the paper's 0.31% - every figure within its "
                       "tolerance. Since the paper the gap has been about as large but cannot be told "
                       "from zero, and the profitable end has been the calmer one."),
+    "accruals": ("Low-accrual companies beat high-accrual ones in the paper's years, by about half the "
+                 "paper's margin on the library's measure. Since then the gap has narrowed: weighted by "
+                 "market value it is 0.09% a month since 2007, not distinguishable from zero."),
     "cash-flow-yield": ("High cash-flow yields beat low ones in the paper's sample, and equally weighted they "
                         "still have since. Weighted by market value - where large companies count most - "
                         "the gap has been about zero since 1990 and below zero since 2007, though not "
@@ -1644,13 +1748,12 @@ CATEGORY_MAP = [
      "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
             "the value of the whole business, compared within sectors. The public sorts use cash flow "
             "before capital spending against the shares alone, across the whole market."},
-    {"category": "Quality", "key": "quality", "experiments": ["profitability", "five-factors", "big-and-small"],
-     "has": "Stocks sorted by profitability, and the profitability factor - robustly profitable "
-            "companies minus weakly profitable ones.",
+    {"category": "Quality", "key": "quality", "experiments": ["profitability", "accruals", "five-factors", "big-and-small"],
+     "has": "Stocks sorted by profitability and by accruals, and the profitability factor - robustly "
+            "profitable companies minus weakly profitable ones.",
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
             "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
-            "year by year, for decades. The library's portfolios sorted on accruals can stand in for part "
-            "of that, and are queued."},
+            "year by year, for decades; the accruals sort covers one of Beneish's eight inputs."},
     {"category": "Growth", "key": "growth", "experiments": [],
      "has": "Nothing yet.",
      "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
@@ -1826,7 +1929,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1), ("cash-flow-yield", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]

@@ -147,7 +147,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -156,7 +156,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
 
 def test_every_experiment_shows_its_four_parts():
     for exp in fl.EXPERIMENTS:
-        assert len(exp["claim"]) > 80 and exp["paper"]["doi"] and exp["paper"]["year"]
+        assert len(exp["claim"]) > 80 and (exp["paper"].get("doi") or exp["paper"].get("url", "").startswith("https://")) and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
         if exp["kind"] in ("crashes", "factors", "size", "sort", "split"):
@@ -1151,4 +1151,16 @@ def test_the_cash_flow_yield_sort_is_compared_as_the_paper_reports_it(published)
     rows = {x["key"]: x for x in r["rows"]}
     assert sum(rows[f"mean{g}"]["here"] for g in range(1, 11)) == pytest.approx(0.0, abs=1e-6)
     assert rows["mean10"]["here"] > rows["mean1"]["here"] and rows["spread"]["here"] > 0
+
+
+def test_the_accruals_sort_is_published_as_the_miss_it_is(published):
+    """Experiment 12 (2026-10-15): Sloan (1996), Table 6. The ends and spread were compared before the
+    middle rows were read from the rendered page (the source records the order); 6 of 11 within. The
+    deciles are listed highest accruals first, so the spread is the paper's hedge."""
+    exp = next(x for x in published["experiments"] if x["id"] == "accruals")
+    assert exp["paper"]["url"] == "https://www.jstor.org/stable/248290" and not exp["paper"].get("doi")
+    r = exp["result"]
+    assert (r["within"], r["total"]) == (6, 11)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert rows["spread"]["here"] > 0 and rows["spread"]["here"] < rows["spread"]["paper"] - 4.0
 

@@ -196,8 +196,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=17"></script>
-<script src="lab_engine.js?v=17"></script>
+<script src="lab_data.js?v=18"></script>
+<script src="lab_engine.js?v=18"></script>
 <script>
 (function () {
     'use strict';
@@ -224,7 +224,7 @@ footer p { margin: 0 0 8px; }
         return `<section>
             <div class="eyebrow">Experiment ${n} · ${esc(X.topic)}</div>
             <h2 id="x-title">${esc(X.title)}</h2>
-            <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. <a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a></p>
+            <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. ${X.paper.doi ? `<a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a>` : `<a href="${esc(X.paper.url)}" rel="noopener">${esc(X.paper.url.replace(/^https?:\/\//, ""))}</a>`}</p>
             <h3 style="margin-top:22px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
             <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''}</span><a href="#x-against">See every figure</a></div>

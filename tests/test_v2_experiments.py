@@ -218,3 +218,15 @@ def test_every_verdict_says_how_small_a_difference_it_could_see():
     assert X.detectable(0.01, 1000) > X.detectable(0.01, 1)                           # Bonferroni binds
     assert X.detectable(None, 27) is None
     assert "; sees 0.0" in X._vs_cell({"mean": 0.001, "t": 0.1, "se": 0.01}, 27)
+
+
+def test_the_statistics_say_when_months_are_not_independent():
+    """Queue item 3 (2026-10-15): beside each plain t, the lag-1 autocorrelation and a Newey-West t."""
+    rng = np.random.default_rng(3)
+    iid = pd.Series(rng.normal(0.01, 0.1, 400))
+    s = X._stats(iid)
+    assert abs(s["ac1"]) < 0.15 and s["t_nw"] == pytest.approx(s["t"], rel=0.25)
+    e = rng.normal(0, 0.1, 401)
+    ar = pd.Series(0.01 + e[1:] + 0.9 * e[:-1])                       # strongly dependent months
+    s2 = X._stats(ar)
+    assert s2["ac1"] > 0.3 and abs(s2["t_nw"]) < abs(s2["t"])           # the honest t is smaller

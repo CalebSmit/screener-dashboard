@@ -48,12 +48,19 @@ Revisions and forward EPS growth have no free history and carry no weight here.
   listed under an old one - FB (META), ANTM (ELV), BK (BNY), ABC (COR), BLL (BALL) - was counted as
   having left the index. The SEC registrant number (CIK) survives a rename: **635 member-months**
   recovered in 2020-2026, **2,332** in 2012-2019. Meta's 2022 fall is now in the record.
-- **A reused symbol scored as the wrong company.** In 2012-2019 a symbol can have belonged to another
-  company: IR was Ingersoll-Rand plc (today TT), JCI's filings today are Tyco's, Q and SNDK are new
-  companies. Where that month's revision lists a CIK (from mid-2014), a mismatch is now found under
-  the company's current symbol or counted (`symbol_reused`, ~9 a month). This also excludes some
-  holding-company reorganisations (Disney 2019, Cigna 2018, Medtronic 2015) - conservative by
-  choice: a test that must be trusted never scores today's company in an older one's place.
+- **A reused symbol scored as the wrong company.** A symbol can have belonged to another company:
+  IR was Ingersoll-Rand plc until 2020 (today TT), JCI's filings today are Tyco's, CB's are ACE's.
+  Each month's revision lists the registrant (CIK) from mid-2014 on, and a mismatch with today's is
+  resolved three ways: the then-company is found under its current symbol (IR -> TT, 70 months; Q ->
+  IQV); or, where today's filer under the symbol was *itself another member that month* (Tyco as
+  TYC, ACE as ACE), the symbol is counted and never scored with that other member's data (JCI 28
+  months, CB 20); otherwise the symbol stands and its own filings decide - a holding-company
+  reorganisation (Exxon, Disney, Cigna, BlackRock) has no filings before its new registrant existed,
+  and Wikipedia's CIK column was simply stale for Fox, Xerox and others in early 2020. *(A first,
+  stricter version excluded every mismatch, and the first 2012-2019 results were read on it. It was
+  replaced the same night - the stale-CIK months excluded companies whose filings were valid - and
+  every experiment rerun on the corrected records; both sets of runs are in the ledger, and the
+  figures below are from the rerun.)*
 
 And one in the tests themselves: two `build_month` tests wrote a synthetic one-stock "month"
 (2024-06-28) into the real metrics cache. It never reached a result - a month under 50 stocks is
@@ -61,8 +68,8 @@ skipped - but the engine now reads month-ends only and the tests write to a temp
 
 ## 3. Results on 2020-2026 (80 months, corrected records)
 
-The baseline's IC (rank correlation of the composite with next month's return) is **-0.00001**
-(+/- 0.027, t 0.00) - the same as before the rename fix (-0.001), so that reading is robust. Of 26
+The baseline's IC (rank correlation of the composite with next month's return) is **-0.00003**
+(+/- 0.027, t 0.00) - the same as before the rename and reuse fixes (-0.001), so that reading is robust. Of 26
 alternatives, **none differs from the baseline** in both discovery and held-out months; discovery
 and held-out differences agree in sign for **12 of 26** (chance: 13); one held-out comparison has p
 < 0.05 against 1.3 expected by chance (orthogonalised categories, t 2.39 held out, 0.74 in
@@ -86,22 +93,22 @@ rule, fixed in advance: an experiment is confirmed only if its 2012-2019 differe
 |---|---|---|
 | Baseline IC, 2012-2019 | positive, below 0.03, not distinguishable from zero | **-0.003 (t -0.28)** - not distinguishable; the sign was wrong |
 | Experiments confirmed | none | **none** |
-| Momentum screens, best held out in 2020-2026 | not better in 2012-2019 | the two momentum-only screens +0.005 and +0.007 above the baseline (t <= 0.53); value-and-momentum -0.002 - not better |
-| p < 0.05 by chance | ~1.3 expected | **1** (dropping Size, t -2.64) |
+| Momentum screens, best held out in 2020-2026 | not better in 2012-2019 | the two momentum-only screens +0.004 and +0.007 above the baseline (t <= 0.50); value-and-momentum -0.003 - not better |
+| p < 0.05 by chance | ~1.3 expected | **1** (dropping Size, t -2.71) |
 
-Sign agreement between the two eras' differences is 18 of 26, against 13 by chance - but the
+Sign agreement between the two eras' differences is 17 of 26, against 13 by chance - but the
 experiments overlap heavily (dropping a category and keeping only it are two views of one thing), so
 the 26 are far from independent and this is not evidence of a consistent effect.
 
 **The one number that looks like something is survivorship.** Size alone (favouring the smaller
-members) has the highest 2012-2019 IC: +0.025, t 2.99 by itself, +0.028 over the baseline (t 1.93,
-not significant). v2 scores only the members still in the index today; in 2012 that is 58% of them.
+members) has the highest 2012-2019 IC: +0.026, t 3.04 by itself, +0.028 over the baseline (t 1.95,
+not significant - the rule judges the difference from the baseline, not the level). v2 scores only the members still in the index today; in 2012 that is 58% of them.
 The small 2012 members that are still there are disproportionately the ones that did well - a
 small company that shrank fell out of the index and out of the data. If that is what Size is
 picking up, its IC should be largest where coverage is thinnest. Stated before measuring, then
 measured (`2026-10-15-size-survivorship.py`): Size's IC is **+0.033** in the lowest-coverage third
 of months (61% present), **+0.019** in the middle, **-0.004** in the highest (90%); correlation with
-coverage -0.17 (t -2.26). The baseline's IC shows no such relation (-0.02, t -0.24). Coverage also
+coverage -0.17 (t -2.27). The baseline's IC shows no such relation (-0.02, t -0.26). Coverage also
 rises with time, so the two are entangled, but the direction is the one survivorship predicts and
 the Size number should be read as an artefact until a survivorship-free source says otherwise.
 
@@ -157,9 +164,9 @@ What the batches do say, as research questions rather than findings:
    a beta-*neutral* construction; a long-only low-risk screen carries the market-beta bet). **The
    page already claims the defensible thing** - that higher volatility "has not been paid for", not
    that low volatility earns more - and the ledger shows Risk doing that job: the top tenth's monthly
-   volatility is **3.31% with Risk and 3.51% without it** (2012-2019) and **4.79% against 5.19%**
+   volatility is **3.31% with Risk and 3.50% without it** (2012-2019) and **4.79% against 5.19%**
    (2020-2026), while its return cost is small, never significant, and of opposite sign in the two
-   eras (+0.06 and -0.22 points a month). A smoother ride at no measurable cost is what the page
+   eras (+0.05 and -0.22 points a month). A smoother ride at no measurable cost is what the page
    says Risk is for. No change.
 4. **Survivorship is now the binding limit**, not look-ahead. At 58% coverage in 2012 the period
    before the sample is less reliable than the one it tests. The $199/yr delisted-price feed deferred
@@ -189,8 +196,8 @@ that can be built honestly on free data.
   (size, momentum) - that is the forking path the rules exist to prevent.
 - **Monday candidate:** whether the momentum screens' 2020-2026 lead and 2012-2019 flatness match
   the published large-company momentum record (the Lab, experiment 8). Risk's role is answered (point 3).
-- **Data:** CIKs for 2020-2026 months (the guard currently applies to 2014-2019 only - two IR months
-  in early 2020 are the one known case it would catch); and the survivorship decision above.
+- **Data:** the survivorship decision above. (The 2020-2026 CIKs were fetched and both eras rebuilt
+  the same night - section 2.)
 
 ## 9. The trading bot's own rule, on the same history (evaluation, registered before it ran)
 
@@ -204,9 +211,9 @@ filings-and-prices ranking without the analyst inputs.
 
 | Period | Return a month | Excess over the equal-weighted universe (t) | vs S&P 500 total return (t) | Turnover a year | Max drawdown (universe) |
 |---|---|---|---|---|---|
-| 2020-01..2023-06 | +0.51% | **-0.72% (-2.70)** | -0.64% (-1.82) | 174% | -20.3% (-19.6%) |
-| 2023-07..2026-08 | +0.91% | -0.22% (-0.54) | -0.62% (-1.23) | 134% | -7.6% (-8.4%) |
-| 2012-2019 | +1.18% | -0.15% (-1.08) | +0.01% (0.07) | 142% | -14.6% (-12.2%) |
+| 2020-01..2023-06 | +0.51% | **-0.73% (-2.72)** | -0.64% (-1.83) | 174% | -20.3% (-19.6%) |
+| 2023-07..2026-08 | +0.91% | -0.22% (-0.55) | -0.62% (-1.23) | 134% | -7.6% (-8.4%) |
+| 2012-2019 | +1.18% | -0.14% (-1.02) | +0.02% (0.12) | 142% | -14.6% (-12.2%) |
 
 **Against the prediction:** wrong on the first period - the shortfall there is outside the +-0.3% a
 month predicted and past |t| 2 - and on turnover (174% against a predicted ceiling of 150%); right
@@ -229,4 +236,15 @@ backtest: strategy changes come from research, are logged in its `STRATEGY_LOG.m
 time), and the live ranking carries the analyst inputs v2 cannot test. It is the expectation to set
 before anyone is shown the bot's paper record, and the reason that record should always be shown
 next to RSP.
+
+## 10. Are the months independent? (queue item 3, same night)
+
+Every t above assumes each month is a fresh observation. The engine now records, beside each plain t,
+the lag-1 autocorrelation of the series it tests and a Newey-West t (3 lags, Bartlett kernel), and
+keeps each run's monthly series in the ledger so the check never needs a rerun. Over the 81 series
+compared: median lag-1 autocorrelation **+0.002** (range -0.28 to +0.36). Where it is material it is
+mostly *negative*, which makes the honest t slightly *larger*: dropping Size, held out, goes from t
+1.30 to 2.11 (its discovery difference has the other sign, so it is still "not confirmed"). **No
+Newey-West t reaches 3**, so no verdict changes. Figures in sections 3, 4 and 9 are from the rerun on
+the corrected records (data version `d8cb038fff2b`); the earlier runs stay in the ledger.
 

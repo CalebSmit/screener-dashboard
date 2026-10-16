@@ -11668,3 +11668,22 @@ run against each other - so it can be shown to people and trusted (a bot first, 
   No bot change. Note section 9.
 - Survivorship is now v2's binding limit; the deferred delisted-price feed has a concrete use.
 
+## 2026-10-15 (owner-run, late) - the engine's queue worked: CIKs per month, the reuse rule refined, independence checked, lab experiment 12
+
+**Health:** unchanged from the entry above (written the same evening).
+
+### Did
+- **Queue items 1-3 of `plan/research-engine.md` done.** Every month from 2014 now has its revision's own
+  CIKs. The first reuse guard (exclude every mismatch) had false positives - Wikipedia's CIK column was
+  stale for Cigna, Disney, Fox and Xerox in early 2020 - so it was refined: a mismatch is excluded only
+  when today's filer under the symbol was *another member* that month (JCI/Tyco 28 months, CB/ACE 20);
+  IR -> TT is a rename. Both eras rebuilt (2012-2019: 31,919 member-months scored, +151; reused 48
+  instead of 817) and **every experiment and the bot evaluation rerun - no verdict changed**; IC
+  2020-2026 -0.00003. The first 2012-2019 results were read on the stricter rule; the note says so.
+- **Every comparison now prints what it could see** (`; sees` in `RESULTS.md`) and records a lag-1
+  autocorrelation and Newey-West t; median autocorrelation +0.002, no Newey-West t reaches 3. Each
+  run's monthly series is kept in the ledger.
+- **Lab experiment 12, Sloan (1996) accruals: 6 of 11 within**; the direction reproduces at half the
+  paper's spread. The PDF's text layer lacked the middle rows; they were read from the rendered page
+  after the ends had been compared, and the record says so. Twelve experiments, 104 of 152 within.
+

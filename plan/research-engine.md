@@ -37,7 +37,8 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
 
 ## Queue (in order)
 
-1. **Per-month CIKs for 2020-2026** (`ticker_ciks.json` has the revids): fetch each revision's CIK
+1. **DONE 2026-10-15 - and the guard refined** (note section 2: a mismatch is excluded only when today's
+   filer was another member that month). Kept for the record: **Per-month CIKs for 2020-2026** (`ticker_ciks.json` has the revids): fetch each revision's CIK
    column into `ciks_by_month.json`, rebuild 2020-2026 (`python backtest_v2.py --shard k/4`, then
    `--merge 4`), rerun every experiment. The reuse guard covers 2014-2019 only today; IR in
    2020-01/02 is the known case it would catch. Expect no change in any verdict - which is the point
@@ -46,7 +47,8 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `v2_experiments.detectable`).** Kept for the record: Add a column to `RESULTS.md`: the smallest IC difference
    each comparison could detect at the bar (from its own paired standard error). A reader should not
    be able to read "not distinguishable" without seeing what that excludes.
-3. **Robustness of the statistics.** The t-statistics assume months are independent. Measure the
+3. **DONE 2026-10-15 (note section 10): median lag-1 autocorrelation +0.002; no Newey-West t reaches
+   3; `t_nw` and `ac1` are recorded on every run.** Kept for the record: The t-statistics assume months are independent. Measure the
    autocorrelation of the paired IC differences; if any lag-1 exceeds ~0.2, report Newey-West
    t-statistics beside the plain ones. A block bootstrap of the baseline's IC is the cross-check.
 4. **DONE 2026-10-15 (note section 9): the bot's rule lagged the equal-weighted universe in every

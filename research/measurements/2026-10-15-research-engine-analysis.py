@@ -98,6 +98,30 @@ def main() -> None:
           f"{(max(_z_two_sided(0.05 / m), 3.0) + 0.84) * med2:.4f}")
 
 
+def dependence(reg: list, latest: dict) -> None:
+    """5. Are the months independent? Lag-1 autocorrelation of each paired difference, and how far
+    the Newey-West t moves from the plain one (recorded by the engine from 2026-10-15, evening)."""
+    rows = []
+    for e in reg:
+        r = latest.get(e["id"])
+        if not r or e.get("void"):
+            continue
+        for p in ("holdout", "presample", "all"):
+            d = r["summary"].get(p, {}).get("ic_vs_baseline") or r["summary"].get(p, {}).get("ic")
+            if d and "ac1" in d:
+                rows.append((e["id"], p, d["ac1"], d["t"], d["t_nw"]))
+    if not rows:
+        print("\n(no dependence statistics in this ledger yet)")
+        return
+    ac = [x[2] for x in rows]
+    moved = [x for x in rows if abs(x[3]) > 0.5 and abs(x[4] - x[3]) / abs(x[3]) > 0.2]
+    print(f"\nlag-1 autocorrelation of the compared series: median {sorted(ac)[len(ac) // 2]:+.3f}, "
+          f"range {min(ac):+.3f} .. {max(ac):+.3f} over {len(rows)} series")
+    print(f"Newey-West t differs from the plain t by more than 20% (where |t| > 0.5): {len(moved)}")
+    for x in sorted(moved, key=lambda x: -abs(x[3]))[:8]:
+        print(f"  {x[0]:32} {x[1]:9} ac1 {x[2]:+.2f}  t {x[3]:+.2f}  t_nw {x[4]:+.2f}")
+
+
 def _z_two_sided(alpha: float) -> float:
     """The normal quantile for a two-sided test at ``alpha``, by bisection on erfc."""
     lo, hi = 0.0, 10.0
@@ -112,3 +136,10 @@ def _z_two_sided(alpha: float) -> float:
 
 if __name__ == "__main__":
     main()
+    _reg = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["experiments"]
+    _latest = {}
+    for _line in LEDGER.read_text(encoding="utf-8").splitlines():
+        if _line.strip():
+            _r = json.loads(_line)
+            _latest[_r["id"]] = _r
+    dependence(_reg, _latest)
