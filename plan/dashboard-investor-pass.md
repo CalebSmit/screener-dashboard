@@ -77,6 +77,12 @@ statement, never louder than the primary action.
 - **Rank history**: the "±N ranks" band label moved from inside the plot (where it sat on the line) to the
   axis row between the two dates.
 
+## Phase 6 - DONE 2026-10-15 (owner-run)
+
+- Hero actions under the copy (the eye reads down the left edge); the guide tighter, "Hide" in its corner on
+  a wide screen. Checked but deliberately unchanged: My Holdings stays above What Changed
+  (`tests/test_holdings_panel.py::test_holdings_section_sits_above_what_changed` - a settled decision).
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
