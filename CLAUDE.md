@@ -927,7 +927,9 @@ engine** (`v2_experiments.py`; pre-registered in `research/experiments/registry.
 both eras, and the design can only see an IC difference of ~0.04-0.07**
 (`research/2026-10-15-research-engine-first-batch.md`). A new experiment is registered and committed
 **before** it runs, with a source and a prediction; a data fix reruns them all (the report flags mixed
-data versions); never register a variation of a near-miss. The two measurements, both reproducible from
+data versions); never register a variation of a near-miss. **The methodology page states the result** (claim
+`overview.research_engine`, read from `research/experiments/summary.json`, which `report` writes - commit it with
+the ledger). The two measurements, both reproducible from
 committed inputs:
 
 | Bias | Size, on the name-month panel | Source |

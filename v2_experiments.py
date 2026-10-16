@@ -58,6 +58,7 @@ EXP_DIR = ROOT / "research" / "experiments"
 REGISTRY = EXP_DIR / "registry.yaml"
 LEDGER = EXP_DIR / "ledger.jsonl"
 RESULTS = EXP_DIR / "RESULTS.md"
+SUMMARY = EXP_DIR / "summary.json"   # what the methodology page reads (it may not import this module)
 
 DISCOVERY = ("2020-01-31", "2023-06-30")
 HOLDOUT = ("2023-07-31", "2026-08-31")
@@ -567,6 +568,35 @@ def _evaluation_lines(latest: dict) -> list[str]:
     return lines
 
 
+def summary_for_page(reg: list, latest: dict) -> dict:
+    """The few numbers the public methodology page quotes, computed here once and published as
+    ``summary.json`` (2026-10-15): the baseline's mean monthly IC in each era, how many alternatives
+    were compared, and how many cleared the pre-registered bar (in both sample halves, or in
+    2012-2019 in the 2020-2026 direction). The page reads the file; it never re-derives a verdict."""
+    n = len([e for e in reg if e["transform"]["kind"] != "baseline"])
+    base = latest.get("baseline")
+    out = {"registered": n, "alternatives": 0, "better": 0, "worse": 0}
+    if not base:
+        return out
+    s = base["summary"]
+    out["data_hash"] = base.get("data_hash")
+    out["baseline_ic"] = {p: s[p]["ic"].get("mean") for p in ("presample", "all") if p in s}
+    out["months"] = {p: s[p]["ic"].get("n") for p in ("presample", "all") if p in s}
+    for e in reg:
+        r = latest.get(e["id"])
+        if not r or e["transform"]["kind"] == "baseline" or e.get("void") \
+                or r.get("data_hash") != base.get("data_hash"):
+            continue
+        out["alternatives"] += 1
+        v, vp = verdict(e, r, n), verdict_presample(e, r, n)
+        cleared = v.endswith("clears the multiple-testing bar") or vp.endswith("the same direction as 2020-2026")
+        if cleared and (v.startswith("better") or vp.startswith("better")):
+            out["better"] += 1
+        elif cleared:
+            out["worse"] += 1
+    return out
+
+
 def report() -> Path:
     reg = load_registry()
     latest = {}
@@ -613,6 +643,7 @@ def report() -> Path:
     lines += _evaluation_lines(latest)
     lines += [""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
+    SUMMARY.write_text(json.dumps(summary_for_page(reg, latest), indent=1) + "\n", encoding="utf-8")
     return RESULTS
 
 

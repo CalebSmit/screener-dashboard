@@ -11691,4 +11691,10 @@ run against each other - so it can be shown to people and trusted (a bot first, 
   from the screener's own recorded prices until they stopped (AVB, CTRA, EA, HOLX; price only, said on
   the page). Looked at 1440 and 375 in a preview (an escaped arrow caught and fixed there). Takes
   effect at the next data run; the top-25 basket had no unpriced names, so its headline is unaffected.
+- **The methodology page now says what the 176-month test found** (claim `overview.research_engine`,
+  in the data loop's claims gate): average monthly rank correlation -0.003 (2012-2019) and 0.000
+  (2020-2026), none of 26 pre-registered alternatives measurably better, "has not been shown to
+  predict returns". The page had shown the flattering 8-month live record without the long test; the
+  numbers come from `research/experiments/summary.json`, which the engine writes and a test ties to
+  the ledger. Appears at the next data run.
 

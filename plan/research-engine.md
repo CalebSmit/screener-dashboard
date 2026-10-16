@@ -35,6 +35,12 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    sample 2012-01..2019-12 (registered before it was built). Do not move them; add a period only by
    registering it, with its rule, before its data exists.
 
+6. **The public page quotes the engine** (2026-10-15, claim `overview.research_engine`): the
+   methodology page's point-in-time paragraph reads `research/experiments/summary.json`, which
+   `python v2_experiments.py report` writes. After any rerun, run `report` and commit the ledger,
+   `RESULTS.md` and `summary.json` together - the claims gate fails if the summary and the ledger
+   disagree.
+
 ## Queue (in order)
 
 1. **DONE 2026-10-15 - and the guard refined** (note section 2: a mismatch is excluded only when today's

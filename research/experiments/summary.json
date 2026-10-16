@@ -1,0 +1,15 @@
+{
+ "registered": 27,
+ "alternatives": 26,
+ "better": 0,
+ "worse": 0,
+ "data_hash": "d8cb038fff2b",
+ "baseline_ic": {
+  "presample": -0.00282,
+  "all": -3e-05
+ },
+ "months": {
+  "presample": 96,
+  "all": 80
+ }
+}
