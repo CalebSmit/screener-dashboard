@@ -114,6 +114,17 @@ statement, never louder than the primary action.
   The brand no longer shrinks, the search keeps its icon and shortcut, the links tighten, and where the
   nav must still scroll (below 1180, phones included) its right edge fades.
 
+## Phase 10 - DONE 2026-10-16 (owner-run)
+
+- **The stock sheet opens on the eight scores.** The composite card above them repeated the header's rank
+  and composite word for word; it is hidden (`#modal-score-row > .modal-score-card.composite`), which on
+  a phone brings "Why it ranks here" up by about 90px.
+- **One heading voice in the sheet**: "Why it ranks here" and "About" were 11-13px uppercase labels beside
+  the sentence-case "How it adds up"; "Rank History", "Analyst Price Targets", "Company Snapshot", "Sector
+  Peers" and "Data Provenance" were Title Case. All are sentence-case 14px headings now.
+- **The score words beside each bar** ("Strong", "Very weak") were 9px capitals in a chip; they are 11.5px
+  text.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
