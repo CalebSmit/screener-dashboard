@@ -576,6 +576,32 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_capex_lease_note.py::test_the_published_payload_agrees_with_the_filings",
         ),
     ),
+    Claim(
+        id="drilldown.special_item_note",
+        surface=DRILLDOWN,
+        asserts=(
+            "On the earnings-yield row, for a stock whose own filings report a restructuring or "
+            "impairment charge worth 10% or more of the trailing net income the run scored: the "
+            "net income is stated as a profit or a loss as filed, and is described as struck "
+            "*after* at least that charge - the largest single line the company tagged, never a "
+            "sum of overlapping tags, rebuilt for the same twelve months as the income statement "
+            "the run used, named by the tag the company applied. The charge is labelled as before "
+            "tax, and its share of net income is shown only where net income is positive. The "
+            "note says the yield is computed from earnings as reported so the charge is in it, "
+            "and how many of the company's last four fiscal years carried a charge of the same "
+            "kind. It never enters a score."
+        ),
+        made_true_by="sec_crosscheck:special_items",
+        checked_by=(
+            "tests/test_special_item_note.py::test_the_note_states_the_filed_charge_and_its_tag",
+            "tests/test_special_item_note.py::test_a_loss_is_called_a_loss_and_carries_no_share",
+            "tests/test_special_item_note.py::test_the_largest_single_tag_is_used_never_a_sum",
+            "tests/test_special_item_note.py::test_a_charge_below_the_threshold_gets_no_note",
+            "tests/test_special_item_note.py::test_the_recurrence_clause_counts_the_filed_years",
+            "tests/test_special_item_note.py::test_the_note_never_reaches_a_score",
+            "tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings",
+        ),
+    ),
     # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
     Claim(
         id="context.expected_move",

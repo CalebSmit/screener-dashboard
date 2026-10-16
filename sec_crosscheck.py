@@ -280,6 +280,168 @@ def lease_capex_note(entry: dict) -> str:
                 "consolidated figure on both sides, so it is not the company's own measure.")
 
 
+# --- one-off charges inside the earnings the screener scored (2026-10-16) ---
+#
+# WHY: `research/2026-10-15-earnings-definition.md`, section 8. The proposal to score earnings
+# yield on the source's "Normalized Income" - net income without its unusual items - was refused:
+# at the four-quarter window the engine sums, 23 companies have no normalized figure at all
+# (Amazon, Bank of America, Berkshire, Boeing among them), so the metric would rank them on
+# earnings *including* their one-off items beside 265 companies ranked excluding them, which is
+# the defect `factor_engine.py:2094` records Phase 13 fixing in this exact metric. The evidence
+# for removing one-off items is good (Rouen, So & Wang 2021: next-year persistence 0.810 for core
+# earnings against 0.637 for net income); the input that would do it is not available on one basis.
+#
+# So the figure stays as reported and the row says what is inside it - the same remedy the refused
+# capex proposal got above. The complementary half of `ranking_audit`'s earnings-yield note, which
+# fires only when net income runs *above* after-tax operating income and so catches the gain
+# direction; it is correctly one-sided, because interest expense routinely puts net income below
+# after-tax operating income for sound reasons. The charge direction had nothing on the page.
+#
+# Display-only, like everything else here: a test fails if a scoring module imports this module.
+#
+# The company's own tags, in priority order. `sec_value(..., largest=True)` returns the **single
+# largest** line, never a sum: these tags overlap (a restructuring-and-impairment roll-up contains
+# what the separate impairment tags report), and summing them would publish a figure larger than
+# the company reported. One line, named by its tag, is checkable in the filing and cannot double
+# count - so the note says "at least", which understates rather than overstates.
+SPECIAL_ITEM_CONCEPTS = (
+    "RestructuringCostsAndAssetImpairmentCharges", "RestructuringSettlementAndImpairmentProvisions",
+    "GoodwillAndIntangibleAssetImpairment", "GoodwillImpairmentLoss",
+    "AssetImpairmentCharges", "OtherAssetImpairmentCharges",
+    "ImpairmentOfIntangibleAssetsExcludingGoodwill",
+    "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill",
+    "ImpairmentOfLongLivedAssetsHeldForUse", "RestructuringCharges",
+)
+# Plain English for each tag, so the sentence does not make a reader decode a tag name to read it.
+SPECIAL_ITEM_WORDS = {
+    "RestructuringCostsAndAssetImpairmentCharges": "restructuring and asset impairment charges",
+    "RestructuringSettlementAndImpairmentProvisions": "restructuring, settlement and impairment provisions",
+    "GoodwillAndIntangibleAssetImpairment": "goodwill and intangible asset impairment",
+    "GoodwillImpairmentLoss": "goodwill impairment",
+    "AssetImpairmentCharges": "asset impairment charges",
+    "OtherAssetImpairmentCharges": "other asset impairment charges",
+    "ImpairmentOfIntangibleAssetsExcludingGoodwill": "impairment of intangible assets other than goodwill",
+    "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill":
+        "impairment of indefinite-lived intangible assets",
+    "ImpairmentOfLongLivedAssetsHeldForUse": "impairment of long-lived assets",
+    "RestructuringCharges": "restructuring charges",
+}
+# A charge below this share of the net income the run scored is not worth a sentence on the row.
+# A tenth of the metric's numerator, pre-registered rather than fitted - the same reasoning and the
+# same number as LEASE_SHARE_MIN above, written before the selection was run. What it picks on the
+# 2026-10-16 payload is recorded in `tests/test_special_item_note.py` and in the research note.
+SPECIAL_ITEM_SHARE_MIN = 0.10
+
+
+# Concepts every filer reports annually, used only to enumerate which fiscal years a company has
+# filed. The window must NOT be derived from the special-item tags themselves: a year without a
+# charge files no such tag, so counting only years that carry one makes "N of M" report N of N.
+# That was the first draft's defect, found 2026-10-16 by its own output - 37 of 47 selected stocks
+# read "4 of 4", which is the bug and not the companies.
+YEAR_ANCHORS = ("NetIncomeLoss", "IncomeTaxExpenseBenefit", "Revenues", "Assets")
+
+
+def _charge_years(f_t, end, back: int = 4) -> tuple:
+    """(fiscal years carrying a tagged charge, fiscal years filed) over the last `back` years.
+
+    The note's point turns on this. Measured 2026-10-16
+    (`research/2026-10-16-unusual-items-vs-filings.py`): of 493 companies with four fiscal years
+    filed, **120 tagged a restructuring or impairment charge in every one of them**. So "one-off"
+    is not a safe word, and the honest thing to put beside the charge is how often the company has
+    reported one. Counted from the companies' own tags, annual periods only."""
+    import pandas as pd
+    fy = f_t[f_t["fp"] == "FY"].copy()
+    if fy.empty:
+        return 0, 0
+    fy["_end"] = pd.to_datetime(fy["end"])
+    fy["_start"] = pd.to_datetime(fy["start"])
+    span = (fy["_end"] - fy["_start"]).dt.days
+    fy = fy[span.between(330, 400)]
+    if fy.empty:
+        return 0, 0
+    filed_years = sorted({d.year for d in fy[fy["concept"].isin(YEAR_ANCHORS)]["_end"]})
+    window = [y for y in filed_years if y <= pd.Timestamp(end).year][-back:]
+    charged = fy[fy["concept"].isin(SPECIAL_ITEM_CONCEPTS) & (fy["val"] > 0)]
+    charge_years = {d.year for d in charged["_end"]}
+    return sum(1 for y in window if y in charge_years), len(window)
+
+
+def special_items(payload: dict, facts):
+    """``{ticker: {...}}`` for every stock whose own filings report a one-off charge worth
+    ``SPECIAL_ITEM_SHARE_MIN`` or more of the trailing net income the run scored.
+
+    The charge is rebuilt for the **same twelve months as the income statement the run used**
+    (``asof['is']``), by the same code as the filing check above, so the two figures describe one
+    period. Each value holds the ``charge``, the ``net_income`` it sits inside, the ``share``, the
+    ``concept`` the company tagged, how many of its last four fiscal years carried a charge of the
+    same kind, and the period end."""
+    import pandas as pd
+    facts = facts[facts["form"].isin(FORMS)]
+    by_ticker = dict(tuple(facts.groupby("ticker")))
+    out = {}
+    for t, det in (payload.get("stock_detail") or {}).items():
+        inp, asof = det.get("inp") or {}, det.get("asof") or {}
+        ni, when, f_t = inp.get("netIncome"), asof.get("is"), by_ticker.get(t)
+        if ni is None or not when or f_t is None:
+            continue
+        ni = float(ni)
+        if abs(ni) < 1e6:            # too small a bottom line to state a share against
+            continue
+        end = pd.Timestamp(when)
+        charge, concept, _ = sec_value(f_t, SPECIAL_ITEM_CONCEPTS, "flow", end, largest=True)
+        # A charge is filed positive. A negative value is a reversal, a different story, not claimed.
+        if charge is None or charge <= 0:
+            continue
+        share = charge / abs(ni)
+        if share < SPECIAL_ITEM_SHARE_MIN:
+            continue
+        years, of_years = _charge_years(f_t, end)
+        out[t] = {"charge": float(charge), "net_income": ni, "share": round(share, 4),
+                  "concept": concept, "charge_years": years, "of_years": of_years,
+                  "asof": str(when)[:10]}
+    return out
+
+
+def special_item_note(entry: dict) -> str:
+    """The sentence the earnings-yield row carries for one stock, from `special_items`' figures.
+
+    Says what is inside the published figure and nothing about what to do with it - the note is
+    provenance, not a verdict (claim ``drilldown.special_item_note``). Four things it is careful
+    about, three of them found by reading the first draft's own output on 2026-10-16:
+
+    * a **loss** is called a loss. ``_usd`` takes an absolute value, so the first draft told readers
+      of Gilead, Kraft Heinz, General Mills and Intel that a loss "includes" a charge, which reads
+      as though the bottom line were a profit;
+    * the **share is printed only when the bottom line is a profit**. "7,887% of the net income"
+      against Air Products' $47M loss is arithmetic, not information;
+    * the charge is **before tax** while net income is after it, so the share is labelled as such
+      rather than presented as a decomposition;
+    * it is the largest **single** line the company tagged, never a sum of overlapping tags, so it
+      says "at least"."""
+    ni, charge = entry["net_income"], entry["charge"]
+    words = SPECIAL_ITEM_WORDS.get(entry["concept"], "one-off charges")
+    bottom = (f"The {_usd(ni)} of net income above" if ni > 0
+              else f"The {_usd(ni)} loss above")
+    # "is after", not "includes": net income is struck after the charge is deducted, and that
+    # reads correctly when the charge is larger than the bottom line - which it is for 9 of the
+    # 47 stocks selected on 2026-10-16 (General Mills' $3.0B against an $88M loss).
+    s = (f"{bottom} is after at least {_usd(charge)} of {words} that this company's own filings "
+         f"report for the same twelve months, tagged {entry['concept']}")
+    if ni > 0:
+        share = entry["share"]
+        s += (f" - equal to {share * 100:.0f}% of that net income" if share < 1
+              else f" - equal to {share:.1f} times that net income")
+        s += ", before any tax effect."
+    else:
+        s += ", before any tax effect."
+    s += " This yield is computed from earnings as reported, so the charge is in it."
+    years, of_years = entry.get("charge_years") or 0, entry.get("of_years") or 0
+    if of_years:
+        s += (f" Its filings report a charge of this kind in {years} of its last "
+              f"{of_years} fiscal years.")
+    return s
+
+
 SHARE_CONCEPTS = ("WeightedAverageNumberOfDilutedSharesOutstanding",
                   "WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
                   "WeightedAverageNumberOfSharesOutstandingBasic")
