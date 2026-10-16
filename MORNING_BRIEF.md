@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 15 October 2026, 14:03
+# Morning Brief - Friday 16 October 2026, 02:23
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,82 +9,64 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-15T02:00:03.638262 |
+| Dashboard data from | 2026-10-16T02:00:03.815047 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | EXPE, APA, HST, INCY, BMY |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (30 rows, but overlapping windows are not independent; 83 rows across all horizons), newest 2026-10-08 |
-| Context signals | Context signals: 6 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 406/411 within 0.5%; net income 397/421 within 0.5%; market value 447/487 within 5%; filings cached 6 days ago |
-| Context coverage | options usable 487/501 (14 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+| Top 5 | EXPE, APA, HST, INCY, EG |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (31 rows, but overlapping windows are not independent; 85 rows across all horizons), newest 2026-10-09 |
+| Context signals | Context signals: 7 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 0 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
+| Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **earnings yield on the source's "Normalized Income" (net income without its unusual items) instead of net income as reported; operating income unchanged. For a later session to review (section 6); nothing changed tonight.** - open 1 day - `research/2026-10-15-earnings-definition.md`
 
 ## What changed in the repo
 
-- `bdb5b75 log: the roll-forward, the dead provenance function, and the operating-income finding`
-- `18f8913 research: operating income is the least source-agreeing input, and three weighted metrics stand on it`
-- `a375e70 wip: the provenance sentences move to the function the page actually calls`
-- `9e3949a wip: the rolled twelve months on the page, in the methodology, and as a claim`
-- `e867764 wip: roll the last fiscal year forward instead of annualising three quarters`
-- `5a9e42c research: a per-stock fallback to the filings when the source is behind would add more noise than it removes`
-- `b6c6e86 provenance: say when a stock is scored a period behind its own filings`
-- `b35015e filing check: revenue is compared with the filed line nearest the run's figure, not the largest`
-- `ae36dcd fetch: a quarterly statement derived across a restatement is not summed (DuPont's revenue read a third low)`
-- `4ea8f9a nightly prompt: backtest v2 is not evidence either - and not for cutting a weight`
-- `56d212e backtest v1: the disclaimer quotes the measured look-ahead instead of an unsourced estimate`
-- `9d6ed87 methodology page: the point-in-time limitation quotes the measured look-ahead; 72.6% corrected to 72.5%`
-- `b6f7fd9 backtest v2: monthly rankings from what was known then, and the first honest look at returns`
-- `243a8b3 backtest v2: the engine's record rebuilt from SEC filings as of any date, and the look-ahead's fundamentals half measured`
-- `a46c53e brief: code session 2026-10-15`
+- `7d1b33c data: screener run 2026-10-16 - 501 scored, top: EXPE APA HST INCY EG`
+- `676cdff investor pass, phase 12: no default-violet links, one segmented control, sentence-case chart titles`
+- `73f14bc investor pass, phase 11: the research page and the lab share the front page's bar`
+- `adf7900 investor pass, phase 10: the stock sheet opens on the eight scores, its headings in one voice`
+- `fb74c05 investor pass, phase 9: the figures beside the statement, a gauge for the composite, a header that fits`
+- `42b6660 investor pass, phase 8: the analytics tile states a finding, the methodology tables keep their margins`
+- `7f46ade investor pass, phase 7: link previews on every page, and the track record tile states its length`
+- `c991ee4 investor pass, phase 6: hero actions under the copy, a tighter guide`
+- `c323b9b investor pass, phase 5: context cards lead with the reading (research clamped, one click away); the rank chart's band label off the line`
+- `789b47c lab: asset version 20 for the grouped menu, so no browser keeps the old data file`
+- `cce3eec investor pass, phase 4: the Factor Lab's menu grouped by what each experiment tests; 'Leaders' in the nav; the inventory updated`
+- `28f7276 investor pass, phase 3: quiet heatmaps and section titles that say what they hold`
+- `954cde5 investor pass, phase 2: quiet heat in the rankings, and the stock sheet opens on the eight-score profile`
+- `9cab4e9 investor pass, phase 1: a statement hero, an at-a-glance panel with the track record, a quiet guide, score profiles in the Top 5, and the sections as tiles`
+- `04ecfad publish the page now: 'Has it been tested?' and 'Factor Lab' buttons live without waiting for the data run`
 
 ## The session's own account
 
-> 2026-10-15 (13:00 slot) - QUEUE. A quarter the source never published is rolled forward, not invented
+> 2026-10-15 (owner-run, 22:00) - the evidence goes public: "Has it been tested?", and buttons for it and the lab
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-15_060001.log`
-> ends "Run complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-15_020001.log`
-> ends "Data loop complete", claims gate PASS (460 passed), published to main 02:22.
-> Evidence base at `1m` = **30 rows, newest 2026-09-15 (30 days ago, bound 40), 4 effective**
-> - inside the band, no action. Priority 0: `allow_auto_apply` still **false**, 4 effective against a
-> gate of 8. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 7 days**);
-> deferred today - see below.
-> **Tests:** before **2396 passed, 1 skipped**; after **2414 passed, 1 skipped**. Dry run OK;
-> `index.html` 558,545 bytes; `dashboard_data.js` and `dashboard_context.js` both `node --check` clean;
-> `scripts/rehearse_publish.py` PASSED (300 page tests, 473 claims).
-> **Owner queue / rotation:** this is the **fourth** session today (06:00, two owner-run, and this
-> 13:00 slot after the owner marker cleared). Carried on from the owner-run midday entry's **Next**.
-> Its Next asked whether scoring should ever read the filings when the source is behind or
-> inconsistent - I did **not** reopen that (it was measured and refused twice today), and instead took
-> the concrete, still-open residual the same line of work left behind:
-> `research/2026-10-14-yahoo-vs-sec.md` **section 4b**, which named three-quarter annualisation as
-> "a small, well-defined data fix for a later session". The context-layer owner item (macro and
-> track-record notes) was deferred to finish this end to end; nothing in it was started or lost.
+> **Health:** unchanged from the entries above (same evening). Owner: *"is that screener, tested artifact
+> build into the screener as well somewhere? people would like to see that, maybe add a button for that
+> and for the lab?"* and *"my goal is to not spend any money if possible on top of a claude subscription."*
 > 
 > ### Did
-> 
-> **1. The main piece: the twelve months is rolled forward, not fabricated.** Re-measured section 4b
-> rather than trusting it. `_ltm_annualized` was true for **4 of 503** stocks on this run. For three it
-> touched one immaterial line each (COST and V: common stock dividend; GIS: interest expense). For
-> **BRK-B it touched nine lines** - revenue, operating income, net income, tax, pretax income, operating
-> cash flow, capex, D&A, interest - because the source does not carry its **2025-09-30 quarter at all**;
-> the columns run `2026-06-30, 2026-03-31, 2025-12-31, 2025-06-30, 2025-03-31`, so `_quarters_adjacent`
-> rightly refused to sum the first four and `sum(3) * 4/3` took over.
-> 
-> Against Berkshire's own filings for the same twelve months the published figures were **net income
-> 14.54% low, operating cash flow 6.09% low, revenue 10.23% high**.
-> 
-> The fix is not the annual statement (measured: it is *worse* on net income, -21.9%). It is the
-> identity every filer uses in its own 10-Q and that `sec_crosscheck.flow_ttm` already applies to the
-> filings: **fiscal year + year-to-date - year-to-date a year earlier**. Rebuilt that way BRK-B's
-> figures are **net income $85.768bn against $85.768bn filed, operating cash flow $46.634bn against
-> $46.634bn, capex $22.419bn against $22.419bn** - exact to the dollar on all three.
-> `factor_engine._ltm_rollforward`, tried between the four-quarter sum and the 4/3 fallback, current
-> period only, with guards on every term. It reads the two statements the fetch already holds and
-> **never a filing** - a test enforces that, because scoring deliberately does not touch the SEC cache
-> (CLAUDE.md 0.14), which is what made it the independent yardstick here.
-> 
-> **Said plainly, including what it does not fix:** BRK-B's revenue goes from +10.2% to **+12.2%** -
-> ...
+> - **`research.html`**, generated by `research_page.py` from the ledger (in `v2_experiments.py report`),
+>   in the dashboard's own look; looked at 1440 and 375 (two overflow defects caught there and fixed: a
+>   table inside `<details>` and an unbreakable file path). `tests/test_research_page.py` (7).
+> - **Hero buttons** "Has it been tested?" and "Factor Lab" (2x2 on a phone); footer, palette and the
+>   track record's caveat link it. The header was tried first and measured full.
+> - **No paid data** recorded as the owner's decision in `OWNER_FOCUS.md`, `CLAUDE.md`, the research-engine
+>   plan and the note; the plan's survivorship item now asks for free routes only.
+> - The note's months-of-record figures now match the page (47 / 89 / 132 / 248, from the 0.123 spread).
+> - **Lab experiment 13, value and momentum together** (AMP 2013), with a new combination layout: 7 of 10
+>   within; the mix's average matches the paper exactly, the hedge is milder so its Sharpe is lower. Looked
+>   at 1440 and 375; a verdict sentence that called a third-decimal lead "beat either one" was fixed.
+> - Free survivorship route probed: Stooq's CSV download now returns a browser challenge for every symbol -
+>   not usable, and not to be worked around. Recorded in `plan/research-engine.md`.
 
 ---
 
