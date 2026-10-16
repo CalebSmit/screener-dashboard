@@ -49,6 +49,14 @@ SERIES = {
 
 
 # --------------------------------------------------------------------------- fetch
+def _month_name(iso: str) -> str:
+    """``2026-09-01`` -> ``September 2026``; the page printed ``2026-09`` (2026-10-16)."""
+    try:
+        return datetime.strptime(str(iso)[:7], "%Y-%m").strftime("%B %Y")
+    except ValueError:
+        return str(iso)[:7]
+
+
 def _cache_path(sid: str) -> Path:
     return DATA_DIR / f"{sid}.csv"
 
@@ -140,7 +148,7 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
         out.append({"k": "curve", "state": state, "title": "Yield curve",
                     "text": f"The 10-year yield is {abs(c['last']):.2f}pp {'below' if c['last'] < 0 else 'above'} the 3-month. "
                             "An inverted curve (10-year below 3-month) has preceded every US recession since the late 1960s, "
-                            "with lags of roughly 6 to 24 months and at least one false alarm - it describes the cycle, it does not time it "
+                            "with lags of roughly 6 to 24 months and at least one false alarm. It describes the cycle rather than timing it "
                             "(Estrella & Mishkin 1998; the New York Fed's recession model uses this spread)."})
     b = summ.get("BAA10Y")
     if b and "pct_10y" in b:
@@ -156,22 +164,22 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
                     "text": f"The VIX is {v['last']:.1f}, against a ten-year median of {v.get('median_10y', float('nan')):.1f}. "
                             "It is the S&P 500 options market's price for the next 30 days' swings. "
                             "Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility "
-                            "declines (Daniel & Moskowitz 2016), which is why this screener already cuts momentum's weight when the "
-                            "universe is turbulent and raises it when calm."})
+                            "declines (Daniel & Moskowitz 2016). This screener cuts momentum's weight in their panic state, when the "
+                            "index is down over two years and volatile, and never raises it."})
     i = summ.get("CPIAUCSL")
     if i:
         state = "above target" if i["last"] > 2.5 else ("near target" if i["last"] >= 1.5 else "below target")
         out.append({"k": "inflation", "state": state, "title": "Inflation",
                     "text": f"Consumer prices are {i['last']:.1f}% higher than a year earlier, against the Federal Reserve's 2% goal "
-                            f"(measured there on a different index, PCE). Latest reading: {i['date'][:7]}."})
+                            f"(measured there on a different index, PCE). Latest reading: {_month_name(i['date'])}."})
     if sahm is not None:
         state = "triggered" if sahm >= 0.5 else "not triggered"
         u = summ.get("UNRATE") or {}
         # The real-time Sahm series can arrive while the UNRATE fetch failed (review, 2026-10-09).
         lead = f"Unemployment is {u['last']:.1f}%. " if u.get("last") is not None else ""
         out.append({"k": "jobs", "state": state, "title": "Labor market",
-                    "text": lead + f"The Sahm indicator - the 3-month average against "
-                            f"its 12-month low - reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
+                    "text": lead + f"The Sahm indicator (the 3-month average against "
+                            f"its 12-month low) reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
                             "since 1970 (Sahm 2019). "
                             + ("Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
                                if sahm_basis == "real-time" else
@@ -181,15 +189,15 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
 
 FACTOR_NOTES = [
     {"title": "Quality in downturns",
-     "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall - the "
+     "text": "Profitable, conservatively financed companies have tended to hold up better when markets fall: the "
              "'flight to quality' Asness, Frazzini & Pedersen (2019) document across decades and countries. "
              "Quality is one of this screener's two heaviest categories; the column tooltips show this run's weights."},
     {"title": "Momentum and rebounds",
      "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). "
-             "The screener's volatility rule scales momentum's weight for exactly this reason; the stat strip shows this run's setting."},
+             "For this reason the screener cuts momentum's weight in that state; the stat strip shows whether the cut is in force."},
     {"title": "Rates and long-duration stocks",
-     "text": "Companies whose value rests on profits far in the future behave more like a long bond - 'equity "
-             "duration' (Dechow, Sloan & Soliman 2004) - and such long-duration stocks have historically earned lower "
+     "text": "Companies whose value rests on profits far in the future behave more like a long bond, which Dechow, "
+             "Sloan & Soliman (2004) call equity duration, and such long-duration stocks have historically earned lower "
              "average returns than short-duration ones, about 1.1% a month in 1963-2013 (Weber 2018). Each stock's "
              "drilldown shows how its price has actually moved with the 10-year yield."},
 ]

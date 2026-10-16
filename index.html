@@ -10,7 +10,7 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Multi-Factor Screener">
     <meta property="og:title" content="The S&amp;P 500, ranked on eight factors">
-    <meta property="og:description" content="Every S&amp;P 500 company scored against its own sector on eight factors, with every number behind every score one click away. Decision support, not investment advice.">
+    <meta property="og:description" content="Every S&amp;P 500 company scored against its own sector on eight factors, each score traceable to its inputs. For research and education; not investment advice.">
     <meta property="og:url" content="https://calebsmit.github.io/screener-dashboard/">
     <meta property="og:image" content="https://calebsmit.github.io/screener-dashboard/og-card.png">
     <meta property="og:image:width" content="1200">
@@ -280,7 +280,8 @@
         .modal-history-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .modal-spark { flex-shrink: 0; }
         .modal-hist-block { margin-top: 14px; }
-        .modal-hist-head { font-size: 13px; color: var(--text-primary); margin-bottom: 6px; }
+        .modal-hist-head { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--text-primary); margin-bottom: 6px; }
+        .modal-hist-head > span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
         .modal-hist-head .pos { color: var(--green); }
         .modal-hist-head .neg { color: var(--red); }
         .mini-table { width: 100%; max-width: 320px; border-collapse: collapse; font-size: 13px; }
@@ -3439,6 +3440,16 @@
            plus its padding, and the page scrolled sideways by 5px at 320 */
         @media (max-width: 760px) { .hero .hero-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
         @media (max-width: 360px) { .hero .hero-actions .hero-btn { padding: 0 8px; font-size: 13px; } }
+        /* one disclosure icon: the tiles drew an SVG chevron, the stock sheet a text "▼", the notes a "▸"
+           and the holdings block a "›". All four are now the tiles' chevron, drawn as a mask in the text colour */
+        :root { --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
+        .collapsible-chevron { font-size: 0; width: 14px; height: 14px; flex: none; background: var(--text-muted);
+            -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
+        .why-panel > summary::before, details.holdings-concentration > summary::after {
+            content: ''; width: 12px; height: 12px; flex: none; background: currentColor; transform: rotate(-90deg);
+            -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
+        .why-panel[open] > summary::before, details.holdings-concentration[open] > summary::after { transform: none; }
+        .why-panel > summary { display: inline-flex; align-items: center; gap: 8px; }
         /* one corner radius for panels: the diagnostics cards were the last at 10px */
         .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
@@ -3515,8 +3526,8 @@
             <div class="hero-text">
                 <p class="hero-eyebrow" id="hero-eyebrow">S&amp;P 500 &middot; daily run</p>
                 <h2 class="hero-title" id="hero-title">The S&amp;P&nbsp;500, ranked on eight factors</h2>
-                <p class="hero-sub">Every company scored against its own sector on value, quality, growth, momentum, risk, analyst revisions, size and investment &mdash; with every number behind every score one click away.</p>
-                <p class="hero-note">Decision support for research and teaching. Not investment advice.</p>
+                <p class="hero-sub">Every company is scored against its own sector on eight factors, from valuation and profitability to analyst revisions. Each score traces back to its inputs, weights and formulas.</p>
+                <p class="hero-note">For research and education. Not investment advice.</p>
             </div>
             <div class="hero-actions">
                 <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
@@ -3538,9 +3549,9 @@
              per browser; reopened from the search palette. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores per company.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against the stock's own sector. Around 50 is typical for the sector.</div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> The eight scores, weighted and added up. The weights are a choice &mdash; the rankings&rsquo; Weighting menu shows the order with a Value, Growth or Momentum emphasis. The rank is a description of the numbers, not a verdict on the company.</div></li>
-                <li><span class="guide-n">3</span><div><strong>Every number is checkable.</strong> Open any stock to see the inputs, formulas and peers behind each score, and the arithmetic that adds them up.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50.</div></li>
+                <li><span class="guide-n">2</span><div><strong>One composite.</strong> A weighted sum of the eight scores. The Weighting menu above the table re-ranks the list with a Value, Growth or Momentum tilt.</div></li>
+                <li><span class="guide-n">3</span><div><strong>Fully traceable.</strong> Open any stock to follow each score back to its inputs, formulas and sector peers.</div></li>
             </ol>
             <div class="guide-foot">
                 <span></span>
@@ -3552,7 +3563,7 @@
         <section class="section collapsible-section" id="sec-top5">
             <div class="section-header" onclick="toggleSection('sec-top5')">
                 <h2 class="section-title" style="margin:0">Leading the ranking</h2>
-                <span class="sec-meta sec-meta-plain">The five highest composites without a trap flag. Select one for the full workings.</span>
+                <span class="sec-meta sec-meta-plain">The five highest composites without a trap flag.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -3577,7 +3588,7 @@
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
-                <p class="section-desc">Add the names you own or are following, and the screener will put what it knows about <em>all</em> of them in front of you each run &mdash; what moved, which category moved it, and what the score does and does not rest on. Stored in this browser only; nothing is sent anywhere, and no purchase price is asked for.</p>
+                <p class="section-desc">Add the names you own or follow. Each run shows where every one of them ranks, what moved and which category moved it. The list stays in this browser, and no purchase price is asked for.</p>
                 <div class="holdings-add-bar">
                     <div class="holdings-search-wrap">
                         <input type="text" id="holdings-search-input"
@@ -3601,7 +3612,7 @@
             <div class="section-header" onclick="toggleSection('sec-changed')">
                 <h2 class="section-title" style="margin:0">What Changed</h2>
                 <span class="sec-meta" id="meta-changed"></span>
-                <span class="sec-blurb">Who moved up and down the ranking, and which scores moved them.</span>
+                <span class="sec-blurb">The largest rank changes and the categories behind them.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -3632,7 +3643,7 @@
             <div class="section-header" onclick="toggleSection('sec-reporting')">
                 <h2 class="section-title" style="margin:0">Reporting Soon</h2>
                 <span class="sec-meta" id="meta-reporting"></span>
-                <span class="sec-blurb">Earnings dates in the next two weeks, with the move options are pricing.</span>
+                <span class="sec-blurb">Earnings dates over the next two weeks, with option-implied moves.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="reporting-body"></div></div>
@@ -3643,7 +3654,7 @@
             <div class="section-header" onclick="toggleSection('sec-market')">
                 <h2 class="section-title" style="margin:0">Market Backdrop</h2>
                 <span class="sec-meta" id="meta-market"></span>
-                <span class="sec-blurb">Rates, credit, volatility and jobs &mdash; context beside the scores, never in them.</span>
+                <span class="sec-blurb">Rates, credit spreads, volatility and the labor market.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="market-body"></div></div>
@@ -3654,7 +3665,7 @@
             <div class="section-header" onclick="toggleSection('sec-track')">
                 <h2 class="section-title" style="margin:0">Track Record</h2>
                 <span class="sec-meta" id="meta-track"></span>
-                <span class="sec-blurb">How the ranking&rsquo;s top names have actually done since each run.</span>
+                <span class="sec-blurb">Forward returns of the top 25, measured from each run.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body"><div id="track-body"></div></div>
@@ -3665,7 +3676,7 @@
             <div class="section-header" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor Analytics</h2>
                 <span class="sec-meta" id="meta-analytics">Sector &times; factor scores &middot; trap rates by sector</span>
-                <span class="sec-blurb">How each sector scores on each factor, and where trap flags cluster.</span>
+                <span class="sec-blurb">Sector medians on each factor, and where trap flags cluster.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -3703,21 +3714,21 @@
                     <h2 class="section-title" style="margin:0">Defensibility &amp; Diagnostics</h2>
                     <div class="defensibility-summary" id="defensibility-summary"></div>
                 </div>
-                <span class="sec-blurb">Would small changes to the weights reshuffle the top? Do two factors measure the same thing?</span>
+                <span class="sec-blurb">Weight sensitivity and factor overlap.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
-                <p class="section-desc">Two checks on whether this ranking deserves trust: would small changes to the weights reshuffle the top 20, and are any two of the eight factors really measuring the same thing?</p>
+                <p class="section-desc">Two robustness checks: how much the top 20 changes when each weight shifts, and how much the eight factors overlap.</p>
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">How stable is the ranking?</h3>
-                        <p class="chart-desc">If we nudge each factor's weight &plusmn;5%, how much does the top-20 list change? <strong>Higher Jaccard = more stable.</strong> A score of 0.85 or more means almost no change; below 0.70 means the ranking is sensitive to that weight.</p>
+                        <p class="chart-desc">Each factor&rsquo;s weight moved &plusmn;5% and the top 20 compared with the published list by Jaccard similarity, where 1.0 is identical. Above 0.85 the list barely changes; below 0.70 it is sensitive to that weight.</p>
                         <div id="sensitivity-table"></div>
                     </div>
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">Are the factors independent?</h3>
-                        <p class="chart-desc">Spearman correlations between the 8 factor scores. <strong>Low values = independent signals.</strong> Shading deepens with the size of the correlation, and pairs above 0.7 are outlined: they are measuring similar things, which reduces the effective number of independent dimensions.</p>
+                        <p class="chart-desc">Spearman rank correlations between the eight factor scores. Shading deepens with the correlation; pairs above 0.7 are outlined because they largely measure the same thing.</p>
                         <div id="correlation-heatmap"></div>
                     </div>
                 </div>
@@ -3730,7 +3741,7 @@
         <section class="section collapsible-section" id="sec-universe">
             <div class="section-header" onclick="toggleSection('sec-universe')">
                 <h2 class="section-title" style="margin:0">The full ranking</h2>
-                <span class="sec-meta sec-meta-plain">Every company, sortable by any score. Select a row to see why it ranks there.</span>
+                <span class="sec-meta sec-meta-plain">Every company, sortable by any score.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -3862,7 +3873,7 @@
                             <span class="summary-title">Why it ranks here</span>
                         </div>
                         <div class="summary-body" id="modal-summary-body"></div>
-                        <div class="summary-source">Assembled from this run's numbers by a fixed template &mdash; every figure appears somewhere below and is identical for every reader. It explains <em>where the stock ranks and why</em>. It is not investment advice and never says whether to buy, sell or hold.</div>
+                        <div class="summary-source">Generated from this run&rsquo;s data by a fixed template; every figure appears in the detail below. It describes where the stock ranks and why, and never says whether to buy, sell or hold.</div>
                     </div>
 
                     <!-- One line pointing at Before you decide (context, not scored) -->
@@ -3877,7 +3888,7 @@
                         <p class="about-text clamped" id="modal-about-text"></p>
                         <button class="about-toggle" id="modal-about-toggle"
                                 onclick="toggleAbout()">Show more</button>
-                        <div class="about-source">Business description supplied by Yahoo Finance. Descriptive only &mdash; it is not scored and does not affect the ranking.</div>
+                        <div class="about-source">Description from Yahoo Finance; not scored.</div>
                     </div>
 
 
@@ -3888,7 +3899,7 @@
                         </div>
                         <div class="collapsible-body">
                             <div class="modal-chart-section">
-                                <p class="modal-chart-desc">Each category score (0&ndash;100) times the weight it was <strong>actually multiplied by</strong> for this stock gives its points, and the points add up to the composite. The weights can differ from the defaults in Methodology; any gap is explained underneath. Select a row to see how that score is built.</p>
+                                <p class="modal-chart-desc">Points are each category score (0&ndash;100) times the weight <strong>actually multiplied by</strong> for this stock, and they sum to the composite. Where a weight differs from the Methodology default, the reason is shown below. Select a row for its build-up.</p>
                                 <div id="contrib-visual"></div>
                                 <div class="contrib-total-row" id="contrib-total"></div>
                             </div>
@@ -4738,7 +4749,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <a href="#" onclick="openShortcuts();return false;">Keyboard shortcuts</a>
                 <a href="#" onclick="showGuide();return false;">How to read this</a>
             </nav>
-            <p class="footer-disclaimer">A screening tool for research and teaching, not investment advice. Data is not institutional-grade, and there is no covariance risk model; see Methodology for every limitation.</p>
+            <p class="footer-disclaimer">A screening tool for research and education, not investment advice. Data comes from free sources and there is no covariance risk model; Methodology lists every limitation.</p>
         </footer>
     </div>
 
@@ -4796,6 +4807,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         };
     }
 
+    // ISO run dates (2026-09-16) read as "Sep 16" on the page; the year is added only when it is not
+    // the run's own (2026-10-16 - the summary tiles and What Changed printed the ISO form)
+    function prettyDate(iso) {
+        const d = new Date(String(iso || '').slice(0, 10) + 'T00:00:00');
+        if (!iso || isNaN(d)) return String(iso || '');
+        const runYear = String((D.kpis || {}).run_timestamp || '').slice(0, 4);
+        const o = { month: 'short', day: 'numeric' };
+        if (String(d.getFullYear()) !== runYear) o.year = 'numeric';
+        return d.toLocaleDateString('en-US', o);
+    }
+
     function fmt(v, type) {
         if (v === null || v === undefined) return '—';
         if (type === 'pct') return v.toFixed(1);
@@ -4812,13 +4834,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const n = k.universe_size || 0;
         const pct = v => n ? Math.round(v / n * 100) + '%' : '';
         // 1. what was ranked
-        const cards = [kpiCard('Ranked this run', n, 'S&amp;P 500 companies, on eight factors')];
+        const cards = [kpiCard('Ranked this run', n, 'S&amp;P 500 constituents')];
         // 2. what moved - the time dimension, if this run has comparable history
         const mvKey = (H && H.movers) ? (H.movers.m1 ? 'm1' : (H.movers.prev ? 'prev' : null)) : null;
         if (mvKey && H.compare && H.compare[mvKey]) {
             const mv = H.movers[mvKey];
             cards.push(kpiCard('Moved materially', `${mv.n_up}<span class="kpi-sep">&uarr;</span> ${mv.n_down}<span class="kpi-sep">&darr;</span>`,
-                `since ${escapeHtml(H.compare[mvKey].date)}, beyond &plusmn;${(H.noise || {}).material_threshold || ''} ranks`));
+                `rank moves over &plusmn;${(H.noise || {}).material_threshold || ''} since ${escapeHtml(prettyDate(H.compare[mvKey].date))}`));
         } else {
             cards.push(kpiCard('Average composite', fmt(k.avg_composite, 'score'), 'across the universe'));
         }
@@ -4849,9 +4871,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (eb && ts) eb.innerHTML = `S&amp;P 500 &middot; data as of ${fmtDate}, ${fmtTime}`;
         // Only set gen-time via JS if it wasn't already embedded as a static value
         const genEl = document.getElementById('gen-time');
-        if (genEl && !genEl.textContent.trim()) {
-            genEl.textContent = new Date().toLocaleString();
-        }
+        if (genEl && ts) genEl.textContent = `${fmtDate}, ${fmtTime}`;
     }
 
     // Jump to a section, opening it first if it is collapsed.
@@ -5550,11 +5570,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         const n = H.noise || {};
         document.getElementById('changed-caption').innerHTML =
-            `Comparing <strong>${escapeHtml(H.current_date || '')}</strong> with <strong>${escapeHtml(cmp.date)}</strong> `
+            `Comparing <strong>${escapeHtml(prettyDate(H.current_date || ''))}</strong> with <strong>${escapeHtml(prettyDate(cmp.date))}</strong> `
             + `(${cmp.gap_days} ${cmp.gap_days === 1 ? 'day' : 'days'}). A move counts as material past <strong>&plusmn;${n.material_threshold} ranks</strong>`
             + (n.source === 'measured'
-                ? ` &mdash; the 95th percentile of ordinary run-to-run variation, measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).`
-                : ` &mdash; a default used until there are enough paired runs to measure it here.`);
+                ? `, the 95th percentile of ordinary run-to-run variation measured across ${n.n_pairs} paired runs (${n.n_observations.toLocaleString()} observations).`
+                : `, a default used until there are enough paired runs to measure it here.`);
 
         // The run as a whole, in the build's own sentences (run_overview.py).
         const ov = (H.overview || {})[changedRange];
@@ -5571,14 +5591,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const shownUp = Math.min(mv.up.length, mv.n_up), shownDown = Math.min(mv.down.length, mv.n_down);
         notes.push(`${mv.n_up} stocks moved up materially and ${mv.n_down} moved down; showing the largest ${shownUp} and ${shownDown}.`);
         if (mv.n_round_trip) {
-            notes.push(`<strong>${mv.n_round_trip} of ${mv.n_up + mv.n_down}</strong> are flagged round-trip &mdash; a large excursion that returned to base, which usually means a metric dropped out and came back rather than the stock changing.`);
+            notes.push(`<strong>${mv.n_round_trip} of ${mv.n_up + mv.n_down}</strong> are flagged round-trip: a large excursion that returned to base, which usually means a metric dropped out and came back rather than the stock changing.`);
         }
-        notes.push(`Built from ${H.dates.length} comparable runs (${escapeHtml(H.dates[0])} to ${escapeHtml(H.dates[H.dates.length - 1])}).`);
+        notes.push(`Built from ${H.dates.length} comparable runs, ${escapeHtml(prettyDate(H.dates[0]))} to ${escapeHtml(prettyDate(H.dates[H.dates.length - 1]))}.`);
         if (H.excluded && H.excluded.length) {
-            const ex = H.excluded.map(e => `${escapeHtml(e.date)} (${escapeHtml(e.detail)})`).join('; ');
+            const ex = H.excluded.map(e => `${escapeHtml(prettyDate(e.date))} (${escapeHtml(String(e.detail || '').replace(/[0-9]{4}-[0-9]{2}-[0-9]{2}/g, prettyDate))})`).join('; ');
             notes.push(`Excluded as not comparable: ${ex}.`);
         }
-        notes.push('Rank changes are not a recommendation. A stock that fell may be cheaper, not worse &mdash; open it to see which categories moved and why.');
+        notes.push('A rank move can come from the price as much as from the fundamentals; open the stock to see which categories moved.');
         // The panel that shows the largest moves is exactly where a reader is
         // most likely to read a daily redraw as a daily decision.
         if (cadenceText(false)) notes.push(cadenceText(false));
@@ -5758,11 +5778,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     function cadenceText(long) {
         const c = D.cadence;
         if (!c) return '';
-        const refresh = 'This page is rebuilt every weekday, but the ranking is '
+        const refresh = 'This page is rebuilt every weekday; the ranking is '
             + 'built for <strong>' + escapeHtml(c.label) + '</strong> review.';
         if (!long) {
             return refresh
-                + ' A rank that moved since yesterday is not by itself a reason to act.';
+                + ' A one-day rank move is not by itself a reason to act.';
         }
         return refresh
             + ' Treating every refresh as a decision point has a measured cost: on this '
@@ -5795,8 +5815,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (!holdings.length) {
             fit.innerHTML = cadenceLine(false);
             body.innerHTML = '<div class="holdings-empty">'
-                + '<p>Nothing on the list yet. Add a ticker above, or press <strong>Add to Holdings</strong> in any stock&rsquo;s drilldown, and it appears here after every run, with what moved and which category moved it.</p>'
-                + '<p class="holdings-empty-sub">Works the same whether you own the name or are only watching it &mdash; nothing here assumes you hold a position.</p>'
+                + '<p>Nothing on the list yet. Add a ticker above, or use <strong>Add to Holdings</strong> on any stock.</p>'
+                + '<p class="holdings-empty-sub">Works as a watchlist too: nothing assumes you hold a position.</p>'
                 + '</div>';
             return;
         }
@@ -6026,11 +6046,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<p><strong>How often this is meant to be acted on.</strong> ' + cadenceText(true) + '</p>',
             '<p><strong>Why this list shows everything, every time.</strong> It is never filtered or sorted by how much a name moved. Institutional managers dispose of the best and worst performers in a portfolio at rates more than 50% higher than middling positions, and that habit is the identified cause of an 80 basis-point-a-year shortfall in their disposal decisions against a random-disposal benchmark over 4.4 million trades (Akepanidtaworn, Di Mascio, Imas &amp; Schmidt, <em>Journal of Finance</em> 78(6), 2023). A queue that surfaces only the big movers automates that habit. Rows here are ordered by current rank; the rank change is shown for context only.</p>',
             '<p><strong>Why it never asks what you paid.</strong> Measuring a position against its purchase price is the reference point behind the disposition effect: investors realise gains about 1.5&times; as readily as losses, and the winners they disposed of went on to beat the losers they kept by 3.4 percentage points over the following year (Odean, <em>Journal of Finance</em> 53(5), 1998). No cost basis, share count or profit-and-loss figure is stored or shown here, which is also why this works equally as a watchlist.</p>',
-            '<p><strong>Why there is no exit signal.</strong> This screener has one test &mdash; the top 25 &mdash; and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
-            '<p><strong>Why the next earnings date is here.</strong> It is the one place the same study finds attention is well spent: sells executed on a holding&rsquo;s earnings-announcement day beat non-announcement-day sells by more than <strong>150 basis points a year</strong>, and are the only sells in the sample that beat the random-disposal benchmark at all. The authors read that as attention rather than skill &mdash; an announcement is a pre-scheduled, external reason to look at a position you would otherwise not re-examine. It matters mechanically here too: this screener&rsquo;s fundamental inputs come from filings, and between filings they barely move. Measured across a month of this site&rsquo;s own runs, the largest Quality-score move was <strong>one stock in 500</strong>, against 34% for Risk. A report is when the Valuation, Quality and Growth numbers above are actually replaced. The date is descriptive only &mdash; it is never scored, never ranked and does not affect any number on this page &mdash; and where the data provider has not confirmed it, the line says so: measured across all 503 names on 2026-09-29, <strong>209 of the 492 forthcoming dates (42.5%)</strong> were the provider&rsquo;s estimate rather than a company-announced schedule. Where the provider has not scheduled the next report at all &mdash; 11 names that day, mostly off-calendar reporters &mdash; the line is omitted rather than showing a date that has already passed.</p>',
-            '<p><strong>Why the Concentration block gives you no position size.</strong> Sizing by conviction is the one thing the estimation-error literature singles out as dangerous: errors in expected returns do roughly <strong>20&times;</strong> the damage of errors in covariances, and about <strong>100&times;</strong> for an investor near zero risk aversion (Chopra &amp; Ziemba, 1993, via Ziemba &amp; MacLean, <em>Stochastic Optimization Methods in Finance and Energy</em>, Springer, 2011). Across 14 optimisation models and 7 datasets, none consistently beat a plain equal split out of sample, which would need an estimation window of roughly <strong>3,000 months</strong> for 25 assets to do reliably (DeMiguel, Garlappi &amp; Uppal, <em>Review of Financial Studies</em> 22(5), 2009). In every documented institutional scheme &mdash; equal, cap, inverse-volatility or optimiser weight &mdash; the alpha signal drives <em>selection</em> and weighting is a separate, risk-driven decision. So this panel reports the facts about your list and the published external limits, and leaves the number to you.</p>',
+            '<p><strong>Why there is no exit signal.</strong> This screener has one test, the top 25, and both the literature and index practice say the test for continued holding should be a different, wider one. A buy/hold spread is "the single most effective simple cost mitigation strategy" in Novy-Marx &amp; Velikov (<em>Review of Financial Studies</em> 29(1), 2016); MSCI buffers its momentum indexes between rank 250 and 750 against a 500-name target, and S&amp;P Dow Jones Indices states the principle outright: "the addition criteria are for addition to an index, not for continued membership." That second threshold has not been set for this screener yet, so this panel shows the evidence and leaves the decision where it belongs. Trading more often has a measured cost: the most active households in Barber &amp; Odean (<em>Journal of Finance</em> 55(2), 2000) earned 11.4% a year against a market return of 17.9%.</p>',
+            '<p><strong>Why the next earnings date is here.</strong> It is the one place the same study finds attention is well spent: sells executed on a holding&rsquo;s earnings-announcement day beat non-announcement-day sells by more than <strong>150 basis points a year</strong>, and are the only sells in the sample that beat the random-disposal benchmark at all. The authors read that as attention rather than skill: an announcement is a pre-scheduled, external reason to look at a position you would otherwise not re-examine. It matters mechanically here too: this screener&rsquo;s fundamental inputs come from filings, and between filings they barely move. Measured across a month of this site&rsquo;s own runs, the largest Quality-score move was <strong>one stock in 500</strong>, against 34% for Risk. A report is when the Valuation, Quality and Growth numbers above are actually replaced. The date is descriptive only. It is never scored or ranked and does not affect any number on this page, and where the data provider has not confirmed it, the line says so: measured across all 503 names on Sep 29, 2026, <strong>209 of the 492 forthcoming dates (42.5%)</strong> were the provider&rsquo;s estimate rather than a company-announced schedule. Where the provider has not scheduled the next report at all (11 names that day, mostly off-calendar reporters), the line is omitted rather than showing a date that has already passed.</p>',
+            '<p><strong>Why the Concentration block gives you no position size.</strong> Sizing by conviction is the one thing the estimation-error literature singles out as dangerous: errors in expected returns do roughly <strong>20&times;</strong> the damage of errors in covariances, and about <strong>100&times;</strong> for an investor near zero risk aversion (Chopra &amp; Ziemba, 1993, via Ziemba &amp; MacLean, <em>Stochastic Optimization Methods in Finance and Energy</em>, Springer, 2011). Across 14 optimisation models and 7 datasets, none consistently beat a plain equal split out of sample, which would need an estimation window of roughly <strong>3,000 months</strong> for 25 assets to do reliably (DeMiguel, Garlappi &amp; Uppal, <em>Review of Financial Studies</em> 22(5), 2009). In every documented institutional scheme (equal, cap, inverse-volatility or optimiser weight), the alpha signal drives <em>selection</em> and weighting is a separate, risk-driven decision. So this panel reports the facts about your list and the published external limits, and leaves the number to you.</p>',
             '<p><strong>Why the risk line quotes raw volatility and not a percentile.</strong> Every metric percentile on this site is <em>sector</em>-relative and direction-adjusted, so on volatility a high percentile means a stock is calm <em>for its sector</em>. That cannot rank risk across a list spanning several sectors: measured on this run, the percentile orders the pair backwards for <strong>23.9%</strong> of all cross-sector pairs, in the worst case making a name read as the safer holding while carrying <strong>2.00&times;</strong> the volatility. The annualised figure above is the raw one-year number and is directly comparable between any two names.</p>',
-            '<p class="holdings-storage-note">Saved in this browser only, under the <code>' + HOLDINGS_KEY + '</code> key in <code>localStorage</code>. It is not an account and it is not backed up &mdash; clearing site data removes it, and it will not follow you to another device. Tickers only, up to ' + HOLDINGS_MAX + ' names. This is decision support, not investment advice.</p>'
+            '<p class="holdings-storage-note">Stored in this browser only (<code>localStorage</code>, key <code>' + HOLDINGS_KEY + '</code>), up to ' + HOLDINGS_MAX + ' tickers. It is not an account and is not backed up: clearing site data removes the list, and it does not sync between devices.</p>'
         ].join('');
     }
 
@@ -7964,13 +7984,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (mh && typeof holdings !== 'undefined') {
             mh.textContent = holdings.length
                 ? holdings.slice(0, 4).join(', ') + (holdings.length > 4 ? ' and ' + (holdings.length - 4) + ' more' : '')
-                : 'Track the names you own or watch';
+                : 'Follow the names you own or watch';
         }
         const mc = document.getElementById('meta-changed');
         if (mc && H && H.available && H.movers) {
             const k = H.movers.m1 ? 'm1' : 'prev';
             const mv = H.movers[k], cmp = (H.compare || {})[k];
-            if (mv && cmp) mc.textContent = mv.n_up + ' up, ' + mv.n_down + ' down materially since ' + cmp.date;
+            if (mv && cmp) mc.textContent = mv.n_up + ' up, ' + mv.n_down + ' down materially since ' + prettyDate(cmp.date);
         }
     }
 
@@ -8097,7 +8117,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // score only through research and METHODOLOGY_CHANGELOG.md.
     // =====================================================================
     const RATE_STEP = 0.10;   // show rate sensitivity per +0.10pp in the 10-year yield
-    const CTX_NOTE = 'Context, not part of the score. These readings help you judge timing for yourself; none of them is a signal to act on, and each is recorded every run so its record can be measured.';
+    const CTX_NOTE = 'Context only; none of these readings enters the score. Each is logged every run so its predictive value can be measured.';
 
     function cPct(v, d) {
         if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
@@ -8209,7 +8229,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         let h = '<div class="ctx-card ctx-wide"><div class="ctx-h"><span>Against its own five years</span></div>';
         if (b.ey) h += vhRow(b.ey, b.m0, 'Earnings yield', 'Net income over market value; a higher yield means a lower price for each dollar of earnings.');
         if (b.fy) h += vhRow(b.fy, b.m0, 'Free-cash-flow yield', 'Operating cash flow minus capital spending, over market value.');
-        h += '<p class="ctx-why">The valuation percentiles in the score compare this stock with its sector. This compares it with itself. Most of the gap between two companies&rsquo; valuations persists for years: Cohen, Polk &amp; Vuolteenaho (2003) attribute only 20&ndash;25% of the cross-sectional spread in book-to-market to temporary differences in expected returns, the rest to profitability and lasting valuation levels. Whether a yield that is high <i>for this stock</i> has gone on to predict its returns is not established &mdash; a yield can sit high because earnings are about to fall. This screener records the reading every run to test it, and does not score it.</p>' +
+        h += '<p class="ctx-why">The valuation percentiles in the score compare this stock with its sector. This compares it with itself. Most of the gap between two companies&rsquo; valuations persists for years: Cohen, Polk &amp; Vuolteenaho (2003) attribute only 20&ndash;25% of the cross-sectional spread in book-to-market to temporary differences in expected returns, the rest to profitability and lasting valuation levels. Whether a yield that is high <i>for this stock</i> has gone on to predict its returns is not established; a yield can sit high because earnings are about to fall. This screener records the reading every run to test it, and does not score it.</p>' +
              '<p class="ctx-why">Built from the company&rsquo;s SEC filings as first reported: trailing-twelve-month figures at each month-end, using only what had been filed by then, over the month-end price times diluted shares (adjusted for stock splits). Shown only where today&rsquo;s figures reproduce the market value within 15%.' + (b.fy ? '' : ' No free-cash-flow yield for banks and insurers, or where the filings do not carry five years of it.') + '</p></div>';
         return h;
     }
@@ -8279,7 +8299,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         let o = '<div class="ctx-card"><div class="ctx-h"><span>What options imply</span></div>';
         if (c.os === 'ok' || c.os === 'partial') {
             const earn = s.earn && s.earn.d;
-            o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. Direction is not implied - only size.</p>';
+            o += '<div class="ctx-big">&plusmn;' + cPlain(c.om) + '</div><p class="ctx-line">The average move options are paying for by <b>' + escapeHtml(cDate(c.ox)) + '</b> (' + c.od + ' days)' + (c.oe && earn ? ', an expiry that <b>spans the ' + escapeHtml(cDate(earn)) + ' report</b>' : '') + '. The figure is a size; options do not imply a direction.</p>';
             o += '<table class="ctx-table"><tbody>';
             if (c.oi !== undefined) o += '<tr><td>Implied volatility (at the money)</td><td class="num">' + cPlain(c.oi, 0) + '</td></tr>';
             const rv = (s.raw || {}).volatility;
@@ -8288,7 +8308,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
                 if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             }
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there - over 1996-2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? ' - and <b>this expiry is ' + c.od + ' days, outside that range</b>, so their figures are context here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -8313,8 +8333,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     '<tr><td>' + (r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" title="The Form 4 filing">' + escapeHtml(cDate(r.date)) + '</a>' : escapeHtml(cDate(r.date))) + '</td><td><span class="ctx-who">' + escapeHtml(r.name || '') + '</span><span class="ctx-role">' + escapeHtml(r.role || '') + '</span></td>' +
                     '<td class="' + (r.code === 'P' ? 'ctx-buy' : 'ctx-sell') + '">' + (r.code === 'P' ? 'Bought' : 'Sold') + (r.plan ? '<span class="ctx-plan" title="The filing says this trade was made under a Rule 10b5-1 plan set up in advance">plan</span>' : '') + '</td><td class="num">' + cMoney(r.value) + '</td></tr>').join('') + '</tbody></table>';
             }
-            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative and sales mostly have not - executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). The evidence is strongest in smaller companies: among the largest - which includes the whole S&amp;P 500 - Lakonishok &amp; Lee found the market barely reacted to insider trades and the signal was weak. Grants, gifts and option exercises are left out.' +
-                 (ins.src === 'sec' ? ' <b>Plan</b> marks a sale the filing reports under a Rule 10b5-1 trading plan, arranged months ahead - the least informative kind. Source: each Form 4 at the SEC; the date opens the filing.' : ' Source: Yahoo Finance, compiled from Form 4 (no plan flag).') +
+            i += '<p class="ctx-why">Insider <b>purchases</b> have historically been informative; sales mostly have not, because executives dispose of shares to diversify and on pre-set plans (Lakonishok &amp; Lee 2001; Cohen, Malloy &amp; Pomorski 2012). The evidence is strongest in smaller companies. Among the largest, which includes the whole S&amp;P 500, Lakonishok &amp; Lee found the market barely reacted to insider trades and the signal was weak. Grants, gifts and option exercises are left out.' +
+                 (ins.src === 'sec' ? ' <b>Plan</b> marks a sale the filing reports under a Rule 10b5-1 trading plan, arranged months ahead and the least informative kind. Source: each Form 4 at the SEC; the date opens the filing.' : ' Source: Yahoo Finance, compiled from Form 4 (no plan flag).') +
                  (ins.link ? ' <a href="' + escapeHtml(ins.link) + '" target="_blank" rel="noopener">All Form 4 filings at the SEC</a>' : '') + '</p>';
         } else {
             i += '<p class="ctx-line">No insider data this run.</p>';
@@ -8326,7 +8346,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const sr = ((D.market || {}).sector_rate || {})[s.sector];
             h += '<div class="ctx-card"><div class="ctx-h"><span>Sensitivity to interest rates</span></div><div class="ctx-big">' + cPct(c.rb * RATE_STEP, 2) + '</div>' +
                  '<p class="ctx-line">How the stock has typically moved for each <b>+0.10 percentage point</b> rise in the 10-year Treasury yield (a large day for the 10-year), from the past ' + Math.round(c.rn / 21) + ' months of daily moves' +
-                 (sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '') + '. Rate moves explained ' + cPlain(c.rr2, 0) + ' of its daily swings' + (c.rr2 < 0.05 ? ' - very little, so read this loosely' : '') + '.</p></div>';
+                 (sr ? '; ' + escapeHtml(s.sector) + ' median ' + cPct(sr.median * RATE_STEP, 2) : '') + '. Rate moves explained ' + cPlain(c.rr2, 0) + ' of its daily swings' + (c.rr2 < 0.05 ? ', very little, so read the figure loosely' : '') + '.</p></div>';
         }
         h += '</div>';
         host.innerHTML = h;
@@ -8350,6 +8370,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const u = sr.unit === '%' || sr.unit === 'pp' ? 'pp' : (sr.unit === 'k' ? 'k' : '');
         return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(u === 'k' ? 0 : 2) + u;
     }
+    // "62nd", not "62th" (the label printed 62th, 2th and 3th until 2026-10-16)
+    function mkOrd(n) { const v = n % 100; return n + ((v >= 11 && v <= 13) ? 'th' : ({1: 'st', 2: 'nd', 3: 'rd'}[n % 10] || 'th')); }
     function renderMarket() {
         const host = document.getElementById('market-body');
         const M = D.market;
@@ -8364,7 +8386,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             meta.textContent = bits.join(' · ');
         }
-        let h = '<p class="section-desc">What kind of market these stocks are being ranked in. Public data from FRED, refreshed every run. <b>Context only</b> - nothing here enters a score, and none of it says when to buy or sell.</p>';
+        let h = '<p class="section-desc">The macro backdrop for this run, from FRED. Shown for context only; none of it enters a score.</p>';
         h += '<div class="mk-readings">' + (M.readings || []).map(r =>
             '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p></div>').join('') + '</div>';
         const order = ['DGS10', 'DGS2', 'T10Y3M', 'BAA10Y', 'VIXCLS', 'DFF', 'CPIAUCSL', 'UNRATE', 'ICSA', 'T10Y2Y'];
@@ -8373,8 +8395,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const pct = sr.pct_10y;
             return '<div class="mk-card"><div class="mk-label">' + escapeHtml(sr.label) + '</div><div class="mk-row"><span class="mk-val">' + mkVal(sr) + '</span>' + sparkSvg(sr.spark, 120, 34) + '</div>' +
                 '<div class="mk-chg"><span>1m ' + (mkChg(sr, 'chg_1m') || '&mdash;') + '</span><span>1y ' + (mkChg(sr, 'chg_1y') || '&mdash;') + '</span></div>' +
-                (pct !== undefined ? '<div class="mk-pct" title="Where today sits in this series\' last ten years"><span class="mk-pct-track"><i style="left:' + pct + '%"></i></span><span class="mk-pct-t">' + Math.round(pct) + 'th percentile of 10 years</span></div>' : '') +
-                '<div class="mk-date">' + escapeHtml(sr.date) + (sr.freq !== 'daily' ? ' &middot; ' + sr.freq : '') + '</div></div>';
+                (pct !== undefined ? '<div class="mk-pct" title="Where today sits in this series\' last ten years"><span class="mk-pct-track"><i style="left:' + pct + '%"></i></span><span class="mk-pct-t">' + mkOrd(Math.round(pct)) + ' percentile of 10 years</span></div>' : '') +
+                '<div class="mk-date">' + escapeHtml(cDate(sr.date)) + (sr.freq !== 'daily' ? ' &middot; ' + sr.freq : '') + '</div></div>';
         }).join('') + '</div>';
         const sr = M.sector_rate || {};
         const ks = Object.keys(sr).sort((a, b) => sr[a].median - sr[b].median);
@@ -8385,7 +8407,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     return '<div class="mk-rate-row"><span class="mk-rate-n">' + escapeHtml(k) + '</span><span class="mk-rate-track"><i class="' + (v >= 0 ? 'pos' : 'neg') + '" style="width:' + w.toFixed(1) + '%"></i></span><span class="mk-rate-v">' + cPct(v * RATE_STEP, 2) + '</span></div>'; }).join('') + '</div>';
         }
         h += '<h3 class="chart-title mk-h3">How this connects to the factors</h3><div class="mk-notes">' + (M.factor_notes || []).map(n => '<div class="mk-note"><b>' + escapeHtml(n.title) + '.</b> ' + escapeHtml(n.text) + '</div>').join('') + '</div>';
-        h += '<p class="modal-note">Source: ' + escapeHtml(M.source || 'FRED') + '. As of ' + escapeHtml(M.as_of || '') + '.' + (M.errors && Object.keys(M.errors).length ? ' Unavailable this run: ' + Object.keys(M.errors).join(', ') + '.' : '') + '</p>';
+        h += '<p class="modal-note">Source: ' + escapeHtml(M.source || 'FRED') + '. As of ' + escapeHtml(cDate(M.as_of || '')) + '.' + (M.errors && Object.keys(M.errors).length ? ' Unavailable this run: ' + Object.keys(M.errors).join(', ') + '.' : '') + '</p>';
         host.innerHTML = h;
     }
 
@@ -8432,7 +8454,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const tot = T.total || {};
         if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal-weight S&P 500 ' + cPct(tot.RSP) + ' since ' + cDate(T.start);
         const kpi = (lab, v, sub) => '<div class="tr-kpi"><div class="tr-kpi-l">' + lab + '</div><div class="tr-kpi-v">' + v + '</div><div class="tr-kpi-s">' + sub + '</div></div>';
-        let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it happened - no backfill, no hindsight. It measures the ranking, not a portfolio to follow; it lists no holdings to copy.</p>';
+        let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it was published, with nothing backfilled. It measures the ranking, not a portfolio to follow.</p>';
         h += '<div class="tr-kpis">' +
             kpi('Top 25, total return', cPct(tot.top), 'equal-weight, rebalanced monthly') +
             kpi('S&amp;P 500 equal-weight', cPct(tot.RSP), 'RSP, the like-for-like benchmark') +
@@ -8442,12 +8464,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         h += '<div class="seg-control tr-seg"><button type="button" class="seg-btn' + (TR_SHOW_Q ? '' : ' active') + '" onclick="setTrackView(false)">Top 25 vs index</button><button type="button" class="seg-btn' + (TR_SHOW_Q ? ' active' : '') + '" onclick="setTrackView(true)">Top fifth vs bottom fifth</button></div>';
         h += '<div class="tr-chart">' + trackChartSvg(T, TR_SHOW_Q) + '</div>';
         h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th></tr></thead><tbody>' +
-            T.periods.map(p => '<tr><td>' + escapeHtml(p.date) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPct(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td></tr>').join('') +
+            T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPct(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td></tr>').join('') +
             '</tbody></table></div></details>';
         h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
             (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
             (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
-                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed - usually companies taken private or acquired (' +
+                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed, usually companies taken private or acquired (' +
                   escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
                   '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
             (T.filled && ((T.filled.from_records || []).length || Object.keys(T.filled.renamed || {}).length)
@@ -8456,7 +8478,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                       Object.keys(T.filled.renamed).map(k => escapeHtml(k) + ' &rarr; ' + escapeHtml(T.filled.renamed[k])).join(', ') + ')' : '') +
                   ((T.filled.from_records || []).length ? (Object.keys(T.filled.renamed || {}).length ? '; ' : '') +
                       'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, until they stopped (' +
-                      escapeHtml(T.filled.from_records.join(', ')) + ') - price only, without dividends' : '') + '. ' : '') +
+                      escapeHtml(T.filled.from_records.join(', ')) + '), on price alone without dividends' : '') + '. ' : '') +
             'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
         host.innerHTML = h;
     }
@@ -8541,8 +8563,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             });
             h += '</tbody></table></div>';
         }
-        h += '<p class="rp-note">Ordered by date, then by rank - never by the size of the expected move. A report is when the inputs to Valuation, Quality and Growth are actually replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
-             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price - the size of move the market is paying for, not its direction; blank when quotes were stale or no expiry spans the report. <b>Last quarter</b>: the latest reported quarter&rsquo;s EPS against the analysts&rsquo; estimate - a beat or miss, not a forecast of the next one. <b>Insiders</b>: officers and directors who made open-market purchases in the last 90 days. Click a row for the full picture.</p>';
+        h += '<p class="rp-note">Sorted by date, then rank. A report is when the inputs to Valuation, Quality and Growth are replaced; between reports they barely move (in the largest one-month change measured, Quality moved materially for one stock in 500). ' +
+             '<b>est. date</b>: the data provider\'s estimate, not a date the company has announced. <b>Options imply</b>: the at-the-money call plus put on the first expiry after the report, divided by the price. It is the size of move the market is pricing, in either direction; blank when quotes were stale or no expiry spans the report. <b>Last quarter</b>: the latest reported quarter&rsquo;s EPS against the analysts&rsquo; estimate. <b>Insiders</b>: officers and directors who made open-market purchases in the last 90 days. Select a row for the full detail.</p>';
         host.innerHTML = h;
     }
     (function wrapReporting() {
@@ -8574,7 +8596,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (kv && ks) {
                 kv.textContent = f(tot.top);
                 const mo = Math.max(1, Math.round((T.days || 0) / 30.4));
-                ks.textContent = 'top 25, vs ' + f(tot.RSP) + ' equal-weight S&P 500 · ' + mo + ' months, too short to judge';
+                ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' for the equal-weight S&P 500 · ' + mo + '-month record';
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
                     card.onclick = () => goToSection('sec-track');
@@ -8775,12 +8797,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         let kpiHtml = '';
         const freshTs = dq.data_freshness ? new Date(dq.data_freshness) : null;
         const freshStr = freshTs && !isNaN(freshTs) ? freshTs.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
-        kpiHtml += dqKpi('Data Freshness', freshStr, 'when the data was last fetched from Yahoo Finance', null);
+        kpiHtml += dqKpi('Data Freshness', freshStr, 'Last fetch from Yahoo Finance', null);
         kpiHtml += dqKpi('Metric Coverage',
             dq.avg_metric_coverage !== null && dq.avg_metric_coverage !== undefined ? (dq.avg_metric_coverage * 100).toFixed(0) + '%' : '—',
-            'of the metrics that apply to each stock have a value, on average', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
+            'Average share of applicable metrics with a value', dq.avg_metric_coverage >= 0.80 ? '#0ca30c' : '#fab219');
         kpiHtml += dqKpi('EPS Mismatch', dq.eps_mismatch_count !== undefined ? dq.eps_mismatch_count : '—',
-            'stocks have a GAAP vs. non-GAAP EPS discrepancy that may distort growth metrics',
+            'Stocks where GAAP and adjusted EPS diverge enough to distort growth',
             dq.eps_mismatch_count === 0 ? '#0ca30c' : '#fab219');
         document.getElementById('defensibility-kpis').innerHTML = kpiHtml;
 
@@ -8863,7 +8885,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     hHtml += '<strong>Overlapping factors:</strong> ' + highPairs.join(', ') + '. These pairs measure similar things — the effective number of independent signals is lower than 8. ';
                 }
                 if (modPairs.length > 0) {
-                    hHtml += '<strong>Moderate overlap:</strong> ' + modPairs.join(', ') + '. Some shared signal, but each still adds value. ';
+                    hHtml += '<strong>Moderate overlap:</strong> ' + modPairs.join(', ') + '. These pairs share some signal. ';
                 }
                 var indepCount = 8 - Math.floor(highPairs.length * 0.5 + modPairs.length * 0.2);
                 if (indepCount < 8) {
@@ -8914,8 +8936,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const drTxt = dr === 0 ? 'unchanged'
                 : `${dr > 0 ? '▲' : '▼'}${Math.abs(dr)} ranks`;
             return `<div class="modal-hist-block">
-                <div class="modal-hist-head">${label} <span class="muted">(${escapeHtml(date)})</span>
-                    &mdash; <span class="${dr > 0 ? 'pos' : (dr < 0 ? 'neg' : 'muted')}">${drTxt}</span></div>
+                <div class="modal-hist-head">${label} <span class="muted">${escapeHtml(prettyDate(date))}</span>
+                    <span class="${dr > 0 ? 'pos' : (dr < 0 ? 'neg' : 'muted')}">${drTxt}</span></div>
                 <table class="mini-table"><tbody>${rows}</tbody></table>
             </div>`;
         }
@@ -8926,7 +8948,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         body.innerHTML = `
             <div class="rank-chart-head">
-                <span>Rank <strong>${first[1]}</strong> on ${escapeHtml(H.dates[first[0]])} &rarr; <strong>${last[1]}</strong> on ${escapeHtml(H.dates[last[0]])}, across ${pts.length} comparable runs</span>
+                <span>Rank <strong>${first[1]}</strong> on ${escapeHtml(prettyDate(H.dates[first[0]]))} &rarr; <strong>${last[1]}</strong> on ${escapeHtml(prettyDate(H.dates[last[0]]))}, across ${pts.length} comparable runs</span>
                 ${rt ? '<span class="rt-badge" title="A large rank excursion that returned to base. Usually a metric dropping out and returning rather than a real change.">round-trip</span>' : ''}
             </div>
             ${rankChartSvg(ser.r)}
@@ -8934,7 +8956,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             ${catTable(d.prev, 'Since last run', (H.compare.prev || {}).date || '')}
             ${catTable(d.m1, 'Since ~1 month', (H.compare.m1 || {}).date || '')}
             </div>
-            <p class="modal-note">History covers ${H.dates.length} runs judged comparable to each other. Score changes describe what the model saw, not what you should do.</p>
+            <p class="modal-note">Based on ${H.dates.length} comparable runs.</p>
         `;
     }
 

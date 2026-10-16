@@ -76,7 +76,7 @@ def _detail(day: str | None = "2026-11-04", est: bool = False,
 
 def test_states_the_date_and_the_horizon():
     s = S._sentence_earnings(_detail("2026-11-04"), RUN_DATE)
-    assert "4 Nov 2026" in s
+    assert "Nov 4, 2026" in s
     assert "36 days after this run" in s
 
 
@@ -105,7 +105,7 @@ def test_estimated_date_is_labelled():
     """Property 2 - the single most load-bearing behaviour here."""
     s = S._sentence_earnings(_detail("2026-11-05", est=True), RUN_DATE)
     assert "provider estimate" in s
-    assert "not a confirmed date" in s or "rather than a confirmed date" in s
+    assert "not yet confirmed by the company" in s
 
 
 def test_confirmed_date_carries_no_estimate_caveat():
@@ -124,7 +124,7 @@ def test_estimated_and_confirmed_differ_only_by_the_caveat():
 def test_window_is_stated_as_a_range():
     s = S._sentence_earnings(
         _detail("2026-11-04", end="2026-11-06"), RUN_DATE)
-    assert "between 4 Nov 2026 and 6 Nov 2026" in s
+    assert "between Nov 4, 2026 and Nov 6, 2026" in s
     # The horizon still counts from the start of the window, not its end.
     assert "36 days after this run" in s
 
@@ -133,7 +133,7 @@ def test_equal_end_does_not_render_a_degenerate_range():
     s = S._sentence_earnings(
         _detail("2026-11-04", end="2026-11-04"), RUN_DATE)
     assert "between" not in s
-    assert "on 4 Nov 2026" in s
+    assert "on Nov 4, 2026" in s
 
 
 @pytest.mark.parametrize("day", ["2026-09-28", "2026-08-01", "2025-01-01"])
@@ -162,21 +162,21 @@ def test_unparseable_dates_are_silent_not_fatal(bad):
 
 def test_unparseable_window_end_falls_back_to_the_start():
     s = S._sentence_earnings(_detail("2026-11-04", end="nonsense"), RUN_DATE)
-    assert "on 4 Nov 2026" in s
+    assert "on Nov 4, 2026" in s
 
 
 def test_end_before_start_is_ignored():
     """A provider inversion must not render "between 4 Nov and 1 Nov"."""
     s = S._sentence_earnings(_detail("2026-11-04", end="2026-11-01"), RUN_DATE)
     assert "between" not in s
-    assert "on 4 Nov 2026" in s
+    assert "on Nov 4, 2026" in s
 
 
 def test_leading_zero_is_not_printed():
     """strftime('%-d') is not portable to Windows, which is where this runs."""
     s = S._sentence_earnings(_detail("2026-11-04"), RUN_DATE)
     assert "04 Nov" not in s
-    assert "4 Nov" in s
+    assert "Nov 4" in s
 
 
 # ---------------------------------------------------------------------------
@@ -204,8 +204,8 @@ def test_wording_does_not_change_with_proximity():
     """
     near = S._sentence_earnings(_detail("2026-10-01"), RUN_DATE)
     far = S._sentence_earnings(_detail("2027-01-01"), RUN_DATE)
-    assert near.replace("2 days", "X").replace("1 Oct 2026", "D") == \
-        far.replace("94 days", "X").replace("1 Jan 2027", "D")
+    assert near.replace("2 days", "X").replace("Oct 1, 2026", "D") == \
+        far.replace("94 days", "X").replace("Jan 1, 2027", "D")
 
 
 # ---------------------------------------------------------------------------

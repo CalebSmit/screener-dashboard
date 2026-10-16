@@ -224,14 +224,14 @@ def _sentence_rank(detail: dict, universe_size: int) -> str | None:
         # them, the last beats none. Both operands are on screen, so a reader
         # can check the division.
         share = (n - rank) / (n - 1) * 100
-        sentence += f" - ahead of {share:.0f}% of the other {n - 1} stocks"
+        sentence += f", ahead of {share:.0f}% of the other {n - 1} stocks"
     n_cats = len(_scored_categories(detail))
     cat_phrase = (
         f"its {n_cats} category scores" if n_cats else "its category scores"
     )
     return (
-        f"{sentence}. Its composite of {composite:.1f} is a 0-100 score "
-        f"computed from {cat_phrase} and their weights, not a percentile."
+        f"{sentence}. Its composite of {composite:.1f} is a 0–100 score "
+        f"built from {cat_phrase} and their weights, not a percentile."
     )
 
 
@@ -255,8 +255,8 @@ def _sentence_drivers(detail: dict) -> str | None:
     ]
     total = sum(k for _, k, _ in top)
     return (
-        f"Most of that composite comes from {_join(parts)} - "
-        f"{total:.1f} of its {composite:.1f} points."
+        f"Most of that composite comes from {_join(parts)}, "
+        f"which supply {total:.1f} of its {composite:.1f} points."
     )
 
 
@@ -366,7 +366,7 @@ def _baseline_phrase(compare: dict | None, key: str) -> str:
     """"the run of 2026-08-14 (32 days ago)", or a generic fallback."""
     base = (compare or {}).get(key) or {}
     date, gap = base.get("date"), base.get("gap_days")
-    when = f"the run of {date}" if date else "the last comparable run"
+    when = f"the run of {_fmt_iso(date)}" if date else "the last comparable run"
     if gap:
         when += f" ({int(gap)} day{'s' if int(gap) != 1 else ''} ago)"
     return when
@@ -542,7 +542,7 @@ def _sentence_target(detail: dict) -> str | None:
         who = f", the mean of {int(analysts)} analyst estimate"
         who += "s" if int(analysts) != 1 else ""
         if analysts < THIN_ANALYST_COUNT:
-            who += " - a thin basis"
+            who += ", a thin basis"
     return (
         f"It last traded at {_fmt_money(price)} against an analyst price "
         f"target of {_fmt_money(target)}, {abs(gap):.1f}% {direction} the "
@@ -646,15 +646,24 @@ def _sentence_earnings(detail: dict, run_date: str | None) -> str | None:
     else:
         horizon = f"{days} days after this run"
 
-    tail = (" - a provider estimate rather than a confirmed date"
+    tail = (" (a provider estimate, not yet confirmed by the company)"
             if earn.get("est") else "")
     return f"It is scheduled to report earnings {window}, {horizon}{tail}."
 
 
 def _fmt_day(value: date) -> str:
-    """``4 Nov 2026``. Spelled out rather than strftime('%-d') - that directive
-    is not portable to Windows, where this runs."""
-    return f"{value.day} {value.strftime('%b')} {value.year}"
+    """``Nov 4, 2026`` - the format the rest of the page uses (2026-10-16; it read
+    ``4 Nov 2026`` beside the page's ``Oct 16, 2026``). Spelled out rather than
+    strftime('%-d'), which is not portable to Windows, where this runs."""
+    return f"{value.strftime('%b')} {value.day}, {value.year}"
+
+
+def _fmt_iso(value) -> str:
+    """An ISO run date (``2026-09-16``) as ``Sep 16, 2026``; anything else unchanged."""
+    try:
+        return _fmt_day(date.fromisoformat(str(value)[:10]))
+    except (TypeError, ValueError):
+        return str(value)
 
 
 def _sentence_confidence(detail: dict) -> str | None:

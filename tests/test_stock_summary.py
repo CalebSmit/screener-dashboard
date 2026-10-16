@@ -434,7 +434,7 @@ def test_change_prefers_the_one_month_baseline_over_the_previous_run():
     fact = _fact(_build(history_delta={"m1": {"dr": 34, "dc": 2.6},
                                        "prev": {"dr": 1, "dc": 0.1}},
                         history_compare=COMPARE), "change")
-    assert "2026-08-10" in fact
+    assert "Aug 10, 2026" in fact
     assert "moved up 34 places" in fact
     assert "2026-09-07" not in fact
 
@@ -442,7 +442,7 @@ def test_change_prefers_the_one_month_baseline_over_the_previous_run():
 def test_change_falls_back_to_the_previous_run_when_no_month_baseline():
     fact = _fact(_build(history_delta={"prev": {"dr": -12, "dc": -1.1}},
                         history_compare=COMPARE), "change")
-    assert "2026-09-07" in fact
+    assert "Sep 7, 2026" in fact
     assert "moved down 12 places" in fact
     assert "composite down 1.1" in fact
 
@@ -470,7 +470,7 @@ def test_a_held_rank_is_reported_as_held_not_omitted():
 def test_a_stock_new_to_the_universe_says_so():
     fact = _fact(_build(history_delta={"m1": {"new": True}},
                         history_compare=COMPARE), "change")
-    assert "was not in the run of 2026-08-10" in fact
+    assert "was not in the run of Aug 10, 2026" in fact
 
 
 def test_no_history_means_no_change_sentence_not_a_guess():
@@ -510,7 +510,7 @@ def test_change_driver_quotes_the_same_baseline_as_the_change_sentence():
     summary = _build(history_delta=DRIVER_DELTA, history_compare=COMPARE)
     change = _fact(summary, "change")
     driver = _fact(summary, "change_driver")
-    assert "2026-08-10" in change and "2026-08-10" in driver
+    assert "Aug 10, 2026" in change and "Aug 10, 2026" in driver
     assert "2026-09-07" not in driver
 
 
@@ -518,7 +518,7 @@ def test_change_driver_falls_back_with_the_change_sentence():
     summary = _build(history_delta={"prev": {"dr": -3, "cat": {"quality": -8.0}}},
                      history_compare=COMPARE)
     driver = _fact(summary, "change_driver")
-    assert "2026-09-07" in driver
+    assert "Sep 7, 2026" in driver
     assert "Quality" in driver and "8.0 points" in driver
 
 

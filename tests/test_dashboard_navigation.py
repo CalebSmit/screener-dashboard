@@ -483,7 +483,7 @@ def test_context_panels_render_without_errors(browser):
         page.evaluate(f"openStockDetail('{t}')")
         page.wait_for_selector("#stock-modal .modal-body", state="visible")
         body = page.inner_text("#modal-context")
-        assert "Context, not part of the score" in body and "200-day" in body
+        assert "Context only; none of these readings enters the score" in body and "200-day" in body
         assert page.evaluate("!!document.querySelector('#modal-context .pc-svg')")
         page.keyboard.press("Escape")
         if page.evaluate("!!(D.market && D.market.series)"):
