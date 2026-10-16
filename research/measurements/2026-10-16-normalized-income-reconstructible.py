@@ -95,10 +95,13 @@ def analyse(period, data):
                           "nics": nics, "normalized": no, "unusual": ui, "tax_effect": te,
                           "took_out": adj, "unusual_less_tax_effect": (ui - te) if te is not None else None,
                           "gap": gap})
-        # separately: is the rate the source used the company's own effective rate?
-        tr, tp, pi = v.get(TR), v.get(TP), v.get(PI)
-        if tr is not None and tp is not None and pi and abs(pi) > 1e6:
-            rate_gaps.append(abs(tr - tp / pi))
+        # Separately: is the rate the source used the company's own effective rate? Only at the
+        # fiscal year - "Tax Rate For Calcs" is a ratio, and the trailing window sums its rows, so
+        # a four-quarter "sum" of it is four times a rate and compares with nothing.
+        if period == "annual":
+            tr, tp, pi = v.get(TR), v.get(TP), v.get(PI)
+            if tr is not None and tp is not None and pi and abs(pi) > 1e6:
+                rate_gaps.append(abs(tr - tp / pi))
     rebuilt = sum(n for k, n in kinds.items() if k.startswith("rebuilt"))
     adjusted = rebuilt + kinds["ADJUSTED, and the served rows do not rebuild it"] + \
         kinds["ADJUSTED, but no unusual-items row to explain it"]
@@ -134,8 +137,9 @@ for period in ("annual", "ttm"):
     if r["median_unexplained_gap_usd"]:
         print(f"   median unexplained gap: ${r['median_unexplained_gap_usd']:,.0f}")
     rr = r["served_rate_vs_tax_provision_over_pretax"]
-    print(f"   'Tax Rate For Calcs' vs Tax Provision / Pretax Income: {rr['within_1pp']} of "
-          f"{rr['checked']} within 1pp (median gap {rr['median_gap_pp']}pp)")
+    if rr["checked"]:
+        print(f"   'Tax Rate For Calcs' vs Tax Provision / Pretax Income: {rr['within_1pp']} of "
+              f"{rr['checked']} within 1pp (median gap {rr['median_gap_pp']}pp)")
     if r["quarters_short"]:
         print("   rows short of four quarters:")
         for k, n in list(r["quarters_short"].items())[:6]:

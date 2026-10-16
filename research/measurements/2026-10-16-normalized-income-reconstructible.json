@@ -218,9 +218,9 @@
   "share_rebuilt": 0.7659,
   "median_unexplained_gap_usd": 44500000.0,
   "served_rate_vs_tax_provision_over_pretax": {
-   "checked": 289,
+   "checked": 0,
    "within_1pp": 0,
-   "median_gap_pp": 64.53
+   "median_gap_pp": null
   },
   "quarters_short": {
    "Total Unusual Items: 0 of 4 quarters": 119,
