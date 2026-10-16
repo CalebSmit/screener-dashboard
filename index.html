@@ -3345,6 +3345,30 @@
         .sec-grid .collapsible-section:not(.collapsed) .sec-blurb { display: none; }
         .sec-grid .collapsible-section:not(.collapsed) .section-header { border-bottom: 1px solid var(--border); }
         .sec-grid .defensibility-header-left { flex: 1 1 0; min-width: 0; }
+
+        /* ---- THE RANKINGS: the composite leads, the eight scores speak quietly ----
+           A blue wash behind 4,000 cells competed with the one column that ranks. Each score's ink now
+           brightens with its value instead - strengths read first, weaknesses recede, nothing hidden. */
+        .data-table td.sc { background: none; font-weight: 500;
+            color: color-mix(in srgb, var(--text-primary) calc(18% + var(--v) * 82%), var(--text-muted)); }
+        .data-table td.comp { font-size: 14px; }
+        .data-table td.comp i { height: 2px; opacity: .7; }
+        .data-table .delta-cell { font-size: 11px; letter-spacing: .01em; }
+        .data-table .delta-cell.pos { color: color-mix(in srgb, var(--green) 80%, var(--text-muted)); }
+        .data-table .delta-cell.neg { color: color-mix(in srgb, var(--red) 75%, var(--text-muted)); }
+        .data-table tbody tr:hover td.sc { color: var(--text-primary); }
+        .data-table thead th { letter-spacing: .05em; }
+        .table-section, .filters-bar { border-radius: 14px; }
+
+        /* ---- THE STOCK SHEET: the profile, then the reasons ---- */
+        #stock-modal .modal-ticker { font-size: 28px; letter-spacing: -.02em; }
+        .mh-item strong { font-variant-numeric: tabular-nums; }
+        .modal-score-row { margin-bottom: 26px; }
+        .summary-block { padding-top: 4px; }
+        .summary-rank, .summary-body > p.summary-fact:first-child { font-size: 16.5px; line-height: 1.55; color: var(--text-primary); font-weight: 500; }
+        .summary-group-label { text-transform: none; letter-spacing: .01em; font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
+        .summary-fact { font-size: 14px; line-height: 1.6; }
+        @media (max-width: 760px) { .mh-price { display: none; } }
         @media (max-width: 760px) {
             .sec-grid { grid-template-columns: 1fr; gap: 10px; }
             .sec-grid > .collapsible-section { padding: 0 16px; }
@@ -3712,8 +3736,8 @@
                     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
                 </div>
                 <nav class="modal-nav" aria-label="In this stock">
-                    <a href="#modal-summary" onclick="goToModal('modal-summary');return false">Why it ranks here</a>
                     <a href="#modal-score-row" onclick="goToModal('modal-score-row');return false">Scores</a>
+                    <a href="#modal-summary" onclick="goToModal('modal-summary');return false">Why it ranks here</a>
                     <a href="#section-contribution" onclick="goToModal('section-contribution');return false">How it adds up</a>
                     <a href="#section-categories" onclick="goToModal('section-categories');return false">The workings</a>
                     <a href="#section-context" onclick="goToModal('section-context');return false">Before you decide</a>
@@ -3726,6 +3750,10 @@
                     <!-- Why it ranks here: deterministic summary, built at
                          run time from this run's own numbers. Replaced the
                          browser-side AI chat (owner directive 2026-08-10). -->
+                    <!-- Score summary row: the profile first, so the eye has the shape before the words
+                         (investor pass, 2026-10-15) -->
+                    <div class="modal-score-row" id="modal-score-row"></div>
+
                     <div class="summary-block" id="modal-summary" style="display:none">
                         <div class="summary-head">
                             <span class="summary-title">Why it ranks here</span>
@@ -3749,8 +3777,6 @@
                         <div class="about-source">Business description supplied by Yahoo Finance. Descriptive only &mdash; it is not scored and does not affect the ranking.</div>
                     </div>
 
-                    <!-- Score summary row -->
-                    <div class="modal-score-row" id="modal-score-row"></div>
 
                     <!-- Contribution breakdown -->
                     <div class="collapsible" id="section-contribution">
@@ -6120,7 +6146,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.getElementById('modal-company').textContent = s.company;
         document.getElementById('modal-sector').textContent = s.sector;
         const hl = document.getElementById('modal-headline');
-        if (hl) hl.innerHTML = `<span class="mh-item"><span class="mh-k">Rank</span><strong>#${s.rank}</strong><span class="mh-of">of ${D.kpis.universe_size}</span></span>` +
+        const px = (typeof s.price === 'number' && isFinite(s.price)) ? `<span class="mh-item mh-price"><span class="mh-k">Last price</span><strong>$${s.price.toFixed(2)}</strong></span>` : '';
+        if (hl) hl.innerHTML = px + `<span class="mh-item"><span class="mh-k">Rank</span><strong>#${s.rank}</strong><span class="mh-of">of ${D.kpis.universe_size}</span></span>` +
             `<span class="mh-item"><span class="mh-k">Composite</span><strong>${fmt(s.composite,'score')}</strong></span>`;
 
         renderSummary(s);
