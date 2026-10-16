@@ -849,9 +849,20 @@ which inputs agree within 2% with the filing. Display-only - a test fails if `xc
 as-reported less the source's "Special Income Charges"; the "Total Operating Income As Reported" row
 equals the filings 374 of 374. The persistence evidence (Rouen, So & Wang 2021) and MSCI's practice
 support the pre-special-items figure for ROIC and EV/EBITDA, so its disagreement with the filing is the
-definition, not a defect - **do not "fix" it by switching rows or to the filings.** The open question is
-earnings yield, which still uses net income *with* one-offs: **Proposal status: OPEN** in
-`research/2026-10-15-earnings-definition.md`, for a second session to decide.
+definition, not a defect - **do not "fix" it by switching rows or to the filings.**
+**Earnings yield is settled too (2026-10-16): it stays on net income as reported.** The proposal to
+score it on the source's "Normalized Income" was **REFUSED** - the research is good (Rouen, So &
+Wang 2021: persistence 0.810 against 0.637) but the input cannot be put on one basis. At the
+four-quarter window the engine sums, **23 companies have no normalized figure at all** (Amazon, Bank
+of America, Berkshire, Boeing), which re-creates the fallback-cohort defect `factor_engine.py:2094`
+records Phase 13 fixing *in this metric*; and **8 of the 18 fallback companies whose figures are
+known carry annual one-offs worth 10%+ of net income** (Boeing 434%, General Mills 2,193%), so it
+would remove the small distortions and keep the largest. Reading "absent" as zero is false for 70
+companies. **Do not reopen it without answering section 8.6** of
+`research/2026-10-15-earnings-definition.md`. What shipped instead is display-only: the
+earnings-yield row says what one-off charge is inside the figure, from the company's own filings
+(47 of 501 stocks; **37 of those 47 tag one every one of their last four fiscal years**), claim
+`drilldown.special_item_note`, `tests/test_special_item_note.py`.
 
 **0.6. One observation per run date - CLOSED 2026-10-08.** The record moved to `DECISIONS.md`
 ("0.6, closed") on 2026-10-16. The constraint: **every append-once-per-run file holds one row

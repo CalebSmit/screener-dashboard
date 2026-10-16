@@ -4086,3 +4086,72 @@ why earnings yield turns negative - that is the filed figure, where the quarterl
 fetch); the full suite.
 **Applied by:** owner-run session, 2026-10-15.
 **Rollback:** `good/2026-10-15-owner-9`.
+
+## 2026-10-16 - Proposal REFUSED: earnings yield stays on net income as reported, and the row now says what one-off charge is inside it
+
+**Area:** metric definition (`earnings_yield`) - **reviewed and not changed**; display and provenance.
+
+**The proposal** (`research/2026-10-15-earnings-definition.md` section 6, left open by the
+2026-10-15 owner-run session): score earnings yield on the source's **"Normalized Income"** - net
+income without its unusual items, tax-effected - instead of net income as reported, falling back to
+net income "when the row is absent (1 company of 497)". Operating income unchanged. Earnings yield
+is 20% of Valuation and **4.4 of 100 composite points**, 40% and 8.8 points for banks. Rescored, the
+rank correlation with today was 0.996 and the top 25 did not move.
+
+**Changed:** nothing in scoring. Refused, with the measurements in section 8 of that note. Shipped
+instead: the drilldown's earnings-yield row carries a per-stock note, built from the company's own
+filings, wherever a tagged restructuring or impairment charge is **10% or more** of the trailing net
+income the run scored - how large it is, the tag the company applied to it, that it is before tax,
+and in how many of the company's last four fiscal years a charge of the same kind appears.
+Display-only; **47 of 501 stocks** on the 2026-10-16 payload, 9 of them inside the top 100.
+
+**Evidence - the research is accepted; the input is what fails.** Section 2's sources hold and the
+one carrying the argument was re-read. Rouen, So & Wang (2021), *JFE* 142(3) 1068-1091, Table 3
+Panel A: next-year persistence **0.810** for core earnings against **0.637** for net income and
+**0.178** for the excluded items. MSCI's Fundamental Data Methodology (March 2021, pp. 13-14)
+excludes non-recurring items from EPS on an after-tax basis and uses that EPS for trailing P/E. The
+incoherence section 4 identifies is real: EV/EBITDA measures the recurring business while earnings
+yield measures it plus this year's one-offs.
+
+**Evidence - it cannot be put on one basis, which is the defect Phase 13 fixed in this metric.**
+`factor_engine.py:2094`: *"Phase 13 (F19): SINGLE definition across the universe. Previously this
+fell back to trailingEps/price ... so the fallback cohort was ranked on an incomparable basis inside
+one percentile rank."* Measured at the four-quarter window the engine sums, not the annual row the
+proposal measured:
+
+* **23 companies** have no four-quarter "Normalized Income" at all - ABT, AMZN, APH, BA, BAC, BRK-B,
+  CHD, CHRW, CINF, CPRT, CPT, DLR, DTE, ES, EXR, GIS, ILMN, LEN, MDLZ, REG, TFC, WELL, ZBH - so they
+  would be ranked on earnings *including* their one-offs beside 265 ranked excluding them.
+* **The fallback cohort is where the one-offs are largest.** Of the 18 whose annual figures are both
+  known, **8 report annual unusual items worth 10% or more of net income**: General Mills 2,193% (a
+  $1.92bn charge against an $88M loss), **Boeing 434%** ($9.70bn, a gain on selling a business),
+  CPT 65%, DLR 56%, ZBH 37%, AMZN 20%, WELL 16%, ES 11%. The change would remove the small
+  distortions and keep the two largest in the index.
+* **Reading "absent" as zero to avoid the split is false for 70 companies**, 33 of them worth 5% or
+  more of net income (CVS -$5.24bn against $1.77bn of net income; Colgate -$929M; PepsiCo -$1.99bn).
+  Only 15 have a short row the fiscal year confirms as zero.
+* **81 of 346 adjusted companies (23.4%)** would carry an adjustment nothing on the page can
+  reproduce - the largest NVDA, $6.49bn taken off $192.88bn with the unusual-items row populated in
+  1 of 4 quarters. (At the fiscal year it rebuilds for 346 of 385, 89.9%.)
+
+**Evidence - the note's own refusal test, run on 503 companies instead of the 20 it suggested.**
+From the companies' own XBRL tags: of 493 with four fiscal years filed, **120 (24.3%) tagged a
+restructuring or impairment charge in every one of the four**, and 181 (36.7%) in three or four. Of
+the 47 stocks the shipped note selects, **37 tagged one in all four of their last four years**. That
+is the "misclassify recurring costs at scale" condition section 6 named, met at the scale it named -
+and the caveat section 3 had parked as a refinement for later.
+
+**Not evidence, and not used:** no backtest figure (rule 5) and no IC from this system's history
+(rule 4). The 0.996 rank correlation argued neither way - a change that splits the universe's basis
+is not made acceptable by being small.
+
+**Expected effect:** none on any score, rank or composite. On the page, 47 stocks gain a sentence on
+the earnings-yield row from the 2026-10-19 02:00 run.
+
+**Validated by:** `tests/test_special_item_note.py` (13), claim `drilldown.special_item_note` in
+`claims.py` - which puts the module in the data loop's publish gate by derivation; the full suite;
+`scripts/rehearse_publish.py` (the regenerated page, 47 stocks, published files restored byte for
+byte); and the row read in a browser at 1440 and 375px on SBUX, KHC and GILD.
+
+**Applied by:** 13:00 scheduled session, 2026-10-16.
+**Rollback:** `good/2026-10-16`.

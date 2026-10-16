@@ -317,3 +317,27 @@ filings rather than from a vendor's classification.
 
 Display-only: `cavs['earnings_yield']` is prose, enters no `raw`, `pct`, category score or
 composite, and a test fails if a scoring module imports `sec_crosscheck`.
+
+**What it selects, on the 2026-10-16 payload** (threshold 10% of the trailing net income the run
+scored, written into `sec_crosscheck.SPECIAL_ITEM_SHARE_MIN` before the selection was run - the same
+number and reasoning as `LEASE_SHARE_MIN`): **47 of 501 stocks, 9 of them inside the top 100.**
+Full list in `research/measurements/2026-10-16-special-item-selection.json`.
+
+**And the selection makes section 8.4's point on exactly the stocks it affects: 37 of the 47 tagged
+a charge of the same kind in all four of their last four fiscal years** (7 in three, 2 in two, 1 in
+one). Pfizer's $8.9bn of asset impairment is 2.1 times its net income and its filings carry one
+every year; Kraft Heinz's $7.4bn, likewise. Whatever those are, "unusual" is not the word, and a
+rule that removed them would be removing a recurring cost of doing business from the earnings these
+companies are ranked on.
+
+**Three defects were found by reading the first draft's own output, and are what the tests pin.**
+Two in the sentence: `_usd` takes an absolute value, so a loss was announced as net income ("The
+$3.2B of net income above" for Gilead's **$3.24bn loss**), and a share of a loss was printed as if
+it meant something ("7,887% of the net income" against Air Products' $47M loss). One in the
+recurrence clause: its window was derived from the special-item tags themselves, and a year without
+a charge files no such tag, so "N of M" could only ever report N of N. A fourth was found by
+looking at the page at 375px: Gilead's tag is 59 characters and one unbreakable token, and the note
+**clipped** it at the panel's edge - a clip does not widen the document, so the shot script's
+`scrollWidth` assertion could not see it. `tests/test_special_item_note.py`, 13 tests, in the data
+loop's publish gate (its membership is derived from `claims.py`, so registering the claim put it
+there).
