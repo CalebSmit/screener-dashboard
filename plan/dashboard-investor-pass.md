@@ -125,8 +125,15 @@ statement, never louder than the primary action.
 - **The score words beside each bar** ("Strong", "Very weak") were 9px capitals in a chip; they are 11.5px
   text.
 
+## Phase 11 - DONE 2026-10-16 (owner-run)
+
+- **One product, three pages**: `research.html` and `lab.html` carried a plain-text title and blue
+  "Back to the screener" links. Both now open with the front page's mark and name (a link home) and the
+  same quiet three-way nav - Rankings, Has it been tested?, Factor Lab - with the current page marked.
+  `research_page.py` generates the research page's bar; `lab.html` is source.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
    12.5), uppercase labels used only for tile labels, consistent 14px radii on panels.
-4. **research.html and lab.html** in the same voice as the front page (their bars and headers).
+4. **research.html and lab.html**: bars done (phase 11); their section headers and figures next.

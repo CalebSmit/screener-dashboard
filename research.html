@@ -37,9 +37,14 @@ a:hover { text-decoration: underline; }
 .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px 72px; }
 @media (min-width: 720px) { .wrap { padding: 0 32px 96px; } }
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.mark { color: var(--text-primary); font-weight: 600; letter-spacing: -.01em; }
-.mark span { color: var(--text-muted); font-weight: 500; }
-.bar nav { display: flex; gap: 16px; font-size: 14px; }
+.mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
+.bmk { width: 24px; height: 24px; flex: none; }
+.bm-bg { fill: var(--bg-elevated); stroke: var(--border-bright); } .bm-1 { fill: var(--accent); opacity: .5; } .bm-2 { fill: var(--accent); opacity: .75; } .bm-3 { fill: var(--accent); }
+.bar nav { display: flex; gap: 4px; font-size: 13.5px; flex-wrap: wrap; }
+.bar nav a { color: var(--text-secondary); padding: 6px 10px; border-radius: 8px; }
+.bar nav a:hover { color: var(--text-primary); background: var(--bg-card); }
+.bar nav a[aria-current=page] { color: var(--text-primary); background: var(--bg-elevated); }
+@media (max-width: 600px) { .bar { padding: 10px 0 8px; gap: 6px; } .bar nav { margin-left: -10px; } }
 .lede { padding: 40px 0 4px; max-width: 68ch; }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 h1 { margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw, 40px); line-height: 1.12; font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }
@@ -99,8 +104,8 @@ details summary { cursor: pointer; color: var(--accent-text); font-size: 14px; m
 <body>
 <div class="wrap">
   <div class="bar">
-    <div class="mark">Has it been tested? <span>&middot; Multi-Factor Screener</span></div>
-    <nav aria-label="Site"><a href="index.html">Back to the screener</a><a href="lab.html">Factor Lab</a></nav>
+    <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
+    <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html" aria-current="page">Has it been tested?</a><a href="lab.html">Factor Lab</a></nav>
   </div>
 
   <header class="lede">
