@@ -162,15 +162,99 @@ def test_the_tripwire_catches_a_test_that_reads_the_page_through_the_generator()
     assert "SCREENER_OVERVIEW.md" in _OVERVIEW_ROUTES
 
 
-def test_the_gate_speaks_for_artifacts_the_data_loop_actually_publishes():
+def _data_artifacts_block():
     code = _code(DATA_RUNNER)
     start = code.find("$DataArtifacts")
     assert start != -1
-    block = code[start : code.find(")", start)]
+    return code[start : code.find(")", start)]
+
+
+def test_the_gate_speaks_for_artifacts_the_data_loop_actually_publishes():
+    block = _data_artifacts_block()
     for artifact in gate.PUBLISHED_ARTIFACTS:
         assert artifact in block, (
             f"{artifact} is in the gate's scope but data-run.ps1 does not stage it"
         )
+
+
+def test_every_page_or_payload_the_data_loop_stages_is_in_the_gates_scope():
+    """The converse direction, and the one that was missing.
+
+    The test above only checked that everything *claimed* is published. Nothing
+    checked that everything *published* is claimed for - so when the context
+    layer was split into dashboard_context.js on 2026-10-08 and added to
+    $DataArtifacts, PUBLISHED_ARTIFACTS stayed as it was and no test could see
+    the difference. Found by the 2026-10-16 retrospective.
+
+    The rule is mechanical: a page, payload or document in $DataArtifacts is a
+    thing the public reads, so this gate must speak for it. Evidence and data
+    files (.xlsx, .csv, .json, improvement/, validation/, data/) are a different
+    kind of artifact and are guarded by check_run_health.py.
+    """
+    block = _data_artifacts_block()
+    staged = re.findall(r"'([^']+)'", block)
+    public = [s for s in staged if s.endswith((".html", ".js", ".md"))]
+    assert public, "could not read $DataArtifacts - the detector has gone blind"
+    missing = [s for s in public if s not in gate.PUBLISHED_ARTIFACTS]
+    assert missing == [], (
+        "data-run.ps1 publishes these to the live site, but the published-claims "
+        "gate does not list them in PUBLISHED_ARTIFACTS: " + ", ".join(missing)
+    )
+
+
+# ---------------------------------------------------------------------------
+# Derived membership, 2026-10-16. A hand-kept list of modules goes stale the
+# moment a claim is registered: fifteen modules holding 64 of claims.py's own
+# checks sat outside this gate, all eight context.* claims among them. The gate
+# now derives membership from the register, so that cannot recur.
+# ---------------------------------------------------------------------------
+
+
+def test_every_claims_register_check_is_in_the_gate():
+    import claims
+
+    named = set()
+    for claim in claims.CLAIMS:
+        for ref in claim.checked_by or ():
+            mod = ref.split("::")[0]
+            if mod.startswith("tests/"):
+                named.add(mod)
+
+    listed = set(gate.module_paths())
+    missing = sorted(named - listed - set(gate.EXCLUDED))
+    assert missing == [], (
+        "claims.py names these as the checks that make a published claim true, "
+        "but the loop that publishes it does not run them: " + ", ".join(missing)
+    )
+
+
+def test_membership_is_derived_not_transcribed():
+    """A test that only compared two lists would pass on a transcription, and go
+    stale again at the next claim. Membership must come from the register."""
+    derived = set(gate.claim_check_modules())
+    curated = {m for m, _ in gate.MODULES}
+    assert derived - curated, (
+        "claim_check_modules() adds nothing beyond MODULES - either the register "
+        "shrank or the derivation stopped working"
+    )
+    assert derived <= set(gate.module_paths())
+
+
+def test_an_excluded_module_is_named_with_a_reason_and_printed(monkeypatch, capsys):
+    """No silent caps: a check this gate does not run must say so every run."""
+    monkeypatch.setattr(gate, "EXCLUDED", {"tests/test_context_layer.py": "needs the network"})
+    assert "tests/test_context_layer.py" not in gate.module_paths()
+    gate.run(["--list"])
+    assert "EXCLUDED: needs the network" in capsys.readouterr().out
+
+
+def test_a_broken_claims_register_refuses_rather_than_shrinking(monkeypatch, capsys):
+    def boom():
+        raise RuntimeError("register unreadable")
+
+    monkeypatch.setattr(gate, "claim_check_modules", boom)
+    assert gate.run([]) == 1
+    assert "claims register" in capsys.readouterr().out
 
 
 # ---------------------------------------------------------------------------
@@ -274,29 +358,45 @@ def test_a_skipped_check_is_reported_not_silent():
 # ---------------------------------------------------------------------------
 
 
+# Both payload files. dashboard_context.js was published unguarded from the
+# 2026-10-08 split until 2026-10-16: no size floor, no parse, no header check, on
+# either runner. Parametrised so a third payload file cannot repeat it.
+PAYLOAD_HEADERS = (
+    ("dashboard_data.js", r"^window\.SCREENER_DATA="),
+    ("dashboard_context.js", r"^window\.SCREENER_CONTEXT="),
+)
+
+
 @pytest.mark.parametrize("runner", [DATA_RUNNER, CODE_RUNNER], ids=["data", "code"])
-def test_both_runners_check_the_payload_is_the_payload(runner):
+@pytest.mark.parametrize("payload,header", PAYLOAD_HEADERS, ids=[p for p, _ in PAYLOAD_HEADERS])
+def test_both_runners_check_the_payload_is_the_payload(runner, payload, header):
     """A correctly sized, validly parsing file that is not the payload is a
     blank dashboard. node --check cannot see that."""
-    assert r"^window\.SCREENER_DATA=" in _code(runner), (
-        f"{runner.name} does not verify the payload's opening assignment"
+    code = _code(runner)
+    assert header in code, (
+        f"{runner.name} does not verify {payload}'s opening assignment"
     )
+    assert payload in code, f"{runner.name} never names {payload}"
 
 
 def test_the_data_runner_refuses_a_payload_with_the_wrong_header():
     code = _code(DATA_RUNNER)
     idx = code.find(r"^window\.SCREENER_DATA=")
     assert idx != -1
-    window = code[idx : idx + 500]
-    assert "Stop-Run" in window
+    window = code[idx:]
+    assert "Stop-Run" in window[:2000]
 
 
 def test_the_header_check_runs_before_the_commit():
     code = _code(DATA_RUNNER)
-    header_at = code.find(r"^window\.SCREENER_DATA=")
     commit_at = code.find("'commit', '-m'")
-    assert -1 not in (header_at, commit_at)
-    assert header_at < commit_at
+    assert commit_at != -1
+    for payload, header in PAYLOAD_HEADERS:
+        header_at = code.find(header)
+        assert header_at != -1, f"{payload}'s header check is absent"
+        assert header_at < commit_at, (
+            f"{payload}'s header is checked after the commit - too late to refuse"
+        )
 
 
 # ---------------------------------------------------------------------------

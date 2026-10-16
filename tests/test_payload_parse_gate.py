@@ -46,6 +46,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_RUNNER = ROOT / "scripts" / "data-run.ps1"
 CODE_RUNNER = ROOT / "scripts" / "nightly-screener.ps1"
 PAYLOAD = ROOT / "dashboard_data.js"
+CONTEXT = ROOT / "dashboard_context.js"
 
 NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(NODE is None, reason="node not available")
@@ -68,12 +69,13 @@ def _code(path):
 # ---------------------------------------------------------------------------
 
 
-def _old_checks_pass(data: bytes, min_bytes: int = 100_000) -> bool:
+def _old_checks_pass(data: bytes, min_bytes: int = 100_000,
+                     header: bytes = b"window.SCREENER_DATA=") -> bool:
     """The checks both runners had before 2026-09-18, reimplemented exactly."""
     if len(data) < min_bytes:
         return False
     first_line = data.split(b"\n", 1)[0].replace(b" ", b"")
-    return first_line.startswith(b"window.SCREENER_DATA=")
+    return first_line.startswith(header)
 
 
 def _node_check(path) -> int:
@@ -102,6 +104,50 @@ def test_a_half_truncated_payload_passes_the_old_checks_and_fails_the_parse(tmp_
     assert _old_checks_pass(truncated) is True
     # ...and it is not JavaScript.
     assert _node_check(victim) != 0
+
+
+@needs_node
+def test_the_live_context_payload_parses():
+    """The second payload file, split out 2026-10-08 and guarded from 2026-10-16.
+
+    1.7 MB of every stock's trend, options, insider, macro and track-record
+    context, published by the data loop every weekday. For eight days neither
+    runner size-checked, parsed or header-checked it - the 2026-09-18 hole
+    exactly, on a file that did not exist then.
+    """
+    assert CONTEXT.exists(), "no dashboard_context.js to check"
+    assert _node_check(CONTEXT) == 0
+
+
+@needs_node
+def test_a_truncated_context_payload_passes_the_old_checks_and_fails_the_parse(tmp_path):
+    src = CONTEXT.read_bytes()
+    truncated = src[: len(src) // 2]
+    victim = tmp_path / "dashboard_context.js"
+    victim.write_bytes(truncated)
+    assert len(truncated) > 100_000
+    assert _old_checks_pass(truncated, header=b"window.SCREENER_CONTEXT=") is True
+    assert _node_check(victim) != 0
+
+
+def test_both_runners_parse_every_javascript_payload_the_data_loop_publishes():
+    """The tripwire that generalises 2026-10-16.
+
+    The hole was not "dashboard_context.js was forgotten"; it was that adding a
+    published payload file required remembering to widen two PowerShell scripts,
+    and nothing checked. Any .js file in data-run.ps1's $DataArtifacts is served
+    to the public, so both runners must name it inside their parse/header spec.
+    """
+    staged = re.findall(r"'([^']+\.js)'", _code(DATA_RUNNER))
+    payloads = sorted(set(staged))
+    assert payloads, "could not read the staged .js artifacts - detector is blind"
+    for runner in (DATA_RUNNER, CODE_RUNNER):
+        code = _code(runner)
+        for payload in payloads:
+            assert payload in code, (
+                f"{runner.name} never names {payload}, which the data loop publishes - "
+                "so it is neither parsed nor header-checked before going live"
+            )
 
 
 @needs_node

@@ -316,9 +316,23 @@ try {
     if (Test-Path $dash) { Copy-Item $dash $idx -Force; Write-Log "Copied dashboard.html -> index.html" }
 
     # --- Sanity-check before publishing --------------------------------------
+    # Both payload files, since 2026-10-16. dashboard_context.js has been in
+    # $DataArtifacts - i.e. published to the live site every weekday - since the
+    # 2026-10-08 split, and until now not one of these three checks looked at it:
+    # no size floor, no parse, no header. It carries the whole context layer
+    # (trend, options, insiders, macro, track record) for every stock; broken, it
+    # leaves window.SCREENER_CONTEXT unset and every context panel silently empty.
+    # Exactly the 2026-09-18 asymmetry, on the file that did not exist then.
     $dataPath = Join-Path $RepoPath 'dashboard_data.js'
-    foreach ($pair in @(@($idx, 50000), @($dataPath, 100000))) {
-        $p = $pair[0]; $min = $pair[1]
+    $ctxPath  = Join-Path $RepoPath 'dashboard_context.js'
+    # file, size floor, expected opening assignment as a regex ('' = not a payload)
+    $OutputChecks = @(
+        @($idx,      50000,  ''),
+        @($dataPath, 100000, '^window\.SCREENER_DATA='),
+        @($ctxPath,  100000, '^window\.SCREENER_CONTEXT=')
+    )
+    foreach ($spec in $OutputChecks) {
+        $p = $spec[0]; $min = $spec[1]
         if (-not (Test-Path $p) -or (Get-Item $p).Length -lt $min) {
             Write-Log "Output $p looks wrong (missing or under $min bytes). Not publishing." 'ERROR'
             Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
@@ -339,14 +353,19 @@ try {
     # so: this loop publishing nothing would cost a day of evidence, and the
     # check is strictly additional to what was here before, never a replacement.
     if (Get-Command node -ErrorAction SilentlyContinue) {
-        $parse = Invoke-Native 'node' @('--check', $dataPath)
-        if ($parse.ExitCode -ne 0) {
-            Write-Log "dashboard_data.js does not parse as JavaScript. Not publishing." 'ERROR'
-            Write-NativeOutput $parse 'ERROR'
-            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-            Stop-Run "Refusing to publish a dashboard payload the browser cannot read." 2
+        foreach ($spec in $OutputChecks) {
+            $p = $spec[0]
+            if (-not $spec[2]) { continue }
+            $leaf = Split-Path $p -Leaf
+            $parse = Invoke-Native 'node' @('--check', $p)
+            if ($parse.ExitCode -ne 0) {
+                Write-Log "$leaf does not parse as JavaScript. Not publishing." 'ERROR'
+                Write-NativeOutput $parse 'ERROR'
+                Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+                Stop-Run "Refusing to publish a dashboard payload the browser cannot read." 2
+            }
+            Write-Log "$leaf parses ($([int]((Get-Item $p).Length / 1024)) KB)."
         }
-        Write-Log "dashboard_data.js parses ($([int]((Get-Item $dataPath).Length / 1024)) KB)."
     } else {
         Write-Log "node not found - published on the size check alone, without a parse." 'WARN'
     }
@@ -355,11 +374,15 @@ try {
     # payload - a correctly-sized, validly-parsing file that is not
     # window.SCREENER_DATA is still a blank dashboard. This loop did not, for no
     # reason beyond nobody having compared the two. Added 2026-10-02.
-    $firstChars = (Get-Content $dataPath -TotalCount 1) -replace '\s', ''
-    if ($firstChars -notmatch '^window\.SCREENER_DATA=') {
-        Write-Log "dashboard_data.js no longer starts with the expected assignment. Not publishing." 'ERROR'
-        Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
-        Stop-Run "Refusing to publish a payload the dashboard will not recognise." 2
+    foreach ($spec in $OutputChecks) {
+        $p = $spec[0]; $expect = $spec[2]
+        if (-not $expect) { continue }
+        $firstChars = (Get-Content $p -TotalCount 1) -replace '\s', ''
+        if ($firstChars -notmatch $expect) {
+            Write-Log "$(Split-Path $p -Leaf) no longer starts with the expected assignment ($expect). Not publishing." 'ERROR'
+            Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
+            Stop-Run "Refusing to publish a payload the dashboard will not recognise." 2
+        }
     }
 
     # --- Published-claims gate ------------------------------------------------

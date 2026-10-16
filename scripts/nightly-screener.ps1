@@ -75,10 +75,10 @@ $FocusBySlot = @{
 
 $FocusByDay = @{
     'Monday'    = 'RESEARCH. Take one specific thing - a factor, a metric, a threshold, a construction rule - and learn it properly, from the literature AND from documented practice, in this one session. Real citations, effect sizes, the conditions the effect held under, and how quant shops and institutional screens actually handle it. Where academia and practice disagree, say so and say why. A dated note in research/, complete today. No production code.'
-    'Tuesday'   = 'PRODUCT. Open the live dashboard as a user would. Does it answer what should I look at / should I buy this / should I sell what I hold / how much? Read plan/dashboard-inventory.md before building anything - the most likely failure is rebuilding what exists. Ship a dashboard change, or write down precisely what it cannot answer and why.'
+    'Tuesday'   = 'PRODUCT, THROUGH THE NUMBERS. Open the live dashboard as a user would and ask whether it answers what should I look at / should I buy this / should I sell what I hold / how much. The visual design is finished (owner, 2026-10-07), so presentation is not this session''s job. When the page cannot answer something the gap is almost always data or methodology: a number the run does not keep, a question no metric answers. Fix that. Check two or three drilldowns still reproduce the engine. A broken or false surface is a defect; one that merely could look different is not.'
     'Wednesday' = 'SYNTHESIS. How does this fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. Record any methodology change in METHODOLOGY_CHANGELOG.md with its sources.'
     'Thursday'  = 'BUILD. Implement what the week''s research justified. Write tests alongside the code.'
-    'Friday'    = 'HARDEN AND TEACH. Tests, docs, error handling, and the investment-club experience. Would a finance student understand what they are looking at?'
+    'Friday'    = 'THE FACTOR LAB. One finished experiment: a paper the methodology cites, rerun on public data, tolerances written into factor_lab.py BEFORE the comparison runs, a failed replication published as one. plan/factor-lab.md governs; move EXPERIMENTS, TAKEAWAYS, CATEGORY_MAP, the methodology paragraph and ASSET_VERSION together. If the lab has nothing ready, harden and teach instead - tests, docs, error handling, the investment-club experience - and say which you chose.'
     'Saturday'  = 'WEEKEND. Work the single highest-value open item: OWNER_FOCUS.md first, then the top of CLAUDE.md "Current priorities", then the queues in plan/. Finish it end to end.'
     'Sunday'    = 'WEEKEND. Work the single highest-value open item: OWNER_FOCUS.md first, then the top of CLAUDE.md "Current priorities", then the queues in plan/. Finish it end to end.'
 }
@@ -587,19 +587,39 @@ try {
     Restore-Artifacts 'refreshed by gate 2'
 
     # Gate 3: dashboard artifacts still intact
+    #
+    # dashboard_context.js joined this gate on 2026-10-16. The context layer was
+    # split out of dashboard_data.js on 2026-10-08 into a second published payload
+    # file (CLAUDE.md, "Both publish paths carry two data files") and NOTHING that
+    # guards a published payload was widened for it: no size floor, no parse and no
+    # header check on either runner, for eight days. It is 1.7 MB of every stock's
+    # trend, options, insider, macro and track-record context; a truncated or
+    # unparseable copy leaves window.SCREENER_CONTEXT unset and every context panel
+    # silently empty - which a 2026-10-12 session already lost time diagnosing as
+    # "the context layer publishes nothing". Same shape as the 2026-09-18 hole, on
+    # the newer file.
     $indexPath = Join-Path $RepoPath 'index.html'
     $dataPath  = Join-Path $RepoPath 'dashboard_data.js'
+    $ctxPath   = Join-Path $RepoPath 'dashboard_context.js'
+    # file, size floor, expected opening assignment as a regex ('' = not a payload)
+    $g3Files = @(
+        @($indexPath, 50000,  ''),
+        @($dataPath,  100000, '^window\.SCREENER_DATA='),
+        @($ctxPath,   100000, '^window\.SCREENER_CONTEXT=')
+    )
     $g3 = $true
-    foreach ($pair in @(@($indexPath, 50000), @($dataPath, 100000))) {
-        $p = $pair[0]; $min = $pair[1]
+    foreach ($spec in $g3Files) {
+        $p = $spec[0]; $min = $spec[1]
         if (-not (Test-Path $p)) { Write-Log "GATE 3: $p missing" 'ERROR'; $g3 = $false; continue }
         $len = (Get-Item $p).Length
         if ($len -lt $min) { Write-Log "GATE 3: $p is only $len bytes (expected >$min)" 'ERROR'; $g3 = $false }
     }
-    if ($g3 -and (Test-Path $dataPath)) {
-        $firstChars = (Get-Content $dataPath -TotalCount 1) -replace '\s', ''
-        if ($firstChars -notmatch '^window\.SCREENER_DATA=') {
-            Write-Log "GATE 3: dashboard_data.js no longer starts with the expected assignment" 'ERROR'
+    foreach ($spec in $g3Files) {
+        $p = $spec[0]; $expect = $spec[2]
+        if (-not $g3 -or -not $expect -or -not (Test-Path $p)) { continue }
+        $firstChars = (Get-Content $p -TotalCount 1) -replace '\s', ''
+        if ($firstChars -notmatch $expect) {
+            Write-Log "GATE 3: $(Split-Path $p -Leaf) no longer starts with the expected assignment ($expect)" 'ERROR'
             $g3 = $false
         }
     }
@@ -616,13 +636,17 @@ try {
     # and the regex - and `node --check` refuses it, in 0.14s on the full 5 MB
     # file. Where node is absent the gate falls back to the checks above and
     # warns, so it is strictly stricter than it was and still cannot jam.
-    if ($g3 -and (Test-Path $dataPath)) {
+    if ($g3) {
         if (Get-Command node -ErrorAction SilentlyContinue) {
-            $parse = Invoke-Native 'node' @('--check', $dataPath)
-            if ($parse.ExitCode -ne 0) {
-                Write-Log "GATE 3: dashboard_data.js does not parse as JavaScript" 'ERROR'
-                Write-NativeOutput $parse 'ERROR'
-                $g3 = $false
+            foreach ($spec in $g3Files) {
+                $p = $spec[0]
+                if (-not $spec[2] -or -not (Test-Path $p)) { continue }
+                $parse = Invoke-Native 'node' @('--check', $p)
+                if ($parse.ExitCode -ne 0) {
+                    Write-Log "GATE 3: $(Split-Path $p -Leaf) does not parse as JavaScript" 'ERROR'
+                    Write-NativeOutput $parse 'ERROR'
+                    $g3 = $false
+                }
             }
         } else {
             Write-Log "GATE 3: node not found - checked size and header only, not parsed." 'WARN'

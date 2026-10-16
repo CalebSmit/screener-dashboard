@@ -29,31 +29,57 @@ Do not rely on impressions. Go and look:
 - **`scripts/nightly-screener.ps1` and `scripts/data-run.ps1`** - read every
   path that touches `main`: what publishes, in what order, what it is checked
   against first, and what runs from `finally`. Nothing else in the rotation ever
-  points here, and **all three retrospectives that have looked found a live hole
+  points here, and **all four retrospectives that have looked found a live hole
   on the first read.**
 
-  **Compare the two runners against each other.** Where one is stricter than the
-  other about the same artifact, the weaker one is usually the bug, and it is
-  usually the one that publishes more often. Each of the three holes was that
-  shape, so keep score rather than re-finding them:
+  **Do this as an enumeration, not a read-through.** Every one of the four holes
+  was the same shape - *the strongest check guards the path that publishes least
+  often* - and 2026-10-16 found two of them in one file because the check had
+  been written for an artifact that then acquired a sibling. So:
+
+  1. **List every artifact `data-run.ps1` stages** (`$DataArtifacts`) and, for
+     each, name the check that stands between it and the public site **on both
+     paths**. An artifact with no check is the finding. Do the converse too: an
+     artifact named in a gate's scope that the loop no longer stages.
+  2. **List every generated thing a session can change** and ask which gate would
+     see it. Gates 1 and 3 read *committed* artifacts; only a full run rewrites
+     them (this is why `scripts/rehearse_publish.py` exists).
+  3. **Check `claims.py` against `scripts/check_published_claims.py`** - every
+     `checked_by` module must be inside the gate. It is derived now, so this
+     should be a one-line confirmation rather than an audit.
+
+  Keep score rather than re-finding them:
 
   | Found | The asymmetry | Closed by |
   |---|---|---|
   | 2026-09-04 | the brief published with `git push origin HEAD:main` from `finally`, so a gate failure published the refused branch | `scripts/publish-brief.ps1` |
   | 2026-09-18 | the data loop published the payload behind a size floor where the code loop had gate 3 | `node --check` on both paths |
   | 2026-10-02 | the data loop published regenerated public docs having run **no tests**, where the code loop had gate 1 | `scripts/check_published_claims.py` |
+  | 2026-10-16 | `dashboard_context.js` - a second published payload file since 2026-10-08 - had no floor, no parse and no header check on **either** path; and 15 modules holding 64 of `claims.py`'s own checks were outside the claims gate | both runners' spec lists; the gate's membership derived from `claims.py` |
 
-  So gates 1, 3 and the brief now have counterparts on both paths. **Ask which
-  gate still does not** - gates 2 and 4 have no data-loop equivalent, and work
-  out whether that is a hole or correct before concluding either.
+  So gates 1, 3 and the brief have counterparts on both paths. **Gate 2
+  (`--dry-run`) and gate 4 (clean tree) deliberately do not**, and that was
+  checked on 2026-10-16: the data loop *runs the real pipeline*, which strictly
+  dominates a dry-run, and it stashes a dirty tree before starting and stages
+  only its own artifact list, which is stronger than a clean-tree check in the
+  direction that matters. Do not "close" either; look for the next sibling
+  artifact instead.
 
-- **`CLAUDE.md`'s own length.** It went 860 -> 897 -> 1058 lines across three
-  retrospectives, and the growth was "Current priorities" turning into narrative
-  about finished work - in the one file every session must read before it starts.
-  If it is longer than at the last retrospective, find what has become
-  archaeology and move it to `DECISIONS.md`, leaving the **constraint** and the
-  test that enforces it behind. A closed item's reasoning belongs in
-  `DECISIONS.md`, its constraint in `CLAUDE.md`, its discovery in `NIGHTLY_LOG.md`.
+- **`CLAUDE.md`'s own length.** 860 -> 897 -> 1058 -> 970 lines across four
+  retrospectives. It grows back every fortnight by the same mechanism: an item
+  closes and its record stays in "Open", in the one file every session must read
+  before it starts. **Expect to move 100+ lines every time, and do it whatever
+  the number says** - the test is not "is it longer than last time" but "is
+  anything under Open actually closed". A closed item's reasoning belongs in
+  `DECISIONS.md`, its constraint in `CLAUDE.md`, its discovery in
+  `NIGHTLY_LOG.md`.
+
+- **Who is doing the work.** Count `NIGHTLY_LOG.md` entries since the last
+  retrospective, split by scheduled versus owner-run. On 2026-10-16 it was **11
+  scheduled against 44 owner-run**, and that changes what the scheduled sessions
+  are *for*: not "do the next item" but "decide what the owner's sessions left
+  open, and hold the whole thing together". If the split has moved, say what it
+  implies for the rotation.
 
 ## 2. Answer these honestly
 

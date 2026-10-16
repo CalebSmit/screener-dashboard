@@ -17,14 +17,10 @@ run by hand. If verifying genuinely requires something outside this session's
 reach, say so in the log and leave it for the *next* session to finish - not
 for the owner.
 
-**Commit as you go. A usage limit can end this session at any moment.** On
-2026-10-06 the session was cut off by an API 429 eighteen minutes in, after
-finishing a coherent piece of design work and before committing any of it: no
-commits, no log entry, a dirty tree. Commit after every stage that passes its
-own tests - a small "wip:" commit on your branch is fine and costs nothing - and
-write the `NIGHTLY_LOG.md` entry early and extend it, rather than saving both for
-the end. Work that is committed survives a cut-off; work that is only in the tree
-does not.
+**Commit as you go. A usage limit can end this session at any moment** - it did,
+2026-10-06, eighteen minutes in, losing a finished piece of work that was only in
+the tree. Commit after every stage that passes its own tests (a small `wip:`
+commit costs nothing), and write the `NIGHTLY_LOG.md` entry early and extend it.
 
 ## 1. Orient
 
@@ -63,6 +59,13 @@ does not.
   change ships with its frontend in the same commit** (section 3 below, CLAUDE.md
   0.8c), and **a page that is broken or false is a defect to fix** like any other.
 
+- **Check for an open proposal before you choose the day's work.** `MORNING_BRIEF.md`'s
+  "Waiting for a decision" section lists every research note ending in
+  `**Proposal status: OPEN**`, with its age. **If one is listed, deciding it is today's first
+  job** - section 3 has the rules. This is in Orient rather than buried in the focus because
+  most of this project's output now comes from owner-run sessions (2026-10-16: 11 scheduled
+  entries against 44 owner-run in a fortnight), and what a scheduled session uniquely provides
+  is a reader who did not write the proposal.
 - **You may not be today's first session** (since 2026-10-14: 06:00 weekdays, 13:00 every
   day, 06:00 weekends - see CLAUDE.md "The two loops"). If `NIGHTLY_LOG.md` already has an entry
   dated today, read it first: carry on from its **Next**, do not start the same item over, and do
@@ -138,8 +141,14 @@ Never acceptable: "it's cleaner", "it's more modern", "best practice".
 threshold, a construction rule. Learn it properly in this one session, from
 *both* sides:
 
-- **The literature.** Real citations - author, title, year, what the finding
-  actually was, the effect size, and the conditions it held under.
+- **The literature.** Real citations - author, title, year, journal, **a DOI or a
+  stable URL**, what the finding actually was, the effect size, and the
+  conditions it held under. The lab has required a DOI since 2026-10-12
+  (`plan/factor-lab.md`); a note is the same evidence at the same bar. Measured
+  2026-10-16: the three most recent notes give journal, volume, pages, sample
+  and table numbers - real research, not filler - and **zero DOIs or URLs**
+  between them, which leaves the sceptical reader doing a lookup the note should
+  have done.
 - **Documented practice.** How quant shops, institutional screens and index
   providers actually handle it. This is first-class evidence, not a footnote.
 
@@ -173,9 +182,10 @@ outcome, not a failed one - do **not** invent a methodology change so there is
 something to build. Take the top open item in `CLAUDE.md`'s "Current
 priorities" instead, and say in the log which of the two this was.
 
-**Friday - harden and teach.** Tests, docs, error handling, and the
-investment-club experience. Would a finance student understand what they're
-looking at?
+**Friday - the Factor Lab.** One finished experiment; the rules are three
+paragraphs below. If the lab has nothing ready, harden and teach instead - tests,
+docs, error handling, the investment-club experience; would a finance student
+understand what they're looking at? - and say in the log which you chose and why.
 
 **On validation.** You do *not* need a number to make a well-sourced
 methodology change; waiting for proof would freeze the project. Measurement
@@ -194,15 +204,17 @@ a time, of at most 3 points**. The lab never sets a parameter and no scoring mod
 import it. Three things to know before you start:
 
 - **Proposals wait for a second session.** A research note may end in a proposal its author
-  deliberately did not build, carrying the line `**Proposal status: OPEN** - <what>`. The morning
-  brief's "Waiting for a decision" section lists every open one with its age. **If one is listed,
-  review it and decide** before the day's focus - it is an open `OWNER_FOCUS.md` item. Build it
-  with a changelog entry, or refuse it and write down why; then rewrite the status line. Do not
-  decide by skimming, and do not leave it undecided. The 2026-10-12 Growth proposal is the worked
-  example: the 2026-10-13 session measured what the note had not, found the proposal undercut its
-  own premise, and refused it (that note's section 10). Open on 2026-10-14:
-  `research/2026-10-14-capex-definition.md` section 4 (finance-arm leases out of FCF capex for
-  GM, DE, CAT, PCAR; the filed tags are in the note and in the SEC cache after its next refresh).
+  deliberately did not build, carrying the line `**Proposal status: OPEN** - <what>`. **Get the
+  live list from the morning brief's "Waiting for a decision" section, or
+  `python -c "import sys; sys.path.insert(0,'scripts'); import write_brief;
+  print(write_brief.open_proposals())"`** - do not trust a list written in this file, which goes
+  stale within a day (it named the capex proposal for a day after it was refused). **If one is
+  listed, review it and decide** before the day's focus - it is an open `OWNER_FOCUS.md` item.
+  Build it with a changelog entry, or refuse it and write down why; then rewrite the status line.
+  Do not decide by skimming, and do not leave it undecided. This is the highest-leverage thing a
+  scheduled session does, because a proposal needs a reader who did not write it: both decisions
+  so far were **refusals** that measured something the note had not (`research/2026-10-12-growth-category.md`
+  section 10; `research/2026-10-14-capex-definition.md` section 5.7).
 - **Reading rules were written before the questions were researched** (same section of
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock

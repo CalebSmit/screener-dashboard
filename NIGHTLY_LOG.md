@@ -11777,3 +11777,231 @@ section for what a later session must know.
 `plan/dashboard-investor-pass.md` "Next": one type scale across the page; research.html and lab.html
 section headers and figures. Nightly sessions still do not take on design work (CLAUDE.md 0.8) - this is
 owner-run work.
+
+## 2026-10-16 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+
+**Health (rule 8, all five):** last code session ran? **yes** -
+`logs/nightly-2026-10-15_131743-midday.log` ends "Run complete: shipped to main". Data loop
+published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH:
+PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago, bound 40), 4
+effective** - inside the bound, in steady state, and the data log's own line agrees ("4
+effective (31 rows) at the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of
+8 effective observations. Top open roadmap item: **0.11, the context layer** (opened
+2026-10-08, **age 8 days**).
+**Tests:** before **2465 passed / 0 failed**, after **2488 passed / 0 failed** (+23: 12 in the
+new `tests/test_rotation_consistency.py`, 8 in the claims gate's module, 3 in the payload parse
+gate). Dry run exits 0.
+**Owner queue / rotation:** retrospective, so no rotation item. `OWNER_FOCUS.md`'s open items
+were read and left open - a retrospective does not work on the screener. One open proposal
+(`research/2026-10-15-earnings-definition.md`, earnings yield on Normalized Income, 1 day old)
+is **deliberately left for the next normal session**; a retrospective is the wrong session to
+decide a methodology question, and the prompt now puts that check in Orient so it will be the
+first thing that session does.
+
+### Retrospective findings
+
+- **Sessions reviewed: 55** (2026-10-02 to 2026-10-16) - **11 scheduled, 44 owner-run.**
+- **Genuinely valuable: 54 | Churn: 0 | Lost: 1 | Failed gates: 1** (the same session:
+  2026-10-06, Tuesday, killed by an API 429 eighteen minutes in; gate 4 clean-tree failed, the
+  work was salvaged onto the branch and an owner-run session finished it that evening).
+
+**1. What fraction of sessions produced something genuinely valuable? 54 of 55.** This is the
+first retrospective with nothing to put in the churn column. The scheduled eleven:
+10-05 research (the premium-redesign brief, from measurements), 10-06 **lost to a 429**, 10-07
+the false composite-percentile sentence in all six places plus the claims register, 10-08
+`max_drawdown_1y`'s equation and the log-return compounding error it exposed, 10-09 the metric
+audit, 10-12 research, 10-13 the Growth proposal refused on a measurement the note had not made,
+10-14 the input-churn/health-gate source-outage case, 10-14 13:00 the put-skew citation
+corrected, 10-15 the capex proposal refused and the capex figure decomposed, 10-15 13:00 the
+rolled-forward quarter. Every one is a defect fixed or a question answered. The owner-run 44 are
+the Factor Lab (13 experiments), the context layer, backtest v2's point-in-time record layer,
+the research engine, and the fifteen-phase investor presentation pass.
+
+**2. Which rotation day earns its place?** All five, and I checked rather than assumed.
+I expected to find Wednesday (synthesis) was decorative and it is not: 09-09 answered the
+coherence question Monday deferred on all 502 names, 09-16 wrote the design section its Monday
+note was left open for, 09-23 shipped the weighting change the week justified, 09-30 answered the
+procurement decision gating backtest v2. Two Wednesdays went elsewhere (10-07 to the owner queue,
+10-14 to a red gate-1 baseline), both correctly and both recorded.
+
+**What does not earn its place is a *focus string that contradicts the prompt*.** Tuesday's read
+"Ship a dashboard change" while `CLAUDE.md` row 0.8 and `prompts/nightly.md` have said since
+2026-10-07 that nightly sessions do not take on design work - so a session was commissioned to do
+the thing it was forbidden two screens later. Friday's never mentioned the Factor Lab, which
+`CLAUDE.md` has called "the lab's day" since 2026-10-15. Both fixed, both now pinned by a test.
+
+**3. Is the evidence standard holding? Yes, and measured.** 38 changelog entries since
+2026-10-01; **36 carry an Evidence section**, and the two that do not are a measurement report
+and a correction, which is correct. The recent ones are not thinning: 2026-10-12 onward run
+68-103 lines with 12-25 dated references each. The three most recent research notes give
+journal, volume, pages, sample size, table numbers and effect sizes - Rouen, So & Wang (2021)
+*JFE* 142(3) 1068-1091, Russell 3000 1998-2017, ~54,000 firm-years, Table 3; MSCI's Fundamental
+Data Methodology March 2021 pp. 13-14 - this is real research, not plausible filler.
+
+**One gap, now closed:** those same three notes carry **zero DOIs and zero URLs** between them.
+The mandate's bar is a written argument a sceptical reader could follow *to its sources*, and the
+Factor Lab has required a DOI since 2026-10-12. The Monday instruction now requires one too.
+
+**4. What keeps going wrong? One thing, four times now: a check gets written for an artifact,
+the artifact acquires a sibling, and nothing notices.** That is the whole of today's code work
+and it is the fourth instance of the pattern this prompt keeps score of. The deeper version:
+**checks are written as lists, and lists go stale while the thing they list grows.** Three stale
+lists found today - the two runners' payload checks, the publish gate's modules, and the
+hand-written open-proposal and "age N days" notes in the process docs. Every fix was to make the
+list derived rather than transcribed.
+
+**5. Is the tool closer to being the place you'd look before buying or selling? Yes, and the
+honest blocker has changed.** Since the last retrospective: every number on the page is now
+checkable from the page, every metric opens to its formula and inputs, 502/502 composites rebuild
+from the payload or the build refuses to publish, the inputs are cross-checked against the
+companies' own SEC filings per stock, and the evidence is public ("Has it been tested?", the
+Factor Lab). The blocker is no longer explanation - it is that **there is still no demonstrated
+edge**: the research engine's 27 pre-registered experiments over 176 point-in-time months found
+nothing that beats the current weighting, and the baseline's own IC is ~0 in both eras. The tool
+is honest about that on the page, which is the right answer for now, but it is the thing standing
+between "a well-explained screener" and "the place you look".
+
+**6. What is the routine systematically blind to?** Two things.
+
+- **The second publish path's *new* artifacts.** No day points at the runners; only the
+  retrospective does, fortnightly, which is why `dashboard_context.js` published unguarded for
+  eight days. The prompt's instruction was "compare the two runners", which could not see this
+  one - there was no asymmetry between the files, because *neither* checked it. It is now an
+  enumeration: list what `data-run.ps1` stages and name the check for each, both directions.
+- **Whether the scheduled sessions are still doing the right job.** 11 scheduled against 44
+  owner-run means the rotation is now a minority of this project's throughput, and the scheduled
+  session's distinctive contribution is no longer "do the next item" - the owner's sessions do
+  that faster - but **deciding what those sessions deliberately left open**. Both proposals
+  decided so far were refusals, each resting on a measurement the proposing note had not made.
+  That is worth more than another increment, and it was buried in section 3 of the prompt.
+
+### Process changes made
+
+1. **`dashboard_context.js` is guarded on both publish paths** (`scripts/data-run.ps1`,
+   `scripts/nightly-screener.ps1`). It has been in `$DataArtifacts` - published to the live site
+   every weekday - since the 2026-10-08 split, with no size floor, no `node --check` and no
+   opening-assignment check anywhere. 1.7 MB carrying every stock's trend, options, insider,
+   macro and track-record context; broken, `window.SCREENER_CONTEXT` is never set and every
+   context panel is silently empty, which a 2026-10-12 session already lost time diagnosing as
+   "the context layer publishes nothing". Both runners now drive floor, header and parse from one
+   spec list, and the tripwire is general: **every `.js` in `$DataArtifacts` must be named in
+   both runners' specs** (`tests/test_payload_parse_gate.py`, 19 tests).
+
+2. **The published-claims gate derives its membership from `claims.py`.** It had the defect it
+   was built to fix, one level up: `claims.py` registers each published sentence with the tests
+   that make it true, and **15 of those modules holding 64 checks were outside the gate** - all
+   eight `context.*` claims among them. So the loop that publishes the page five mornings a week
+   was not running evidence this project had already written down for it, which is the exact
+   2026-09-28 failure. `module_paths()` is now `MODULES` union every module any claim names.
+   Measured: **916 tests in 92s**, from 237 in 15s - still scoped, against the full suite's 124s.
+   A broken register refuses rather than shrinking the gate; `EXCLUDED` is named and printed
+   every run. `PUBLISHED_ARTIFACTS` gained the context payload and is now checked in **both**
+   directions against `$DataArtifacts` - the converse was the direction that was missing.
+   The two browser modules came in deliberately: they are the data loop's missing counterpart to
+   `scripts/rehearse_publish.py`, they check the page *as regenerated*, and they skip loudly
+   without Chromium so they cannot jam the loop.
+
+3. **The runner's focus strings say what the prompt says, and a test keeps them that way.**
+   Tuesday is now "PRODUCT, THROUGH THE NUMBERS" with the design prohibition in it; Friday is
+   "THE FACTOR LAB", with harden-and-teach as the stated fallback. `CLAUDE.md`'s weekly-cycle
+   table matches. `tests/test_rotation_consistency.py` (12 tests) makes rule 9 checkable for the
+   one piece of the rotation a session cannot read as prose: every weekday the runner names has a
+   day bullet in the prompt, no focus string may commission design work, and Friday must name the
+   lab in both files.
+
+4. **The open-proposal check moved into Orient**, as the day's first job when one is listed, and
+   the hand-written list of which proposal is open was deleted - it still named the capex proposal
+   a day after that proposal was refused. Point at `write_brief.open_proposals()`, never at a
+   transcription.
+
+5. **A research citation carries a DOI or a stable URL** (`prompts/nightly.md`, Monday). Same bar
+   the lab has had since 2026-10-12. Paid for by cutting the "commit as you go" paragraph in half.
+
+6. **`CLAUDE.md`: 1042 -> 970 lines**, and the "Open" section is open items again. 0.8, 0.9, 0.12,
+   0.6, 4's residual and 8 are all closed and between them held ~120 lines of record; the Factor
+   Lab item had become a chronological account of thirteen experiments. All of it moved verbatim
+   to `DECISIONS.md` (855 lines), which keeps the reasoning; `CLAUDE.md` keeps the constraint.
+   Also deleted the hand-written "age N days" from the one item that had one - it still read "age
+   1 day" eight days on.
+
+7. **`prompts/retrospective.md`: the runner comparison is an enumeration, not a read-through**,
+   with the gate 2 / gate 4 question *answered* in it so the next retrospective does not re-ask
+   it: the data loop runs the real pipeline (which dominates `--dry-run`) and stashes a dirty tree
+   before staging only its own list (stronger than a clean-tree check in the direction that
+   matters). Neither absence is a hole. Added: count the scheduled/owner-run split, and expect to
+   move 100+ lines out of `CLAUDE.md` whatever its length says.
+
+### Did
+
+See "Process changes made" - that is the session's work. Nothing in the screener's methodology
+was touched; four commits, all process and gates.
+
+### Evidence / research
+
+- No new literature. The citation check above is a measurement of this project's own notes:
+  38 changelog entries since 2026-10-01, 36 with an Evidence section; 3 notes sampled, all with
+  journal/volume/pages/sample/table and effect sizes, 0 DOIs.
+- Gate-cost measurements, all reproducible: the 15 missing claim modules run **392 tests in 48s**
+  offline; the two browser modules **26 tests in 26s**; the widened gate **916 tests in 92s**
+  against the previous 237 in 15s and the full suite's 124s.
+- The context payload is **1,750,213 bytes** and was committed by the data loop on every weekday
+  run since 2026-10-08 with no check of any kind on either path.
+
+### Methodology changed
+
+- none. A retrospective does not change methodology, and nothing here touched a weight,
+  a threshold or a formula.
+
+### Tried and rejected
+
+- **Adding gate 2 and gate 4 counterparts to the data loop.** The prompt has asked a
+  retrospective to settle this for a fortnight. Rejected on inspection and the reasoning written
+  into the prompt so it is not re-asked: `run_screener.py --dry-run` checks pipeline wiring, and
+  the data loop *runs the pipeline for real*, which strictly dominates it; a clean-tree gate would
+  be weaker than what the loop already does, which is to stash a dirty tree before starting
+  (2026-10-06) and stage only its own artifact list (2026-08-10), reporting anything foreign.
+- **Excluding the browser modules from the widened publish gate.** Tempting - a browser in an
+  unattended 02:00 run is the kind of thing that jams a loop. Rejected because they
+  `importorskip` Playwright and skip on a missing page, so they cannot fail for want of an
+  environment, and because they are the only check the data loop has on the page it is about to
+  publish (the first-paint budget that was 8 elements over on 2026-10-12 and that only
+  `rehearse_publish.py`, a code-loop tool, could see).
+- **Changing or removing a rotation day.** I went looking for a decorative day and did not find
+  one; Wednesday in particular earns it. Recorded so the next retrospective does not re-litigate
+  it on the same evidence.
+
+### Next
+
+**Decide the open proposal in `research/2026-10-15-earnings-definition.md`** (earnings yield on
+the source's Normalized Income rather than net income as reported; operating income unchanged) -
+it is the first job in Orient now, and both prior proposal decisions were refusals that rested on
+a measurement the note had not made, so measure before deciding. After that, 0.11's queue in
+`plan/context-layer.md` item 4: the three page-sentence corrections left open there.
+
+### Flagged for the owner
+
+- **One new exposure I took deliberately.** The widened publish gate now includes
+  `tests/test_dashboard_browser.py`, whose first-paint DOM budget is checked against the page the
+  02:00 run has just regenerated. If a future run legitimately pushes the page over that budget,
+  the data loop will **discard the run** and the live site will keep the previous day's - costing
+  a day of evidence for what is arguably a presentation regression rather than a correctness one.
+  I kept it because `CLAUDE.md` already says "a miss is a regression, not a preference", because
+  the 2026-10-12 near-miss was exactly this and only a code-loop tool could see it, and because
+  discarding is what every other gate on that path does. I checked the newly-included modules for
+  hour-of-day dependence (02:00 is not 08:00): only two touch the clock and both use it to
+  construct their own fixtures, so neither can fail for the hour. Say the word and the budget
+  check comes back out of the publish path.
+- **`NIGHTLY_LOG.md` is 11,779 lines.** It is the only memory that carries between sessions, and
+  no session reads more than its last three entries - which is what rule 8 asks for, so this is
+  not currently breaking anything. But a retrospective is asked to read every entry since the last
+  one, and that is now 55. I did not split it, because splitting the one file every session can
+  find is the kind of change that quietly loses the memory it was meant to preserve. If it keeps
+  growing at 44 owner-run entries a fortnight, archiving by month (`NIGHTLY_LOG_2026-08.md`) with
+  the live file holding the current month is the obvious move - your call.
+- **The real blocker is the absence of a demonstrated edge, not the absence of explanation.** The
+  explanation work is essentially done. The research engine says 27 pre-registered weightings over
+  176 point-in-time months beat nothing, and the baseline's IC is ~0; its own power analysis says
+  it can only see a difference of 0.04-0.07. Nothing in the current rotation is pointed at that
+  question, because rule 5 correctly benches the backtest until 2027-02-11 and rule 4 benches the
+  IC series. That is the right conservatism, but it means the project's central claim will stay
+  unproven by construction until then. Worth deciding whether a day should point at it.

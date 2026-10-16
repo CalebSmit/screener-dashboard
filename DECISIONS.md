@@ -705,3 +705,151 @@ calculation has steps a line cannot carry (ROIC's tax rate and floor, clamps, ne
 **Constraint.** Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never get
 past the test by lowering the bar or flipping a template to `exact=False`. `test_metric_lineage.py`
 is in the data loop's publish gate, so the equations are also checked on every 02:00 publish.
+
+---
+
+# Moved out of `CLAUDE.md` by the 2026-10-16 retrospective
+
+The "Open" section had filled up again with narrative about work already
+finished - the same growth the 2026-10-02 retrospective moved 551 lines for,
+and for the same reason: a session reads `CLAUDE.md` before it starts, and a
+closed item's story sits in front of the ones that are open. Each entry below
+is the text as it stood; `CLAUDE.md` keeps the **constraint** and names this
+file.
+
+## 0.8/0.9, closed - calculation transparency, the premium redesign, and the four methodology questions it surfaced
+
+**0.8 - CLOSED 2026-10-07.** Owner: *"I actually decided that I want you to finish up all UI/UX
+work in here tonight. And make the nightly sessions just focus on what it was previously focusing
+on, making sure the methodology is sound. And improving this tool overall every single night."*
+Finished that night across five owner-run passes; what shipped is in
+`plan/dashboard-inventory.md` and `NIGHTLY_LOG.md` 2026-10-07.
+
+*Record:* first version of every stage shipped 2026-10-07 by an owner-run session
+(`OWNER_FOCUS.md`, two items). `plan/calculation-transparency.md` and
+`plan/dashboard-redesign-master.md` each carry a **"Status, 2026-10-07 evening"** table of what
+is built. Highlights: the page prints the weights the engine used; every metric opens to its
+formula, inputs and peer rank; **4,010/4,010 category scores and 502/502 composites rebuild from
+the payload and the build refuses to publish otherwise**; `scripts/audit_stock.py --all`
+independently reproduces 502/502; DOM nodes 9,928 -> 2,779, transitioned elements 662 -> 99, row
+click to paint 70 ms, payload gzipped flat. **Pass 2 the same night** (owner: *"be creative"*): a
+search palette (Ctrl/Cmd+K), `#stock=TICKER` links, J/K stepping, Compare with the composite gap
+decomposed (claim `compare.composite_gap`), a workings CSV, Add to Holdings from the sheet,
+analytics rows that filter the table, Peers without green/red verdicts, and Chart.js removed
+(nothing used it). The navigation layer **wraps** `openStockDetail`/`closeModal` (`_js_ux()`).
+
+**0.9 - ANSWERED 2026-10-09 (owner-run).** Each has a research note or a documented-defect entry
+in `METHODOLOGY_CHANGELOG.md` 2026-10-09: **(a)** `operating_leverage` to weight 0 (85 of its 95
+negatives were margin squeezes ranked best; the literature finds higher operating leverage earns
+*more*; MSCI and AQR quality do not use it) - `research/2026-10-09-operating-leverage.md`;
+**(b)** `revenue_growth` and Piotroski signals 3/8/9 now compare periods exactly a year apart
+(the old comparison spanned 12-23 months by fiscal calendar) -
+`research/2026-10-09-revenue-growth-window.md`; **(c)** one EBITDA for both ratios and the
+snapshot; **(d)** labels "6-1M Return" and "Max Drawdown (13M)". **Found the same day by the same
+lens:** `forward_eps_growth` (45% of Growth) spanned 13-24 months and mixed GAAP with adjusted
+EPS; it is now MSCI's 12-month forward construction
+(`research/2026-10-09-forward-eps-growth.md`). Their combined measured effect on the first live
+run is the changelog's "Measured: the day's changes" entry (2026-10-09 evening).
+
+**Constraints kept in `CLAUDE.md`:** nightly sessions do not take on design or fine-tuning work;
+`_js_ux()` keeps wrapping the open/close functions; read the 2026-10-09 evening changelog entry
+before touching any of those five metrics.
+
+## 0.12, closed - the metric audit's four residual judgement calls
+
+Two audit passes over every weighted metric fixed nine defects on 2026-10-09
+(`research/2026-10-09-metric-audit.md`, changelog "metric audit" entries). The four judgement
+calls:
+
+- **(a) DONE 2026-10-09 - a GICS sub-industry rule** (`tests/test_bank_like.py`; 13 stocks moved
+  to the generic set, 0 left on the default): 26 of 59 financials reached the bank metric set
+  only by the default for an unlisted industry - asset managers, insurance brokers,
+  broker-dealers; TROW sat at the 100th percentile on equity ratio, AON at the 8th on P/B.
+- **(b) DONE 2026-10-09 - weight 0.** `earnings_acceleration` (20% of Revisions) correlated
+  -0.54 with the prior quarter's surprise, so it penalised a stock that beat last quarter
+  (surprises autocorrelate - Bernard & Thomas 1990). The weight points to the non-surprise
+  metrics.
+- **(c) MEASURED, no change.** Accruals counted three times within Quality - correlation 0.49
+  with Beneish, 0.00 with Piotroski, 13 points in all.
+- **(d) DONE 2026-10-09.** Net debt nets cash and short-term investments, as enterprise value
+  does.
+
+**The momentum regime rule was REBUILT 2026-10-12 (owner-run)** as pre-registered in
+`research/2026-10-09-momentum-regime.md`: momentum's weight is cut x0.70 (freed weight half to
+Quality, half to Valuation) only in Daniel & Moskowitz's panic state - S&P 500 total-return index
+24-month return negative **and** 126-day volatility above a fixed 20.6% - and never raised
+(`factor_engine.market_panic_state`; changelog 2026-10-12 evening). Not in force on the day, so
+no score moved.
+
+**Constraints kept in `CLAUDE.md`:** the three panic-state numbers are never re-fitted; the
+triple-counted accruals are measured and deliberately unchanged.
+
+## 0.6, closed - one observation per run date
+
+Open since 2026-08-11, closed 2026-10-08. The item asked for deduplication and a test, and both
+landed: `record_dispersion` now **replaces** a date's row instead of appending, and
+`record_run_snapshot` removes superseded files for its date - which is the rule
+`compute_forward_returns` already applied when reading them, so the three now agree. Measured
+before the fix: `dispersion_history.csv` held **52 rows for 45 distinct dates** (2026-04-14 four
+times) and `improvement/snapshots` **79 files for 52 dates**;
+`scripts/repair_one_observation_per_date.py` collapsed both, and `live_ic_history.csv` /
+`performance_history.csv` came out byte-identical, so this removed a latent distortion of
+`check_run_health`'s trailing dispersion median rather than correcting a live one.
+
+**A third file had the same defect and was found the same day, by the session's own rescoring run
+adding a row to it: `factor_vol_history.csv`, 72 rows for 52 dates, 2026-02-21 appearing nine
+times.** That one feeds **scoring** - `adjust_momentum_weight` ranks the run's momentum dispersion
+against every row and the percentile sets the momentum weight. Deduplicating moved the
+distribution (p75 26.59 -> 26.27) without flipping the regime, so the published run was
+unaffected; it was capable of it.
+
+**Constraint kept in `CLAUDE.md`:** every append-once-per-run file holds one row per run date.
+
+## 0.13, the lab's first thirteen experiments
+
+Chronology as of 2026-10-15; `plan/factor-lab.md` is the live queue and `lab.html` the result.
+Thirteen experiments, **111 of 162 figures within tolerance**.
+
+| # | Paper | Result |
+|---|---|---|
+| 1 | Barroso & Santa-Clara 2015 | 13 of 14 within, one marked outside |
+| 2 | Daniel & Moskowitz 2016 (behind the momentum regime rule) | 9 of 15; misses traceable to the paper building its own portfolios |
+| 3 | Fama & French 2015, five factors | 20 of 21 |
+| 4 | Fama & French 1992, size | 3 of 11 - the first that mostly **fails**, because the paper's sample is a different set of companies; published that way |
+| 5-7 | volatility, earnings yield, market beta | generic sorted-portfolio layout (`factor_lab.SORTS`, `kind: "sort"`) - a new sort is a record and a file entry, no page work |
+| 8 | the factors among large companies (`kind: split`) | value, investment and momentum about half-size there; profitability is the one that holds |
+| 9 | Israel & Moskowitz 2013, the largest fifth | 5 of 12, the four largest-fifth figures all matching |
+| 10 | Novy-Marx 2013, profitability | shipped 2026-10-15 |
+| 11 | Lakonishok, Shleifer & Vishny 1994, cash-flow yield | 11 of 11 |
+| 12 | Sloan 1996, accruals | 6 of 11; the direction reproduces at half the size |
+| 13 | Asness, Moskowitz & Pedersen 2013, value and momentum together | 7 of 10, with a new `combo` layout |
+
+**Read `research/2026-10-12-factor-lab-findings.md`:** the first three results weakened after
+their samples ended, and value and investment are largely one bet. Neither is a reason to move a
+weight; both are research questions for a Monday.
+
+**Constraints kept in `CLAUDE.md`:** the lab never justifies a parameter by itself; tolerances
+before the comparison; a failed replication is published; five things move together; the route to
+a weight is the plan's "From the lab to the weights"; Growth's 13 and Momentum's weight both
+stand, for the reasons in their notes.
+
+## 0.10, 4, 8 - the short ones
+
+**0.10's measured coverage, 2026-10-08** (`research/measurements/2026-10-08-equation-coverage.py`,
+re-measure rather than trusting it): of 29 weighted metrics **15 carry an exact equation (58.0% of
+composite weight), 5 an inexact one (19.5%) and 9 none at all (22.6%)**. Of that 22.6%, Piotroski
+(3.30%) and Beneish (1.54%) already list their signals and indices, so the genuine gap is the
+seven history-based metrics - 17.8%. Parts (a)-(d) were built 2026-10-09 (owner-run) and
+smoke-tested live on AAPL, JPM and NVDA to 4dp, publishing `_ja_*`, `_beta_cov/_var`, `_vol_sd`
+and the surprise metrics' four quarters (`eq4`) from the engine. `scoring_schema` is 4.
+
+**4's residual - DONE 2026-10-09 (owner-run).** The What Changed panel opens with a run-level
+overview (`run_overview.py`, claim `history.run_overview`): who moved past the noise threshold,
+which categories the movement came from (weighted, direction-free), how many of the top 25 held.
+Its pair, Reporting Soon, shipped 2026-10-08. The 2026-08-10 owner directive's pieces are all
+built.
+
+**8. Test isolation - DONE 2026-10-09 (owner-run).** A per-test write detector found exactly three
+tests writing published files; all three now use `tmp_path` or the committed universe, and
+`conftest.py` is a tripwire that restores the files and **fails the session** if any test writes
+one.
