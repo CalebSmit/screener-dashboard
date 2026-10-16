@@ -11723,3 +11723,50 @@ and for the lab?"* and *"my goal is to not spend any money if possible on top of
 - Free survivorship route probed: Stooq's CSV download now returns a browser challenge for every symbol -
   not usable, and not to be worked around. Recorded in `plan/research-engine.md`.
 
+## 2026-10-15/16 (owner-run, overnight) - the investor pass: twelve presentation phases, payload untouched
+
+**Health (rule 8):** last code session ran? **yes** - `logs/nightly-2026-10-15_131743-midday.log` ends "Run complete:
+shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` "Data loop complete",
+HEALTH: PASS, published claims 498 passed (it regenerated the page with this pass's generator, so the
+phases below are live from that run). Evidence base at `1m` = **31 rows, newest 2026-09-16 (30 days, bound
+40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 effective against 8. Top open roadmap item:
+**0.11, the context layer** (opened 2026-10-08, **age 8 days**) - not touched; the owner asked for this
+work instead.
+
+**Owner:** *"can you do a deep ui/ux pass to make it look really nice and expensive, and premium for
+investors please? ... lots of things that still looks weak or ai generated. Need to guide the users eyes,
+and show things first that makes sense ... please keep working on this till the next session!"*
+
+### Did
+Twelve phases, each merged and tagged separately (`good/2026-10-15-owner-*`, `good/2026-10-16-owner-1`
+to `-6`), each installed with a sha256 check that `dashboard_data.js` and `dashboard_context.js` did not
+change, each looked at 1440 and 375, the full gates and `rehearse_publish.py` before every merge (2,461
+passed each time). The record, phase by phase, is `plan/dashboard-investor-pass.md`; the inventory has a
+section for what a later session must know.
+
+- **The order the eye takes** is now: the statement (hero) -> four figures beside it at a glance, on a
+  wide screen as a 2x2 to its right (ranked, moved, **track record with its length stated**, trap flags)
+  -> the leaders as eight-score profiles -> section tiles that each state a finding -> the table.
+  At 1440x900 the leaders are above the fold for the first time.
+- **Quieter, more legible surfaces:** ink-not-paint score cells, tickers in ink, the composite as a gauge
+  on a 0-100 track (the old bar was drawn against the cell, so 71 looked like ~79%), one segmented
+  control, one heading voice (sentence case) in the stock sheet and the analytics charts, no 9px capitals.
+- **Defects found by looking:** charts drawn in a closed tile measured half the width; the header nav
+  clipped "Diagnostics" below 1340px and the brand ran under the first link at 1000px; the Methodology
+  tables ran into the dialog's edge and an inline path overflowed a phone by 12px; four links rendered in
+  Chrome's default dark-scheme violet. All fixed.
+- **The stock sheet** opens on the eight scores (a composite card that repeated the header is hidden),
+  shows the last price in the header, and clamps each context card's research paragraph to three lines.
+- **One product, three pages:** `research.html` and `lab.html` share the front page's mark and a
+  three-way nav; link previews (Open Graph, `og-card.png`, no live numbers) on all three.
+
+### Not done, and why
+- The Reporting table cuts company names at 31 characters mid-word (the longest `Company` in `table_data` is 31); the cut is in the payload's `Company`
+  field, so a presentation pass cannot fix it without changing the payload. Left for a data session.
+- Inter's tabular figures widen hyphens in the tiles' headlines ("value - trap"); the standing rule is
+  tabular figures everywhere, so it stays.
+
+### Next
+`plan/dashboard-investor-pass.md` "Next": one type scale across the page; research.html and lab.html
+section headers and figures. Nightly sessions still do not take on design work (CLAUDE.md 0.8) - this is
+owner-run work.

@@ -142,8 +142,15 @@ statement, never louder than the primary action.
 - **Chart titles in sentence case**: "Trap rate by sector", "How stable is the ranking?", "Are the factors
   independent?".
 
+## Phase 13 - DONE 2026-10-16 (owner-run, after the 02:00 run)
+
+- **One type scale.** Measured on the opened page at 1440: about 30 distinct text sizes, most of the odd
+  ones (11.2, 11.84, 12.16, 12.48, 13.12, 13.44, 14.08px) from 35 scattered `rem` values in older blocks.
+  Each is now the nearest step of one half-pixel scale (10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 13.5 / 14 /
+  15 / 17). Left on purpose: code set in `em` (it follows its sentence) and the 9.5px labels under the
+  leaders' bars, where eight columns share 230px.
+
 ## Next (in order)
 
-1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
-   12.5), uppercase labels used only for tile labels, consistent 14px radii on panels.
+1. **Typography and rhythm**: the scale is done (phase 13); consistent 14px radii on panels remains.
 4. **research.html and lab.html**: bars done (phase 11); their section headers and figures next.
