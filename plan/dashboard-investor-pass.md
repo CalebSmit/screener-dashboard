@@ -235,6 +235,13 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
   names it; the doubled section rules (a markdown rule plus the heading's border) are one; the run's momentum
   reading is a quiet note with a human date.
 
+### P5 - the Factor Lab and the research page
+
+- The research page was already clean (no em dashes or hyphen-dashes). The lab drew 15 hyphens used as dashes
+  from its experiment copy; `lab.html` now typesets what it draws (a MutationObserver over each text node,
+  display only): a spaced en dash, or a true minus inside a formula's parentheses. The data and its tests
+  are unchanged. "The ones that do not are shown, not hidden" is "The rest are published as misses."
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).

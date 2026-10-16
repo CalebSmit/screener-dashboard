@@ -1034,7 +1034,7 @@ footer p { margin: 0 0 8px; }
         mount.innerHTML = `
         <section aria-labelledby="o-exp">
             <h2 id="o-exp">${D.experiments.length} experiments so far</h2>
-            <p style="margin:6px 0 18px;max-width:72ch">Each one reruns a published study on public data and reports every figure beside the paper's. Across all of them, <strong>${within} of ${total} figures</strong> land within tolerances written into the build. The ones that do not are shown, not hidden.</p>
+            <p style="margin:6px 0 18px;max-width:72ch">Each one reruns a published study on public data and reports every figure beside the paper's. Across all of them, <strong>${within} of ${total} figures</strong> land within tolerances written into the build. The rest are published as misses.</p>
             <div class="cards">${D.experiments.map(card).join('')}</div>
         </section>
         <section aria-labelledby="o-after">
@@ -1113,6 +1113,22 @@ footer p { margin: 0 0 8px; }
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
         `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
         `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>`;
+    // One typographic pass over what the lab draws (2026-10-16), as the methodology page has: the experiment
+    // copy writes a dash as a spaced hyphen; it publishes as a spaced en dash, and as a true minus inside a
+    // formula's parentheses. Code is left alone. Display only - the data and its tests are unchanged.
+    function typesetText(n) {
+        const s = n.nodeValue;
+        if (!s || s.indexOf(' - ') < 0 || (n.parentElement && n.parentElement.closest('code, pre, script, style'))) return;
+        n.nodeValue = s.replace(/(\S) - (?=\S)/g, (m, a, off) => {
+            const before = s.slice(Math.max(0, off - 80), off + 1);
+            const open = (before.match(/\(/g) || []).length > (before.match(/\)/g) || []).length;
+            return a + (open ? ' − ' : ' – ');
+        });
+    }
+    function typeset(el) { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) typesetText(n); }
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.nodeType === 3 ? typesetText(n) : (n.nodeType === 1 && typeset(n)))))
+        .observe(document.body, { childList: true, subtree: true });
+    typeset(document.body);
     show();
 })();
 </script>
