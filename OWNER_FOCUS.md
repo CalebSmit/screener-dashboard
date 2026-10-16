@@ -86,6 +86,14 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-15 (owner-run) - three experiments in a day: 10, 11 and 12.** Profitability (Novy-Marx
+    2013, 6 of 6 within), cash-flow yield (Lakonishok, Shleifer & Vishny 1994, 11 of 11) and accruals
+    (Sloan 1996, 6 of 11 - the direction at half the size). Each says the same thing about the weights:
+    supported in its paper's sample, weaker since, and weaker still weighted by market value (where
+    large companies count most) - nothing to change. Twelve experiments, 104 of 152 figures within. Next: value and momentum together (Asness,
+    Moskowitz & Pedersen 2013). The research engine (the item at the top) tests weightings on
+    2012-2026 history; the lab and the engine answer different questions - what a paper found, and
+    what this screener's weighting would have done.
   - **2026-10-14 (06:00 nightly) - deferred for a red ship gate, nothing lost.** The day's work was a
     data defect published by the 02:00 run (see the context-layer item below and `NIGHTLY_LOG.md`).
     The lab's next day is Friday **2026-10-23** either way - 2026-10-16 is a retrospective - and the

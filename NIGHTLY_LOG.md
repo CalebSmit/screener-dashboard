@@ -11686,4 +11686,9 @@ run against each other - so it can be shown to people and trusted (a bot first, 
 - **Lab experiment 12, Sloan (1996) accruals: 6 of 11 within**; the direction reproduces at half the
   paper's spread. The PDF's text layer lacked the middle rows; they were read from the rendered page
   after the ends had been compared, and the record says so. Twelve experiments, 104 of 152 within.
+- **The track record keeps the picks the price source lost** (`plan/context-layer.md` item 6): renamed
+  companies priced under their new symbol (BK, EQR, MMC, SATS), companies that stopped trading priced
+  from the screener's own recorded prices until they stopped (AVB, CTRA, EA, HOLX; price only, said on
+  the page). Looked at 1440 and 375 in a preview (an escaped arrow caught and fixed there). Takes
+  effect at the next data run; the top-25 basket had no unpriced names, so its headline is unaffected.
 

@@ -816,7 +816,10 @@ trips). Friday 2026-10-16 is a retrospective; the lab's next day is 2026-10-23. 
 proposes a change for someone else to decide carries `**Proposal status: OPEN** - <what>`; the
 morning brief lists every open one with its age (`write_brief.open_proposals`), and whoever
 decides rewrites the line.**
-**Friday is the lab's day**, one finished experiment a session; next is profitability (Novy-Marx 2013). The standing rules: the
+**Friday is the lab's day**, one finished experiment a session. Experiments 10-12 shipped 2026-10-15 (owner-run):
+profitability (Novy-Marx 2013), cash-flow yield (Lakonishok, Shleifer & Vishny 1994) and accruals (Sloan 1996) -
+twelve experiments, 104 of 152 figures within; next in the queue is value and momentum together (Asness,
+Moskowitz & Pedersen 2013, `plan/factor-lab.md` item 7). A paper with no DOI carries a stable `url`. The standing rules: the
 lab never justifies a screener parameter by itself, tolerances are written **before** a comparison is
 run, and a replication that fails is a research finding to write up, not a number to tune away.
 

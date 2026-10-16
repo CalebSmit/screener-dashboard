@@ -232,7 +232,12 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    in the morning brief. **First one-month window closes 2026-11-07; the gate (8 effective) is about
    eight months of daily logs away.** `tests/test_context_eval.py`. Nightly: nothing to do until
    November except keep the logs complete; then read the brief line monthly.
-6. **Track record hardening.** Prices for names that left the index (some tickers fail to download -
+6. **Track record hardening - the price half DONE 2026-10-15 (owner-run):** `track_record.fill_unpriced`
+   prices a renamed pick under its new symbol (CIK) and a pick that stopped trading from the snapshots'
+   `price_at_scoring` until its last record (price only - the page says so); a pick with no price on
+   the day its basket formed is still left out and listed (EA and HOLX in February: the snapshots carry
+   no price before 2026-03-06). Claim `context.track_record`, 2 tests. Remaining: turnover/cost and
+   the benchmark question. History: Prices for names that left the index (some tickers fail to download -
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25). *Diagnosed
    2026-10-15 (owner-run):* **four are renames** - the SEC CIK in `data/universe_history/ticker_ciks.json`
    maps EQR->VMRK, BK->BNY, MMC->MRSH, SATS->ECHO, each priced under its new symbol (backtest v2's
