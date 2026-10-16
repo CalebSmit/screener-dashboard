@@ -135,6 +135,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Has it been tested? · Multi-Factor Screener</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
 <meta name="description" content="The screener's weighting and 26 pre-registered alternatives, tested on 2012-2026 S&amp;P 500 history rebuilt from the filings published at the time.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Multi-Factor Screener">
