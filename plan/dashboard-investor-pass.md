@@ -57,6 +57,13 @@ statement, never louder than the primary action.
   composite (not on a phone, where the header is full); the lead sentence larger, group labels in
   sentence case.
 
+## Phase 3 - DONE 2026-10-15 (owner-run)
+
+- The sector heatmap and the factor-correlation grid use the same quiet ink as the table (the correlation
+  grid keeps a lighter wash and its outlines on pairs above 0.7).
+- "Top 5 Stocks" is "Leading the ranking" and "Full Universe Rankings" is "The full ranking", each with one
+  line saying what it holds and what selecting does.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption

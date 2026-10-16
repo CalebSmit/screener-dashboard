@@ -1637,7 +1637,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- Top 5 Stocks -->
         <section class="section collapsible-section" id="sec-top5">
             <div class="section-header" onclick="toggleSection('sec-top5')">
-                <h2 class="section-title" style="margin:0">Top 5 Stocks</h2>
+                <h2 class="section-title" style="margin:0">Leading the ranking</h2>
+                <span class="sec-meta sec-meta-plain">The five highest composites without a trap flag. Select one for the full workings.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -1814,7 +1815,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 
         <section class="section collapsible-section" id="sec-universe">
             <div class="section-header" onclick="toggleSection('sec-universe')">
-                <h2 class="section-title" style="margin:0">Full Universe Rankings</h2>
+                <h2 class="section-title" style="margin:0">The full ranking</h2>
+                <span class="sec-meta sec-meta-plain">Every company, sortable by any score. Select a row to see why it ranks there.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="section-body">
@@ -4110,7 +4112,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     function corrColor(v, isDiag) {{
         if (isDiag) return 'var(--bg-elevated)';
         if (v === null || v === undefined) return 'transparent';
-        return 'rgba(57,135,229,' + (0.05 + Math.min(1, Math.abs(v)) * 0.5).toFixed(3) + ')';
+        // quieter than before (investor pass): the strong pairs still stand out, and are also outlined
+        return 'rgba(57,135,229,' + (0.03 + Math.min(1, Math.abs(v)) * 0.32).toFixed(3) + ')';
     }}
 
     function renderDefensibility() {{
@@ -9618,7 +9621,7 @@ def _css_investor() -> str:
         .t5-fill { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 2px 2px 0 0; }
         .t5-fill.hi { background: var(--accent); }
         .t5-v { margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; }
-        .t5-l { font-size: 10px; color: var(--text-muted); text-align: center; letter-spacing: .02em; }
+        .t5-l { font-size: 9.5px; color: var(--text-muted); text-align: center; letter-spacing: -.01em; overflow: hidden; white-space: nowrap; }
         @media (max-width: 760px) {
             /* five cards in a row you swipe, not five screens you scroll */
             .top5-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin: 0 -16px; padding: 2px 16px 10px;
@@ -9668,6 +9671,11 @@ def _css_investor() -> str:
         .summary-group-label { text-transform: none; letter-spacing: .01em; font-size: 12.5px; color: var(--text-secondary); font-weight: 600; }
         .summary-fact { font-size: 14px; line-height: 1.6; }
         @media (max-width: 760px) { .mh-price { display: none; } }
+
+        /* the sector heatmap speaks as quietly as the table: ink, not paint */
+        .sm-table td.sm { background: none; font-weight: 500;
+            color: color-mix(in srgb, var(--text-primary) calc(25% + var(--t) * 75%), var(--text-muted)); }
+        .sec-meta.sec-meta-plain { color: var(--text-muted); }
         @media (max-width: 760px) {
             .sec-grid { grid-template-columns: 1fr; gap: 10px; }
             .sec-grid > .collapsible-section { padding: 0 16px; }
