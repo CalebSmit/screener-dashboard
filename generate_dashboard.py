@@ -9570,7 +9570,8 @@ def _css_investor() -> str:
     specificity it wins. ``plan/dashboard-investor-pass.md`` records what changed and why."""
     return """
         /* ---- HERO: one statement, one primary action ---- */
-        .hero { padding: 44px 0 28px; align-items: flex-end; }
+        /* the actions under the copy: the eye reads down the left edge, not across the page */
+        .hero { padding: 44px 0 28px; flex-direction: column; align-items: flex-start; gap: 22px; }
         .hero-eyebrow { color: var(--text-muted); letter-spacing: .08em; }
         .hero-title { font-size: 40px; font-weight: 650; letter-spacing: -.03em; line-height: 1.08; max-width: 18ch; text-wrap: balance; }
         .hero-sub { font-size: 16px; line-height: 1.65; max-width: 62ch; margin-top: 14px; }
@@ -9605,11 +9606,13 @@ def _css_investor() -> str:
         }
 
         /* ---- THE GUIDE: three plain statements, no tutorial furniture ---- */
-        .guide { background: transparent; border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-                 border-radius: 0; padding: 18px 0 14px; box-shadow: none; }
+        .guide { position: relative; background: transparent; border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                 border-radius: 0; padding: 16px 64px 14px 0; box-shadow: none; }
+        .guide-foot { position: absolute; top: 12px; right: 0; margin: 0; padding: 0; }
+        @media (max-width: 760px) { .guide { padding-right: 0; } .guide-foot { position: static; margin-top: 8px; display: flex; justify-content: flex-end; } }
         .guide-steps { gap: 28px; }
         .guide .guide-n { display: none; }
-        .guide-steps li { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+        .guide-steps li { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
         .guide-steps li strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; font-size: 13.5px; }
         .guide-foot { border-top: 0; padding-top: 10px; margin-top: 4px; font-size: 12px; color: var(--text-muted); }
         .guide-close { background: transparent; border: 0; color: var(--text-muted); font-size: 12.5px; padding: 4px 0; height: auto; }
