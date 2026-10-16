@@ -11697,4 +11697,8 @@ run against each other - so it can be shown to people and trusted (a bot first, 
   predict returns". The page had shown the flattering 8-month live record without the long test; the
   numbers come from `research/experiments/summary.json`, which the engine writes and a test ties to
   the ledger. Appears at the next data run.
+- **The value-momentum hedge checked** (`research/2026-10-15-value-momentum-correlation.md`, lab queue item
+  7): AMP (2013) Table I read in full; among big companies the premia match the paper but the
+  correlation is milder (-0.20 vs -0.53), stronger since 2011 (-0.39), while both premia went to ~0.
+  The momentum rule's transfer to Valuation stands as a diversifier, not a return source. No change.
 
