@@ -15,8 +15,14 @@ and they are what make a result from it worth showing:
 3. **Every test counts.** ``research/experiments/ledger.jsonl`` records every run of every
    experiment. Significance is judged against the number of experiments ever registered
    (Bonferroni), and against Harvey, Liu & Zhu's t > 3 bar for a new factor.
-4. **Paired with the baseline.** Each idea is compared month by month with the current screener's
-   weighting on the same stocks and the same months; the interval is on the difference.
+4. **Paired with the baseline by month.** Each idea's monthly IC is compared with the current
+   screener's IC in the same month; the interval is on the difference. The pairing is by month
+   only: each configuration ranks the stocks it has enough weighted data to score
+   (``backtest_v2.rank_month``), so a narrow screen's IC is computed on a different, usually
+   smaller, set of stocks than the baseline's (free-cash-flow yield alone ranks about 348 a month
+   against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019;
+   ``research/measurements/2026-10-16-stocks-ranked-per-config.json``).
+   Pairing on each month's common stocks is queued, with a full rerun (``plan/research-engine.md``).
 
 What it is not: a way to set weights. Under CLAUDE.md rules 4 and 5 nothing it reports changes a
 weight before 2027-02-11 - and its universe still lacks the stocks that left the index and every
@@ -63,6 +69,7 @@ SUMMARY = EXP_DIR / "summary.json"   # what the methodology page reads (it may n
 DISCOVERY = ("2020-01-31", "2023-06-30")
 HOLDOUT = ("2023-07-31", "2026-08-31")
 HLZ_T = 3.0                       # Harvey, Liu & Zhu (2016): the bar for a new factor's t-statistic
+KNOWN_MARK = "†"              # a dagger: this row's 2020-2026 outcome was on file before it was registered
 # A third period, registered 2026-10-15 AFTER the first batch had been read on 2020-2026 and BEFORE
 # a single month of it was built: the eight years before the sample, which nobody here has looked
 # at. Testing a result on the history that precedes its sample is Linnainmaa & Roberts (2018), "The
@@ -197,6 +204,86 @@ def per_month(scores: pd.DataFrame, fwd: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("month")
 
 
+# --------------------------------------------------------------------------- Student's t, no scipy
+# Until 2026-10-16 every p-value and critical value here used the normal approximation. At 38
+# held-out months that understates the bar: the two-sided critical value for p < 0.05 / 27 is about
+# 3.35 on 37 degrees of freedom against 3.11 on the normal curve. The t-distribution's tail is the
+# regularized incomplete beta function, computed below with the continued fraction of Numerical
+# Recipes (Press et al., 3rd ed., section 6.4); a test pins it against known quantiles.
+def _betacf(a: float, b: float, x: float) -> float:
+    """The continued fraction for the incomplete beta function (modified Lentz)."""
+    tiny, eps = 1e-300, 3e-16
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c, d = 1.0, 1.0 - qab * x / qap
+    d = 1.0 / (d if abs(d) > tiny else tiny)
+    h = d
+    for m in range(1, 400):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        d = 1.0 / (d if abs(d) > tiny else tiny)
+        c = 1.0 + aa / c
+        c = c if abs(c) > tiny else tiny
+        h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        d = 1.0 / (d if abs(d) > tiny else tiny)
+        c = 1.0 + aa / c
+        c = c if abs(c) > tiny else tiny
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) < eps:
+            break
+    return h
+
+
+def _betai(a: float, b: float, x: float) -> float:
+    """The regularized incomplete beta function I_x(a, b)."""
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    lbt = math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log1p(-x)
+    if x < (a + 1.0) / (a + b + 2.0):
+        return math.exp(lbt) * _betacf(a, b, x) / a
+    return 1.0 - math.exp(lbt) * _betacf(b, a, 1.0 - x) / b
+
+
+def t_two_sided_p(t: float, df: float | None) -> float:
+    """Two-sided p-value of a t-statistic on ``df`` degrees of freedom (the normal curve if None)."""
+    if df is None or df <= 0 or math.isinf(df):
+        return math.erfc(abs(t) / math.sqrt(2))
+    return _betai(df / 2.0, 0.5, df / (df + t * t))
+
+
+def t_critical(alpha: float, df: float | None) -> float:
+    """The two-sided critical value: the |t| at which ``t_two_sided_p`` equals ``alpha``."""
+    lo, hi = 0.0, 60.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if t_two_sided_p(mid, df) > alpha:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def p_value(st: dict) -> float:
+    """The two-sided p of a recorded comparison, from its t and its month count on n - 1 degrees of
+    freedom. Ledger rows written before 2026-10-16 store a normal-approximation p; this recomputes
+    it from the same row so the report never reads the old figure. A dict with no month count (a
+    unit test's hand-made row) keeps the p it carries."""
+    if st.get("n") and st["n"] >= 2 and st.get("t") is not None:
+        return t_two_sided_p(float(st["t"]), st["n"] - 1)
+    return st.get("p", 1.0)
+
+
+def pass_bar(n_tests: int, n: int | None) -> float:
+    """The |t| a comparison over ``n`` months must reach to count: Bonferroni over ``n_tests`` on
+    the t-distribution, and never below Harvey, Liu & Zhu's 3."""
+    return max(t_critical(0.05 / max(n_tests, 1), (n - 1) if n and n > 1 else None), HLZ_T)
+
+
 def _stats(x: pd.Series) -> dict:
     x = x.dropna()
     n = len(x)
@@ -205,10 +292,12 @@ def _stats(x: pd.Series) -> dict:
     m, sd = float(x.mean()), float(x.std(ddof=1))
     se = sd / math.sqrt(n)
     t = m / se if se > 0 else 0.0
-    # two-sided p from the t-statistic with a normal approximation (n >= 30 here)
-    p = math.erfc(abs(t) / math.sqrt(2))
+    # two-sided p and the 95% interval on n - 1 degrees of freedom (Student's t, 2026-10-16; the
+    # normal approximation before that date - rows written then carry it, and p_value recomputes)
+    p = t_two_sided_p(t, n - 1)
+    q = t_critical(0.05, n - 1)
     out = {"n": n, "mean": round(m, 5), "se": round(se, 5), "t": round(t, 2), "p": round(p, 4),
-           "ci95": [round(m - 1.96 * se, 5), round(m + 1.96 * se, 5)]}
+           "ci95": [round(m - q * se, 5), round(m + q * se, 5)]}
     out.update(_dependence(x.values.astype(float)))
     return out
 
@@ -263,6 +352,88 @@ def load_registry() -> list[dict]:
     return yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["experiments"]
 
 
+# --------------------------------------------------------------------------- outcome already known?
+# Added 2026-10-16 after an audit found that the seven ``only-*`` experiments had their 2020-2026
+# outcome computed and committed before they were registered: backtest v2's returns measurements
+# (research/measurements/2026-10-15-backtest-v2-returns.json, 11:31, and -rebuild2.json, 16:55)
+# publish each category score's IC, which is the IC of a composite that weights that category alone,
+# and the registry commit came at 17:13. Registering an idea whose result is already on file is not a
+# pre-registration of that result. The check below is deliberately simple: it knows which published
+# statistic each kind of transform reproduces (``STATISTIC_KEYS``), looks for that key in every
+# committed ``research/measurements/*.json``, and compares the file's first commit with the commit
+# that added the experiment's id to the registry. ``run`` refuses a match unless the registry entry
+# discloses it with ``outcome_known_at_registration`` (the periods already known), and the report
+# marks every such row. The baseline is the reference every comparison is paired with, and its
+# registered prediction quotes its earlier reading openly, so it is not checked.
+MEASUREMENTS = ROOT / "research" / "measurements"
+
+
+def statistic_keys(transform: dict) -> list[tuple[str, ...]]:
+    """The key path, in a backtest-v2 returns measurement, of the statistic this transform's IC
+    would reproduce. Only a single category on its own maps to one today (``category_ic.<cat>``)."""
+    if transform.get("kind") == "only_category":
+        return [("category_ic", transform["category"])]
+    return []
+
+
+def _git_times(*args: str) -> list[int]:
+    out = subprocess.run(["git", *args], capture_output=True, text=True, cwd=ROOT)
+    if out.returncode != 0:
+        raise OSError(out.stderr.strip())
+    return [int(x) for x in out.stdout.split()]
+
+
+def registered_at(exp_id: str) -> int | None:
+    """Unix time of the commit that first added ``id: <exp_id>`` to the registry (None if uncommitted)."""
+    times = _git_times("log", "--format=%ct", "-S", f"id: {exp_id}", "--",
+                       str(REGISTRY.relative_to(ROOT)).replace("\\", "/"))
+    return min(times) if times else None
+
+
+def outcome_known_before_registration(entry: dict) -> list[str]:
+    """The committed measurements, older than ``entry``'s registration, that already carry the
+    statistic its run would produce. Empty when nothing matches. If git cannot be read, warns and
+    returns empty (a check that can only fail closed would jam the engine; the registry field and the
+    report's marker are the durable record)."""
+    keys = statistic_keys(entry.get("transform") or {})
+    if not keys:
+        return []
+    try:
+        reg_t = registered_at(entry["id"])
+        hits = []
+        for p in sorted(MEASUREMENTS.glob("*.json")):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(data, dict) or str(data.get("arm", "")).startswith("DIAGNOSTIC"):
+                continue                     # the look-ahead arm scores today's filings: another statistic
+            for path in keys:
+                node = data
+                for k in path:
+                    node = node.get(k) if isinstance(node, dict) else None
+                if node is None:
+                    continue
+                first = _git_times("log", "--diff-filter=A", "--format=%ct", "--",
+                                   str(p.relative_to(ROOT)).replace("\\", "/"))
+                if first and (reg_t is None or min(first) < reg_t):
+                    hits.append(f"{p.relative_to(ROOT).as_posix()} ({'.'.join(path)})")
+        return hits
+    except OSError as exc:
+        print(f"WARN outcome check skipped for {entry['id']}: git unavailable ({exc})", file=sys.stderr)
+        return []
+
+
+def refuse_known_outcomes(entries: list[dict]) -> None:
+    """``run``'s guard: an experiment whose outcome a committed measurement already published before
+    it was registered runs only if its registry entry says so (``outcome_known_at_registration``)."""
+    bad = {e["id"]: hits for e in entries
+           if not e.get("outcome_known_at_registration") and (hits := outcome_known_before_registration(e))}
+    if bad:
+        raise SystemExit("outcome already on file before registration - disclose it with "
+                         f"outcome_known_at_registration, or register a new idea instead: {bad}")
+
+
 def run(ids: list[str] | None = None) -> list[dict]:
     reg = load_registry()
     by_id = {e["id"]: e for e in reg}
@@ -270,6 +441,7 @@ def run(ids: list[str] | None = None) -> list[dict]:
         unknown = [i for i in ids if i not in by_id]
         if unknown:
             raise SystemExit(f"not registered (register before running): {unknown}")
+    refuse_known_outcomes([e for e in reg if not ids or e["id"] in ids])
     months = load_months()
     if not months:
         raise SystemExit("no cached monthly metrics - run backtest_v2.py first")
@@ -316,19 +488,23 @@ def _z_two_sided(alpha: float) -> float:
     return (lo + hi) / 2
 
 
-def detectable(se: float | None, n_tests: int) -> float | None:
-    """The smallest true difference a comparison with standard error ``se`` detects 80% of the time
-    at the engine's bar (Bonferroni over ``n_tests`` and |t| >= 3). "Not distinguishable" means
-    "smaller than this", never "equal" - plan/research-engine.md queue item 2 (2026-10-15)."""
+def detectable(se: float | None, n_tests: int, n: int | None = None) -> float | None:
+    """The smallest true difference a comparison with standard error ``se`` over ``n`` months
+    detects 80% of the time at the engine's bar (Bonferroni over ``n_tests`` and |t| >= 3).
+    "Not distinguishable" means "smaller than this", never "equal" - plan/research-engine.md queue
+    item 2 (2026-10-15). Given ``n``, both the bar and the 80%-power quantile are Student's t on
+    n - 1 degrees of freedom (2026-10-16); without it, the normal curve."""
     if not se:
         return None
-    return round((max(_z_two_sided(0.05 / max(n_tests, 1)), HLZ_T) + 0.84) * se, 4)
+    df = (n - 1) if n and n > 1 else None
+    power = t_critical(0.40, df) if df else 0.84          # the one-sided 80% quantile
+    return round((pass_bar(n_tests, n) + power) * se, 4)
 
 
 def _vs_cell(vs: dict, n_tests: int) -> str:
     if not vs:
         return "-"
-    d = detectable(vs.get("se"), n_tests)
+    d = detectable(vs.get("se"), n_tests, vs.get("n"))
     return f"{vs.get('mean', 0):+.3f} ({vs.get('t')}" + (f"; sees {d:.3f})" if d is not None else ")")
 
 
@@ -351,11 +527,11 @@ def verdict(e: dict, res: dict, n_tests: int) -> str:
         return "baseline"
     d, h = s["discovery"]["ic_vs_baseline"], s["holdout"]["ic_vs_baseline"]
     bonf = 0.05 / max(n_tests, 1)
-    sig_d = d.get("p", 1) < 0.05
-    sig_h = h.get("p", 1) < 0.05
+    sig_d = p_value(d) < 0.05
+    sig_h = p_value(h) < 0.05
     if sig_d and sig_h and np.sign(d.get("mean", 0)) == np.sign(h.get("mean", 0)):
         word = "better" if h["mean"] > 0 else "worse"
-        strong = " and clears the multiple-testing bar" if h.get("p", 1) < bonf and abs(h.get("t", 0)) >= HLZ_T else \
+        strong = " and clears the multiple-testing bar" if p_value(h) < bonf and abs(h.get("t", 0)) >= HLZ_T else \
             ", but not the multiple-testing bar"
         return f"{word} than the baseline in both periods{strong}"
     if sig_d and not sig_h:
@@ -376,12 +552,12 @@ def verdict_presample(e: dict, res: dict, n_tests: int) -> str:
         return "baseline"
     d, ref = s["presample"]["ic_vs_baseline"], s["all"]["ic_vs_baseline"]
     bonf = 0.05 / max(n_tests, 1)
-    if d.get("p", 1) < bonf and abs(d.get("t", 0)) >= HLZ_T:
+    if p_value(d) < bonf and abs(d.get("t", 0)) >= HLZ_T:
         same = np.sign(d.get("mean", 0)) == np.sign(ref.get("mean", 0))
         word = "better" if d["mean"] > 0 else "worse"
         return (f"{word} in 2012-2019 beyond the multiple-testing bar, "
                 + ("the same direction as 2020-2026" if same else "the opposite direction to 2020-2026"))
-    if d.get("p", 1) < 0.05:
+    if p_value(d) < 0.05:
         return "p < 0.05 in 2012-2019 only - about 1 in 20 would by chance"
     return "not distinguishable in 2012-2019"
 
@@ -582,6 +758,26 @@ def summary_for_page(reg: list, latest: dict) -> dict:
     out["data_hash"] = base.get("data_hash")
     out["baseline_ic"] = {p: s[p]["ic"].get("mean") for p in ("presample", "all") if p in s}
     out["months"] = {p: s[p]["ic"].get("n") for p in ("presample", "all") if p in s}
+    # 2026-10-16: each headline IC with its 95% interval (Student's t on the ledger's own standard
+    # error), the two eras pooled from the baseline's monthly series, and the smallest mean IC the
+    # pooled record could detect 80% of the time at |t| >= 3 (one test: the baseline against zero)
+    out["baseline_ic_ci95"] = {}
+    for p in ("presample", "all"):
+        st = s.get(p, {}).get("ic", {})
+        if st.get("se") is not None and st.get("n", 0) >= 2:
+            q = t_critical(0.05, st["n"] - 1)
+            out["baseline_ic_ci95"][p] = [round(st["mean"] - q * st["se"], 4), round(st["mean"] + q * st["se"], 4)]
+    series = pd.Series(base.get("ic_by_month") or {}, dtype=float)
+    series = series[(series.index >= PRESAMPLE[0]) & (series.index <= SAMPLE[1])]
+    if len(series) >= 3:
+        pooled = _stats(series)
+        q = t_critical(0.05, pooled["n"] - 1)
+        out["baseline_ic"]["pooled"] = pooled["mean"]
+        out["months"]["pooled"] = pooled["n"]
+        out["baseline_ic_ci95"]["pooled"] = [round(pooled["mean"] - q * pooled["se"], 4),
+                                             round(pooled["mean"] + q * pooled["se"], 4)]
+        out["pooled_t"] = pooled["t"]
+        out["pooled_detectable"] = detectable(pooled["se"], 1, pooled["n"])
     for e in reg:
         r = latest.get(e["id"])
         if not r or e["transform"]["kind"] == "baseline" or e.get("void") \
@@ -611,9 +807,15 @@ def report() -> Path:
     lines = ["# Research engine results", "",
              "Generated by `python v2_experiments.py report` from `ledger.jsonl` - do not edit by hand.",
              "Every experiment was registered, with its prediction, in `registry.yaml` before it ran; the git",
-             "history shows when. Judged on the held-out months (2023-07 .. 2026-08) against the current",
-             f"weighting on the same months. {n} experiments registered, {runs} runs in the ledger; the",
-             f"multiple-testing bar is p < 0.05 / {n} = {0.05 / max(n, 1):.4f} and |t| >= {HLZ_T}.", "",
+             f"history shows when. For the rows marked {KNOWN_MARK}, the 2020-2026 outcome had already been "
+             "computed and committed in an earlier measurement before registration, so only their 2012-2019 "
+             "result is a blind test (`outcome_known_at_registration`).",
+             "Judged on the held-out months (2023-07 .. 2026-08), paired by month with the current weighting: "
+             "each weighting's IC is computed on the stocks it can rank that month, which for a narrow screen "
+             "is a smaller set than the baseline's (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).",
+             f"{n} experiments registered, {runs} runs in the ledger; the multiple-testing bar is p < 0.05 / {n} = "
+             f"{0.05 / max(n, 1):.4f} and |t| >= {HLZ_T}, with p from Student's t on n - 1 degrees of freedom "
+             f"(the bar is |t| >= {pass_bar(n, 38):.2f} over 38 held-out months and {pass_bar(n, 96):.2f} over 96).", "",
              "**Not decision-grade** (CLAUDE.md rule 5): " + " ".join(br.CAVEATS[:2]), "",
              "**2012-2019 carries heavier survivorship** - 58% of members present in 2012, 78% in 2019 "
              "(`cache/v2_census_presample.json`); read `research/2026-10-15-research-engine-first-batch.md` "
@@ -634,12 +836,22 @@ def report() -> Path:
             continue
         s = r["summary"]
         vs = s["holdout"].get("ic_vs_baseline", {})
-        lines.append(f"| {e['id']} | {e.get('prediction', '')} | {s['discovery']['ic'].get('mean', 0):+.3f} | "
+        lines.append(f"| {e['id']}{KNOWN_MARK if e.get('outcome_known_at_registration') else ''} | "
+                     f"{e.get('prediction', '')} | {s['discovery']['ic'].get('mean', 0):+.3f} | "
                      f"{s['holdout']['ic'].get('mean', 0):+.3f} | "
                      + _vs_cell(vs, n)
                      + f" | {s['holdout']['top_minus_universe'].get('mean', 0) * 100:+.2f}% a month | {verdict(e, r, n)} | "
                      + _presample_cells(s, n) + f" | {verdict_presample(e, r, n)} |")
     lines += ["", "Each row's hypothesis and source are in `registry.yaml`.", ""]
+    known = [e["id"] for e in reg if e.get("outcome_known_at_registration")]
+    if known:
+        lines += [f"{KNOWN_MARK} Outcome known at registration for {', '.join(known)}: periods "
+                  + ", ".join(sorted({p for e in reg for p in (e.get("outcome_known_at_registration") or [])}))
+                  + ". Only their 2012-2019 result was a blind test.", ""]
+    notes = [e for e in reg if e.get("construction_note")]
+    if notes:
+        lines += ["**How some screens are built here** (`construction_note`):", ""]
+        lines += [f"- **{e['id']}** - {e['construction_note']}" for e in notes] + [""]
     lines += _evaluation_lines(latest)
     lines += [""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")

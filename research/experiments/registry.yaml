@@ -2,8 +2,21 @@
 #
 # Every entry here was written and committed BEFORE it was run - the git history is the record.
 # A prediction is never edited after a run; a changed idea is a new entry with a new id. Results
-# are judged on the held-out months (2023-07 .. 2026-08), paired with the baseline on the same
-# stocks and months, against p < 0.05 / (number of experiments) and |t| >= 3.
+# are judged on the held-out months (2023-07 .. 2026-08), paired with the baseline by month,
+# against p < 0.05 / (number of experiments) and |t| >= 3. (Corrected 2026-10-16: this said "on the
+# same stocks and months". The pairing is by month only - each configuration ranks the stocks it has
+# enough weighted data to score, so a narrow screen's IC is on a different, usually smaller, set;
+# research/measurements/2026-10-16-stocks-ranked-per-config.json. Pairing on each month's common
+# stocks is queued in plan/research-engine.md.)
+#
+# Disclosure fields added 2026-10-16, after the audit; no prediction, result or transform changed:
+#   outcome_known_at_registration - periods whose outcome had already been computed and committed
+#     before the entry was registered. The seven only-* entries: each category score's 2020-2026 IC
+#     was published in research/measurements/2026-10-15-backtest-v2-returns.json (commit b6f7fd9,
+#     11:31) and -rebuild2.json (710f610, 16:55) before this file's first commit (ab983cc, 17:13);
+#     the ledger's first runs match those figures to about four decimals. For them only 2012-2019
+#     is a blind test. v2_experiments.run refuses an undisclosed case (refuse_known_outcomes).
+#   construction_note - how the screen as built here differs from the paper it cites.
 #
 # The universe and its limits (backtest_v2.py): the S&P 500 as it stood each month-end 2020-01 ..
 # 2026-08, rebuilt from SEC filings as they were filed, the stocks that have since left the index
@@ -73,36 +86,44 @@ experiments:
     source: Fama & French (1992); the lab - the earnings-yield gap among large companies reversed after 2007.
     prediction: IC near zero or negative over 2020-2026; not distinguishable from the baseline.
     transform: {kind: only_category, category: valuation}
+    outcome_known_at_registration: ["2020-2026"]
   - id: only-quality
     hypothesis: Quality alone ranks next month's returns.
     source: Novy-Marx (2013); Asness, Frazzini & Pedersen (2019); the lab - profitability is the factor that holds among large companies.
     prediction: The highest IC of the single categories, positive; probably not distinguishable from the baseline in 38 months.
     transform: {kind: only_category, category: quality}
+    outcome_known_at_registration: ["2020-2026"]
   - id: only-growth
     hypothesis: Growth alone ranks next month's returns.
     source: research/2026-10-12-growth-category.md - no published premium for growth as measured.
     prediction: IC near zero; not distinguishable.
     transform: {kind: only_category, category: growth}
+    outcome_known_at_registration: ["2020-2026"]
   - id: only-momentum
     hypothesis: Momentum alone ranks next month's returns.
     source: Jegadeesh & Titman (1993); the lab - large-company momentum about flat since 2000.
     prediction: IC near zero with the widest month-to-month spread; not distinguishable.
     transform: {kind: only_category, category: momentum}
+    outcome_known_at_registration: ["2020-2026"]
   - id: only-risk
     hypothesis: The low-risk category alone ranks next month's returns.
     source: Ang, Hodrick, Xing & Zhang (2006); Baker, Bradley & Wurgler (2011); the lab - similar return, lower volatility.
     prediction: IC near zero or negative in a rising market, with the lowest volatility of the top tenth.
     transform: {kind: only_category, category: risk}
+    outcome_known_at_registration: ["2020-2026"]
   - id: only-size
     hypothesis: Size alone ranks next month's returns.
     source: Fama & French (1992); the lab - between the two largest size groups the difference is small.
     prediction: IC near zero; not distinguishable.
     transform: {kind: only_category, category: size}
+    outcome_known_at_registration: ["2020-2026"]
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): the screen favours companies that are small for their sector. Fama & French (1992) sort the whole market by size."
   - id: only-investment
     hypothesis: Investment (low asset growth) alone ranks next month's returns.
     source: Cooper, Gulen & Schill (2008); Fama & French (2015); the lab - about half-size among large companies.
     prediction: IC near zero; not distinguishable.
     transform: {kind: only_category, category: investment}
+    outcome_known_at_registration: ["2020-2026"]
 
   # ---- leave one out: does any category hurt?
   - id: drop-valuation
@@ -156,6 +177,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {quality: {piotroski_f_score: 100}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): the F-score is compared with sector peers. Piotroski (2000) applies it across the market, among high book-to-market firms."
   - id: profitability-and-value
     hypothesis: Gross profitability with value ranks better than either alone.
     source: Novy-Marx (2013), JFE 108 - profitability and value are negatively correlated, so together they hedge; the lab's experiment 10.
@@ -163,6 +185,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {valuation: {earnings_yield: 50}, quality: {gross_profit_assets: 50}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles). The value half is earnings yield, where Novy-Marx (2013) uses book-to-market; his hedge comes from profitability's negative correlation with book-to-market. Here earnings yield and gross profit to assets have an average monthly within-sector rank correlation of +0.045 over 176 months (research/measurements/2026-10-16-stocks-ranked-per-config.json), so the screen does not carry that hedge."
   - id: fcf-yield-only
     hypothesis: Free-cash-flow yield, the screener's heaviest single metric, alone ranks returns.
     source: Valuation's own construction (45% of Valuation); the lab's queued cash-flow-yield sort.
@@ -170,6 +193,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {valuation: {fcf_yield: 100}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): free-cash-flow yield against sector peers, which is how the screener's Valuation category uses it."
   - id: momentum-12-1-only
     hypothesis: The classic 12-1 month return alone ranks returns.
     source: Jegadeesh & Titman (1993); Asness, Moskowitz & Pedersen (2013).
@@ -177,6 +201,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {momentum: {return_12_1: 100}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): a stock's 12-1 month return against its sector peers, which removes the industry component of momentum (Moskowitz & Grinblatt 1999). Jegadeesh & Titman (1993) rank across the whole market."
   - id: low-volatility-only
     hypothesis: Low volatility alone ranks returns.
     source: Ang et al. (2006); Frazzini & Pedersen (2014).
@@ -184,6 +209,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {risk: {volatility: 100}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): volatility against sector peers. Ang et al. (2006) and Frazzini & Pedersen (2014) sort across the whole market."
 
   # ---- construction choices the screener already has switches for
   - id: orthogonalised-categories
@@ -224,6 +250,7 @@ experiments:
     transform:
       kind: metrics
       metrics: {momentum: {proximity_52w_high: 100}}
+    construction_note: "Ranked within sector, as the engine ranks every metric (factor_engine.compute_sector_percentiles): nearness to the 52-week high against sector peers. George & Hwang (2004) rank across the whole market."
   - id: profitability-and-low-volatility
     hypothesis: Return on capital with low volatility - the defensive screen - ranks returns with a calmer top tenth.
     source: Novy-Marx (2016), Understanding Defensive Equity, NBER w20591 - defensive returns are largely profitability and size; Frazzini & Pedersen (2014).

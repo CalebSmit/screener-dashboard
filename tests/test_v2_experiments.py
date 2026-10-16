@@ -98,8 +98,11 @@ def test_the_verdict_needs_the_held_out_months_to_agree():
 
 def test_no_production_module_imports_it():
     pat = re.compile(r"^\s*(import v2_experiments|from v2_experiments)\b", re.M)
+    # research_page.py is the engine's own report writer (2026-10-16: it reads the engine's Student's t
+    # and pass bar rather than re-deriving them), and is itself never imported by production -
+    # tests/test_research_page.py::test_no_production_module_imports_the_generator
     for p in ROOT.glob("*.py"):
-        if p.name in ("v2_experiments.py", "conftest.py"):
+        if p.name in ("v2_experiments.py", "conftest.py", "research_page.py"):
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
 
@@ -253,3 +256,99 @@ def test_the_methodology_page_quotes_the_engine_s_own_summary():
     assert "this ranking has not been shown to predict returns" in text
     if published["better"] == 0:
         assert "none of the" in text
+
+
+# --------------------------------------------------------------------------- the 2026-10-16 audit
+def test_the_t_distribution_matches_known_quantiles():
+    """Item 7: p-values and critical values are Student's t (no scipy), pinned to textbook values."""
+    assert X.t_critical(0.05, 9) == pytest.approx(2.2622, abs=1e-3)
+    assert X.t_critical(0.05, 1) == pytest.approx(12.706, abs=1e-2)
+    assert X.t_critical(0.05, 37) == pytest.approx(2.0262, abs=1e-3)
+    assert X.t_two_sided_p(2.0, 10) == pytest.approx(0.07339, abs=1e-4)
+    assert X.t_two_sided_p(1.96, None) == pytest.approx(0.05, abs=1e-3)       # the normal curve
+    assert X.t_two_sided_p(0.0, 20) == pytest.approx(1.0)
+
+
+def test_the_bar_at_38_held_out_months_is_the_exact_t_and_detectable_uses_it():
+    crit = X.t_critical(0.05 / 27, 37)
+    assert crit == pytest.approx(3.354, abs=0.005)                             # the normal curve says 3.11
+    assert X.pass_bar(27, 38) == pytest.approx(crit)
+    assert X.pass_bar(27, None) == pytest.approx(3.113, abs=0.005)             # the old normal-curve bar
+    assert X.pass_bar(1, 38) == pytest.approx(X.HLZ_T)                         # one test: |t| >= 3 binds
+    assert X.detectable(0.01, 27, 38) == pytest.approx(round((crit + X.t_critical(0.40, 37)) * 0.01, 4))
+    assert X.detectable(0.01, 27, 38) > X.detectable(0.01, 27)
+
+
+def test_the_verdicts_read_p_from_the_t_distribution_not_the_stored_normal_p():
+    """A row written before 2026-10-16 carries a normal-approximation p; the report recomputes it."""
+    st = {"n": 38, "t": 2.0, "p": 0.0455, "mean": 0.02, "se": 0.01}
+    assert X.p_value(st) == pytest.approx(X.t_two_sided_p(2.0, 37)) and X.p_value(st) > 0.05
+    assert X.p_value({"p": 0.03, "t": 2.2}) == 0.03                           # no month count: kept
+
+
+def test_a_registered_idea_whose_outcome_was_already_on_file_must_say_so(monkeypatch):
+    """Item 2: ``run`` refuses an id whose statistic a committed measurement published before it was
+    registered, unless the registry discloses it - checked before any data is read."""
+    undisclosed = {"id": "x", "transform": {"kind": "only_category", "category": "size"}}
+    disclosed = dict(undisclosed, outcome_known_at_registration=["2020-2026"])
+    monkeypatch.setattr(X, "outcome_known_before_registration", lambda e: ["research/measurements/m.json"])
+    monkeypatch.setattr(X, "load_registry", lambda: [undisclosed])
+    monkeypatch.setattr(X, "load_months", lambda: pytest.fail("the guard must refuse before data is read"))
+    with pytest.raises(SystemExit, match="outcome already on file before registration"):
+        X.run(["x"])
+    X.refuse_known_outcomes([disclosed])                                     # disclosed: allowed
+    monkeypatch.setattr(X, "outcome_known_before_registration", lambda e: [])
+    X.refuse_known_outcomes([undisclosed])                                   # nothing on file: allowed
+    assert X.statistic_keys({"kind": "only_category", "category": "size"}) == [("category_ic", "size")]
+    assert X.statistic_keys({"kind": "drop_category", "category": "size"}) == []
+
+
+def test_the_seven_category_screens_are_the_ones_on_file_before_registration_and_say_so():
+    """Against the real history: the guard finds exactly the seven ``only-*`` entries (their category
+    ICs were in backtest-v2 measurements committed at 11:31 and 16:55, the registry at 17:13), and
+    every entry it finds carries the disclosure."""
+    try:
+        X.registered_at("baseline")
+    except OSError:
+        pytest.skip("no git history available")
+    reg = X.load_registry()
+    found = {e["id"] for e in reg if X.outcome_known_before_registration(e)}
+    if not found:
+        pytest.skip("shallow history: the measurement commits are not reachable")
+    seven = {f"only-{c}" for c in ("valuation", "quality", "growth", "momentum", "risk", "size", "investment")}
+    assert found == seven
+    assert {e["id"] for e in reg if e.get("outcome_known_at_registration")} == seven
+    for e in reg:
+        if e["id"] in seven:
+            assert e["outcome_known_at_registration"] == ["2020-2026"]
+
+
+def test_results_md_marks_every_known_outcome_row():
+    text = X.RESULTS.read_text(encoding="utf-8")
+    for e in X.load_registry():
+        mark = f"| {e['id']}{X.KNOWN_MARK} |"
+        assert (mark in text) == bool(e.get("outcome_known_at_registration")), e["id"]
+    assert "only their 2012-2019\nresult is a blind test" in text or "only their 2012-2019 result is a blind test" in text
+    assert "on the same months" not in text and "paired by month" in text
+
+
+def test_the_comparison_is_described_as_paired_by_month_never_on_the_same_stocks():
+    """Item 3: each configuration scores its own universe; only a dated correction may quote the old
+    wording."""
+    for p in (ROOT / "v2_experiments.py", X.REGISTRY, ROOT / "research_page.py", ROOT / "research.html",
+              X.RESULTS, ROOT / "research" / "2026-10-15-research-engine-first-batch.md"):
+        text = p.read_text(encoding="utf-8")
+        for i, line in enumerate(text.splitlines()):
+            if "same stocks" in line:
+                assert '"' in line and "2026-10-16" in "\n".join(text.splitlines()[max(0, i - 3):i + 1]), (p.name, line)
+
+
+def test_within_sector_screens_carry_a_construction_note():
+    """Item 6: the engine ranks every metric within its sector (``compute_sector_percentiles``), so a
+    single-metric screen, and Size on its own, is a within-sector version of a market-wide paper."""
+    for e in X.load_registry():
+        tr = e["transform"]
+        single = tr["kind"] == "metrics" and sum(len(v) for v in tr["metrics"].values()) == 1
+        if single or e["id"] in ("only-size", "profitability-and-value"):
+            note = (e.get("construction_note") or "").lower()
+            assert "within" in note and "sector" in note, e["id"]
