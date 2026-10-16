@@ -314,7 +314,12 @@ The fix that night is a constraint too: **the Methodology dialog is filled on fi
 claimed "`dashboard_data.js` parses" while only regex-matching the first line
 against a size floor, and a payload truncated to 50% is 2.5 MB, opens with the
 expected assignment, clears every check both loops had, and renders a blank page.
-`tests/test_payload_parse_gate.py`, 16 tests.
+**Since 2026-10-16 it covers `dashboard_context.js` too**, which had been published
+to the live site every weekday since the 2026-10-08 split with no size floor, no
+parse and no header check on either path. The tripwire is general now: **every `.js`
+file in `data-run.ps1`'s `$DataArtifacts` must be named in both runners' check
+specs**, so a third payload file cannot repeat it.
+`tests/test_payload_parse_gate.py`, 19 tests.
 
 ### The data loop's gates, and the asymmetry to keep checking
 
@@ -326,8 +331,8 @@ often.* When you compare the two runners, **the weaker one is usually the bug.**
 
 `data-run.ps1` refuses to publish on: synthetic data, a fetch-failure rate over
 40%, `check_run_health.py` reporting degraded, dashboard generation failing, a
-size floor, `node --check`, the payload's opening assignment, and
-`scripts/check_published_claims.py`.
+size floor, `node --check` and the opening assignment **on both payload files**,
+and `scripts/check_published_claims.py`.
 
 **That last one closed gate 1's missing counterpart, 2026-10-02.** The data loop
 ran **no tests at all** while regenerating and publishing `SCREENER_OVERVIEW.md`,
@@ -339,14 +344,27 @@ that exact commit: `pytest tests/test_overview_claims.py` reports **12 failed, 2
 passed in 0.36s.** The evidence to refuse the publish was already committed; the
 loop publishing never asked for it.
 
-The check is **deliberately narrow** - the modules that speak for the artifacts
-that run rewrote, 237 tests in ~15s against the full suite's 124s. Running
-everything would mean one unrelated red test stops the *evidence* loop as well as
-the code loop, and a red `main` already blocks merges. A failure **discards the
-run**, like every gate above it, so the live site keeps the last good version.
-Where pytest cannot run at all it **warns and publishes** - the `node` fallback
-precedent, because a gate that can only fail closed jams an unattended loop.
-`tests/test_published_claims_gate.py`, 22 tests.
+The check is **scoped to the modules that speak for the artifacts that run
+rewrote**, not to the whole suite: one unrelated red test must not stop the
+*evidence* loop as well as the code loop, and a red `main` already blocks merges.
+A failure **discards the run**, like every gate above it, so the live site keeps
+the last good version. Where pytest cannot run at all it **warns and publishes** -
+the `node` fallback precedent, because a gate that can only fail closed jams an
+unattended loop.
+
+**Its membership is derived from `claims.py`, not listed - 2026-10-16.** The
+hand-kept list had the defect the gate was built to fix, one level up: **15
+modules holding 64 of the register's own `checked_by` checks were outside it**,
+including all eight `context.*` claims, so the loop publishing the page did not
+run evidence this project had already written down. `module_paths()` is now the
+curated `MODULES` **union every module any claim names**; a registered claim whose
+check this gate never runs is impossible by construction. Measured: 916 tests in
+92s, from 237 in 15s. The two browser modules are in it deliberately - they are
+the data loop's missing counterpart to `scripts/rehearse_publish.py` and check the
+page *as regenerated*; they skip loudly without Chromium, so they cannot jam it.
+`EXCLUDED` is the named, printed place for a check that genuinely cannot run
+unattended - it is empty, and emptying it quietly is not an option.
+`tests/test_published_claims_gate.py`, 26 tests.
 
 ## The weekly cycle
 
@@ -647,7 +665,7 @@ already shipped to the live public site.
 | 0.8 | **The page shows the engine's numbers and refuses to publish if they do not add up.** Metric weights are resolved in one place (`factor_engine.metric_weight_profiles`) and published, never re-derived; `generate_dashboard` rebuilds every score from its own payload (`calc_trace`) and raises `CalculationMismatch`; an equation is shown only if it reproduces (`metric_lineage.RECOMPUTE`); `scoring_schema` keys the scored cache. Do not widen the tolerances to pass a build | `tests/test_calculation_reproducibility.py`, `tests/test_metric_lineage.py`, `tests/test_dashboard_browser.py` |
 | 0.8c | **A scoring change ships with its frontend in the same commit** (owner, 2026-10-07). Opening any metric row shows the stock's figures through the formula (`metric_lineage.EQUATIONS`), and an unscored metric says why (`NOT_USED_BECAUSE`); the suite evaluates each exact equation against every stock's scored value at a 99% bar, and a weighted metric with no line fails. Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never satisfy it by loosening the bar or marking a template `exact=False` | `tests/test_metric_lineage.py` (equation tests), `tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers`; `prompts/nightly.md` section 3 |
 | ctx | **Context is shown beside the score, never in it** (owner, 2026-10-08: "context only, track them"). Trend, options, insider, rate-sensitivity, macro, own-history valuation and track-record data live in `context_signals` / `context_fetch` / `insider_activity` / `market_context` / `valuation_history` / `track_record` and the payload's `ctx`, `market`, `track`; none may reach `raw`, `pct`, a category score or the composite, and no scoring module may read a `_ctx_` field. Option and insider requests run in a separate, time-budgeted pass **after** the core fetch (inside it they tripped the rate limiter). Every signal is logged per run in `data/context_log/`; one joins the score only with a research note **and** a measured `1m` record meeting the engine's own observation gate, then a changelog entry. The track record lists no current holdings (the Model Portfolio decision) and is not methodology evidence (rule 4) | `tests/test_context_layer.py`; `plan/context-layer.md` |
-| gates | Both publish paths parse the payload (`node --check`) and check its opening assignment; the data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`). Where node or pytest is absent both fall back with a `WARN` rather than jamming. **The gate's membership tripwire counts both routes to the page's text** - the committed `SCREENER_OVERVIEW.md` *and* a call to `build_screener_overview` (widened 2026-10-13: reading the generator is the better way per rule 10, and was exactly the way the detector could not see; three modules holding public page claims were outside the gate) | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
+| gates | Both publish paths parse **both payload files** (`node --check`) and check each one's opening assignment - `dashboard_data.js` and `dashboard_context.js`; **every `.js` in `$DataArtifacts` must be named in both runners' specs** (2026-10-16, after the context payload published unguarded for eight days). The data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`), and **that gate's membership is derived from `claims.py`'s `checked_by`, never transcribed** (2026-10-16: 15 modules, 64 claim checks, were outside a hand-kept list). Where node or pytest is absent both fall back with a `WARN` rather than jamming; a check left out goes in `EXCLUDED` with a reason that is printed every run. **The overview tripwire counts both routes to the page's text** - the committed `SCREENER_OVERVIEW.md` *and* a call to `build_screener_overview` (2026-10-13) - and `PUBLISHED_ARTIFACTS` is checked in **both** directions against `$DataArtifacts` | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
 **One constraint with no test, kept here because it governs how you spend the
 session:** a weekly usage ceiling exists and silently killed the 2026-08-14
