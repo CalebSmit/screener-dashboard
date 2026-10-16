@@ -373,10 +373,10 @@ Research-weighted by design: understand before building, and prove it after.
 | Day | Focus | Output |
 |---|---|---|
 | **Mon** | **Research.** One specific thing - a factor, a metric, a threshold, a construction rule - learned properly, from *both* the literature and documented practice. Where they disagree, say so and say why. | A dated note in `research/`, complete in one session: citations with effect sizes, plus how practitioners actually do it |
-| **Tue** | **Product.** Open the live dashboard as a user would. Does it answer *what should I look at / should I buy this / should I sell what I hold / how much*? Fix or build what it can't. | A dashboard change, or a written account of what it cannot answer and why |
+| **Tue** | **Product, through the numbers.** Open the live dashboard as a user would. Where it cannot answer *what should I look at / should I buy this / should I sell what I hold / how much*, the gap is almost always data or methodology - fix that. **Not a design day** (owner, 2026-10-07). | A data or methodology fix behind a question the page could not answer, or a written account of what it cannot answer and why |
 | **Wed** | **Synthesis.** How does Monday's research fit the rest of the screener? What does it overlap with, what does it make redundant, what does it imply for the other seven categories? Design the coherent whole, not the isolated tweak. | A design section on Monday's note, plus any `METHODOLOGY_CHANGELOG.md` entry |
 | **Thu** | **Build.** Implement what the week justified - or, if it justified no change, the top open item in "Current priorities". | Working, tested code |
-| **Fri** | **Harden and teach.** Tests, docs, methodology page, error handling, the investment-club experience. | A tool someone else can pick up and understand |
+| **Fri** | **The Factor Lab** - one finished experiment (`plan/factor-lab.md`). If the lab has nothing ready: harden and teach - tests, docs, methodology page, error handling, the investment-club experience. | A replication published with its tolerances, pass or fail; or a tool someone else can pick up |
 
 **Monday must produce a complete note.** It used to be split across Monday
 (literature) and Tuesday (practice). The 2026-08-21 retrospective found that in

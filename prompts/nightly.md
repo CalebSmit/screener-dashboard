@@ -173,9 +173,10 @@ outcome, not a failed one - do **not** invent a methodology change so there is
 something to build. Take the top open item in `CLAUDE.md`'s "Current
 priorities" instead, and say in the log which of the two this was.
 
-**Friday - harden and teach.** Tests, docs, error handling, and the
-investment-club experience. Would a finance student understand what they're
-looking at?
+**Friday - the Factor Lab.** One finished experiment; the rules are three
+paragraphs below. If the lab has nothing ready, harden and teach instead - tests,
+docs, error handling, the investment-club experience; would a finance student
+understand what they're looking at? - and say in the log which you chose and why.
 
 **On validation.** You do *not* need a number to make a well-sourced
 methodology change; waiting for proof would freeze the project. Measurement
@@ -194,15 +195,17 @@ a time, of at most 3 points**. The lab never sets a parameter and no scoring mod
 import it. Three things to know before you start:
 
 - **Proposals wait for a second session.** A research note may end in a proposal its author
-  deliberately did not build, carrying the line `**Proposal status: OPEN** - <what>`. The morning
-  brief's "Waiting for a decision" section lists every open one with its age. **If one is listed,
-  review it and decide** before the day's focus - it is an open `OWNER_FOCUS.md` item. Build it
-  with a changelog entry, or refuse it and write down why; then rewrite the status line. Do not
-  decide by skimming, and do not leave it undecided. The 2026-10-12 Growth proposal is the worked
-  example: the 2026-10-13 session measured what the note had not, found the proposal undercut its
-  own premise, and refused it (that note's section 10). Open on 2026-10-14:
-  `research/2026-10-14-capex-definition.md` section 4 (finance-arm leases out of FCF capex for
-  GM, DE, CAT, PCAR; the filed tags are in the note and in the SEC cache after its next refresh).
+  deliberately did not build, carrying the line `**Proposal status: OPEN** - <what>`. **Get the
+  live list from the morning brief's "Waiting for a decision" section, or
+  `python -c "import sys; sys.path.insert(0,'scripts'); import write_brief;
+  print(write_brief.open_proposals())"`** - do not trust a list written in this file, which goes
+  stale within a day (it named the capex proposal for a day after it was refused). **If one is
+  listed, review it and decide** before the day's focus - it is an open `OWNER_FOCUS.md` item.
+  Build it with a changelog entry, or refuse it and write down why; then rewrite the status line.
+  Do not decide by skimming, and do not leave it undecided. This is the highest-leverage thing a
+  scheduled session does, because a proposal needs a reader who did not write it: both decisions
+  so far were **refusals** that measured something the note had not (`research/2026-10-12-growth-category.md`
+  section 10; `research/2026-10-14-capex-definition.md` section 5.7).
 - **Reading rules were written before the questions were researched** (same section of
   the plan). Apply them as written: a stretch of under twenty years inside two standard
   errors is "not confirmed", not "gone"; large-company evidence outranks all-stock
