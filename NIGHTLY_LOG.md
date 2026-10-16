@@ -11723,7 +11723,7 @@ and for the lab?"* and *"my goal is to not spend any money if possible on top of
 - Free survivorship route probed: Stooq's CSV download now returns a browser challenge for every symbol -
   not usable, and not to be worked around. Recorded in `plan/research-engine.md`.
 
-## 2026-10-15/16 (owner-run, overnight) - the investor pass: twelve presentation phases, payload untouched
+## 2026-10-15/16 (owner-run, overnight) - the investor pass: fifteen presentation phases, payload untouched
 
 **Health (rule 8):** last code session ran? **yes** - `logs/nightly-2026-10-15_131743-midday.log` ends "Run complete:
 shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` "Data loop complete",
@@ -11738,8 +11738,8 @@ investors please? ... lots of things that still looks weak or ai generated. Need
 and show things first that makes sense ... please keep working on this till the next session!"*
 
 ### Did
-Twelve phases, each merged and tagged separately (`good/2026-10-15-owner-*`, `good/2026-10-16-owner-1`
-to `-6`), each installed with a sha256 check that `dashboard_data.js` and `dashboard_context.js` did not
+Fifteen phases, each merged and tagged separately (`good/2026-10-15-owner-*`, `good/2026-10-16-owner-1`
+to `-9`), each installed with a sha256 check that `dashboard_data.js` and `dashboard_context.js` did not
 change, each looked at 1440 and 375, the full gates and `rehearse_publish.py` before every merge (2,461
 passed each time). The record, phase by phase, is `plan/dashboard-investor-pass.md`; the inventory has a
 section for what a later session must know.
@@ -11759,6 +11759,9 @@ section for what a later session must know.
   shows the last price in the header, and clamps each context card's research paragraph to three lines.
 - **One product, three pages:** `research.html` and `lab.html` share the front page's mark and a
   three-way nav; link previews (Open Graph, `og-card.png`, no live numbers) on all three.
+- **After the 02:00 run (phases 13-15):** one type scale (35 scattered `rem` sizes, about 30 distinct
+  sizes, mapped onto one half-pixel scale); one 14px panel radius on all three pages; the research page's
+  ~190 monospace figures now Inter tabular; a 5px sideways scroll at 320px fixed. `OWNER_FOCUS.md` Done.
 
 ### Not done, and why
 - The Reporting table cuts company names at 31 characters mid-word (the longest `Company` in `table_data` is 31); the cut is in the payload's `Company`

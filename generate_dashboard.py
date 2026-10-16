@@ -9749,6 +9749,10 @@ def _css_investor() -> str:
         .toggle-btn { background: transparent; font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
             letter-spacing: 0; padding: 5px 12px; }
         .toggle-btn.active { background: var(--accent-glow); color: var(--accent-text); }
+        /* the hero's 2x2 on the narrowest phones: 1fr columns could not shrink below "Has it been tested? ->"
+           plus its padding, and the page scrolled sideways by 5px at 320 */
+        @media (max-width: 760px) { .hero .hero-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+        @media (max-width: 360px) { .hero .hero-actions .hero-btn { padding: 0 8px; font-size: 13px; } }
         /* one corner radius for panels: the diagnostics cards were the last at 10px */
         .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
