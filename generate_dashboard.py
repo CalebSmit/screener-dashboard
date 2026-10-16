@@ -2010,7 +2010,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- Rank history -->
                     <div class="collapsible" id="section-history" style="display:none">
                         <div class="collapsible-header" onclick="toggleSection('section-history')">
-                            <span>Rank History</span><span class="collapsible-chevron">&#9660;</span>
+                            <span>Rank history</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-history"></div>
                     </div>
@@ -2018,7 +2018,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- Analyst Price Targets -->
                     <div class="collapsible" id="section-price-targets">
                         <div class="collapsible-header" onclick="toggleSection('section-price-targets')">
-                            <span>Analyst Price Targets</span><span class="collapsible-chevron">&#9660;</span>
+                            <span>Analyst price targets</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-price-targets"></div>
                     </div>
@@ -2026,7 +2026,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- Company Snapshot -->
                     <div class="collapsible collapsed" id="section-snapshot">
                         <div class="collapsible-header" onclick="toggleSection('section-snapshot')">
-                            <span>Company Snapshot</span><span class="collapsible-chevron">&#9660;</span>
+                            <span>Company snapshot</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-snapshot"></div>
                     </div>
@@ -2034,7 +2034,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- Sector Peers -->
                     <div class="collapsible collapsed" id="section-peers">
                         <div class="collapsible-header" onclick="toggleSection('section-peers')">
-                            <span>Sector Peers</span><span class="collapsible-chevron">&#9660;</span>
+                            <span>Sector peers</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-peers"></div>
                     </div>
@@ -2042,7 +2042,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <!-- Data Provenance -->
                     <div class="collapsible collapsed" id="section-provenance">
                         <div class="collapsible-header" onclick="toggleSection('section-provenance')">
-                            <span>Data Provenance</span><span class="collapsible-chevron">&#9660;</span>
+                            <span>Data provenance</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-provenance"></div>
                     </div>
@@ -9739,6 +9739,16 @@ def _css_investor() -> str:
             .header-nav { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
                           mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
         }
+        /* the stock sheet's headings in one voice: "Why it ranks here" and "About" were uppercase labels
+           beside the sentence-case "How it adds up" and "The workings"; uppercase stays for tile labels */
+        #stock-modal .summary-title, #stock-modal .about-title { font-family: var(--font-body); font-size: 14px; font-weight: 600;
+            letter-spacing: 0; text-transform: none; color: var(--text-primary); }
+        /* the composite card repeated the header's rank and composite word for word; the eight scores now
+           open the sheet directly */
+        #modal-score-row > .modal-score-card.composite { display: none; }
+        /* the score words beside each bar: readable, not 9px capitals in a chip */
+        .contrib-qual { font-size: 11.5px; font-weight: 500; letter-spacing: 0; text-transform: none; background: none;
+            padding: 0 2px; border: 0; color: var(--text-muted); }
         /* the diagnostics tile speaks like its neighbours: a line of text, the status dots kept, no pills */
         .sec-grid .defensibility-summary { gap: 4px 18px; margin-top: 8px; }
         .sec-grid .defensibility-summary .def-badge { padding: 0; border: 0; border-radius: 0; background: none;
