@@ -361,6 +361,17 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-16 - The investor pass: done (owner-run, overnight 2026-10-15/16).** Owner, in chat: *"a deep
+  ui/ux pass to make it look really nice and expensive, and premium for investors ... guide the users eyes,
+  and show things first that makes sense."* Fifteen presentation-only phases, each merged and tagged
+  separately with the data files byte-identical, each looked at 1440 and 375 (and 320 at the end). The page
+  now reads statement -> four figures beside it (with the track record and its length) -> the leaders as
+  score profiles -> tiles that each state a finding -> a quiet table; the stock sheet opens on the eight
+  scores; one type scale, one panel radius, one heading voice, and the research page and the lab share the
+  front page's bar. Defects found by looking and fixed on the way: charts drawn at half width, a nav that
+  clipped below 1340px, default-violet links, overflow at 375 and 320. The record is
+  `plan/dashboard-investor-pass.md`; `NIGHTLY_LOG.md` 2026-10-15/16 has the account.
+
 - **2026-10-15 - the capex proposal: REVIEWED and REFUSED, and the page now says what the capex
   figure contains.** Raised 2026-10-14 (owner-run) and decided by the next session, as the routine
   requires. The proposal would have taken a captive finance arm's lease purchases out of

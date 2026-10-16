@@ -157,6 +157,14 @@ statement, never louder than the primary action.
 - **No monospace figures on the research page**: about 190 figures were set in JetBrains Mono (the look the
   2026-10-05 brief named); they are Inter with tabular numerals, like the front page. Code stays mono.
 
+## Phase 15 - DONE 2026-10-16 (owner-run)
+
+- **320px**: the hero's 2x2 scrolled the page sideways by 5px (its `1fr` columns could not shrink below
+  "Has it been tested? ->" plus padding). Columns are `minmax(0, 1fr)` and the buttons tighten below 360px.
+  All three pages measured at 320: no horizontal scroll.
+- **Checked and left alone**: the first paint before the 6 MB data file lands already shows skeletons in
+  the new 2x2 shape; the lab's experiment view reads cleanly at 1440 and 375.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).
