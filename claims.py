@@ -360,6 +360,51 @@ CLAIMS: tuple[Claim, ...] = (
         detect=r"coverage discount described under Data quality safeguards",
     ),
     Claim(
+        id="overview.piotroski_conditional",
+        surface=OVERVIEW,
+        asserts=(
+            "The Piotroski-conditional rule halves the F-Score's Quality weight for non-bank "
+            "stocks below the valuation threshold and splits the freed points between ROIC and "
+            "Gross Profit / Assets in proportion to their own weights - the sentence prints each "
+            "weight before and after (F-Score 16 to 8, ROIC 29 to 33.55, GP/A 22 to 25.45 on "
+            "2026-10-16), read from the table the stocks are scored with."
+        ),
+        made_true_by="run_screener:piotroski_split_sentence",
+        checked_by=(
+            "tests/test_piotroski_conditional.py::test_overview_states_the_split_the_engine_applies",
+            "tests/test_piotroski_conditional.py::test_the_page_no_longer_says_equally",
+            "tests/test_piotroski_conditional.py::test_every_profile_in_the_payload_is_applied_or_retired",
+        ),
+        detect=r"split between .+ in proportion to their own weights",
+        caveat=(
+            "Fixed 2026-10-16. The page said the freed weight was 'redistributed equally'; the "
+            "engine has always split it in proportion. The same day a growth-trap variant "
+            "(profile pio_gt) was removed: it was published with its own table and label but "
+            "could never apply (0 of 501 stocks), because it read growth_score before Growth "
+            "was scored."
+        ),
+    ),
+    Claim(
+        id="drilldown.avg_metric_coverage",
+        surface=DRILLDOWN,
+        asserts=(
+            "The Data Quality panel's Metric Coverage - 'Average share of applicable metrics "
+            "with a value' - is the mean over stocks of the engine's own weighted coverage, the "
+            "cov.n / cov.of each drilldown prints and the coverage discount reads."
+        ),
+        made_true_by="generate_dashboard:average_weighted_coverage",
+        checked_by=(
+            "tests/test_engine_lists_are_derived.py::test_metric_coverage_is_the_mean_of_the_published_per_stock_coverage",
+            "tests/test_engine_lists_are_derived.py::test_the_figure_is_built_from_the_engines_columns_not_a_list",
+        ),
+        caveat=(
+            "Fixed 2026-10-16. It averaged a hard-coded 18-metric list (unscored D/E in, ten "
+            "weighted metrics out, EV and ROIC counted against banks): 95.5% published against "
+            "the engine's 98.9%, banks 69% against 99.5%. A payload without "
+            "data_quality.coverage_basis predates the fix."
+        ),
+    ),
+    Claim(
         id="overview.limitation8",
         surface=OVERVIEW,
         asserts=(
@@ -951,6 +996,13 @@ FORBIDDEN: tuple[Forbidden, ...] = (
              "client-side percentile transform, which would have stopped the "
              "recompute reproducing the engine's own published numbers."),
         fixed="2026-10-07 (T0a)",
+    ),
+    Forbidden(
+        pattern=r"redistributed equally to ROIC",
+        why=("The methodology page's Piotroski-conditional section. The engine splits the "
+             "freed F-Score weight in proportion to the recipients' weights (ROIC 29 to 33.55, "
+             "Gross Profit / Assets 22 to 25.45), never equally."),
+        fixed="2026-10-16",
     ),
 )
 

@@ -249,6 +249,55 @@ def _research_engine_sentence(path: Path | None = None) -> str:
             f"decision support, not a forecast.")
 
 
+def _pts(x: float) -> str:
+    """A weight in points of its category's 100, to two decimals, trailing zeros dropped."""
+    return f"{round(x, 2):.2f}".rstrip("0").rstrip(".")
+
+
+def piotroski_split(cfg: dict) -> dict:
+    """What the Piotroski-conditional rule does to the Quality weights, read from the engine.
+
+    ``{metric: (generic_points, conditional_points)}`` for every Quality metric whose weight
+    the rule changes, from ``factor_engine.metric_weight_profiles`` - the one place weights
+    are resolved, and the tables the stocks are scored with. Empty when the rule is off.
+    """
+    from factor_engine import metric_weight_profiles
+    prof = metric_weight_profiles(cfg, "quality")
+    if "pio_lowval" not in prof:
+        return {}
+    gen, cond = prof["generic"], prof["pio_lowval"]
+    return {m: (gen[m] * 100.0, cond[m] * 100.0) for m in gen
+            if abs(cond[m] - gen[m]) > 1e-12}
+
+
+def piotroski_split_sentence(cfg: dict) -> str:
+    """The overview's sentence on where the freed Piotroski weight goes, with the points.
+
+    Until 2026-10-16 the page said the freed weight was "redistributed equally" to its two
+    recipients while the engine split it in proportion to their weights (ROIC 29 -> 33.55,
+    Gross Profit / Assets 22 -> 25.45, not 33 and 26). Claim ``overview.piotroski_conditional``;
+    ``tests/test_piotroski_conditional.py`` recomputes the split from the profiles.
+    """
+    split = piotroski_split(cfg)
+    if not split or "piotroski_f_score" not in split:
+        return ""
+    pio_from, pio_to = split["piotroski_f_score"]
+    recips = sorted((m for m in split if m != "piotroski_f_score"),
+                    key=lambda m: -split[m][0])
+    if not recips:
+        return ""
+    label = lambda m: _METRIC_LABELS.get(m, m)  # noqa: E731
+    names = " and ".join(label(m) for m in recips)
+    ratio = " : ".join(_pts(split[m][0]) for m in recips)
+    moves = " and ".join(f"{label(m)}{' goes' if i == 0 else ''} from {_pts(split[m][0])} "
+                         f"to {_pts(split[m][1])}" for i, m in enumerate(recips))
+    return (f"That takes the F-Score from {_pts(pio_from)} to {_pts(pio_to)} of the Quality "
+            f"category's 100 points. The freed {_pts(pio_from - pio_to)} points are split between "
+            f"{names} in proportion to their own weights ({ratio}), so {moves}; these are more "
+            f"robust quality signals for expensive stocks. Every other Quality weight is unchanged, "
+            f"and a stock's drilldown shows the table it was scored with.")
+
+
 def build_screener_overview(cfg: dict) -> str:
     """Build the text of SCREENER_OVERVIEW.md from the live config.
 
@@ -413,14 +462,13 @@ def build_screener_overview(cfg: dict) -> str:
     if pio.get("enabled"):
         threshold = pio.get("valuation_threshold", 50)
         reduction = pio.get("reduction_factor", 0.5)
-        redist_to = pio.get("redistribute_to", [])
-        redist_labels = [_METRIC_LABELS.get(m, m) for m in redist_to]
         reduction_pct = int(reduction * 100)
+        pio_split = piotroski_split_sentence(cfg)
         pio_text = f"""## Piotroski conditional weighting
 
 The Piotroski F-Score is a broad checklist of financial health signals — but its predictive power varies depending on how expensive a stock is. For cheap stocks (high valuation score), the F-Score is highly predictive: it separates genuinely undervalued companies from deteriorating ones. For expensive stocks (low valuation score), the F-Score is less informative because the market has already priced in quality.
 
-When enabled (current: **on**), the screener reduces the Piotroski F-Score weight by {reduction_pct}% for non-bank stocks with a valuation score below {threshold} (i.e., the more expensive half of the universe). The freed weight is redistributed equally to {' and '.join(redist_labels)}, which are more robust quality signals for expensive stocks.
+When enabled (current: **on**), the screener reduces the Piotroski F-Score weight by {reduction_pct}% for non-bank stocks with a valuation score below {threshold} (i.e., the more expensive half of the universe). {pio_split}
 
 Bank-like stocks are unaffected — their quality weights are already tailored.
 
@@ -750,8 +798,8 @@ The screener includes several layers of data quality protection:
 - **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.50, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.50, 1.0])[1] * 100)}%]. These bounds are configurable in `config.yaml` under `metric_clamps`. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.
 - **Coverage filter:** Stocks with fewer than {min_coverage}% of the metrics that carry weight in their score available are excluded from the ranking entirely - the same coverage the composite's discount reads.
 - **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is reduced by up to {int(cov_disc.get('penalty_rate', 0.15) * 100)}% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
-- **Auto-disable (category-level):** If the Revisions or Investment category has fewer than 30% of its metrics populated, the entire category's weight is zeroed and redistributed proportionally to the remaining categories.
-- **Auto-reduce (metric-level):** If any individual metric has more than {auto_reduce_thresh}% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.
+- **Auto-disable (category-level):** If fewer than 30% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.
+- **Auto-reduce (metric-level):** If any metric that carries weight has more than {auto_reduce_thresh}% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed, in proportion, to the other weighted metrics in its category.
 - **Metric-level alerts:** A warning is printed if any metric has more than {alert_thresh}% missing data across the universe.
 - **LTM / MRQ data freshness:** All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (< 8 quarters).
 - **Checked against the filings:** each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (`sec_crosscheck.py`), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once - the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.

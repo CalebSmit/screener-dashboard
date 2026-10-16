@@ -160,15 +160,13 @@ piotroski_conditional:
   enabled: true
   valuation_threshold: 50        # Stocks with valuation_score < 50 get reduced F-Score weight
   reduction_factor: 0.5          # Multiply Piotroski weight by this (0.5 = halve it)
-  redistribute_to:               # Freed weight goes equally to these metrics
-    - roic
+  redistribute_to:               # Freed weight is split between these in proportion to
+    - roic                       # their own generic weights (factor_engine.metric_weight_profiles)
     - gross_profit_assets
-  growth_trap_enabled: true                          # NEW: also reduce Piotroski for growth-trap-like stocks
-  growth_trap_growth_threshold: 70                   # NEW: stocks above 70th pctile growth
-  growth_trap_quality_threshold: 35                  # NEW: AND below 35th pctile quality
-  growth_trap_redistribute_to:                       # NEW: freed weight goes to these instead
-    - accruals
-    - gross_profit_assets
+  # A growth-trap variant (growth_trap_* keys, profile "pio_gt") was removed 2026-10-16: it
+  # needed growth_score before Quality was scored and so never applied to a stock (0 of 501).
+  # A working version would be a methodology change and needs a research note first
+  # (Mohanram 2005's G-score is the obvious source). METHODOLOGY_CHANGELOG.md 2026-10-16.
 
 # Percentile Transform (optional non-linear rescaling)
 # When enabled, applies a logistic S-curve to percentile ranks, compressing
