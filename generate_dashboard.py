@@ -1668,7 +1668,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <div class="sec-grid" id="sec-grid">
         <section class="section collapsible-section collapsed" id="sec-holdings">
             <div class="section-header" onclick="toggleSection('sec-holdings')">
-                <h2 class="section-title" style="margin:0">My Holdings <span class="holdings-count" id="holdings-count"></span></h2>
+                <h2 class="section-title" style="margin:0">My holdings <span class="holdings-count" id="holdings-count"></span></h2>
                 <span class="sec-meta" id="meta-holdings"></span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
@@ -1695,7 +1695,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- What Changed -->
         <section class="section collapsible-section collapsed" id="sec-changed" style="display:none">
             <div class="section-header" onclick="toggleSection('sec-changed')">
-                <h2 class="section-title" style="margin:0">What Changed</h2>
+                <h2 class="section-title" style="margin:0">What changed</h2>
                 <span class="sec-meta" id="meta-changed"></span>
                 <span class="sec-blurb">The largest rank changes and the categories behind them.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1726,7 +1726,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
              options-implied moves and insider trades from the context file). Never scored, never ranked by move. -->
         <section class="section collapsible-section collapsed" id="sec-reporting">
             <div class="section-header" onclick="toggleSection('sec-reporting')">
-                <h2 class="section-title" style="margin:0">Reporting Soon</h2>
+                <h2 class="section-title" style="margin:0">Reporting soon</h2>
                 <span class="sec-meta" id="meta-reporting"></span>
                 <span class="sec-blurb">Earnings dates over the next two weeks, with option-implied moves.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1737,7 +1737,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- Market backdrop (context, never scored; plan/context-layer.md) -->
         <section class="section collapsible-section collapsed" id="sec-market">
             <div class="section-header" onclick="toggleSection('sec-market')">
-                <h2 class="section-title" style="margin:0">Market Backdrop</h2>
+                <h2 class="section-title" style="margin:0">Market backdrop</h2>
                 <span class="sec-meta" id="meta-market"></span>
                 <span class="sec-blurb">Rates, credit spreads, volatility and the labor market.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1748,7 +1748,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- Track record of the ranking (out of sample; plan/context-layer.md) -->
         <section class="section collapsible-section collapsed" id="sec-track">
             <div class="section-header" onclick="toggleSection('sec-track')">
-                <h2 class="section-title" style="margin:0">Track Record</h2>
+                <h2 class="section-title" style="margin:0">Track record</h2>
                 <span class="sec-meta" id="meta-track"></span>
                 <span class="sec-blurb">Forward returns of the top 25, measured from each run.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1759,7 +1759,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section collapsed" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
-                <h2 class="section-title" style="margin:0">Factor Analytics</h2>
+                <h2 class="section-title" style="margin:0">Factor analytics</h2>
                 <span class="sec-meta" id="meta-analytics">Sector &times; factor scores &middot; trap rates by sector</span>
                 <span class="sec-blurb">Sector medians on each factor, and where trap flags cluster.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1796,7 +1796,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="section collapsible-section defensibility-section collapsed" id="sec-defensibility">
             <div class="section-header" onclick="toggleSection('sec-defensibility')">
                 <div class="defensibility-header-left">
-                    <h2 class="section-title" style="margin:0">Defensibility &amp; Diagnostics</h2>
+                    <h2 class="section-title" style="margin:0">Diagnostics</h2>
                     <div class="defensibility-summary" id="defensibility-summary"></div>
                 </div>
                 <span class="sec-blurb">Weight sensitivity and factor overlap.</span>
@@ -2236,7 +2236,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // 3. how the ranking has done - the track record lives in the context file, which lands
         //    after the page is usable; the tile says so until it does (fillTrackKpi)
         cards.push(kpiCard('Track record', '<span id="kpi-track-v">&hellip;</span>',
-            '<span id="kpi-track-s">the top 25 against the equal-weight S&amp;P 500</span>', 'kpi-track'));
+            '<span id="kpi-track-s">the top 25 against the equal&#8209;weight S&amp;P 500</span>', 'kpi-track'));
         // 4. caveats on the list, or how this run was weighted when the regime rule moved it
         const fw = (D.weights || {{}}).factor_weights || {{}}, bw = (D.weights || {{}}).base_factor_weights || {{}};
         if (D.weights && D.weights.factor_weights_adjusted && fw.momentum !== undefined && bw.momentum !== undefined && fw.momentum !== bw.momentum) {{
@@ -2251,7 +2251,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // the analytics tile's headline: the published trap rate that stands out most
         const vt = D.vt_by_sector || {{}}, top = Object.keys(vt).sort((a, b) => vt[b].rate - vt[a].rate)[0];
         const ma = document.getElementById('meta-analytics');
-        if (ma && top) ma.textContent = 'Most value-trap flags: ' + top + ', ' + Number(vt[top].rate).toFixed(1) + '% of the sector';
+        if (ma && top) ma.textContent = 'Most value\u2011trap flags: ' + top + ', ' + Number(vt[top].rate).toFixed(1) + '% of the sector';
         const ts = k.run_timestamp ? new Date(k.run_timestamp) : null;
         const fmtDate = ts ? ts.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }}) : '';
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
@@ -7818,14 +7818,17 @@ def _js_ux() -> str:
     // ---- search palette ------------------------------------------------------
     const PAL_ACTIONS = [
         { label: 'Leading the ranking (top 5)', hint: 'Section', run: () => goToSection('sec-top5') },
-        { label: 'Full rankings table', hint: 'Section', run: () => goToSection('sec-universe') },
-        { label: 'My Holdings', hint: 'Section', run: () => goToSection('sec-holdings') },
+        { label: 'The full ranking', hint: 'Section', run: () => goToSection('sec-universe') },
+        { label: 'My holdings', hint: 'Section', run: () => goToSection('sec-holdings') },
         { label: 'What changed', hint: 'Section', run: () => goToSection('sec-changed'), when: () => !!(H && H.available) },
+        { label: 'Reporting soon', hint: 'Section', run: () => goToSection('sec-reporting') },
+        { label: 'Market backdrop', hint: 'Section', run: () => goToSection('sec-market') },
+        { label: 'Track record', hint: 'Section', run: () => goToSection('sec-track') },
         { label: 'Factor analytics', hint: 'Section', run: () => goToSection('sec-analytics') },
-        { label: 'Defensibility and diagnostics', hint: 'Section', run: () => goToSection('sec-defensibility') },
+        { label: 'Diagnostics', hint: 'Weight sensitivity and factor overlap', run: () => goToSection('sec-defensibility') },
         { label: 'Methodology', hint: 'How it works', run: () => openMethodology() },
         { label: 'Factor Lab', hint: 'Rerun the research', run: () => { window.location.href = 'lab.html'; } },
-        { label: 'Has it been tested?', hint: 'The ranking on 2012-2026 history', run: () => { window.location.href = 'research.html'; } },
+        { label: 'Has it been tested?', hint: 'The ranking on 2012–2026 history', run: () => { window.location.href = 'research.html'; } },
         { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
         { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
         { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
@@ -9315,7 +9318,7 @@ def _js_context() -> str:
         const S = M.series;
         if (meta) {
             const bits = [];
-            if (S.T10Y3M) bits.push('10y-3m curve ' + (S.T10Y3M.last >= 0 ? '+' : '\u2212') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '\u2212') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             meta.textContent = bits.join(' · ');
@@ -9386,7 +9389,7 @@ def _js_context() -> str:
         if (!host) return;
         if (!T || !T.available) { host.innerHTML = '<p class="modal-note">The track record was not available for this run.</p>'; return; }
         const tot = T.total || {};
-        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal-weight S&P 500 ' + cPct(tot.RSP) + ' since ' + cDate(T.start);
+        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal\u2011weight S&P 500 ' + cPct(tot.RSP) + ' since ' + cDate(T.start);
         const kpi = (lab, v, sub) => '<div class="tr-kpi"><div class="tr-kpi-l">' + lab + '</div><div class="tr-kpi-v">' + v + '</div><div class="tr-kpi-s">' + sub + '</div></div>';
         let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it was published, with nothing backfilled. It measures the ranking, not a portfolio to follow.</p>';
         h += '<div class="tr-kpis">' +
@@ -9516,7 +9519,7 @@ def _js_context() -> str:
         const mm = document.getElementById('meta-market');
         if (mm && M && M.series) {
             const S = M.series, bits = [];
-            if (S.T10Y3M) bits.push('10y-3m curve ' + (S.T10Y3M.last >= 0 ? '+' : '−') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
+            if (S.T10Y3M) bits.push('10y\u20113m curve ' + (S.T10Y3M.last >= 0 ? '+' : '−') + Math.abs(S.T10Y3M.last).toFixed(2) + 'pp');
             if (S.VIXCLS) bits.push('VIX ' + Number(S.VIXCLS.last).toFixed(1));
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             mm.textContent = bits.join(' · ');
@@ -9525,12 +9528,12 @@ def _js_context() -> str:
         if (mt && T && T.available) {
             const tot = T.total || {};
             const f = v => (v === null || v === undefined) ? '-' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
-            mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal-weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
+            mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal\u2011weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
             const kv = document.getElementById('kpi-track-v'), ks = document.getElementById('kpi-track-s');
             if (kv && ks) {
                 kv.textContent = f(tot.top);
                 const mo = Math.max(1, Math.round((T.days || 0) / 30.4));
-                ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' for the equal-weight S&P 500 · ' + mo + '-month record';
+                ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' for the equal\u2011weight S&P 500 · ' + mo + '-month record';
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
                     card.onclick = () => goToSection('sec-track');
@@ -9655,7 +9658,8 @@ def _css_investor() -> str:
         .t5-col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
         .t5-track { position: relative; height: 46px; border-radius: 3px; background: var(--bg-elevated); overflow: hidden; }
         .t5-track::after { content: ''; position: absolute; left: 0; right: 0; bottom: 50%; height: 1px; background: var(--border-bright); opacity: .7; }
-        .t5-fill { position: absolute; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 2px 2px 0 0; }
+        /* the 50 line is a reference on the empty track: it was drawn over the fills and cut every bar */
+        .t5-fill { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; background: color-mix(in srgb, var(--accent) 55%, var(--bg-elevated)); border-radius: 2px 2px 0 0; }
         .t5-fill.hi { background: var(--accent); }
         .t5-v { margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; }
         .t5-l { font-size: 9.5px; color: var(--text-muted); text-align: center; letter-spacing: -.01em; overflow: hidden; white-space: nowrap; }

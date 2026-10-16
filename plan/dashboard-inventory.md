@@ -35,6 +35,8 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **First screen at >= 1200px**: `.dashboard-container` is a two-column grid; the hero is column 1 and
   `#kpi-row` a 2x2 in column 2; every other child spans both. A new top-level child spans automatically.
 - **Table composite** is a gauge: `<i style="--c:0.714">` on a `::after` track (the fill is `--c` of the track).
+- **Section titles are sentence case** (2026-10-16): My holdings, What changed, Reporting soon, Market backdrop,
+  Track record, Factor analytics, Diagnostics (formerly "Defensibility & Diagnostics"; same section, `#sec-defensibility`).
 - **Company names** are the source's `longName` (full), falling back to `shortName`, which the source caps at
   31 characters (`factor_engine.compute_metrics`; `tests/test_company_name.py`). Display only.
 - **Factor Analytics tile** (`#meta-analytics`): filled in `renderKPIs` with the sector carrying the most
