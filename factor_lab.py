@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -2144,13 +2145,70 @@ def compare(reference: dict, measured: dict, tolerances: dict = TOLERANCES) -> l
     inside the tolerance."""
     rows = []
     for leg in ("plain", "managed"):
-        for key in ("max", "min", "mean", "std", "kurt", "skew", "sharpe"):
+        for key in STAT_ORDER:
             ref, got = reference[leg][key], measured[leg + "_stats"][key]
             diff = got - ref
             rows.append({"leg": leg, "stat": key, "label": STAT_LABELS[key], "paper": ref,
                          "here": got, "diff": diff, "tolerance": tolerances[key],
                          "within": abs(diff) <= tolerances[key]})
     return rows
+
+
+# What a result of no effect at all would land within tolerance on (plan/factor-lab.md rule 8).
+# A tolerance wide enough to pass a null result is not evidence of a replication, so every
+# experiment publishes how many of its figures the null would match, beside its own verdict.
+# The null is built from the record alone - the paper's figures and nothing measured:
+#   * every group earns the same: a group's average is the average of the paper's group figures
+#     (zero for a table already set against its own average, `relative`);
+#   * every spread, difference, t-statistic, correlation, loading, intercept, Sharpe ratio and
+#     premium is zero;
+#   * a figure the null says nothing about - a volatility, the market's own figures, a count of
+#     months, a list of worst months - stays at the paper's value, which the null then matches.
+# Experiment 1's claim is about scaling, not momentum: its null is the risk-managed strategy
+# matching the plain one, figure for figure.
+NULL_KEEPS_PREFIX = ("mkt_", "worst", "bear_months")      # the market's own figures, counts, worst months
+NULL_KEEPS_SUFFIX = ("_mktrf",)
+_NULL_VOL = re.compile(r"(^|_)std\d*($|_)")                # a volatility: std1, std_value, wml_std
+_NULL_LEVEL = re.compile(r"(mean|dec)\d+$")
+STAT_ORDER = ("max", "min", "mean", "std", "kurt", "skew", "sharpe")
+NULL_MEANING = {
+    "risk-managed": ("“No effect” here means the risk-managed strategy matching the plain one figure "
+                     "for figure."),
+    "default": ("“No effect” here means every group earning the same and every spread, t-statistic, "
+                "correlation and premium at zero; volatilities, the market's own figures and counts of "
+                "months stay at the paper's values, because no effect on returns says nothing about them."),
+}
+
+
+def null_rows(exp: dict) -> list[dict]:
+    """The paper's figure, the null result's value and the tolerance, in the comparison's order."""
+    ref = exp["reference"]
+    if exp["kind"] == "risk-managed":
+        return [{"paper": ref[leg][k], "null": ref["plain"][k], "tolerance": TOLERANCES[k]}
+                for leg in ("plain", "managed") for k in STAT_ORDER]
+    figs = ref["figures"]
+    levels = [f["paper"] for f in figs if _NULL_LEVEL.match(f["key"])]
+    centre = 0.0 if ref.get("relative") or not levels else sum(levels) / len(levels)
+    out = []
+    for f in figs:
+        k = f["key"]
+        if k.startswith(NULL_KEEPS_PREFIX) or k.endswith(NULL_KEEPS_SUFFIX) or _NULL_VOL.search(k):
+            null = f["paper"]
+        elif _NULL_LEVEL.match(k):
+            null = centre
+        else:
+            null = 0.0
+        out.append({"paper": f["paper"], "null": null, "tolerance": f["tolerance"]})
+    return out
+
+
+def null_within(exp: dict) -> int:
+    """How many of an experiment's figures a result of no effect would land within tolerance."""
+    return sum(abs(r["null"] - r["paper"]) <= r["tolerance"] for r in null_rows(exp))
+
+
+def null_meaning(exp: dict) -> str:
+    return NULL_MEANING.get(exp["kind"], NULL_MEANING["default"])
 
 
 def reproduce_crashes(mom: dict, market: dict, exp: dict) -> dict:
@@ -2303,6 +2361,9 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
                   else reproduce(data, exp))
+        for row, n in zip(result["rows"], null_rows(exp)):            # what no effect at all would show
+            row["null"] = n["null"]
+        result["null_within"], result["null_meaning"] = null_within(exp), null_meaning(exp)
         exps.append({**exp, "takeaway": TAKEAWAYS[exp["id"]], "result": result})
     return {
         "built": (now or datetime.now(timezone.utc)).strftime("%Y-%m-%d"),

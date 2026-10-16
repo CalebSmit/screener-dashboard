@@ -1280,3 +1280,56 @@ def test_each_experiment_says_when_its_tolerances_were_written(published):
         finally:
             browser.close()
 
+
+def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdict(published):
+    """A tolerance wide enough to pass a result of no effect at all says nothing about the paper.
+    No tolerance moves for it (rule 3): the build counts, from the record alone, how many figures a
+    null result would land within, and the page prints that beside every verdict (plan rule 8)."""
+    for built, exp in zip(published["experiments"], fl.EXPERIMENTS):
+        r, nulls = built["result"], fl.null_rows(exp)
+        assert len(nulls) == len(r["rows"]) == r["total"]
+        assert [n["paper"] for n in nulls] == [row["paper"] for row in r["rows"]]       # the same figures, in order
+        assert [row["null"] for row in r["rows"]] == pytest.approx([n["null"] for n in nulls])
+        assert r["null_within"] == fl.null_within(exp) == sum(
+            abs(row["null"] - row["paper"]) <= row["tolerance"] for row in r["rows"])
+        assert r["null_meaning"] == fl.null_meaning(exp) and r["null_meaning"]
+    # the rules, on the record: experiment 1's null is the plain strategy; a sort's groups all earn
+    # the paper's own average across them; a spread is zero; a volatility is left at the paper's
+    rm = fl.null_rows(fl.EXPERIMENTS[0])
+    assert [n["null"] for n in rm[7:]] == [fl.EXPERIMENTS[0]["reference"]["plain"][k] for k in fl.STAT_ORDER]
+    ey = next(x for x in fl.EXPERIMENTS if x["id"] == "earnings-yield")
+    figs, nulls = ey["reference"]["figures"], fl.null_rows(ey)
+    level = sum(f["paper"] for f in figs if f["key"].startswith("mean")) / 10
+    assert {f["key"]: n["null"] for f, n in zip(figs, nulls)} == pytest.approx(
+        {**{f"mean{g}": level for g in range(1, 11)}, "spread": 0.0})
+    lv = next(x for x in fl.EXPERIMENTS if x["id"] == "low-volatility")
+    assert all(n["null"] == f["paper"] for f, n in zip(lv["reference"]["figures"], fl.null_rows(lv)) if f["key"].startswith("std"))
+    # the counts themselves follow from paper values and tolerances that are pinned above
+    assert {x["id"]: fl.null_within(x) for x in fl.EXPERIMENTS} == {
+        "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
+        "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
+        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3}
+    # every sort whose paper claims an effect: the null misses the spread between the ends
+    for exp in fl.EXPERIMENTS:
+        if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
+            spread = next(n for f, n in zip(exp["reference"]["figures"], fl.null_rows(exp)) if f["key"] == "spread")
+            assert abs(spread["null"] - spread["paper"]) > spread["tolerance"], exp["id"]
+    html = PAGE.read_text(encoding="utf-8")
+    assert "nullLine(r)" in html and "nullLine(x.result)" in html and "nullLine(X.result)" in html
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            page.goto(PAGE.as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
+            cards = page.locator(".card .null").all_inner_texts()
+            assert len(cards) == len(fl.EXPERIMENTS)
+            for text, exp in zip(cards, published["experiments"]):
+                r = exp["result"]
+                assert f"would match {r['null_within'] or 'none'} of these {r['total']}" in text
+            _goto(page, "cash-flow-yield")
+            assert "A result of no effect at all would match 6 of these 11." in page.inner_text(".verdict")
+            assert errors == []
+        finally:
+            browser.close()
+

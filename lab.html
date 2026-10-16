@@ -107,6 +107,7 @@ h3 { margin: 0 0 10px; color: var(--text-primary); font-size: 15px; font-weight:
            border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-elevated); font-size: 14px; }
 .verdict strong { color: var(--text-primary); font-weight: 600; }
 .verdict .out { color: var(--amber); }
+.null { color: var(--text-muted); font-size: 13px; }
 
 .controls { display: grid; gap: 16px; }
 .ctl-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
@@ -241,6 +242,10 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     window.LAB_STATE = () => current ? { id: current.id, settings: current.settings(), result: current.result() } : null;
 
     // ------------------------------------------------------------------ shared pieces
+    // How many of an experiment's figures a result of no effect at all would land within tolerance,
+    // computed by the build from the record (factor_lab.null_rows). Printed beside every verdict, so
+    // a tolerance too wide to tell a replication from nothing cannot pass unnoticed.
+    const nullLine = r => `A result of no effect at all would match ${r.null_within ? r.null_within : 'none'} of these ${r.total}.`;
     function head(X, n, verdictExtra) {
         const r = X.result, out = r.total - r.within;
         const verdict = out === 0
@@ -252,7 +257,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. ${X.paper.doi ? `<a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a>` : `<a href="${esc(X.paper.url)}" rel="noopener">${esc(X.paper.url.replace(/^https?:\/\//, ""))}</a>`}</p>
             <h3 style="margin-top:22px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
-            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''}</span><a href="#x-against">See every figure</a></div>
+            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null">${nullLine(r)}</span></span><a href="#x-against">See every figure</a></div>
         </section>`;
     }
     function tail(X, method) {
@@ -278,7 +283,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     // written against when the figures were first seen (the record's own account), and the source.
     const tolNote = X => { const R = X.reference;
         return `The tolerances were written down in the build, not chosen on this page. ${esc(D.tolerances_written[R.tolerances_written])}` +
-            `${R.tolerances_note ? ' ' + esc(R.tolerances_note) : ''} Reference figures: ${esc(R.source)}`; };
+            `${R.tolerances_note ? ' ' + esc(R.tolerances_note) : ''} ${nullLine(X.result)} ${esc(X.result.null_meaning)} Reference figures: ${esc(R.source)}`; };
 
     // ------------------------------------------------------------------ charts
     const NS = 'http://www.w3.org/2000/svg';
@@ -1032,6 +1037,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <strong>${esc(x.title)}</strong>
             <span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
             <span class="chip${x.result.within === x.result.total ? '' : x.result.within * 2 < x.result.total ? ' miss' : ' part'}">${x.result.within} of ${x.result.total} figures match the paper</span>
+            <span class="null">${nullLine(x.result)}</span>
             <span class="take">${esc(x.takeaway)}</span></a>`;
         const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
         const afterCell = (r, c) => c.value === null ? '–' :

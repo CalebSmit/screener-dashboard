@@ -142,6 +142,17 @@ experiments for a validated strategy):
    once its sample ended. Experiment 1's Sharpe ratios go from 0.54 / 1.00 in-sample to
    0.20 / 0.37 after 2011: weaker, with the risk-managed version still ahead.
 7. **No advice language** (`advice_terms_in`), and "Not investment advice" on the page.
+8. **A result of no effect must fail.** Added 2026-10-16 (audit). A new experiment's tolerances
+   must make a null result miss its headline figure(s) and most of its figures. The null is built
+   from the record alone (`factor_lab.null_rows`): every group earns the same, every spread,
+   t-statistic, correlation and premium is zero, and volatilities, the market's own figures and
+   counts stay at the paper's values; experiment 1's null is the risk-managed strategy matching
+   the plain one. The build publishes `null_within` and the page prints it beside every verdict
+   and on the overview card ("A result of no effect at all would match 6 of these 11"). Where the
+   paper's own claim is that there is no effect (experiment 7, market beta: 9 of 11), the null
+   passing *is* the replication. **The existing experiments are disclosed, not retuned** - no
+   tolerance moves to meet this rule (rule 3); low volatility and cash-flow yield (6 of 11 each)
+   are the ones where the null matches most, and in both it misses the spread.
 
 ## The four steps of a lab session
 
