@@ -150,6 +150,9 @@ MODULES: tuple[tuple[str, str], ...] = (
     # Added 2026-10-15 (night): the page quotes what the research engine found, from its summary.
     ("tests/test_v2_experiments.py",
      "the page's statement of the research engine's result matches the engine's published summary"),
+    # Added 2026-10-16: the page is typeset in one pass; this keeps em dashes and hyphen-dashes off it.
+    ("tests/test_overview_typesetting.py",
+     "the methodology page publishes one dash and a true minus, with code left alone"),
     ("tests/test_factor_lab.py",
      "the page's 'Rerun the research' paragraph matches the experiments that exist, "
      "and the lab's scorecard carries the screener's own weights"),
