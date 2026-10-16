@@ -11980,6 +11980,17 @@ a measurement the note had not made, so measure before deciding. After that, 0.1
 
 ### Flagged for the owner
 
+- **One new exposure I took deliberately.** The widened publish gate now includes
+  `tests/test_dashboard_browser.py`, whose first-paint DOM budget is checked against the page the
+  02:00 run has just regenerated. If a future run legitimately pushes the page over that budget,
+  the data loop will **discard the run** and the live site will keep the previous day's - costing
+  a day of evidence for what is arguably a presentation regression rather than a correctness one.
+  I kept it because `CLAUDE.md` already says "a miss is a regression, not a preference", because
+  the 2026-10-12 near-miss was exactly this and only a code-loop tool could see it, and because
+  discarding is what every other gate on that path does. I checked the newly-included modules for
+  hour-of-day dependence (02:00 is not 08:00): only two touch the clock and both use it to
+  construct their own fixtures, so neither can fail for the hour. Say the word and the budget
+  check comes back out of the publish path.
 - **`NIGHTLY_LOG.md` is 11,779 lines.** It is the only memory that carries between sessions, and
   no session reads more than its last three entries - which is what rule 8 asks for, so this is
   not currently breaking anything. But a retrospective is asked to read every entry since the last
