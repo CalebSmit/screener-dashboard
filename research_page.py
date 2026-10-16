@@ -183,15 +183,15 @@ h2 {{ margin: 0 0 10px; color: var(--text-primary); font-size: 21px; line-height
 p {{ margin: 0 0 12px; max-width: 68ch; }}
 section {{ margin-top: 40px; }}
 .fine {{ font-size: 13px; color: var(--text-muted); }}
-.num {{ font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }}
+.num {{ font-family: var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .t {{ color: var(--text-muted); font-size: .85em; }}
 strong {{ color: var(--text-primary); }}
 .answer {{ display: grid; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; max-width: 76ch; }}
-.answer li {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }}
+.answer li {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
 .steps {{ list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 8px; max-width: 76ch; }}
 .steps li {{ display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 10px; }}
 .steps .num {{ color: var(--accent-text); }}
-.chart {{ margin: 16px 0 8px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; }}
+.chart {{ margin: 16px 0 8px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
 .dot-row, .axis {{ display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr) 7.5em; gap: 12px; align-items: center; }}
 .dot-row {{ padding-block: 3px; }}
 .dot-name {{ font-size: 13.5px; min-width: 0; overflow-wrap: anywhere; color: var(--text-secondary); }}
@@ -203,7 +203,7 @@ strong {{ color: var(--text-primary); }}
 .dot {{ width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--accent-text); }}
 .dot-val {{ font-size: 12.5px; text-align: right; }}
 .axis {{ margin-top: 6px; }}
-.ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-mono); color: var(--text-muted); }}
+.ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }}
 .legend {{ display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--text-muted); margin-top: 10px; }}
 .legend i {{ display: inline-block; vertical-align: middle; margin-right: 6px; }}
 .tw {{ overflow-x: auto; margin: 12px 0; max-width: 100%; }}
@@ -214,12 +214,12 @@ td {{ border-bottom: 1px solid var(--border); padding: 9px 12px 9px 0; vertical-
 th.num, td.num {{ text-align: right; }}
 .src {{ font-size: 12px; color: var(--text-muted); }}
 .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0; }}
-.stat {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }}
-.stat .v {{ font: 500 26px/1.2 var(--font-mono); color: var(--text-primary); font-variant-numeric: tabular-nums; }}
+.stat {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
+.stat .v {{ font: 600 26px/1.2 var(--font-body); letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }}
 .stat .k {{ font-size: 13px; color: var(--text-muted); margin-top: 4px; }}
 .claims {{ display: grid; gap: 12px; grid-template-columns: 1fr; }}
 @media (min-width: 720px) {{ .claims {{ grid-template-columns: 1fr 1fr; }} }}
-.claim {{ padding: 16px 18px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 10px; }}
+.claim {{ padding: 16px 18px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 14px; }}
 .claim h3 {{ margin: 0 0 6px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }}
 details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; margin-top: 8px; }}
 .foot .num {{ white-space: normal; overflow-wrap: anywhere; }}

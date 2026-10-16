@@ -9749,6 +9749,8 @@ def _css_investor() -> str:
         .toggle-btn { background: transparent; font-family: var(--font-body); font-size: 12.5px; font-weight: 500;
             letter-spacing: 0; padding: 5px 12px; }
         .toggle-btn.active { background: var(--accent-glow); color: var(--accent-text); }
+        /* one corner radius for panels: the diagnostics cards were the last at 10px */
+        .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
            filing dates in Before you decide) */
         .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: none; }

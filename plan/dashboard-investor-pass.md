@@ -150,7 +150,14 @@ statement, never louder than the primary action.
   15 / 17). Left on purpose: code set in `em` (it follows its sentence) and the 9.5px labels under the
   leaders' bars, where eight columns share 230px.
 
+## Phase 14 - DONE 2026-10-16 (owner-run)
+
+- **One corner radius for panels (14px)** across the three pages: measured, the front page's diagnostics
+  cards were 10px, the research page's 10-12px, the lab's 10-12px.
+- **No monospace figures on the research page**: about 190 figures were set in JetBrains Mono (the look the
+  2026-10-05 brief named); they are Inter with tabular numerals, like the front page. Code stays mono.
+
 ## Next (in order)
 
-1. **Typography and rhythm**: the scale is done (phase 13); consistent 14px radii on panels remains.
+1. **Typography and rhythm**: done (phases 13-14).
 4. **research.html and lab.html**: bars done (phase 11); their section headers and figures next.
