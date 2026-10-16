@@ -2257,7 +2257,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
         document.getElementById('run-info').textContent = ts ? `Last updated ${{fmtDate}} at ${{fmtTime}}` : '';
         const eb = document.getElementById('hero-eyebrow');
-        if (eb && ts) eb.innerHTML = `S&amp;P 500 &middot; data as of ${{fmtDate}}, ${{fmtTime}}`;
+        if (eb && ts) eb.innerHTML = `<span class="eb-idx">S&amp;P 500 &middot; </span>data as of ${{fmtDate}}, ${{fmtTime}}`;
         // Only set gen-time via JS if it wasn't already embedded as a static value
         const genEl = document.getElementById('gen-time');
         if (genEl && ts) genEl.textContent = `${{fmtDate}}, ${{fmtTime}}`;
@@ -9765,6 +9765,36 @@ def _css_investor() -> str:
            plus its padding, and the page scrolled sideways by 5px at 320 */
         @media (max-width: 760px) { .hero .hero-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
         @media (max-width: 360px) { .hero .hero-actions .hero-btn { padding: 0 8px; font-size: 13px; } }
+        /* phones: the sheet's tool row ran 13px past its padding at 375 and was clipped at 320. The list
+           position ("370 of 501") repeats the header's rank there, so it goes; the tabs fade at their edge
+           like the header nav; the eyebrow drops "S&P 500" (the title says it) to stay on one line */
+        @media (max-width: 420px) {
+            #stock-modal .mt-pos { display: none; }
+            #stock-modal .mt-text { padding: 0 10px; }
+            #stock-modal .modal-nav { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+                                      mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+            .eb-idx { display: none; }
+        }
+        @media (max-width: 360px) { #stock-modal .mt-step { min-width: 36px; } }
+        /* one focus language for the keyboard. Tabbing through the page found the brand ring on half the
+           controls and the browser's thin grey default on the rest (Methodology, the summary tiles, Hide, the
+           segmented controls, Show all); the filter fields' 12% glow was close to invisible on the dark page */
+        :where(a, button, summary, [role="button"], [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .filter-group select:focus-visible, .filter-group input:focus-visible, .filter-search input:focus-visible,
+        .peer-search-input:focus, .holdings-add input:focus-visible { box-shadow: 0 0 0 3px rgba(57, 135, 229, .45); border-color: var(--accent); }
+        .rp-row:focus-visible td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+        /* selected text in the accent, not the browser's bright default blue */
+        ::selection { background: rgba(57, 135, 229, .38); color: #fff; }
+        /* touch targets: measured at 375px, 40-odd controls were under 40px tall and the guide's "Hide" was
+           28x23. On a touch screen every control is at least 40px; a mouse keeps the compact sizes */
+        @media (pointer: coarse) {
+            .header-nav a, .modal-nav a, .footer-links a { min-height: 40px; display: inline-flex; align-items: center; }
+            .cmdk-btn, .methodology-btn, .modal-close, .mt-btn { min-height: 40px; min-width: 40px; }
+            .seg-btn, .toggle-btn, .show-more, .wk-toggle-all, .guide-close, .about-toggle { min-height: 40px; }
+            .guide-close { min-width: 44px; }
+            .why-panel > summary, details.holdings-concentration > summary { min-height: 40px; }
+            .filters-bar select, .filters-bar input, .holdings-add input, select, input[type="text"], input[type="search"], input[type="number"] { min-height: 40px; }
+        }
         /* one disclosure icon: the tiles drew an SVG chevron, the stock sheet a text "▼", the notes a "▸"
            and the holdings block a "›". All four are now the tiles' chevron, drawn as a mask in the text colour */
         :root { --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
