@@ -132,6 +132,16 @@ statement, never louder than the primary action.
   same quiet three-way nav - Rankings, Has it been tested?, Factor Lab - with the current page marked.
   `research_page.py` generates the research page's bar; `lab.html` is source.
 
+## Phase 12 - DONE 2026-10-16 (owner-run)
+
+- **Four links in browser-default violet** (Chrome's dark-scheme link colour): the Track Record's note
+  linking to the tested-history page, and the insider filing dates in Before you decide. Accent now.
+- **One segmented control**: Factor Analytics' Median/Average and Value/Growth toggles were solid accent
+  buttons in 11px heavy type beside the quiet `seg-control` used by What Changed, Reporting and Track
+  Record; they match it now.
+- **Chart titles in sentence case**: "Trap rate by sector", "How stable is the ranking?", "Are the factors
+  independent?".
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
