@@ -344,21 +344,41 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
         series.forEach(se => { let d = ''; se.v.forEach((v, i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }); s += `<path class="${se.cls}" d="${d}"/>`; });
         s += `<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" style="visibility:hidden"/>`;
+        // Readable by keyboard as well as by pointer (2026-10-16): the chart takes focus, and the
+        // arrow keys, Home and End move the cursor one month at a time; the sentence under the chart
+        // is a polite live region, so a screen reader speaks each month as it is reached.
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
+        if (opt.read) {
+            el.removeAttribute('role'); el.removeAttribute('aria-label');      // the focusable chart carries both
+            s = s.replace('<svg ', `<svg tabindex="0" role="img" aria-label="${esc(el.dataset.label + ' Use the left and right arrow keys to read one month at a time; Home and End go to the first and last.')}" `);
+        }
         el.innerHTML = s + '</svg>';
         // Point at the chart (or touch it) to read one month, in words, under it.
         let out = el.nextElementSibling;
         if (!out || !out.classList.contains('chart-read')) { out = document.createElement('p'); out.className = 'chart-read'; el.parentNode.insertBefore(out, el.nextSibling); }
+        out.setAttribute('aria-live', 'polite');
         const idle = 'Point at the chart to read any month.';
         out.textContent = idle;
         if (!opt.read) return;
         const svg = el.firstChild, cur = svg.querySelector('.cursor');
+        let at = -1;
+        const show = i => { at = i; cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible'; out.textContent = opt.read(i); };
+        const hide = () => { at = -1; cur.style.visibility = 'hidden'; out.textContent = idle; };
         svg.addEventListener('pointermove', ev => {
             const r = svg.getBoundingClientRect();
-            const i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1))));
-            cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible';
-            out.textContent = opt.read(i);
+            show(Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1)))));
         });
-        svg.addEventListener('pointerleave', () => { cur.style.visibility = 'hidden'; out.textContent = idle; });
+        svg.addEventListener('pointerleave', () => { if (document.activeElement !== svg) hide(); });
+        svg.addEventListener('keydown', ev => {
+            const step = { ArrowLeft: -1, ArrowRight: 1 }[ev.key];
+            let i;
+            if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey ? 12 : 1)));
+            else if (ev.key === 'Home') i = 0;
+            else if (ev.key === 'End') i = n - 1;
+            else return;
+            ev.preventDefault(); show(i);
+        });
+        svg.addEventListener('blur', hide);
     }
 
     // A scene is an experiment plus whatever settings differ from the ones it opens with. It is
@@ -445,7 +465,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Risk-managed momentum</span><span class="b"><i></i>Plain momentum</span></div>
             <p class="chart-title"><strong>What $1 became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum, month by month."></div>
             <p class="chart-title"><strong>Exposure each month</strong>: 1.0 is the plain strategy; above it means borrowing</p>
             <div class="chart" id="ch-weight" role="img" aria-label="The risk-managed strategy's exposure each month."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
@@ -548,7 +568,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Momentum (winners minus losers)</span><span class="c"><i></i>Months in the panic state</span></div>
             <p class="chart-title"><strong>What $1 in momentum became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the momentum strategy, with the months the market was in the panic state shaded. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the momentum strategy, with the months the market was in the panic state shaded."></div>
             <h3 style="margin-top:26px">Momentum's months, by the state the market was in beforehand</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">State</th><th scope="col">Months</th><th scope="col" class="tol">Share</th><th scope="col">Average month</th><th scope="col">Worst month</th><th scope="col" class="tol">Lost money</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -639,7 +659,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i><span id="k-focus"></span></span><span class="b"><i></i>The other four factors</span></div>
             <p class="chart-title"><strong>What $1 in each factor became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in each of the five factors. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in each of the five factors, the one followed drawn in the accent colour."></div>
             <h3 style="margin-top:26px">Measured on this period</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col" class="tol">Behind the screener's</th><th scope="col">Average month</th><th scope="col" class="tol">Volatility</th><th scope="col">t-statistic</th><th scope="col" class="tol">$1 became</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -736,7 +756,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>The two largest groups, where the screener's companies are</span><span class="b"><i></i>The eight smaller groups</span></div>
             <p class="chart-title"><strong>Average return a month</strong>, by size group (%)</p>
-            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each of ten size groups, smallest to largest. The figures are in the table below."></div>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each of ten size groups, smallest to largest."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Difference</th><th scope="col">A month</th><th scope="col">t-statistic</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -774,7 +794,9 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             document.getElementById('x-live-note').textContent = atRef()
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.';
-            drawBars(document.getElementById('ch-bars'), r.deciles.map(d => d.mean), { accent: i => i >= 8 });
+            const bars = document.getElementById('ch-bars');
+            drawBars(bars, r.deciles.map(d => d.mean), { accent: i => i >= 8 });
+            bars.setAttribute('aria-label', 'Average monthly return of each of ten size groups, smallest to largest, in percent: ' + r.deciles.map(d => f2(d.mean)).join(', ') + '.');
             writeScene(X.id, S, refState());
         }
         function set(patch) { S = Object.assign({}, S, patch); render(); }
@@ -902,7 +924,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>${esc(G.key_big || 'Among big companies, which are all the screener ranks')}</span><span class="b"><i></i>${esc(G.key_small || 'Among small companies')}</span></div>
             <p class="chart-title"><strong>Average return a month</strong>, each factor among ${esc(SMALL)} and among ${esc(BIG)} (%)</p>
-            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of four factors, each measured among small companies and among big ones. The figures are in the table below."></div>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each factor, measured among ${esc(SMALL)} and among ${esc(BIG)}. The figures are in the table below."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">${esc(G.small_short || 'Small')}</th><th scope="col">${esc(G.big_short || 'Big')}</th><th scope="col">${G.data ? 'Smallest − largest' : 'Small − big'}</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -982,7 +1004,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Half value, half momentum</span><span class="b"><i></i>Value</span><span class="d"><i></i>Momentum</span></div>
             <p class="chart-title"><strong>What $1 became</strong>, in each spread and in the 50/50 mix (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the value spread, the momentum spread and their 50/50 mix. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the value spread, the momentum spread and their 50/50 mix."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col"></th><th scope="col">Average a year</th><th scope="col">Volatility a year</th><th scope="col">Sharpe ratio</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>

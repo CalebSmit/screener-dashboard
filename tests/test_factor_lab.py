@@ -1413,3 +1413,47 @@ def test_the_year_pickers_keep_the_period_whole_and_inside_the_data():
         finally:
             browser.close()
 
+
+def test_a_chart_can_be_read_month_by_month_from_the_keyboard():
+    """The month-by-month readout answered only a pointer. Each line chart now takes focus; the
+    arrow keys, Home and End move its cursor; the sentence under it is a polite live region. And no
+    chart's label points at "the table below" unless the table below holds its figures."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    mon = lambda m: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(m[4:]) - 1] + " " + m[:4]  # noqa: E731
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                labels = page.evaluate("[...document.querySelectorAll('.chart, .chart svg')].map(e => e.getAttribute('aria-label') || '')")
+                if exp["kind"] not in ("sort", "split"):                         # their tables hold the bars' figures
+                    assert not any("table below" in l for l in labels), (exp["id"], labels)
+                if exp["kind"] not in ("risk-managed", "crashes", "factors", "combo"):
+                    continue
+                months = page.evaluate("window.LAB_STATE().result.months")
+                svg, read = "#ch-growth svg", "#ch-growth + .chart-read"
+                assert page.get_attribute(svg, "tabindex") == "0" and page.get_attribute(svg, "role") == "img"
+                assert "arrow keys" in page.get_attribute(svg, "aria-label")
+                assert page.get_attribute(read, "aria-live") == "polite"
+                page.focus(svg)
+                page.keyboard.press("End")
+                assert page.inner_text(read).startswith(mon(months[-1]) + ":"), exp["id"]
+                page.keyboard.press("Home")
+                assert page.inner_text(read).startswith(mon(months[0]) + ":")
+                page.keyboard.press("ArrowRight")
+                assert page.inner_text(read).startswith(mon(months[1]) + ":")
+                page.keyboard.press("ArrowLeft")
+                page.keyboard.press("ArrowLeft")                                 # held at the first month
+                assert page.inner_text(read).startswith(mon(months[0]) + ":")
+                assert page.evaluate("document.querySelector('#ch-growth .cursor').style.visibility") == "visible"
+                page.focus("#c-from")                                             # leaving the chart clears it
+                assert page.inner_text(read) == "Point at the chart to read any month."
+            # the size chart's figures are in no table below, so its label carries them
+            _goto(page, "size-effect")
+            label = page.get_attribute("#ch-bars", "aria-label")
+            means = page.evaluate("window.LAB_STATE().result.deciles.map(d => d.mean.toFixed(2))")
+            assert all(m.replace("-", "−") in label for m in means)
+            assert errors == []
+        finally:
+            browser.close()
+
