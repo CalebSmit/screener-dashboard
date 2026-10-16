@@ -214,6 +214,16 @@ import it. Three things to know before you start:
   methodology's "Rerun the research" paragraph, and `ASSET_VERSION` with the two `?v=` tags
   in `lab.html`. The lab's day is a Friday that is not a retrospective.
 
+**The research engine** (added 2026-10-15; `plan/research-engine.md`). `v2_experiments.py`
+tests weightings against each other on backtest v2's point-in-time history, 2012-2026. Its
+first 27 experiments found nothing that beats the current weighting and an IC of ~0 for the
+weighting itself (`research/2026-10-15-research-engine-first-batch.md` - read it before
+quoting any engine number). Its rules are the point: **register in
+`research/experiments/registry.yaml` and commit before the first run**; a data fix reruns
+everything; never register a variation of a near-miss; an engine number is a *Backtest
+observation*, never Evidence (rule 5). A Monday note that ends in a testable claim registers
+one experiment; that is how the engine grows.
+
 **How to read a paper so the note can be trusted** (the method the 2026-10-12 notes
 used). Fetch the PDF and read the tables; do not cite from memory, and mark anything
 second-hand as second-hand. `WebFetch` usually cannot extract a PDF: download it with

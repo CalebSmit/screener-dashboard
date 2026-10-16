@@ -116,6 +116,16 @@ all-stock size (the Lab's experiments 8 and 9) - so a real improvement could eas
 this can see. So
 "not distinguishable" here is not "no difference"; it is "no difference large enough to see".
 
+**How long a record would it take?** The baseline's IC moves about **0.12** from month to month
+(0.123 in 2020-2026, 0.100 in 2012-2019). With 80% power, a true monthly IC of **0.05** - "good" by
+Grinold & Kahn's rule of thumb - needs about **45 months** to show at the conventional 5% level and
+**85 months (7 years)** at t >= 3; an IC of **0.03** needs **125 months (10.5 years)** and **236 (20
+years)**. That arithmetic applies to the live track record too: no monthly large-company screen,
+this one included, can prove a realistic edge from its own record in less than several years. Its
+credibility in the meantime has to rest on the published long-run evidence for each factor (the
+Lab), on process (this engine), and on stating the uncertainty - which is also what institutional
+investors are trained to ask for.
+
 **The harness can see signal when there is signal.** The same pipeline fed *today's* filings for
 every month - v1's look-ahead, rebuilt on purpose as a diagnostic - reports IC **+0.050 (t 4.71)**
 and a top-tenth excess of 0.85% a month (t 5.0). That is the positive control: information the
@@ -143,10 +153,14 @@ What the batches do say, as research questions rather than findings:
    month.
 3. **Low risk was the most consistent loser** (worse than the baseline in both eras, every risk
    screen, never significant) in a period that was mostly a rising market - the regime in which
-   low-volatility portfolios are documented to lag (Frazzini & Pedersen 2014 is a beta-*neutral*
-   construction; a long-only low-risk screen carries the market-beta bet). Worth a Monday note on
-   whether Risk's 10% is a deliberate defensive tilt (a choice to state) or a return claim (one the
-   data here does not support).
+   long-only low-volatility portfolios are documented to lag (Frazzini & Pedersen 2014's premium is
+   a beta-*neutral* construction; a long-only low-risk screen carries the market-beta bet). **The
+   page already claims the defensible thing** - that higher volatility "has not been paid for", not
+   that low volatility earns more - and the ledger shows Risk doing that job: the top tenth's monthly
+   volatility is **3.31% with Risk and 3.51% without it** (2012-2019) and **4.79% against 5.19%**
+   (2020-2026), while its return cost is small, never significant, and of opposite sign in the two
+   eras (+0.06 and -0.22 points a month). A smoother ride at no measurable cost is what the page
+   says Risk is for. No change.
 4. **Survivorship is now the binding limit**, not look-ahead. At 58% coverage in 2012 the period
    before the sample is less reliable than the one it tests. The $199/yr delisted-price feed deferred
    on 2026-09-30 now has a concrete use: it would let the 2012-2019 test carry the stocks that left.
@@ -173,7 +187,7 @@ that can be built honestly on free data.
   a source and a prediction, committed before its run; a data fix means rerunning *all* registered
   experiments (the report flags mixed data versions). Do not register variations of a near-miss
   (size, momentum) - that is the forking path the rules exist to prevent.
-- **Monday candidates:** Risk's role (point 3); whether the momentum screens' 2020-2026 lead and
-  2012-2019 flatness match the published large-company momentum record (the Lab, experiment 8).
+- **Monday candidate:** whether the momentum screens' 2020-2026 lead and 2012-2019 flatness match
+  the published large-company momentum record (the Lab, experiment 8). Risk's role is answered (point 3).
 - **Data:** CIKs for 2020-2026 months (the guard currently applies to 2014-2019 only - two IR months
   in early 2020 are the one known case it would catch); and the survivorship decision above.
