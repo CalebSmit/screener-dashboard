@@ -1,4 +1,4 @@
-# Morning Brief - Friday 16 October 2026, 06:42
+# Morning Brief - Friday 16 October 2026, 13:52
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,78 +20,71 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
 | Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **earnings yield on the source's "Normalized Income" (net income without its unusual items) instead of net income as reported; operating income unchanged. For a later session to review (section 6); nothing changed tonight.** - open 1 day - `research/2026-10-15-earnings-definition.md`
-
 ## What changed in the repo
 
-- `aa2b114 log: flag the one exposure the widened publish gate adds`
-- `8afcf10 log: the 2026-10-16 retrospective - 54 of 55 sessions produced something, and the fourth sibling-artifact hole`
-- `ce1f35b nightly prompt: a research citation carries a DOI or a stable URL`
-- `f0239b7 retrospective: the runner comparison becomes an enumeration, and proposals move to Orient`
-- `be75c2c retrospective: CLAUDE.md's Open section is archaeology again - 1042 lines to 965`
-- `62e8f00 retrospective: the focus string the session actually reads had drifted into contradiction`
-- `d9a9c17 retrospective: the second payload file was published unguarded, and the claims gate's membership goes stale`
-- `9e6fafb Company names in full: prefer the source's longName over its 31-character shortName`
-- `2209f27 investor pass, phase 15: no sideways scroll at 320px; the pass recorded as done`
-- `eb5bf78 investor pass, phase 14: one panel radius across the three pages, no monospace figures on the research page`
-- `2bab769 investor pass, phase 13: one type scale; the night's log entry`
-- `5d41c96 brief: data run 2026-10-16`
-- `7d1b33c data: screener run 2026-10-16 - 501 scored, top: EXPE APA HST INCY EG`
-- `676cdff investor pass, phase 12: no default-violet links, one segmented control, sentence-case chart titles`
-- `73f14bc investor pass, phase 11: the research page and the lab share the front page's bar`
+- `870c4f5 the refusal recorded: changelog, owner queue, priorities and the day's log`
+- `6297aa4 a long filing tag wraps instead of being clipped at 375px`
+- `cb4c86b the earnings-yield row says what one-off charge is inside the earnings it scored`
+- `420464a the earnings-definition proposal: REVIEWED and REFUSED, with the measurements`
+- `260f994 wip: the earnings-definition proposal's input, measured at the window the engine scores`
+- `1379e24 wip: measure the open earnings-definition proposal's input against the filings`
+- `0498168 professional pass 7: last details; the day's log entry`
+- `405b254 professional pass 6: favicons everywhere, the last text chevron, a packed context grid, tidy labels`
+- `68e02d7 the claims gate runs the methodology typesetting test`
+- `78bf7f0 professional pass 5: the Factor Lab typesets its dashes and minus signs as it draws`
+- `0c80999 professional pass 4: the Methodology document - statement headings, one typesetting pass, two framing errors`
+- `fa9bab0 professional pass 3: bars drawn above their reference line, unwidened hyphens, one heading case`
+- `4a24c20 professional pass 2: 40px touch targets, one focus ring, selection colour, the stock sheet fits a phone`
+- `01f0fd6 professional pass 1: one voice in the copy, one date format, one disclosure icon; two defects`
+- `ec83782 brief: code session 2026-10-16`
 
 ## The session's own account
 
-> 2026-10-16 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
+> 2026-10-16 (13:00 session) - QUEUE. The earnings-definition proposal: reviewed, refused, and the charge inside the earnings put on the row
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** -
-> `logs/nightly-2026-10-15_131743-midday.log` ends "Run complete: shipped to main". Data loop
-> published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH:
-> PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago, bound 40), 4
-> effective** - inside the bound, in steady state, and the data log's own line agrees ("4
-> effective (31 rows) at the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of
-> 8 effective observations. Top open roadmap item: **0.11, the context layer** (opened
-> 2026-10-08, **age 8 days**).
-> **Tests:** before **2465 passed / 0 failed**, after **2488 passed / 0 failed** (+23: 12 in the
-> new `tests/test_rotation_consistency.py`, 8 in the claims gate's module, 3 in the payload parse
-> gate). Dry run exits 0.
-> **Owner queue / rotation:** retrospective, so no rotation item. `OWNER_FOCUS.md`'s open items
-> were read and left open - a retrospective does not work on the screener. One open proposal
-> (`research/2026-10-15-earnings-definition.md`, earnings yield on Normalized Income, 1 day old)
-> is **deliberately left for the next normal session**; a retrospective is the wrong session to
-> decide a methodology question, and the prompt now puts that check in Orient so it will be the
-> first thing that session does.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_060001.log`
+> (the retrospective) ends "Run complete: shipped to main"; the owner-run professional pass followed it
+> and `main` is at `98fa2a0`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
+> "Data loop complete", HEALTH: PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago,
+> bound 40), 4 effective** - inside the bound and in steady state. Priority 0: unchanged,
+> `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.11, the
+> context layer** (opened 2026-10-08, **age 8 days**).
+> **Tests:** before **2492 passed / 0 failed**, after **2504 passed, 1 skipped / 0 failed** (+13, all
+> in the new `tests/test_special_item_note.py`; the skip is its published-payload check, which cannot
+> fire until the 2026-10-19 run puts the notes in the committed payload). Dry run exits 0.
+> `scripts/rehearse_publish.py` passed twice.
+> **Owner queue / rotation:** took the **open proposal**, which Orient makes the first job and which
+> the retrospective six hours earlier named as this session's Next. **0.11 (the context layer) was
+> deferred** - item 4's two remaining per-signal notes are untouched and nothing there is half-done.
 > 
-> ### Retrospective findings
+> ### Did
 > 
-> - **Sessions reviewed: 55** (2026-10-02 to 2026-10-16) - **11 scheduled, 44 owner-run.**
-> - **Genuinely valuable: 54 | Churn: 0 | Lost: 1 | Failed gates: 1** (the same session:
->   2026-10-06, Tuesday, killed by an API 429 eighteen minutes in; gate 4 clean-tree failed, the
->   work was salvaged onto the branch and an owner-run session finished it that evening).
+> **Decided the one open proposal** (`research/2026-10-15-earnings-definition.md`, open 1 day): score
+> earnings yield on the source's "Normalized Income" - net income with its unusual items removed -
+> instead of net income as reported. **REFUSED.** Section 8 of that note is the review; the changelog
+> entry is 2026-10-16.
 > 
-> **1. What fraction of sessions produced something genuinely valuable? 54 of 55.** This is the
-> first retrospective with nothing to put in the churn column. The scheduled eleven:
-> 10-05 research (the premium-redesign brief, from measurements), 10-06 **lost to a 429**, 10-07
-> the false composite-percentile sentence in all six places plus the claims register, 10-08
-> `max_drawdown_1y`'s equation and the log-return compounding error it exposed, 10-09 the metric
-> audit, 10-12 research, 10-13 the Growth proposal refused on a measurement the note had not made,
-> 10-14 the input-churn/health-gate source-outage case, 10-14 13:00 the put-skew citation
-> corrected, 10-15 the capex proposal refused and the capex figure decomposed, 10-15 13:00 the
-> rolled-forward quarter. Every one is a defect fixed or a question answered. The owner-run 44 are
-> the Factor Lab (13 experiments), the context layer, backtest v2's point-in-time record layer,
-> the research engine, and the fifteen-phase investor presentation pass.
+> The research is good and is **not** what it failed on. I re-read the paper carrying the argument:
+> Rouen, So & Wang (2021), *JFE* 142(3) 1068-1091, Table 3 Panel A - next-year persistence **0.810**
+> for core earnings against **0.637** for net income, **0.178** for the excluded items themselves; and
+> MSCI's Fundamental Data Methodology (March 2021, pp. 13-14) builds EPS the same way. Section 4's
+> diagnosis is right too: EV/EBITDA measures the recurring business while earnings yield measures it
+> plus this year's gains and charges, inside one category.
 > 
-> **2. Which rotation day earns its place?** All five, and I checked rather than assumed.
-> I expected to find Wednesday (synthesis) was decorative and it is not: 09-09 answered the
-> coherence question Monday deferred on all 502 names, 09-16 wrote the design section its Monday
-> note was left open for, 09-23 shipped the weighting change the week justified, 09-30 answered the
-> procurement decision gating backtest v2. Two Wednesdays went elsewhere (10-07 to the owner queue,
-> 10-14 to a red gate-1 baseline), both correctly and both recorded.
+> **What the refusal rests on is the input, measured at the window the engine actually sums** - the
+> note measured the annual row. Both prior proposal decisions were refusals resting on a measurement
+> the note had not made, so I measured before deciding:
+> 
+> - **23 companies have no four-quarter "Normalized Income" at all** - ABT, AMZN, APH, BA, BAC, BRK-B,
+>   CHD, CHRW, CINF, CPRT, CPT, DLR, DTE, ES, EXR, GIS, ILMN, LEN, MDLZ, REG, TFC, WELL, ZBH. The
+>   proposal's own fallback ("1 company of 497") would rank them on earnings *including* one-offs
+>   beside 265 ranked excluding them. That is precisely the defect `factor_engine.py:2094` records
+>   Phase 13 fixing **in this exact metric**: *"SINGLE definition across the universe ... the fallback
+>   cohort was ranked on an incomparable basis inside one percentile rank."*
+> - **The fallback cohort is where the one-offs are biggest.** Of the 18 whose annual figures are both
+>   known, **8 carry annual unusual items worth 10%+ of net income**: General Mills 2,193%, **Boeing
+>   434%** ($9.70bn gain on a disposal), CPT 65%, DLR 56%, ZBH 37%, AMZN 20%, WELL 16%, ES 11%. The
+>   change would remove the small distortions and **keep the two largest in the index** - worse than
 > ...
 
 ---
