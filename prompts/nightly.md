@@ -17,14 +17,10 @@ run by hand. If verifying genuinely requires something outside this session's
 reach, say so in the log and leave it for the *next* session to finish - not
 for the owner.
 
-**Commit as you go. A usage limit can end this session at any moment.** On
-2026-10-06 the session was cut off by an API 429 eighteen minutes in, after
-finishing a coherent piece of design work and before committing any of it: no
-commits, no log entry, a dirty tree. Commit after every stage that passes its
-own tests - a small "wip:" commit on your branch is fine and costs nothing - and
-write the `NIGHTLY_LOG.md` entry early and extend it, rather than saving both for
-the end. Work that is committed survives a cut-off; work that is only in the tree
-does not.
+**Commit as you go. A usage limit can end this session at any moment** - it did,
+2026-10-06, eighteen minutes in, losing a finished piece of work that was only in
+the tree. Commit after every stage that passes its own tests (a small `wip:`
+commit costs nothing), and write the `NIGHTLY_LOG.md` entry early and extend it.
 
 ## 1. Orient
 
@@ -145,8 +141,14 @@ Never acceptable: "it's cleaner", "it's more modern", "best practice".
 threshold, a construction rule. Learn it properly in this one session, from
 *both* sides:
 
-- **The literature.** Real citations - author, title, year, what the finding
-  actually was, the effect size, and the conditions it held under.
+- **The literature.** Real citations - author, title, year, journal, **a DOI or a
+  stable URL**, what the finding actually was, the effect size, and the
+  conditions it held under. The lab has required a DOI since 2026-10-12
+  (`plan/factor-lab.md`); a note is the same evidence at the same bar. Measured
+  2026-10-16: the three most recent notes give journal, volume, pages, sample
+  and table numbers - real research, not filler - and **zero DOIs or URLs**
+  between them, which leaves the sceptical reader doing a lookup the note should
+  have done.
 - **Documented practice.** How quant shops, institutional screens and index
   providers actually handle it. This is first-class evidence, not a footnote.
 
