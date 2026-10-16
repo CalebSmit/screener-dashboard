@@ -91,6 +91,14 @@ statement, never louder than the primary action.
   investment product they read as implied returns.
 - **Track record tile** says the record's length beside the number: "8 months, too short to judge".
 
+## Phase 8 - DONE 2026-10-16 (owner-run)
+
+- **Factor Analytics tile** states a finding instead of a description: the sector with the highest
+  value-trap rate and the rate (from `vt_by_sector`, already in the payload).
+- **The Methodology dialog**: tables keep a margin from the dialog's edge (they ran into it), metric names
+  sit on one line on a wide screen, no blue-tinted stripes, the code blocks lose their accent rule, and an
+  inline file path wraps instead of pushing the dialog sideways on a phone (it overflowed by 12px at 375).
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
