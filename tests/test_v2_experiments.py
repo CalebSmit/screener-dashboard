@@ -164,3 +164,49 @@ def test_months_before_the_sample_never_enter_the_sample_periods():
     s = X.summarise(pm, None)
     assert s["presample"]["ic"]["n"] == 96
     assert s["discovery"]["ic"]["n"] + s["holdout"]["ic"]["n"] == s["all"]["ic"]["n"] == 80
+
+
+# --------------------------------------------------------------------------- the bot's rule
+RULE = {"target_count": 2, "sell_rank": 3, "max_per_sector": 0, "cash_reserve_pct": 0,
+        "cost_bps": 0, "drawdown_halt_pct": 25}
+
+
+def _month(rows):
+    return pd.DataFrame(rows, columns=["Ticker", "Rank", "Sector", "Value_Trap_Flag", "Growth_Trap_Flag"])
+
+
+def test_the_bot_simulation_keeps_the_hold_band_and_sells_past_it():
+    """screener-bot v1.1's plan_rebalance, monthly: a holding is kept while ranked inside the band."""
+    inputs = {"2024-01-31": _month([("A", 1, "X", False, False), ("B", 2, "X", False, False), ("C", 3, "X", False, False)]),
+              "2024-02-29": _month([("C", 1, "X", False, False), ("A", 3, "X", False, False), ("B", 4, "X", False, False)])}
+    fwd = pd.DataFrame({"A": [0.10, 0.0], "B": [0.0, 0.0], "C": [0.0, 0.0]}, index=list(inputs))
+    pm = X.simulate_bot(inputs, fwd, RULE)
+    assert pm.loc["2024-01-31", "ret"] == pytest.approx(0.05)          # half in A (+10%), half in B
+    assert pm.loc["2024-02-29", "held"] == 2                            # A kept at rank 3; B (rank 4) sold, C bought
+    assert pm.loc["2024-02-29", "bought"] == 1
+
+
+def test_the_bot_simulation_skips_flags_and_full_sectors_and_never_rebuys_what_it_just_sold():
+    rule = dict(RULE, max_per_sector=1)
+    inputs = {"2024-01-31": _month([("T", 1, "X", True, False), ("A", 2, "X", False, False),
+                                    ("B", 3, "X", False, False), ("C", 4, "Y", False, False)])}
+    fwd = pd.DataFrame({"A": [0.0], "B": [0.0], "C": [0.0], "T": [0.0]}, index=list(inputs))
+    pm = X.simulate_bot(inputs, fwd, rule)
+    assert pm.loc["2024-01-31", "bought"] == 2                          # A and C: T flagged, B sector full
+    rule2 = dict(RULE, target_count=1, sell_rank=1)
+    inputs2 = {"2024-01-31": _month([("A", 1, "X", False, False), ("B", 2, "X", False, False)]),
+               "2024-02-29": _month([("B", 1, "X", False, False), ("A", 2, "X", False, False)])}
+    fwd2 = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, 0.0]}, index=list(inputs2))
+    pm2 = X.simulate_bot(inputs2, fwd2, rule2)
+    assert pm2.loc["2024-02-29", "bought"] == 1 and pm2.loc["2024-02-29", "held"] == 1   # sold A, bought B
+
+
+def test_the_bot_simulation_halts_new_buys_in_a_drawdown_and_charges_costs():
+    rule = dict(RULE, target_count=1, sell_rank=1, cost_bps=10)
+    inputs = {"2024-01-31": _month([("A", 1, "X", False, False), ("B", 2, "X", False, False)]),
+              "2024-02-29": _month([("B", 1, "X", False, False), ("A", 2, "X", False, False)])}
+    fwd = pd.DataFrame({"A": [-0.5, 0.0], "B": [0.0, 0.0]}, index=list(inputs))
+    pm = X.simulate_bot(inputs, fwd, rule)
+    assert pm.loc["2024-01-31", "ret"] == pytest.approx(0.999 * 0.5 - 1)  # 10 bps on the way in
+    assert bool(pm.loc["2024-02-29", "halted"]) and pm.loc["2024-02-29", "bought"] == 0
+    assert pm.loc["2024-02-29", "held"] == 0                              # the sell still happens

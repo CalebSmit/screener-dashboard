@@ -34,6 +34,25 @@ presample:
   rule: confirmed only at p < 0.05/N and |t| >= 3, same direction as 2020-2026
   source: Linnainmaa & Roberts (2018), The History of the Cross-Section of Stock Returns, RFS 31(7)
 
+# ---- evaluations: what a construction rule would have done (registered 2026-10-15, night, before
+# its first run; plan/research-engine.md item 4). Run with `python v2_experiments.py evaluate`.
+evaluations:
+  - id: bot-rule-v1.1
+    hypothesis: The trading bot's rule (screener-bot STRATEGY_LOG v1.1) on the baseline's rankings.
+    source: screener-bot bot/strategy.py plan_rebalance and config defaults; STRATEGY_LOG.md 2026-10-09 v1.1 and 2026-10-10 (5 bps a side).
+    rule: {target_count: 25, sell_rank: 40, max_per_sector: 6, cash_reserve_pct: 2, cost_bps: 5, drawdown_halt_pct: 25}
+    prediction: >-
+      Excess return over the equal-weighted universe not distinguishable from zero in any period
+      (|t| < 2), each point estimate within +-0.3% a month; against the cap-weighted S&P 500
+      total-return index, below it in 2020-2026 (the equal-weighted universe lagged it); turnover
+      between 50% and 150% a year; maximum drawdown within 5 points of the universe's; the drawdown
+      halt fires in at most 3 months, in 2020 if at all.
+    differences: >-
+      monthly, where the bot rebalances weekly; a name missing from a month's ranking is sold at
+      once, where the bot waits a few runs; no order-size cap or minimum; cash earns nothing; the
+      rankings are the filings-and-prices screener (no Revisions, no forward EPS growth) on v2's
+      survivorship-limited universe.
+
 experiments:
   - id: baseline
     hypothesis: The current weighting (the filings-and-prices screener, v2_config).
