@@ -11717,4 +11717,9 @@ and for the lab?"* and *"my goal is to not spend any money if possible on top of
 - **No paid data** recorded as the owner's decision in `OWNER_FOCUS.md`, `CLAUDE.md`, the research-engine
   plan and the note; the plan's survivorship item now asks for free routes only.
 - The note's months-of-record figures now match the page (47 / 89 / 132 / 248, from the 0.123 spread).
+- **Lab experiment 13, value and momentum together** (AMP 2013), with a new combination layout: 7 of 10
+  within; the mix's average matches the paper exactly, the hedge is milder so its Sharpe is lower. Looked
+  at 1440 and 375; a verdict sentence that called a third-decimal lead "beat either one" was fixed.
+- Free survivorship route probed: Stooq's CSV download now returns a browser challenge for every symbol -
+  not usable, and not to be worked around. Recorded in `plan/research-engine.md`.
 
