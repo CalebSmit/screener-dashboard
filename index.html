@@ -3393,6 +3393,43 @@
         .sm-table td.sm { background: none; font-weight: 500;
             color: color-mix(in srgb, var(--text-primary) calc(25% + var(--t) * 75%), var(--text-muted)); }
         .sec-meta.sec-meta-plain { color: var(--text-muted); }
+        /* the table: tickers in ink, not link-blue (the row is the link); the composite as a gauge on a
+           visible 0-100 track, the fill drawn against the track's own width so 71 reads as 71% */
+        .data-table .ticker { color: var(--text-primary); letter-spacing: .01em; }
+        .data-table tbody tr:hover .ticker, .data-table tbody tr.row-active .ticker { color: var(--accent-text); }
+        .data-table td.comp i { width: calc((100% - 20px) * var(--c, 0)); max-width: none; z-index: 1; opacity: .9; }
+        .data-table td.comp::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 7px; height: 2px;
+            border-radius: 1px; background: color-mix(in srgb, var(--text-muted) 28%, transparent); }
+        /* a wide screen: the statement on the left, the four figures beside it as a 2x2, so the right half
+           of the first screen is not empty and the leaders rise by the height of a row */
+        @media (min-width: 1200px) {
+            .dashboard-container { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); column-gap: 56px; }
+            .dashboard-container > * { grid-column: 1 / -1; min-width: 0; }
+            .dashboard-container > .hero { grid-column: 1; grid-row: 2; }
+            .dashboard-container > .kpi-row { grid-column: 2; grid-row: 2; align-self: end; margin: 0 0 28px;
+                grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .kpi-row .kpi-card:nth-child(3) { border-left: 0; }
+            .kpi-row .kpi-card:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+        }
+        /* the header between phone and wide: the nav clipped "Diagnostics" below 1340px. The search keeps
+           its icon and shortcut, the links tighten, and where it must still scroll, its edge fades */
+        @media (min-width: 761px) {
+            .dashboard-header .header-left { flex: none; }
+            .dashboard-header .header-nav { flex: 0 1 auto; min-width: 0; }
+        }
+        @media (min-width: 761px) and (max-width: 1360px) {
+            .cmdk-btn-text { display: none; }
+            .header-nav a { padding: 6px 8px; }
+        }
+        @media (max-width: 1180px) {
+            .header-nav { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+                          mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+        }
+        /* the diagnostics tile speaks like its neighbours: a line of text, the status dots kept, no pills */
+        .sec-grid .defensibility-summary { gap: 4px 18px; margin-top: 8px; }
+        .sec-grid .defensibility-summary .def-badge { padding: 0; border: 0; border-radius: 0; background: none;
+            font-size: 14px; font-weight: 400; color: var(--text-primary); }
+        .sec-grid .def-dot { width: 6px; height: 6px; margin-right: 8px; }
         /* methodology: tables keep a margin from the dialog's edge, names stay on one line, no tinted stripes */
         .methodology-body { padding-right: 28px; }
         .methodology-body table { border-radius: 12px; }
@@ -3406,6 +3443,8 @@
         @media (max-width: 760px) {
             .methodology-body { padding-right: 0; }
             .methodology-body tbody td:first-child { min-width: 0; }
+            .data-table td.comp i { width: calc(100% * var(--c, 0)); }
+            .data-table td.comp::after { display: none; }
             .sec-grid { grid-template-columns: 1fr; gap: 10px; }
             .sec-grid > .collapsible-section { padding: 0 16px; }
             .sec-grid .sec-meta { display: block; font-size: 13.5px; }
@@ -5258,7 +5297,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<td class="company">' + escapeHtml(row.Company || '') + '</td>' +
             '<td class="sector">' + escapeHtml(row.Sector) + '</td>' +
             '<td class="num comp">' + (comp === null || comp === undefined ? '&mdash;'
-                : '<span>' + fmt(comp, 'score') + '</span><i style="width:' + Math.max(0, Math.min(100, comp)).toFixed(1) + '%"></i>') + '</td>' +
+                : '<span>' + fmt(comp, 'score') + '</span><i style="--c:' + (Math.max(0, Math.min(100, comp)) / 100).toFixed(3) + '"></i>') + '</td>' +
             CAT_KEYS.map((k, j) => scoreCell(row[k], CAT_SHORT[j])).join('') +
             '<td class="vt-cell">' + flags + '</td></tr>';
     }

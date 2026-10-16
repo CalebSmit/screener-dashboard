@@ -99,6 +99,21 @@ statement, never louder than the primary action.
   sit on one line on a wide screen, no blue-tinted stripes, the code blocks lose their accent rule, and an
   inline file path wraps instead of pushing the dialog sideways on a phone (it overflowed by 12px at 375).
 
+## Phase 9 - DONE 2026-10-16 (owner-run)
+
+- **The first screen on a wide display** (>= 1200px): the statement on the left, the four at-a-glance
+  figures beside it as a 2x2. The right half of the first screen was empty; the leaders now show above
+  the fold at 1440x900. Below 1200 the tiles stay a row under the hero, and on a phone a 2x2 as before.
+- **The rankings table**: tickers in ink, not link-blue (the whole row opens the stock; the ticker turns
+  blue on hover and on the open row). The composite's bar was an underline with no scale; it is now a
+  gauge on a visible 0-100 track, its fill drawn against the track's own width (it had been drawn
+  against the cell's, so 71 read as about 79% of the visible line).
+- **Diagnostics tile**: its three pill badges are a line of text like the other tiles' headlines, status
+  dots kept.
+- **Header**: below 1340px the nav clipped "Diagnostics", and at 1000px the brand ran under the first link.
+  The brand no longer shrinks, the search keeps its icon and shortcut, the links tighten, and where the
+  nav must still scroll (below 1180, phones included) its right edge fades.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption
