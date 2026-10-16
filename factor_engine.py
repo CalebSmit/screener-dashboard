@@ -2983,16 +2983,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         rec["_price_series_rejected"] = d.get("_price_series_rejected", None)
         # Why the flows come from the annual statements, when they do (2026-10-15, DuPont).
         rec["_quarterly_rejected"] = d.get("_quarterly_rejected", None)
-        _metric_keys = [
-            "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
-            "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score",
-            "accruals", "forward_eps_growth", "revenue_growth", "sustainable_growth",
-            "return_12_1", "return_6m", "volatility", "beta",
-            "analyst_surprise", "price_target_upside",
-        ]
-        _n_present = sum(1 for k in _metric_keys if pd.notna(rec.get(k)))
-        rec["_metric_count"] = _n_present
-        rec["_metric_total"] = len(_metric_keys)
+        # `_metric_count` / `_metric_total` are set by compute_composite from
+        # applicable_coverage - the weighted coverage the discount reads. Until 2026-10-16
+        # they were counted here from a hard-coded 18-metric list (unscored D/E in, ten
+        # weighted metrics out, EV/ROIC counted against banks), which the page averaged
+        # into a "Metric Coverage" figure of 95.5% against the engine's 98.9%.
 
         records.append(rec)
 
@@ -3254,8 +3249,20 @@ WEIGHT_PROFILE_LABELS = {
     "pio_lowval": "Piotroski halved: its valuation score is below the "
                   "threshold, so the F-Score carries less weight and the freed "
                   "weight moves to other quality metrics",
-    "pio_gt": "Piotroski halved: high growth with low quality, so the F-Score "
-              "carries less weight and the freed weight moves to other quality metrics",
+}
+
+# Weight profiles the engine may define but that, by design, apply to no stock in a
+# normal run. A published profile that no stock is scored with describes a rule that
+# never applies; tests/test_piotroski_conditional.py fails on one unless it is named here
+# with the reason. Empty - keep it that way unless there is a stated reason.
+DORMANT_WEIGHT_PROFILES: dict[str, str] = {}
+
+# Profiles the engine no longer defines, with the date and reason. A payload built from a
+# run that predates the removal can still carry one; nothing may assign a stock to it.
+RETIRED_WEIGHT_PROFILES: dict[str, str] = {
+    "pio_gt": "2026-10-16: the Piotroski growth-trap variant read growth_score before "
+              "Growth was scored, so it applied to 0 of 501 stocks; removed rather than "
+              "made to work, which would need a research note (METHODOLOGY_CHANGELOG.md)",
 }
 
 
@@ -3264,8 +3271,8 @@ def metric_weight_profiles(cfg: dict, cat: str) -> dict:
 
     Returns ``{profile_id: {metric: weight_as_a_fraction}}``. ``generic`` is always
     present; ``bank`` when the config gives banks their own weights for this
-    category; ``pio_lowval`` / ``pio_gt`` for Quality when Piotroski conditional
-    weighting is on.
+    category; ``pio_lowval`` for Quality when Piotroski conditional weighting is on.
+    (A growth-trap variant, ``pio_gt``, was removed 2026-10-16 - it could never apply.)
 
     **This is the single place metric weights are resolved.** ``compute_category_scores``
     scores from these tables and the dashboard publishes the same tables, so the
@@ -3309,10 +3316,6 @@ def metric_weight_profiles(cfg: dict, cat: str) -> dict:
 
         profiles["pio_lowval"] = _shifted(
             set(pio_cfg.get("redistribute_to", ["roic", "gross_profit_assets"])))
-        if pio_cfg.get("growth_trap_enabled", False):
-            profiles["pio_gt"] = _shifted(
-                set(pio_cfg.get("growth_trap_redistribute_to",
-                                ["accruals", "gross_profit_assets"])))
     return profiles
 
 
@@ -3337,11 +3340,6 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     pio_enabled = pio_cfg.get("enabled", False)
     pio_val_threshold = pio_cfg.get("valuation_threshold", 50)
 
-    # Growth-trap Piotroski conditional config (Extension of above)
-    pio_gt_enabled = pio_enabled and pio_cfg.get("growth_trap_enabled", False)
-    pio_gt_growth_thr = pio_cfg.get("growth_trap_growth_threshold", 70)
-    pio_gt_quality_thr = pio_cfg.get("growth_trap_quality_threshold", 35)
-
     for cat, metrics in CAT_METRICS.items():
         col = f"{cat}_score"
         # The weight tables for this category. Resolved once, in one function,
@@ -3349,8 +3347,10 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         profiles = metric_weight_profiles(cfg, cat)
 
         # Which table each stock is scored with. Precedence is bank, then the
-        # Piotroski low-valuation rule, then the growth-trap variant; the three
-        # masks are disjoint by construction.
+        # Piotroski low-valuation rule; the two masks are disjoint by construction.
+        # (A growth-trap variant tested growth_score here until 2026-10-16. Quality is
+        # scored before Growth in this loop, so the column never existed and the rule
+        # never applied to a stock; it was removed rather than made to work.)
         profile = pd.Series("generic", index=df.index, dtype=object)
         if "bank" in profiles:
             profile[is_bank.astype(bool)] = "bank"
@@ -3362,21 +3362,6 @@ def compute_category_scores(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             is_low_val = is_low_val & ~is_bank
             if is_low_val.any():
                 profile[is_low_val] = "pio_lowval"
-
-            # Growth-trap Piotroski: high-growth + low-quality non-bank stocks
-            # get Piotroski weight halved, freed weight -> accruals + gross_profit_assets
-            if (pio_gt_enabled
-                    and "growth_score" in df.columns and "quality_score" in df.columns):
-                g_thr = df["growth_score"].quantile(pio_gt_growth_thr / 100.0)
-                q_thr = df["quality_score"].quantile(pio_gt_quality_thr / 100.0)
-                is_growth_trap_like = (
-                    (df["growth_score"] >= g_thr)
-                    & (df["quality_score"] <= q_thr)
-                    & ~is_bank
-                    & ~is_low_val  # Don't double-apply; growth trap takes precedence on redistribution targets
-                )
-                if is_growth_trap_like.any():
-                    profile[is_growth_trap_like] = "pio_gt"
 
         # Recorded so the dashboard can say which table each stock was scored
         # with. Internal column (leading underscore): never written to Excel.
@@ -3764,6 +3749,9 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     _cov_present, _cov_applicable = applicable_coverage(df, cfg)
     df["_cov_present"] = _cov_present
     df["_cov_applicable"] = _cov_applicable
+    # The provenance fields (Excel's "Metrics Available / Total") are the same count.
+    df["_metric_count"] = _cov_present
+    df["_metric_total"] = _cov_applicable
     df["_cov_discount"] = 0.0
     if cov_cfg.get("enabled", False):
         threshold = cov_cfg.get("threshold", 0.80)

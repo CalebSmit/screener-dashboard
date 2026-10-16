@@ -156,6 +156,13 @@ MODULES: tuple[tuple[str, str], ...] = (
     ("tests/test_factor_lab.py",
      "the page's 'Rerun the research' paragraph matches the experiments that exist, "
      "and the lab's scorecard carries the screener's own weights"),
+    # Added 2026-10-16: the Piotroski paragraph is built from the weight tables, and every
+    # published table is one some stock is scored with.
+    ("tests/test_piotroski_conditional.py",
+     "the page states the Piotroski split the engine applies, and publishes no weight table "
+     "that applies to no stock"),
+    ("tests/test_engine_lists_are_derived.py",
+     "the page's Metric Coverage figure is the engine's per-stock coverage averaged"),
     ("tests/test_stock_summary.py",
      "no baked summary carries advice language"),
     ("tests/test_dashboard_surfaces.py",

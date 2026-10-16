@@ -146,11 +146,14 @@ def test_bank_and_piotroski_profiles_exist_and_differ_from_generic(cfg):
     qual = metric_weight_profiles(cfg, "quality")
     assert qual["pio_lowval"]["piotroski_f_score"] == pytest.approx(
         qual["generic"]["piotroski_f_score"] * cfg["piotroski_conditional"]["reduction_factor"])
-    assert set(qual) >= {"generic", "bank", "pio_lowval", "pio_gt"}
+    # pio_gt was removed 2026-10-16: it could never apply (tests/test_piotroski_conditional.py)
+    assert set(qual) == {"generic", "bank", "pio_lowval"}
 
 
-def test_every_profile_has_a_plain_english_reason():
-    assert set(WEIGHT_PROFILE_LABELS) >= {"generic", "bank", "pio_lowval", "pio_gt"}
+def test_every_profile_has_a_plain_english_reason(cfg):
+    defined = {pid for cat in CATS for pid in metric_weight_profiles(cfg, cat)}
+    assert set(WEIGHT_PROFILE_LABELS) == defined, (
+        "a label for a profile the engine cannot produce describes a rule that never applies")
     assert all(len(v) > 20 for v in WEIGHT_PROFILE_LABELS.values())
 
 

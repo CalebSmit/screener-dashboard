@@ -4155,3 +4155,72 @@ byte); and the row read in a browser at 1440 and 375px on SBUX, KHC and GILD.
 
 **Applied by:** 13:00 scheduled session, 2026-10-16.
 **Rollback:** `good/2026-10-16`.
+
+## 2026-10-16 - Removed a Piotroski growth-trap variant that never applied; the page states the real Piotroski split; four hand-typed metric lists now read the engine
+
+**Area:** Piotroski-conditional weighting (Quality metric weights); data-quality safeguards
+(auto-reduce, category auto-disable); the Data Quality panel's coverage figure.
+
+**Changed:**
+1. **Removed the growth-trap Piotroski variant** - `piotroski_conditional.growth_trap_enabled /
+   growth_trap_growth_threshold / growth_trap_quality_threshold / growth_trap_redistribute_to`
+   in `config.yaml`, the `pio_gt` weight profile in `factor_engine.metric_weight_profiles`,
+   its branch in `compute_category_scores` and its label in `WEIGHT_PROFILE_LABELS`.
+   `pio_gt` is named in the new `factor_engine.RETIRED_WEIGHT_PROFILES`, and the new
+   `DORMANT_WEIGHT_PROFILES` (empty) is the only way a published profile may apply to no stock.
+2. **The methodology page's Piotroski sentence is built from the weight tables.** It said the
+   freed F-Score weight was "redistributed equally to ROIC and Gross Profit / Assets"; the engine
+   has always split it in proportion to their weights. It now reads: F-Score 16 to 8, ROIC 29 to
+   33.55, Gross Profit / Assets 22 to 25.45 (`run_screener.piotroski_split_sentence`, claim
+   `overview.piotroski_conditional`, and a `FORBIDDEN` entry for the old wording).
+3. **Metric Coverage** on the Data Quality panel is the mean of the engine's own `cov.n / cov.of`
+   (`generate_dashboard.average_weighted_coverage`, claim `drilldown.avg_metric_coverage`), not
+   `_metric_count / _metric_total` from an 18-metric list in `compute_metrics`. That list is gone:
+   `_metric_count / _metric_total` (Excel's Metrics Available / Total) are now set in
+   `compute_composite` from `applicable_coverage`, which is what the methodology page already said
+   they were.
+4. **The NaN auto-reduce, the Revisions and Investment auto-disables** read their metrics from
+   `factor_engine.weighted_metric_sets` (`run_screener.auto_reduce_candidates`,
+   `weighted_coverage_pct`). The auto-reduce's dict had omitted seven weighted metrics
+   (`fy1_revision_3m`, `jensens_alpha`, `max_drawdown_1y`, `net_debt_to_ebitda`,
+   `beneish_m_score`, `revenue_cagr_3yr`, `short_interest_ratio`), which therefore could neither be
+   caught in an outage nor receive weight freed within their category; the Revisions disable
+   counted the weight-0 `earnings_acceleration` and omitted `fy1_revision_3m`, its heaviest
+   metric. The universe-filter log compared the post-filter ticker set with itself and so never
+   named an excluded stock; it now compares against the set before the filter.
+
+**Evidence:** documented defects, measured on the 2026-10-16 02:00 run (`735e18b2e3bc`).
+(1) `compute_category_scores` scores categories in `CAT_METRICS` order, Quality before Growth, so
+the variant's guard `"growth_score" in df.columns` is False on the single pass `run_screener`
+makes. Published payload: **0 of 501** stocks on `pio_gt` (235 `pio_lowval`, 220 generic,
+46 bank) while the page published its table and label - a rule described to readers that never
+applies. It was removed rather than made to work: making it fire would change Quality weights for
+roughly a fifth of the non-bank universe, which is a methodology change and needs its own research
+note first (Mohanram 2005's G-score, the growth-stock counterpart of Piotroski 2000, is the obvious
+source; the growth-trap *flag* already cites it). (2) The engine's `_shifted` splits the freed
+weight by `generic_ws[m] / total` - proportional - and the published profile is ROIC 33.549, GP/A
+25.451. (3) Published 95.5% against the engine's own 98.9% for the same run (banks 69% against
+99.5%), because the legacy list counted unscored D/E, omitted ten weighted metrics and counted EV
+and ROIC against banks. (4) The lists in `run_screener.py` were last aligned before the
+2026-09-10 Revisions reweight and the 2026-10-09 metric audit.
+
+**Expected effect:** **none on any score, rank or composite.** (1) cannot have moved a score - it
+never applied. Measured: the copied run's percentiles rescored with HEAD's engine and with this
+branch's engine (the run's own config snapshot, which still carries the `growth_trap_*` keys, and
+its post-mutation weights) give identical `_wp_*` assignments, category scores, composites and
+ranks for all 501 stocks, and both equal the published `05_final_scored` composites exactly.
+(4) changes nothing on that run: no weighted metric is more than 70% missing (the worst,
+`beneish_m_score`, 15.6%), and Revisions coverage is 99.2% on the weighted set against 99.0% on the
+old list, both far above the 30% line. They matter on the day a source drops a column. (3) moves
+the published Metric Coverage figure from 95.5% to 98.9% on the next data run.
+
+**Validated by:** `tests/test_piotroski_conditional.py` (the paragraph's figures recomputed from
+the profiles independently of the builder; every profile the engine defines is applied to a stock
+in the committed payload; every profile the payload carries is applied, dormant or retired) and
+`tests/test_engine_lists_are_derived.py` (the auto-reduce set equals the weighted set; an outage in
+each of the seven previously unwatched metrics is caught; the Revisions disable reads weighted
+coverage; the coverage figure is the mean of the published `cov`). Both are in
+`scripts/check_published_claims.py`. `scripts/rehearse_publish.py` against the 2026-10-16 run.
+
+**Applied by:** session, 2026-10-16 (fix branch).
+**Rollback:** `good/2026-10-16`.

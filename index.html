@@ -1922,8 +1922,13 @@
         .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
         .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
         /* A note about this company's own filed figures, not a warning about the metric: the
-           same shape, the neutral border. */
-        .wk-caveat-stock { border-left-color: var(--border-bright); }
+           same shape, the neutral border. These notes name the XBRL tag the company applied, so a
+           reader can find the figure in the filing, and some of those are one unbreakable 59-
+           character token - ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill. Without
+           `anywhere` it is clipped at the panel's edge at 375px (seen on Gilead, rank 53,
+           2026-10-16), and the clip does not widen the document, so a scrollWidth check cannot
+           see it. The tag has to be readable or it is not provenance. */
+        .wk-caveat-stock { border-left-color: var(--border-bright); overflow-wrap: anywhere; }
         .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
         .contrib-row-link:hover { background: var(--bg-card-hover); }
         .chain-line {
@@ -4432,7 +4437,7 @@
 <hr />
 <h2>Piotroski conditional weighting</h2>
 <p>The Piotroski F-Score is a broad checklist of financial health signals – but its predictive power varies depending on how expensive a stock is. For cheap stocks (high valuation score), the F-Score is highly predictive: it separates genuinely undervalued companies from deteriorating ones. For expensive stocks (low valuation score), the F-Score is less informative because the market has already priced in quality.</p>
-<p>When enabled (current: <strong>on</strong>), the screener reduces the Piotroski F-Score weight by 50% for non-bank stocks with a valuation score below 50 (i.e., the more expensive half of the universe). The freed weight is redistributed equally to ROIC and Gross Profit / Assets, which are more robust quality signals for expensive stocks.</p>
+<p>When enabled (current: <strong>on</strong>), the screener reduces the Piotroski F-Score weight by 50% for non-bank stocks with a valuation score below 50 (i.e., the more expensive half of the universe). That takes the F-Score from 16 to 8 of the Quality category's 100 points. The freed 8 points are split between ROIC and Gross Profit / Assets in proportion to their own weights (29 : 22), so ROIC goes from 29 to 33.55 and Gross Profit / Assets from 22 to 25.45; these are more robust quality signals for expensive stocks. Every other Quality weight is unchanged, and a stock's drilldown shows the table it was scored with.</p>
 <p>Bank-like stocks are unaffected – their quality weights are already tailored.</p>
 <hr />
 <h2>Data quality safeguards</h2>
@@ -4442,8 +4447,8 @@
 <li><strong>Output clamping (configurable):</strong> Forward EPS growth is clamped to [-75%, +150%]; price target upside is clamped to [-50%, +100%]. These bounds are configurable in <code>config.yaml</code> under <code>metric_clamps</code>. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.</li>
 <li><strong>Coverage filter:</strong> Stocks with fewer than 60% of the metrics that carry weight in their score available are excluded from the ranking entirely – the same coverage the composite's discount reads.</li>
 <li><strong>Coverage discount:</strong> Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below 80% metric coverage, the composite is reduced by up to 15% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. <strong>Currently enabled.</strong></li>
-<li><strong>Auto-disable (category-level):</strong> If the Revisions or Investment category has fewer than 30% of its metrics populated, the entire category's weight is zeroed and redistributed proportionally to the remaining categories.</li>
-<li><strong>Auto-reduce (metric-level):</strong> If any individual metric has more than 70% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed within its category.</li>
+<li><strong>Auto-disable (category-level):</strong> If fewer than 30% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.</li>
+<li><strong>Auto-reduce (metric-level):</strong> If any metric that carries weight has more than 70% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed, in proportion, to the other weighted metrics in its category.</li>
 <li><strong>Metric-level alerts:</strong> A warning is printed if any metric has more than 50% missing data across the universe.</li>
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
 <li><strong>Checked against the filings:</strong> each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (<code>sec_crosscheck.py</code>), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once – the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.</li>

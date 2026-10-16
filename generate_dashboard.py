@@ -487,6 +487,22 @@ def _reconcile_factor_weights(df, weights: dict) -> dict:
     return weights
 
 
+def average_weighted_coverage(df: pd.DataFrame):
+    """Mean over stocks of present / applicable weighted metrics, from the engine's own columns.
+
+    ``_cov_present`` / ``_cov_applicable`` are written by ``factor_engine.compute_composite``
+    (``applicable_coverage``) and published per stock as ``cov.n`` / ``cov.of``, so this is the
+    page's per-stock figure averaged - never a second count. None for a run without them."""
+    if "_cov_present" not in df.columns or "_cov_applicable" not in df.columns:
+        return None
+    of = pd.to_numeric(df["_cov_applicable"], errors="coerce")
+    n = pd.to_numeric(df["_cov_present"], errors="coerce")
+    valid = of > 0
+    if not valid.any():
+        return None
+    return round(float((n[valid] / of[valid]).mean()), 3)
+
+
 def _with_weight_profiles(weights: dict, run_cfg: dict) -> dict:
     """Attach the metric-weight tables, the labels that explain them, and the
     coverage-discount parameters, so every number in a score's workings is published.
@@ -1408,15 +1424,20 @@ def prepare_dashboard_data(run_data: dict) -> str:
     avg_metric_coverage = None
     if "_eps_basis_mismatch" in df.columns:
         eps_mismatch_count = int(df["_eps_basis_mismatch"].sum())
-    if "_metric_count" in df.columns and "_metric_total" in df.columns:
-        valid = df[df["_metric_total"] > 0]
-        if len(valid) > 0:
-            avg_metric_coverage = round(float((valid["_metric_count"] / valid["_metric_total"]).mean()), 3)
+    # The engine's own coverage - the metrics that carry weight in each stock's table, the count
+    # the coverage discount reads and each drilldown prints as `cov`. Until 2026-10-16 this read
+    # `_metric_count / _metric_total`, a legacy 18-metric list that included unscored D/E, left out
+    # ten weighted metrics and counted EV and ROIC against banks: 95.5% published against the
+    # engine's 98.9% (banks 69% against 99.5%). Claim `drilldown.avg_metric_coverage`.
+    avg_metric_coverage = average_weighted_coverage(df)
     data_freshness = meta.get("start_time", "")
 
     data_quality_summary = {
         "eps_mismatch_count": eps_mismatch_count,
         "avg_metric_coverage": avg_metric_coverage,
+        # Which count the figure averages: "weighted" = the engine's cov.n / cov.of. A payload
+        # without it predates 2026-10-16 and averaged a legacy 18-metric list instead.
+        "coverage_basis": "weighted" if avg_metric_coverage is not None else None,
         "data_freshness": data_freshness,
     }
 
