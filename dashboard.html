@@ -1910,6 +1910,9 @@
         .wk-check-bad { color: var(--amber); }
         .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
         .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
+        /* A note about this company's own filed figures, not a warning about the metric: the
+           same shape, the neutral border. */
+        .wk-caveat-stock { border-left-color: var(--border-bright); }
         .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
         .contrib-row-link:hover { background: var(--bg-card-hover); }
         .chain-line {
@@ -2494,6 +2497,12 @@
     
     </style>
     <style>
+
+        /* ---- HERO: the two companion pages (2026-10-15). The header nav fills its row at 1440px,
+           so they sit with the hero's buttons; on a phone the four make a two-by-two grid ---- */
+        a.hero-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; white-space: nowrap; }
+        a.hero-link:hover { text-decoration: none; }
+        @media (max-width: 760px) { .hero .hero-actions { display: grid; grid-template-columns: 1fr 1fr; } .hero .hero-actions .hero-btn { width: 100%; } }
 
         /* ---- HEADER: search button, active section ---- */
         .cmdk-btn {
@@ -3293,6 +3302,8 @@
             <div class="hero-actions">
                 <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
                 <button type="button" class="hero-btn" onclick="openMethodology()">How it works</button>
+                <a class="hero-btn hero-link" href="research.html" title="The ranking tested on 2012-2026 history">Has it been tested?</a>
+                <a class="hero-btn hero-link" href="lab.html" title="The research behind the screener, rerun">Factor Lab</a>
             </div>
         </section>
 
@@ -3747,7 +3758,7 @@
 <hr />
 <h2>The 8 Factor Categories</h2>
 <p>Every stock is evaluated in 8 categories. Each category captures a different dimension of investment merit.</p>
-<p><strong>Rerun the research.</strong> The <a href="https://calebsmit.github.io/screener-dashboard/lab.html">Factor Lab</a> reruns published studies behind these categories on public data and shows how far each rerun lands from its paper: Valuation - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#earnings-yield">earnings yield</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth">in the largest fifth</a>; Quality - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>; Momentum - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#risk-managed-momentum">risk-managed momentum</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#momentum-crashes">momentum crashes</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth">in the largest fifth</a>; Risk - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility">volatility</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#market-beta">market beta</a>; Size - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#size-effect">the size effect</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>; Investment - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>. Growth and Analyst Revisions have nothing there yet, and the lab's front page says why.</p>
+<p><strong>Rerun the research.</strong> The <a href="https://calebsmit.github.io/screener-dashboard/lab.html">Factor Lab</a> reruns published studies behind these categories on public data and shows how far each rerun lands from its paper: Valuation - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#earnings-yield">earnings yield</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#cash-flow-yield">cash-flow yield</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#value-and-momentum">value and momentum together</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth">in the largest fifth</a>; Quality - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#profitability">profitability</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#accruals">accruals</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>; Momentum - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#risk-managed-momentum">risk-managed momentum</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#momentum-crashes">momentum crashes</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#value-and-momentum">value and momentum together</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#largest-fifth">in the largest fifth</a>; Risk - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#low-volatility">volatility</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#market-beta">market beta</a>; Size - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#size-effect">the size effect</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>; Investment - <a href="https://calebsmit.github.io/screener-dashboard/lab.html#five-factors">the five factors</a>, <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">among large companies</a>. Growth and Analyst Revisions have nothing there yet, and the lab's front page says why.</p>
 <h3>1. Valuation (22% of final score)</h3>
 <p><strong>Question it answers:</strong> <em>Is this stock priced attractively relative to what the business generates?</em></p>
 <p><strong>Generic stocks:</strong></p>
@@ -4145,7 +4156,7 @@
 <li><strong>LTM / MRQ data freshness:</strong> All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (&lt; 8 quarters).</li>
 <li><strong>Checked against the filings:</strong> each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (<code>sec_crosscheck.py</code>), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once - the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.</li>
 <li><strong>EV cross-validation:</strong> The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (<code>_ev_flag</code>). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).</li>
-<li><strong>LTM partial annualization tracking:</strong> When only 3 of 4 quarters are available for a flow metric, the screener annualizes (sum × 4/3) but flags the ticker with <code>_ltm_annualized = True</code> and records which fields were affected. This transparency lets users know which metrics are based on extrapolated rather than complete data.</li>
+<li><strong>A quarter the source never published:</strong> when the four most recent quarters cannot be summed because one of them was never served, the twelve months is rolled forward from the last fiscal year instead - fiscal year + the quarters since it − the same quarters a year earlier, the construction the company uses in its own 10-Q. Measured on Berkshire Hathaway, whose Q3-2025 the source does not carry, this reproduces its filed net income, operating cash flow and capital expenditure to the dollar, where the older rule was 14.5%, 6.1% and 0.1% out (2026-10-15). The stock's Data Provenance panel names the lines that were rolled (<code>_ltm_rolled</code>). Where even that is unavailable the screener still annualizes 3 of 4 quarters as sum × 4/3 and flags the ticker with <code>_ltm_annualized = True</code>, recording which fields were affected, so a reader can tell an extrapolated figure from a complete one.</li>
 <li><strong>Channel-stuffing detection:</strong> Compares receivables with revenue over the last fiscal year, both from the same two annual statements, using Beneish's days-sales-in-receivables index (receivables / revenue, over the prior year's). At <strong>1.465 or more</strong> - the average among the earnings manipulators in Beneish (1999), against 1.031 among the rest - the stock is flagged with <code>_channel_stuffing_flag = True</code>. This can indicate aggressive revenue recognition or deteriorating collection quality. Not applied to any Financials stock: Beneish's sample excluded financial firms.</li>
 <li><strong>Beta overlap validation:</strong> Beta computation requires at least 80% date overlap between the stock's daily returns and the S&amp;P 500 market returns. Stocks with insufficient overlap get <code>beta = NaN</code> rather than a potentially misleading value. The overlap percentage is recorded in <code>_beta_overlap_pct</code>.</li>
 <li><strong>Data quality log:</strong> Every data issue (missing fields, stale data, rate-limit failures) is logged to <code>validation/data_quality_log.csv</code> with ticker, severity, description, and action taken.</li>
@@ -4365,7 +4376,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 <p><strong>GAAP vs. normalized EPS:</strong> Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (&gt;2x or &lt;0.3x — the signature of this contamination), <code>forward_eps_growth</code> is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.</p>
 </li>
 <li>
-<p><strong>Point-in-time:</strong> The screener uses the latest available financial data. It does not reconstruct what was known at a past date, which means backtests carry look-ahead bias for fundamental metrics.</p>
+<p><strong>Point-in-time:</strong> The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: <em>measured 2026-10-15</em>, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts <strong>72.5% of stock-months in a different tenth</strong> of the ranking. A research rebuild that reads each month's filings as they were filed now exists (<code>pit_record.py</code>, <code>backtest_v2.py</code>; <code>research/2026-10-15-pit-record-validation.md</code>). It does not set any weight on this page, and nothing it produces will before 2027-02-11. <strong>Tested against history, 2026-10-15:</strong> run on that rebuild over 176 months (2012-2026), the ranking's average monthly rank correlation with the next month's return was <strong>-0.003</strong> in 2012-2019 and <strong>0.000</strong> in 2020-2026 - indistinguishable from zero - and none of the 26 alternative weightings registered in advance did measurably better (<code>research/2026-10-15-research-engine-first-batch.md</code>). That test lacks the analyst inputs and the companies that have since left the index, so it is not the last word - but on public data this ranking has not been shown to predict returns, which is why this page presents it as decision support, not a forecast.</p>
 </li>
 <li>
 <p><strong>Analyst coverage:</strong> The Revisions category relies on analyst estimate and price target data, which is sparse for some stocks. When individual metrics are missing, their weight is redistributed within the category. When the entire category is unavailable, its weight redistributes to the other categories.</p>
@@ -4491,6 +4502,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             <nav class="footer-links" aria-label="Footer">
                 <a href="#" onclick="openMethodology();return false;">Methodology</a>
                 <a href="lab.html">Factor Lab</a>
+                <a href="research.html">Has it been tested?</a>
                 <a href="#" onclick="openShortcuts();return false;">Keyboard shortcuts</a>
                 <a href="#" onclick="showGuide();return false;">How to read this</a>
             </nav>
@@ -6476,6 +6488,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 '<span class="flag-icon">ℹ️</span> LTM Partially Annualized (3 of 4 quarters)</span>');
         }
 
+
         if (fl.is_bank) {
             badges.push('<span class="flag-badge flag-info">' +
                 '<span class="flag-icon">🏦</span> Bank-Like — uses P/B, ROE, ROA metrics</span>');
@@ -6923,6 +6936,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
 
         if (info.cav) h += `<div class="wk-caveat"><strong>Worth knowing.</strong> ${escapeHtml(info.cav)}</div>`;
+        // What this stock's own figures contain, where the filings say something the generic
+        // caveat cannot (today: a captive finance arm's lease purchases inside capex -
+        // research/2026-10-14-capex-definition.md section 5). Prose built at run time from
+        // filed figures; the page never derives it.
+        const stockCav = (s.cavs || {})[m];
+        if (stockCav) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s filings.</strong> ${escapeHtml(stockCav)}</div>`;
+        // What this stock's reported figures make worth a second look (ranking_audit.py,
+        // 2026-10-15): income from outside operations, an equity base hollowed out by buybacks.
+        const figNote = (s.fign || {})[m];
+        if (figNote) h += `<div class="wk-caveat wk-caveat-stock"><strong>In this company&rsquo;s reported figures.</strong> ${escapeHtml(figNote)}</div>`;
         return h + `</div>`;
     }
 
@@ -7219,6 +7242,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         { label: 'Defensibility and diagnostics', hint: 'Section', run: () => goToSection('sec-defensibility') },
         { label: 'Methodology', hint: 'How it works', run: () => openMethodology() },
         { label: 'Factor Lab', hint: 'Rerun the research', run: () => { window.location.href = 'lab.html'; } },
+        { label: 'Has it been tested?', hint: 'The ranking on 2012-2026 history', run: () => { window.location.href = 'research.html'; } },
         { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
         { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
         { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
@@ -8182,10 +8206,17 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
             (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
             (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
-                ? 'A few picks are left out because the free price source no longer serves them - usually companies taken private or acquired (' +
+                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed - usually companies taken private or acquired (' +
                   escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
                   '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
-            'Equal weights, entry at the close of the first trading day after each run, dividends included, no trading costs or taxes. This record is not used to set the methodology.</div>';
+            (T.filled && ((T.filled.from_records || []).length || Object.keys(T.filled.renamed || {}).length)
+                ? 'Picks the price source no longer serves are kept in: ' +
+                  (Object.keys(T.filled.renamed || {}).length ? 'renamed companies are priced under their new symbol (' +
+                      Object.keys(T.filled.renamed).map(k => escapeHtml(k) + ' &rarr; ' + escapeHtml(T.filled.renamed[k])).join(', ') + ')' : '') +
+                  ((T.filled.from_records || []).length ? (Object.keys(T.filled.renamed || {}).length ? '; ' : '') +
+                      'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, until they stopped (' +
+                      escapeHtml(T.filled.from_records.join(', ')) + ') - price only, without dividends' : '') + '. ' : '') +
+            'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
         host.innerHTML = h;
     }
 
@@ -8683,10 +8714,32 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (a.is) parts.push('Income statement as of <strong>' + fmtD(a.is) + '</strong>');
         if (a.cf) parts.push('Cash flow as of <strong>' + fmtD(a.cf) + '</strong>');
         if (parts.length) html += '<p class="provenance-line">' + parts.join(' &middot; ') + '.</p>';
-        html += '<p class="provenance-line">Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise. Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        // The general rule, unless this stock is one of the exceptions spelled out below it -
+        // saying "the sum of the last four quarters" above a sentence explaining that it is not
+        // would be a contradiction on the same panel (2026-10-15).
+        const ltmLead = (fl.ltm_rolled || fl.q_rejected)
+            ? 'Income and cash-flow figures cover the last twelve months, built for this company as described below.'
+            : 'Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise.';
+        html += '<p class="provenance-line">' + ltmLead + ' Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
+        const listed = function(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; };
+        if (fl.q_rejected) {
+            html += '<p class="provenance-line provenance-limit" id="provenance-q-rejected"><strong>Annual figures used.</strong> The income and cash-flow figures here are this company&rsquo;s latest annual statement, because its quarterly statement could not be summed: the source served ' +
+                escapeHtml(fl.q_rejected) + '.</p>';
+        }
+        if (fl.ltm_rolled) {
+            const rolledLines = (fl.ltm_rolled_labels || []).map(escapeHtml);
+            html += '<p class="provenance-line provenance-limit" id="provenance-ltm-rolled"><strong>Twelve months rolled forward.</strong> The source had not published one of this company&rsquo;s four most recent quarters, so ' +
+                (rolledLines.length ? listed(rolledLines) + ' ' + (rolledLines.length === 1 ? 'is' : 'are') : 'these figures are') +
+                ' the last fiscal year plus the quarters since it, less the same quarters a year earlier - the construction the company uses in its own 10-Q.</p>';
+        }
+        if (s.newer_filing && s.newer_filing.end) {
+            const nf = s.newer_filing;
+            html += '<p class="provenance-line provenance-limit" id="provenance-newer-filing"><strong>A period behind the filings.</strong> The company filed its ' +
+                escapeHtml(nf.form) + ' for the period to ' + fmtD(nf.end) + ' on ' + fmtD(nf.filed) +
+                '. The data source had not published that period when this run fetched, so the figures here are the period before.</p>';
+        }
         const xk = s.xchk || {};
         const XNAMES = [['ta', 'total assets'], ['eq', 'equity'], ['rev', 'revenue'], ['ni', 'net income'], ['ocf', 'operating cash flow']];
-        const listed = function(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; };
         const agree = [], differ = [];
         XNAMES.forEach(function(p) {
             const v = xk[p[0]];
