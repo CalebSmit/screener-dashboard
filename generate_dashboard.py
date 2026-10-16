@@ -1760,7 +1760,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         <section class="section collapsible-section collapsed" id="sec-analytics">
             <div class="section-header" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor Analytics</h2>
-                <span class="sec-meta">Sector &times; factor scores &middot; trap rates by sector</span>
+                <span class="sec-meta" id="meta-analytics">Sector &times; factor scores &middot; trap rates by sector</span>
                 <span class="sec-blurb">How each sector scores on each factor, and where trap flags cluster.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
@@ -2237,6 +2237,10 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
         const html = cards.join('');
         document.getElementById('kpi-row').innerHTML = html;
+        // the analytics tile's headline: the published trap rate that stands out most
+        const vt = D.vt_by_sector || {{}}, top = Object.keys(vt).sort((a, b) => vt[b].rate - vt[a].rate)[0];
+        const ma = document.getElementById('meta-analytics');
+        if (ma && top) ma.textContent = 'Most value-trap flags: ' + top + ', ' + Number(vt[top].rate).toFixed(1) + '% of the sector';
         const ts = k.run_timestamp ? new Date(k.run_timestamp) : null;
         const fmtDate = ts ? ts.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric', year: 'numeric' }}) : '';
         const fmtTime = ts ? ts.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }}) : '';
@@ -9703,7 +9707,19 @@ def _css_investor() -> str:
         .sm-table td.sm { background: none; font-weight: 500;
             color: color-mix(in srgb, var(--text-primary) calc(25% + var(--t) * 75%), var(--text-muted)); }
         .sec-meta.sec-meta-plain { color: var(--text-muted); }
+        /* methodology: tables keep a margin from the dialog's edge, names stay on one line, no tinted stripes */
+        .methodology-body { padding-right: 28px; }
+        .methodology-body table { border-radius: 12px; }
+        .methodology-body tbody tr:nth-child(even) td { background: none; }
+        .methodology-body tbody td { line-height: 1.6; vertical-align: top; padding: 11px 14px; }
+        .methodology-body tbody td:first-child { min-width: 10em; font-weight: 550; }
+        .methodology-body thead th { font-weight: 500; letter-spacing: .05em; color: var(--text-muted); border-bottom-width: 1px; }
+        .methodology-body tbody td:first-child { min-width: 11em; }
+        .methodology-body :not(pre) > code { overflow-wrap: anywhere; }
+        .methodology-body pre { border-left-width: 1px; border-left-color: var(--border); border-radius: 12px; }
         @media (max-width: 760px) {
+            .methodology-body { padding-right: 0; }
+            .methodology-body tbody td:first-child { min-width: 0; }
             .sec-grid { grid-template-columns: 1fr; gap: 10px; }
             .sec-grid > .collapsible-section { padding: 0 16px; }
             .sec-grid .sec-meta { display: block; font-size: 13.5px; }

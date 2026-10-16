@@ -32,6 +32,8 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Stock sheet**: `#modal-score-row` comes **before** `#modal-summary`, and the jump links follow
   (`test_the_drilldown_reads_in_the_order_its_jump_links_promise`); the header adds the last price
   (`.mh-price`, hidden on a phone).
+- **Factor Analytics tile** (`#meta-analytics`): filled in `renderKPIs` with the sector carrying the most
+  value-trap flags (from `vt_by_sector`).
 - **Link previews**: OG/Twitter tags on all three pages; `og-card.png` from `scripts/make_og_card.py` (no live numbers).
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
