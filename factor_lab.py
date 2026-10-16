@@ -697,6 +697,7 @@ TOLERANCES = {"max": 3.0, "min": 3.0, "mean": 1.0, "std": 1.0, "kurt": 1.0, "ske
 EXPERIMENTS = [
     {
         "id": "risk-managed-momentum",
+        "group": "Momentum",
         "kind": "risk-managed",
         "topic": "Momentum",
         "title": "Risk-managed momentum",
@@ -756,6 +757,7 @@ EXPERIMENTS = [
     },
     {
         "id": "momentum-crashes",
+        "group": "Momentum",
         "kind": "crashes",
         "topic": "Momentum",
         "title": "Momentum crashes",
@@ -849,6 +851,7 @@ EXPERIMENTS = [
     },
     {
         "id": "five-factors",
+        "group": "Across the factors",
         "kind": "factors",
         "topic": "Value, profitability, investment, size",
         "title": "The five factors",
@@ -928,6 +931,7 @@ EXPERIMENTS = [
     },
     {
         "id": "size-effect",
+        "group": "Across the factors",
         "kind": "size",
         "topic": "Size",
         "title": "The size effect, and whether it reaches large stocks",
@@ -1010,6 +1014,7 @@ EXPERIMENTS = [
     },
     {
         "id": "low-volatility",
+        "group": "Risk",
         "kind": "sort",
         "topic": "Risk",
         "title": "Do riskier stocks earn more?",
@@ -1097,6 +1102,7 @@ EXPERIMENTS = [
     },
     {
         "id": "earnings-yield",
+        "group": "Value",
         "kind": "sort",
         "topic": "Valuation",
         "title": "Does a high earnings yield pay?",
@@ -1188,6 +1194,7 @@ EXPERIMENTS = [
     },
     {
         "id": "market-beta",
+        "group": "Risk",
         "kind": "sort",
         "topic": "Risk",
         "title": "Does market risk pay?",
@@ -1277,6 +1284,7 @@ EXPERIMENTS = [
     },
     {
         "id": "big-and-small",
+        "group": "Across the factors",
         "kind": "split",
         "topic": "Value, profitability, investment and momentum among large companies",
         "title": "Do the factors work among large companies?",
@@ -1361,6 +1369,7 @@ EXPERIMENTS = [
     },
     {
         "id": "largest-fifth",
+        "group": "Across the factors",
         "kind": "split",
         "topic": "Value and momentum in the largest fifth of companies",
         "title": "Are value and momentum still there in the largest companies?",
@@ -1455,6 +1464,7 @@ EXPERIMENTS = [
     },
     {
         "id": "profitability",
+        "group": "Quality",
         "kind": "sort",
         "topic": "Quality",
         "title": "Do profitable companies earn more?",
@@ -1547,6 +1557,7 @@ EXPERIMENTS = [
     },
     {
         "id": "cash-flow-yield",
+        "group": "Value",
         "kind": "sort",
         "topic": "Valuation",
         "title": "Does a high cash-flow yield pay?",
@@ -1638,6 +1649,7 @@ EXPERIMENTS = [
     },
     {
         "id": "accruals",
+        "group": "Quality",
         "kind": "sort",
         "topic": "Quality",
         "title": "Do companies whose earnings are mostly accruals do worse?",
@@ -1733,6 +1745,7 @@ EXPERIMENTS = [
     },
     {
         "id": "value-and-momentum",
+        "group": "Value",
         "kind": "combo",
         "topic": "Valuation and Momentum",
         "title": "Do value and momentum offset each other?",

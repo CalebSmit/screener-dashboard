@@ -3395,7 +3395,7 @@
                 <span class="run-info" id="run-info"></span>
             </div>
             <nav class="header-nav" aria-label="Sections">
-                <a href="#sec-top5" onclick="goToSection('sec-top5');return false">Top 5</a>
+                <a href="#sec-top5" onclick="goToSection('sec-top5');return false">Leaders</a>
                 <a href="#sec-universe" onclick="goToSection('sec-universe');return false">Rankings</a>
                 <a href="#sec-holdings" onclick="goToSection('sec-holdings');return false">Holdings</a>
                 <a href="#sec-changed" onclick="goToSection('sec-changed');return false" id="nav-changed">What changed</a>
@@ -7374,7 +7374,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
     // ---- search palette ------------------------------------------------------
     const PAL_ACTIONS = [
-        { label: 'Top 5 stocks', hint: 'Section', run: () => goToSection('sec-top5') },
+        { label: 'Leading the ranking (top 5)', hint: 'Section', run: () => goToSection('sec-top5') },
         { label: 'Full rankings table', hint: 'Section', run: () => goToSection('sec-universe') },
         { label: 'My Holdings', hint: 'Section', run: () => goToSection('sec-holdings') },
         { label: 'What changed', hint: 'Section', run: () => goToSection('sec-changed'), when: () => !!(H && H.available) },
