@@ -56,3 +56,6 @@ data/lab/
 # Papers downloaded to be read for a research note. Re-downloadable, and not
 # ours to republish - the note carries the citation and the page numbers.
 data/papers/
+
+# Claude Code agent worktrees (isolated copies used while working; never project files)
+.claude/worktrees/
