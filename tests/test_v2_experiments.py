@@ -210,3 +210,11 @@ def test_the_bot_simulation_halts_new_buys_in_a_drawdown_and_charges_costs():
     assert pm.loc["2024-01-31", "ret"] == pytest.approx(0.999 * 0.5 - 1)  # 10 bps on the way in
     assert bool(pm.loc["2024-02-29", "halted"]) and pm.loc["2024-02-29", "bought"] == 0
     assert pm.loc["2024-02-29", "held"] == 0                              # the sell still happens
+
+
+def test_every_verdict_says_how_small_a_difference_it_could_see():
+    """Queue item 2 (2026-10-15): 'not distinguishable' is printed next to what it rules out."""
+    assert X.detectable(0.01, 1) == pytest.approx((3.0 + 0.84) * 0.01, abs=1e-4)       # |t| >= 3 binds
+    assert X.detectable(0.01, 1000) > X.detectable(0.01, 1)                           # Bonferroni binds
+    assert X.detectable(None, 27) is None
+    assert "; sees 0.0" in X._vs_cell({"mean": 0.001, "t": 0.1, "se": 0.01}, 27)

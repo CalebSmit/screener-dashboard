@@ -191,3 +191,42 @@ that can be built honestly on free data.
   the published large-company momentum record (the Lab, experiment 8). Risk's role is answered (point 3).
 - **Data:** CIKs for 2020-2026 months (the guard currently applies to 2014-2019 only - two IR months
   in early 2020 are the one known case it would catch); and the survivorship decision above.
+
+## 9. The trading bot's own rule, on the same history (evaluation, registered before it ran)
+
+Added the same night (`plan/research-engine.md` item 4). The question is the owner's: what should
+he expect from the bot? The bot's rule as coded in `screener-bot` (`bot/strategy.py`, v1.1 - hold
+25, sell past rank 40, skip trap flags, at most 6 names a sector, 2% cash, no new buys 25% below
+peak, 5 bps a side) was registered with a prediction at **19:25:41** (`abef7ec`) and then run
+monthly on the baseline's rankings (`python v2_experiments.py evaluate`). Differences from the live
+bot are listed with the result in `RESULTS.md` - chiefly monthly instead of weekly, and the
+filings-and-prices ranking without the analyst inputs.
+
+| Period | Return a month | Excess over the equal-weighted universe (t) | vs S&P 500 total return (t) | Turnover a year | Max drawdown (universe) |
+|---|---|---|---|---|---|
+| 2020-01..2023-06 | +0.51% | **-0.72% (-2.70)** | -0.64% (-1.82) | 174% | -20.3% (-19.6%) |
+| 2023-07..2026-08 | +0.91% | -0.22% (-0.54) | -0.62% (-1.23) | 134% | -7.6% (-8.4%) |
+| 2012-2019 | +1.18% | -0.15% (-1.08) | +0.01% (0.07) | 142% | -14.6% (-12.2%) |
+
+**Against the prediction:** wrong on the first period - the shortfall there is outside the +-0.3% a
+month predicted and past |t| 2 - and on turnover (174% against a predicted ceiling of 150%); right
+on the index comparison, the drawdowns (within 2.5 points) and the halt (one month, 2020).
+
+**Is it the ranking or the rule?** Checked afterwards, as a diagnostic that changes no verdict
+(`research/measurements/2026-10-15-bot-rule-checks.py`): a plain equal-weighted top 25, fully
+rebalanced each month, trailed the universe by -0.49% a month (t -1.72) in 2020-2023, -0.12% held
+out, +0.01% in 2012-2019. So most of the shortfall is the ranking's top - the same weak top tenth as
+section 3 - in the growth-led years (calendar gaps of -15.7 points in 2020, -10.1 in 2021, -12.7 in
+2016, -11.4 in 2019). The rule's mechanics cost a further 0.10-0.23 points a month in each period;
+that comparison was not registered, so it is a question, not a finding. Selling a name that went
+missing from a ranking (the one simplification that could have caused it) happened 3 times in 176
+months.
+
+**What it means.** On the evidence available tonight the bot, as built, should be expected to
+roughly match or lag an equal-weighted S&P 500 fund, not beat it - and in a growth-led year it can
+lag by 10-15 points. That is not a reason to change the bot (its own rules forbid tuning to a
+backtest: strategy changes come from research, are logged in its `STRATEGY_LOG.md` first, one at a
+time), and the live ranking carries the analyst inputs v2 cannot test. It is the expectation to set
+before anyone is shown the bot's paper record, and the reason that record should always be shown
+next to RSP.
+

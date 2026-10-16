@@ -277,13 +277,41 @@ def run(ids: list[str] | None = None) -> list[dict]:
 
 
 # --------------------------------------------------------------------------- the report
-def _presample_cells(s: dict) -> str:
+def _z_two_sided(alpha: float) -> float:
+    """The normal quantile for a two-sided test at ``alpha`` (bisection on erfc; no scipy)."""
+    lo, hi = 0.0, 10.0
+    for _ in range(100):
+        mid = (lo + hi) / 2
+        if math.erfc(mid / math.sqrt(2)) > alpha:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def detectable(se: float | None, n_tests: int) -> float | None:
+    """The smallest true difference a comparison with standard error ``se`` detects 80% of the time
+    at the engine's bar (Bonferroni over ``n_tests`` and |t| >= 3). "Not distinguishable" means
+    "smaller than this", never "equal" - plan/research-engine.md queue item 2 (2026-10-15)."""
+    if not se:
+        return None
+    return round((max(_z_two_sided(0.05 / max(n_tests, 1)), HLZ_T) + 0.84) * se, 4)
+
+
+def _vs_cell(vs: dict, n_tests: int) -> str:
+    if not vs:
+        return "-"
+    d = detectable(vs.get("se"), n_tests)
+    return f"{vs.get('mean', 0):+.3f} ({vs.get('t')}" + (f"; sees {d:.3f})" if d is not None else ")")
+
+
+def _presample_cells(s: dict, n_tests: int = 1) -> str:
     p = s.get("presample")
     if not p:
         return " | "
     vs = p.get("ic_vs_baseline", {})
     return (f"{p['ic'].get('mean', 0):+.3f} ({p['ic'].get('t')})"
-            + (f" | {vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else " | -"))
+            + " | " + _vs_cell(vs, n_tests))
 
 
 
@@ -535,7 +563,10 @@ def report() -> Path:
               else "**Data: the rows below ran on more than one version of the monthly records ("
                    + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
                    "rows of different versions do not compare with each other. Rerun to bring them level."), "",
-             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t) | Top tenth vs universe, held out | Verdict | IC, 2012-19 | 2012-19 vs baseline (t) | 2012-19 verdict |",
+             "*sees* is the smallest true IC difference that comparison would detect 80% of the time at the "
+             "bar above. A row that is \"not distinguishable\" would usually have caught a difference that "
+             "large; it says nothing about smaller ones.", "",
+             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t; sees) | Top tenth vs universe, held out | Verdict | IC, 2012-19 | 2012-19 vs baseline (t; sees) | 2012-19 verdict |",
              "|---|---|---|---|---|---|---|---|---|---|"]
     for e in reg:
         r = latest.get(e["id"])
@@ -546,9 +577,9 @@ def report() -> Path:
         vs = s["holdout"].get("ic_vs_baseline", {})
         lines.append(f"| {e['id']} | {e.get('prediction', '')} | {s['discovery']['ic'].get('mean', 0):+.3f} | "
                      f"{s['holdout']['ic'].get('mean', 0):+.3f} | "
-                     + (f"{vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else "-")
+                     + _vs_cell(vs, n)
                      + f" | {s['holdout']['top_minus_universe'].get('mean', 0) * 100:+.2f}% a month | {verdict(e, r, n)} | "
-                     + _presample_cells(s) + f" | {verdict_presample(e, r, n)} |")
+                     + _presample_cells(s, n) + f" | {verdict_presample(e, r, n)} |")
     lines += ["", "Each row's hypothesis and source are in `registry.yaml`.", ""]
     lines += _evaluation_lines(latest)
     lines += [""]

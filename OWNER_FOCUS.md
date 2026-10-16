@@ -39,6 +39,11 @@ Two things still outrank this file, and neither is negotiable:
   ~7 years at t >= 3). So what can honestly be shown today is the process and the evidence for
   each factor, not a proven return - `research/2026-10-15-research-engine-first-batch.md`. The
   nightly queue is `plan/research-engine.md`.
+  **The bot's own rule, run the same way** (registered before it ran; note section 9): it lagged an
+  equal-weighted S&P 500 in every period - by 0.72% a month in 2020-2023 (t -2.7), 0.22% in
+  2023-2026 and 0.15% in 2012-2019 (neither distinguishable) - mostly because the ranking's top was
+  weak in growth-led years. Expect the paper bot to match or lag RSP, not beat it, and always show
+  its record next to RSP. Nothing in the bot was changed (its rules forbid tuning to a backtest).
   **One decision only the owner can make:** whether to buy the $199/yr delisted-price feed deferred
   on 2026-09-30. It now has a concrete use - 42% of 2012's index members are missing from the test,
   nine in ten of them because they have since left the index, and one result (Size) visibly tracks
