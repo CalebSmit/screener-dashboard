@@ -68,7 +68,9 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    are free for departed companies too (the fundamentals exist; it is prices that are missing), so
    look for free end-of-period prices of departed members (e.g. the last close a merger or
    delisting announcement states in an 8-K, or a deal price), and measure how much of the gap a
-   free source closes before building anything on it.
+   free source closes before building anything on it. *Tried 2026-10-15:* Stooq's CSV download now
+   answers every request (delisted or not) with a browser challenge page - not usable, and getting
+   around a bot check is off-limits.
 6. **New ideas come from Monday notes.** Each Monday research note that ends with a testable claim
    registers one experiment for it. That is the route by which the engine grows - one sourced idea
    at a time - and the multiple-testing bar tightens as it does, which is correct.

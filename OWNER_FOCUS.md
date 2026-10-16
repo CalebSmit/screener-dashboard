@@ -92,8 +92,9 @@ Add items below. Anything under this heading is unclaimed work.
     2013, 6 of 6 within), cash-flow yield (Lakonishok, Shleifer & Vishny 1994, 11 of 11) and accruals
     (Sloan 1996, 6 of 11 - the direction at half the size). Each says the same thing about the weights:
     supported in its paper's sample, weaker since, and weaker still weighted by market value (where
-    large companies count most) - nothing to change. Twelve experiments, 104 of 152 figures within. Next: value and momentum together (Asness,
-    Moskowitz & Pedersen 2013). The research engine (the item at the top) tests weightings on
+    large companies count most) - nothing to change. Experiment 13 followed at night: value and momentum together (Asness, Moskowitz &
+    Pedersen 2013), 7 of 10 within, a hedge rather than a return since 2011. Thirteen experiments, 111
+    of 162 figures within; the lab now has a button on the dashboard's front page. The research engine (the item at the top) tests weightings on
     2012-2026 history; the lab and the engine answer different questions - what a paper found, and
     what this screener's weighting would have done.
   - **2026-10-14 (06:00 nightly) - deferred for a red ship gate, nothing lost.** The day's work was a

@@ -112,8 +112,8 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth.
-ASSET_VERSION = 18
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo).
+ASSET_VERSION = 19
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -504,6 +504,47 @@ def correlation(x: list[float], y: list[float]) -> float:
     mx, my = sum(x) / n, sum(y) / n
     sxy = sum((a - mx) * (b - my) for a, b in zip(x, y))
     return sxy / math.sqrt(sum((a - mx) ** 2 for a in x) * sum((b - my) ** 2 for b in y))
+
+
+def residuals(y: list[float], x: list[float]) -> list[float]:
+    """What is left of ``y`` after the part that moves with ``x`` (one regressor and an intercept;
+    the intercept does not change a correlation, so only the slope is removed)."""
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    beta = sum((a - mx) * (b - my) for a, b in zip(x, y)) / sum((a - mx) ** 2 for a in x)
+    return [b - beta * a for a, b in zip(x, y)]
+
+
+def annualised(x: list[float]) -> dict | None:
+    """A monthly percent series as a year: mean x 12, volatility x sqrt(12), and the Sharpe ratio
+    (their ratio - for a long-short spread the T-bill rate cancels, so none is subtracted)."""
+    s = mean_t(x)
+    if s is None:
+        return None
+    return {**s, "mean_a": s["mean"] * 12, "std_a": s["std"] * math.sqrt(12),
+            "sharpe": s["mean"] / s["std"] * math.sqrt(12) if s["std"] else None}
+
+
+def combo_run(split: dict, factors: dict, start: str, end: str, group: str = "big") -> dict:
+    """Value and momentum together (Asness, Moskowitz & Pedersen 2013): each spread, their 50/50
+    mix, and how they move together - raw, and on what is left after the market's move, which is
+    the correlation the paper reports. ``group`` is ``big`` (the big half of the market, nearest the
+    paper's large, liquid universe) or ``all`` (the average of the small and big halves)."""
+    mk = dict(zip(factors["months"], factors["mktrf"]))
+    idx = [i for i, m in enumerate(split["months"]) if start <= m <= end and m in mk]
+
+    def series(key):
+        if group == "big":
+            return [split[key]["big"][i] for i in idx]
+        return [(split[key]["small"][i] + split[key]["big"][i]) / 2 for i in idx]
+    v, mo = series("value"), series("momentum")
+    mkt = [mk[split["months"][i]] for i in idx]
+    out = {"months": [split["months"][i] for i in idx], "value": annualised(v), "momentum": annualised(mo),
+           "combo": annualised([(a + b) / 2 for a, b in zip(v, mo)]), "corr": None, "corr_resid": None}
+    if len(idx) >= 6:
+        out["corr"] = correlation(v, mo)
+        out["corr_resid"] = correlation(residuals(v, mkt), residuals(mo, mkt))
+    return out
 
 
 def factor_run(factors: dict, start: str, end: str) -> dict:
@@ -1690,6 +1731,84 @@ EXPERIMENTS = [
             "the screener's measure is net income less operating cash flow over total assets, and it is "
             "compared within each sector."),
     },
+    {
+        "id": "value-and-momentum",
+        "kind": "combo",
+        "topic": "Valuation and Momentum",
+        "title": "Do value and momentum offset each other?",
+        "tab": "Value + momentum",
+        "paper": {
+            "authors": "Clifford S. Asness, Tobias J. Moskowitz and Lasse Heje Pedersen",
+            "year": 2013,
+            "title": "Value and momentum everywhere",
+            "journal": "Journal of Finance 68(3), 929-985",
+            "doi": "10.1111/jofi.12021",
+        },
+        "claim": ("Value and momentum each earned a premium among US stocks from 1972 to 2011, and they "
+                  "moved against each other (a correlation of -0.53 once the market's move is taken out), "
+                  "so a 50/50 mix of the two had a Sharpe ratio about twice either one's: 0.63 against "
+                  "0.29 for value and 0.33 for momentum."),
+        "reference": {
+            "source": ("Table I, Panel A, US stocks, January 1972 to July 2011, read from the published "
+                       "article: the P3-P1 spreads (top third minus bottom third by each signal, weighted by "
+                       "market value, in a universe of large, liquid stocks), annualised, and the "
+                       "correlation of value's and momentum's returns after the market's move is removed "
+                       "(the table's caption). Compared with the big-company half of the library's 2x3 "
+                       "portfolios, the nearest public construction to the paper's universe."),
+            "start": "197201", "end": "201107", "group": "big",
+            # Written 2026-10-15 before this record's comparison was run - but not before every figure
+            # had been seen: research/2026-10-15-value-momentum-correlation.md had measured the
+            # big-company Sharpe ratios and residual correlation an hour earlier (0.27, 0.35, 0.49,
+            # -0.22). So the tolerances are not chosen here: they follow experiment 10, the lab's
+            # other rerun on a different construction of the same idea, at 0.10% a month for an
+            # average (1.2% a year), with the volatility and Sharpe ratio scaled from it (2.0% a year;
+            # 0.10) and the correlation at 0.15. Read "outside" here as the record of a construction
+            # difference, not a verdict a reader should weigh twice.
+            "figures": [
+                {"key": "mean_value", "label": "Value: average a year (%)", "paper": 3.7, "tolerance": 1.2, "where": "Table I A, value P3-P1"},
+                {"key": "mean_momentum", "label": "Momentum: average a year (%)", "paper": 5.4, "tolerance": 1.2, "where": "Table I A, momentum P3-P1"},
+                {"key": "mean_combo", "label": "50/50 mix: average a year (%)", "paper": 4.6, "tolerance": 1.2, "where": "Table I A, combination P3-P1"},
+                {"key": "std_value", "label": "Value: volatility a year (%)", "paper": 12.8, "tolerance": 2.0, "where": "Table I A"},
+                {"key": "std_momentum", "label": "Momentum: volatility a year (%)", "paper": 16.4, "tolerance": 2.0, "where": "Table I A"},
+                {"key": "std_combo", "label": "50/50 mix: volatility a year (%)", "paper": 7.2, "tolerance": 2.0, "where": "Table I A"},
+                {"key": "sharpe_value", "label": "Value: Sharpe ratio", "paper": 0.29, "tolerance": 0.10, "where": "Table I A"},
+                {"key": "sharpe_momentum", "label": "Momentum: Sharpe ratio", "paper": 0.33, "tolerance": 0.10, "where": "Table I A"},
+                {"key": "sharpe_combo", "label": "50/50 mix: Sharpe ratio", "paper": 0.63, "tolerance": 0.10, "where": "Table I A"},
+                {"key": "corr_resid", "label": "Correlation of value with momentum, after the market", "paper": -0.53, "tolerance": 0.15, "where": "Table I A, last row"},
+            ],
+        },
+        "verdict_note": ("Seven of ten figures within tolerance. Each premium and the mix's average return "
+                         "match the paper; the hedge is milder here (-0.22 after the market, against -0.53), so "
+                         "the mix is more volatile and its Sharpe ratio lower (0.49 against 0.63). The likeliest "
+                         "reason is the library pricing value at the previous December, which the record's "
+                         "open details explain."),
+        "conditions": [
+            ["Portfolios", "Value is high book-to-market minus low; momentum is high past 12-month return "
+                           "(skipping the last month) minus low. Each is measured among big companies - the "
+                           "half of the market above the NYSE median by size - or, one click away, as the "
+                           "average of the big and small halves."],
+            ["The mix", "Half value and half momentum each month: the average of the two spreads."],
+            ["Correlation", "Measured on what is left of each spread after the part that moves with the "
+                            "market, as the paper does, and also on the raw spreads."],
+            ["Data", "Kenneth R. French's Data Library: the 2x3 portfolios on size and book-to-market and "
+                     "on size and prior return, and the market factor."],
+            ["Costs", "None. These are paper portfolios that hold some stocks and short others."],
+        ],
+        "open_details": [
+            "The paper sorts into thirds within its own large, liquid universe and prices value at a "
+            "more recent date; the library splits at the 30th and 70th percentiles of NYSE stocks and "
+            "prices book-to-market at the previous December. A value measure on a stale price is partly "
+            "a short-term momentum signal in reverse, which is the likeliest reason the correlation "
+            "here is milder.",
+            "The paper's market benchmark for the residual correlation is the MSCI US index; here it is "
+            "the library's value-weighted market of all US stocks.",
+        ],
+        "in_the_screener": (
+            "Valuation (22%) and Momentum (13%) are both in the composite, and the screener's value "
+            "ratios use the current price - the construction the paper's evidence says opposes momentum "
+            "more strongly. When the momentum regime rule cuts Momentum in a market panic, half the "
+            "freed weight goes to Valuation; this experiment is the check on that choice."),
+    },
 ]
 
 
@@ -1724,6 +1843,9 @@ TAKEAWAYS = {
                       "month on the public sort, against the paper's 0.31% - every figure within its "
                       "tolerance. Since the paper the gap has been about as large but cannot be told "
                       "from zero, and the profitable end has been the calmer one."),
+    "value-and-momentum": ("Among big companies, value and momentum moved against each other in every period "
+                           "measured, and more so after 2011 (-0.37). But since then neither earned anything, so "
+                           "the mix that once beat both now earns about nothing too: a hedge, not a return."),
     "accruals": ("Low-accrual companies beat high-accrual ones in the paper's years, by about half the "
                  "paper's margin on the library's measure. Since then the gap has narrowed: weighted by "
                  "market value it is 0.09% a month since 2007, not distinguishable from zero."),
@@ -1742,7 +1864,7 @@ TAKEAWAYS = {
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
     {"category": "Valuation", "key": "valuation",
-     "experiments": ["earnings-yield", "cash-flow-yield", "five-factors", "big-and-small", "largest-fifth"],
+     "experiments": ["earnings-yield", "cash-flow-yield", "value-and-momentum", "five-factors", "big-and-small", "largest-fifth"],
      "has": "Stocks sorted by earnings yield and by cash-flow yield, and the value factor (book value "
             "against price).",
      "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
@@ -1760,8 +1882,8 @@ CATEGORY_MAP = [
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
             "cites, needs company accounts."},
     {"category": "Momentum", "key": "momentum",
-     "experiments": ["risk-managed-momentum", "momentum-crashes", "big-and-small", "largest-fifth"],
-     "has": "Momentum's risk, when it crashes, and its size among big companies.",
+     "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth"],
+     "has": "Momentum's risk, when it crashes, its size among big companies, and how it offsets value.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
     {"category": "Risk", "key": "risk", "experiments": ["low-volatility", "market-beta"],
@@ -1947,6 +2069,13 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
                 cell(a["factors"][k]["big"]["mean"], len(a["months"]), a["factors"][k]["big"]["t"]),
                 cell(b["factors"][k]["big"]["mean"], len(b["months"]), b["factors"][k]["big"]["t"]))
 
+    if split is not None and "value-and-momentum" in exps:
+        ref = exps["value-and-momentum"]["reference"]
+        a = combo_run(split, factors, ref["start"], ref["end"], ref["group"])
+        b = combo_run(split, factors, next_month(ref["end"]), end, ref["group"])
+        add("value-and-momentum", "Value and momentum, 50/50, among big companies: Sharpe ratio", "ratio", 1,
+            cell(a["combo"]["sharpe"], len(a["months"])), cell(b["combo"]["sharpe"], len(b["months"])))
+
     if quintiles is not None and "largest-fifth" in exps:
         ref = exps["largest-fifth"]["reference"]
         a = split_run(quintiles, ref["start"], ref["end"])
@@ -2076,6 +2205,23 @@ def reproduce_split(split: dict, exp: dict) -> dict:
             "big_means": {k: v["big"]["mean"] for k, v in r["factors"].items()}}
 
 
+def reproduce_combo(split: dict, factors: dict, exp: dict) -> dict:
+    """The value-and-momentum experiment at the paper's sample, against its table."""
+    ref = exp["reference"]
+    r = combo_run(split, factors, ref["start"], ref["end"], ref["group"])
+    got = {"corr_resid": r["corr_resid"]}
+    for k in ("value", "momentum", "combo"):
+        got[f"mean_{k}"], got[f"std_{k}"], got[f"sharpe_{k}"] = r[k]["mean_a"], r[k]["std_a"], r[k]["sharpe"]
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "sharpe": {k: r[k]["sharpe"] for k in ("value", "momentum", "combo")},
+            "corr_resid": r["corr_resid"]}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -2103,6 +2249,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                   else reproduce_factors(factors, exp) if exp["kind"] == "factors"
                   else reproduce_size(size, exp) if exp["kind"] == "size"
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
+                  else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
                   else reproduce(data, exp))
         exps.append({**exp, "takeaway": TAKEAWAYS[exp["id"]], "result": result})
     return {

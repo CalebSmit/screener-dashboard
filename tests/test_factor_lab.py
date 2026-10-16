@@ -141,13 +141,15 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
                  if exp["kind"] == "size" else fl.reproduce_sort(published["sorts"][exp["sort"]["data"]], exp)
                  if exp["kind"] == "sort"
                  else fl.reproduce_split(published[exp.get("split", {}).get("data", "split")], exp)
-                 if exp["kind"] == "split" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "split"
+                 else fl.reproduce_combo(published["split"], published["factors"], exp)
+                 if exp["kind"] == "combo" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -159,7 +161,7 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and (exp["paper"].get("doi") or exp["paper"].get("url", "").startswith("https://")) and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors", "size", "sort", "split"):
+        if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo"):
             figs = exp["reference"]["figures"]
             # at least one figure per group a sort reports, plus the spread between its ends (a
             # decile sort gives 11, a quintile sort 6); every other kind reports ten or more
@@ -168,7 +170,7 @@ def test_every_experiment_shows_its_four_parts():
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split", "combo")
         if exp["kind"] == "sort":                                       # what the generic layout needs
             g = exp["sort"]
             assert g["data"] in fl.SORTS and len(g["groups"]) == len(fl.SORTS[g["data"]]["columns"])
@@ -565,10 +567,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
     assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html and "E.sortRun(Z, S)" in html
-    assert "E.splitRun(Z, S)" in html
+    assert "E.splitRun(Z, S)" in html and "E.comboRun(Z, F, S)" in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 6             # each kind of experiment checks itself
+    assert html.count("disagrees with the build") == 7             # each kind of experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -1163,4 +1165,40 @@ def test_the_accruals_sort_is_published_as_the_miss_it_is(published):
     assert (r["within"], r["total"]) == (6, 11)
     rows = {x["key"]: x for x in r["rows"]}
     assert rows["spread"]["here"] > 0 and rows["spread"]["here"] < rows["spread"]["paper"] - 4.0
+
+
+COMBO_SETTINGS = [{"start": "197201", "end": "201107", "group": "big"}, {"start": "201108", "end": "209912", "group": "big"},
+                  {"start": "192701", "end": "209912", "group": "all"}]
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_value_and_momentum_together_as_the_reference_does(published, tmp_path):
+    """Experiment 13 (2026-10-15): the browser's comboRun is the Python combo_run, figure for figure."""
+    script = tmp_path / "combo.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "console.log(JSON.stringify(JSON.parse(process.argv[4]).map(o => { const r = E.comboRun(D.split, D.factors, o);\n"
+        "  return { n: r.months.length, value: r.value, momentum: r.momentum, combo: r.combo, corr: r.corr, corr_resid: r.corr_resid }; })));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(COMBO_SETTINGS)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    for o, js in zip(COMBO_SETTINGS, json.loads(res.stdout)):
+        py = fl.combo_run(published["split"], published["factors"], **o)
+        assert js["n"] == len(py["months"]) > 100
+        for k in ("value", "momentum", "combo"):
+            for stat in ("mean_a", "std_a", "sharpe", "t"):
+                assert js[k][stat] == pytest.approx(py[k][stat], rel=1e-8, abs=1e-12), (o, k, stat)
+        assert js["corr"] == pytest.approx(py["corr"], rel=1e-8) and js["corr_resid"] == pytest.approx(py["corr_resid"], rel=1e-8)
+
+
+def test_the_value_and_momentum_rerun_is_the_paper_s_table_on_big_companies(published):
+    exp = next(x for x in published["experiments"] if x["id"] == "value-and-momentum")
+    assert exp["kind"] == "combo" and exp["reference"]["group"] == "big"
+    assert exp["paper"]["doi"] == "10.1111/jofi.12021"
+    rows = {r["key"]: r for r in exp["result"]["rows"]}
+    assert rows["corr_resid"]["paper"] == -0.53 and rows["sharpe_combo"]["paper"] == 0.63
+    assert rows["corr_resid"]["here"] < 0                                 # the hedge is there, if milder
 

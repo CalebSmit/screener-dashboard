@@ -134,6 +134,8 @@ tr.focus td:first-child { color: var(--text-primary); font-weight: 600; box-shad
 .chart .ref { stroke: var(--border-bright); stroke-width: 1; stroke-dasharray: 3 4; }
 .chart .plain { fill: none; stroke: var(--text-muted); stroke-width: 1.4; }
 .chart .managed { fill: none; stroke: var(--accent); stroke-width: 1.7; }
+.chart .dash { fill: none; stroke: var(--text-muted); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.key .d i { background: repeating-linear-gradient(90deg, var(--text-muted) 0 5px, transparent 5px 9px); }
 .chart-title { margin: 20px 0 2px; font-size: 13px; color: var(--text-secondary); }
 .chart-title strong { color: var(--text-primary); font-weight: 600; }
 
@@ -196,8 +198,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=18"></script>
-<script src="lab_engine.js?v=18"></script>
+<script src="lab_data.js?v=19"></script>
+<script src="lab_engine.js?v=19"></script>
 <script>
 (function () {
     'use strict';
@@ -909,6 +911,90 @@ footer p { margin: 0 0 8px; }
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
     }
 
+    // ------------------------------------------------------------------ experiment 13: two factors together
+    function together(X, n, mount, init) {
+        const REF = X.reference, res0 = X.result, Z = D.split, F = D.factors;
+        const Z0 = Z.months[0], Z1 = Z.months[Z.months.length - 1];
+        const zyears = []; for (let y = +Z0.slice(0, 4); y <= +Z1.slice(0, 4); y++) zyears.push(y);
+        const refState = () => ({ start: REF.start, end: REF.end, group: REF.group });
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', group: ['big', 'all'] }), last = null;
+        const atRef = () => S.start === REF.start && S.end === REF.end && S.group === REF.group;
+        const PRESETS = [['The paper · 1972–2011', REF.start, REF.end], ['After the paper · 2011–now', '201108', Z1],
+                         ['Since 2007', '200701', Z1], ['Everything', Z0, Z1]];
+        const outside = res0.rows.filter(r => !r.within).length;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, zyears)}
+                <div class="row2">${seg('group', 'Companies', '<button type="button" data-v="big">Big companies · paper</button><button type="button" data-v="all">Big and small</button>')}
+                <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div></div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i>Half value, half momentum</span><span class="b"><i></i>Value</span><span class="d"><i></i>Momentum</span></div>
+            <p class="chart-title"><strong>What $1 became</strong>, in each spread and in the 50/50 mix (log scale)</p>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the value spread, the momentum spread and their 50/50 mix. The figures are in the table below."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col"></th><th scope="col">Average a year</th><th scope="col">Volatility a year</th><th scope="col">Sharpe ratio</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), among big companies, each figure in its table beside what the public data gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)}</p>
+        </section>` + tail(X, `
+            <div class="eq">value &nbsp;=&nbsp; high book-to-market − low, each month; momentum &nbsp;=&nbsp; high past return − low</div>
+            <div class="eq">the mix &nbsp;=&nbsp; ( value + momentum ) ÷ 2, each month</div>
+            <div class="eq">a year &nbsp;=&nbsp; average month × 12; volatility × √12; Sharpe ratio &nbsp;=&nbsp; the first ÷ the second<small>For a spread that holds one group and shorts another, the T-bill rate cancels, so none is subtracted.</small></div>
+            <div class="eq">correlation after the market &nbsp;=&nbsp; the correlation of what is left of each spread once the part that moves with the market is taken out</div>`);
+        document.getElementById('x-code').textContent = E.comboRun.toString();
+
+        const now = E.comboRun(Z, F, refState());
+        if (Math.abs(now.combo.sharpe - res0.sharpe.combo) > 1e-9 || Math.abs(now.corr_resid - res0.corr_resid) > 1e-9) {
+            const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build. Treat the numbers below as unverified.';
+        }
+        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
+            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+
+        function render() {
+            const r = last = E.comboRun(Z, F, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod(); press('group', v => v === S.group);
+            document.getElementById('c-reset').hidden = atRef();
+            if (!r.combo) {
+                read.textContent = 'There are too few months in this period to measure anything. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-growth').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const who = S.group === 'big' ? 'big companies' : 'big and small companies, averaged';
+            // said only as precisely as the figures are printed: a lead in the third decimal is no lead
+            const best = Math.max(r.value.sharpe, r.momentum.sharpe), gap = r.combo.sharpe - best;
+            const verdict = Math.max(Math.abs(r.value.sharpe), Math.abs(r.momentum.sharpe), Math.abs(r.combo.sharpe)) < 0.1
+                ? 'none of the three earned much for the risk it took.'
+                : gap >= 0.05 ? 'the mix beat either one alone.'
+                : gap > -0.05 ? 'the mix did about as well as the better of the two.' : 'the mix did not beat the better of the two.';
+            read.innerHTML = `Over ${r.months.length} months, ${mon(r.months[0])} to ${mon(r.months[r.months.length - 1])}, among ${esc(who)}, value and momentum had a correlation of <strong>${f2(r.corr_resid)}</strong> after the market's move (${f2(r.corr)} raw). ` +
+                `The 50/50 mix's Sharpe ratio was <strong>${f2(r.combo.sharpe)}</strong>, against ${f2(r.value.sharpe)} for value and ${f2(r.momentum.sharpe)} for momentum: ` +
+                verdict;
+            const row = (name, s) => `<tr><td>${name}</td><td>${sf2(s.mean_a)}%</td><td>${f2(s.std_a)}%</td><td>${f2(s.sharpe)}</td></tr>`;
+            body.innerHTML = row('Value', r.value) + row('Momentum', r.momentum) + row('<strong>Half and half</strong>', r.combo);
+            document.getElementById('x-live-note').textContent = (atRef()
+                ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
+                : 'These settings are yours, so there is no published figure to compare them with.');
+            const gv = E.growth(r.series.value), gm = E.growth(r.series.momentum), gc = E.growth(r.series.combo);
+            draw(document.getElementById('ch-growth'), r.months, [{ cls: 'plain', v: lg(gv) }, { cls: 'dash', v: lg(gm) }, { cls: 'managed', v: lg(gc) }],
+                 { height: 240, ticks: logTicks, read: i => `${mon(r.months[i])}: value ${dollars(gv[i])}, momentum ${dollars(gm[i])}, the mix ${dollars(gc[i])}` });
+            writeScene(X.id, S, refState());
+        }
+        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
+        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        document.getElementById('c-group').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ group: b.dataset.v }); });
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the front page
     function overview(mount) {
         const byId = {}; D.experiments.forEach((x, i) => { byId[x.id] = { x: x, n: i + 1 }; });
@@ -967,7 +1053,7 @@ footer p { margin: 0 0 8px; }
     }
 
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall, 'combo': together };
     const tabs = document.getElementById('tabs');
     tabs.innerHTML = '<a href="#overview" data-id="overview"><span>Start here</span>Overview</a>' +
         D.experiments.map((x, i) => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}"><span>Experiment ${i + 1}</span>${esc(x.tab || x.title)}</a>`).join('');

@@ -234,7 +234,47 @@
         return out;
     }
 
+    // Value and momentum together (experiment 13; Asness, Moskowitz & Pedersen 2013): each spread
+    // as a year - mean x 12, volatility x sqrt(12), Sharpe ratio - their 50/50 mix, and how the two
+    // move together: on the raw spreads, and on what is left after the market's move, which is the
+    // correlation the paper reports. o.group is 'big' (the big half) or 'all' (both halves averaged).
+    function residuals(y, x) {
+        const n = x.length;
+        let mx = 0, my = 0;
+        for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; }
+        mx /= n; my /= n;
+        let sxy = 0, sxx = 0;
+        for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx); }
+        const beta = sxy / sxx;
+        return y.map((v, i) => v - beta * x[i]);
+    }
+    function annualised(x) {
+        const s = meanT(x);
+        if (!s) return null;
+        return { mean: s.mean, std: s.std, t: s.t, mean_a: s.mean * 12, std_a: s.std * Math.sqrt(12),
+                 sharpe: s.std ? s.mean / s.std * Math.sqrt(12) : null };
+    }
+    function comboRun(split, factors, o) {
+        const mk = {};
+        factors.months.forEach((m, i) => { mk[m] = factors.mktrf[i]; });
+        const idx = [];
+        for (let i = 0; i < split.months.length; i++) {
+            const m = split.months[i];
+            if (m >= o.start && m <= o.end && Object.prototype.hasOwnProperty.call(mk, m)) idx.push(i);
+        }
+        const series = key => idx.map(i => o.group === 'big' ? split[key].big[i] : (split[key].small[i] + split[key].big[i]) / 2);
+        const v = series('value'), mo = series('momentum'), mkt = idx.map(i => mk[split.months[i]]);
+        const out = { months: idx.map(i => split.months[i]), value: annualised(v), momentum: annualised(mo),
+                      combo: annualised(v.map((a, j) => (a + mo[j]) / 2)), corr: null, corr_resid: null,
+                      series: { value: v, momentum: mo, combo: v.map((a, j) => (a + mo[j]) / 2) } };
+        if (idx.length >= 6) {
+            out.corr = correlation(v, mo);
+            out.corr_resid = correlation(residuals(v, mkt), residuals(mo, mkt));
+        }
+        return out;
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
              crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun,
-             splitRun: splitRun };
+             splitRun: splitRun, comboRun: comboRun };
 });
