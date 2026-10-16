@@ -15,7 +15,7 @@ then a result is a research question that a note and a changelog entry must answ
 
 **Its first answer, which governs how to read every later one:** none of 27 ideas beats the current
 weighting; the baseline's IC is ~0 in both eras; the design can see an IC difference of about 0.04
-(2012-2019) to 0.07 (held-out months) and no smaller; a live record needs ~7 years to show an IC of
+(2012-2019) to 0.07 (held-out months) and no smaller; a live record needs about 7½ years to show an IC of
 0.05 at t >= 3. "Not distinguishable" here means "not large enough to see", never "equal".
 
 ## The rules (enforced by `tests/test_v2_experiments.py` where code can enforce them)
@@ -63,10 +63,12 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    equal weight, monthly, against the equal-weighted universe, with a stated cost assumption, on
    both periods. Predicted before it runs. This answers "what should the owner expect from the bot"
    in the same honest frame. Nightly sessions read the bot repo; they never edit it.
-5. **Survivorship** is v2's binding limit (58% of 2012 members present). The decision on the
-   $199/yr delisted-price feed (`research/2026-09-30-delisted-price-source-cost.md`) is the owner's -
-   write up what it would now buy (the 2012-2019 test with the stocks that left) and leave it in
-   `OWNER_FOCUS.md`; do not buy it.
+5. **Survivorship** is v2's binding limit (58% of 2012 members present). **The owner decided
+   2026-10-15: no paid data** - not the $199/yr feed, not any other. Free routes only: SEC filings
+   are free for departed companies too (the fundamentals exist; it is prices that are missing), so
+   look for free end-of-period prices of departed members (e.g. the last close a merger or
+   delisting announcement states in an 8-K, or a deal price), and measure how much of the gap a
+   free source closes before building anything on it.
 6. **New ideas come from Monday notes.** Each Monday research note that ends with a testable claim
    registers one experiment for it. That is the route by which the engine grows - one sourced idea
    at a time - and the multiple-testing bar tightens as it does, which is correct.

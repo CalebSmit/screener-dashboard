@@ -113,7 +113,7 @@ share `cache/v2_metrics/`.
   reorganisations, stale CIKs in the revision). Rebuilt both eras and reran everything the same night.
 - **Coverage is the binding limit now:** 58% of members in 2012, 78% in 2019, 81% in 2020, 96% in
   2025. Size's 2012-2019 IC tracks it (+0.033 where coverage is lowest, -0.004 where highest) - the
-  survivorship signature. This is the concrete use the deferred delisted-price feed was waiting for.
+  survivorship signature. The owner decided 2026-10-15 to use no paid data, so this gap is narrowed with free sources or stated, not bought.
 - **The research engine** (`v2_experiments.py`): 27 pre-registered experiments, 176 months, none
   distinguishable from the baseline; the baseline's own IC is ~0 in both eras; the look-ahead arm is
   the positive control (t 4.71). Power: the smallest IC difference it can see at its bar is 0.066

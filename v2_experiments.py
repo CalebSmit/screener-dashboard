@@ -643,7 +643,13 @@ def report() -> Path:
     lines += _evaluation_lines(latest)
     lines += [""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
-    SUMMARY.write_text(json.dumps(summary_for_page(reg, latest), indent=1) + "\n", encoding="utf-8")
+    page_summary = summary_for_page(reg, latest)
+    SUMMARY.write_text(json.dumps(page_summary, indent=1) + "\n", encoding="utf-8")
+    # the public research page (research.html), from the same numbers (2026-10-15)
+    import research_page
+    if "baseline" in latest and page_summary.get("baseline_ic", {}).get("presample") is not None:
+        research_page.PAGE.write_text(
+            research_page.build(reg, latest, page_summary, detectable, load_evaluations()), encoding="utf-8")
     return RESULTS
 
 
