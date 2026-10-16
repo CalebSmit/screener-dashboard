@@ -37,6 +37,9 @@ PRICE_CACHE = ROOT / "data" / "track" / "prices.parquet"
 TOP_N = 25
 QUINTILE = 0.20
 BENCHMARKS = {"RSP": "S&P 500 equal-weight (RSP)", "SPY": "S&P 500 (SPY)"}
+CIK_MAP = ROOT / "data" / "universe_history" / "ticker_ciks.json"
+SNAPSHOT_DIR = ROOT / "improvement" / "snapshots"
+COVERED = 0.8      # a ticker with closes on fewer of the window's days than this is not priced
 
 
 # --------------------------------------------------------------------------- schedule
@@ -105,6 +108,87 @@ def load_prices(tickers: list[str], start: date, end: date | None = None, downlo
     PRICE_CACHE.parent.mkdir(parents=True, exist_ok=True)
     prices.to_parquet(PRICE_CACHE)
     return prices
+
+
+# --------------------------------------------------------------------------- picks the source lost
+# 2026-10-15 (plan/context-layer.md item 6). The free price source stops serving a company that is
+# renamed or taken over, and the record used to drop it from every basket it was ever in - a
+# survivorship gap inside an otherwise out-of-sample record. Two repairs, each said on the page:
+# a renamed company is priced under its current symbol (the SEC registrant number, CIK, survives a
+# rename - the same rule backtest v2 uses); a company that stopped trading is priced from the
+# screener's own record of its price at each run, which ends where its trading ended.
+def renamed_symbols(tickers, current, cik_path: Path = CIK_MAP) -> dict:
+    """old symbol -> current symbol, for picks no longer in the universe whose SEC registrant now
+    trades under another symbol that is."""
+    try:
+        ciks = {k: int(v) for k, v in json.loads(cik_path.read_text(encoding="utf-8"))["ciks"].items()}
+    except (OSError, KeyError, ValueError, TypeError):
+        return {}
+    by_cik: dict = {}
+    for t in current:
+        if t in ciks:
+            by_cik.setdefault(ciks[t], []).append(t)
+    out = {}
+    for t in tickers:
+        if t in current or t not in ciks:
+            continue
+        cands = sorted(x for x in by_cik.get(ciks[t], []) if x != t)
+        if cands:
+            out[t] = cands[0]
+    return out
+
+
+def recorded_closes(tickers, snap_dir: Path = SNAPSHOT_DIR) -> pd.DataFrame:
+    """The price the screener recorded for each ticker at each run (``price_at_scoring``), dated
+    to the trading day before the run - the 02:00 run scores on the previous close. Dividends are
+    not in it, so a basket priced this way is a price return for that name."""
+    rows: dict = {}
+    want = set(tickers)
+    for p in sorted(snap_dir.glob("*.parquet")):
+        try:
+            day = pd.Timestamp(p.name[:10]) - pd.offsets.BDay(1)
+            df = pd.read_parquet(p, columns=["Ticker", "price_at_scoring"])
+        except (OSError, ValueError, KeyError):
+            continue
+        for t, v in zip(df["Ticker"], df["price_at_scoring"]):
+            if t in want and pd.notna(v) and v > 0:
+                rows.setdefault(t, {})[day] = float(v)
+    return pd.DataFrame(rows).sort_index()
+
+
+def fill_unpriced(prices: pd.DataFrame, tickers, start, renames: dict, recorded: pd.DataFrame):
+    """(prices, what was filled): each pick with closes on fewer than ``COVERED`` of the window's
+    days is priced under its current symbol when renamed, or else from the recorded closes -
+    carried between runs and never past the last one."""
+    out = prices.copy()
+    win = out.index[out.index >= pd.Timestamp(start)]
+    filled = {"renamed": {}, "from_records": []}
+    if len(win) == 0:
+        return out, filled
+
+    def cover(col):
+        return float(out[col].reindex(win).notna().mean()) if col in out.columns else 0.0
+
+    for t in sorted(set(tickers)):
+        if cover(t) >= COVERED:
+            continue
+        new = renames.get(t)
+        if new and cover(new) >= COVERED:
+            out[t] = out[new]
+            filled["renamed"][t] = new
+            continue
+        if t in recorded.columns:
+            rec = recorded[t].dropna()
+            if rec.empty:
+                continue
+            # carried from one run to the next, from the first record to the last and no further
+            carried = rec.reindex(out.index.union(rec.index)).ffill().reindex(out.index)
+            carried[(carried.index < rec.index.min()) | (carried.index > rec.index.max())] = np.nan
+            base = out[t] if t in out.columns else pd.Series(np.nan, index=out.index)
+            if (base.isna() & carried.notna()).any():       # listed only if the record added prices
+                out[t] = base.combine_first(carried)
+                filled["from_records"].append(t)
+    return out, filled
 
 
 # --------------------------------------------------------------------------- arithmetic
@@ -266,10 +350,18 @@ def build_from_disk(today: date | None = None, write: bool = True, live=None) ->
                                                  composites={}, cat_scores={})]
     if not kept:
         return {"available": False}
-    tickers = sorted({t for s in kept for t in s.ranks}) + list(BENCHMARKS)
+    picks = sorted({t for s in kept for t in s.ranks})
+    current = set(max(kept, key=lambda s: s.date).ranks)
+    renames = renamed_symbols(picks, current)
+    tickers = sorted(set(picks) | set(renames.values())) + list(BENCHMARKS)
     start = date.fromisoformat(min(s.date for s in kept))
     prices = load_prices(tickers, start, today)
+    thin = [t for t in picks if t not in prices.columns
+            or prices[t].reindex(prices.index[prices.index >= pd.Timestamp(start)]).notna().mean() < COVERED]
+    prices, filled = fill_unpriced(prices, picks, start, renames, recorded_closes(thin) if thin else pd.DataFrame())
     out = build(kept, prices, today)
+    if out.get("available"):
+        out["filled"] = filled
     if write:
         OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         OUT_PATH.write_text(json.dumps(out, separators=(",", ":")), encoding="utf-8")

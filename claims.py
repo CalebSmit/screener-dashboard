@@ -700,13 +700,17 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "The track record holds the ranking's top 25 in equal weights, rebalanced at the "
             "first comparable run of each month, entering at the close of the first trading "
-            "day on or after the run, with dividends and without costs; the benchmark is RSP."
+            "day on or after the run, with dividends and without costs; the benchmark is RSP. A pick "
+            "the price source no longer serves is priced under its new symbol if renamed, or from the "
+            "screener's own recorded prices until it stopped trading (without dividends)."
         ),
         made_true_by="track_record:build",
         checked_by=(
             "tests/test_context_layer.py::test_basket_return_matches_hand_arithmetic",
             "tests/test_context_layer.py::test_entry_is_never_before_the_run",
             "tests/test_context_layer.py::test_rebalances_on_the_first_run_of_each_month",
+            "tests/test_context_layer.py::test_a_renamed_pick_is_priced_under_its_new_symbol",
+            "tests/test_context_layer.py::test_a_pick_that_stopped_trading_is_priced_from_the_record_until_it_stopped",
         ),
     ),
     Claim(

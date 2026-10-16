@@ -9346,10 +9346,17 @@ def _js_context() -> str:
         h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
             (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
             (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
-                ? 'A few picks are left out because the free price source no longer serves them - usually companies taken private or acquired (' +
+                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed - usually companies taken private or acquired (' +
                   escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
                   '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
-            'Equal weights, entry at the close of the first trading day after each run, dividends included, no trading costs or taxes. This record is not used to set the methodology.</div>';
+            (T.filled && ((T.filled.from_records || []).length || Object.keys(T.filled.renamed || {}).length)
+                ? 'Picks the price source no longer serves are kept in: ' +
+                  (Object.keys(T.filled.renamed || {}).length ? 'renamed companies are priced under their new symbol (' +
+                      Object.keys(T.filled.renamed).map(k => escapeHtml(k) + ' &rarr; ' + escapeHtml(T.filled.renamed[k])).join(', ') + ')' : '') +
+                  ((T.filled.from_records || []).length ? (Object.keys(T.filled.renamed || {}).length ? '; ' : '') +
+                      'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, until they stopped (' +
+                      escapeHtml(T.filled.from_records.join(', ')) + ') - price only, without dividends' : '') + '. ' : '') +
+            'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology.</div>';
         host.innerHTML = h;
     }
 

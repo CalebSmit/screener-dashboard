@@ -805,3 +805,30 @@ def test_sahm_prefers_the_real_time_series_and_says_which(monkeypatch, tmp_path)
     out = mc.build(today=date(2026, 10, 9), write=False)
     jobs = next(r for r in out["readings"] if r["k"] == "jobs")
     assert out["sahm"] == 0.42 and "nan" not in jobs["text"].lower() and jobs["text"].startswith("The Sahm indicator")
+
+
+# ---- picks the price source lost (2026-10-15, plan/context-layer.md item 6) ------------------
+def test_a_renamed_pick_is_priced_under_its_new_symbol(tmp_path):
+    cik = tmp_path / "ciks.json"
+    cik.write_text(json.dumps({"ciks": {"OLD": 7, "NEW": 7, "GONE": 9, "T1": 1}}), encoding="utf-8")
+    renames = tr.renamed_symbols(["OLD", "GONE", "T1"], {"NEW", "T1"}, cik_path=cik)
+    assert renames == {"OLD": "NEW"}
+    prices = _prices().rename(columns={"T0": "NEW"})
+    filled_prices, filled = tr.fill_unpriced(prices, ["OLD", "T1"], date(2026, 1, 5), renames, pd.DataFrame())
+    assert filled["renamed"] == {"OLD": "NEW"} and filled["from_records"] == []
+    assert filled_prices["OLD"].equals(prices["NEW"])
+
+
+def test_a_pick_that_stopped_trading_is_priced_from_the_record_until_it_stopped(tmp_path):
+    for day, px in (("2026-01-06", 50.0), ("2026-02-03", 55.0), ("2026-02-17", 60.0)):
+        pd.DataFrame({"Ticker": ["GONE", "T1"], "price_at_scoring": [px, 1.0]}).to_parquet(tmp_path / f"{day}_x.parquet")
+    rec = tr.recorded_closes(["GONE"], snap_dir=tmp_path)
+    assert list(rec.index) == [pd.Timestamp("2026-01-05"), pd.Timestamp("2026-02-02"), pd.Timestamp("2026-02-16")]
+    assert list(rec.columns) == ["GONE"]                   # the previous trading day's close, only what was asked
+    prices = _prices()
+    out, filled = tr.fill_unpriced(prices, ["GONE"], date(2026, 1, 5), {}, rec)
+    assert filled["from_records"] == ["GONE"]
+    assert out.loc["2026-01-20", "GONE"] == 50.0 and out.loc["2026-02-10", "GONE"] == 55.0
+    assert out.loc["2026-02-16", "GONE"] == 60.0 and out.loc["2026-02-20":, "GONE"].isna().all()
+    v, info = tr.run_basket(out, ["GONE", "T1"], pd.Timestamp("2026-01-05"), None, 100.0)
+    assert info["held"] == 2 and "GONE" in info["stale"]   # held to its last record, then as cash
