@@ -1373,3 +1373,43 @@ def test_every_printed_difference_agrees_with_its_verdict_against_the_printed_to
         finally:
             browser.close()
 
+
+def test_the_year_pickers_keep_the_period_whole_and_inside_the_data():
+    """One period helper for every layout (it was copied seven times). Picking From 2026 and then
+    To 2020 used to leave 2026-2026 without a word; picking To = the data's last year gave an end
+    month past the data, so the preset running to the latest month never showed pressed."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    settings = "window.LAB_STATE().settings"
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                years = page.evaluate("[...document.querySelectorAll('#c-to option')].map(o => o.value)")
+                page.click("#c-preset button[data-i='1']")                     # "After the paper": to the latest month
+                after = page.evaluate(settings)
+                middle = str(int(after["start"][:4]) + 3)
+                page.select_option("#c-to", middle)
+                assert page.evaluate(settings)["end"] == middle + "12"
+                page.select_option("#c-to", years[-1])                          # the data's last year: its last month
+                s = page.evaluate(settings)
+                assert (s["start"], s["end"]) == (after["start"], after["end"]), exp["id"]
+                assert page.get_attribute("#c-preset button[data-i='1']", "aria-pressed") == "true", exp["id"]
+                # From the last year, then To an earlier one: the start follows the end back
+                page.select_option("#c-from", years[-1])
+                s = page.evaluate(settings)
+                assert s["start"] == years[-1] + "01" and s["end"] == after["end"], exp["id"]
+                early = years[-7]
+                page.select_option("#c-to", early)
+                s = page.evaluate(settings)
+                assert (s["start"], s["end"]) == (early + "01", early + "12"), exp["id"]
+                assert page.input_value("#c-from") == page.input_value("#c-to") == early
+                # the first year starts at the data's first month, never before it
+                page.select_option("#c-from", years[0])
+                first = page.evaluate(settings)["start"]
+                assert first[:4] == years[0] and first >= years[0] + "01"
+                assert page.evaluate("window.LAB_STATE().result") is not None
+            assert errors == []
+        finally:
+            browser.close()
+

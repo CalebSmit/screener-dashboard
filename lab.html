@@ -398,10 +398,17 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${presets.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
             <div class="years"><label for="c-from">From</label><select id="c-from">${opts}</select><label for="c-to">to</label><select id="c-to">${opts}</select></div></div>`;
     }
-    function bindPeriod(presets, get, set) {
-        document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
-        document.getElementById('c-from').addEventListener('change', e => set({ start: e.target.value + '01' }));
-        document.getElementById('c-to').addEventListener('change', e => set({ end: e.target.value + '12' }));
+    // The period controls, for every layout. A year picked in either box keeps the period whole: an
+    // end before the start moves the start to January of that year, a start after the end moves the
+    // end to that December, and both are held to the months the data has - so picking its last year
+    // ends at its last month, and the preset that runs to the latest month shows pressed.
+    function bindPeriod(presets, first, last, get, set) {
+        const put = (start, end) => set({ start: start < first ? first : start, end: end > last ? last : end });
+        document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; put(p[1], p[2]); } });
+        document.getElementById('c-from').addEventListener('change', e => { const y = e.target.value, S = get();
+            put(y + '01', y + '01' > S.end ? y + '12' : S.end); });
+        document.getElementById('c-to').addEventListener('change', e => { const y = e.target.value, S = get();
+            put(y + '12' < S.start ? y + '01' : S.start, y + '12'); });
         return () => { const S = get();
             document.querySelectorAll('#c-preset button').forEach(b => { const p = presets[+b.dataset.i]; b.setAttribute('aria-pressed', String(p[1] === S.start && p[2] === S.end)); });
             document.getElementById('c-from').value = S.start.slice(0, 4); document.getElementById('c-to').value = S.end.slice(0, 4); };
@@ -500,8 +507,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
                 { height: 150, ticks: linTicks, refs: [1], min: 0, read: i => `${mon(r.months[i])}: exposure ${r.weights[i].toFixed(2)}; plain momentum returned ${sf2(r.plain[i])}% that month.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, FIRST, LAST, () => S, set);
         document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
         document.getElementById('c-cap').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ cap: b.dataset.v === '' ? null : +b.dataset.v }); });
         document.getElementById('c-target').addEventListener('input', e => set({ target: +e.target.value / 100 }));
@@ -598,8 +605,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
                   read: i => `${mon(r.months[i])}: momentum returned ${sf2(r.wml[i])}%; going in, the state was “${NAMES[r.state[i]].toLowerCase()}”. $1 had become ${dollars(g[i])}.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, FIRST, LAST, () => S, set);
         document.getElementById('c-lookback').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ lookback: +b.dataset.v }); });
         document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
         document.getElementById('c-thr').addEventListener('input', e => set({ threshold: Math.round(+e.target.value * 10) / 1000 }));
@@ -681,8 +688,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
                 read: i => `${mon(r.months[i])}: the ${NAME[S.focus].toLowerCase()} factor returned ${sf2(r.series[S.focus][i])}%; $1 in it had become ${dollars(gf[i])}.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, F0, F1, () => S, set);
         document.getElementById('c-focus').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ focus: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = Object.assign(refState(), { focus: S.focus }); render(); });
         render();
@@ -770,8 +777,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             drawBars(document.getElementById('ch-bars'), r.deciles.map(d => d.mean), { accent: i => i >= 8 });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
@@ -844,8 +851,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             drawBars(document.getElementById('ch-bars'), r.groups.map(g => g.mean), { accent: i => G.accent.indexOf(i) >= 0, ends: G.ends });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
@@ -945,8 +952,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })));
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
@@ -1027,8 +1034,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
                  { height: 240, ticks: logTicks, read: i => `${mon(r.months[i])}: value ${dollars(gv[i])}, momentum ${dollars(gm[i])}, the mix ${dollars(gc[i])}` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-group').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ group: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
