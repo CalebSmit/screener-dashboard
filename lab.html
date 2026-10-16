@@ -107,6 +107,7 @@ h3 { margin: 0 0 10px; color: var(--text-primary); font-size: 15px; font-weight:
            border: 1px solid var(--border-bright); border-radius: var(--radius); background: var(--bg-elevated); font-size: 14px; }
 .verdict strong { color: var(--text-primary); font-weight: 600; }
 .verdict .out { color: var(--amber); }
+.null { color: var(--text-muted); font-size: 13px; }
 
 .controls { display: grid; gap: 16px; }
 .ctl-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
@@ -173,6 +174,12 @@ td.out { color: var(--amber); font-weight: 600; }
 .tablewrap { overflow-x: auto; }
 @media (max-width: 599px) { .tol { display: none; } #t-ref th, #t-ref td { padding-left: 3px; padding-right: 3px; font-size: 13px; }
     #t-ref thead th { font-size: 11px; letter-spacing: .02em; } #t-ref td:first-child { overflow-wrap: anywhere; } }
+/* On a phone the live tables take the comparison table's tighter headings and padding: the
+   largest-fifth table's long headings ("Smallest - largest") otherwise left it 3px wider than the
+   column, so it slid sideways under a thumb (2026-10-16). */
+@media (max-width: 599px) { #t-live th, #t-live td, #t-sides th, #t-sides td { padding-left: 3px; padding-right: 3px; }
+    #t-live th:first-child, #t-live td:first-child, #t-sides th:first-child, #t-sides td:first-child { padding-left: 0; }
+    #t-live thead th, #t-sides thead th { font-size: 11px; letter-spacing: .02em; } }
 .note { margin: 12px 0 0; font-size: 13px; color: var(--text-muted); max-width: 76ch; }
 .warn { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--amber); border-radius: var(--radius); background: var(--amber-dim);
         color: var(--text-primary); font-size: 14px; }
@@ -195,6 +202,7 @@ pre { margin: 12px 0 0; padding: 14px; border: 1px solid var(--border); border-r
 footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); max-width: 80ch; }
 footer p { margin: 0 0 8px; }
 .next { margin-top: 28px; font-size: 14.5px; max-width: 72ch; }
+h3[id^="x-"] { scroll-margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -219,8 +227,8 @@ footer p { margin: 0 0 8px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=20"></script>
-<script src="lab_engine.js?v=20"></script>
+<script src="lab_data.js?v=22"></script>
+<script src="lab_engine.js?v=22"></script>
 <script>
 (function () {
     'use strict';
@@ -236,9 +244,14 @@ footer p { margin: 0 0 8px; }
     const yopts = years.map(y => `<option value="${y}">${y}</option>`).join('');
     const seg = (id, label, items) => `<div><span class="ctl-label" id="l-${id}">${label}</span><div class="seg" role="group" aria-labelledby="l-${id}" id="c-${id}">${items}</div></div>`;
     let current = null;                                  // { id, settings(), result() } of the experiment on screen
+    let sceneHash = '';                                  // the address of the scene on screen
     window.LAB_STATE = () => current ? { id: current.id, settings: current.settings(), result: current.result() } : null;
 
     // ------------------------------------------------------------------ shared pieces
+    // How many of an experiment's figures a result of no effect at all would land within tolerance,
+    // computed by the build from the record (factor_lab.null_rows). Printed beside every verdict, so
+    // a tolerance too wide to tell a replication from nothing cannot pass unnoticed.
+    const nullLine = r => `A result of no effect at all would match ${r.null_within ? r.null_within : 'none'} of these ${r.total}.`;
     function head(X, n, verdictExtra) {
         const r = X.result, out = r.total - r.within;
         const verdict = out === 0
@@ -250,7 +263,7 @@ footer p { margin: 0 0 8px; }
             <p class="cite">${esc(X.paper.authors)} (${X.paper.year}), “${esc(X.paper.title)}”, <em>${esc(X.paper.journal)}</em>. ${X.paper.doi ? `<a href="https://doi.org/${esc(X.paper.doi)}" rel="noopener">doi:${esc(X.paper.doi)}</a>` : `<a href="${esc(X.paper.url)}" rel="noopener">${esc(X.paper.url.replace(/^https?:\/\//, ""))}</a>`}</p>
             <h3 style="margin-top:22px">The claim being tested</h3>
             <p class="claim" style="margin-top:0">${esc(X.claim)}</p>
-            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''}</span><a href="#x-against">See every figure</a></div>
+            <div class="verdict"><span>${verdict}${verdictExtra ? ' ' + esc(verdictExtra) : ''} <span class="null">${nullLine(r)}</span></span><a href="#x-against">See every figure</a></div>
         </section>`;
     }
     function tail(X, method) {
@@ -272,7 +285,28 @@ footer p { margin: 0 0 8px; }
             <details><summary>Show the code this page just ran</summary><pre id="x-code"></pre></details>
         </section>`;
     }
-    const tolNote = X => `The tolerances were written down in the build, not chosen on this page. Reference figures: ${esc(X.reference.source)}`;
+    // One row of "Against the paper", for every layout. The difference is printed to as many places
+    // as it takes for its comparison with the printed tolerance to agree with the verdict: a
+    // difference of 0.0325 against ±0.03 reads +0.033 and "outside", never +0.03 and "outside".
+    function diffText(r) {
+        const sign = r.diff < 0 ? '−' : '+', a = Math.abs(r.diff);
+        if (r.count) return sign + Math.round(a);
+        const places = (String(r.tolerance).split('.')[1] || '').length;
+        for (let d = Math.max(2, places); d <= 12; d++) { const t = a.toFixed(d); if ((+t <= r.tolerance) === r.within) return sign + t; }
+        return sign + String(a);
+    }
+    const refRow = r => `<tr><td>${esc(r.label)}${r.where ? ` <span class="where">${esc(r.where)}</span>` : ''}</td>` +
+        `<td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${diffText(r)}</td>` +
+        `<td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+    // "Against the paper" is filled from this page's own arithmetic (E.compare*), so a row whose
+    // figure or verdict leaves the build's is counted into the layout's warning.
+    const rowDrift = (now, res0) => Math.abs(now.length - res0.rows.length) + now.filter((r, i) =>
+        !res0.rows[i] || Math.abs(r.here - res0.rows[i].here) > 1e-9 || r.within !== res0.rows[i].within).length;
+    // Under every comparison, from one place: that the tolerances live in the build, when they were
+    // written against when the figures were first seen (the record's own account), and the source.
+    const tolNote = X => { const R = X.reference;
+        return `The tolerances were written down in the build, not chosen on this page. ${esc(D.tolerances_written[R.tolerances_written])}` +
+            `${R.tolerances_note ? ' ' + esc(R.tolerances_note) : ''} ${nullLine(X.result)} ${esc(X.result.null_meaning)} Reference figures: ${esc(R.source)}`; };
 
     // ------------------------------------------------------------------ charts
     const NS = 'http://www.w3.org/2000/svg';
@@ -320,21 +354,41 @@ footer p { margin: 0 0 8px; }
         yearTicks(months, W < 520 ? 4 : 8).forEach(t => { s += `<text x="${x(t[0]).toFixed(1)}" y="${H - 5}" text-anchor="middle">${t[1]}</text>`; });
         series.forEach(se => { let d = ''; se.v.forEach((v, i) => { d += (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }); s += `<path class="${se.cls}" d="${d}"/>`; });
         s += `<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" style="visibility:hidden"/>`;
+        // Readable by keyboard as well as by pointer (2026-10-16): the chart takes focus, and the
+        // arrow keys, Home and End move the cursor one month at a time; the sentence under the chart
+        // is a polite live region, so a screen reader speaks each month as it is reached.
+        if (!el.dataset.label) el.dataset.label = el.getAttribute('aria-label') || '';
+        if (opt.read) {
+            el.removeAttribute('role'); el.removeAttribute('aria-label');      // the focusable chart carries both
+            s = s.replace('<svg ', `<svg tabindex="0" role="img" aria-label="${esc(el.dataset.label + ' Use the left and right arrow keys to read one month at a time; Home and End go to the first and last.')}" `);
+        }
         el.innerHTML = s + '</svg>';
         // Point at the chart (or touch it) to read one month, in words, under it.
         let out = el.nextElementSibling;
         if (!out || !out.classList.contains('chart-read')) { out = document.createElement('p'); out.className = 'chart-read'; el.parentNode.insertBefore(out, el.nextSibling); }
+        out.setAttribute('aria-live', 'polite');
         const idle = 'Point at the chart to read any month.';
         out.textContent = idle;
         if (!opt.read) return;
         const svg = el.firstChild, cur = svg.querySelector('.cursor');
+        let at = -1;
+        const show = i => { at = i; cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible'; out.textContent = opt.read(i); };
+        const hide = () => { at = -1; cur.style.visibility = 'hidden'; out.textContent = idle; };
         svg.addEventListener('pointermove', ev => {
             const r = svg.getBoundingClientRect();
-            const i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1))));
-            cur.setAttribute('x1', x(i).toFixed(1)); cur.setAttribute('x2', x(i).toFixed(1)); cur.style.visibility = 'visible';
-            out.textContent = opt.read(i);
+            show(Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left) * (W / r.width) - L) / (W - L - R) * (n - 1)))));
         });
-        svg.addEventListener('pointerleave', () => { cur.style.visibility = 'hidden'; out.textContent = idle; });
+        svg.addEventListener('pointerleave', () => { if (document.activeElement !== svg) hide(); });
+        svg.addEventListener('keydown', ev => {
+            const step = { ArrowLeft: -1, ArrowRight: 1 }[ev.key];
+            let i;
+            if (step) i = at < 0 ? (step > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, at + step * (ev.shiftKey ? 12 : 1)));
+            else if (ev.key === 'Home') i = 0;
+            else if (ev.key === 'End') i = n - 1;
+            else return;
+            ev.preventDefault(); show(i);
+        });
+        svg.addEventListener('blur', hide);
     }
 
     // A scene is an experiment plus whatever settings differ from the ones it opens with. It is
@@ -359,7 +413,8 @@ footer p { margin: 0 0 8px; }
     }
     function writeScene(id, S, ref) {
         const query = Object.keys(S).filter(k => S[k] !== ref[k]).map(k => k + '=' + encodeURIComponent(S[k] === null ? 'none' : S[k])).join('&');
-        try { history.replaceState(null, '', '#' + id + (query ? '?' + query : '')); } catch (e) { /* a sandboxed page may refuse; the scene still works */ }
+        sceneHash = '#' + id + (query ? '?' + query : '');
+        try { history.replaceState(null, '', sceneHash); } catch (e) { /* a sandboxed page may refuse; the scene still works */ }
     }
     const logTicks = (lo, hi) => { const out = []; for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) out.push([p, dollars(Math.pow(10, p))]);
         if (out.length < 2) { out.length = 0; [lo + (hi - lo) * .1, (lo + hi) / 2, hi - (hi - lo) * .1].forEach(v => out.push([v, dollars(Math.pow(10, v))])); }
@@ -373,10 +428,17 @@ footer p { margin: 0 0 8px; }
             <div class="seg" role="group" aria-labelledby="l-period" id="c-preset">${presets.map((p, i) => `<button type="button" data-i="${i}">${esc(p[0])}</button>`).join('')}</div>
             <div class="years"><label for="c-from">From</label><select id="c-from">${opts}</select><label for="c-to">to</label><select id="c-to">${opts}</select></div></div>`;
     }
-    function bindPeriod(presets, get, set) {
-        document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; set({ start: p[1], end: p[2] }); } });
-        document.getElementById('c-from').addEventListener('change', e => set({ start: e.target.value + '01' }));
-        document.getElementById('c-to').addEventListener('change', e => set({ end: e.target.value + '12' }));
+    // The period controls, for every layout. A year picked in either box keeps the period whole: an
+    // end before the start moves the start to January of that year, a start after the end moves the
+    // end to that December, and both are held to the months the data has - so picking its last year
+    // ends at its last month, and the preset that runs to the latest month shows pressed.
+    function bindPeriod(presets, first, last, get, set) {
+        const put = (start, end) => set({ start: start < first ? first : start, end: end > last ? last : end });
+        document.getElementById('c-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { const p = presets[+b.dataset.i]; put(p[1], p[2]); } });
+        document.getElementById('c-from').addEventListener('change', e => { const y = e.target.value, S = get();
+            put(y + '01', y + '01' > S.end ? y + '12' : S.end); });
+        document.getElementById('c-to').addEventListener('change', e => { const y = e.target.value, S = get();
+            put(y + '12' < S.start ? y + '01' : S.start, y + '12'); });
         return () => { const S = get();
             document.querySelectorAll('#c-preset button').forEach(b => { const p = presets[+b.dataset.i]; b.setAttribute('aria-pressed', String(p[1] === S.start && p[2] === S.end)); });
             document.getElementById('c-from').value = S.start.slice(0, 4); document.getElementById('c-to').value = S.end.slice(0, 4); };
@@ -413,7 +475,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Risk-managed momentum</span><span class="b"><i></i>Plain momentum</span></div>
             <p class="chart-title"><strong>What $1 became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar, plain against risk-managed momentum, month by month."></div>
             <p class="chart-title"><strong>Exposure each month</strong>: 1.0 is the plain strategy; above it means borrowing</p>
             <div class="chart" id="ch-weight" role="img" aria-label="The risk-managed strategy's exposure each month."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
@@ -424,7 +486,7 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Run at the paper's own settings (${mon(REF.start)} to ${mon(REF.end)}, six-month risk window, 12% target, no borrowing limit), this is each figure the paper reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} They were set after the first comparison was seen, as round numbers, so read the differences themselves.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">forecast variance for month <i>t</i> &nbsp;=&nbsp; 21 × ( r<sub>1</sub><sup>2</sup> + r<sub>2</sub><sup>2</sup> + … + r<sub>126</sub><sup>2</sup> ) ÷ 126<small>r are the strategy's daily returns on the 126 trading days before month t begins. Times 12, square-rooted, it is a volatility a year.</small></div>
             <div class="eq">exposure in month <i>t</i> &nbsp;=&nbsp; target volatility ÷ forecast volatility<small>Capped at the borrowing limit, if one is set.</small></div>
@@ -433,14 +495,14 @@ footer p { margin: 0 0 8px; }
 
         // the fixed comparison, from the build; the page recomputes it and says so if they differ
         const rowsNow = E.compare(REF, E.run(M, refState()), D.tolerances, D.stat_labels);
-        const drift = rowsNow.filter((r, i) => Math.abs(r.here - res0.rows[i].here) > 1e-9).length;
+        const drift = rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
         const legName = { plain: 'Plain momentum', managed: 'Risk-managed momentum' };
         let h = '', leg = '';
-        res0.rows.forEach(r => {
+        rowsNow.forEach(r => {
             if (r.leg !== leg) { leg = r.leg; h += `<tr class="group"><td colspan="6">${legName[leg]}</td></tr>`; }
-            h += `<tr><td>${esc(r.label)}</td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`;
+            h += refRow(r);
         });
         document.querySelector('#t-ref tbody').innerHTML = h;
 
@@ -475,8 +537,8 @@ footer p { margin: 0 0 8px; }
                 { height: 150, ticks: linTicks, refs: [1], min: 0, read: i => `${mon(r.months[i])}: exposure ${r.weights[i].toFixed(2)}; plain momentum returned ${sf2(r.plain[i])}% that month.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, FIRST, LAST, () => S, set);
         document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
         document.getElementById('c-cap').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ cap: b.dataset.v === '' ? null : +b.dataset.v }); });
         document.getElementById('c-target').addEventListener('input', e => set({ target: +e.target.value / 100 }));
@@ -516,7 +578,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Momentum (winners minus losers)</span><span class="c"><i></i>Months in the panic state</span></div>
             <p class="chart-title"><strong>What $1 in momentum became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the momentum strategy, with the months the market was in the panic state shaded. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the momentum strategy, with the months the market was in the panic state shaded."></div>
             <h3 style="margin-top:26px">Momentum's months, by the state the market was in beforehand</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">State</th><th scope="col">Months</th><th scope="col" class="tol">Share</th><th scope="col">Average month</th><th scope="col">Worst month</th><th scope="col" class="tol">Lost money</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -525,7 +587,7 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
             <h3 style="margin-top:26px">The fifteen worst months</h3>
             <div class="tablewrap"><table id="t-worst"><thead><tr><th scope="col">Month here</th><th scope="col">Here (%)</th><th scope="col">Paper (%)</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-worst-note"></p>
@@ -537,11 +599,11 @@ footer p { margin: 0 0 8px; }
 
         // the build's four-state table at the reference settings, recomputed here
         const now = E.crashRun(M, MK, refState());
-        const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length;
+        const rowsNow = E.compareCrashes(M, MK, REF);
+        const drift = now.cells.filter((c, i) => c.n !== res0.cells[i].n || Math.abs((c.mean || 0) - (res0.cells[i].mean || 0)) > 1e-9).length + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
-            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${r.count ? r.paper : f2(r.paper)}</td><td>${r.count ? Math.round(r.here) : f2(r.here)}</td><td>${r.count ? (r.diff < 0 ? '−' : '+') + Math.abs(Math.round(r.diff)) : sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' state(s) or figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
         document.querySelector('#t-worst tbody').innerHTML = res0.worst.map(w =>
             `<tr><td>${mon(w.month)}</td><td>${f2(w.here)}</td><td>${w.paper === null ? '<span class="muted">not in its list</span>' : f2(w.paper)}</td></tr>`).join('');
         document.getElementById('x-worst-note').textContent = res0.missed.length
@@ -574,8 +636,8 @@ footer p { margin: 0 0 8px; }
                   read: i => `${mon(r.months[i])}: momentum returned ${sf2(r.wml[i])}%; going in, the state was “${NAMES[r.state[i]].toLowerCase()}”. $1 had become ${dollars(g[i])}.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, FIRST, LAST, () => S, set);
         document.getElementById('c-lookback').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ lookback: +b.dataset.v }); });
         document.getElementById('c-window').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ window: +b.dataset.v }); });
         document.getElementById('c-thr').addEventListener('input', e => set({ threshold: Math.round(+e.target.value * 10) / 1000 }));
@@ -608,7 +670,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i><span id="k-focus"></span></span><span class="b"><i></i>The other four factors</span></div>
             <p class="chart-title"><strong>What $1 in each factor became</strong>, compounding each month's return (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in each of the five factors. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in each of the five factors, the one followed drawn in the accent colour."></div>
             <h3 style="margin-top:26px">Measured on this period</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col" class="tol">Behind the screener's</th><th scope="col">Average month</th><th scope="col" class="tol">Volatility</th><th scope="col">t-statistic</th><th scope="col" class="tol">$1 became</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -617,20 +679,19 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a factor's return in month <i>t</i> &nbsp;=&nbsp; return of the stocks with more of a trait − return of the stocks with less<small>For value: high book-to-market minus low, averaged over small and big companies. The library builds these; this page reads them.</small></div>
             <div class="eq">t-statistic &nbsp;=&nbsp; average month ÷ ( volatility ÷ √months )<small>How many standard errors the average sits from zero.</small></div>
             <div class="eq">value<sub>t</sub> &nbsp;=&nbsp; a + b·market<sub>t</sub> + s·size<sub>t</sub> + r·profitability<sub>t</sub> + c·investment<sub>t</sub> + e<sub>t</sub><small>The intercept a is what the other four leave unexplained. Near zero means the factor adds nothing they do not already carry.</small></div>`);
         document.getElementById('x-code').textContent = E.factorRun.toString() + '\n\n' + E.ols.toString();
 
-        const now = E.factorRun(F, KEYS, { start: REF.start, end: REF.end });
+        const now = E.factorRun(F, KEYS, { start: REF.start, end: REF.end }), rowsNow = E.compareFactors(F, KEYS, REF);
         const drift = KEYS.filter(k => Math.abs(now.stats[k].mean - res0.stats[k].mean) > 1e-9 || Math.abs(now.stats[k].t - res0.stats[k].t) > 1e-9).length +
-            (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0);
+            (Math.abs(now.spanned.hml.intercept - res0.hml_intercept) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.factorRun(F, KEYS, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -658,8 +719,8 @@ footer p { margin: 0 0 8px; }
                 read: i => `${mon(r.months[i])}: the ${NAME[S.focus].toLowerCase()} factor returned ${sf2(r.series[S.focus][i])}%; $1 in it had become ${dollars(gf[i])}.` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, F0, F1, () => S, set);
         document.getElementById('c-focus').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ focus: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = Object.assign(refState(), { focus: S.focus }); render(); });
         render();
@@ -706,7 +767,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>The two largest groups, where the screener's companies are</span><span class="b"><i></i>The eight smaller groups</span></div>
             <p class="chart-title"><strong>Average return a month</strong>, by size group (%)</p>
-            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each of ten size groups, smallest to largest. The figures are in the table below."></div>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each of ten size groups, smallest to largest."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Difference</th><th scope="col">A month</th><th scope="col">t-statistic</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -715,18 +776,17 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), equal-weighted, each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>Ten groups, re-formed each June by market value.</small></div>
             <div class="eq">difference between two groups &nbsp;=&nbsp; mean of ( one group's return − the other's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
         document.getElementById('x-code').textContent = E.sizeRun.toString();
 
-        const now = E.sizeRun(Z, refState());
-        const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0);
+        const now = E.sizeRun(Z, refState()), rowsNow = E.compareSize(Z, REF);
+        const drift = now.deciles.filter((d, i) => Math.abs(d.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.nine_ten.mean - res0.nine_ten.mean) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.sizeRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -745,11 +805,13 @@ footer p { margin: 0 0 8px; }
             document.getElementById('x-live-note').textContent = atRef()
                 ? 'These are the paper\'s settings; the comparison with its table is in the next section.'
                 : 'These settings are yours, so there is no published figure to compare them with.';
-            drawBars(document.getElementById('ch-bars'), r.deciles.map(d => d.mean), { accent: i => i >= 8 });
+            const bars = document.getElementById('ch-bars');
+            drawBars(bars, r.deciles.map(d => d.mean), { accent: i => i >= 8 });
+            bars.setAttribute('aria-label', 'Average monthly return of each of ten size groups, smallest to largest, in percent: ' + r.deciles.map(d => f2(d.mean)).join(', ') + '.');
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
@@ -790,19 +852,18 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>The groups are re-formed as the library's file says; this page reads them.</small></div>
             <div class="eq">volatility, a month &nbsp;=&nbsp; standard deviation of those monthly returns<small>Average ÷ volatility is how much return each unit of risk came with.</small></div>
             <div class="eq">difference between the end groups &nbsp;=&nbsp; mean of ( last group's return − first group's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
         document.getElementById('x-code').textContent = E.sortRun.toString();
 
-        const now = E.sortRun(Z, refState());
-        const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0);
+        const now = E.sortRun(Z, refState()), rowsNow = E.compareSort(Z, REF);
+        const drift = now.groups.filter((g, i) => Math.abs(g.mean - res0.means[i]) > 1e-9).length + (Math.abs(now.spread.mean - res0.spread.mean) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.sortRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -823,8 +884,8 @@ footer p { margin: 0 0 8px; }
             drawBars(document.getElementById('ch-bars'), r.groups.map(g => g.mean), { accent: i => G.accent.indexOf(i) >= 0, ends: G.ends });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-weighting').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ weighting: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
@@ -874,7 +935,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>${esc(G.key_big || 'Among big companies, which are all the screener ranks')}</span><span class="b"><i></i>${esc(G.key_small || 'Among small companies')}</span></div>
             <p class="chart-title"><strong>Average return a month</strong>, each factor among ${esc(SMALL)} and among ${esc(BIG)} (%)</p>
-            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of four factors, each measured among small companies and among big ones. The figures are in the table below."></div>
+            <div class="chart" id="ch-bars" role="img" aria-label="Average monthly return of each factor, measured among ${esc(SMALL)} and among ${esc(BIG)}. The figures are in the table below."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Factor</th><th scope="col">${esc(G.small_short || 'Small')}</th><th scope="col">${esc(G.big_short || 'Big')}</th><th scope="col">${G.data ? 'Smallest − largest' : 'Small − big'}</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -887,7 +948,7 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today. ${esc(G.against || "Momentum is not in the paper's table, so it is not in this comparison.")}</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a factor among ${esc(BIG)} &nbsp;=&nbsp; that group's high end − its low end, each month${G.data ? '' : '<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small>'}</div>
             <div class="eq">average month &nbsp;=&nbsp; mean of that series over the period<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>
@@ -895,12 +956,11 @@ footer p { margin: 0 0 8px; }
             <div class="eq">the factor among ${esc(BIG)} &nbsp;=&nbsp; ( held group − market ) + ( market − shorted group )<small>Each side is averaged over the period on its own, with its own t-statistic.</small></div>`);
         document.getElementById('x-code').textContent = E.splitRun.toString();
 
-        const now = E.splitRun(Z, refState());
-        const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length;
+        const now = E.splitRun(Z, refState()), rowsNow = E.compareSplit(Z, REF);
+        const drift = KEYS.filter(k => Math.abs(now.factors[k].big.mean - res0.big_means[k]) > 1e-9).length + rowDrift(rowsNow, res0);
         if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.splitRun(Z, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -925,8 +985,8 @@ footer p { margin: 0 0 8px; }
             drawPairs(document.getElementById('ch-bars'), KEYS.map(k => ({ name: NAME[k], small: F[k].small.mean, big: F[k].big.mean })));
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
         return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
@@ -955,7 +1015,7 @@ footer p { margin: 0 0 8px; }
             <p class="read" id="x-read" aria-live="polite"></p>
             <div class="key" aria-hidden="true"><span class="a"><i></i>Half value, half momentum</span><span class="b"><i></i>Value</span><span class="d"><i></i>Momentum</span></div>
             <p class="chart-title"><strong>What $1 became</strong>, in each spread and in the 50/50 mix (log scale)</p>
-            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the value spread, the momentum spread and their 50/50 mix. The figures are in the table below."></div>
+            <div class="chart" id="ch-growth" role="img" aria-label="Growth of one dollar in the value spread, the momentum spread and their 50/50 mix."></div>
             <h3 style="margin-top:26px">Measured on these settings</h3>
             <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col"></th><th scope="col">Average a year</th><th scope="col">Volatility a year</th><th scope="col">Sharpe ratio</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-live-note"></p>
@@ -964,7 +1024,7 @@ footer p { margin: 0 0 8px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), among big companies, each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)}</p>
+            ${X.against_note ? `<p class="note" id="x-against-note">${esc(X.against_note)}</p>` : ''}<p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">value &nbsp;=&nbsp; high book-to-market − low, each month; momentum &nbsp;=&nbsp; high past return − low</div>
             <div class="eq">the mix &nbsp;=&nbsp; ( value + momentum ) ÷ 2, each month</div>
@@ -972,13 +1032,12 @@ footer p { margin: 0 0 8px; }
             <div class="eq">correlation after the market &nbsp;=&nbsp; the correlation of what is left of each spread once the part that moves with the market is taken out</div>`);
         document.getElementById('x-code').textContent = E.comboRun.toString();
 
-        const now = E.comboRun(Z, F, refState());
-        if (Math.abs(now.combo.sharpe - res0.sharpe.combo) > 1e-9 || Math.abs(now.corr_resid - res0.corr_resid) > 1e-9) {
+        const now = E.comboRun(Z, F, refState()), rowsNow = E.compareCombo(Z, F, REF);
+        if (Math.abs(now.combo.sharpe - res0.sharpe.combo) > 1e-9 || Math.abs(now.corr_resid - res0.corr_resid) > 1e-9 || rowDrift(rowsNow, res0)) {
             const w = document.getElementById('x-mismatch'); w.hidden = false;
             w.textContent = 'This page\'s own calculation disagrees with the build. Treat the numbers below as unverified.';
         }
-        document.querySelector('#t-ref tbody').innerHTML = res0.rows.map(r =>
-            `<tr><td>${esc(r.label)} <span class="where">${esc(r.where)}</span></td><td>${f2(r.paper)}</td><td>${f2(r.here)}</td><td>${sf2(r.diff)}</td><td class="tol">±${r.tolerance}</td><td class="${r.within ? 'ok' : 'out'}">${r.within ? 'within' : 'outside'}</td></tr>`).join('');
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
 
         function render() {
             const r = last = E.comboRun(Z, F, S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
@@ -1008,8 +1067,8 @@ footer p { margin: 0 0 8px; }
                  { height: 240, ticks: logTicks, read: i => `${mon(r.months[i])}: value ${dollars(gv[i])}, momentum ${dollars(gm[i])}, the mix ${dollars(gc[i])}` });
             writeScene(X.id, S, refState());
         }
-        function set(patch) { S = Object.assign({}, S, patch); if (S.start > S.end) S.end = S.start.slice(0, 4) + '12'; render(); }
-        const syncPeriod = bindPeriod(PRESETS, () => S, set);
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, Z0, Z1, () => S, set);
         document.getElementById('c-group').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ group: b.dataset.v }); });
         document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
         render();
@@ -1025,6 +1084,7 @@ footer p { margin: 0 0 8px; }
             <strong>${esc(x.title)}</strong>
             <span class="cite">${esc(x.paper.authors)} (${x.paper.year})</span>
             <span class="chip${x.result.within === x.result.total ? '' : x.result.within * 2 < x.result.total ? ' miss' : ' part'}">${x.result.within} of ${x.result.total} figures match the paper</span>
+            <span class="null">${nullLine(x.result)}</span>
             <span class="take">${esc(x.takeaway)}</span></a>`;
         const link = id => `<a href="#${esc(id)}">${byId[id].n}. ${esc(byId[id].x.title)}</a>`;
         const afterCell = (r, c) => c.value === null ? '–' :
@@ -1085,6 +1145,7 @@ footer p { margin: 0 0 8px; }
             return xs.length ? `<div class="tg"><span class="tg-l">${esc(g)}</span>${xs.map(x => `<a href="#${esc(x.id)}" data-id="${esc(x.id)}">${esc(x.tab || x.title)}</a>`).join('')}</div>` : ''; }).join('');
     function show() {
         const scene = parseScene(), i = D.experiments.findIndex(x => x.id === scene.id);
+        sceneHash = location.hash;
         root.innerHTML = '<article class="exp" aria-labelledby="' + (i < 0 ? 'o-exp' : 'x-title') + '"></article>';
         if (i < 0) {
             current = overview(root.firstChild);
@@ -1108,7 +1169,30 @@ footer p { margin: 0 0 8px; }
         }
         tabs.querySelectorAll('a').forEach(a => a.setAttribute('aria-current', a.dataset.id === X.id ? 'page' : 'false'));
     }
-    window.addEventListener('hashchange', () => { show(); window.scrollTo(0, tabs.offsetTop - 12); });
+    // A link inside an experiment ("See every figure") points at a section of the page, not at a
+    // scene. Left to the browser it would rewrite the address to "#x-against", which the scene
+    // reader takes for an experiment it does not know and answers with the overview. So it
+    // scrolls to its section and leaves the address - and the scene in it - alone.
+    function toSection(id) {
+        const el = document.getElementById(id);
+        if (!el || D.experiments.some(x => x.id === id)) return false;
+        el.scrollIntoView({ block: 'start' });
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        el.focus({ preventScroll: true });
+        return true;
+    }
+    document.addEventListener('click', e => {
+        const a = e.target.closest ? e.target.closest('a[href^="#x-"]') : null;
+        if (a && toSection(a.getAttribute('href').slice(1))) e.preventDefault();
+    });
+    window.addEventListener('hashchange', () => {
+        const scene = parseScene();
+        if (scene.id !== 'overview' && toSection(scene.id)) {            // typed or pasted, the same rule,
+            try { if (sceneHash) history.replaceState(null, '', sceneHash); } catch (e) { /* the scene still works */ }
+            return;                                                      // and the address goes back to the scene
+        }
+        show(); window.scrollTo(0, tabs.offsetTop - 12);
+    });
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +

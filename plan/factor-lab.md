@@ -38,11 +38,11 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | Piece | Job |
 |---|---|
 | `factor_lab.py` | **The reference.** Parses the source files, defines every calculation, holds each experiment's record (`EXPERIMENTS`), and builds `lab_data.js`. |
-| `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them. |
+| `lab_engine.js` | The same arithmetic for the browser. Must reproduce the Python on the published data at the paper's settings and away from them - including each experiment's comparison with its paper (`compare`, `compareCrashes`, `compareFactors`, `compareSize`, `compareSort`, `compareSplit`, `compareCombo`), from which the page fills "Against the paper". |
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 45 tests: the arithmetic, the parity, the computed verdicts, the four parts, no advice language, no scoring import, a real-browser run at 1440 and 375 px. |
+| `tests/test_factor_lab.py` | 59 tests (counted 2026-10-16; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -126,7 +126,12 @@ experiments for a validated strategy):
 2. **It reruns the paper's portfolios, not the screener.** Long-short factor portfolios with no
    costs. It is not a backtest of the published ranking and must never be described as one.
 3. **Fix the tolerances before the comparison is run.** Experiment 1's were written after its
-   first comparison was seen, and the page says so. Every later experiment writes them first.
+   first comparison was seen, and the page says so. Every later experiment writes them first -
+   and where one did not, its record says so: each reference carries `tolerances_written`
+   (`before`, `after_first_comparison`, `after_figures_seen`) and, where it is not `before`, a
+   `tolerances_note` from the record's own comment, which the page prints under the comparison
+   (one function, `tolNote`). Experiments 1 and 12 are `after_first_comparison`, experiment 13
+   `after_figures_seen` (2026-10-16 audit: the page had printed "written before" under both).
 4. **One experiment per session, finished.** Reader, builder, reviewer and interface work are the
    four steps of one session (below), not four sessions. A half-built experiment does not ship.
 5. **A failed replication is a finding, not a bug to tune away.** If a cited result cannot be
@@ -137,6 +142,17 @@ experiments for a validated strategy):
    once its sample ended. Experiment 1's Sharpe ratios go from 0.54 / 1.00 in-sample to
    0.20 / 0.37 after 2011: weaker, with the risk-managed version still ahead.
 7. **No advice language** (`advice_terms_in`), and "Not investment advice" on the page.
+8. **A result of no effect must fail.** Added 2026-10-16 (audit). A new experiment's tolerances
+   must make a null result miss its headline figure(s) and most of its figures. The null is built
+   from the record alone (`factor_lab.null_rows`): every group earns the same, every spread,
+   t-statistic, correlation and premium is zero, and volatilities, the market's own figures and
+   counts stay at the paper's values; experiment 1's null is the risk-managed strategy matching
+   the plain one. The build publishes `null_within` and the page prints it beside every verdict
+   and on the overview card ("A result of no effect at all would match 6 of these 11"). Where the
+   paper's own claim is that there is no effect (experiment 7, market beta: 9 of 11), the null
+   passing *is* the replication. **The existing experiments are disclosed, not retuned** - no
+   tolerance moves to meet this rule (rule 3); low volatility and cash-flow yield (6 of 11 each)
+   are the ones where the null matches most, and in both it misses the spread.
 
 ## The four steps of a lab session
 

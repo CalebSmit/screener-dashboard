@@ -274,7 +274,100 @@
         return out;
     }
 
+    // ---------------------------------------------------------------- "Against the paper"
+    // Each experiment's comparison with its paper, computed here the way factor_lab.py's
+    // reproduce_* functions compute it, so the page fills the "Here" column from its own
+    // arithmetic; tests/test_factor_lab.py holds every row to the build's at 1e-9.
+    function compareFigures(figures, got) {
+        return figures.map(f => {
+            const here = got[f.key], diff = here - f.paper;
+            return Object.assign({}, f, { here: here, diff: diff, within: Math.abs(diff) <= f.tolerance });
+        });
+    }
+
+    // Experiment 2 (reproduce_crashes / crash_figures): momentum's and the market's moments, the
+    // market model with and without the bear-market indicator, the paper's Table 5 regression, and
+    // the worst months against the paper's list.
+    function compareCrashes(mom, market, ref) {
+        const idx = [];
+        for (let i = 0; i < mom.months.length; i++) if (mom.months[i] >= ref.start && mom.months[i] <= ref.end) idx.push(i);
+        const months = idx.map(i => mom.months[i]), wml = idx.map(i => mom.wml[i]), mkt = idx.map(i => market.mktrf[i]);
+        const bear = idx.map(i => market.trail['24'][i] === null ? null : (market.trail['24'][i] < 0 ? 1 : 0));
+        const ws = stats(wml), ms = stats(mkt), ones = n => new Array(n).fill(1);
+        const c0 = ols(wml, [ones(wml.length), mkt]);
+        const keep = []; bear.forEach((b, k) => { if (b !== null) keep.push(k); });
+        const y = keep.map(k => wml[k]), bb = keep.map(k => bear[k]), mm = keep.map(k => mkt[k]);
+        const cb = ols(y, [ones(y.length), bb, mm, bb.map((u, j) => u * mm[j])]);
+        const g = keep.filter(k => months[k] >= ref.gamma_start);
+        const cg = ols(g.map(k => wml[k]), [ones(g.length), g.map(k => bear[k])]);
+        const ranked = wml.map((r, k) => [r, months[k]])
+            .sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)).slice(0, ref.worst.length);
+        const paper = new Set(ref.worst.map(w => w[0]));
+        return compareFigures(ref.figures, {
+            wml_mean: ws.mean, wml_std: ws.std, wml_sharpe: ws.sharpe, mkt_mean: ms.mean, mkt_std: ms.std,
+            beta0: c0[1], alpha0: c0[0], beta_bear: cb[3], alpha_bear: cb[1],
+            bear_months: bear.filter(b => b === 1).length, gamma0: cg[0], gamma_bear: cg[1],
+            worst1: ranked[0][0], worst2: ranked[1][0], worst_overlap: ranked.filter(r => paper.has(r[1])).length });
+    }
+
+    // Experiment 3 (reproduce_factors / factor_figures).
+    function compareFactors(factors, keys, ref) {
+        const r = factorRun(factors, keys, { start: ref.start, end: ref.end }), got = {};
+        keys.forEach(k => { got['mean_' + k] = r.stats[k].mean; got['std_' + k] = r.stats[k].std; got['t_' + k] = r.stats[k].t; });
+        got.corr_hml_cma = r.corr.hml.cma;
+        got.hml_intercept = r.spanned.hml.intercept; got.hml_on_cma = r.spanned.hml.slopes.cma; got.hml_r2 = r.spanned.hml.r2;
+        got.rmw_intercept = r.spanned.rmw.intercept; got.cma_intercept = r.spanned.cma.intercept;
+        return compareFigures(ref.figures, got);
+    }
+
+    // Experiment 4 (reproduce_size).
+    function compareSize(size, ref) {
+        const r = sizeRun(size, { start: ref.start, end: ref.end, weighting: ref.weighting }), got = { small_big: r.small_big.mean };
+        r.deciles.forEach((d, i) => { got['dec' + (i + 1)] = d.mean; });
+        return compareFigures(ref.figures, got);
+    }
+
+    // A sorted-portfolio experiment (reproduce_sort). `excess`: the paper reports returns over the
+    // T-bill, so each group's average loses the T-bill's average over the same months; `relative`:
+    // each group against the average of the groups; `scale`: the paper's unit (12 = % a year).
+    function compareSort(data, ref) {
+        const r = sortRun(data, { start: ref.start, end: ref.end, weighting: ref.weighting }), scale = ref.scale || 1;
+        let centre = 0;
+        if (ref.relative) { for (const g of r.groups) centre += g.mean; centre /= r.groups.length; }
+        else if (ref.excess) {
+            let s = 0, k = 0;
+            for (let i = 0; i < data.months.length; i++) {
+                const m = data.months[i];
+                if (m >= ref.start && m <= ref.end && data.rf[i] !== null) { s += data.rf[i]; k++; }
+            }
+            centre = s / k;
+        }
+        const got = { spread: r.spread.mean * scale };
+        r.groups.forEach((g, i) => { got['mean' + (i + 1)] = (g.mean - centre) * scale; got['std' + (i + 1)] = g.std; });
+        return compareFigures(ref.figures, got);
+    }
+
+    // A two-group experiment (reproduce_split): each part's average month, in the paper's unit, and
+    // its t-statistic.
+    function compareSplit(split, ref) {
+        const r = splitRun(split, { start: ref.start, end: ref.end }), scale = ref.scale || 1, got = {};
+        Object.keys(r.factors).forEach(k => Object.keys(r.factors[k]).forEach(part => {
+            const s = r.factors[k][part];
+            got['mean_' + k + '_' + part] = s.mean * scale; got['t_' + k + '_' + part] = s.t;
+        }));
+        return compareFigures(ref.figures, got);
+    }
+
+    // Value and momentum together (reproduce_combo).
+    function compareCombo(split, factors, ref) {
+        const r = comboRun(split, factors, { start: ref.start, end: ref.end, group: ref.group }), got = { corr_resid: r.corr_resid };
+        ['value', 'momentum', 'combo'].forEach(k => { got['mean_' + k] = r[k].mean_a; got['std_' + k] = r[k].std_a; got['sharpe_' + k] = r[k].sharpe; });
+        return compareFigures(ref.figures, got);
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
              crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun,
-             splitRun: splitRun, comboRun: comboRun };
+             splitRun: splitRun, comboRun: comboRun, compareCrashes: compareCrashes,
+             compareFactors: compareFactors, compareSize: compareSize, compareSort: compareSort,
+             compareSplit: compareSplit, compareCombo: compareCombo };
 });

@@ -1201,4 +1201,344 @@ def test_the_value_and_momentum_rerun_is_the_paper_s_table_on_big_companies(publ
     rows = {r["key"]: r for r in exp["result"]["rows"]}
     assert rows["corr_resid"]["paper"] == -0.53 and rows["sharpe_combo"]["paper"] == 0.63
     assert rows["corr_resid"]["here"] < 0                                 # the hedge is there, if milder
+    # the mix's volatility and Sharpe ratio follow from the correlation, and the page says so once
+    # (2026-10-16 audit); nothing about the figures or their tolerances changed for it
+    assert {r["key"] for r in exp["result"]["rows"] if not r["within"]} == {"std_combo", "sharpe_combo", "corr_resid"}
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in exp["reference"]["figures"]} == {
+        "mean_value": (3.7, 1.2), "mean_momentum": (5.4, 1.2), "mean_combo": (4.6, 1.2),
+        "std_value": (12.8, 2.0), "std_momentum": (16.4, 2.0), "std_combo": (7.2, 2.0),
+        "sharpe_value": (0.29, 0.10), "sharpe_momentum": (0.33, 0.10), "sharpe_combo": (0.63, 0.10),
+        "corr_resid": (-0.53, 0.15)}
+    assert "follow mechanically from how strongly value and momentum move against each other" in exp["against_note"]
+    assert "X.against_note" in PAGE.read_text(encoding="utf-8")
+
+
+# --------------------------------------------------------------------------- the 2026-10-16 audit
+def _open(pw, width: int = 1200):
+    """A chromium page at a width, collecting page errors; skips where no browser can start."""
+    try:
+        browser = pw.chromium.launch()
+    except Exception as exc:  # noqa: BLE001
+        pytest.skip(f"no usable chromium: {exc}")
+    page = browser.new_page(viewport={"width": width, "height": 900})
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    return browser, page, errors
+
+
+def _goto(page, exp_id: str) -> None:
+    page.goto(PAGE.as_uri() + "#" + exp_id, wait_until="load", timeout=60000)
+    page.wait_for_function(f"window.LAB_STATE && window.LAB_STATE().id === '{exp_id}'", timeout=30000)
+
+
+def test_see_every_figure_scrolls_to_the_comparison_and_keeps_the_experiment():
+    """The verdict's "See every figure" link once rewrote the address to #x-against, which the
+    scene reader took for an unknown experiment: the overview replaced the page. It now scrolls to
+    the comparison and leaves the experiment, and its address, where they were."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                page.click(".verdict a[href='#x-against']")
+                assert page.evaluate("window.LAB_STATE().id") == exp["id"]
+                assert page.evaluate("location.hash") == "#" + exp["id"]
+                top = page.evaluate("document.getElementById('x-against').getBoundingClientRect().top")
+                assert -2 <= top < 900, (exp["id"], top)                     # in view (a scroll lands to the sub-pixel)
+            # the same address typed by hand is read the same way, and the scene's address comes back
+            last = fl.EXPERIMENTS[-1]["id"]
+            page.evaluate("location.hash = '#x-against'")
+            page.wait_for_function(f"location.hash === '#{last}'", timeout=10000)
+            assert page.evaluate("window.LAB_STATE().id") == last
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_each_experiment_says_when_its_tolerances_were_written(published):
+    """Rule 3 says tolerances are written before the comparison. Three records say otherwise for
+    themselves - experiment 1's were set after its first comparison, experiment 12's end values
+    were corrected after theirs, experiment 13's figures had been measured an hour before - and the
+    page used to print "written before" under all but the first. Each record now carries its own
+    account, and the page prints it from one function."""
+    assert set(fl.TOLERANCES_WRITTEN) == {"before", "after_first_comparison", "after_figures_seen"}
+    assert published["tolerances_written"] == fl.TOLERANCES_WRITTEN
+    for exp in fl.EXPERIMENTS:
+        ref = exp["reference"]
+        assert ref["tolerances_written"] in fl.TOLERANCES_WRITTEN, exp["id"]
+        if ref["tolerances_written"] != "before":
+            assert len(ref.get("tolerances_note", "")) > 60, exp["id"]          # what happened, not just a label
+    status = {x["id"]: x["reference"]["tolerances_written"] for x in fl.EXPERIMENTS}
+    assert status["risk-managed-momentum"] == "after_first_comparison"
+    assert status["accruals"] == "after_first_comparison" and status["value-and-momentum"] == "after_figures_seen"
+    html = PAGE.read_text(encoding="utf-8")
+    assert "These tolerances were written before the comparison was first run" not in html
+    assert "They were set after the first comparison was seen" not in html
+    kinds = {x["kind"] for x in fl.EXPERIMENTS}
+    assert html.count("${tolNote(X)}</p>") == len(kinds) == 7                  # every layout, one function
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                note = page.locator("#x-against ~ p.note", has_text="written down in the build").inner_text()
+                assert fl.TOLERANCES_WRITTEN[exp["reference"]["tolerances_written"]] in note, exp["id"]
+                assert exp["reference"].get("tolerances_note", "")[:40] in note, exp["id"]
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdict(published):
+    """A tolerance wide enough to pass a result of no effect at all says nothing about the paper.
+    No tolerance moves for it (rule 3): the build counts, from the record alone, how many figures a
+    null result would land within, and the page prints that beside every verdict (plan rule 8)."""
+    for built, exp in zip(published["experiments"], fl.EXPERIMENTS):
+        r, nulls = built["result"], fl.null_rows(exp)
+        assert len(nulls) == len(r["rows"]) == r["total"]
+        assert [n["paper"] for n in nulls] == [row["paper"] for row in r["rows"]]       # the same figures, in order
+        assert [row["null"] for row in r["rows"]] == pytest.approx([n["null"] for n in nulls])
+        assert r["null_within"] == fl.null_within(exp) == sum(
+            abs(row["null"] - row["paper"]) <= row["tolerance"] for row in r["rows"])
+        assert r["null_meaning"] == fl.null_meaning(exp) and r["null_meaning"]
+    # the rules, on the record: experiment 1's null is the plain strategy; a sort's groups all earn
+    # the paper's own average across them; a spread is zero; a volatility is left at the paper's
+    rm = fl.null_rows(fl.EXPERIMENTS[0])
+    assert [n["null"] for n in rm[7:]] == [fl.EXPERIMENTS[0]["reference"]["plain"][k] for k in fl.STAT_ORDER]
+    ey = next(x for x in fl.EXPERIMENTS if x["id"] == "earnings-yield")
+    figs, nulls = ey["reference"]["figures"], fl.null_rows(ey)
+    level = sum(f["paper"] for f in figs if f["key"].startswith("mean")) / 10
+    assert {f["key"]: n["null"] for f, n in zip(figs, nulls)} == pytest.approx(
+        {**{f"mean{g}": level for g in range(1, 11)}, "spread": 0.0})
+    lv = next(x for x in fl.EXPERIMENTS if x["id"] == "low-volatility")
+    assert all(n["null"] == f["paper"] for f, n in zip(lv["reference"]["figures"], fl.null_rows(lv)) if f["key"].startswith("std"))
+    # the counts themselves follow from paper values and tolerances that are pinned above
+    assert {x["id"]: fl.null_within(x) for x in fl.EXPERIMENTS} == {
+        "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
+        "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
+        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3}
+    # every sort whose paper claims an effect: the null misses the spread between the ends
+    for exp in fl.EXPERIMENTS:
+        if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
+            spread = next(n for f, n in zip(exp["reference"]["figures"], fl.null_rows(exp)) if f["key"] == "spread")
+            assert abs(spread["null"] - spread["paper"]) > spread["tolerance"], exp["id"]
+    html = PAGE.read_text(encoding="utf-8")
+    assert "nullLine(r)" in html and "nullLine(x.result)" in html and "nullLine(X.result)" in html
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            page.goto(PAGE.as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_function("window.LAB_STATE && window.LAB_STATE().id === 'overview'", timeout=30000)
+            cards = page.locator(".card .null").all_inner_texts()
+            assert len(cards) == len(fl.EXPERIMENTS)
+            for text, exp in zip(cards, published["experiments"]):
+                r = exp["result"]
+                assert f"would match {r['null_within'] or 'none'} of these {r['total']}" in text
+            _goto(page, "cash-flow-yield")
+            assert "A result of no effect at all would match 6 of these 11." in page.inner_text(".verdict")
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_every_printed_difference_agrees_with_its_verdict_against_the_printed_tolerance(published):
+    """Experiment 8's profitability among big companies differs from the paper by 0.0325 against a
+    tolerance of 0.03. Printed to two places it read "+0.03 / ±0.03 / outside", which a reader
+    checking the arithmetic cannot reconcile. Every row on every experiment is read off the page
+    here: the printed difference, compared with the printed tolerance, gives the printed verdict."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    num = lambda t: float(t.strip().replace("−", "-").replace("±", "").replace("+", ""))  # noqa: E731
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            checked = 0
+            for built in published["experiments"]:
+                _goto(page, built["id"])
+                cells = page.evaluate("[...document.querySelectorAll('#t-ref tbody tr:not(.group)')]"
+                                      ".map(tr => [...tr.cells].map(td => td.textContent))")
+                assert len(cells) == built["result"]["total"], built["id"]
+                for row, c in zip(built["result"]["rows"], cells):
+                    diff, tol, verdict = num(c[3]), num(c[4]), c[5]
+                    assert verdict == ("within" if row["within"] else "outside")
+                    assert (abs(diff) <= tol) == row["within"], (built["id"], row["label"], c)
+                    assert diff == pytest.approx(row["diff"], abs=0.006)              # and it is the difference
+                    checked += 1
+            assert checked == sum(x["result"]["total"] for x in published["experiments"])
+            big = {r["key"]: r for r in published["experiments"][7]["result"]["rows"]}["mean_profitability_big"]
+            assert 0.03 < big["diff"] < 0.035 and not big["within"]                   # the row the audit found
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_the_year_pickers_keep_the_period_whole_and_inside_the_data():
+    """One period helper for every layout (it was copied seven times). Picking From 2026 and then
+    To 2020 used to leave 2026-2026 without a word; picking To = the data's last year gave an end
+    month past the data, so the preset running to the latest month never showed pressed."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    settings = "window.LAB_STATE().settings"
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                years = page.evaluate("[...document.querySelectorAll('#c-to option')].map(o => o.value)")
+                page.click("#c-preset button[data-i='1']")                     # "After the paper": to the latest month
+                after = page.evaluate(settings)
+                middle = str(int(after["start"][:4]) + 3)
+                page.select_option("#c-to", middle)
+                assert page.evaluate(settings)["end"] == middle + "12"
+                page.select_option("#c-to", years[-1])                          # the data's last year: its last month
+                s = page.evaluate(settings)
+                assert (s["start"], s["end"]) == (after["start"], after["end"]), exp["id"]
+                assert page.get_attribute("#c-preset button[data-i='1']", "aria-pressed") == "true", exp["id"]
+                # From the last year, then To an earlier one: the start follows the end back
+                page.select_option("#c-from", years[-1])
+                s = page.evaluate(settings)
+                assert s["start"] == years[-1] + "01" and s["end"] == after["end"], exp["id"]
+                early = years[-7]
+                page.select_option("#c-to", early)
+                s = page.evaluate(settings)
+                assert (s["start"], s["end"]) == (early + "01", early + "12"), exp["id"]
+                assert page.input_value("#c-from") == page.input_value("#c-to") == early
+                # the first year starts at the data's first month, never before it
+                page.select_option("#c-from", years[0])
+                first = page.evaluate(settings)["start"]
+                assert first[:4] == years[0] and first >= years[0] + "01"
+                assert page.evaluate("window.LAB_STATE().result") is not None
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_a_chart_can_be_read_month_by_month_from_the_keyboard():
+    """The month-by-month readout answered only a pointer. Each line chart now takes focus; the
+    arrow keys, Home and End move its cursor; the sentence under it is a polite live region. And no
+    chart's label points at "the table below" unless the table below holds its figures."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    mon = lambda m: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(m[4:]) - 1] + " " + m[:4]  # noqa: E731
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                labels = page.evaluate("[...document.querySelectorAll('.chart, .chart svg')].map(e => e.getAttribute('aria-label') || '')")
+                if exp["kind"] not in ("sort", "split"):                         # their tables hold the bars' figures
+                    assert not any("table below" in l for l in labels), (exp["id"], labels)
+                if exp["kind"] not in ("risk-managed", "crashes", "factors", "combo"):
+                    continue
+                months = page.evaluate("window.LAB_STATE().result.months")
+                svg, read = "#ch-growth svg", "#ch-growth + .chart-read"
+                assert page.get_attribute(svg, "tabindex") == "0" and page.get_attribute(svg, "role") == "img"
+                assert "arrow keys" in page.get_attribute(svg, "aria-label")
+                assert page.get_attribute(read, "aria-live") == "polite"
+                page.focus(svg)
+                page.keyboard.press("End")
+                assert page.inner_text(read).startswith(mon(months[-1]) + ":"), exp["id"]
+                page.keyboard.press("Home")
+                assert page.inner_text(read).startswith(mon(months[0]) + ":")
+                page.keyboard.press("ArrowRight")
+                assert page.inner_text(read).startswith(mon(months[1]) + ":")
+                page.keyboard.press("ArrowLeft")
+                page.keyboard.press("ArrowLeft")                                 # held at the first month
+                assert page.inner_text(read).startswith(mon(months[0]) + ":")
+                assert page.evaluate("document.querySelector('#ch-growth .cursor').style.visibility") == "visible"
+                page.focus("#c-from")                                             # leaving the chart clears it
+                assert page.inner_text(read) == "Point at the chart to read any month."
+            # the size chart's figures are in no table below, so its label carries them
+            _goto(page, "size-effect")
+            label = page.get_attribute("#ch-bars", "aria-label")
+            means = page.evaluate("window.LAB_STATE().result.deciles.map(d => d.mean.toFixed(2))")
+            assert all(m.replace("-", "−") in label for m in means)
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_on_a_phone_no_table_slides_sideways():
+    """At 375 px the largest-fifth live table was 3 px wider than its column, so it slid under a
+    thumb. Every scene's tables now fit; the equations and the code are meant to scroll, and do."""
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw, width=375)
+        try:
+            for exp_id in ["overview"] + [x["id"] for x in fl.EXPERIMENTS]:
+                _goto(page, exp_id)
+                wide = page.evaluate("[...document.querySelectorAll('.tablewrap')].filter(w => w.scrollWidth > w.clientWidth)"
+                                     ".map(w => (w.querySelector('table') || {}).id)")
+                assert wide == [], (exp_id, wide)
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+            assert errors == []
+        finally:
+            browser.close()
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(published, tmp_path):
+    """The "Here" column of every comparison is computed in the browser (E.compare and the six
+    E.compare* functions) and must be the build's, row by row, to 1e-9 - with the same verdicts."""
+    script = tmp_path / "against.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "const rows = X => { const R = X.reference;\n"
+        "  if (X.kind === 'risk-managed') return E.compare(R, E.run(D.momentum, R), D.tolerances, D.stat_labels);\n"
+        "  if (X.kind === 'crashes') return E.compareCrashes(D.momentum, D.market, R);\n"
+        "  if (X.kind === 'factors') return E.compareFactors(D.factors, D.factor_keys, R);\n"
+        "  if (X.kind === 'size') return E.compareSize(D.size, R);\n"
+        "  if (X.kind === 'sort') return E.compareSort(D.sorts[X.sort.data], R);\n"
+        "  if (X.kind === 'split') return E.compareSplit(D[(X.split || {}).data || 'split'], R);\n"
+        "  if (X.kind === 'combo') return E.compareCombo(D.split, D.factors, R);\n"
+        "  throw new Error('no comparison for ' + X.kind); };\n"
+        "console.log(JSON.stringify(D.experiments.map(X => rows(X).map(r => [r.here, r.within]))));\n",
+        encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT)], capture_output=True, text=True, timeout=120)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    assert len(got) == len(published["experiments"])
+    for js, built in zip(got, published["experiments"]):
+        rows = built["result"]["rows"]
+        assert len(js) == len(rows), built["id"]
+        for (here, within), row in zip(js, rows):
+            assert here == pytest.approx(row["here"], rel=0, abs=1e-9), (built["id"], row["label"])
+            assert within == row["within"], (built["id"], row["label"])
+    html = PAGE.read_text(encoding="utf-8")
+    for fn in ("E.compareCrashes(", "E.compareFactors(", "E.compareSize(", "E.compareSort(", "E.compareSplit(", "E.compareCombo("):
+        assert fn in html, fn                                                       # the page fills its table from them
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for built in published["experiments"]:                                  # in step: no warning anywhere
+                _goto(page, built["id"])
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, built["id"]
+            # a build whose one published row has drifted from the page's arithmetic is called out
+            tamper = ("Object.defineProperty(window, 'LAB_DATA', { configurable: true, get() { return this.__d; },"
+                      " set(v) { v.experiments.forEach(x => { if (x.kind === 'sort' || x.kind === 'split' || x.kind === 'combo')"
+                      " x.result.rows[0].here += 0.5; }); this.__d = v; } });")
+            page2 = browser.new_page(viewport={"width": 1200, "height": 900})
+            page2.add_init_script(tamper)
+            for exp_id in ("profitability", "largest-fifth", "value-and-momentum"):
+                _goto(page2, exp_id)
+                assert page2.evaluate("document.getElementById('x-mismatch').hidden") is False, exp_id
+                assert "disagrees with the build" in page2.inner_text("#x-mismatch")
+            assert errors == []
+        finally:
+            browser.close()
+
+
+def test_a_verdict_note_does_not_repeat_the_count_the_verdict_prints():
+    """The verdict line prints "N of M figures match the paper"; experiments 12 and 13's notes
+    opened by saying it again in words."""
+    for exp in fl.EXPERIMENTS:
+        note = exp.get("verdict_note", "")
+        assert not re.match(r"\w+ of \w+ figures", note), exp["id"]
+    # and the comment on the momentum tolerances says what they are
+    src = (ROOT / "factor_lab.py").read_text(encoding="utf-8")
+    assert "a quarter of a tenth on a ratio" not in src and "0.05 on the Sharpe ratio" in src
+    assert fl.TOLERANCES["sharpe"] == 0.05
 
