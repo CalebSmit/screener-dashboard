@@ -83,6 +83,14 @@ statement, never louder than the primary action.
   a wide screen. Checked but deliberately unchanged: My Holdings stays above What Changed
   (`tests/test_holdings_panel.py::test_holdings_section_sits_above_what_changed` - a settled decision).
 
+## Phase 7 - DONE 2026-10-16 (owner-run, just after midnight)
+
+- **Link previews**: Open Graph and Twitter tags on the dashboard, `research.html` and `lab.html`, with
+  `og-card.png` (1200x630) rendered by `scripts/make_og_card.py`. The card states the product only - no
+  rank, score or return - so it cannot go stale. Decorative rising bars were tried and dropped: on an
+  investment product they read as implied returns.
+- **Track record tile** says the record's length beside the number: "8 months, too short to judge".
+
 ## Next (in order)
 
 1. **Typography and rhythm**: one type scale across the page (title 40 / section 17 / body 15 / caption

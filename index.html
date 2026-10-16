@@ -6,6 +6,16 @@
     <title>Multi-Factor Screener · S&amp;P 500 factor rankings</title>
     <meta name="description" content="Every S&amp;P 500 stock scored on eight factors against its own sector, with the numbers behind every score. A research and teaching tool, not investment advice.">
     <meta name="theme-color" content="#0d0d0d">
+    <!-- how a pasted link previews (2026-10-15); og-card.png is made by scripts/make_og_card.py -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Multi-Factor Screener">
+    <meta property="og:title" content="The S&amp;P 500, ranked on eight factors">
+    <meta property="og:description" content="Every S&amp;P 500 company scored against its own sector on eight factors, with every number behind every score one click away. Decision support, not investment advice.">
+    <meta property="og:url" content="https://calebsmit.github.io/screener-dashboard/">
+    <meta property="og:image" content="https://calebsmit.github.io/screener-dashboard/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -8482,7 +8492,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const kv = document.getElementById('kpi-track-v'), ks = document.getElementById('kpi-track-s');
             if (kv && ks) {
                 kv.textContent = f(tot.top);
-                ks.textContent = 'top 25 since ' + cDate(T.start) + ', against ' + f(tot.RSP) + ' for the equal-weight S&P 500';
+                const mo = Math.max(1, Math.round((T.days || 0) / 30.4));
+                ks.textContent = 'top 25, vs ' + f(tot.RSP) + ' equal-weight S&P 500 · ' + mo + ' months, too short to judge';
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
                     card.onclick = () => goToSection('sec-track');
