@@ -10094,6 +10094,32 @@ def _load_methodology_html() -> str:
         return f"<pre>{html_mod.escape(md_text)}</pre>"
 
 
+def json_safe(obj):
+    """``obj`` with every NaN / Infinity replaced by None, recursively (dicts, lists, tuples).
+
+    Python's ``json.dumps`` writes a non-finite float as the bare token ``NaN`` / ``Infinity``,
+    which a browser's JavaScript accepts but **JSON does not**: a strict parser - the trading
+    bot reading ``dashboard_data.js`` (CLAUDE.md, downstream consumer), ``JSON.parse``, Python's
+    ``json.loads(..., parse_constant=...)`` - refuses the whole file over one value. ``null`` is
+    what the page already reads as "no value". 2026-10-16.
+    """
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [json_safe(v) for v in obj]
+    return obj
+
+
+def payload_json(obj, separators=None) -> str:
+    """Serialise a published payload as **valid JSON**: non-finite floats become ``null``
+    (``json_safe``) and ``allow_nan=False`` makes any that slip past raise instead of being
+    written. ``default=str`` as before, for dates and other non-JSON scalars.
+    ``tests/test_payload_valid_json.py``."""
+    return json.dumps(json_safe(obj), separators=separators, default=str, allow_nan=False)
+
+
 def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     """Generate dashboard HTML for a given run directory.
 
@@ -10125,8 +10151,8 @@ def generate_dashboard(run_dir: Path, output_path: Path = None) -> Path:
     # The context layer ships in its own file, loaded after the page is usable.
     _full = json.loads(data_json)
     ctx_payload = split_context(_full)
-    data_json = json.dumps(_full, default=str)
-    ctx_json = json.dumps(ctx_payload, separators=(",", ":"), default=str)
+    data_json = payload_json(_full)
+    ctx_json = payload_json(ctx_payload, separators=(",", ":"))
     data_version = hashlib.md5(data_json.encode("utf-8")).hexdigest()[:12]
     context_version = hashlib.md5(ctx_json.encode("utf-8")).hexdigest()[:12]
     html = generate_html(methodology_html=methodology_html, data_timestamp=data_timestamp,
