@@ -26,6 +26,7 @@ research note and a changelog entry are still the only route to a weight.
 Usage::
 
     python v2_experiments.py run [ID ...]     # run registered experiments (all if none named)
+    python v2_experiments.py evaluate [ID ...] # run registered evaluations (a trading rule's record)
     python v2_experiments.py report           # rewrite research/experiments/RESULTS.md
 
 Reads ``cache/v2_metrics/<month>.parquet`` (written by ``backtest_v2.py``) and
@@ -33,12 +34,15 @@ Reads ``cache/v2_metrics/<month>.parquet`` (written by ``backtest_v2.py``) and
 """
 from __future__ import annotations
 
+import contextlib
 import copy
 import hashlib
+import io
 import json
 import math
 import subprocess
 import sys
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -273,13 +277,41 @@ def run(ids: list[str] | None = None) -> list[dict]:
 
 
 # --------------------------------------------------------------------------- the report
-def _presample_cells(s: dict) -> str:
+def _z_two_sided(alpha: float) -> float:
+    """The normal quantile for a two-sided test at ``alpha`` (bisection on erfc; no scipy)."""
+    lo, hi = 0.0, 10.0
+    for _ in range(100):
+        mid = (lo + hi) / 2
+        if math.erfc(mid / math.sqrt(2)) > alpha:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def detectable(se: float | None, n_tests: int) -> float | None:
+    """The smallest true difference a comparison with standard error ``se`` detects 80% of the time
+    at the engine's bar (Bonferroni over ``n_tests`` and |t| >= 3). "Not distinguishable" means
+    "smaller than this", never "equal" - plan/research-engine.md queue item 2 (2026-10-15)."""
+    if not se:
+        return None
+    return round((max(_z_two_sided(0.05 / max(n_tests, 1)), HLZ_T) + 0.84) * se, 4)
+
+
+def _vs_cell(vs: dict, n_tests: int) -> str:
+    if not vs:
+        return "-"
+    d = detectable(vs.get("se"), n_tests)
+    return f"{vs.get('mean', 0):+.3f} ({vs.get('t')}" + (f"; sees {d:.3f})" if d is not None else ")")
+
+
+def _presample_cells(s: dict, n_tests: int = 1) -> str:
     p = s.get("presample")
     if not p:
         return " | "
     vs = p.get("ic_vs_baseline", {})
     return (f"{p['ic'].get('mean', 0):+.3f} ({p['ic'].get('t')})"
-            + (f" | {vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else " | -"))
+            + " | " + _vs_cell(vs, n_tests))
 
 
 
@@ -327,6 +359,185 @@ def verdict_presample(e: dict, res: dict, n_tests: int) -> str:
     return "not distinguishable in 2012-2019"
 
 
+# --------------------------------------------------------------------------- evaluations
+# An *evaluation* asks a different question from an experiment: not "does this weighting rank
+# better" but "what would this construction rule have done" - the trading bot's own rule, on the
+# baseline's rankings. Registered the same way (``registry.yaml`` ``evaluations:``), kept in the same
+# ledger, judged against a prediction written before the run. Added 2026-10-15
+# (plan/research-engine.md queue item 4).
+def load_evaluations() -> list[dict]:
+    return yaml.safe_load(REGISTRY.read_text(encoding="utf-8")).get("evaluations") or []
+
+
+def bot_month_inputs(months: dict, cfg: dict) -> dict:
+    """Each month's ranking with what the bot reads: rank, sector and the two trap flags, set by
+    the engine's own functions in the live run's order (composite, flags, rank)."""
+    out = {}
+    for m, (metrics, state) in months.items():
+        r = v2.rank_month(metrics.copy(), cfg, state)
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            r = v2.fe.apply_value_trap_flags(r, cfg)
+            r = v2.fe.apply_growth_trap_flags(r, cfg)
+        out[m] = r[["Ticker", "Rank", "Sector", "Value_Trap_Flag", "Growth_Trap_Flag"]].sort_values("Rank")
+    return out
+
+
+def simulate_bot(inputs: dict, fwd: pd.DataFrame, rule: dict, start_equity: float = 100_000.0) -> pd.DataFrame:
+    """The bot's ``plan_rebalance`` (screener-bot ``bot/strategy.py``, v1.1) applied once a month.
+
+    Exits: a holding ranked worse than ``sell_rank``, or missing from the month's ranking, is sold.
+    Entries: empty slots up to ``target_count`` are filled from the best-ranked names not held before
+    the month's sells, skipping trap-flagged names and any that would put more than
+    ``max_per_sector`` in one sector, each sized at the smaller of an equal share of equity after the
+    cash reserve and an equal share of the cash available. No new buys while equity is
+    ``drawdown_halt_pct`` below its peak. Every traded dollar costs ``cost_bps``. Positions drift with
+    their returns between months; cash earns nothing.
+
+    Differences from the live bot, all stated in the report: monthly, not weekly; a name missing from
+    a month's ranking is sold at once (the bot waits a few runs); no order-size cap or minimum."""
+    target, sell_rank = int(rule["target_count"]), int(rule["sell_rank"])
+    cap, reserve = int(rule["max_per_sector"]), float(rule["cash_reserve_pct"]) / 100
+    cost, halt = float(rule["cost_bps"]) / 10_000, float(rule["drawdown_halt_pct"]) / 100
+    pos: dict[str, float] = {}
+    cash, peak = start_equity, start_equity
+    rows = []
+    for m in sorted(inputs):
+        if m not in fwd.index:
+            continue
+        g = inputs[m]
+        ranks = dict(zip(g["Ticker"], g["Rank"]))
+        sector = dict(zip(g["Ticker"], g["Sector"]))
+        equity = cash + sum(pos.values())
+        peak = max(peak, equity)
+        held_before = set(pos)
+        traded = 0.0
+        for t in sorted(pos):
+            if t not in ranks or ranks[t] > sell_rank:
+                v = pos.pop(t)
+                cash += v * (1 - cost)
+                traded += v
+        halted = equity < peak * (1 - halt)
+        bought = 0
+        if not halted and target - len(pos) > 0:
+            slots = target - len(pos)
+            counts: dict = {}
+            for t in pos:
+                counts[sector.get(t)] = counts.get(sector.get(t), 0) + 1
+            cands = []
+            for t, s, vt, gt in zip(g["Ticker"], g["Sector"], g["Value_Trap_Flag"], g["Growth_Trap_Flag"]):
+                if len(cands) == slots:
+                    break
+                if t in held_before or bool(vt) or bool(gt):
+                    continue
+                if cap and counts.get(s, 0) >= cap:
+                    continue
+                counts[s] = counts.get(s, 0) + 1
+                cands.append(t)
+            if cands:
+                each = min(equity * (1 - reserve) / target, max(cash - equity * reserve, 0) / len(cands))
+                if each > 0:
+                    for t in cands:
+                        pos[t] = each * (1 - cost)
+                        cash -= each
+                        traded += each
+                    bought = len(cands)
+        r = fwd.loc[m]
+        for t in pos:
+            x = r.get(t)
+            pos[t] *= 1 + (float(x) if pd.notna(x) else 0.0)
+        after = cash + sum(pos.values())
+        uni = r.reindex(g["Ticker"]).astype(float)
+        rows.append({"month": m, "ret": after / equity - 1, "universe": float(uni.mean()),
+                     "index": float(r.get("^SP500TR")) if pd.notna(r.get("^SP500TR")) else np.nan,
+                     "turnover": traded / 2 / equity, "held": len(pos), "bought": bought,
+                     "halted": bool(halted)})
+    out = pd.DataFrame(rows).set_index("month")
+    out["excess"] = out["ret"] - out["universe"]
+    out["excess_index"] = out["ret"] - out["index"]
+    return out
+
+
+def _drawdown(rets: pd.Series) -> float | None:
+    rets = rets.dropna()
+    if len(rets) < 2:
+        return None
+    w = (1 + rets).cumprod()
+    return round(float((w / w.cummax() - 1).min()), 4)
+
+
+def summarise_evaluation(pm: pd.DataFrame) -> dict:
+    out = {}
+    for name, (a, b) in (("discovery", DISCOVERY), ("holdout", HOLDOUT), ("all", SAMPLE),
+                         ("presample", PRESAMPLE)):
+        sl = pm[(pm.index >= a) & (pm.index <= b)]
+        if len(sl) < 3:
+            continue
+        out[name] = {"ret": _stats(sl["ret"]), "excess": _stats(sl["excess"]),
+                     "excess_index": _stats(sl["excess_index"]),
+                     "turnover_a_year": round(float(sl["turnover"].mean() * 12), 3),
+                     "max_drawdown": _drawdown(sl["ret"]), "universe_max_drawdown": _drawdown(sl["universe"]),
+                     "months_halted": int(sl["halted"].sum()), "mean_held": round(float(sl["held"].mean()), 1)}
+    return out
+
+
+def run_evaluations(ids: list[str] | None = None) -> list[dict]:
+    evs = load_evaluations()
+    if ids:
+        unknown = [i for i in ids if i not in {e["id"] for e in evs}]
+        if unknown:
+            raise SystemExit(f"not registered (register before running): {unknown}")
+    months = load_months()
+    fwd = forward_returns(sorted(months))
+    vintage = data_fingerprint(months)
+    cfg0 = base_config()
+    inputs = bot_month_inputs(months, cfg0)
+    results = []
+    for e in evs:
+        if ids and e["id"] not in ids:
+            continue
+        pm = simulate_bot(inputs, fwd, e["rule"])
+        res = {"id": e["id"], "kind": "evaluation", "run_at": datetime.now().isoformat(timespec="seconds"),
+               "commit": git_commit(), "months": int(len(pm)), **vintage, "summary": summarise_evaluation(pm)}
+        with LEDGER.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(res) + "\n")
+        results.append(res)
+        for p, s in res["summary"].items():
+            print(f"{e['id']} {p}: excess vs universe {s['excess'].get('mean')} (t {s['excess'].get('t')}), "
+                  f"turnover {s['turnover_a_year']}/yr, max dd {s['max_drawdown']}", flush=True)
+    return results
+
+
+def _evaluation_lines(latest: dict) -> list[str]:
+    evs = load_evaluations()
+    if not evs:
+        return []
+    lines = ["", "## Evaluations - what a construction rule would have done", "",
+             "The baseline's rankings, run through a trading rule month by month. Excess is against the "
+             "equal-weighted average of every stock ranked that month; *vs index* against the S&P 500 "
+             "total-return index. Costs included; no taxes.", "",
+             "| Evaluation | Period | Return a month | Excess vs universe (t) | vs index (t) | Turnover a year | Max drawdown (universe) | Months halted |",
+             "|---|---|---|---|---|---|---|---|"]
+    for e in evs:
+        r = latest.get(e["id"])
+        if not r:
+            lines.append(f"| {e['id']} | not run | | | | | | |")
+            continue
+        for p in ("discovery", "holdout", "presample"):
+            s = r["summary"].get(p)
+            if not s:
+                continue
+            lines.append(f"| {e['id']} | {p} | {s['ret'].get('mean', 0) * 100:+.2f}% | "
+                         f"{s['excess'].get('mean', 0) * 100:+.2f}% ({s['excess'].get('t')}) | "
+                         f"{s['excess_index'].get('mean', 0) * 100:+.2f}% ({s['excess_index'].get('t')}) | "
+                         f"{s['turnover_a_year'] * 100:.0f}% | {s['max_drawdown']} ({s['universe_max_drawdown']}) | "
+                         f"{s['months_halted']} |")
+    for e in evs:
+        lines += ["", f"**{e['id']}** - predicted: {e.get('prediction', '')} Differences from the live rule: "
+                  f"{e.get('differences', '')}"]
+    return lines
+
+
 def report() -> Path:
     reg = load_registry()
     latest = {}
@@ -352,7 +563,10 @@ def report() -> Path:
               else "**Data: the rows below ran on more than one version of the monthly records ("
                    + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
                    "rows of different versions do not compare with each other. Rerun to bring them level."), "",
-             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t) | Top tenth vs universe, held out | Verdict | IC, 2012-19 | 2012-19 vs baseline (t) | 2012-19 verdict |",
+             "*sees* is the smallest true IC difference that comparison would detect 80% of the time at the "
+             "bar above. A row that is \"not distinguishable\" would usually have caught a difference that "
+             "large; it says nothing about smaller ones.", "",
+             "| Experiment | Predicted | IC, discovery | IC, held out | Held out vs baseline (t; sees) | Top tenth vs universe, held out | Verdict | IC, 2012-19 | 2012-19 vs baseline (t; sees) | 2012-19 verdict |",
              "|---|---|---|---|---|---|---|---|---|---|"]
     for e in reg:
         r = latest.get(e["id"])
@@ -363,21 +577,25 @@ def report() -> Path:
         vs = s["holdout"].get("ic_vs_baseline", {})
         lines.append(f"| {e['id']} | {e.get('prediction', '')} | {s['discovery']['ic'].get('mean', 0):+.3f} | "
                      f"{s['holdout']['ic'].get('mean', 0):+.3f} | "
-                     + (f"{vs.get('mean', 0):+.3f} ({vs.get('t')})" if vs else "-")
+                     + _vs_cell(vs, n)
                      + f" | {s['holdout']['top_minus_universe'].get('mean', 0) * 100:+.2f}% a month | {verdict(e, r, n)} | "
-                     + _presample_cells(s) + f" | {verdict_presample(e, r, n)} |")
+                     + _presample_cells(s, n) + f" | {verdict_presample(e, r, n)} |")
     lines += ["", "Each row's hypothesis and source are in `registry.yaml`.", ""]
+    lines += _evaluation_lines(latest)
+    lines += [""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
     return RESULTS
 
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if not argv or argv[0] not in ("run", "report"):
+    if not argv or argv[0] not in ("run", "evaluate", "report"):
         print(__doc__)
         return 2
     if argv[0] == "run":
         run(argv[1:] or None)
+    elif argv[0] == "evaluate":
+        run_evaluations(argv[1:] or None)
     report()
     print(f"wrote {RESULTS.relative_to(ROOT)}")
     return 0

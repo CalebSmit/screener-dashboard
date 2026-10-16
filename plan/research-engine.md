@@ -42,13 +42,15 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `--merge 4`), rerun every experiment. The reuse guard covers 2014-2019 only today; IR in
    2020-01/02 is the known case it would catch. Expect no change in any verdict - which is the point
    of checking.
-2. **Show power next to every verdict.** Add a column to `RESULTS.md`: the smallest IC difference
+2. **DONE 2026-10-15: every comparison in `RESULTS.md` prints what it could see (`; sees`,
+   `v2_experiments.detectable`).** Kept for the record: Add a column to `RESULTS.md`: the smallest IC difference
    each comparison could detect at the bar (from its own paired standard error). A reader should not
    be able to read "not distinguishable" without seeing what that excludes.
 3. **Robustness of the statistics.** The t-statistics assume months are independent. Measure the
    autocorrelation of the paired IC differences; if any lag-1 exceeds ~0.2, report Newey-West
    t-statistics beside the plain ones. A block bootstrap of the baseline's IC is the cross-check.
-4. **The bot's own rule.** Register the trading bot's selection rule (read it from
+4. **DONE 2026-10-15 (note section 9): the bot's rule lagged the equal-weighted universe in every
+   period.** Kept for the record: Register the trading bot's selection rule (read it from
    `CalebSmit/screener-bot`'s `STRATEGY_LOG.md` - do not change the bot) as an evaluation: its top-N,
    equal weight, monthly, against the equal-weighted universe, with a stated cost assumption, on
    both periods. Predicted before it runs. This answers "what should the owner expect from the bot"

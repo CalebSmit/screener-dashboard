@@ -11661,5 +11661,10 @@ run against each other - so it can be shown to people and trusted (a bot first, 
   3.51% a month 2012-2019; 4.79% vs 5.19% 2020-2026) at no measurable return cost - what the page
   claims for it. No change.
 - Months of record to show an IC of 0.05 at t >= 3: ~85; of 0.03: ~236. Said in the note, section 5.
+- **The bot's own rule as a registered evaluation** (`v2_experiments.py evaluate`, registered 19:25 before
+  its run): it lagged the equal-weighted universe by -0.72%/mo (t -2.70) in 2020-2023, -0.22% held out,
+  -0.15% in 2012-2019; a plain top 25 lagged by -0.49% / -0.12% / +0.01%, so most of it is the
+  ranking's top in growth-led years. Prediction wrong on the first period and on turnover (174%/yr).
+  No bot change. Note section 9.
 - Survivorship is now v2's binding limit; the deferred delisted-price feed has a concrete use.
 
