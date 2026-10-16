@@ -242,6 +242,17 @@ would do ... no signs of ai language anywhere, or that it looks like it was vibe
   display only): a spaced en dash, or a true minus inside a formula's parentheses. The data and its tests
   are unchanged. "The ones that do not are shown, not hidden" is "The rest are published as misses."
 
+### P6 - finish details
+
+- **Favicons** on the research page and the lab (their tabs showed the browser's generic icon); the lab's tab
+  title follows the other two ("Factor Lab · Multi-Factor Screener").
+- **The workings' row chevron** (a text "▾") is the shared chevron, the fifth glyph to go.
+- **Before you decide** packs its cards (`grid-auto-flow: dense`): a half-width card had left a hole beside it.
+  Values stay on one line ("−0.8 pts" wrapped), and the label column uses normal figures, so "out-of-the-money"
+  no longer has widened hyphens; the value column stays tabular.
+- **The weight-profile notes** read "Bank weighting: ..." and "Piotroski halved: ..." (they printed "bank
+  weighting - banks and ..."); `factor_engine.WEIGHT_PROFILE_LABELS`, live with the next data run.
+
 ## Next (in order)
 
 1. **Typography and rhythm**: done (phases 13-14).

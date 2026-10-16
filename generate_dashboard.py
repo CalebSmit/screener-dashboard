@@ -9808,6 +9808,14 @@ def _css_investor() -> str:
             content: ''; width: 12px; height: 12px; flex: none; background: currentColor; transform: rotate(-90deg);
             -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
         .why-panel[open] > summary::before, details.holdings-concentration[open] > summary::after { transform: none; }
+        .cat-detail-header .wk-chevron { font-size: 0; width: 14px; height: 14px; vertical-align: middle; background: var(--text-muted);
+            -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat; }
+        /* Before you decide: a half-width card left a hole beside it when the next card was full width */
+        .ctx-grid { grid-auto-flow: row dense; }
+        .ctx-card td:last-child { white-space: nowrap; padding-left: 12px; }
+        /* tabular figures where they align - the value column - and normal figures in the label, which is prose:
+           Inter's tabular setting widened every hyphen in "out-of-the-money" */
+        .ctx-table td:first-child, .ctx-fs { font-variant-numeric: normal; }
         .why-panel > summary { display: inline-flex; align-items: center; gap: 8px; }
         /* the Methodology dialog names the document in its header, so the document's own title, subtitle and
            rule are not repeated under it; the run's momentum reading is a quiet note, not body text */

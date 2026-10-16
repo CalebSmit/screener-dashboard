@@ -3249,12 +3249,12 @@ CAT_METRICS = {
 # explains a weight lives next to the code that applies it.
 WEIGHT_PROFILE_LABELS = {
     "generic": "the standard metric weights",
-    "bank": "bank weighting - banks and insurers are scored on P/B, ROE, ROA and "
+    "bank": "Bank weighting: banks and insurers are scored on P/B, ROE, ROA and "
             "equity ratio instead of EV-based and operating metrics",
-    "pio_lowval": "Piotroski halved - its valuation score is below the "
+    "pio_lowval": "Piotroski halved: its valuation score is below the "
                   "threshold, so the F-Score carries less weight and the freed "
                   "weight moves to other quality metrics",
-    "pio_gt": "Piotroski halved - high growth with low quality, so the F-Score "
+    "pio_gt": "Piotroski halved: high growth with low quality, so the F-Score "
               "carries less weight and the freed weight moves to other quality metrics",
 }
 
