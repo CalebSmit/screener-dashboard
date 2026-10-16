@@ -12209,3 +12209,68 @@ macro backdrop and the track record), then item 6, track-record hardening. It ha
 roadmap item for 8 days and was deferred today for the proposal, which Orient ranks first; no
 proposal is open now (`write_brief.open_proposals()` returns `[]`), so the next session should take
 it unless a new one appears.
+
+## 2026-10-16 (owner-run, afternoon) - five audits and eight fix agents: screener, research page, Factor Lab, trading bot
+
+**Health (rule 8):** last code session ran? **yes** - `logs/nightly-2026-10-16_130001-midday.log` ends "Run
+complete: shipped to main". Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` "Data loop
+complete", HEALTH: PASS. Evidence base at `1m` = **30 rows, newest 2026-09-15 (31 days, bound 40), 4 effective**
+(after this session's horizon repair; it read 31 / 2026-09-16 / 4 before). Priority 0: `allow_auto_apply`
+**false**, 4 of 8. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 8 days**) - not
+touched; the owner asked for this pass.
+
+**Owner:** *"look for any types of improvements that can be made to either the screener, trading bot, if it has
+been tested, factor lap. Try to deploy a bunch of agents to get alot done here in this pass"*
+
+### How
+Five read-only audit agents (engine, dashboard function, research engine, Factor Lab, bot), each told the
+settled decisions it could not propose against and asked for measured evidence. Eight fix agents then worked in
+isolated worktrees on non-overlapping files; every branch was reviewed, merged, and the four gates plus
+`rehearse_publish.py` run on the combined tree before each push (`good/2026-10-16-owner-18` and `-19`; full
+suite 2,622 passed at the second). `.claude/worktrees/` is now gitignored (untracked, it failed gate 4 and would
+have been swept into the data loop's stash).
+
+### Did - screener
+- **Evidence base** (`improvement_engine.py`): forward returns were measured to a close one trading day before
+  the horizon end (the loop runs before the close) and silently re-measured at day 90. Now measured only to a
+  close that exists, looking forward, once; `scripts/repair_forward_return_horizons.py` repaired the history.
+  24 `1m` IC rows moved (largest 0.059, median 0.024); effective observations unchanged. Changelog 2026-10-16.
+- **Publish gate** (`scripts/check_run_health.py`): it could approve yesterday's published payload when today's
+  was missing, and compare yesterday's snapshots. It now judges only the run's own artifacts; one latest-run rule
+  (`run_context.latest_run_dir`) for gate and generator; pruning keeps real runs (dry-run husks had evicted
+  yesterday's full run); payloads are strict JSON (NaN -> null).
+- **Piotroski**: the growth-trap variant could never fire (0 of 501) and was removed; the page now states the
+  real 29:22 split (it said "equally"), registered as a claim. The data-quality coverage figure is the engine's
+  (98.9%, not 95.5%); hand-typed metric lists in the safeguards read the weighted sets. No score changed
+  (rescored all 501).
+- **Dashboard** (10 fixes): keyboard-operable sections with no invisible tab stops; My Holdings keeps a saved name
+  that left the index (WBD was being erased - settled row 5 updated); non-blocking fonts on all three pages; the Δ
+  column reads the one-month comparison and colours only moves past the noise threshold; the track tile shows the
+  S&P 500 (+12.8%, which beat the top 25) beside the equal-weight index; Back works after closing a sheet;
+  dialog-aware "/" and Esc; honest context-failure states; `#stock=BRK.B` works.
+- **Research page**: Size's survivorship explanation is now a hypothesis (coverage tracks time at r 0.998); seven
+  experiments whose 2020-26 outcome was committed before registration are marked, with a guard in `run`; "same
+  stocks" corrected to "paired by month"; headline intervals and the pass bar shown; within-sector constructions
+  labelled; Student's t replaces the normal approximation (no verdict changed). Queued, specified, not built:
+  month-intersection pairing with a full rerun, provenance hardening, a recorded positive control, the free
+  survivorship rebuild with a pre-registerable prediction (`plan/research-engine.md` 8a-8e).
+- **Factor Lab**: "See every figure" no longer dumps the reader on the overview; each experiment says when its
+  tolerances were written; each says how many figures a no-effect result would match (cash-flow yield: 6 of 11);
+  printed differences agree with their verdicts; one period picker; keyboard charts; the browser now recomputes
+  every comparison row and warns on drift. No paper value or tolerance moved.
+
+### Did - screener-bot (separate repo, pushed; tests 290 on GitHub too)
+- Refuses to rebalance while any bot order is open, with fixed weekly order ids (a same-day retry had been able to
+  open $196k of buys on $100k); refuses bad prices and malformed fields (a missing trap flag read as "not a trap");
+  the sim follows the exchange calendar.
+- Alpaca closes were recorded one session late (confirmed to the cent); fixed with a New York session date and a
+  cross-check; three committed rows are listed in a correction note, rows untouched. The test gate runs in its own
+  job without the keys; installs and actions pinned; the journal push retries and falls back to an artifact.
+  A dry-run dispatch on GitHub passed both jobs with no trades.
+
+### Not done / next
+- Bank ROE and ROA computed in-house (audit finding; a definition change, needs a research note first).
+- The research engine's queued items 8a-8e; new lab experiment: asset growth (Cooper, Gulen & Schill 2008) for the
+  open Growth composition question.
+- Bot: corporate-action handling in the sim (renames, split guesses); the calendar ends in 2028.
+- The bot worktree folders `screener-bot-wt-*` could not be deleted (OneDrive lock); they are outside both repos.
