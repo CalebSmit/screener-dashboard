@@ -124,10 +124,11 @@ this can see. So
 "not distinguishable" here is not "no difference"; it is "no difference large enough to see".
 
 **How long a record would it take?** The baseline's IC moves about **0.12** from month to month
-(0.123 in 2020-2026, 0.100 in 2012-2019). With 80% power, a true monthly IC of **0.05** - "good" by
-Grinold & Kahn's rule of thumb - needs about **45 months** to show at the conventional 5% level and
-**85 months (7 years)** at t >= 3; an IC of **0.03** needs **125 months (10.5 years)** and **236 (20
-years)**. That arithmetic applies to the live track record too: no monthly large-company screen,
+(0.123 in 2020-2026, 0.100 in 2012-2019). With 80% power and the 2020-2026 spread, a true monthly IC
+of **0.05** - "good" by Grinold & Kahn's rule of thumb - needs about **47 months** to show at the
+conventional 5% level and **89 months (7½ years)** at t >= 3; an IC of **0.03** needs **132 months
+(11 years)** and **248 (about 20 years)**. (These are the figures `research.html` computes from the
+ledger; an earlier draft rounded the spread to 0.12 and quoted 45, 85, 125 and 236.) That arithmetic applies to the live track record too: no monthly large-company screen,
 this one included, can prove a realistic edge from its own record in less than several years. Its
 credibility in the meantime has to rest on the published long-run evidence for each factor (the
 Lab), on process (this engine), and on stating the uncertainty - which is also what institutional
@@ -169,8 +170,9 @@ What the batches do say, as research questions rather than findings:
    eras (+0.05 and -0.22 points a month). A smoother ride at no measurable cost is what the page
    says Risk is for. No change.
 4. **Survivorship is now the binding limit**, not look-ahead. At 58% coverage in 2012 the period
-   before the sample is less reliable than the one it tests. The $199/yr delisted-price feed deferred
-   on 2026-09-30 now has a concrete use: it would let the 2012-2019 test carry the stocks that left.
+   before the sample is less reliable than the one it tests. A paid delisted-price feed would close
+   it; the owner decided on 2026-10-15 to use no paid data, so the gap is stated beside every result
+   it touches and free ways to narrow it are the queue's job.
 
 ## 7. What the owner can show people
 

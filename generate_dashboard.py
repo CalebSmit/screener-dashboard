@@ -1605,6 +1605,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="hero-actions">
                 <button type="button" class="hero-btn hero-btn-primary" onclick="goToSection('sec-universe')">Browse the rankings</button>
                 <button type="button" class="hero-btn" onclick="openMethodology()">How it works</button>
+                <a class="hero-btn hero-link" href="research.html" title="The ranking tested on 2012-2026 history">Has it been tested?</a>
+                <a class="hero-btn hero-link" href="lab.html" title="The research behind the screener, rerun">Factor Lab</a>
             </div>
         </section>
 
@@ -2107,6 +2109,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <nav class="footer-links" aria-label="Footer">
                 <a href="#" onclick="openMethodology();return false;">Methodology</a>
                 <a href="lab.html">Factor Lab</a>
+                <a href="research.html">Has it been tested?</a>
                 <a href="#" onclick="openShortcuts();return false;">Keyboard shortcuts</a>
                 <a href="#" onclick="showGuide();return false;">How to read this</a>
             </nav>
@@ -7778,6 +7781,7 @@ def _js_ux() -> str:
         { label: 'Defensibility and diagnostics', hint: 'Section', run: () => goToSection('sec-defensibility') },
         { label: 'Methodology', hint: 'How it works', run: () => openMethodology() },
         { label: 'Factor Lab', hint: 'Rerun the research', run: () => { window.location.href = 'lab.html'; } },
+        { label: 'Has it been tested?', hint: 'The ranking on 2012-2026 history', run: () => { window.location.href = 'research.html'; } },
         { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
         { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
         { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
@@ -8394,6 +8398,12 @@ def _css_ux() -> str:
     finding every earlier rule. Plain string: no backslash escapes, literal glyphs.
     """
     return """
+        /* ---- HERO: the two companion pages (2026-10-15). The header nav fills its row at 1440px,
+           so they sit with the hero's buttons; on a phone the four make a two-by-two grid ---- */
+        a.hero-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; white-space: nowrap; }
+        a.hero-link:hover { text-decoration: none; }
+        @media (max-width: 760px) { .hero .hero-actions { display: grid; grid-template-columns: 1fr 1fr; } .hero .hero-actions .hero-btn { width: 100%; } }
+
         /* ---- HEADER: search button, active section ---- */
         .cmdk-btn {
             display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px;
@@ -9356,7 +9366,7 @@ def _js_context() -> str:
                   ((T.filled.from_records || []).length ? (Object.keys(T.filled.renamed || {}).length ? '; ' : '') +
                       'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, until they stopped (' +
                       escapeHtml(T.filled.from_records.join(', ')) + ') - price only, without dividends' : '') + '. ' : '') +
-            'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology.</div>';
+            'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
         host.innerHTML = h;
     }
 

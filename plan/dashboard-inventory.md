@@ -13,6 +13,19 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Added 2026-10-15 (owner-run, night) - the evidence and the lab, one click from the top
+
+- **`research.html` - "Has it been tested?"** A companion page (like `lab.html`), **generated** by
+  `research_page.py` from the research engine's ledger whenever `python v2_experiments.py report` runs:
+  the ranking's mean monthly IC per era, every pre-registered alternative against it (a dot plot with
+  the detectable band), the trading bot's rule, the months of record needed to prove an edge, what is
+  and is not supported. `tests/test_research_page.py` (committed page = regenerated page; numbers =
+  `summary.json`; no advice terms; links resolve).
+- **Hero buttons:** "Has it been tested?" and "Factor Lab" beside "Browse the rankings" and "How it
+  works" (a 2x2 grid under 760px). Not in the header: at 1440px the section nav already fills its row
+  (measured: scrollWidth 739 = clientWidth 739), and two buttons there cut "Track record" off.
+  Also in the footer links and the search palette; the track record's caveat links the long test.
+
 ## Added 2026-10-09 (owner-run)
 
 - **Weighting selector** on the rankings table (`#filter-profile`): Balanced (published) / Value /

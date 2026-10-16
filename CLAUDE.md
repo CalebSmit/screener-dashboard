@@ -224,6 +224,10 @@ improving.
    generator. `index.html` is what Pages serves. (`lab_data.js` is generated too, by
    `factor_lab.py --build`; `lab.html` and `lab_engine.js` are source.)
 
+   **`research.html` is generated too** (2026-10-15) - by `research_page.py`, called from
+   `python v2_experiments.py report`; `tests/test_research_page.py` fails if the committed page is
+   not exactly what the ledger produces.
+
    **`SCREENER_OVERVIEW.md` is also generated** - added 2026-09-28, because
    this list not naming it cost the project a live regression. It is written by
    `build_screener_overview()` in `run_screener.py` (step 11) on **every full
@@ -951,8 +955,9 @@ point-in-time data. `lookahead.weight_buckets(cfg)` is the live figure.)*
 SEC EDGAR's XBRL `companyconcept` endpoint, which is free and carries a `filed`
 date per fact; expect the 9.0pp of analyst-estimate metrics to have no free
 retrospective source and to be reportable only as permanently unmeasurable.
-**Do not buy the $199/yr delisted-price feed first** - spending it to cut an
-11.4% bias while a >= 63.2% one is untouched buys nothing a reader can use.
+**Do not buy the $199/yr delisted-price feed** - the owner decided 2026-10-15 to use **no paid data**
+(*"not spend any money if possible on top of a claude subscription"*); survivorship is narrowed with free
+sources or stated, never bought.
 
 *Four things not to undo:* `lookahead.py` is a **diagnostic** and must never be
 imported by production code (a half-fixed backtest is what the plan forbids);
