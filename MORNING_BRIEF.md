@@ -1,4 +1,4 @@
-# Morning Brief - Friday 16 October 2026, 02:23
+# Morning Brief - Friday 16 October 2026, 06:42
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -29,44 +29,70 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
 ## What changed in the repo
 
+- `aa2b114 log: flag the one exposure the widened publish gate adds`
+- `8afcf10 log: the 2026-10-16 retrospective - 54 of 55 sessions produced something, and the fourth sibling-artifact hole`
+- `ce1f35b nightly prompt: a research citation carries a DOI or a stable URL`
+- `f0239b7 retrospective: the runner comparison becomes an enumeration, and proposals move to Orient`
+- `be75c2c retrospective: CLAUDE.md's Open section is archaeology again - 1042 lines to 965`
+- `62e8f00 retrospective: the focus string the session actually reads had drifted into contradiction`
+- `d9a9c17 retrospective: the second payload file was published unguarded, and the claims gate's membership goes stale`
+- `9e6fafb Company names in full: prefer the source's longName over its 31-character shortName`
+- `2209f27 investor pass, phase 15: no sideways scroll at 320px; the pass recorded as done`
+- `eb5bf78 investor pass, phase 14: one panel radius across the three pages, no monospace figures on the research page`
+- `2bab769 investor pass, phase 13: one type scale; the night's log entry`
+- `5d41c96 brief: data run 2026-10-16`
 - `7d1b33c data: screener run 2026-10-16 - 501 scored, top: EXPE APA HST INCY EG`
 - `676cdff investor pass, phase 12: no default-violet links, one segmented control, sentence-case chart titles`
 - `73f14bc investor pass, phase 11: the research page and the lab share the front page's bar`
-- `adf7900 investor pass, phase 10: the stock sheet opens on the eight scores, its headings in one voice`
-- `fb74c05 investor pass, phase 9: the figures beside the statement, a gauge for the composite, a header that fits`
-- `42b6660 investor pass, phase 8: the analytics tile states a finding, the methodology tables keep their margins`
-- `7f46ade investor pass, phase 7: link previews on every page, and the track record tile states its length`
-- `c991ee4 investor pass, phase 6: hero actions under the copy, a tighter guide`
-- `c323b9b investor pass, phase 5: context cards lead with the reading (research clamped, one click away); the rank chart's band label off the line`
-- `789b47c lab: asset version 20 for the grouped menu, so no browser keeps the old data file`
-- `cce3eec investor pass, phase 4: the Factor Lab's menu grouped by what each experiment tests; 'Leaders' in the nav; the inventory updated`
-- `28f7276 investor pass, phase 3: quiet heatmaps and section titles that say what they hold`
-- `954cde5 investor pass, phase 2: quiet heat in the rankings, and the stock sheet opens on the eight-score profile`
-- `9cab4e9 investor pass, phase 1: a statement hero, an at-a-glance panel with the track record, a quiet guide, score profiles in the Top 5, and the sections as tiles`
-- `04ecfad publish the page now: 'Has it been tested?' and 'Factor Lab' buttons live without waiting for the data run`
 
 ## The session's own account
 
-> 2026-10-15 (owner-run, 22:00) - the evidence goes public: "Has it been tested?", and buttons for it and the lab
+> 2026-10-16 - RETROSPECTIVE. Evaluate whether this routine is actually producing value, and change the process where it is not.
 > 
-> **Health:** unchanged from the entries above (same evening). Owner: *"is that screener, tested artifact
-> build into the screener as well somewhere? people would like to see that, maybe add a button for that
-> and for the lab?"* and *"my goal is to not spend any money if possible on top of a claude subscription."*
+> **Health (rule 8, all five):** last code session ran? **yes** -
+> `logs/nightly-2026-10-15_131743-midday.log` ends "Run complete: shipped to main". Data loop
+> published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH:
+> PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago, bound 40), 4
+> effective** - inside the bound, in steady state, and the data log's own line agrees ("4
+> effective (31 rows) at the 1m horizon"). Priority 0: unchanged, `allow_auto_apply` false, 4 of
+> 8 effective observations. Top open roadmap item: **0.11, the context layer** (opened
+> 2026-10-08, **age 8 days**).
+> **Tests:** before **2465 passed / 0 failed**, after **2488 passed / 0 failed** (+23: 12 in the
+> new `tests/test_rotation_consistency.py`, 8 in the claims gate's module, 3 in the payload parse
+> gate). Dry run exits 0.
+> **Owner queue / rotation:** retrospective, so no rotation item. `OWNER_FOCUS.md`'s open items
+> were read and left open - a retrospective does not work on the screener. One open proposal
+> (`research/2026-10-15-earnings-definition.md`, earnings yield on Normalized Income, 1 day old)
+> is **deliberately left for the next normal session**; a retrospective is the wrong session to
+> decide a methodology question, and the prompt now puts that check in Orient so it will be the
+> first thing that session does.
 > 
-> ### Did
-> - **`research.html`**, generated by `research_page.py` from the ledger (in `v2_experiments.py report`),
->   in the dashboard's own look; looked at 1440 and 375 (two overflow defects caught there and fixed: a
->   table inside `<details>` and an unbreakable file path). `tests/test_research_page.py` (7).
-> - **Hero buttons** "Has it been tested?" and "Factor Lab" (2x2 on a phone); footer, palette and the
->   track record's caveat link it. The header was tried first and measured full.
-> - **No paid data** recorded as the owner's decision in `OWNER_FOCUS.md`, `CLAUDE.md`, the research-engine
->   plan and the note; the plan's survivorship item now asks for free routes only.
-> - The note's months-of-record figures now match the page (47 / 89 / 132 / 248, from the 0.123 spread).
-> - **Lab experiment 13, value and momentum together** (AMP 2013), with a new combination layout: 7 of 10
->   within; the mix's average matches the paper exactly, the hedge is milder so its Sharpe is lower. Looked
->   at 1440 and 375; a verdict sentence that called a third-decimal lead "beat either one" was fixed.
-> - Free survivorship route probed: Stooq's CSV download now returns a browser challenge for every symbol -
->   not usable, and not to be worked around. Recorded in `plan/research-engine.md`.
+> ### Retrospective findings
+> 
+> - **Sessions reviewed: 55** (2026-10-02 to 2026-10-16) - **11 scheduled, 44 owner-run.**
+> - **Genuinely valuable: 54 | Churn: 0 | Lost: 1 | Failed gates: 1** (the same session:
+>   2026-10-06, Tuesday, killed by an API 429 eighteen minutes in; gate 4 clean-tree failed, the
+>   work was salvaged onto the branch and an owner-run session finished it that evening).
+> 
+> **1. What fraction of sessions produced something genuinely valuable? 54 of 55.** This is the
+> first retrospective with nothing to put in the churn column. The scheduled eleven:
+> 10-05 research (the premium-redesign brief, from measurements), 10-06 **lost to a 429**, 10-07
+> the false composite-percentile sentence in all six places plus the claims register, 10-08
+> `max_drawdown_1y`'s equation and the log-return compounding error it exposed, 10-09 the metric
+> audit, 10-12 research, 10-13 the Growth proposal refused on a measurement the note had not made,
+> 10-14 the input-churn/health-gate source-outage case, 10-14 13:00 the put-skew citation
+> corrected, 10-15 the capex proposal refused and the capex figure decomposed, 10-15 13:00 the
+> rolled-forward quarter. Every one is a defect fixed or a question answered. The owner-run 44 are
+> the Factor Lab (13 experiments), the context layer, backtest v2's point-in-time record layer,
+> the research engine, and the fifteen-phase investor presentation pass.
+> 
+> **2. Which rotation day earns its place?** All five, and I checked rather than assumed.
+> I expected to find Wednesday (synthesis) was decorative and it is not: 09-09 answered the
+> coherence question Monday deferred on all 502 names, 09-16 wrote the design section its Monday
+> note was left open for, 09-23 shipped the weighting change the week justified, 09-30 answered the
+> procurement decision gating backtest v2. Two Wednesdays went elsewhere (10-07 to the owner queue,
+> 10-14 to a red gate-1 baseline), both correctly and both recorded.
+> ...
 
 ---
 
