@@ -136,6 +136,15 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Has it been tested? · Multi-Factor Screener</title>
 <meta name="description" content="The screener's weighting and 26 pre-registered alternatives, tested on 2012-2026 S&amp;P 500 history rebuilt from the filings published at the time.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Multi-Factor Screener">
+<meta property="og:title" content="Has it been tested? The screener on 2012-2026 history">
+<meta property="og:description" content="The ranking and 26 pre-registered alternatives, tested on S&amp;P 500 history rebuilt from the filings published at the time.">
+<meta property="og:url" content="https://calebsmit.github.io/screener-dashboard/research.html">
+<meta property="og:image" content="https://calebsmit.github.io/screener-dashboard/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
