@@ -587,7 +587,7 @@ class TestEPSBasisMismatch:
 class TestDataProvenance:
     """Tests for per-ticker data provenance fields."""
 
-    def test_metric_count_populated(self):
+    def test_metric_count_populated(self, cfg):
         from factor_engine import compute_metrics
         raw = [{"Ticker": "PROV", "marketCap": 1e12, "enterpriseValue": 1e12,
                 "sector": "Tech", "shortName": "Provenance",
@@ -595,7 +595,17 @@ class TestDataProvenance:
                 "totalRevenue": 1e9, "netIncome": 1e8,
                 "operatingCashFlow": 1.2e8, "totalAssets": 5e9}]
         df = compute_metrics(raw, pd.Series(dtype=float))
-        assert "_metric_count" in df.columns
-        assert "_metric_total" in df.columns
+        # Since 2026-10-16 the provenance count is the engine's weighted coverage, set where
+        # the coverage discount computes it - not a hard-coded 18-metric list.
+        assert "_metric_count" not in df.columns
+        import copy
+        from factor_engine import compute_composite, weighted_metric_sets
+        cfg = copy.deepcopy(cfg)
+        for c in ("valuation", "quality", "growth", "momentum", "risk",
+                  "revisions", "size", "investment"):
+            df[f"{c}_score"] = 50.0
+        df = compute_composite(df, cfg)
+        assert (df["_metric_count"] == df["_cov_present"]).all()
+        assert (df["_metric_total"] == df["_cov_applicable"]).all()
         assert df["_metric_count"].iloc[0] > 0
-        assert df["_metric_total"].iloc[0] == 18
+        assert df["_metric_total"].iloc[0] == len(weighted_metric_sets(cfg)[0])

@@ -2983,16 +2983,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         rec["_price_series_rejected"] = d.get("_price_series_rejected", None)
         # Why the flows come from the annual statements, when they do (2026-10-15, DuPont).
         rec["_quarterly_rejected"] = d.get("_quarterly_rejected", None)
-        _metric_keys = [
-            "ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales",
-            "roic", "gross_profit_assets", "debt_equity", "piotroski_f_score",
-            "accruals", "forward_eps_growth", "revenue_growth", "sustainable_growth",
-            "return_12_1", "return_6m", "volatility", "beta",
-            "analyst_surprise", "price_target_upside",
-        ]
-        _n_present = sum(1 for k in _metric_keys if pd.notna(rec.get(k)))
-        rec["_metric_count"] = _n_present
-        rec["_metric_total"] = len(_metric_keys)
+        # `_metric_count` / `_metric_total` are set by compute_composite from
+        # applicable_coverage - the weighted coverage the discount reads. Until 2026-10-16
+        # they were counted here from a hard-coded 18-metric list (unscored D/E in, ten
+        # weighted metrics out, EV/ROIC counted against banks), which the page averaged
+        # into a "Metric Coverage" figure of 95.5% against the engine's 98.9%.
 
         records.append(rec)
 
@@ -3764,6 +3759,9 @@ def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     _cov_present, _cov_applicable = applicable_coverage(df, cfg)
     df["_cov_present"] = _cov_present
     df["_cov_applicable"] = _cov_applicable
+    # The provenance fields (Excel's "Metrics Available / Total") are the same count.
+    df["_metric_count"] = _cov_present
+    df["_metric_total"] = _cov_applicable
     df["_cov_discount"] = 0.0
     if cov_cfg.get("enabled", False):
         threshold = cov_cfg.get("threshold", 0.80)

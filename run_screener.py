@@ -1628,14 +1628,16 @@ def run_factor_engine(cfg, args, ctx=None):
     stats["failed_list"] = skipped_tickers[:20]
 
     # ---- Apply universe filters (min_market_cap) ----
+    pre_filter_tickers = set(df["Ticker"].tolist())
     pre_filter = len(df)
     df = apply_universe_filters(df, cfg)
     n_filtered = pre_filter - len(df)
     if n_filtered > 0:
         pipeline_log.info("Universe filter: %d stocks excluded (min_market_cap), %d remaining",
                           n_filtered, len(df))
-    if n_filtered > 0:
-        for t in set(df["Ticker"].tolist()) ^ set(df["Ticker"].tolist()):
+        # The excluded names: the set before the filter less the set after it. Until
+        # 2026-10-16 this compared the post-filter set with itself, so it logged nothing.
+        for t in sorted(pre_filter_tickers - set(df["Ticker"].tolist())):
             dq_log(t, "universe_filter", "Medium",
                    "Below minimum market cap", "Excluded from scoring")
 
@@ -1660,10 +1662,10 @@ def run_factor_engine(cfg, args, ctx=None):
               f"({len(skipped_tickers)/universe_size*100:.0f}%). Results may be unreliable. ***")
 
     # ---- Revisions auto-disable ----
-    rev_m = ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak"]
-    rev_avail = sum(df[c].notna().sum() for c in rev_m if c in df.columns)
-    rev_total = len(df) * len(rev_m)
-    rev_pct = rev_avail / rev_total * 100 if rev_total else 0
+    # Coverage over the Revisions metrics that carry weight (weighted_coverage_pct). Until
+    # 2026-10-16 a hard-coded list counted the weight-0 earnings_acceleration and left out
+    # fy1_revision_3m, the category's heaviest metric.
+    rev_pct = weighted_coverage_pct(df, cfg, "revisions")
     rev_disabled = False
 
     if rev_pct < 30:
@@ -1685,10 +1687,7 @@ def run_factor_engine(cfg, args, ctx=None):
     stats["rev_disabled"] = rev_disabled
 
     # ---- Investment auto-disable (mirror revisions logic) ----
-    inv_m = ["asset_growth"]
-    inv_avail = sum(df[c].notna().sum() for c in inv_m if c in df.columns)
-    inv_total = len(df) * len(inv_m)
-    inv_pct = inv_avail / inv_total * 100 if inv_total else 0
+    inv_pct = weighted_coverage_pct(df, cfg, "investment")
     inv_disabled = False
 
     if inv_pct < 30:
@@ -2101,6 +2100,43 @@ def _report_sector_coverage(df: pd.DataFrame, metric_cols: list):
     return sector_stats
 
 
+def weighted_category_metrics(cfg: dict, cat: str) -> list:
+    """The metrics in ``cat`` that carry weight in the generic table, in CAT_METRICS order.
+
+    Read from ``factor_engine.weighted_metric_sets`` - the one place that says which metrics
+    can move a score - so a reweight is reflected here without a second list to update."""
+    from factor_engine import CAT_METRICS, weighted_metric_sets
+    gen, _ = weighted_metric_sets(cfg)
+    return [m for m in CAT_METRICS[cat] if m in gen]
+
+
+def weighted_coverage_pct(df: pd.DataFrame, cfg: dict, cat: str) -> float:
+    """Percent of (stock, weighted metric) cells in ``cat`` that hold a value.
+
+    The category auto-disable reads this. A weighted metric missing from ``df`` entirely
+    counts as empty - a source that stopped sending a column is exactly the case to catch."""
+    ms = weighted_category_metrics(cfg, cat)
+    total = len(df) * len(ms)
+    if not total:
+        return 0.0
+    avail = sum(int(df[m].notna().sum()) for m in ms if m in df.columns)
+    return avail / total * 100
+
+
+def auto_reduce_candidates(cfg: dict) -> dict:
+    """``{category: [metric, ...]}`` - every metric the NaN auto-reduce may zero.
+
+    Exactly the metrics that carry weight in the generic table (``weighted_metric_sets``),
+    grouped by ``CAT_METRICS``. Until 2026-10-16 this was a hard-coded dict that left out
+    seven weighted metrics (fy1_revision_3m, jensens_alpha, max_drawdown_1y,
+    net_debt_to_ebitda, beneish_m_score, revenue_cagr_3yr, short_interest_ratio), so an
+    outage of any of them was never caught, and they never received weight freed within
+    their category."""
+    from factor_engine import CAT_METRICS
+    out = {cat: weighted_category_metrics(cfg, cat) for cat in CAT_METRICS}
+    return {cat: ms for cat, ms in out.items() if ms}
+
+
 def _auto_reduce_high_nan_metrics(df: pd.DataFrame, cfg: dict, pipeline_log=None):
     """Auto-zero weight for metrics that exceed the NaN threshold.
 
@@ -2112,17 +2148,7 @@ def _auto_reduce_high_nan_metrics(df: pd.DataFrame, cfg: dict, pipeline_log=None
     if threshold <= 0 or threshold > 100:
         return
 
-    cat_metrics = {
-        "valuation": ["ev_ebitda", "fcf_yield", "earnings_yield", "ev_sales", "pb_ratio"],
-        "quality":   ["roic", "gross_profit_assets", "debt_equity", "piotroski_f_score", "accruals",
-                      "roe", "roa", "equity_ratio"],
-        "growth":    ["forward_eps_growth", "peg_ratio", "revenue_growth", "sustainable_growth"],
-        "momentum":  ["return_12_1", "return_6m"],
-        "risk":      ["volatility", "beta"],
-        "revisions": ["analyst_surprise", "price_target_upside", "earnings_acceleration", "consecutive_beat_streak"],
-        "size":      ["size_log_mcap"],
-        "investment": ["asset_growth"],
-    }
+    cat_metrics = auto_reduce_candidates(cfg)
 
     mw = cfg.get("metric_weights", {})
     n = len(df)
