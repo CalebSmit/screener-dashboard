@@ -516,6 +516,33 @@ reads them.
      **+3.41%** over the following year. A key hand-edited to hold a position
      dict is read for its ticker and written back clean.
 
+   **2026-10-16: a saved name outside this run is kept, not erased.** The
+   first property had a hole from the day it shipped. `loadHoldings()` kept a
+   stored ticker only if this run had scored it (`!D.stock_detail[t]`), and the
+   next write - any add or remove - saved the filtered list, so a name that left
+   the S&P 500, or failed one night's fetch, was gone from the reader's list for
+   good, without a word. Measured that day against `improvement/snapshots/`:
+   **30 tickers** ranked at some point since February are not in the current
+   run (WBD, CTVA and PSKY last on 2026-10-08). A holding that leaves the index
+   is exactly the one a reader most needs to see again, so this was the
+   restricted-consideration-set failure the property exists to prevent, done
+   by the storage layer instead of a sort.
+
+   Now the read keeps any string matching `/^[A-Z0-9.\-]{1,10}$/` ("." stored
+   as "-", the payload's form) and still drops everything else (dicts, numbers,
+   free text, over-long strings), so the no-cost-basis property is unchanged:
+   storage holds tickers and nothing else. A name this run did not score renders
+   last, as a fact and not a verdict - "<T> is not in this run's ranking: it has
+   left the S&P 500 or its data could not be fetched." - with its last rank and
+   date where the payload's history still carries a series for it, and the same
+   remove button. The fit and concentration lines describe scores, so they read
+   the scored names only; the list count includes every name. Adding a ticker
+   still requires it to be in the run (`addHolding`), because a name typed in
+   that was never scored has nothing to show. Tests:
+   `tests/test_holdings_panel.py::test_round_trips_through_storage_and_survives_junk`,
+   `::test_a_name_this_run_did_not_score_still_renders_and_survives_edits`, and
+   the browser check in `tests/test_dashboard_interaction.py`.
+
    **What is still open: the hold band - settled 2026-09-16 as "not yet", with
    a date.** The screener has one test (`portfolio.num_stocks: 25`) where
    Novy-Marx & Velikov (2016), MSCI and S&P DJI all use a wider, different test

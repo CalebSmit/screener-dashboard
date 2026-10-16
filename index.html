@@ -19,7 +19,11 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141413'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%233987e5' opacity='.55'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%233987e5' opacity='.8'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%233987e5'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- The web fonts never block first paint: preloaded, then swapped in when they arrive. With the
+         font request stalled the page used to stay blank and the data script waited behind it
+         (2026-10-16). The system-ui stack in --font-body shows until then, or for good. -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
     <link rel="preload" href="./dashboard_data.js?v=e25ca47c721e" as="script">
@@ -187,6 +191,7 @@
             color: var(--accent);
         }
         .holding-ticker:hover { text-decoration: underline; }
+        .holding-ticker-static, .holding-ticker-static:hover { color: var(--text-secondary); cursor: default; text-decoration: none; }
         .holding-company {
             color: var(--text-secondary); font-size: 13px;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;
@@ -527,11 +532,15 @@
             transition: max-height var(--t-base) ease-out, opacity var(--t-base) ease-out, margin var(--t-base) ease-out;
             margin-top: 16px;
         }
+        /* visibility as well as opacity: a closed body must leave the tab order (33 invisible tab
+           stops at load until 2026-10-16). It flips after the fade, so the close still animates. */
         .collapsible-section.collapsed .section-body {
             max-height: 0;
             opacity: 0;
             margin-top: 0;
             pointer-events: none;
+            visibility: hidden;
+            transition: max-height var(--t-base) ease-out, opacity var(--t-base) ease-out, margin var(--t-base) ease-out, visibility 0s linear var(--t-base);
         }
         .collapsible-section.collapsed .section-chevron { transform: rotate(-90deg); }
 
@@ -2373,7 +2382,7 @@
             transition: background .1s;
         }
         .peer-search-item:last-child { border-bottom: none; }
-        .peer-search-item:hover { background: var(--bg-card-hover); }
+        .peer-search-item:hover, .peer-search-item.sel { background: var(--bg-card-hover); }
         .peer-search-ticker {
             font-family: var(--font-heading);
             font-weight: 600;
@@ -2507,7 +2516,7 @@
             .filters-bar { display: none; }
             .modal-overlay { display: none !important; }
             .methodology-btn, .header-nav { display: none; }
-            .collapsible-section.collapsed .section-body { max-height: none; opacity: 1; pointer-events: auto; }
+            .collapsible-section.collapsed .section-body { max-height: none; opacity: 1; pointer-events: auto; visibility: visible; transition: none; }
             .kpi-card, .chart-container, .table-section { box-shadow: none; border: 1px solid #ddd; }
         }
     
@@ -2806,7 +2815,8 @@
         .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
         .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 13px; }
         .footer-links a:hover { color: var(--text-primary); }
-        .dashboard-footer .footer-disclaimer { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6; display: block; }
+        /* full opacity: the inherited 0.85 put the disclaimer at 4.46:1, under the 4.5:1 floor (2026-10-16) */
+        .dashboard-footer .footer-disclaimer { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.6; display: block; opacity: 1; }
         @media (max-width: 1024px) {
             .dashboard-container { padding: 16px 20px 28px; }
             .dashboard-header { margin: 0 -20px; padding: 0 20px; }
@@ -3376,6 +3386,7 @@
         .data-table .delta-cell { font-size: 11px; letter-spacing: .01em; }
         .data-table .delta-cell.pos { color: color-mix(in srgb, var(--green) 80%, var(--text-muted)); }
         .data-table .delta-cell.neg { color: color-mix(in srgb, var(--red) 75%, var(--text-muted)); }
+        .data-table .delta-cell.sub { color: var(--text-secondary); }
         .data-table tbody tr:hover td.sc { color: var(--text-primary); }
         .data-table thead th { letter-spacing: .05em; }
         .table-section, .filters-bar { border-radius: 14px; }
@@ -3615,12 +3626,12 @@
 
         <!-- Top 5 Stocks -->
         <section class="section collapsible-section" id="sec-top5">
-            <div class="section-header" onclick="toggleSection('sec-top5')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="sec-top5-body" onclick="toggleSection('sec-top5')">
                 <h2 class="section-title" style="margin:0">Leading the ranking</h2>
                 <span class="sec-meta sec-meta-plain">The five highest composites without a trap flag.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-top5-body">
                 <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
             </div>
         </section>
@@ -3636,20 +3647,22 @@
         -->
         <div class="sec-grid" id="sec-grid">
         <section class="section collapsible-section collapsed" id="sec-holdings">
-            <div class="section-header" onclick="toggleSection('sec-holdings')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-holdings-body" onclick="toggleSection('sec-holdings')">
                 <h2 class="section-title" style="margin:0">My holdings <span class="holdings-count" id="holdings-count"></span></h2>
                 <span class="sec-meta" id="meta-holdings"></span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-holdings-body">
                 <p class="section-desc">Add the names you own or follow. Each run shows where every one of them ranks, what moved and which category moved it. The list stays in this browser, and no purchase price is asked for.</p>
                 <div class="holdings-add-bar">
                     <div class="holdings-search-wrap">
                         <input type="text" id="holdings-search-input"
                                class="peer-search-input"
                                placeholder="Add by ticker or company name..."
+                               aria-label="Add a holding by ticker or company name"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="holdings-search-results"
                                autocomplete="off" />
-                        <div id="holdings-search-results" class="peer-search-results"></div>
+                        <div id="holdings-search-results" class="peer-search-results" role="listbox" aria-label="Matching stocks"></div>
                     </div>
                     <button class="holdings-clear-btn" id="holdings-clear-btn" onclick="clearHoldings()" style="display:none">Clear list</button>
                 </div>
@@ -3663,13 +3676,13 @@
 
         <!-- What Changed -->
         <section class="section collapsible-section collapsed" id="sec-changed" style="display:none">
-            <div class="section-header" onclick="toggleSection('sec-changed')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-changed-body" onclick="toggleSection('sec-changed')">
                 <h2 class="section-title" style="margin:0">What changed</h2>
                 <span class="sec-meta" id="meta-changed"></span>
                 <span class="sec-blurb">The largest rank changes and the categories behind them.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-changed-body">
                 <div class="changed-controls">
                     <div class="seg-control" id="changed-range"></div>
                     <span class="changed-caption" id="changed-caption"></span>
@@ -3694,46 +3707,46 @@
         <!-- Reporting soon: who reports in the next 7/14 days (earnings dates from the main payload;
              options-implied moves and insider trades from the context file). Never scored, never ranked by move. -->
         <section class="section collapsible-section collapsed" id="sec-reporting">
-            <div class="section-header" onclick="toggleSection('sec-reporting')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-reporting-body" onclick="toggleSection('sec-reporting')">
                 <h2 class="section-title" style="margin:0">Reporting soon</h2>
                 <span class="sec-meta" id="meta-reporting"></span>
                 <span class="sec-blurb">Earnings dates over the next two weeks, with option-implied moves.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body"><div id="reporting-body"></div></div>
+            <div class="section-body" id="sec-reporting-body"><div id="reporting-body"></div></div>
         </section>
 
         <!-- Market backdrop (context, never scored; plan/context-layer.md) -->
         <section class="section collapsible-section collapsed" id="sec-market">
-            <div class="section-header" onclick="toggleSection('sec-market')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-market-body" onclick="toggleSection('sec-market')">
                 <h2 class="section-title" style="margin:0">Market backdrop</h2>
                 <span class="sec-meta" id="meta-market"></span>
                 <span class="sec-blurb">Rates, credit spreads, volatility and the labor market.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body"><div id="market-body"></div></div>
+            <div class="section-body" id="sec-market-body"><div id="market-body"></div></div>
         </section>
 
         <!-- Track record of the ranking (out of sample; plan/context-layer.md) -->
         <section class="section collapsible-section collapsed" id="sec-track">
-            <div class="section-header" onclick="toggleSection('sec-track')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-track-body" onclick="toggleSection('sec-track')">
                 <h2 class="section-title" style="margin:0">Track record</h2>
                 <span class="sec-meta" id="meta-track"></span>
                 <span class="sec-blurb">Forward returns of the top 25, measured from each run.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body"><div id="track-body"></div></div>
+            <div class="section-body" id="sec-track-body"><div id="track-body"></div></div>
         </section>
 
         <!-- Factor Analytics Section -->
         <section class="section collapsible-section collapsed" id="sec-analytics">
-            <div class="section-header" onclick="toggleSection('sec-analytics')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-analytics-body" onclick="toggleSection('sec-analytics')">
                 <h2 class="section-title" style="margin:0">Factor analytics</h2>
                 <span class="sec-meta" id="meta-analytics">Sector &times; factor scores &middot; trap rates by sector</span>
                 <span class="sec-blurb">Sector medians on each factor, and where trap flags cluster.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-analytics-body">
                 <div class="chart-row">
                     <div class="chart-container" style="flex:1.4">
                         <div class="chart-title-row">
@@ -3763,7 +3776,7 @@
 
         <!-- Defensibility & Diagnostics -->
         <section class="section collapsible-section defensibility-section collapsed" id="sec-defensibility">
-            <div class="section-header" onclick="toggleSection('sec-defensibility')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="sec-defensibility-body" onclick="toggleSection('sec-defensibility')">
                 <div class="defensibility-header-left">
                     <h2 class="section-title" style="margin:0">Diagnostics</h2>
                     <div class="defensibility-summary" id="defensibility-summary"></div>
@@ -3771,7 +3784,7 @@
                 <span class="sec-blurb">Weight sensitivity and factor overlap.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-defensibility-body">
                 <p class="section-desc">Two robustness checks: how much the top 20 changes when each weight shifts, and how much the eight factors overlap.</p>
                 <div class="defensibility-kpis" id="defensibility-kpis"></div>
                 <div class="defensibility-row">
@@ -3793,12 +3806,12 @@
         </div>
 
         <section class="section collapsible-section" id="sec-universe">
-            <div class="section-header" onclick="toggleSection('sec-universe')">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="sec-universe-body" onclick="toggleSection('sec-universe')">
                 <h2 class="section-title" style="margin:0">The full ranking</h2>
                 <span class="sec-meta sec-meta-plain">Every company, sortable by any score.</span>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-body">
+            <div class="section-body" id="sec-universe-body">
                 <p class="profile-note" id="profile-note" hidden></p>
                 <div class="filters-bar" role="search">
                     <div class="filter-search">
@@ -3862,7 +3875,7 @@
                     <table class="data-table" id="universe-table" aria-label="Full universe rankings" aria-rowcount="-1">
                         <thead><tr>
                             <th data-sort="Rank">Rank</th>
-                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the previous comparable run. Positive means the stock moved up the table.">&Delta;</th>
+                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the run about a month earlier, the window What changed uses. Positive means the stock moved up the table.">&Delta;</th>
                             <th data-sort="Ticker">Ticker</th>
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
@@ -3948,7 +3961,7 @@
 
                     <!-- Contribution breakdown -->
                     <div class="collapsible" id="section-contribution">
-                        <div class="collapsible-header" onclick="toggleSection('section-contribution')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-contribution')">
                             <span>How it adds up</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body">
@@ -3962,7 +3975,7 @@
 
                     <!-- Category detail sections -->
                     <div class="collapsible" id="section-categories">
-                        <div class="collapsible-header" onclick="toggleSection('section-categories')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-categories')">
                             <span>The workings</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-categories"></div>
@@ -3970,7 +3983,7 @@
 
                     <!-- Before you decide: trend, options, insiders, rates. Context, never scored. -->
                     <div class="collapsible" id="section-context">
-                        <div class="collapsible-header" onclick="toggleSection('section-context')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-context')">
                             <span>Before you decide</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-context"></div>
@@ -3978,7 +3991,7 @@
 
                     <!-- Rank history -->
                     <div class="collapsible" id="section-history" style="display:none">
-                        <div class="collapsible-header" onclick="toggleSection('section-history')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-history')">
                             <span>Rank history</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-history"></div>
@@ -3986,7 +3999,7 @@
 
                     <!-- Analyst Price Targets -->
                     <div class="collapsible" id="section-price-targets">
-                        <div class="collapsible-header" onclick="toggleSection('section-price-targets')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('section-price-targets')">
                             <span>Analyst price targets</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-price-targets"></div>
@@ -3994,7 +4007,7 @@
 
                     <!-- Company Snapshot -->
                     <div class="collapsible collapsed" id="section-snapshot">
-                        <div class="collapsible-header" onclick="toggleSection('section-snapshot')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-snapshot')">
                             <span>Company snapshot</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-snapshot"></div>
@@ -4002,7 +4015,7 @@
 
                     <!-- Sector Peers -->
                     <div class="collapsible collapsed" id="section-peers">
-                        <div class="collapsible-header" onclick="toggleSection('section-peers')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-peers')">
                             <span>Sector peers</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-peers"></div>
@@ -4010,7 +4023,7 @@
 
                     <!-- Data Provenance -->
                     <div class="collapsible collapsed" id="section-provenance">
-                        <div class="collapsible-header" onclick="toggleSection('section-provenance')">
+                        <div class="collapsible-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection('section-provenance')">
                             <span>Data provenance</span><span class="collapsible-chevron">&#9660;</span>
                         </div>
                         <div class="collapsible-body" id="modal-provenance"></div>
@@ -5251,6 +5264,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         // Dropdowns apply instantly; text inputs are debounced.
         sel.addEventListener('change', applyFilters);
         document.getElementById('filter-vt').addEventListener('change', applyFilters);
+        // Registered here, not when the context file lands: "Reports within 14 days" reads the
+        // main payload and must work while that file loads, or if it never does (2026-10-16).
+        const fctx = document.getElementById('filter-ctx');
+        if (fctx) fctx.addEventListener('change', applyFilters);
         document.getElementById('filter-comp-min').addEventListener('input', debounce(applyFilters, 200));
         document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 150));
         document.getElementById('sort-by').addEventListener('change', e => {
@@ -5263,6 +5280,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.addEventListener('keydown', e => {
             const tag = (document.activeElement || {}).tagName || '';
             if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(tag) && !e.metaKey && !e.ctrlKey) {
+                // not behind an open dialog: the search box sits under an aria-modal sheet
+                if (typeof topDialog === 'function' && topDialog()) return;
                 e.preventDefault();
                 document.getElementById('filter-search').focus();
             }
@@ -5386,7 +5405,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             ? '<td class="num delta-cell muted">&mdash;</td>'
             : (rd === 0
                 ? '<td class="num delta-cell"></td>'
-                : '<td class="num delta-cell ' + (rd > 0 ? 'pos' : 'neg') + '">' + (rd > 0 ? '&#9650;' : '&#9660;') + Math.abs(rd) + '</td>');
+                : '<td class="num delta-cell ' + (rankDeltaMaterial(rd) ? (rd > 0 ? 'pos' : 'neg') : 'sub') + '">' + (rd > 0 ? '&#9650;' : '&#9660;') + Math.abs(rd) + '</td>');
         const flags = (row.Value_Trap_Flag ? '<span class="flag" title="Value-trap flag">Value</span>' : '') +
                       (row.Growth_Trap_Flag ? '<span class="flag" title="Growth-trap flag">Growth</span>' : '');
         const comp = row.Composite;
@@ -5403,8 +5422,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     }
 
     function emptyRowsHtml(cols) {
+        const fc = document.getElementById('filter-ctx');
+        const why = (fc && typeof ctxFilterReason === 'function') ? ctxFilterReason(fc.value) : '';
         return '<tr class="vt-empty"><td colspan="' + cols + '"><div class="empty-state"><strong>No stocks match these filters.</strong>' +
-            '<span>Try a wider sector or a lower composite minimum.</span>' +
+            '<span>' + (why || 'Try a wider sector or a lower composite minimum.') + '</span>' +
             '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
     }
 
@@ -5595,7 +5616,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const rt = m.rt
             ? `<span class="rt-badge" title="Round-trip: this stock's rank made a large excursion and came back to within ${H.noise.material_threshold} ranks of where it started. That pattern is usually a metric dropping out and returning rather than a real change - treat it as a data-quality flag, not news.">round-trip</span>`
             : '';
-        return `<div class="mover-row" onclick="openStockDetail('${escapeHtml(m.t)}')">
+        return `<div class="mover-row" role="button" tabindex="0" onclick="openStockDetail('${escapeHtml(m.t)}')">
             <div class="mover-id">
                 <span class="mover-ticker">${escapeHtml(m.t)}</span>
                 <span class="mover-name">${escapeHtml(det.company || '')}</span>
@@ -5677,11 +5698,37 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         renderChanged();
     }
 
-    // Rank delta for the universe table, relative to the previous run.
+    // Rank delta for the universe table, over the same ~1-month window as the "Moved materially"
+    // tile, What changed and the holdings rows. It read the one-day change until 2026-10-16, which
+    // put a coloured arrow on 466 of 501 rows with a median move of 5 - inside the measured noise.
+    // The whole column uses one window, so a stock new to it shows a dash rather than a one-day
+    // figure under a one-month header; the previous run is used only when no ~1-month run exists.
+    function rankDeltaKey() {
+        if (H.compare && H.compare.m1) return 'm1';
+        return (H.compare && H.compare.prev) ? 'prev' : null;
+    }
     function rankDelta(ticker) {
-        const d = H.delta && H.delta[ticker] && H.delta[ticker].prev;
+        const k = rankDeltaKey();
+        const d = k && H.delta && H.delta[ticker] && H.delta[ticker][k];
         if (!d || d.new || d.dr == null) return null;
         return d.dr;
+    }
+    // Below this a rank move is ordinary run-to-run variation, so the cell carries no colour.
+    function rankDeltaMaterial(dr) {
+        const floor = (H.noise && H.noise.material_threshold) || 0;
+        return Math.abs(dr) >= floor;
+    }
+    function rankDeltaTitle() {
+        const k = rankDeltaKey();
+        if (!k) return 'Change in rank since the previous comparable run.';
+        const cmp = H.compare[k];
+        const floor = (H.noise && H.noise.material_threshold) || 0;
+        const span = cmp.gap_days + (cmp.gap_days === 1 ? ' day' : ' days');
+        return (k === 'prev'
+                ? 'Change in rank since the previous run, ' + prettyDate(cmp.date) + ' (' + span + '): no run about a month back is comparable yet.'
+                : 'Change in rank over ' + span + ', since the run of ' + prettyDate(cmp.date) + ': the same window as What changed and the Moved materially tile.')
+            + ' Positive means the stock moved up the table.'
+            + (floor ? ' Moves under ' + floor + ' ranks are within ordinary run-to-run variation and are not coloured.' : '');
     }
 
     // =====================================================================
@@ -5715,6 +5762,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // built on it.
     const HOLDINGS_KEY = 'screener_holdings_v1';
     const HOLDINGS_MAX = 60;
+    // What a saved entry must look like to be kept: a ticker, nothing else ("." stored as "-").
+    const HOLDING_TICKER_RE = /^[A-Z0-9.\-]{1,10}$/;
     // Which baked summary facts belong on a review row. All four are built by
     // stock_summary.py at build time and screened for advice language there,
     // so this panel renders reviewed prose instead of composing its own.
@@ -5747,15 +5796,21 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         let parsed;
         try { parsed = JSON.parse(raw); } catch (e) { return []; }
         if (!Array.isArray(parsed)) return [];
-        // Tickers only, and only tickers this run actually scored. Anything
-        // else in the key - from a hand edit, or a future build that tried to
-        // store more - is dropped on read and not written back, so a cost
-        // basis cannot survive in storage even if something put one there.
+        // Ticker-shaped strings only. Anything else in the key - from a hand
+        // edit, or a future build that tried to store more - is dropped on
+        // read and not written back, so a cost basis cannot survive in storage
+        // even if something put one there.
+        //
+        // A ticker this run did not score is KEPT (2026-10-16). It used to be
+        // dropped here and erased by the next write, so a name that left the
+        // S&P 500 (30 have since February; WBD on 2026-10-08) or failed one
+        // fetch vanished from the list for good - the opposite of "every saved
+        // name renders, every time". It renders as an unscored row instead.
         const seen = {};
         const out = [];
         parsed.forEach(function(item) {
-            const t = (typeof item === 'string') ? item.trim().toUpperCase() : '';
-            if (!t || seen[t] || !D.stock_detail[t]) return;
+            const t = (typeof item === 'string') ? item.trim().toUpperCase().replace(/\./g, '-') : '';
+            if (!HOLDING_TICKER_RE.test(t) || seen[t]) return;
             seen[t] = true;
             out.push(t);
         });
@@ -5877,17 +5932,45 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 
         // Ordered by current rank, best first. Deliberately NOT by size of
         // move - see property 2 in the block comment above HOLDINGS_KEY.
-        const rows = holdings
+        // A name this run did not score sorts last and still renders.
+        const listed = holdings
             .map(function(t) { return { t: t, s: D.stock_detail[t] }; })
-            .filter(function(r) { return !!r.s; })
             .sort(function(a, b) {
-                const ra = (a.s.rank === null || a.s.rank === undefined) ? 1e9 : a.s.rank;
-                const rb = (b.s.rank === null || b.s.rank === undefined) ? 1e9 : b.s.rank;
+                const ra = (!a.s || a.s.rank === null || a.s.rank === undefined) ? 1e9 : a.s.rank;
+                const rb = (!b.s || b.s.rank === null || b.s.rank === undefined) ? 1e9 : b.s.rank;
                 return ra - rb;
             });
+        // The fit and concentration lines describe scores, so they read the scored names;
+        // nothing is removed from the list itself.
+        const rows = listed.filter(function(r) { return !!r.s; });
 
-        fit.innerHTML = cadenceLine(false) + holdingsFitLine(rows) + holdingsConcentration(rows);
-        body.innerHTML = rows.map(holdingCard).join('');
+        fit.innerHTML = cadenceLine(false) + (rows.length ? holdingsFitLine(rows) + holdingsConcentration(rows) : '');
+        body.innerHTML = listed.map(function(r) { return r.s ? holdingCard(r) : unscoredHoldingCard(r.t); }).join('');
+    }
+
+    // A saved name this run did not rank: stated as a fact, with its last rank on this
+    // page when the history still carries it, and the same remove button as any row.
+    function unscoredHoldingCard(t) {
+        let last = '';
+        const ser = H.series && H.series[t] && H.series[t].r;
+        if (ser && H.dates) {
+            for (let i = ser.length - 1; i >= 0; i--) {
+                if (ser[i] !== null && ser[i] !== undefined && H.dates[i]) {
+                    last = ' It last ranked #' + ser[i] + ' on ' + escapeHtml(prettyDate(H.dates[i])) + '.';
+                    break;
+                }
+            }
+        }
+        return '<div class="holding-card holding-unscored">'
+          + '<div class="holding-head">'
+          +   '<span class="holding-rank">#--</span>'
+          +   '<span class="holding-ticker holding-ticker-static">' + escapeHtml(t) + '</span>'
+          +   '<span class="holding-spacer"></span>'
+          +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
+          + '</div>'
+          + '<div class="holding-notes"><p class="holding-note holding-note-unscored">' + escapeHtml(t)
+          +   ' is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data could not be fetched.' + last + '</p></div>'
+          + '</div>';
     }
 
     // North-star question 4 - "how much / does it fit?" - as far as this tool
@@ -6112,10 +6195,30 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const input = document.getElementById('holdings-search-input');
         const dropdown = document.getElementById('holdings-search-results');
         if (!input || !dropdown) return;
+        // The results the dropdown shows and the one picked with the arrow keys (-1: none).
+        let found = [], sel = -1;
+        function hideResults() {
+            dropdown.style.display = 'none';
+            sel = -1;
+            if (input.setAttribute) { input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
+        }
+        function markSelected() {
+            const items = dropdown.querySelectorAll ? dropdown.querySelectorAll('.peer-search-item') : [];
+            items.forEach(function(el, i) {
+                el.classList.toggle('sel', i === sel);
+                el.setAttribute('aria-selected', i === sel ? 'true' : 'false');
+                if (i === sel && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+            });
+            if (input.setAttribute) {
+                if (sel >= 0) input.setAttribute('aria-activedescendant', 'hs-opt-' + sel);
+                else input.removeAttribute('aria-activedescendant');
+            }
+        }
 
         input.addEventListener('input', function() {
             const q = this.value.toLowerCase().trim();
-            if (q.length < 1) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+            found = []; sel = -1;
+            if (q.length < 1) { dropdown.innerHTML = ''; hideResults(); return; }
             const held = {};
             holdings.forEach(function(t) { held[t] = true; });
             const matches = D.table_data
@@ -6125,13 +6228,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                          (r.Company || '').toLowerCase().includes(q));
                 })
                 .slice(0, 8);
+            if (input.setAttribute) input.setAttribute('aria-expanded', 'true');
             if (!matches.length) {
                 dropdown.innerHTML = '<div class="peer-search-empty">No matches</div>';
                 dropdown.style.display = 'block';
                 return;
             }
-            dropdown.innerHTML = matches.map(function(r) {
-                return '<div class="peer-search-item" onmousedown="addHolding(&quot;' + escapeHtml(r.Ticker) + '&quot;)">'
+            found = matches;
+            dropdown.innerHTML = matches.map(function(r, i) {
+                return '<div class="peer-search-item" role="option" id="hs-opt-' + i + '" aria-selected="false" onmousedown="addHolding(&quot;' + escapeHtml(r.Ticker) + '&quot;)">'
                     + '<span class="peer-search-ticker">' + escapeHtml(r.Ticker) + '</span>'
                     + '<span class="peer-search-company">' + escapeHtml(r.Company || '') + '</span>'
                     + '<span class="peer-search-score">' + (r.Composite !== null ? r.Composite.toFixed(0) : '--') + '</span>'
@@ -6140,8 +6245,32 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             dropdown.style.display = 'block';
         });
 
+        // The keyboard path (2026-10-16; it used to add only on a mouse press): the arrows move
+        // through the results, Enter adds the one picked, else the exact ticker typed, else the
+        // first result. Esc closes the list.
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                if (!found.length) return;
+                e.preventDefault();
+                if (dropdown.style.display === 'none') dropdown.style.display = 'block';
+                const n = found.length;
+                sel = e.key === 'ArrowDown' ? (sel + 1) % n : (sel <= 0 ? n - 1 : sel - 1);
+                markSelected();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const typed = this.value.trim().toUpperCase();
+                const exact = D.stock_detail[typed] ? typed : (D.stock_detail[typed.replace(/\./g, '-')] ? typed.replace(/\./g, '-') : null);
+                if (sel >= 0 && found[sel]) addHolding(found[sel].Ticker);
+                else if (exact) addHolding(exact);
+                else if (found.length) addHolding(found[0].Ticker);
+                found = []; hideResults();
+            } else if (e.key === 'Escape' && dropdown.style.display !== 'none') {
+                hideResults();
+            }
+        });
+
         input.addEventListener('blur', function() {
-            setTimeout(function() { dropdown.style.display = 'none'; }, 200);
+            setTimeout(hideResults, 200);
         });
         input.addEventListener('focus', function() {
             if (this.value.trim().length > 0) this.dispatchEvent(new Event('input'));
@@ -6421,18 +6550,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (ov) ov.scrollTop = 0;
     }
 
-    function toggleSection(id) {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('collapsed');
-        if (id === 'sec-universe') requestAnimationFrame(() => renderWindow(true));
-    }
-
-    // ESC to close any open modal
+    // Esc closes the topmost dialog only. It used to close the stock sheet and Methodology
+    // together (2026-10-16); the palette, shortcuts and Compare are handled first in _js_ux.
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeModal();
-            closeMethodology();
-        }
+        if (e.key !== 'Escape') return;
+        const top = (typeof topDialog === 'function') ? topDialog() : null;
+        if (top && top.closest && top.closest('#methodology-modal')) { closeMethodology(); return; }
+        if (sheetOpen()) { closeModal(); return; }
+        closeMethodology();
     });
 
     function renderPriceTargets(s) {
@@ -7428,11 +7553,26 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // #stock=TICKER opens that stock. Opening from a closed sheet pushes one history
     // entry, so the phone's back gesture closes the sheet instead of leaving the site;
     // stepping between stocks replaces it, so back never walks through every stock.
+    // A class share is written either way (BRK.B, BRK-B); the payload uses the dash.
     function stockFromHash() {
         const m = /^#stock=([A-Za-z0-9.\-]{1,12})$/.exec(location.hash || '');
         if (!m) return null;
         const t = decodeURIComponent(m[1]).toUpperCase();
-        return D.stock_detail[t] ? t : null;
+        if (D.stock_detail[t]) return t;
+        const dashed = t.replace(/\./g, '-');
+        return D.stock_detail[dashed] ? dashed : null;
+    }
+    // A #stock= link naming nothing in this run used to do nothing at all. It now says so and
+    // clears the hash, so the address bar does not keep claiming a stock that is not shown.
+    function rejectStockHash() {
+        const m = /^#stock=(.*)$/.exec(location.hash || '');
+        if (!m || stockFromHash()) return false;
+        let t = m[1];
+        try { t = decodeURIComponent(t); } catch (e) { /* keep it raw */ }
+        t = String(t).toUpperCase().slice(0, 16);
+        toast(t ? 'No stock ' + t + ' in this run' : 'No stock named in this link');
+        try { history.replaceState(null, '', baseUrl()); } catch (e) { /* ignore */ }
+        return true;
     }
     function baseUrl() { return location.pathname + location.search; }
 
@@ -7446,10 +7586,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (wasOpen) modalReturnFocus = keepFocus;  // still return to the row that opened the first one
         UX.current = ticker;
         if (!opts.fromHistory) {
+            // `pushed` records whether this sheet owns a history entry of its own, so closing it
+            // can remove that entry instead of leaving a dead Back press behind (see closeModal).
             try {
                 const url = baseUrl() + '#stock=' + encodeURIComponent(ticker);
-                if (wasOpen || opts.replace) history.replaceState({ sheet: ticker }, '', url);
-                else history.pushState({ sheet: ticker }, '', url);
+                const st = history.state;
+                if (wasOpen) history.replaceState({ sheet: ticker, pushed: !!(st && st.pushed) }, '', url);
+                else if (opts.replace) history.replaceState({ sheet: ticker, pushed: false }, '', url);
+                else history.pushState({ sheet: ticker, pushed: true }, '', url);
             } catch (e) { /* file:// in some browsers */ }
         }
         UX.recent = [ticker].concat(UX.recent.filter(t => t !== ticker)).slice(0, 6);
@@ -7471,8 +7615,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         _baseCloseModal();
         UX.current = null;
         document.title = BASE_TITLE;
+        // A sheet that pushed its own entry gives it back: three open-and-close cycles used to
+        // leave three Back presses that did nothing (2026-10-16). A sheet opened straight from a
+        // link owns no entry, so the link is only cleared from the address bar.
         if (!opts.fromHistory && stockFromHash()) {
-            try { history.replaceState(null, '', baseUrl()); } catch (e) { /* ignore */ }
+            const st = history.state;
+            try {
+                if (st && st.pushed) history.back();
+                else history.replaceState(null, '', baseUrl());
+            } catch (e) { /* ignore */ }
         }
     };
 
@@ -7480,6 +7631,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const t = stockFromHash();
         if (t) openStockDetail(t, { fromHistory: true });
         else if (sheetOpen()) closeModal({ fromHistory: true });
+        else rejectStockHash();
     });
 
     function copyStockLink() {
@@ -8147,6 +8299,16 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         else if (k === 'h') { e.preventDefault(); toggleHoldingCurrent(); }
     }, true);
 
+    // Section headers and mover rows are divs that act as buttons; Enter and Space work them
+    // the way they work a button (2026-10-16: none of them could be reached from the keyboard).
+    document.addEventListener('keydown', e => {
+        if ((e.key !== 'Enter' && e.key !== ' ') || e.metaKey || e.ctrlKey || e.altKey) return;
+        const el = e.target;
+        if (!el || !el.matches || !el.matches('.section-header[role="button"], .collapsible-header[role="button"], .mover-row[tabindex]')) return;
+        e.preventDefault();
+        el.click();
+    });
+
     function initUX() {
         UX.recent = (uxStore.get('recent', []) || []).filter(t => D.stock_detail[t]).slice(0, 6);
         UX.compare = (uxStore.get('compare', []) || []).filter(t => D.stock_detail[t]).slice(0, COMPARE_MAX);
@@ -8164,6 +8326,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
         const t = stockFromHash();
         if (t) openStockDetail(t, { replace: true });
+        else rejectStockHash();
     }
 
 
@@ -8429,12 +8592,18 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     }
     // "62nd", not "62th" (the label printed 62th, 2th and 3th until 2026-10-16)
     function mkOrd(n) { const v = n % 100; return n + ((v >= 11 && v <= 13) ? 'th' : ({1: 'st', 2: 'nd', 3: 'rd'}[n % 10] || 'th')); }
+    // Why a context panel is empty: still loading, the file failed, or this run has none.
+    function ctxMissing(what) {
+        if (CTX_FAILED) return 'The ' + what + ' could not be shown: the context data could not be loaded.';
+        if (!CTX_LOADED) return 'Loading the ' + what + '&hellip;';
+        return 'The ' + what + ' was not available for this run.';
+    }
     function renderMarket() {
         const host = document.getElementById('market-body');
         const M = D.market;
         const meta = document.getElementById('meta-market');
         if (!host) return;
-        if (!M || !M.series) { host.innerHTML = '<p class="modal-note">The market backdrop was not available for this run.</p>'; return; }
+        if (!M || !M.series) { host.innerHTML = '<p class="modal-note">' + ctxMissing('market backdrop') + '</p>'; return; }
         const S = M.series;
         if (meta) {
             const bits = [];
@@ -8507,9 +8676,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const meta = document.getElementById('meta-track');
         const T = D.track;
         if (!host) return;
-        if (!T || !T.available) { host.innerHTML = '<p class="modal-note">The track record was not available for this run.</p>'; return; }
+        if (!T || !T.available) { host.innerHTML = '<p class="modal-note">' + ctxMissing('track record') + '</p>'; return; }
         const tot = T.total || {};
-        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal\u2011weight S&P 500 ' + cPct(tot.RSP) + ' since ' + cDate(T.start);
+        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal\u2011weight S&P 500 ' + cPct(tot.RSP)
+            + (tot.SPY === null || tot.SPY === undefined ? '' : ', S&P 500 ' + cPct(tot.SPY)) + ' since ' + cDate(T.start);
         const kpi = (lab, v, sub) => '<div class="tr-kpi"><div class="tr-kpi-l">' + lab + '</div><div class="tr-kpi-v">' + v + '</div><div class="tr-kpi-s">' + sub + '</div></div>';
         let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it was published, with nothing backfilled. It measures the ranking, not a portfolio to follow.</p>';
         h += '<div class="tr-kpis">' +
@@ -8648,12 +8818,15 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (mt && T && T.available) {
             const tot = T.total || {};
             const f = v => (v === null || v === undefined) ? '-' : (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
-            mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal\u2011weight S&P 500 ' + f(tot.RSP) + ' since ' + cDate(T.start);
+            // Both benchmarks, always: the tile quoted only the equal-weight index, which the top 25
+            // beat, while the S&P 500 itself had beaten the top 25 (2026-10-16).
+            const hasSpy = tot.SPY !== null && tot.SPY !== undefined;
+            mt.textContent = 'Top 25 ' + f(tot.top) + ' vs equal\u2011weight S&P 500 ' + f(tot.RSP) + (hasSpy ? ', S&P 500 ' + f(tot.SPY) : '') + ' since ' + cDate(T.start);
             const kv = document.getElementById('kpi-track-v'), ks = document.getElementById('kpi-track-s');
             if (kv && ks) {
                 kv.textContent = f(tot.top);
                 const mo = Math.max(1, Math.round((T.days || 0) / 30.4));
-                ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' for the equal\u2011weight S&P 500 · ' + mo + '-month record';
+                ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' equal\u2011weight' + (hasSpy ? ', ' + f(tot.SPY) + ' S&P 500' : '') + ' · ' + mo + '-month record';
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
                     card.onclick = () => goToSection('sec-track');
@@ -8686,21 +8859,65 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (typeof UX !== 'undefined' && UX.current && D.stock_detail[UX.current]) renderContext(UX.current, D.stock_detail[UX.current]);
             if (RP_DONE) renderReporting();
             if (typeof renderHoldings === 'function') renderHoldings();
-            ['sec-market', 'sec-track'].forEach(id => {
-                const el2 = document.getElementById(id);
-                if (el2 && !el2.classList.contains('collapsed')) { if (id === 'sec-market') { MK_DONE = true; renderMarket(); } else { TR_DONE = true; renderTrack(); } }
-            });
+            ctxFilterState();
+            redrawContextSections();
         };
         el.onerror = () => { CTX_FAILED = true; CTX_LOADED = true; initContext();
-            const kv = document.getElementById('kpi-track-v'); if (kv) kv.textContent = 'not loaded'; };
+            const kv = document.getElementById('kpi-track-v'); if (kv) kv.textContent = 'not loaded';
+            const ks = document.getElementById('kpi-track-s'); if (ks) ks.textContent = 'the context data could not be loaded';
+            ctxFilterState();
+            const sel = document.getElementById('filter-ctx');
+            if (sel && sel.value !== 'all') applyFilters();
+            redrawContextSections();
+        };
+        ctxFilterState();
         document.body.appendChild(el);
+    }
+
+    // An open Market or Track section is drawn now; a closed one is drawn when it next opens
+    // (it may hold the "Loading" line from before the file landed).
+    function redrawContextSections() {
+        ['sec-market', 'sec-track'].forEach(id => {
+            const el2 = document.getElementById(id);
+            const open = !!el2 && !el2.classList.contains('collapsed');
+            if (id === 'sec-market') { MK_DONE = open; if (open) renderMarket(); }
+            else { TR_DONE = open; if (open) renderTrack(); }
+        });
+    }
+
+    // Which Context filter options need the context file: all but "Reports within 14 days",
+    // which reads the earnings date in the main payload. While the file loads, or if it failed,
+    // those options are disabled and say why; the earnings option always works (2026-10-16:
+    // with the file blocked every option gave "0 of 501" and no reason).
+    const CTX_FILE_OPTIONS = ['up', 'down', 'insider'];
+    function ctxFilterState() {
+        const sel = document.getElementById('filter-ctx');
+        if (!sel || !sel.options) return;
+        const why = CTX_FAILED ? 'not loaded' : (CTX_LOADED ? '' : 'loading');
+        if (!sel.dataset.title) sel.dataset.title = sel.title || '';
+        sel.title = CTX_FAILED
+            ? 'The context data could not be loaded, so the trend and insider filters are unavailable. Reports within 14 days still works.'
+            : sel.dataset.title;
+        [...sel.options].forEach(o => {
+            if (CTX_FILE_OPTIONS.indexOf(o.value) === -1) return;
+            if (!o.dataset.label) o.dataset.label = o.textContent;
+            o.disabled = !!why;
+            o.textContent = why ? o.dataset.label + ' (' + why + ')' : o.dataset.label;
+        });
+        if (why && CTX_FILE_OPTIONS.indexOf(sel.value) !== -1) sel.value = 'all';
+    }
+    function ctxFilterReason(v) {
+        if (CTX_FILE_OPTIONS.indexOf(v) === -1) return '';
+        if (CTX_FAILED) return 'The context data could not be loaded, so this filter has nothing to read.';
+        if (!CTX_LOADED) return 'The context data is still loading.';
+        return '';
     }
 
     function initContext() {
         contextMetas();
-        // Render a section's body the first time it opens: collapsed, it costs nothing.
-        if (initContext.wrapped) return;
-        initContext.wrapped = true;
+    }
+    // Render a section's body the first time it opens: collapsed, it costs nothing.
+    (function wrapContextSections() {
         const _ts = toggleSection;
         toggleSection = function(id) {
             const out = _ts.apply(this, arguments);
@@ -8708,9 +8925,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             if (id === 'sec-track' && !TR_DONE) { TR_DONE = true; renderTrack(); }
             return out;
         };
-        const sel = document.getElementById('filter-ctx');
-        if (sel) sel.addEventListener('change', applyFilters);
-    }
+    })();
 
 
     function fmtMetric(v, type) {
@@ -8806,7 +9021,25 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const sec = document.getElementById(sectionId);
         if (!sec) return;
         sec.classList.toggle('collapsed');
+        syncSectionAria(sec);
         if (sectionId === 'sec-universe') requestAnimationFrame(() => renderWindow(true));
+    }
+
+    // Every header that opens a section is a keyboard button (role, tabindex, Enter/Space in
+    // _js_ux) and says whether it is open. Several paths open a section by editing its class
+    // directly (a saved holdings list, goToSection, the drilldown's reset), so an observer keeps
+    // aria-expanded true to the class whichever path moved it.
+    function syncSectionAria(sec) {
+        if (!sec || !sec.querySelector) return;
+        const h = sec.querySelector(':scope > .section-header, :scope > .collapsible-header');
+        if (h && h.setAttribute) h.setAttribute('aria-expanded', sec.classList.contains('collapsed') ? 'false' : 'true');
+    }
+    function watchSectionAria() {
+        const secs = document.querySelectorAll('.collapsible-section, .collapsible');
+        secs.forEach(syncSectionAria);
+        if (typeof MutationObserver === 'undefined') return;
+        const mo = new MutationObserver(list => list.forEach(m => syncSectionAria(m.target)));
+        secs.forEach(s => mo.observe(s, { attributes: true, attributeFilter: ['class'] }));
     }
 
     // =====================================================================
@@ -9112,6 +9345,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             );
         }
     } else {
+        watchSectionAria();
         renderKPIs();
         const kr = document.getElementById('kpi-row');
         if (kr) kr.removeAttribute('aria-busy');
@@ -9121,6 +9355,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             // filling it with em-dashes on every row.
             const ut = document.getElementById('universe-table');
             if (ut) ut.classList.add('no-history');
+        } else {
+            // name the window the column measures, and the noise floor below which it is uncoloured
+            const th = document.getElementById('th-rank-delta');
+            if (th) th.title = rankDeltaTitle();
         }
         renderTop5();
         initHoldings();

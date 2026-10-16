@@ -299,6 +299,8 @@ def test_the_responsive_and_print_rules_survived(html):
 
 
 def test_the_escape_key_still_closes_the_modals(html):
-    block = re.search(r"'Escape'[\s\S]{0,300}", html).group(0)
-    assert "closeModal()" in block
-    assert "closeMethodology()" in block
+    # Since 2026-10-16 the page has more than one Escape handler (the holdings search box closes
+    # its own list) and the modal one closes only the topmost dialog; one block must still close both.
+    # The browser check is tests/test_dashboard_interaction.py::test_shortcuts_act_on_the_topmost_dialog_only.
+    blocks = [m.group(0) for m in re.finditer(r"'Escape'[\s\S]{0,400}", html)]
+    assert any("closeModal()" in b and "closeMethodology()" in b for b in blocks)

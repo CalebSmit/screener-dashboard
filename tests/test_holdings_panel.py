@@ -147,11 +147,21 @@ def test_no_cost_basis_anywhere_in_holdings_code(script, term):
 
 
 def test_stored_value_is_tickers_only(script):
-    """Whatever is in localStorage, only strings that name a scored ticker
-    survive a read - so a hand-edited key cannot smuggle a position in."""
+    """Whatever is in localStorage, only ticker-shaped strings survive a read -
+    so a hand-edited key cannot smuggle a position in.
+
+    Until 2026-10-16 the read also required the ticker to be in *this* run
+    (`!D.stock_detail[t]`), which silently erased any saved name that had left
+    the S&P 500 or failed a fetch on the next write - against constraint 1.
+    The shape test is what keeps storage clean; membership is a render question.
+    """
     code = _holdings_code(script)
     assert "typeof item === 'string'" in code
-    assert "!D.stock_detail[t]" in code
+    assert "HOLDING_TICKER_RE.test(t)" in code
+    assert "const HOLDING_TICKER_RE = /^[A-Z0-9.\\-]{1,10}$/;" in code
+    load = code[code.index("function loadHoldings("):code.index("function saveHoldings(")]
+    assert "D.stock_detail" not in load, (
+        "loadHoldings must not drop a saved name because this run did not score it")
 
 
 # ---------------------------------------------------------------------------
@@ -171,10 +181,12 @@ def test_rows_are_sorted_by_rank_not_by_move(script):
         assert forbidden not in comparator, (
             f"{forbidden!r} appears in the holdings sort comparator - rows "
             "must never be ordered by size of move")
-    # And no filter narrows the list: the only .filter() drops tickers this
-    # run did not score, which is a data check, not a consideration-set cut.
+    # And no filter narrows the list: the only .filter() picks the scored rows
+    # for the fit and concentration lines, which describe scores. Every saved
+    # name, scored or not, is rendered (an unscored one last).
     assert render.count(".filter(") == 1
     assert "!!r.s" in render
+    assert "listed.map(function(r) { return r.s ? holdingCard(r) : unscoredHoldingCard(r.t); })" in render
 
 
 def test_footnote_cites_its_three_sources(script):
@@ -467,20 +479,67 @@ def test_fit_line_reports_concentration_not_position_sizes(script, tmp_path):
 
 @pytestmark_node
 def test_round_trips_through_storage_and_survives_junk(script, tmp_path):
-    """A key holding a position dict, an unknown ticker and a duplicate is read
-    for its tickers and written back clean."""
+    """A key holding a position dict, a duplicate and strings that are not
+    tickers is read for its tickers and written back clean.
+
+    ZZZ is ticker-shaped but not in this run. Since 2026-10-16 it is kept: a
+    name that left the index (or failed one fetch) is still the reader's, and
+    erasing it on the next write broke "every saved name renders, every time".
+    A class share saved with a dot is stored with the payload's dash.
+    """
     out = _run_js(script, """
         globalThis.__store[A.HOLDINGS_KEY] = JSON.stringify(
-            ['AAA', 'aaa', 'ZZZ', {ticker: 'BBB', shares: 100, cost: 42.5}, 'CCC']);
+            ['AAA', 'aaa', 'ZZZ', {ticker: 'BBB', shares: 100, cost: 42.5}, 'CCC',
+             'not a ticker', 'WAYTOOLONGTICKER', '', 42, null, ['DDD'], 'brk.b']);
         A.initHoldings();
+        const loaded = A.current();
+        A.addHolding('BBB');
         console.log(JSON.stringify({
-            loaded: A.current(),
+            loaded: loaded,
             rewritten: JSON.parse(globalThis.__store[A.HOLDINGS_KEY] || 'null'),
             expanded: !globalThis.__els['sec-holdings'].classList.contains('collapsed'),
         }));
     """, tmp_path)
-    assert out["loaded"] == ["AAA", "CCC"]
+    assert out["loaded"] == ["AAA", "ZZZ", "CCC", "BRK-B"]
+    # the first write after the read carries only tickers - no dict, no junk
+    assert out["rewritten"] == ["AAA", "ZZZ", "CCC", "BRK-B", "BBB"]
     assert out["expanded"] is True
+
+
+@pytestmark_node
+def test_a_name_this_run_did_not_score_still_renders_and_survives_edits(script, tmp_path):
+    """Constraint 1 for a name that has left the ranking (WBD left the S&P 500
+    on 2026-10-08; 30 tickers have left since February). It renders as a plain
+    statement of fact with its last rank where the history has one, sorts after
+    every scored name, and removing another name does not erase it."""
+    out = _run_js(script, """
+        A.D.history.series.ZZZ = { r: [400, 410, null] };
+        globalThis.__store[A.HOLDINGS_KEY] = JSON.stringify(['ZZZ', 'YYY', 'AAA', 'BBB']);
+        A.initHoldings();
+        const html = globalThis.__els['holdings-body'].innerHTML;
+        const fit = globalThis.__els['holdings-fit'].innerHTML;
+        A.removeHolding('BBB');
+        console.log(JSON.stringify({
+            order: [...html.matchAll(/class="holding-ticker[^"]*"[^>]*>([A-Z]+)</g)].map(m => m[1]),
+            html: html,
+            fit: fit,
+            afterRemove: JSON.parse(globalThis.__store[A.HOLDINGS_KEY]),
+            count: globalThis.__els['holdings-count'].textContent,
+        }));
+    """, tmp_path)
+    assert out["order"] == ["BBB", "AAA", "ZZZ", "YYY"]
+    html = out["html"]
+    assert ("ZZZ is not in this run&rsquo;s ranking: it has left the S&amp;P 500 or its data "
+            "could not be fetched.") in html
+    assert "It last ranked #410 on " in html          # the last non-empty point of its series
+    assert "YYY is not in this run&rsquo;s ranking" in html
+    assert html.count("holding-unscored") == 2
+    assert 'removeHolding(&quot;ZZZ&quot;)' in html   # the reader can still remove it
+    # the fit line describes the scored names only
+    assert "2</strong> names" in out["fit"]
+    assert out["afterRemove"] == ["ZZZ", "YYY", "AAA"]
+    assert out["count"] == "(3)"           # unscored names count: they are on the list
+    assert stock_summary.advice_terms_in(re.sub(r"<[^>]+>", " ", html)) == []
 
 
 def test_empty_section_ships_collapsed(html):
