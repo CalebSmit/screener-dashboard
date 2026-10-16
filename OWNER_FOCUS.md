@@ -372,6 +372,29 @@ Completed items, newest first.
   clipped below 1340px, default-violet links, overflow at 375 and 320. The record is
   `plan/dashboard-investor-pass.md`; `NIGHTLY_LOG.md` 2026-10-15/16 has the account.
 
+- **2026-10-16 - the earnings-definition proposal: REVIEWED and REFUSED, and the earnings-yield row
+  now says what one-off charge is inside the figure.** Raised 2026-10-15 (owner-run) and decided by
+  the next scheduled session, as the routine requires. The proposal would have scored earnings yield
+  on the data source's "Normalized Income" - net income with its unusual items taken out. **The
+  research behind it is good and is not what it failed on**: company earnings without one-off items
+  predict next year's earnings far better than the headline figure (0.810 against 0.637), and MSCI
+  builds its P/E the same way. It was refused because the *data* cannot be applied evenly: at the
+  twelve-month window the screener actually scores, **23 companies have no adjusted figure at all -
+  Amazon, Bank of America, Berkshire Hathaway and Boeing among them** - so they would have been
+  ranked on earnings including their one-offs while 265 others were ranked without. The screener
+  fixed exactly that fault in this exact metric once before. Worse, **the companies left out are the
+  ones with the biggest one-offs**: 8 of the 18 checkable ones carry items worth more than 10% of
+  net income, Boeing 434% (a $9.7bn gain on selling a business) and General Mills 2,193%. So the
+  change would have cleaned up the small distortions and kept the two largest in the index.
+  Checking the note's own stated refusal test on all 503 companies rather than the 20 it suggested
+  settled it: **120 of 493 companies tag a restructuring or impairment charge in every one of their
+  last four years** - whatever those are, "unusual" is not the word. What shipped instead is the
+  honest half, and the same remedy the capex refusal got: each affected stock's earnings-yield row
+  now says, from that company's own filings, how large a one-off charge sits inside the earnings
+  (47 of 501 stocks, 9 of them in the top 100; **37 of the 47 report one every single year**).
+  Section 8 of `research/2026-10-15-earnings-definition.md` has the measurements and what would
+  reopen it.
+
 - **2026-10-15 - the capex proposal: REVIEWED and REFUSED, and the page now says what the capex
   figure contains.** Raised 2026-10-14 (owner-run) and decided by the next session, as the routine
   requires. The proposal would have taken a captive finance arm's lease purchases out of

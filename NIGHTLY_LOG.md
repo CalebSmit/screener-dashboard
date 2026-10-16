@@ -12054,3 +12054,158 @@ run, `node --check`, a clean tree and `scripts/rehearse_publish.py`. The record,
 The page changes are live now. The summary sentences, Market notes, history notes and weight-profile labels are
 built into the payload, so they change with the **2026-10-19 02:00** data run; the rehearsal checked them against
 the page tests and the claims gate.
+
+## 2026-10-16 (13:00 session) - QUEUE. The earnings-definition proposal: reviewed, refused, and the charge inside the earnings put on the row
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_060001.log`
+(the retrospective) ends "Run complete: shipped to main"; the owner-run professional pass followed it
+and `main` is at `98fa2a0`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
+"Data loop complete", HEALTH: PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago,
+bound 40), 4 effective** - inside the bound and in steady state. Priority 0: unchanged,
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.11, the
+context layer** (opened 2026-10-08, **age 8 days**).
+**Tests:** before **2492 passed / 0 failed**, after **2504 passed, 1 skipped / 0 failed** (+13, all
+in the new `tests/test_special_item_note.py`; the skip is its published-payload check, which cannot
+fire until the 2026-10-19 run puts the notes in the committed payload). Dry run exits 0.
+`scripts/rehearse_publish.py` passed twice.
+**Owner queue / rotation:** took the **open proposal**, which Orient makes the first job and which
+the retrospective six hours earlier named as this session's Next. **0.11 (the context layer) was
+deferred** - item 4's two remaining per-signal notes are untouched and nothing there is half-done.
+
+### Did
+
+**Decided the one open proposal** (`research/2026-10-15-earnings-definition.md`, open 1 day): score
+earnings yield on the source's "Normalized Income" - net income with its unusual items removed -
+instead of net income as reported. **REFUSED.** Section 8 of that note is the review; the changelog
+entry is 2026-10-16.
+
+The research is good and is **not** what it failed on. I re-read the paper carrying the argument:
+Rouen, So & Wang (2021), *JFE* 142(3) 1068-1091, Table 3 Panel A - next-year persistence **0.810**
+for core earnings against **0.637** for net income, **0.178** for the excluded items themselves; and
+MSCI's Fundamental Data Methodology (March 2021, pp. 13-14) builds EPS the same way. Section 4's
+diagnosis is right too: EV/EBITDA measures the recurring business while earnings yield measures it
+plus this year's gains and charges, inside one category.
+
+**What the refusal rests on is the input, measured at the window the engine actually sums** - the
+note measured the annual row. Both prior proposal decisions were refusals resting on a measurement
+the note had not made, so I measured before deciding:
+
+- **23 companies have no four-quarter "Normalized Income" at all** - ABT, AMZN, APH, BA, BAC, BRK-B,
+  CHD, CHRW, CINF, CPRT, CPT, DLR, DTE, ES, EXR, GIS, ILMN, LEN, MDLZ, REG, TFC, WELL, ZBH. The
+  proposal's own fallback ("1 company of 497") would rank them on earnings *including* one-offs
+  beside 265 ranked excluding them. That is precisely the defect `factor_engine.py:2094` records
+  Phase 13 fixing **in this exact metric**: *"SINGLE definition across the universe ... the fallback
+  cohort was ranked on an incomparable basis inside one percentile rank."*
+- **The fallback cohort is where the one-offs are biggest.** Of the 18 whose annual figures are both
+  known, **8 carry annual unusual items worth 10%+ of net income**: General Mills 2,193%, **Boeing
+  434%** ($9.70bn gain on a disposal), CPT 65%, DLR 56%, ZBH 37%, AMZN 20%, WELL 16%, ES 11%. The
+  change would remove the small distortions and **keep the two largest in the index** - worse than
+  leaving the metric alone, because the exceptions concentrate where the problem is.
+- **Reading "absent" as "there were none" to get one rule is false for 70 companies**, 33 worth 5%+
+  of net income (CVS -$5.24bn on $1.77bn of net income; Colgate -$929M; PepsiCo -$1.99bn). Only 15
+  have a short row the fiscal year confirms as zero.
+- **81 of 346 adjusted companies (23.4%)** would carry an adjustment nothing on the page reproduces
+  - largest NVDA, $6.49bn off $192.88bn with the unusual-items row in 1 of 4 quarters. (At the
+  fiscal year it rebuilds for 346 of 385, 89.9%, and the source's tax rate equals the company's own
+  for 328 of 371 - so this is a quarterly-coverage problem, not a nonsense field.)
+- **The note's own refusal test, run on 503 companies instead of the 20 it suggested:** of 493 with
+  four fiscal years filed, **120 (24.3%) tagged a restructuring or impairment charge in every one of
+  the four**; 181 (36.7%) in three or four. That is "misclassify recurring costs at scale", met at
+  the scale section 6 named - and the caveat section 3 had parked as a refinement for later.
+
+**Shipped the sound half**, the same remedy and shape as the refused capex proposal: the
+earnings-yield row now carries a per-stock note built from the company's own filings, wherever a
+tagged restructuring or impairment charge is **10% or more** of the trailing net income the run
+scored - the amount, the tag it was filed under, that it is before tax, and how many of the last
+four fiscal years carried one. **47 of 501 stocks, 9 inside the top 100.** Display-only
+(`cavs['earnings_yield']`); claim `drilldown.special_item_note`; `tests/test_special_item_note.py`,
+13 tests, automatically in the data loop's publish gate because its membership is derived from
+`claims.py` - the tripwire the morning's retrospective built, working on its first use.
+
+**And the selection makes the refusal's case on the stocks it affects: 37 of the 47 tagged a charge
+of the same kind in all four of their last four fiscal years.** Pfizer's $8.9bn of asset impairment
+is 2.1x its net income and appears every year. "Unusual" is not the word for those.
+
+Why this is not a duplicate of the note already there: `ranking_audit`'s earnings-yield sentence
+fires only when net income runs *above* after-tax operating income, so it catches the **gain**
+direction - and it is correctly one-sided, because interest expense routinely puts net income below
+after-tax operating income for sound reasons. The **charge** direction (General Mills, Kraft Heinz -
+the names whose as-reported yield reads too low) had nothing on the page at all.
+
+### What I saw on the page
+
+Regenerated with `scripts/rehearse_publish.py` and read in Chromium at **1440 and 375px**, three
+stocks chosen to exercise both branches and the worst case for the layout (shots in `logs/design/`):
+
+- **KHC at 1440** - the row reads `-$3.4B net income ÷ $27.6B market cap = -12.3%`, then the rebuilt
+  check, then the note: *"The $3.4B loss above is after at least $7.4B of goodwill and intangible
+  asset impairment ... in 4 of its last 4 fiscal years."* It sits under "Rebuilt from the inputs
+  above" as a quoted block headed "In this company's filings", which is where the capex note sits
+  on FCF yield. Correct.
+- **SBUX at 375** - wraps cleanly inside the sheet, no overflow, the share printed because the
+  bottom line is a profit.
+- **GILD at 375 - a defect, found by looking.** Gilead (rank 53) tags
+  `ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill`: 59 characters, one unbreakable
+  token, and it was **clipped at the panel's edge** - so the tag, which is the only reason to print
+  it, was unreadable on a phone. A clip does not widen the document, so the shot script's
+  `scrollWidth` assertion read 375 and passed. Fixed with `overflow-wrap: anywhere` on
+  `.wk-caveat-stock`; re-shot and the tag now wraps onto two lines and reads in full. The test pins
+  the CSS rule rather than a viewport, because a viewport check cannot see this class of fault.
+
+### Evidence / research
+
+- **Rouen, So & Wang (2021), "Core earnings: New data and evidence", *Journal of Financial
+  Economics* 142(3), 1068-1091.** Russell 3000, 1998-2017, ~54,000 firm-years. Table 3 Panel A:
+  next-year persistence 0.810 (core earnings) / 0.637 (net income) / 0.178 (the excluded items).
+  Accepted; it is why the diagnosis is right even though the proposal is refused.
+- **MSCI, Fundamental Data Methodology (March 2021), pp. 13-14.** EPS excludes non-recurring items
+  after tax; trailing P/E and ROE use it. Documented practice, same direction.
+- **The companies' own XBRL tags**, all 503 constituents, from the weekly `companyfacts` cache:
+  the recurrence figures above. This is the note's own stated refusal condition, measured.
+- **Not used, deliberately:** no backtest number (rule 5) and no IC from this system's history
+  (rule 4). The proposal's 0.996 rank correlation argued **neither** way - a change that splits the
+  universe's basis is not made acceptable by being small, and by the same token is not urgent.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-10-16** - "Proposal REFUSED: earnings yield stays on net income
+  as reported, and the row now says what one-off charge is inside it". **No score, rank or composite
+  moved.** The 47 notes reach the live site with the 2026-10-19 02:00 run.
+
+### Tried and rejected
+
+- **Computing the adjustment here from the served rows** instead of reading the vendor's derived
+  figure - `Net Income - (Total Unusual Items - Tax Effect Of Unusual Items)`, which rebuilds 346 of
+  385 at the fiscal year. Ruled out by the same coverage measurement: "Total Unusual Items" is
+  populated in **0 of 4 quarters for 119 companies**, so it splits the universe the same way.
+- **Using the SEC tags as the scoring input.** They are display-only by design (row 0.14 - a
+  weighted metric may not depend on the weekly SEC cache) and they overlap, so summing them needs
+  per-company judgement. The note's figure is therefore the largest **single** tagged line and says
+  "at least".
+- **A symmetric version of `ranking_audit`'s ratio test** to catch the charge direction. Rejected on
+  inspection: interest expense routinely puts net income below after-tax operating income, so the
+  ratio genuinely cannot be read in reverse. The existing note's one-sidedness is correct, not an
+  oversight - which is why the charge direction needed the filings instead.
+
+### Corrections to earlier work
+
+- **`research/2026-10-15-earnings-rows-scan.py` records each row's latest *populated* fiscal year,
+  which is not the same year for every row** (UPS's "Normalized Income" is blank for fiscal 2025,
+  BAC's "Total Unusual Items" is), so a cross-row comparison off that file can put one year's net
+  income beside another year's normalisation - **18 companies** are affected. Section 1's own
+  figures are within-row and unaffected. Re-measured from a same-column scan; the guard is in
+  `research/measurements/2026-10-16-unusual-items-vs-filings.py`.
+- **Two defects in my own first draft of the note, found by reading its output rather than its
+  code:** `_usd` takes an absolute value, so a loss was announced as net income ("The $3.2B of net
+  income above" for Gilead's $3.24bn **loss**), and a share of a loss was printed as though it meant
+  something ("7,887% of the net income" against Air Products' $47M loss). A third: the recurrence
+  clause derived its window from the special-item tags themselves, and a year without a charge files
+  no such tag, so "N of M" could only ever report N of N.
+
+### Next
+
+**0.11, the context layer** - `plan/context-layer.md` item 4's two remaining per-signal notes (the
+macro backdrop and the track record), then item 6, track-record hardening. It has been the top open
+roadmap item for 8 days and was deferred today for the proposal, which Orient ranks first; no
+proposal is open now (`write_brief.open_proposals()` returns `[]`), so the next session should take
+it unless a new one appears.

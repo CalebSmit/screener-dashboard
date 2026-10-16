@@ -844,6 +844,31 @@ def _attach_capex_lease_note(stock_detail: dict, facts=None) -> int:
         return 0
 
 
+def _attach_special_item_note(stock_detail: dict, facts=None) -> int:
+    """Add ``cavs['earnings_yield']`` - the one-off charge inside the earnings the run scored - to
+    the stocks whose own filings report one worth 10% or more of it (``sec_crosscheck.special_items``).
+
+    2026-10-16, `research/2026-10-15-earnings-definition.md` section 8: the proposal to score
+    earnings yield on the source's "Normalized Income" was refused, because at the four-quarter
+    window the engine sums, 23 companies have no normalized figure and would be ranked on earnings
+    including their one-off items beside 265 ranked excluding them. Saying what the published figure
+    contains is what was shipped instead. Display-only - ``cavs`` is prose, it enters no score, and
+    like the filing check it must never stop a build."""
+    try:
+        import sec_crosscheck as X
+        facts = _facts(facts)
+        if facts is None:
+            return 0
+        found = X.special_items({"stock_detail": stock_detail},
+                                facts[facts["ticker"].isin(list(stock_detail))])
+        for t, entry in found.items():
+            stock_detail[t].setdefault("cavs", {})["earnings_yield"] = X.special_item_note(entry)
+        return len(found)
+    except Exception as exc:  # noqa: BLE001 - provenance never stops a build
+        print(f"WARNING: special-item note skipped ({type(exc).__name__}: {exc})")
+        return 0
+
+
 def _input_mismatches(inp: dict, raw: dict) -> list:
     """Metrics whose published value does NOT rebuild from the inputs published
     beside it. The page says so for these instead of showing a formula that fails."""
@@ -1479,6 +1504,9 @@ def prepare_dashboard_data(run_data: dict) -> str:
     if _n_checked:
         print(f"Filing check: inputs compared with SEC filings for {_n_checked} stocks")
     _n_lease = _attach_capex_lease_note(stock_detail)
+    _n_special = _attach_special_item_note(stock_detail)
+    if _n_special:
+        print(f"Filings: a one-off charge inside the scored earnings of {_n_special} stocks")
     # What to check before trusting a high rank (display-only prose; ranking_audit.py, 2026-10-15)
     try:
         import ranking_audit
@@ -7049,8 +7077,13 @@ def _css() -> str:
         .wk-caveat { border-left: 2px solid var(--amber); padding-left: 10px; color: var(--text-secondary); }
         .wk-caveat strong { color: var(--text-primary); font-weight: 600; }
         /* A note about this company's own filed figures, not a warning about the metric: the
-           same shape, the neutral border. */
-        .wk-caveat-stock { border-left-color: var(--border-bright); }
+           same shape, the neutral border. These notes name the XBRL tag the company applied, so a
+           reader can find the figure in the filing, and some of those are one unbreakable 59-
+           character token - ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill. Without
+           `anywhere` it is clipped at the panel's edge at 375px (seen on Gilead, rank 53,
+           2026-10-16), and the clip does not widen the document, so a scrollWidth check cannot
+           see it. The tag has to be readable or it is not provenance. */
+        .wk-caveat-stock { border-left-color: var(--border-bright); overflow-wrap: anywhere; }
         .contrib-row-link { cursor: pointer; transition: background var(--t-fast) ease-out; }
         .contrib-row-link:hover { background: var(--bg-card-hover); }
         .chain-line {

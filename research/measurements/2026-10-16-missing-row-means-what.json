@@ -1,0 +1,645 @@
+{
+ "verdict": {
+  "unusual items served for all four quarters": 302,
+  "row short, and no annual row either - genuinely unknown": 88,
+  "row short, but the fiscal year reports unusual items - absent means not served": 70,
+  "  ... of those, worth >= 5% of net income": 33,
+  "no Normalized Income at the trailing window - would fall back to net income": 23,
+  "row short, and the fiscal year says zero - absent means none": 15,
+  "no trailing window could be formed": 5
+ },
+ "detail": {
+  "absent_quarterly_but_annual_says_otherwise": [
+   {
+    "ticker": "CVS",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -5242000000.0,
+    "annual_net": 1768000000.0,
+    "share_of_net": 2.965
+   },
+   {
+    "ticker": "TWLO",
+    "quarters_with_unusual": 1,
+    "annual_unusual": -97508000.0,
+    "annual_net": 33834000.0,
+    "share_of_net": 2.882
+   },
+   {
+    "ticker": "CRL",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -375974000.0,
+    "annual_net": -144338000.0,
+    "share_of_net": 2.605
+   },
+   {
+    "ticker": "SOLV",
+    "quarters_with_unusual": 2,
+    "annual_unusual": 1467000000.0,
+    "annual_net": 1556000000.0,
+    "share_of_net": 0.943
+   },
+   {
+    "ticker": "TSN",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -343000000.0,
+    "annual_net": 474000000.0,
+    "share_of_net": 0.724
+   },
+   {
+    "ticker": "FE",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -651000000.0,
+    "annual_net": 1020000000.0,
+    "share_of_net": 0.638
+   },
+   {
+    "ticker": "CL",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -929000000.0,
+    "annual_net": 2132000000.0,
+    "share_of_net": 0.436
+   },
+   {
+    "ticker": "FRT",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 142686000.0,
+    "annual_net": 411077000.0,
+    "share_of_net": 0.347
+   },
+   {
+    "ticker": "ROK",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -220000000.0,
+    "annual_net": 869000000.0,
+    "share_of_net": 0.253
+   },
+   {
+    "ticker": "PEP",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -1993000000.0,
+    "annual_net": 8240000000.0,
+    "share_of_net": 0.242
+   },
+   {
+    "ticker": "BKR",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -425000000.0,
+    "annual_net": 2588000000.0,
+    "share_of_net": 0.164
+   },
+   {
+    "ticker": "MAA",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 72066000.0,
+    "annual_net": 446909000.0,
+    "share_of_net": 0.161
+   },
+   {
+    "ticker": "TECH",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -28324000.0,
+    "annual_net": 181862000.0,
+    "share_of_net": 0.156
+   },
+   {
+    "ticker": "HRL",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -70751000.0,
+    "annual_net": 478197000.0,
+    "share_of_net": 0.148
+   },
+   {
+    "ticker": "EME",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 144876000.0,
+    "annual_net": 1272817000.0,
+    "share_of_net": 0.114
+   },
+   {
+    "ticker": "GM",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 274000000.0,
+    "annual_net": 2697000000.0,
+    "share_of_net": 0.102
+   },
+   {
+    "ticker": "ETR",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 167931000.0,
+    "annual_net": 1773328000.0,
+    "share_of_net": 0.095
+   },
+   {
+    "ticker": "LUV",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 41000000.0,
+    "annual_net": 441000000.0,
+    "share_of_net": 0.093
+   },
+   {
+    "ticker": "FLEX",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -79000000.0,
+    "annual_net": 880000000.0,
+    "share_of_net": 0.09
+   },
+   {
+    "ticker": "CMS",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 95000000.0,
+    "annual_net": 1071000000.0,
+    "share_of_net": 0.089
+   },
+   {
+    "ticker": "CMI",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -244000000.0,
+    "annual_net": 2843000000.0,
+    "share_of_net": 0.086
+   },
+   {
+    "ticker": "AMD",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 366000000.0,
+    "annual_net": 4335000000.0,
+    "share_of_net": 0.084
+   },
+   {
+    "ticker": "C",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -1101000000.0,
+    "annual_net": 14306000000.0,
+    "share_of_net": 0.077
+   },
+   {
+    "ticker": "OMC",
+    "quarters_with_unusual": 1,
+    "annual_unusual": 4200000.0,
+    "annual_net": -54500000.0,
+    "share_of_net": 0.077
+   },
+   {
+    "ticker": "HII",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 46000000.0,
+    "annual_net": 605000000.0,
+    "share_of_net": 0.076
+   },
+   {
+    "ticker": "J",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -20510000.0,
+    "annual_net": 289336000.0,
+    "share_of_net": 0.071
+   },
+   {
+    "ticker": "ATO",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 75599000.0,
+    "annual_net": 1198754000.0,
+    "share_of_net": 0.063
+   },
+   {
+    "ticker": "LIN",
+    "quarters_with_unusual": 1,
+    "annual_unusual": -430000000.0,
+    "annual_net": 6898000000.0,
+    "share_of_net": 0.062
+   },
+   {
+    "ticker": "OTIS",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -86000000.0,
+    "annual_net": 1384000000.0,
+    "share_of_net": 0.062
+   },
+   {
+    "ticker": "HBAN",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -133000000.0,
+    "annual_net": 2211000000.0,
+    "share_of_net": 0.06
+   },
+   {
+    "ticker": "CSX",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -164000000.0,
+    "annual_net": 2889000000.0,
+    "share_of_net": 0.057
+   },
+   {
+    "ticker": "HUM",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -67000000.0,
+    "annual_net": 1188000000.0,
+    "share_of_net": 0.056
+   },
+   {
+    "ticker": "NOC",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 231000000.0,
+    "annual_net": 4182000000.0,
+    "share_of_net": 0.055
+   },
+   {
+    "ticker": "GEHC",
+    "quarters_with_unusual": 1,
+    "annual_unusual": 97000000.0,
+    "annual_net": 2084000000.0,
+    "share_of_net": 0.047
+   },
+   {
+    "ticker": "TTWO",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -13000000.0,
+    "annual_net": -298200000.0,
+    "share_of_net": 0.044
+   },
+   {
+    "ticker": "MPC",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 173000000.0,
+    "annual_net": 4047000000.0,
+    "share_of_net": 0.043
+   },
+   {
+    "ticker": "KDP",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -78000000.0,
+    "annual_net": 2079000000.0,
+    "share_of_net": 0.038
+   },
+   {
+    "ticker": "NTRS",
+    "quarters_with_unusual": 1,
+    "annual_unusual": -58800000.0,
+    "annual_net": 1736900000.0,
+    "share_of_net": 0.034
+   },
+   {
+    "ticker": "AMAT",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -181000000.0,
+    "annual_net": 6998000000.0,
+    "share_of_net": 0.026
+   },
+   {
+    "ticker": "NDSN",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -12545000.0,
+    "annual_net": 484474000.0,
+    "share_of_net": 0.026
+   },
+   {
+    "ticker": "TMUS",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -278000000.0,
+    "annual_net": 10992000000.0,
+    "share_of_net": 0.025
+   },
+   {
+    "ticker": "PPG",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -35000000.0,
+    "annual_net": 1576000000.0,
+    "share_of_net": 0.022
+   },
+   {
+    "ticker": "PTC",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -15643000.0,
+    "annual_net": 733997000.0,
+    "share_of_net": 0.021
+   },
+   {
+    "ticker": "MU",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -170000000.0,
+    "annual_net": 8539000000.0,
+    "share_of_net": 0.02
+   },
+   {
+    "ticker": "DVA",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -14178000.0,
+    "annual_net": 746803000.0,
+    "share_of_net": 0.019
+   },
+   {
+    "ticker": "FICO",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -10922000.0,
+    "annual_net": 651946000.0,
+    "share_of_net": 0.017
+   },
+   {
+    "ticker": "TDY",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 15000000.0,
+    "annual_net": 894800000.0,
+    "share_of_net": 0.017
+   },
+   {
+    "ticker": "BNY",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -90000000.0,
+    "annual_net": 5549000000.0,
+    "share_of_net": 0.016
+   },
+   {
+    "ticker": "GL",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -17053000.0,
+    "annual_net": 1161238000.0,
+    "share_of_net": 0.015
+   },
+   {
+    "ticker": "CFG",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 26000000.0,
+    "annual_net": 1831000000.0,
+    "share_of_net": 0.014
+   },
+   {
+    "ticker": "WEC",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -22100000.0,
+    "annual_net": 1558700000.0,
+    "share_of_net": 0.014
+   },
+   {
+    "ticker": "MTB",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 38000000.0,
+    "annual_net": 2851000000.0,
+    "share_of_net": 0.013
+   },
+   {
+    "ticker": "DE",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 57000000.0,
+    "annual_net": 5027000000.0,
+    "share_of_net": 0.011
+   },
+   {
+    "ticker": "ITW",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -35000000.0,
+    "annual_net": 3066000000.0,
+    "share_of_net": 0.011
+   },
+   {
+    "ticker": "VEEV",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 9986000.0,
+    "annual_net": 908906000.0,
+    "share_of_net": 0.011
+   },
+   {
+    "ticker": "VLTO",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -10000000.0,
+    "annual_net": 940000000.0,
+    "share_of_net": 0.011
+   },
+   {
+    "ticker": "AXP",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -96000000.0,
+    "annual_net": 10833000000.0,
+    "share_of_net": 0.009
+   },
+   {
+    "ticker": "CARR",
+    "quarters_with_unusual": 0,
+    "annual_unusual": 13000000.0,
+    "annual_net": 1484000000.0,
+    "share_of_net": 0.009
+   },
+   {
+    "ticker": "MS",
+    "quarters_with_unusual": 1,
+    "annual_unusual": -144000000.0,
+    "annual_net": 16861000000.0,
+    "share_of_net": 0.009
+   },
+   {
+    "ticker": "CTAS",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -15136000.0,
+    "annual_net": 1999968000.0,
+    "share_of_net": 0.008
+   },
+   {
+    "ticker": "MAS",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -5000000.0,
+    "annual_net": 810000000.0,
+    "share_of_net": 0.006
+   },
+   {
+    "ticker": "NXPI",
+    "quarters_with_unusual": 0,
+    "annual_unusual": -9000000.0,
+    "annual_net": 2021000000.0,
+    "share_of_net": 0.004
+   },
+   {
+    "ticker": "PM",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -41000000.0,
+    "annual_net": 11348000000.0,
+    "share_of_net": 0.004
+   },
+   {
+    "ticker": "TXT",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -4000000.0,
+    "annual_net": 921000000.0,
+    "share_of_net": 0.004
+   },
+   {
+    "ticker": "KEY",
+    "quarters_with_unusual": 2,
+    "annual_unusual": 5000000.0,
+    "annual_net": 1829000000.0,
+    "share_of_net": 0.003
+   },
+   {
+    "ticker": "KLAC",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 16835000.0,
+    "annual_net": 4830771000.0,
+    "share_of_net": 0.003
+   },
+   {
+    "ticker": "MRNA",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -5000000.0,
+    "annual_net": -2822000000.0,
+    "share_of_net": 0.002
+   },
+   {
+    "ticker": "AIZ",
+    "quarters_with_unusual": 2,
+    "annual_unusual": -1300000.0,
+    "annual_net": 872700000.0,
+    "share_of_net": 0.001
+   },
+   {
+    "ticker": "AEE",
+    "quarters_with_unusual": 3,
+    "annual_unusual": 96000000.0,
+    "annual_net": null,
+    "share_of_net": null
+   },
+   {
+    "ticker": "HUBB",
+    "quarters_with_unusual": 3,
+    "annual_unusual": -400000.0,
+    "annual_net": 887100000.0,
+    "share_of_net": 0.0
+   }
+  ],
+  "no_normalized_income_at_ttm": [
+   {
+    "ticker": "ABT",
+    "annual_unusual": 50000000.0,
+    "annual_net": 6524000000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "AMZN",
+    "annual_unusual": 15320000000.0,
+    "annual_net": 77670000000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "APH",
+    "annual_unusual": -103400000.0,
+    "annual_net": 4270300000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "BAC",
+    "annual_unusual": null,
+    "annual_net": 30509000000.0,
+    "quarters_with_unusual": 0
+   },
+   {
+    "ticker": "BRK-B",
+    "annual_unusual": null,
+    "annual_net": 66968000000.0,
+    "quarters_with_unusual": 0
+   },
+   {
+    "ticker": "BA",
+    "annual_unusual": 9697000000.0,
+    "annual_net": 2235000000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "CHRW",
+    "annual_unusual": null,
+    "annual_net": 587081000.0,
+    "quarters_with_unusual": 0
+   },
+   {
+    "ticker": "CPT",
+    "annual_unusual": 247994000.0,
+    "annual_net": 384462000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "CHD",
+    "annual_unusual": 0.0,
+    "annual_net": 736800000.0,
+    "quarters_with_unusual": 2
+   },
+   {
+    "ticker": "CINF",
+    "annual_unusual": null,
+    "annual_net": 2393000000.0,
+    "quarters_with_unusual": 0
+   },
+   {
+    "ticker": "CPRT",
+    "annual_unusual": null,
+    "annual_net": 1552449000.0,
+    "quarters_with_unusual": 0
+   },
+   {
+    "ticker": "DLR",
+    "annual_unusual": 731952000.0,
+    "annual_net": 1308589000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "DTE",
+    "annual_unusual": -32000000.0,
+    "annual_net": 1462000000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "ES",
+    "annual_unusual": -190400000.0,
+    "annual_net": 1692372000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "EXR",
+    "annual_unusual": -21789000.0,
+    "annual_net": 973999000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "GIS",
+    "annual_unusual": -1921400000.0,
+    "annual_net": -87600000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "ILMN",
+    "annual_unusual": -10000000.0,
+    "annual_net": 850000000.0,
+    "quarters_with_unusual": 2
+   },
+   {
+    "ticker": "LEN",
+    "annual_unusual": 130166000.0,
+    "annual_net": 2078179000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "MDLZ",
+    "annual_unusual": -72000000.0,
+    "annual_net": 2451000000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "REG",
+    "annual_unusual": 23151000.0,
+    "annual_net": 527460000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "TFC",
+    "annual_unusual": -286000000.0,
+    "annual_net": 5307000000.0,
+    "quarters_with_unusual": 2
+   },
+   {
+    "ticker": "WELL",
+    "annual_unusual": -152935000.0,
+    "annual_net": 936845000.0,
+    "quarters_with_unusual": 3
+   },
+   {
+    "ticker": "ZBH",
+    "annual_unusual": -258100000.0,
+    "annual_net": 705100000.0,
+    "quarters_with_unusual": 4
+   }
+  ]
+ }
+}
