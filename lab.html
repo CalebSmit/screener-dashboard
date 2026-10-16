@@ -220,8 +220,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=20"></script>
-<script src="lab_engine.js?v=20"></script>
+<script src="lab_data.js?v=21"></script>
+<script src="lab_engine.js?v=21"></script>
 <script>
 (function () {
     'use strict';
@@ -274,7 +274,11 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <details><summary>Show the code this page just ran</summary><pre id="x-code"></pre></details>
         </section>`;
     }
-    const tolNote = X => `The tolerances were written down in the build, not chosen on this page. Reference figures: ${esc(X.reference.source)}`;
+    // Under every comparison, from one place: that the tolerances live in the build, when they were
+    // written against when the figures were first seen (the record's own account), and the source.
+    const tolNote = X => { const R = X.reference;
+        return `The tolerances were written down in the build, not chosen on this page. ${esc(D.tolerances_written[R.tolerances_written])}` +
+            `${R.tolerances_note ? ' ' + esc(R.tolerances_note) : ''} Reference figures: ${esc(R.source)}`; };
 
     // ------------------------------------------------------------------ charts
     const NS = 'http://www.w3.org/2000/svg';
@@ -427,7 +431,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Run at the paper's own settings (${mon(REF.start)} to ${mon(REF.end)}, six-month risk window, 12% target, no borrowing limit), this is each figure the paper reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} They were set after the first comparison was seen, as round numbers, so read the differences themselves.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">forecast variance for month <i>t</i> &nbsp;=&nbsp; 21 × ( r<sub>1</sub><sup>2</sup> + r<sub>2</sub><sup>2</sup> + … + r<sub>126</sub><sup>2</sup> ) ÷ 126<small>r are the strategy's daily returns on the 126 trading days before month t begins. Times 12, square-rooted, it is a volatility a year.</small></div>
             <div class="eq">exposure in month <i>t</i> &nbsp;=&nbsp; target volatility ÷ forecast volatility<small>Capped at the borrowing limit, if one is set.</small></div>
@@ -528,7 +532,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
             <h3 style="margin-top:26px">The fifteen worst months</h3>
             <div class="tablewrap"><table id="t-worst"><thead><tr><th scope="col">Month here</th><th scope="col">Here (%)</th><th scope="col">Paper (%)</th></tr></thead><tbody></tbody></table></div>
             <p class="note" id="x-worst-note"></p>
@@ -620,7 +624,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure it reports beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a factor's return in month <i>t</i> &nbsp;=&nbsp; return of the stocks with more of a trait − return of the stocks with less<small>For value: high book-to-market minus low, averaged over small and big companies. The library builds these; this page reads them.</small></div>
             <div class="eq">t-statistic &nbsp;=&nbsp; average month ÷ ( volatility ÷ √months )<small>How many standard errors the average sits from zero.</small></div>
@@ -718,7 +722,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), equal-weighted, each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>Ten groups, re-formed each June by market value.</small></div>
             <div class="eq">difference between two groups &nbsp;=&nbsp; mean of ( one group's return − the other's ), month by month<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>`);
@@ -793,7 +797,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today.</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a group's average month &nbsp;=&nbsp; mean of its monthly returns over the period<small>The groups are re-formed as the library's file says; this page reads them.</small></div>
             <div class="eq">volatility, a month &nbsp;=&nbsp; standard deviation of those monthly returns<small>Average ÷ volatility is how much return each unit of risk came with.</small></div>
@@ -890,7 +894,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
             <h3 id="x-against">Against the paper</h3>
             <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (${mon(REF.start)} to ${mon(REF.end)}), each figure in its table beside what the public data gives today. ${esc(G.against || "Momentum is not in the paper's table, so it is not in this comparison.")}</p>
             <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
-            <p class="note">${tolNote(X)} These tolerances were written before the comparison was first run.</p>
+            <p class="note">${tolNote(X)}</p>
         </section>` + tail(X, `
             <div class="eq">a factor among ${esc(BIG)} &nbsp;=&nbsp; that group's high end − its low end, each month${G.data ? '' : '<small>For investment it is the low group minus the high one: companies that grow their assets slowly, minus those that grow them fast.</small>'}</div>
             <div class="eq">average month &nbsp;=&nbsp; mean of that series over the period<small>Its t-statistic is that mean ÷ ( its volatility ÷ √months ).</small></div>

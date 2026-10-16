@@ -112,8 +112,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # experiment; 6 = the front page; 7 = sorted-portfolio experiments; 8 = the sixth experiment; 9 = the seventh; 10 = the table of
 # results inside and after their papers' samples; 11 = the eighth experiment and the scorecard;
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
-# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment).
-ASSET_VERSION = 20
+# 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
+# 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match).
+ASSET_VERSION = 21
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -694,6 +695,17 @@ STAT_LABELS = {"max": "Best month (%)", "min": "Worst month (%)", "mean": "Mean,
 TOLERANCES = {"max": 3.0, "min": 3.0, "mean": 1.0, "std": 1.0, "kurt": 1.0, "skew": 0.15,
               "sharpe": 0.05}
 
+# When each experiment's tolerances were written, against when its figures were first seen
+# (plan/factor-lab.md rule 3). Every reference record carries one of these keys as
+# "tolerances_written", and a "tolerances_note" from its own comment wherever it is not
+# "before"; the page prints the sentence and the note under the comparison, from one function.
+TOLERANCES_WRITTEN = {
+    "before": "These tolerances were written before the comparison was first run.",
+    "after_first_comparison": "These tolerances were written after the first comparison had been seen.",
+    "after_figures_seen": ("These tolerances were written before this comparison was run, but after "
+                           "its figures had been measured elsewhere."),
+}
+
 EXPERIMENTS = [
     {
         "id": "risk-managed-momentum",
@@ -722,6 +734,9 @@ EXPERIMENTS = [
             "managed": {"max": 21.95, "min": -28.40, "mean": 16.50, "std": 16.95,
                         "kurt": 2.68, "skew": -0.42, "sharpe": 0.97},
             "weights": {"min": 0.13, "max": 2.00, "mean": 0.90},
+            "tolerances_written": "after_first_comparison",
+            "tolerances_note": ("They were set after the first comparison was seen, as round numbers a reader can "
+                                "argue with, so read the differences themselves."),
         },
         "conditions": [
             ["Portfolio", "Winners minus losers: the top decile of US stocks by return over months "
@@ -784,6 +799,11 @@ EXPERIMENTS = [
             # year where this paper reports 17.9%, so the three figures built on that mean
             # (the mean, the alpha, the average outside bear markets) were expected to fall
             # outside; and the five worst months had been printed by an earlier probe.
+            "tolerances_written": "before",
+            "tolerances_note": ("Written before the comparison was run, but not blind: experiment 1 had already shown "
+                                "this library's momentum earning about 15% a year where this paper reports 17.9%, so "
+                                "the figures built on that average were expected to miss, and an earlier probe had "
+                                "printed the five worst months."),
             "figures": [
                 {"key": "wml_mean", "label": "Momentum: mean, a year (%)", "paper": 17.9, "tolerance": 1.0, "where": "Table 1"},
                 {"key": "wml_std", "label": "Momentum: volatility, a year (%)", "paper": 30.0, "tolerance": 1.0, "where": "Table 1"},
@@ -875,6 +895,7 @@ EXPERIMENTS = [
             # file when they were set. The library is the authors' own data, rebuilt since on a
             # newer database, so most figures were expected to land within; no figure was
             # expected to miss for a known reason.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean_mktrf", "label": "Market: average month (%)", "paper": 0.50, "tolerance": 0.03, "where": "Table 4A"},
                 {"key": "mean_smb", "label": "Size: average month (%)", "paper": 0.29, "tolerance": 0.03, "where": "Table 4A"},
@@ -957,6 +978,7 @@ EXPERIMENTS = [
             # file. One tolerance for every decile. The smallest tenth was the one thought most
             # likely to miss: it holds the most firms, the least liquid, and its reference figure
             # is derived from two halves rather than read.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "dec1", "label": "Smallest tenth: average month (%)", "paper": 1.546, "tolerance": 0.05, "where": "Table II A (its two halves, averaged by number of firms)"},
                 {"key": "dec2", "label": "Size decile 2: average month (%)", "paper": 1.29, "tolerance": 0.05, "where": "Table II A"},
@@ -1040,6 +1062,7 @@ EXPERIMENTS = [
             # with it - the library measures volatility over 60 days where the paper uses one
             # month, and draws its dividing lines differently, both of which make the library's
             # extreme group less extreme.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean1", "label": "Calmest fifth: average month (%)", "paper": 1.06, "tolerance": 0.10, "where": "Table VI A"},
                 {"key": "mean2", "label": "Second fifth: average month (%)", "paper": 1.15, "tolerance": 0.10, "where": "Table VI A"},
@@ -1131,6 +1154,7 @@ EXPERIMENTS = [
             # library draws them on New York Stock Exchange stocks and keeps financials. Unlike
             # the size table, both samples need accounting data, so a closer match than
             # experiment 4's was expected.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean1", "label": "Lowest earnings yield: average month (%)", "paper": 0.984, "tolerance": 0.05, "where": "Table IV B (its two halves, averaged by number of firms)"},
                 {"key": "mean2", "label": "Earnings-yield decile 2: average month (%)", "paper": 0.94, "tolerance": 0.05, "where": "Table IV B"},
@@ -1222,6 +1246,7 @@ EXPERIMENTS = [
             # paper's in most groups (its sample is non-financial firms with accounting data;
             # the library's is every stock), and the flatness - the gap between the end groups -
             # would match.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean1", "label": "Lowest beta: average month (%)", "paper": 1.2, "tolerance": 0.05, "where": "Table II B (its two halves, averaged by number of firms)"},
                 {"key": "mean2", "label": "Beta decile 2: average month (%)", "paper": 1.32, "tolerance": 0.05, "where": "Table II B"},
@@ -1309,6 +1334,7 @@ EXPERIMENTS = [
             # recorded in verdict_note and the tolerances were left as written.) The same sizes as experiment 3, which reruns the first block of the
             # same table and landed 20 of 21 within. Expected: the same - these are the authors'
             # own portfolios, rebuilt on a newer database.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean_value_small", "label": "Value among small companies: average month (%)", "paper": 0.53, "tolerance": 0.03, "where": "Table 4A"},
                 {"key": "t_value_small", "label": "Value among small companies: t-statistic", "paper": 4.05, "tolerance": 0.25, "where": "Table 4A"},
@@ -1397,6 +1423,7 @@ EXPERIMENTS = [
             # the library has been rebuilt since. (It landed 5 of 12: all four figures for the
             # largest fifth within, every miss involving the smallest fifth. The tolerances
             # stay as written; verdict_note says where the misses are.)
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean_value_small", "label": "Value in the smallest fifth: high minus low, % a year", "paper": 11.22, "tolerance": 0.5, "where": "Table 3"},
                 {"key": "t_value_small", "label": "Value in the smallest fifth: t-statistic", "paper": 3.87, "tolerance": 0.25, "where": "Table 3"},
@@ -1496,6 +1523,7 @@ EXPERIMENTS = [
             # cuts its spread to 0.25%. Expected beforehand: the pattern rises with profitability
             # and the spread lands below 0.31; a miss is a finding about the two measures, not a
             # number to tune.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean1", "label": "Least profitable fifth: average excess month (%)", "paper": 0.31, "tolerance": 0.10, "where": "Table 2 A"},
                 {"key": "mean2", "label": "Profitability quintile 2: average excess month (%)", "paper": 0.41, "tolerance": 0.10, "where": "Table 2 A"},
@@ -1589,6 +1617,7 @@ EXPERIMENTS = [
             # where the paper used April formation, NYSE/AMEX, annual buy-and-hold and a size
             # adjustment. Expected beforehand: the rise from low to high yield matches; the lowest
             # decile (where the paper's -4.9% sits) is the likeliest to miss.
+            "tolerances_written": "before",
             "figures": [
                 {"key": "mean1", "label": "Lowest cash-flow yield, against the average (% a year)", "paper": -5.62, "tolerance": 2.0, "where": "Table 2, AB1, less the ten-decile average"},
                 {"key": "mean2", "label": "Decile 2, against the average (% a year)", "paper": -1.92, "tolerance": 2.0, "where": "Table 2, AB1"},
@@ -1683,6 +1712,11 @@ EXPERIMENTS = [
             # which moved neither verdict; their 3.0 tolerances were kept as written, neither widened
             # nor narrowed. The eight middle deciles were added with experiment 11's 2.0, written
             # before THEY were compared.
+            "tolerances_written": "after_first_comparison",
+            "tolerances_note": ("The two end deciles and the spread were written and compared first (1 of 3 within); "
+                                "the ends' paper values were then corrected to the paper's own ten-decile average, "
+                                "which moved neither verdict, and the eight middle deciles were added, with their "
+                                "tolerances, before they were compared."),
             "figures": [
                 {"key": "mean10", "label": "Lowest accruals, against the average (% a year)", "paper": 4.79, "tolerance": 3.0, "where": "Table 6, size-adjusted, year t+1, lowest decile (0.049) less the ten-decile average (0.0011)"},
                 {"key": "mean9", "label": "Decile 2, against the average (% a year)", "paper": 2.69, "tolerance": 2.0, "where": "Table 6, decile 2 (0.028)"},
@@ -1777,6 +1811,11 @@ EXPERIMENTS = [
             # average (1.2% a year), with the volatility and Sharpe ratio scaled from it (2.0% a year;
             # 0.10) and the correlation at 0.15. Read "outside" here as the record of a construction
             # difference, not a verdict a reader should weigh twice.
+            "tolerances_written": "after_figures_seen",
+            "tolerances_note": ("A research note had measured the big-company Sharpe ratios and the correlation an "
+                                "hour before, so these tolerances were not chosen for this comparison but follow "
+                                "experiment 10's scale; read an \"outside\" here as the record of a construction "
+                                "difference."),
             "figures": [
                 {"key": "mean_value", "label": "Value: average a year (%)", "paper": 3.7, "tolerance": 1.2, "where": "Table I A, value P3-P1"},
                 {"key": "mean_momentum", "label": "Momentum: average a year (%)", "paper": 5.4, "tolerance": 1.2, "where": "Table I A, momentum P3-P1"},
@@ -2275,7 +2314,8 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                      "trailing-return readings computed from the daily and monthly files). "
                      "Download the originals from the library; this page does not republish them."),
         },
-        "tolerances": TOLERANCES, "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
+        "tolerances": TOLERANCES, "tolerances_written": TOLERANCES_WRITTEN,
+        "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles),

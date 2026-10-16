@@ -1245,3 +1245,38 @@ def test_see_every_figure_scrolls_to_the_comparison_and_keeps_the_experiment():
         finally:
             browser.close()
 
+
+def test_each_experiment_says_when_its_tolerances_were_written(published):
+    """Rule 3 says tolerances are written before the comparison. Three records say otherwise for
+    themselves - experiment 1's were set after its first comparison, experiment 12's end values
+    were corrected after theirs, experiment 13's figures had been measured an hour before - and the
+    page used to print "written before" under all but the first. Each record now carries its own
+    account, and the page prints it from one function."""
+    assert set(fl.TOLERANCES_WRITTEN) == {"before", "after_first_comparison", "after_figures_seen"}
+    assert published["tolerances_written"] == fl.TOLERANCES_WRITTEN
+    for exp in fl.EXPERIMENTS:
+        ref = exp["reference"]
+        assert ref["tolerances_written"] in fl.TOLERANCES_WRITTEN, exp["id"]
+        if ref["tolerances_written"] != "before":
+            assert len(ref.get("tolerances_note", "")) > 60, exp["id"]          # what happened, not just a label
+    status = {x["id"]: x["reference"]["tolerances_written"] for x in fl.EXPERIMENTS}
+    assert status["risk-managed-momentum"] == "after_first_comparison"
+    assert status["accruals"] == "after_first_comparison" and status["value-and-momentum"] == "after_figures_seen"
+    html = PAGE.read_text(encoding="utf-8")
+    assert "These tolerances were written before the comparison was first run" not in html
+    assert "They were set after the first comparison was seen" not in html
+    kinds = {x["kind"] for x in fl.EXPERIMENTS}
+    assert html.count("${tolNote(X)}</p>") == len(kinds) == 7                  # every layout, one function
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        browser, page, errors = _open(pw)
+        try:
+            for exp in fl.EXPERIMENTS:
+                _goto(page, exp["id"])
+                note = page.inner_text("#x-against ~ p.note")
+                assert fl.TOLERANCES_WRITTEN[exp["reference"]["tolerances_written"]] in note, exp["id"]
+                assert exp["reference"].get("tolerances_note", "")[:40] in note, exp["id"]
+            assert errors == []
+        finally:
+            browser.close()
+

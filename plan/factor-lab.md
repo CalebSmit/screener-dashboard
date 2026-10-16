@@ -126,7 +126,12 @@ experiments for a validated strategy):
 2. **It reruns the paper's portfolios, not the screener.** Long-short factor portfolios with no
    costs. It is not a backtest of the published ranking and must never be described as one.
 3. **Fix the tolerances before the comparison is run.** Experiment 1's were written after its
-   first comparison was seen, and the page says so. Every later experiment writes them first.
+   first comparison was seen, and the page says so. Every later experiment writes them first -
+   and where one did not, its record says so: each reference carries `tolerances_written`
+   (`before`, `after_first_comparison`, `after_figures_seen`) and, where it is not `before`, a
+   `tolerances_note` from the record's own comment, which the page prints under the comparison
+   (one function, `tolNote`). Experiments 1 and 12 are `after_first_comparison`, experiment 13
+   `after_figures_seen` (2026-10-16 audit: the page had printed "written before" under both).
 4. **One experiment per session, finished.** Reader, builder, reviewer and interface work are the
    four steps of one session (below), not four sessions. A half-built experiment does not ship.
 5. **A failed replication is a finding, not a bug to tune away.** If a cited result cannot be
