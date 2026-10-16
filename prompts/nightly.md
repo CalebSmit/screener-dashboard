@@ -63,6 +63,13 @@ does not.
   change ships with its frontend in the same commit** (section 3 below, CLAUDE.md
   0.8c), and **a page that is broken or false is a defect to fix** like any other.
 
+- **Check for an open proposal before you choose the day's work.** `MORNING_BRIEF.md`'s
+  "Waiting for a decision" section lists every research note ending in
+  `**Proposal status: OPEN**`, with its age. **If one is listed, deciding it is today's first
+  job** - section 3 has the rules. This is in Orient rather than buried in the focus because
+  most of this project's output now comes from owner-run sessions (2026-10-16: 11 scheduled
+  entries against 44 owner-run in a fortnight), and what a scheduled session uniquely provides
+  is a reader who did not write the proposal.
 - **You may not be today's first session** (since 2026-10-14: 06:00 weekdays, 13:00 every
   day, 06:00 weekends - see CLAUDE.md "The two loops"). If `NIGHTLY_LOG.md` already has an entry
   dated today, read it first: carry on from its **Next**, do not start the same item over, and do
