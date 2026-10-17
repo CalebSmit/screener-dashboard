@@ -95,10 +95,37 @@ def check_dois() -> None:
             print(f"\n{doi}\n  FAILED: {type(e).__name__}: {str(e)[:160]}")
 
 
+#: The four FRED series the two record measurements read, copied into tests/fixtures/fred/ so
+#: the tests behind claims context.sahm and context.macro_curve can **recompute the record** the
+#: page's sentences state rather than compare them with a stored summary of it. A test that reads
+#: a summary checks the plumbing; the lesson from plan/context-layer.md item 2 is that this is not
+#: a check at all. Trimmed to 1959 onward (the Sahm series' own start) to keep them small.
+FIXTURE_SERIES = ("SAHMREALTIME", "USREC", "GS10", "TB3MS")
+FIXTURE_FROM = "1959-01-01"
+
+
+def write_fixtures() -> None:
+    src = ROOT / "data" / "measurements"
+    dst = ROOT / "tests" / "fixtures" / "fred"
+    dst.mkdir(parents=True, exist_ok=True)
+    for sid in FIXTURE_SERIES:
+        path = src / f"fred-{sid}-full.csv"
+        if not path.exists():
+            print(f"{sid:<14} MISSING - run the two record scripts first")
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        kept = [lines[0]] + [ln for ln in lines[1:] if ln[:10] >= FIXTURE_FROM]
+        out = dst / f"{sid}.csv"
+        out.write_text("\n".join(kept) + "\n", encoding="utf-8")
+        print(f"{sid:<14} {len(kept) - 1} rows, {out.stat().st_size:,} bytes -> {out}")
+
+
 if __name__ == "__main__":
     if "--pdfs" in sys.argv:
         get_pdfs()
     if "--dois" in sys.argv:
         check_dois()
+    if "--fixtures" in sys.argv:
+        write_fixtures()
     if len(sys.argv) == 1:
         print(__doc__)
