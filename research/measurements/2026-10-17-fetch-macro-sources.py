@@ -30,6 +30,17 @@ PDFS = {
     # Gilchrist & Zakrajsek, the credit-spread paper (Fed FEDS working-paper version)
     "gilchrist-zakrajsek-2011.pdf":
         "https://www.federalreserve.gov/pubs/feds/2011/201122/201122pap.pdf",
+    # The NY Fed research paper scan above carries no text layer; Mishkin's own copy of the
+    # published REStat article does.
+    "estrella-mishkin-1998-restat.pdf":
+        "https://www.newyorkfed.org/medialibrary/media/research/economists/mishkin/pdf/restat98.pdf",
+    # Estrella & Trubin (2006) is where the NY Fed states the practical facts the page quotes -
+    # the lag range and the false signal.
+    "estrella-trubin-2006.pdf":
+        "https://www.newyorkfed.org/medialibrary/media/research/current_issues/ci12-5.pdf",
+    # Asness, Frazzini & Pedersen, "Quality minus junk" - the flight-to-quality evidence
+    "qmj-asness-frazzini-pedersen.pdf":
+        "https://www.aqr.com/-/media/AQR/Documents/Insights/Journal-Article/Quality-Minus-Junk.pdf",
 }
 
 DOIS = [
