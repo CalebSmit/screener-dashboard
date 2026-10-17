@@ -12274,3 +12274,95 @@ have been swept into the data loop's stash).
   open Growth composition question.
 - Bot: corporate-action handling in the sim (renames, split guesses); the calendar ends in 2028.
 - The bot worktree folders `screener-bot-wt-*` could not be deleted (OneDrive lock); they are outside both repos.
+
+## 2026-10-17 (06:00 weekend session) - WEEKEND. A red gate fixed, then the research engine's comparisons made apples-to-apples (queue item 8a)
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_130001-midday.log`
+ends "Run complete: shipped to main"; an owner-run pass followed and `main` is at `f849b55`.
+Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete",
+HEALTH: PASS (no Saturday run is due; the loop is Mon-Fri). Evidence base at `1m`: **30 rows,
+newest 2026-09-15 (32 days ago, bound 40), 4 effective** - inside the bound, steady state.
+Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
+Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 9 days**).
+**Tests:** before **2619 passed, 2 skipped / 3 failed** (see below - two were a genuine red gate,
+one was my own edit landing mid-run), after **PENDING**. Dry run exits 0.
+**Owner queue / rotation:** the top open owner item is the **research engine**
+(`OWNER_FOCUS.md` 2026-10-15), whose plan's next queued stage is `plan/research-engine.md` item
+**8(a)**. Took that. **0.11 (the context layer) deferred for the fourth consecutive session** - see
+"On the deferral streak" below, which is the accounting the rule asks for.
+
+### Did
+
+**1. Gate 1 was red at baseline, and it would have been red every weekend.** Two tests in
+`tests/test_option_quote_hours.py` stamped their cache fixture with today's UTC date and expected
+`options_cache` to serve it back. Two days in seven that date is a Saturday or a Sunday, and
+`reading_for` **deliberately refuses** a quote date naming a day the market never opened - the
+page states the session a quote closed in, so a stamp naming a non-session would make that
+sentence false. Production is right; the fixtures were not.
+
+Nobody had seen it because code sessions ran Mon-Fri. Since 2026-10-14 they also run at 13:00 daily
+and 06:00 at weekends, so **this was the first Saturday session and it opened on a red baseline with
+neither loop at fault.** The 13:00 slot would have hit it today too.
+
+Fixed: the fixtures take the most recent weekday on or before today (at most two days back, inside
+`MAX_AGE_DAYS` = 3), and a new parametrised test walks all seven days of a week and asserts the
+fixture date is always one `reading_for` accepts - so the class of fault cannot come back silently.
+Measured: the module went from 57 passed / 2 failed to **66 passed** (+7 guard tests). The suite had
+just been run on a Saturday and failed **exactly** these two, so the class is contained to them.
+
+**2. Queue item 8(a): every comparison is now measured on the stocks the two rankings share.**
+This is the research engine's next queued stage, and it is a correctness defect in what the public
+research page reports.
+
+Under **method version 1** each configuration's IC was computed over the stocks *it* could rank
+(`backtest_v2.rank_month` filters on coverage of that configuration's own weighted metrics) and
+differenced against the baseline's IC over the stocks the *baseline* could rank. A narrow screen
+ranks far fewer stocks - free-cash-flow yield alone 348 a month against the baseline's 440 - so
+part of every reported difference was a difference in **who was ranked**, not in the ranking. The
+registry had claimed "on the same stocks and months" until the 2026-10-16 audit corrected it to
+"by month only"; 8(a) is what makes the original claim true instead of withdrawing it.
+
+**Method version 2** recomputes both sides on each month's intersection before the difference is
+taken. `per_month(scores, fwd, baseline_scores=...)` returns `base_ic`,
+`base_top_minus_universe` and `n_common` beside the experiment's own figures, and `summarise`
+differences only within one frame - there is **no parameter for passing another configuration's
+frame** any more, because that is exactly what version 1 did. Every ledger row carries
+`method_version`, `n_common_by_month` and `base_ic_by_month`, so any difference can be rebuilt
+from the row without a rerun. `report` refuses to mix method versions (`method_note`) exactly as
+it refuses to mix data versions, and `summary_for_page` drops a row of either mismatch. The
+registry header records both versions and what changed between them.
+
+**All 28 experiments and the one evaluation were rerun** (rule 3), and `RESULTS.md`,
+`summary.json` and the public `research.html` regenerated from the new ledger.
+
+### Evidence / research
+
+- **The defect is measured, not argued.** On the last 12 months of the record, `fcf-yield-only`
+  against the baseline: version 1 reported a mean IC difference of **-0.0228**, version 2 reports
+  **-0.0158**. About **30% of the measured difference was the stock set**, not the ranking. The
+  baseline ranked 483 stocks a month over those months, the screen 378, and their intersection
+  377.75 - so the screen's universe is very nearly a subset of the baseline's, which is why the
+  correction is a one-sided shrinkage rather than noise.
+- **Design sources, unchanged:** Harvey, Liu & Zhu (2016) for the |t| >= 3 bar, and
+  Linnainmaa & Roberts (2018), *RFS* 31(7), for testing on the history before the sample. Nothing
+  about the bar, the periods or any prediction moved - this changes only how a difference is
+  computed, which is why it is a method version and why everything was rerun.
+- **Not used:** no engine number justifies anything here (rule 5), and no IC from this system's own
+  history (rule 4). 8(a) is a correctness fix to a measurement, not a methodology change.
+
+### Methodology changed
+
+- **None.** No weight, threshold, metric or score moved; nothing in `config.yaml` or
+  `factor_engine.py` was touched, so there is no `METHODOLOGY_CHANGELOG.md` entry to make. The
+  research engine does not feed scoring (CLAUDE.md rules 4 and 5) and may not before 2027-02-11.
+
+### On the deferral streak
+
+**0.11 (the context layer) has now been deferred four consecutive scheduled sessions** (2026-10-14
+06:00 for a red gate, 10-15 13:00, 10-16 13:00 for the open proposal, and today). The rule in
+`prompts/nightly.md` says the next session carrying **no owner item and no broken loop** must
+resolve it. Today carried both: a red gate 1 and the top open `OWNER_FOCUS.md` item, each of which
+outranks the roadmap explicitly. So the streak does not fire today - but it is now four, it will
+fire on the first session without one of those, and I am writing the count down rather than
+leaving the next session to re-derive it. Nothing in 0.11 is half-done; its next step is unchanged
+(`plan/context-layer.md` item 4's macro-backdrop and track-record notes, then item 6).

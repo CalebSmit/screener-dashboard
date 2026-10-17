@@ -31,6 +31,12 @@ search for the best number:
    score, so a narrow screen's IC is computed on a smaller set than the baseline's;
    `research/measurements/2026-10-16-stocks-ranked-per-config.json` counts them. Pairing on each
    month's common stocks, with a full rerun, is queued in `plan/research-engine.md` item 8a.)*
+   *(Superseded 2026-10-17: item 8a is built. Since **method version 2** both sides are recomputed
+   on each month's intersection before the difference is taken, every ledger row carries
+   `method_version` and `n_common_by_month`, and every experiment and evaluation in this note was
+   rerun on it. **Every figure in this note below is a method-version-1 reading** and the engine's
+   report now refuses to mix the two; `research/experiments/RESULTS.md` carries the version-2
+   figures. What changed and what did not is in section 11.)*
 
 > **Disclosure, 2026-10-16 (audit).** Seven of the batch-1 entries, each category on its own
 > (`only-valuation` .. `only-investment`), had their 2020-2026 outcome computed and committed before

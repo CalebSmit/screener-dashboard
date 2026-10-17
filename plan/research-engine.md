@@ -90,21 +90,21 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    Student's t (no verdict changed). Tests: `tests/test_research_page.py`, `tests/test_v2_experiments.py`.
 8. **Queued by the same audit, specified, NOT built.** In this order:
 
-   **(a) Pair on each month's common stocks, then rerun everything.** Today each configuration's IC
-   is computed on the stocks *it* ranks (`backtest_v2.rank_month` filters on coverage of the
-   configuration's own weighted metrics), so a narrow screen is judged on fewer stocks: free-cash-flow
-   yield alone ranks 348 stocks a month against the baseline's 440 in 2020-2026, and 213 against 327
-   in 2012-2019
-   (`research/measurements/2026-10-16-stocks-ranked-per-config.json`). Spec: in `per_month`, take
-   each month's ticker intersection of the experiment's and the baseline's rankings (both with a
-   next-month return), compute **both** ICs and both top-tenth spreads on that intersection, and
-   record `n_common` per month in the ledger row beside `ic_by_month`. The baseline's own row keeps
-   its full-universe IC (it is the published reading). This changes what every comparison measures,
-   so it is a method change: register it in `registry.yaml`'s header comment with the date, bump a
-   `method_version` field written to every ledger row, and **rerun every registered experiment and
-   evaluation** (rule 3); the report must refuse to mix method versions the way it flags data
-   versions. Expected: no verdict changes (the differences are far below what the design can see),
-   which is the point of checking.
+   **(a) DONE 2026-10-17 - method version 2.** Both sides of every comparison are now recomputed on
+   each month's ticker intersection before the difference is taken, so a difference is a difference
+   in ranking and not in which companies were ranked. `per_month(scores, fwd, baseline_scores=...)`
+   returns `base_ic` / `base_top_minus_universe` / `n_common` beside the experiment's own figures;
+   `summarise` differences only within one frame and has **no parameter for another configuration's
+   frame**, which is what version 1 did. Every ledger row carries `method_version`,
+   `n_common_by_month` and `base_ic_by_month`; `report` refuses to mix method versions
+   (`method_note`) exactly as it does data versions, and `summary_for_page` drops a row of either
+   mismatch. All 28 experiments and the one evaluation were rerun (rule 3) and the public page is
+   regenerated. The record is `research/2026-10-15-research-engine-first-batch.md` section 11.
+   *Kept for the record:* under version 1 each configuration's IC was computed on the stocks *it*
+   ranked (`backtest_v2.rank_month` filters on coverage of that configuration's own weighted
+   metrics), so a narrow screen was judged on fewer stocks - free-cash-flow yield alone ranks 348 a
+   month against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019
+   (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).
 
    **(b) Provenance hardening.** Every ledger row records `git describe --dirty` and the SHA-256 of
    each result-affecting source file (`v2_experiments.py`, `backtest_v2.py`,
