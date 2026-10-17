@@ -164,8 +164,40 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    (`research/2026-10-09-insider-purchases.md` - weakest in large caps, now said on the page), one-month
    reversal (`research/2026-10-09-short-term-reversal.md` - faded in plain form, survives sector-relative;
    the harness now tracks both), trend (21/200-day distance, AKS 2021, now recorded), put skew and the
-   rates note (addenda in `research/2026-10-09-context-panel-claims.md`). **What stays open after
-   2026-10-14: the two signals with no note of their own - the macro backdrop and the track record**
+   rates note (addenda in `research/2026-10-09-context-panel-claims.md`).
+
+   **The macro backdrop's note is DONE 2026-10-17** - `research/2026-10-17-macro-backdrop.md`, all
+   five readings and all three factor notes against their sources, every DOI resolved through
+   Crossref before it was written down. **Three page sentences were wrong about their own sources'
+   records and are corrected in the same commit** (claims `context.sahm`, `context.macro_curve`,
+   `context.macro_credit`; `tests/test_macro_backdrop_claims.py`, 17 tests, in the publish gate):
+   the Sahm sentence said the rule "marked **the start**" of every recession since 1970 when the
+   crossing came *after* the start in **6 of 8** (mean +0.9 months against the NBER peak - which is
+   what Sahm's own chapter says) and the record holds **two** false alarms the page did not mention,
+   one of them **2024**, inside the ten-year window the panel itself charts; the curve sentence
+   credited Estrella & Mishkin (1998) with a lag range (measured **6 to 17** months, not 6 to 24)
+   and a false alarm that paper states neither of, and the one clear false alarm (1966-67) is
+   *outside* the period the sentence names; the credit sentence had **no source at all** and
+   explained the spread by expected defaults, the one component Gilchrist & Zakrajsek (2012) show
+   carries no predictive content. **No score, rank or number moved.**
+
+   **The note also settles the standing question for this signal: macro is not a score candidate,
+   and that is structural rather than pending** (note section 7). A macro reading is one observation
+   a month for the *whole universe*, so it carries no cross-sectional variation for a
+   cross-sectional ranking to use, and `context_eval.py` - which measures each signal's IC across
+   stocks - cannot evaluate it even in principle. Using it to move *weights* instead is factor
+   timing, which AQR's own authors find "deceptively difficult" (Asness, Chandra, Ilmanen & Israel
+   2017), and index providers keep macro series out of factor construction. Do not wait on a `1m`
+   record for the backdrop; there will not be one.
+
+   **The pattern all three defects share, and the thing to carry into the track-record note:** each
+   attached a real citation to a *stronger or different* statement than the source makes. Reading
+   the source found them; measuring the record proved them. So the tests **rebuild each record from
+   FRED's own series** (committed under `tests/fixtures/fred/`) rather than compare a sentence with
+   a stored summary of it - item 2's lesson, that a claim whose check tests the plumbing is an
+   unchecked claim, applied in advance this time.
+
+   **What stays open after 2026-10-17: the one signal with no note of its own - the track record**
    (the options panel's note is done, and its three findings with it; see below). Plus each signal's
    *measured* record, which `context_eval.py` starts reporting after 2026-11-07. Original text:
    **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
@@ -249,9 +281,16 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    estimate; whether RSP is the right benchmark after cap-weighted leadership; never list current
    holdings (the Model Portfolio decision, 2026-08-26).
 7. **Macro - Sahm DONE 2026-10-09 (owner-run):** the backdrop reads FRED's `SAHMREALTIME` (unemployment
-   as first published) and says so, falling back to the revised computation with a note. Remaining:
-   Real-time vs revised data (Sahm's rule is defined on real-time data; FRED serves the
-   latest vintage) - say so or use ALFRED. Consider the dollar and oil for sector context.
+   as first published) and says so, falling back to the revised computation with a note. The
+   real-time-vs-revised question that stood here is **closed 2026-10-17**: the page is on the
+   real-time series, which is the right one, and Sahm's endnote 8 says why it matters - "the
+   real-time data trigger **a few months later** than would the fully revised data", so the page is
+   on the slower and more conservative of the two. ALFRED is not needed.
+   Remaining: consider the dollar and oil for sector context - **but read
+   `research/2026-10-17-macro-backdrop.md` section 7 first.** Another series is another thing to
+   state correctly, and the note's three defects were all sentences, not numbers; a new reading
+   earns its place only if it answers a question the panel cannot, with a source that says what the
+   sentence says.
 8. **Valuation against its own history - BUILT 2026-10-09 (owner-run).** `valuation_history.py`:
    earnings and FCF yield at 60 month-ends from SEC filings (as first filed, split-adjusted), shown
    for ~456 stocks that pass a market-value self-check; logged as `_ctx_vh_ey_pct` / `_ctx_vh_fy_pct`
