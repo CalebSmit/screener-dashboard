@@ -406,10 +406,39 @@ def test_the_context_pass_skips_the_option_fetch_when_quotes_are_closed(tmp_path
     assert [r["_ctx_opt_status"] for r in raw] == [options_cache.STATUS_CLOSED] * 2
 
 
+def _last_session_date(today: datetime.date | None = None) -> datetime.date:
+    """The most recent weekday on or before ``today`` - a date a quote could really have closed on.
+
+    The two tests below stamped their cache fixture with ``today`` itself. Two days in seven that
+    is a Saturday or a Sunday, and ``options_cache.reading_for`` deliberately refuses a quote date
+    naming a day the market never opened, so both failed every weekend. Nobody saw it because code
+    sessions ran Mon-Fri; since 2026-10-14 they also run at 13:00 daily and 06:00 at weekends, and
+    the first Saturday session (2026-10-17) opened on a red gate 1 with neither loop at fault.
+    At most two days back, which is inside ``options_cache.MAX_AGE_DAYS`` (3).
+    """
+    d = today or datetime.datetime.now(datetime.timezone.utc).date()
+    while d.weekday() > 4:
+        d -= datetime.timedelta(days=1)
+    return d
+
+
+@pytest.mark.parametrize("offset", range(7))
+def test_the_cache_fixture_names_a_real_session_on_every_day_of_the_week(offset):
+    """The guard on the fault above: whatever day the suite runs, the fixture date is a weekday
+    the cache will accept, and it is recent enough not to age out."""
+    today = datetime.date(2026, 10, 12) + datetime.timedelta(days=offset)   # a Monday, then on
+    qd = _last_session_date(today)
+    assert qd.weekday() <= 4 and 0 <= (today - qd).days <= 2
+    cache = {"quote_date": qd.strftime("%Y-%m-%d"),
+             "readings": {"AAA": _reading(expiry=(today + datetime.timedelta(days=30)).strftime("%Y-%m-%d"),
+                                          quote_date=qd.strftime("%Y-%m-%d"))}}
+    assert options_cache.reading_for(cache, "AAA", today) is not None
+
+
 def test_the_context_pass_serves_the_cache_when_quotes_are_closed(tmp_path, monkeypatch):
     exp = (datetime.datetime.now(datetime.timezone.utc).date()
            + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-    qd = datetime.datetime.now(datetime.timezone.utc).date().strftime("%Y-%m-%d")
+    qd = _last_session_date().strftime("%Y-%m-%d")
     options_cache.save({"AAA": _reading(expiry=exp, quote_date=qd)}, qd, root=tmp_path)
     monkeypatch.setattr(context_fetch, "_context_for",
                         lambda *a, **k: {"_ctx_insider": "[]"})
@@ -434,7 +463,7 @@ def test_a_cached_reading_survives_the_insider_update(tmp_path, monkeypatch):
     not blank the ones the cache just supplied."""
     exp = (datetime.datetime.now(datetime.timezone.utc).date()
            + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-    qd = datetime.datetime.now(datetime.timezone.utc).date().strftime("%Y-%m-%d")
+    qd = _last_session_date().strftime("%Y-%m-%d")
     options_cache.save({"AAA": _reading(expiry=exp, quote_date=qd)}, qd, root=tmp_path)
     monkeypatch.setattr(context_fetch, "_context_for",
                         lambda *a, **k: {"_ctx_insider": "[]", "_ctx_opt_status": "stale-quotes"})
