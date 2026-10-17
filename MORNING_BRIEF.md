@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 17 October 2026, 07:17
+# Morning Brief - Saturday 17 October 2026, 13:37
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -22,6 +22,14 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `68fb679 log: the 2026-10-17 midday session - the macro backdrop note and three corrected page sentences`
+- `6924c52 docs: context-layer item 4's macro note is done; the owner queue's progress line`
+- `1970c17 look at the corrected backdrop at 1440 and 375; ignore the FRED download cache`
+- `b4a56c2 backdrop: three sentences corrected to what their sources' own records show`
+- `13321bf research: the market backdrop's five readings against their sources (context-layer item 4)`
+- `9a60175 measure: the 10y-3m spread's own record against the curve sentence`
+- `9c45e1c measure: the Sahm rule's own record against the sentence the page prints`
+- `2698fdb brief: code session 2026-10-17-weekend`
 - `ccd68d3 log: the 2026-10-17 weekend session - gate fix, method version 2, and the rerun's result`
 - `1289e7d engine: rerun all 28 experiments and the evaluation on method version 2; no verdict changed`
 - `d5ec2ad docs: a method change reruns the engine, like a data fix (rule in CLAUDE.md)`
@@ -29,62 +37,54 @@ history is in `NIGHTLY_LOG.md`.
 - `2268c3e test: the option-cache fixtures name a real market session, not 'today'`
 - `f849b55 non-blocking fonts on the research page and the lab; the afternoon's log; two settled rows updated`
 - `78c5aa6 test: the Escape check finds the modal handler among several`
-- `d479628 docs: row 5's kept-name rule recorded, inventory names the ten fixes`
-- `e94c227 dashboard: ten functional defects fixed, payload byte-identical`
-- `6626c71 evidence base repaired: every forward return re-measured to a horizon end that exists`
-- `68866b6 forward returns are measured only to a close that exists, looking forward, and once`
-- `9b2f89f research docs: dated corrections and the audit's queued engine changes`
-- `b9a311d research page: claim only what the ledger supports (audit, 2026-10-16)`
-- `16bf997 measurements for the research-page audit: coverage by month, stocks ranked per configuration`
-- `70e7ba9 ignore Claude Code agent worktrees`
 
 ## The session's own account
 
-> 2026-10-17 (06:00 weekend session) - WEEKEND. A red gate fixed, then the research engine's comparisons made apples-to-apples (queue item 8a)
+> 2026-10-17 (13:00 midday session) - QUEUE. The macro backdrop's research note, and the three page sentences it found were wrong about their own sources
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_130001-midday.log`
-> ends "Run complete: shipped to main"; an owner-run pass followed and `main` is at `f849b55`.
-> Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete",
-> HEALTH: PASS (no Saturday run is due; the loop is Mon-Fri). Evidence base at `1m`: **30 rows,
-> newest 2026-09-15 (32 days ago, bound 40), 4 effective** - inside the bound, steady state.
-> Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
-> Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 9 days**).
-> **Tests:** before **2619 passed, 2 skipped / 3 failed** (two a genuine red gate - see below - and
-> one my own edit landing mid-run), after **2638 passed, 2 skipped / 0 failed** (+19). Dry run exits
-> 0; both payloads parse; tree clean. `scripts/rehearse_publish.py` **PASSED** (990 claims-gate
-> tests), run because the diff touches a page generator.
-> **Owner queue / rotation:** the top open owner item is the **research engine**
-> (`OWNER_FOCUS.md` 2026-10-15), whose plan's next queued stage is `plan/research-engine.md` item
-> **8(a)**. Took that. **0.11 (the context layer) deferred for the fourth consecutive session** - see
-> "On the deferral streak" below, which is the accounting the rule asks for.
+> **Health (rule 8, all five):** last code session ran? **yes** - this morning's own
+> `logs/nightly-2026-10-17_060001-weekend.log` ends "Run complete: shipped to main", tagged
+> `good/2026-10-17`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
+> "Data loop complete"; Friday was the last due run, the loop is Mon-Fri and today is Saturday.
+> Evidence base at `1m`: **30 rows, newest 2026-09-15 (32 days ago, bound 40), 4 effective** -
+> inside the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8
+> effective observations. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08,
+> **age 9 days**) - **taken today**, see below.
+> **Tests:** before **2638 passed, 2 skipped / 0 failed**, after **2651 passed, 2 skipped / 0
+> failed** (+13). Dry run exits 0; `index.html` 611,099 bytes; both payloads parse (`node --check`
+> 0 on `dashboard_data.js` and `dashboard_context.js`); tree clean.
+> `scripts/rehearse_publish.py` **PASSED** (1,003 claims-gate tests), run because the diff touches
+> `claims.py`.
+> **Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`).
+> This morning's session took the research engine's item 8(a) and left **0.11, the context layer**,
+> as the thing to take next unless a proposal opened or a gate went red. Neither did, so I took it:
+> `plan/context-layer.md` queue item 4, **the macro backdrop's research note**. That also ends the
+> deferral streak the morning entry counted at four.
 > 
 > ### Did
 > 
-> **1. Gate 1 was red at baseline, and it would have been red every weekend.** Two tests in
-> `tests/test_option_quote_hours.py` stamped their cache fixture with today's UTC date and expected
-> `options_cache` to serve it back. Two days in seven that date is a Saturday or a Sunday, and
-> `reading_for` **deliberately refuses** a quote date naming a day the market never opened - the
-> page states the session a quote closed in, so a stamp naming a non-session would make that
-> sentence false. Production is right; the fixtures were not.
+> **One item, end to end: `plan/context-layer.md` item 4's macro-backdrop note, plus the three page
+> defects reading the sources turned up.**
 > 
-> Nobody had seen it because code sessions ran Mon-Fri. Since 2026-10-14 they also run at 13:00 daily
-> and 06:00 at weekends, so **this was the first Saturday session and it opened on a red baseline with
-> neither loop at fault.** The 13:00 slot would have hit it today too.
+> **1. The note.** `research/2026-10-17-macro-backdrop.md` covers all five readings the panel prints
+> (yield curve, credit spreads, volatility, inflation, labour market) and all three factor notes
+> beside them, from the primary sources. Every DOI was resolved through Crossref **before** it was
+> written down (`research/measurements/2026-10-17-fetch-macro-sources.py --dois`, 7 of 7 verified),
+> which is the 2026-10-16 audit's finding acted on - the three most recent notes before this one
+> carried none. Three papers were downloaded and read from the PDF; one (Estrella & Mishkin 1998)
+> could not be, because the NY Fed's scan has no text layer, and the note says so rather than
+> pretending otherwise.
 > 
-> Fixed: the fixtures take the most recent weekday on or before today (at most two days back, inside
-> `MAX_AGE_DAYS` = 3), and a new parametrised test walks all seven days of a week and asserts the
-> fixture date is always one `reading_for` accepts - so the class of fault cannot come back silently.
-> Measured: the module went from 57 passed / 2 failed to **66 passed** (+7 guard tests). The suite had
-> just been run on a Saturday and failed **exactly** these two, so the class is contained to them.
+> **2. Three sentences on the live page are wrong about their own sources' records.** All three are
+> display-only context text; **no score, rank or number moves.** They share one failure mode, which
+> is the finding worth carrying: *each attached a real citation to a stronger or different statement
+> than the source makes.*
 > 
-> **2. Queue item 8(a): every comparison is now measured on the stocks the two rankings share.**
-> This is the research engine's next queued stage, and it is a correctness defect in what the public
-> research page reports.
-> 
-> Under **method version 1** each configuration's IC was computed over the stocks *it* could rank
-> (`backtest_v2.rank_month` filters on coverage of that configuration's own weighted metrics) and
-> differenced against the baseline's IC over the stocks the *baseline* could rank. A narrow screen
-> ranks far fewer stocks - free-cash-flow yield alone 348 a month against the baseline's 440 - so
+> - **(a) The labour-market sentence.** It said the Sahm indicator "at +0.50pp or more **has marked
+>   the start** of every US recession since 1970 (Sahm 2019)". Measured on FRED's own real-time
+>   series against the NBER indicator
+>   (`research/measurements/2026-10-17-sahm-rule-record.py`): the crossing came **after** the
+>   recession had begun in **6 of 8**, mean **+0.9 months** against the NBER peak. That is what
 > ...
 
 ---
