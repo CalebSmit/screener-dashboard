@@ -216,9 +216,16 @@ def test_every_ledger_row_says_how_its_comparison_was_measured():
     """Queue item 8a: how a comparison is computed is as much a precondition for comparing two rows
     as the data they ran on, so every row carries ``method_version`` and they all agree."""
     rows = [json.loads(line) for line in X.LEDGER.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert rows and all("method_version" in r for r in rows), \
-        "a row with no method_version predates 8a - rerun it rather than assuming version 1"
-    assert {r["method_version"] for r in rows} == {X.METHOD_VERSION}
+    assert rows
+    # the ledger is append-only (rule 2), so the method-1 rows run before 8a stay in it and carry
+    # no field at all - that absence *is* version 1. What must hold is that the row the report
+    # reads for each id, the newest, was measured the current way.
+    assert {r.get("method_version", 1) for r in rows} <= {1, X.METHOD_VERSION}
+    newest = {}
+    for r in rows:
+        newest[r["id"]] = r
+    assert newest and all(r.get("method_version") == X.METHOD_VERSION for r in newest.values()), \
+        sorted(i for i, r in newest.items() if r.get("method_version") != X.METHOD_VERSION)
 
 
 def test_an_experiment_row_records_what_its_comparison_covered():

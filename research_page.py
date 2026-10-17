@@ -249,15 +249,28 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
         # the ledger row, which records it per month, rather than re-derived here
         common = [v for m, v in (latest.get(m_id, {}).get("n_common_by_month") or {}).items()
                   if X.SAMPLE[0] <= m <= X.SAMPLE[1]]
-        overlap = (f', and both were then measured on the <span class="num">{sum(common) / len(common):.0f}</span> '
-                   f"they had in common" if common else "")
+        overlap = ""
+        if common:
+            c = sum(common) / len(common)
+            # a narrow screen's stocks are usually a near-subset of the baseline's, so the overlap
+            # is the screen's own universe and the work pairing does is to hold the *baseline* to
+            # it. Say which of those two it is rather than printing the same number twice.
+            only_narrow = m_n - c            # ranked by the screen but not by the current weighting
+            overlap = (" The narrower screen ranks almost only companies the current weighting also ranks "
+                       + ('(fewer than one a month is unique to it), ' if only_narrow < 1 else
+                          f'(<span class="num">{only_narrow:.0f}</span> a month are unique to it), ')
+                       + f"so pairing on the overlap holds the current weighting to that smaller set instead of "
+                       f'crediting it with the <span class="num">{b0["mean_stocks"] - c:.0f}</span> only it can '
+                       f"score." if c >= 0.99 * m_n else
+                       f' The two had <span class="num">{c:.0f}</span> companies a month in the overlap, and that '
+                       f"is what each comparison is measured on.")
         universe = (f" Each comparison is paired by month and measured on the stocks the two rankings share, so a "
                     f"difference is a difference in ranking rather than in which companies were ranked. A weighting "
                     f"can only rank what it has enough data to score: over 2020&ndash;2026 the current weighting "
                     f'ranked <span class="num">{b0["mean_stocks"]:.0f}</span> stocks a month on average and the '
                     f"narrowest alternative, "
                     f'{display_label(next(r["e"] for r in rows if r["id"] == m_id))}, '
-                    f'<span class="num">{m_n:.0f}</span>{overlap}.')
+                    f'<span class="num">{m_n:.0f}</span>.{overlap}')
 
     dots = []
     for r in rows:

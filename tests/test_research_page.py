@@ -156,7 +156,7 @@ def test_the_page_says_the_pairing_is_on_the_shared_stocks_and_states_the_univer
     assert "paired by month and measured on the stocks the two rankings share" in page
     assert "The pairing is by month:" not in page and "judged on fewer stocks" not in page
     assert f'ranked <span class="num">{per["baseline"]["sample"]["mean_stocks"]:.0f}</span> stocks a month' in page
-    assert "they had in common" in page
+    assert "pairing on the overlap" in page or "in the overlap" in page
 
 
 def test_every_headline_figure_carries_its_interval_from_the_ledger():

@@ -291,3 +291,103 @@ mostly *negative*, which makes the honest t slightly *larger*: dropping Size, he
 Newey-West t reaches 3**, so no verdict changes. Figures in sections 3, 4 and 9 are from the rerun on
 the corrected records (data version `d8cb038fff2b`); the earlier runs stay in the ledger.
 
+## 11. Method version 2: pairing on each month's common stocks (queue item 8a, 2026-10-17)
+
+Every figure in sections 1-10 above is a **method-version-1** reading. This section is the record of
+what changed when the comparison itself was corrected, and it is the honest answer to "does the fix
+matter?" - which is **no, and that is worth having measured.**
+
+### 11.1 What was wrong
+
+Rule 4 of the engine says each idea is paired with the baseline. Until 2026-10-17 the pairing was by
+**month only**. Each configuration's monthly IC was computed over the stocks *it* could rank -
+`backtest_v2.rank_month` filters on coverage of that configuration's own weighted metrics - and
+differenced against the baseline's IC over the stocks the **baseline** could rank. The two sets are
+not the same. Over 2020-2026 the current weighting ranks **440** stocks a month on average and
+free-cash-flow yield alone ranks **348**
+(`research/measurements/2026-10-16-stocks-ranked-per-config.json`). So part of every difference
+reported in sections 3 and 4 was a difference in *who was ranked*, not in the ranking.
+
+The registry had said "on the same stocks and months" until the 2026-10-16 audit found this and
+corrected the wording to "by month only". 8a is the other remedy: make the original claim true.
+
+### 11.2 What changed in the engine
+
+`per_month(scores, fwd, baseline_scores=...)` now cuts each month to the tickers both rankings carry
+with a next-month return, recomputes **both** sides on that intersection, and returns the baseline's
+IC and top-tenth spread beside the experiment's. `summarise` differences only within one frame and
+has **no parameter for another configuration's frame** - that was version 1, and removing the
+parameter is what stops it coming back. Every ledger row carries `method_version`,
+`n_common_by_month` and `base_ic_by_month`, so any difference can be rebuilt from the row without a
+rerun. `report` and `summary_for_page` refuse to mix method versions exactly as they refuse to mix
+data versions. **The baseline's own row stays unpaired at its full universe**, because that is the
+reading the methodology page publishes.
+
+All 28 experiments and the one evaluation were rerun (rule 3), on the same data version
+(`d8cb038fff2b`) the method-1 rows used, so the only difference between the two readings is how the
+comparison was measured. The method-1 rows stay in the ledger (rule 2).
+
+### 11.3 What it changed, measured
+
+`research/measurements/2026-10-17-method-version-2-effect.py`, from the ledger alone:
+
+| | |
+|---|---|
+| Experiments compared | **27** (the baseline is unpaired by design) |
+| Period comparisons | **81** (discovery, held out, 2012-2019) |
+| Exactly unchanged | **37 of 81** |
+| Mean absolute shift, over all 81 | **0.00048** |
+| Mean absolute shift, over the 44 that moved | **0.00089** |
+| Largest shift | **+0.0068** (`fcf-yield-only`, discovery) |
+| **Verdicts changed** | **0 of 28** |
+
+The 37 exactly-unchanged comparisons are the point rather than an anomaly: every `drop-*` ablation,
+`equal-categories`, `orthogonalised-categories`, `whole-market-percentiles` and the category screens
+that rely on no scarcer metric than the baseline **rank the same stocks the baseline ranks**, so for
+them the intersection *is* both sets and version 1 was already correct. The shifts are concentrated
+in the genuinely narrow screens, which is where the defect was:
+
+| Experiment | Period | v1 | v2 | shift | stocks compared |
+|---|---|---|---|---|---|
+| `fcf-yield-only` | discovery | +0.0169 | +0.0236 | **+0.0068** | 333 |
+| `magic-formula` | held out | -0.0020 | -0.0057 | **-0.0037** | 394 |
+| `only-size` | held out | -0.0178 | -0.0147 | +0.0031 | 452 |
+| `only-valuation` | held out | +0.0005 | +0.0036 | +0.0031 | 452 |
+| `fcf-yield-only` | 2012-2019 | +0.0061 | +0.0040 | -0.0021 | 212 |
+| `magic-formula` | 2012-2019 | -0.0097 | -0.0076 | +0.0020 | 268 |
+
+**Against what the design can see, these are nothing.** Section 5 puts the smallest detectable IC
+difference at about **0.040** on 2012-2019 and **0.070** on the held-out months. The largest shift
+any experiment showed is **0.0068** - roughly a sixth of the smaller of those, and an order of
+magnitude below the larger. The correction is real and the measurement is now the one the engine
+claims to make, but nothing it reported was being driven by it.
+
+**It is not a systematic shrinkage.** 20 of the 81 comparisons moved towards zero and 24 away from
+it; there is no direction. That is what one should expect once the near-subset structure is seen:
+pairing does not cut the narrow screen down, it cuts the **baseline** down to the narrow screen's
+universe (free-cash-flow yield ranks 348 a month and fewer than one of those is a company the
+baseline cannot rank), so what moves is the baseline's leg of the comparison, in whichever direction
+the 92 dropped companies happened to push it.
+
+### 11.4 Two checks worth recording
+
+**The baseline did not move.** Its method-2 row has an identical monthly IC series, identical
+top-tenth series, and identical `mean`, `se`, `t`, `ac1` and `t_nw` in all four periods to its
+method-1 row on the same data. The only fields that differ are `p` and `ci95`, and that is the
+**2026-10-16 Student's-t change** finally being written into a stored row - the method-1 rows on
+this data were produced before it and carry the normal-approximation figures, which `p_value`
+already recomputed on read. Nothing in 8a touched the baseline's computation, and the row proves it.
+
+**`sector-relative-composite` differs from the baseline by exactly 0.0000 in all three periods under
+both methods.** It is marked `void` (it reproduces the baseline), so this is a free consistency
+check on the pairing code: a configuration that *is* the baseline must difference to exactly zero,
+and it does.
+
+### 11.5 What this does not do
+
+It does not make any result in this note decision-grade. The universe still excludes every company
+that has left the index (58% of 2012's members present) and every analyst input, nothing here may
+move a weight before 2027-02-11 (CLAUDE.md rule 5), and the baseline's IC is still ~0 in both eras.
+8a removes one way the engine could have been wrong; the much larger limits in sections 4 and 5
+are untouched, and the survivorship rebuild (queue item 8d, with its prediction already written
+down) is the one that would move them.

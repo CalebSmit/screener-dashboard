@@ -12332,17 +12332,55 @@ from the row without a rerun. `report` refuses to mix method versions (`method_n
 it refuses to mix data versions, and `summary_for_page` drops a row of either mismatch. The
 registry header records both versions and what changed between them.
 
-**All 28 experiments and the one evaluation were rerun** (rule 3), and `RESULTS.md`,
-`summary.json` and the public `research.html` regenerated from the new ledger.
+**All 28 experiments and the one evaluation were rerun** (rule 3) on the same data version the
+method-1 rows used, and `RESULTS.md`, `summary.json` and the public `research.html` regenerated
+from the new ledger. The method-1 rows stay in the ledger (rule 2: every run is kept) - my first
+version of the test asserted every row carried `method_version`, which would have required
+rewriting history, and it was corrected to assert it of the **newest row per id**, which is the one
+the report reads.
+
+**The public page now says how the comparison is made**, and says the more useful half of it: the
+narrow screen ranks almost only companies the current weighting also ranks, so pairing holds the
+**current weighting** down to that smaller set rather than cutting the screen down. Writing that
+sentence caught a presentation defect in my own first draft - it printed "348 ... the 348 they had
+in common", two identical numbers that read as a duplication error; it now gives the figure that is
+actually informative (fewer than one company a month is unique to the screen).
 
 ### Evidence / research
 
-- **The defect is measured, not argued.** On the last 12 months of the record, `fcf-yield-only`
-  against the baseline: version 1 reported a mean IC difference of **-0.0228**, version 2 reports
-  **-0.0158**. About **30% of the measured difference was the stock set**, not the ranking. The
-  baseline ranked 483 stocks a month over those months, the screen 378, and their intersection
-  377.75 - so the screen's universe is very nearly a subset of the baseline's, which is why the
-  correction is a one-sided shrinkage rather than noise.
+- **The defect is real; its effect is small, and both were measured.**
+  `research/measurements/2026-10-17-method-version-2-effect.py` compares the newest method-1 and
+  method-2 ledger row for every experiment **on the same data version**, so the only difference is
+  how the comparison was measured. Over 27 experiments and 81 period comparisons: **37 exactly
+  unchanged**, mean absolute shift **0.00048** (0.00089 among the 44 that moved), largest
+  **+0.0068** (`fcf-yield-only`, discovery), and **0 of 28 verdicts changed** - the outcome the
+  registry predicted before the rerun.
+- **The 37 unchanged comparisons are the finding, not a null.** Every `drop-*` ablation,
+  `equal-categories`, `orthogonalised-categories` and `whole-market-percentiles` ranks the same
+  stocks the baseline ranks, so for them the intersection *is* both sets and version 1 was already
+  right. The shifts sit entirely in the genuinely narrow screens - `fcf-yield-only` (333 stocks
+  compared), `magic-formula` (394), `only-size` and `only-valuation` (452) - which is exactly where
+  the defect was.
+- **Against what the design can see, that is nothing.** Section 5 of the first-batch note puts the
+  smallest detectable IC difference at about 0.040 on 2012-2019 and 0.070 on the held-out months.
+  The largest shift is a sixth of the smaller of those. So the correction was needed for the
+  engine's own claim to be true, and nothing it had published was resting on it.
+- **It is not a systematic shrinkage** - 20 of the 81 moved towards zero, 24 away. Once you look at
+  the structure that is what you expect: a narrow screen's stocks are a near-subset of the
+  baseline's (free-cash-flow yield ranks 348 a month and **fewer than one** is a company the
+  baseline cannot rank), so pairing does not cut the screen down, it cuts the **baseline** down to
+  the screen's universe, and the 92 dropped companies push it either way.
+- **A correction to my own first reading.** A 12-month smoke test before the rerun showed
+  `fcf-yield-only`'s difference moving from -0.0228 to -0.0158, which looked like a 30% effect; over
+  the full 176-month record the same experiment moves by 0.0068 at most. Twelve months is noise, and
+  I had written the larger figure down as the headline before the real one existed.
+- **Two free checks the rerun provided.** The baseline's method-2 row has an **identical** monthly
+  IC series and identical `mean`, `se`, `t`, `ac1` and `t_nw` in all four periods to its method-1
+  row (only `p` and `ci95` differ, and that is the 2026-10-16 Student's-t change finally reaching a
+  stored row) - so the refactor provably did not touch the unpaired path. And
+  `sector-relative-composite`, which is void because it reproduces the baseline exactly, differences
+  to **exactly 0.0000** in all three periods under both methods, which is a consistency check on the
+  pairing code for free.
 - **Design sources, unchanged:** Harvey, Liu & Zhu (2016) for the |t| >= 3 bar, and
   Linnainmaa & Roberts (2018), *RFS* 31(7), for testing on the history before the sample. Nothing
   about the bar, the periods or any prediction moved - this changes only how a difference is
