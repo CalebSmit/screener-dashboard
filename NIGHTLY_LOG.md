@@ -12284,8 +12284,10 @@ HEALTH: PASS (no Saturday run is due; the loop is Mon-Fri). Evidence base at `1m
 newest 2026-09-15 (32 days ago, bound 40), 4 effective** - inside the bound, steady state.
 Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
 Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 9 days**).
-**Tests:** before **2619 passed, 2 skipped / 3 failed** (see below - two were a genuine red gate,
-one was my own edit landing mid-run), after **PENDING**. Dry run exits 0.
+**Tests:** before **2619 passed, 2 skipped / 3 failed** (two a genuine red gate - see below - and
+one my own edit landing mid-run), after **2638 passed, 2 skipped / 0 failed** (+19). Dry run exits
+0; both payloads parse; tree clean. `scripts/rehearse_publish.py` **PASSED** (990 claims-gate
+tests), run because the diff touches a page generator.
 **Owner queue / rotation:** the top open owner item is the **research engine**
 (`OWNER_FOCUS.md` 2026-10-15), whose plan's next queued stage is `plan/research-engine.md` item
 **8(a)**. Took that. **0.11 (the context layer) deferred for the fourth consecutive session** - see
@@ -12404,3 +12406,35 @@ outranks the roadmap explicitly. So the streak does not fire today - but it is n
 fire on the first session without one of those, and I am writing the count down rather than
 leaving the next session to re-derive it. Nothing in 0.11 is half-done; its next step is unchanged
 (`plan/context-layer.md` item 4's macro-backdrop and track-record notes, then item 6).
+
+### Tried and rejected
+
+- **Rewriting the historical ledger rows to carry `method_version: 1`.** My first version of
+  `test_every_ledger_row_says_how_its_comparison_was_measured` asserted *every* row had the field,
+  which would have required editing rows already written. Registry rule 2 is that every run is kept;
+  an append-only record you edit is not one. The absence of the field **is** version 1, and the test
+  now asserts the property that actually matters - the **newest row per id**, which is the row
+  `report` reads, was measured the current way.
+- **Keeping a `base` parameter on `summarise` for backwards compatibility.** It would have left the
+  version-1 path - differencing one configuration's reading against another's, each over its own
+  stocks - reachable from code and from a future test. The parameter is gone and a test asserts
+  calling it that way raises.
+- **Reporting the 12-month smoke-test figure as the result.** It showed a 30% change and the full
+  176-month rerun shows 0.0068 at most. Twelve months is noise; the number is corrected above and
+  in the note.
+- **Moving a verdict, a tolerance, a period or a prediction.** None was touched. 8(a) changes how a
+  difference is computed and nothing about what counts as a result - which is precisely why rule 3
+  requires the rerun rather than a footnote.
+
+### Next
+
+**0.11, the context layer** - `plan/context-layer.md` item 4's two remaining per-signal notes (the
+macro backdrop and the track record), then item 6, track-record hardening. It is the top open
+roadmap item at **age 9 days** and has now been deferred four consecutive sessions for reasons that
+each outranked it; the next session should take it unless a proposal opens or a gate is red.
+
+If the research engine is preferred instead, its queue is `plan/research-engine.md` item **8(b)**,
+provenance hardening: every ledger row recording `git describe --dirty` and the SHA-256 of each
+result-affecting source file, `run`/`evaluate` refusing on a dirty tree for those paths, and the
+data fingerprint widening from the member list to the content. 8(a) made that more valuable, not
+less - now that a row says *how* it was measured, the obvious next question is *with what code*.
