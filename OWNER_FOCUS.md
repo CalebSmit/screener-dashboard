@@ -289,7 +289,7 @@ Add items below. Anything under this heading is unclaimed work.
     case, 1966-67, falls *outside* the period the same sentence names; the New York Fed reports **no**
     false signals from 1968 to 2005). The credit-spread sentence carried **no source at all** and
     explained a widening spread by default risk - the one component the standard paper on the subject
-    shows carries no predictive information. All three are corrected, with 17 tests that **rebuild
+    shows carries no predictive information. All three are corrected, with 13 tests that **rebuild
     each record from the Federal Reserve's own data** rather than trust a stored summary, and the
     corrections reach the live page at the next 02:00 run. **No score, rank or number moved.**
     The note also answers the standing question for good: **no macro reading will ever join the

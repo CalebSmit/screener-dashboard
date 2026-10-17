@@ -170,7 +170,7 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    five readings and all three factor notes against their sources, every DOI resolved through
    Crossref before it was written down. **Three page sentences were wrong about their own sources'
    records and are corrected in the same commit** (claims `context.sahm`, `context.macro_curve`,
-   `context.macro_credit`; `tests/test_macro_backdrop_claims.py`, 17 tests, in the publish gate):
+   `context.macro_credit`; `tests/test_macro_backdrop_claims.py`, 13 tests, in the publish gate):
    the Sahm sentence said the rule "marked **the start**" of every recession since 1970 when the
    crossing came *after* the start in **6 of 8** (mean +0.9 months against the NBER peak - which is
    what Sahm's own chapter says) and the record holds **two** false alarms the page did not mention,

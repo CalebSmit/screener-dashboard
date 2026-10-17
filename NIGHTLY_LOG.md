@@ -12438,3 +12438,193 @@ provenance hardening: every ledger row recording `git describe --dirty` and the 
 result-affecting source file, `run`/`evaluate` refusing on a dirty tree for those paths, and the
 data fingerprint widening from the member list to the content. 8(a) made that more valuable, not
 less - now that a row says *how* it was measured, the obvious next question is *with what code*.
+
+---
+
+## 2026-10-17 (13:00 midday session) - QUEUE. The macro backdrop's research note, and the three page sentences it found were wrong about their own sources
+
+**Health (rule 8, all five):** last code session ran? **yes** - this morning's own
+`logs/nightly-2026-10-17_060001-weekend.log` ends "Run complete: shipped to main", tagged
+`good/2026-10-17`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
+"Data loop complete"; Friday was the last due run, the loop is Mon-Fri and today is Saturday.
+Evidence base at `1m`: **30 rows, newest 2026-09-15 (32 days ago, bound 40), 4 effective** -
+inside the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8
+effective observations. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08,
+**age 9 days**) - **taken today**, see below.
+**Tests:** before **2638 passed, 2 skipped / 0 failed**, after **2651 passed, 2 skipped / 0
+failed** (+13). Dry run exits 0; `index.html` 611,099 bytes; both payloads parse (`node --check`
+0 on `dashboard_data.js` and `dashboard_context.js`); tree clean.
+`scripts/rehearse_publish.py` **PASSED** (1,003 claims-gate tests), run because the diff touches
+`claims.py`.
+**Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`).
+This morning's session took the research engine's item 8(a) and left **0.11, the context layer**,
+as the thing to take next unless a proposal opened or a gate went red. Neither did, so I took it:
+`plan/context-layer.md` queue item 4, **the macro backdrop's research note**. That also ends the
+deferral streak the morning entry counted at four.
+
+### Did
+
+**One item, end to end: `plan/context-layer.md` item 4's macro-backdrop note, plus the three page
+defects reading the sources turned up.**
+
+**1. The note.** `research/2026-10-17-macro-backdrop.md` covers all five readings the panel prints
+(yield curve, credit spreads, volatility, inflation, labour market) and all three factor notes
+beside them, from the primary sources. Every DOI was resolved through Crossref **before** it was
+written down (`research/measurements/2026-10-17-fetch-macro-sources.py --dois`, 7 of 7 verified),
+which is the 2026-10-16 audit's finding acted on - the three most recent notes before this one
+carried none. Three papers were downloaded and read from the PDF; one (Estrella & Mishkin 1998)
+could not be, because the NY Fed's scan has no text layer, and the note says so rather than
+pretending otherwise.
+
+**2. Three sentences on the live page are wrong about their own sources' records.** All three are
+display-only context text; **no score, rank or number moves.** They share one failure mode, which
+is the finding worth carrying: *each attached a real citation to a stronger or different statement
+than the source makes.*
+
+- **(a) The labour-market sentence.** It said the Sahm indicator "at +0.50pp or more **has marked
+  the start** of every US recession since 1970 (Sahm 2019)". Measured on FRED's own real-time
+  series against the NBER indicator
+  (`research/measurements/2026-10-17-sahm-rule-record.py`): the crossing came **after** the
+  recession had begun in **6 of 8**, mean **+0.9 months** against the NBER peak. That is what
+  Sahm's own chapter says too - p. 77: "payments would have been triggered **within three months of
+  the start** of the past six recessions ... **four months after** the 2008-9 recession began and
+  **two months after** the 2001 recession began"; p. 78: "the unemployment rate **tends to lag the
+  business cycle**". And the page named **no** false alarm while the record holds **two**: November
+  1976 (exactly +0.50, next recession 39 months later) and **July-September 2024, peak +0.57, with
+  no recession on record since** - which sits **inside the ten-year window the panel itself
+  charts**. A reader was looking at a false alarm while being told there had never been one.
+- **(b) The yield-curve sentence.** It credited Estrella & Mishkin (1998) with "lags of roughly 6
+  to 24 months and at least one false alarm". That paper states neither; it is a probit horse race
+  across financial variables. Measured on monthly `GS10` minus the bond-equivalent `TB3MS`
+  (`research/measurements/2026-10-17-yield-curve-record.py --bey`): inversions preceded **8 of 8**
+  recessions since 1968 by **6 to 17 months** (median 13), with **at least three negative monthly
+  averages in the prior twelve for 8 of 8** - which reproduces Estrella & Trubin (2006) p. 5
+  exactly and extends it from their six recessions to all eight. Their next sentence is the one
+  that matters: "when inversion on a monthly average basis is used as an indicator, **there have
+  been no false signals over this period**". The one clear false alarm is **September 1966 -
+  February 1967** - *before* the period the page's own sentence names, which is precisely why
+  Estrella & Trubin start at January 1968.
+- **(c) The credit-spread sentence.** It carried **no source at all** while making an empirical
+  claim, and the mechanism it gave - "spreads widen when lenders want more for default risk" - is
+  the component Gilchrist & Zakrajsek (2012, *AER* 102(4)) show carries **no** predictive content:
+  "the predictive content of credit spreads is due primarily to movements in the **excess bond
+  premium**", the residual after expected defaults are removed.
+
+All three are rewritten in `market_context.readings`, registered as claims `context.sahm`,
+`context.macro_curve` and `context.macro_credit`, and checked by
+`tests/test_macro_backdrop_claims.py` (13 tests), which the publish gate picked up automatically
+because its membership is derived from `claims.py` (verified: 38 modules, the new one in, `EXCLUDED`
+still empty). **The tests rebuild each record from FRED's own series**, committed under
+`tests/fixtures/fred/` (4 files, ~53 KB), rather than compare a sentence with a stored summary of
+the record - item 2's lesson, that a claim whose check tests the plumbing is an unchecked claim,
+applied in advance this time. If a later session widens a lag range or drops a false alarm, the
+arithmetic objects.
+
+**3. The standing question for this signal is settled, not deferred.** Note section 7: **no macro
+reading is a candidate for the score, structurally.** A macro series is one observation a month for
+the *whole universe*, so it carries no cross-sectional variation a cross-sectional ranking can use,
+and `context_eval.py` - which measures each signal's Spearman IC *across stocks* - cannot evaluate
+it even in principle. Worth writing down, because otherwise it looks like a signal whose record has
+merely not accrued yet, and someone would wait for a `1m` reading that can never exist. Using it to
+move *weights* instead is factor timing: Asness, Chandra, Ilmanen & Israel (2017) conclude it is "a
+weak addition for long-term investors", and MSCI's index work is fundamental-factor based with
+macro kept out of factor construction. The one place this screener does react to the market
+(`market_panic_state`) reads the universe's own return and volatility, with pre-registered
+thresholds and one direction only - the shape any future exception would have to take.
+
+**4. Looked at the page, both widths** (`research/measurements/2026-10-17-shot-backdrop.py`, which
+injects the corrected readings into the live page rather than touching a published artifact).
+Desktop 1440: five cards in a three-column grid, the yield-curve card the tallest in its row, text
+wrapping cleanly; the panel grows 402 -> 494px and the row height 205 -> 247px. Mobile 375: single
+column, the labour-market card is now the longest block on the panel at ~9 lines. **No clipping, no
+card overflow and no document overflow at either width** (`scrollWidth` checked, not just read off
+the CSS). The text is longer - 1,369 -> 1,908 characters over the five readings - and I judge that
+worth paying on the two sentences that were wrong.
+
+### Evidence / research
+
+Every DOI below resolved through Crossref before use; PDFs read with `pypdf`, not from memory.
+
+- **Sahm (2019), "Direct Stimulus Payments to Individuals",** in *Recession Ready*, Hamilton
+  Project / WCEG, pp. 67-92 (no DOI; <https://www.hamiltonproject.org/assets/files/Sahm_web_20190506.pdf>).
+  Read from the PDF. The rule is a **trigger for automatic stimulus**, not a forecast; triggers
+  "within three months of the start"; "the unemployment rate tends to lag the business cycle";
+  endnote 7, "the only false positive by this rule was in 1959"; endnote 8, real-time data "trigger
+  a few months later" than revised. Also p. 88, relevant to the panel two rows up: financial-market
+  indicators such as the yield curve "tend to produce **more** false positives".
+- **Estrella & Trubin (2006),** FRBNY *Current Issues* 12(5), read from the PDF: the 10y-3m
+  monthly-average spread "has turned negative before each recession in the period from January 1968
+  to July 2006"; "all six NBER recessions since 1968 have been preceded by at least three negative
+  monthly average observations in the twelve months before the start"; "there have been **no false
+  signals** over this period"; daily and intraday inversions "often prove to be false signals".
+- **Gilchrist & Zakrajsek (2012),** *AER* 102(4), 1692-1720,
+  DOI 10.1257/aer.102.4.1692, read from NBER w17021: the predictive content of credit spreads is
+  "primarily" the excess bond premium, not expected defaults; and their index beats the "standard
+  default-risk indicators", of which `BAA10Y` - what the page reads - is one.
+- **Asness, Frazzini & Pedersen (2019),** *RAS* 24(1), 34-112, DOI 10.1007/s11142-018-9470-2, read
+  from the working paper: QMJ positive in **23 of 24 countries**, June 1951 - December 2012,
+  information ratio above 1; "it benefits from flight to quality during crises" (p. 5); in down
+  markets "prices of unprofitable stocks drop more ... **even adjusting for their betas**" (p. 20).
+  The page's quality note is **fair and unchanged**.
+- **Estrella & Mishkin (1998),** *REStat* 80(1), 45-61, DOI 10.1162/003465398557320 - DOI verified;
+  **the paper itself was not read** (the NY Fed's scan has no text layer) and the note says so. It
+  is cited in the register only for what it is not credited with.
+- **Asness, Chandra, Ilmanen & Israel (2017),** *JPM* 43(5), 72-87, DOI 10.3905/jpm.2017.43.5.072 -
+  **marked second-hand** in the note; read from AQR's own article summary, not the tables.
+- **Daniel & Moskowitz (2016)** DOI 10.1016/j.jfineco.2015.12.002, **Dechow, Sloan & Soliman (2004)**
+  DOI 10.1023/B:RAST.0000028186.44328.3f, **Weber (2018)** DOI 10.1016/j.jfineco.2018.03.003 - all
+  already checked on 2026-10-09; **this note adds their DOIs**, which the earlier notes lacked.
+- **Measured, both reproducible from free data with no key:** the Sahm record (8 of 8 caught, 6 of 8
+  late, two off-cycle episodes) and the curve record (8 of 8 preceded, 6-17 month leads, the 1966-67
+  false alarm, the open 2022-24 case). **A methodological point worth keeping:** the bill's basis
+  changes the curve answer - on the discount basis the 1990 recession has no prior inversion (7 of
+  8), on the bond-equivalent basis the source uses it has one (8 of 8). The claim's caveat records
+  it.
+
+**Not used:** no backtest number (rule 5), no IC from this system's own history (rule 4). Nothing
+here is a methodology change.
+
+### Methodology changed
+
+- **None.** No weight, threshold, metric or score moved; `config.yaml` and `factor_engine.py` were
+  not touched, so there is no `METHODOLOGY_CHANGELOG.md` entry to make. The three corrections are
+  display-only context sentences, which is the category CLAUDE.md row `ctx` governs.
+
+### Tried and rejected
+
+- **Calling `market_context.build()` to put the corrected sentences into `data/market_context.json`
+  now.** The cache is past its 20-hour freshness, so a rebuild would refetch FRED and publish
+  *newer numbers* than the run the live payload came from - a file whose figures disagree with the
+  payload beside it, to gain nothing, since the 02:00 loop rewrites it every run anyway. The
+  corrections reach the live page at the next full run, like the two already in flight from
+  2026-10-16 ("never raises it", "September 2026"). What I did instead was inject the new readings
+  into the live page in a browser, which shows the same layout without touching an artifact.
+- **Changing the "quality in downturns" factor note.** Two real precisions exist - AFP's
+  flight-to-quality convexity is mild and statistically weak (quadratic term insignificant for QMJ
+  overall, t 2.0 for profitability alone), and QMJ is long-short, so a long-only holder keeps only
+  part of it. But the page's actual words ("have tended to hold up better when markets fall") are a
+  relative statement and are true, and the long-only haircut is already *measured* in the lab
+  (experiment 8: under half of profitability among large companies) where a reader can rerun it.
+  Recorded in the note, section 6; no edit. Churn on a correct sentence is not an improvement.
+- **Asserting the sentences against a stored table of the record.** It would have passed and proved
+  nothing - the exact shape of the `context.expected_move` failure. The fixtures are the raw FRED
+  series and the tests redo the arithmetic.
+- **A caveat form of its own for "standing limit, nothing closes it".** `test_claims_register.py`
+  requires every caveat to say it is fixed or name the stage that closes it, and my first three did
+  neither. The rule is right and I did not touch it: all three defects *are* fixed today, so the
+  caveats now open "Fixed 2026-10-17" and record the residual limit after it.
+- **Registering a research-engine experiment off this note.** `v2_experiments.py` compares
+  cross-sectional weightings; a macro reading is not one. Section 9 says so, so no future session
+  spends a slot discovering it.
+
+### Next
+
+**0.11, the context layer: the track record's research note** - `plan/context-layer.md` item 4's
+last remaining signal, after which item 4 closes and item 6 (track-record hardening: turnover/cost,
+and whether RSP is the right benchmark) is next. Two things to carry into it: the track record is
+**not** methodology evidence (rule 4) and lists no current holdings (the Model Portfolio decision),
+and the failure mode all three of today's defects shared - a real citation attached to a stronger
+statement than the source makes - is exactly the risk in a page that describes its own record.
+
+If the research engine is preferred instead, its queue is still `plan/research-engine.md` item
+**8(b)**, provenance hardening, unchanged from this morning's entry.
