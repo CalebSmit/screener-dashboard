@@ -822,9 +822,78 @@ CLAIMS: tuple[Claim, ...] = (
         surface=DRILLDOWN,
         asserts=("The Sahm indicator is the 3-month average unemployment rate minus its low over the prior "
                  "12 months, read from FRED's real-time series (unemployment as first published) when "
-                 "available and otherwise computed on the revised history, and the page says which."),
-        made_true_by="market_context:sahm_indicator",
-        checked_by=("tests/test_context_layer.py::test_sahm_indicator_definition",),
+                 "available and otherwise computed on the revised history, and the page says which. "
+                 "The sentence about its record says what the record shows: it has reached +0.50pp "
+                 "*around* the start of every US recession since 1970 - usually in the first months of one "
+                 "rather than before it, because unemployment lags the cycle - and twice (1976, 2024) with "
+                 "no recession following. It names Sahm's own purpose for the rule: a trigger for automatic "
+                 "stimulus, not a forecast."),
+        made_true_by="market_context:readings",
+        checked_by=(
+            "tests/test_context_layer.py::test_sahm_indicator_definition",
+            "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_does_not_say_the_rule_marks_the_start",
+            "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_names_both_false_alarms",
+            "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_says_what_sahm_proposed_the_rule_for",
+            "tests/test_macro_backdrop_claims.py::test_the_sahm_record_is_what_the_sentence_says_it_is",
+        ),
+        caveat=("Fixed 2026-10-17, reading Sahm's own chapter (pp. 77-78, endnotes 7-8) rather than "
+                "FRED's one-line series note. Until then the page said the rule 'has marked the start of "
+                "every US recession since 1970': measured on FRED's own real-time series, the crossing "
+                "came AFTER the recession had begun in 6 of 8, mean +0.9 months against the NBER peak, "
+                "which is what Sahm says too ('within three months of the start'; 'the unemployment rate "
+                "tends to lag the business cycle'), and the page named no false alarm while the record "
+                "holds two - 1976 and 2024, the second inside the ten-year window the panel itself "
+                "charts. Standing limit: the 1976 touch is exactly +0.50pp and Sahm's chapter does not "
+                "count it, a disagreement research/2026-10-17-macro-backdrop.md section 2 records rather "
+                "than resolves; and if the NBER ever dates a recession into either window, the sentence "
+                "and its test change together."),
+    ),
+    Claim(
+        id="context.macro_curve",
+        surface=DRILLDOWN,
+        asserts=("The yield-curve sentence states the 10-year minus 3-month spread's measured record: an "
+                 "inversion preceded all eight US recessions since 1968, by 6 to 17 months, with no false "
+                 "signals on monthly averages over that period (the New York Fed's own finding, Estrella & "
+                 "Trubin 2006); the one clear false alarm (1966-67) is just before the period; and the "
+                 "2022-24 inversion is named as the open case. It does not claim a 24-month lag and does "
+                 "not credit Estrella & Mishkin (1998) with facts that paper does not state."),
+        made_true_by="market_context:readings",
+        checked_by=(
+            "tests/test_macro_backdrop_claims.py::test_the_curve_sentence_gives_the_measured_lag_range",
+            "tests/test_macro_backdrop_claims.py::test_the_curve_sentence_cites_the_paper_that_states_the_record",
+            "tests/test_macro_backdrop_claims.py::test_the_curve_sentence_names_the_open_case",
+            "tests/test_macro_backdrop_claims.py::test_the_curve_record_is_what_the_sentence_says_it_is",
+        ),
+        caveat=("Fixed 2026-10-17. Until then the sentence credited Estrella & Mishkin (1998) with two "
+                "facts that paper does not state - 'lags of roughly 6 to 24 months' (measured: 6 to 17, "
+                "median 13) and 'at least one false alarm' (the one clear case, 1966-67, is outside the "
+                "period the same sentence named, and the NY Fed reports none from 1968 to 2005). "
+                "Standing limit: the record is measured on the bond-equivalent bill basis Estrella & "
+                "Trubin use; on the discount basis the 1990 recession has no prior inversion and the "
+                "count is 7 of 8 (research/measurements/2026-10-17-yield-curve-record.py, --bey). The "
+                "2022-24 case's conventional 24-month window closes in November 2026 - it is reported as "
+                "the open case, never as a failure."),
+    ),
+    Claim(
+        id="context.macro_credit",
+        surface=DRILLDOWN,
+        asserts=("The credit-spread sentence says a wider spread is partly compensation for expected "
+                 "defaults and partly the premium charged above that, and that Gilchrist & Zakrajsek "
+                 "(2012) find it is the second part that has predicted economic activity. It does not "
+                 "explain the spread by default risk alone, which is the component their decomposition "
+                 "shows carries the information."),
+        made_true_by="market_context:readings",
+        checked_by=(
+            "tests/test_macro_backdrop_claims.py::test_the_credit_sentence_names_the_premium_above_defaults",
+            "tests/test_macro_backdrop_claims.py::test_the_credit_sentence_carries_a_source",
+        ),
+        caveat=("Fixed 2026-10-17. Until then the sentence carried no source at all while making an "
+                "empirical claim, and the mechanism it gave - 'spreads widen when lenders want more for "
+                "default risk' - is the component Gilchrist & Zakrajsek's decomposition shows carries no "
+                "predictive content. Standing limit: the page reads BAA10Y, which is one of the 'standard "
+                "default-risk indicators' their index outperforms (research/2026-10-17-macro-backdrop.md "
+                "section 4). That is not a reason to drop the series - it is free, daily and long, and "
+                "the page reports a percentile rather than a forecast."),
     ),
     Claim(
         id="drilldown.row_equation",

@@ -274,6 +274,32 @@ Add items below. Anything under this heading is unclaimed work.
   redesign, and it never moves a score (CLAUDE.md row "ctx").
 
   **Progress (update this line each session):**
+  - **2026-10-17 (13:00 slot) - the macro backdrop's research note is done, and reading the sources
+    found three sentences on the live page that were wrong about their own evidence.** Queue item 4
+    now has one signal left (the track record). `research/2026-10-17-macro-backdrop.md` checks all
+    five readings and all three factor notes against the papers themselves, with every DOI resolved
+    through Crossref before it was written down. **What it found, in plain terms:** the labour-market
+    sentence told you the Sahm rule "has marked **the start** of every US recession since 1970" - on
+    the rule's own real-time series the signal arrived **after** the recession had already begun in
+    **6 of 8** cases, which is also what Claudia Sahm's own chapter says ("within three months of the
+    start"; "the unemployment rate tends to lag the business cycle"), and the page named **no** false
+    alarm while the record holds **two**, one of them in **2024** - visible in the very chart printed
+    beside the sentence. The yield-curve sentence credited a 1998 paper with two facts it does not
+    state: a "6 to 24 month" lag (measured: **6 to 17**) and "at least one false alarm" (the one clear
+    case, 1966-67, falls *outside* the period the same sentence names; the New York Fed reports **no**
+    false signals from 1968 to 2005). The credit-spread sentence carried **no source at all** and
+    explained a widening spread by default risk - the one component the standard paper on the subject
+    shows carries no predictive information. All three are corrected, with 13 tests that **rebuild
+    each record from the Federal Reserve's own data** rather than trust a stored summary, and the
+    corrections reach the live page at the next 02:00 run. **No score, rank or number moved.**
+    The note also answers the standing question for good: **no macro reading will ever join the
+    score**, because one number a month for the whole market cannot rank 500 companies against each
+    other - it can only move the weights, which is a different claim with discouraging evidence
+    behind it (AQR's own authors call factor timing "deceptively difficult", and index providers keep
+    macro out of factor construction). So the backdrop stays what you asked for: context for timing
+    and sizing, beside the score.
+    **Next for this item: the track record's note** (queue item 4's last), then item 6,
+    track-record hardening.
   - **2026-10-15 (13:00 slot) - deferred, and why, with nothing lost.** The session carried on from
     the owner-run midday entry's Next instead: a measured input defect left open in
     `research/2026-10-14-yahoo-vs-sec.md` section 4b, where the screener invented a quarter the

@@ -11,8 +11,29 @@ market - momentum's weight moving with the volatility regime - is computed in ``
 from the universe itself, not from these series, and this module does not touch it.
 
 The readings describe; they do not forecast and never say what to do. Each threshold is either a
-published rule (Sahm 2019; the 10-year minus 3-month spread used by Estrella & Mishkin 1998 and
-the New York Fed) or stated as this series' own 10-year percentile.
+published rule (Sahm 2019; the 10-year minus 3-month spread the New York Fed publishes a
+recession probability from, Estrella & Trubin 2006) or stated as this series' own 10-year
+percentile.
+
+**What each sentence may claim is bounded by what its source claims, and three of them were
+corrected on 2026-10-17** after being measured against the sources' own records -
+``research/2026-10-17-macro-backdrop.md``, claims ``context.macro_curve``,
+``context.macro_credit`` and ``context.sahm``. The rule that produced those three defects is
+worth keeping in view: all three sentences had attached a real citation to a *stronger or
+different* statement than the source makes. The Sahm rule's own author says it triggers within
+three months *of the start* of a recession and that unemployment lags the cycle; the page said
+it "marked the start". Estrella & Mishkin (1998) gives neither a lag range nor a false-alarm
+count; the page credited it with both. Gilchrist & Zakrajsek (2012) find the predictive content
+of a credit spread is in the premium *above* expected defaults; the page explained the spread by
+default risk alone.
+
+**No reading here is a candidate for the score, and that is settled rather than pending**
+(``research/2026-10-17-macro-backdrop.md`` section 7): a macro series is one observation a month
+for the whole universe, so it carries no cross-sectional variation for a cross-sectional ranking
+to use, and ``context_eval.py`` - which measures each signal's IC across stocks - structurally
+cannot evaluate it. Using it to move *weights* instead is factor timing, which needs different
+evidence; the one place this screener does that (``factor_engine.market_panic_state``) reads the
+universe's own return and volatility, not these series.
 """
 
 from __future__ import annotations
@@ -147,16 +168,20 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
         state = "inverted" if c["last"] < 0 else ("flat" if c["last"] < 0.5 else "positive")
         out.append({"k": "curve", "state": state, "title": "Yield curve",
                     "text": f"The 10-year yield is {abs(c['last']):.2f}pp {'below' if c['last'] < 0 else 'above'} the 3-month. "
-                            "An inverted curve (10-year below 3-month) has preceded every US recession since the late 1960s, "
-                            "with lags of roughly 6 to 24 months and at least one false alarm. It describes the cycle rather than timing it "
-                            "(Estrella & Mishkin 1998; the New York Fed's recession model uses this spread)."})
+                            "An inverted curve (10-year below 3-month) has preceded all eight US recessions since 1968, "
+                            "by 6 to 17 months, and the New York Fed reports no false signals on monthly averages over that "
+                            "period (Estrella & Trubin 2006; the one clear false alarm, 1966-67, is just before it). "
+                            "The 2022-24 inversion - the longest on record - is the open case: no recession has been dated "
+                            "since it ended. It describes the cycle rather than timing it."})
     b = summ.get("BAA10Y")
     if b and "pct_10y" in b:
         p = b["pct_10y"]
         state = "tight" if p < 33 else ("wide" if p > 67 else "normal")
         out.append({"k": "credit", "state": state, "title": "Credit spreads",
                     "text": f"Lower-grade corporate bonds yield {b['last']:.2f}pp over Treasuries, higher than {p:.0f}% of the last ten years. "
-                            "Spreads widen when lenders want more for default risk; wide spreads have coincided with stress for indebted companies."})
+                            "A wider spread is partly compensation for expected defaults and partly the premium lenders charge "
+                            "above that; Gilchrist & Zakrajsek (2012) find it is the second part that has predicted economic "
+                            "activity. Wide spreads have coincided with stress for indebted companies."})
     v = summ.get("VIXCLS")
     if v:
         state = "calm" if v["last"] < 15 else ("elevated" if v["last"] > 25 else "normal")
@@ -179,8 +204,10 @@ def readings(summ: dict, sahm: float | None, sahm_basis: str | None = "revised")
         lead = f"Unemployment is {u['last']:.1f}%. " if u.get("last") is not None else ""
         out.append({"k": "jobs", "state": state, "title": "Labor market",
                     "text": lead + f"The Sahm indicator (the 3-month average against "
-                            f"its 12-month low) reads {sahm:+.2f}pp; at +0.50pp or more it has marked the start of every US recession "
-                            "since 1970 (Sahm 2019). "
+                            f"its 12-month low) reads {sahm:+.2f}pp. It has reached +0.50pp around the start of every US "
+                            "recession since 1970 - usually in the first months of one rather than before it, since "
+                            "unemployment lags the cycle - and twice, in 1976 and 2024, without a recession following "
+                            "(Sahm 2019, who proposed it as a trigger for automatic stimulus, not as a forecast). "
                             + ("Computed on unemployment as first published (FRED's real-time series), as the rule is defined."
                                if sahm_basis == "real-time" else
                                "Computed here on today's revised unemployment history; the rule is defined on the figures as first published.")})
