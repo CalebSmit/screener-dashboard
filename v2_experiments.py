@@ -15,14 +15,17 @@ and they are what make a result from it worth showing:
 3. **Every test counts.** ``research/experiments/ledger.jsonl`` records every run of every
    experiment. Significance is judged against the number of experiments ever registered
    (Bonferroni), and against Harvey, Liu & Zhu's t > 3 bar for a new factor.
-4. **Paired with the baseline by month.** Each idea's monthly IC is compared with the current
-   screener's IC in the same month; the interval is on the difference. The pairing is by month
-   only: each configuration ranks the stocks it has enough weighted data to score
-   (``backtest_v2.rank_month``), so a narrow screen's IC is computed on a different, usually
-   smaller, set of stocks than the baseline's (free-cash-flow yield alone ranks about 348 a month
-   against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019;
-   ``research/measurements/2026-10-16-stocks-ranked-per-config.json``).
-   Pairing on each month's common stocks is queued, with a full rerun (``plan/research-engine.md``).
+4. **Paired with the baseline by month, on the stocks the two rankings share.** Each idea's monthly
+   IC is compared with the current screener's IC in that same month, computed over the same
+   companies; the interval is on the difference. Each configuration ranks only what it has enough
+   weighted data to score (``backtest_v2.rank_month``), so a narrow screen covers a smaller set
+   than the baseline - free-cash-flow yield alone ranks about 348 a month against the baseline's
+   440 in 2020-2026, and 213 against 327 in 2012-2019
+   (``research/measurements/2026-10-16-stocks-ranked-per-config.json``). Until method version 2
+   (2026-10-17) each side was measured over its own set, so part of every difference was a
+   difference in *who* was ranked rather than in the ranking. Now both sides are recomputed on the
+   month's intersection and ``n_common`` records its size. The baseline's own row keeps the
+   full-universe reading, because that is the figure the methodology page publishes.
 
 What it is not: a way to set weights. Under CLAUDE.md rules 4 and 5 nothing it reports changes a
 weight before 2027-02-11 - and its universe still lacks the stocks that left the index and every
@@ -79,6 +82,19 @@ KNOWN_MARK = "†"              # a dagger: this row's 2020-2026 outcome was on 
 # the index, and v2 only has the ones still in it (the census counts them per month).
 PRESAMPLE = ("2012-01-31", "2019-12-31")
 SAMPLE = (DISCOVERY[0], HOLDOUT[1])
+
+# How a comparison is measured. Bumped when that changes, and written to every ledger row, because
+# rows measured different ways do not compare with each other any more than rows built on different
+# data do - ``report`` refuses to mix them, exactly as it refuses to mix data versions.
+#   1  (2026-10-15) each configuration's IC over the stocks it could rank that month; the baseline's
+#      over the stocks it could rank. Paired by month only.
+#   2  (2026-10-17) both sides recomputed over the month's common stocks before anything is
+#      compared (plan/research-engine.md queue item 8a). A narrow screen ranks fewer stocks than
+#      the baseline - free-cash-flow yield 348 a month against 440 - so under version 1 part of
+#      every difference was a difference in who was ranked. The baseline's own row is unpaired and
+#      keeps its full-universe reading.
+METHOD_VERSION = 2
+MIN_STOCKS_A_MONTH = 50          # a month enters a comparison only with this many ranked stocks
 
 
 # --------------------------------------------------------------------------- configurations
@@ -187,20 +203,63 @@ def rank_all(months: dict, cfg: dict, whole_market: bool = False) -> pd.DataFram
     return pd.concat(frames, ignore_index=True)
 
 
-def per_month(scores: pd.DataFrame, fwd: pd.DataFrame) -> pd.DataFrame:
-    """IC, top-tenth-minus-universe and top-tenth volatility inputs, month by month."""
+def _with_returns(g: pd.DataFrame, fwd: pd.DataFrame, month: str) -> pd.DataFrame:
+    """One month's ranking with next month's return attached; rows without either are dropped."""
+    return g.assign(ret=fwd.loc[month].reindex(g["Ticker"].values).values).dropna(subset=["ret", "Composite"])
+
+
+def _ic_and_spread(g: pd.DataFrame) -> dict:
+    """One month's rank correlation with next month's return, and the top tenth's lead over the
+    average of the same set of stocks."""
+    dec = np.ceil(g["Composite"].rank(pct=True, method="first") * 10).clip(1, 10)
+    top = g.loc[dec == 10, "ret"]
+    return {"ic": float(g["Composite"].rank().corr(g["ret"].rank())),
+            "top": float(top.mean()), "universe": float(g["ret"].mean()),
+            "top_minus_universe": float(top.mean() - g["ret"].mean())}
+
+
+def per_month(scores: pd.DataFrame, fwd: pd.DataFrame,
+              baseline_scores: pd.DataFrame | None = None) -> pd.DataFrame:
+    """IC, top-tenth-minus-universe and top-tenth volatility inputs, month by month.
+
+    With ``baseline_scores`` (method version 2, 2026-10-17) each month is first cut to the tickers
+    **both** rankings carry with a next-month return, and the baseline's IC and top-tenth spread are
+    recomputed on that same intersection and returned beside the experiment's as ``base_ic`` /
+    ``base_top_minus_universe``. ``summarise`` then differences two numbers measured over identical
+    companies, so what is left is a difference in ranking. ``n_common`` is the intersection's size.
+
+    Without it the frame is the configuration's own full reading - which is what the baseline's own
+    published row is, and what every row was before 8a.
+    """
+    base_by_month = dict(tuple(baseline_scores.groupby("month"))) if baseline_scores is not None else {}
     rows = []
     for m, g in scores.groupby("month"):
         if m not in fwd.index:
             continue
-        g = g.assign(ret=fwd.loc[m].reindex(g["Ticker"].values).values).dropna(subset=["ret", "Composite"])
-        if len(g) < 50:
+        g = _with_returns(g, fwd, m)
+        row: dict = {"month": m}
+        if baseline_scores is not None:
+            b = base_by_month.get(m)
+            if b is None:
+                continue
+            b = _with_returns(b, fwd, m)
+            common = set(g["Ticker"]) & set(b["Ticker"])
+            if len(common) < MIN_STOCKS_A_MONTH:
+                continue
+            g = g[g["Ticker"].isin(common)]
+            b = b[b["Ticker"].isin(common)]
+            row["n_common"] = len(common)
+            row.update({f"base_{k}": v for k, v in _ic_and_spread(b).items()})
+        elif len(g) < MIN_STOCKS_A_MONTH:
             continue
-        dec = np.ceil(g["Composite"].rank(pct=True, method="first") * 10).clip(1, 10)
-        top = g.loc[dec == 10, "ret"]
-        rows.append({"month": m, "n": len(g), "ic": float(g["Composite"].rank().corr(g["ret"].rank())),
-                     "top": float(top.mean()), "universe": float(g["ret"].mean()),
-                     "top_minus_universe": float(top.mean() - g["ret"].mean())})
+        row["n"] = len(g)
+        row.update(_ic_and_spread(g))
+        rows.append(row)
+    if not rows:
+        # a configuration that could not clear MIN_STOCKS_A_MONTH in any month reports nothing;
+        # ``set_index`` on an empty frame raises, which would read as a crash rather than a result
+        return pd.DataFrame(columns=["month", "n", "ic", "top", "universe",
+                                     "top_minus_universe"]).set_index("month")
     return pd.DataFrame(rows).set_index("month")
 
 
@@ -323,7 +382,16 @@ def _dependence(x: np.ndarray) -> dict:
     return {"ac1": round(float(d[1:] @ d[:-1]) / n / g0, 3), "t_nw": round(float(x.mean()) / se_nw, 2)}
 
 
-def summarise(pm: pd.DataFrame, base: pd.DataFrame | None) -> dict:
+def summarise(pm: pd.DataFrame) -> dict:
+    """Each period's statistics from one ``per_month`` frame.
+
+    The frame carries its own baseline (``base_ic``, ``base_top_minus_universe``) when it was built
+    paired, so the difference is always between two numbers measured over the same stocks in the
+    same month. There is deliberately no way to pass a separate baseline frame: differencing one
+    configuration's reading against another's, each over its own set of stocks, is what method
+    version 1 did and what 8a replaced.
+    """
+    paired = "base_ic" in pm.columns
     out = {}
     for name, (a, b) in (("discovery", DISCOVERY), ("holdout", HOLDOUT), ("all", SAMPLE),
                          ("presample", PRESAMPLE)):
@@ -332,10 +400,13 @@ def summarise(pm: pd.DataFrame, base: pd.DataFrame | None) -> dict:
             continue                                    # not built yet: no row, not an empty one
         r = {"ic": _stats(sl["ic"]), "top_minus_universe": _stats(sl["top_minus_universe"]),
              "top_vol": round(float(sl["top"].std(ddof=1)), 5) if len(sl) > 2 else None}
-        if base is not None:
-            bs = base.reindex(sl.index)
-            r["ic_vs_baseline"] = _stats(sl["ic"] - bs["ic"])
-            r["tmu_vs_baseline"] = _stats(sl["top_minus_universe"] - bs["top_minus_universe"])
+        if paired:
+            r["ic_vs_baseline"] = _stats(sl["ic"] - sl["base_ic"])
+            r["tmu_vs_baseline"] = _stats(sl["top_minus_universe"] - sl["base_top_minus_universe"])
+            r["n_common"] = int(sl["n_common"].mean().round()) if len(sl) else 0
+            # the baseline measured over the same stocks: the figure the difference is taken from,
+            # which is not the baseline's own published row (that one is over its full universe)
+            r["baseline_ic_on_common"] = _stats(sl["base_ic"]).get("mean")
         out[name] = r
     return out
 
@@ -448,7 +519,8 @@ def run(ids: list[str] | None = None) -> list[dict]:
     fwd = forward_returns(sorted(months))
     vintage = data_fingerprint(months)
     cfg0 = base_config()
-    base_pm = per_month(rank_all(months, cfg0), fwd)
+    base_scores = rank_all(months, cfg0)
+    base_pm = per_month(base_scores, fwd)      # the baseline's own published row: its full universe
     results = []
     for e in reg:
         if ids and e["id"] not in ids:
@@ -456,14 +528,20 @@ def run(ids: list[str] | None = None) -> list[dict]:
         tr = e["transform"]
         cfg = apply_transform(cfg0, tr)
         pm = base_pm if tr["kind"] == "baseline" else per_month(
-            rank_all(months, cfg, whole_market=(tr["kind"] == "whole_market")), fwd)
+            rank_all(months, cfg, whole_market=(tr["kind"] == "whole_market")), fwd,
+            baseline_scores=base_scores)
         res = {"id": e["id"], "run_at": datetime.now().isoformat(timespec="seconds"),
                "commit": git_commit(), "config_hash": config_hash(cfg, tr), "months": int(len(pm)),
-               **vintage,
-               "summary": summarise(pm, None if tr["kind"] == "baseline" else base_pm),
+               "method_version": METHOD_VERSION, **vintage,
+               "summary": summarise(pm),
                # the monthly series themselves (2026-10-15), so a later check reads them, not a rerun
                "ic_by_month": {m: round(float(v), 5) for m, v in pm["ic"].items() if pd.notna(v)},
                "tmu_by_month": {m: round(float(v), 6) for m, v in pm["top_minus_universe"].items() if pd.notna(v)}}
+        if "n_common" in pm.columns:
+            # what the comparison was measured over, month by month, and the baseline's own reading
+            # on that same set - so the difference can be rebuilt from the row without a rerun (8a)
+            res["n_common_by_month"] = {m: int(v) for m, v in pm["n_common"].items() if pd.notna(v)}
+            res["base_ic_by_month"] = {m: round(float(v), 5) for m, v in pm["base_ic"].items() if pd.notna(v)}
         LEDGER.parent.mkdir(parents=True, exist_ok=True)
         with LEDGER.open("a", encoding="utf-8") as f:
             f.write(json.dumps(res) + "\n")
@@ -499,6 +577,18 @@ def detectable(se: float | None, n_tests: int, n: int | None = None) -> float | 
     df = (n - 1) if n and n > 1 else None
     power = t_critical(0.40, df) if df else 0.84          # the one-sided 80% quantile
     return round((pass_bar(n_tests, n) + power) * se, 4)
+
+
+def method_note(methods: list[int]) -> str:
+    """The report's line on how its rows were measured. A ledger holding more than one method
+    version is flagged exactly as one holding more than one data version is: rows measured
+    differently do not compare, and the remedy is a rerun, not a footnote (queue item 8a)."""
+    if len(methods) == 1:
+        return f"Method: every row was measured the same way (version {methods[0]})."
+    return ("**Method: the rows below were measured in more than one way (version "
+            + ", ".join(map(str, methods)) + ")** - how a comparison is computed changed, so rows of "
+            "different method versions do not compare with each other any more than rows built on "
+            "different data do. Rerun to bring them level.")
 
 
 def _vs_cell(vs: dict, n_tests: int) -> str:
@@ -701,7 +791,8 @@ def run_evaluations(ids: list[str] | None = None) -> list[dict]:
             continue
         pm = simulate_bot(inputs, fwd, e["rule"])
         res = {"id": e["id"], "kind": "evaluation", "run_at": datetime.now().isoformat(timespec="seconds"),
-               "commit": git_commit(), "months": int(len(pm)), **vintage, "summary": summarise_evaluation(pm),
+               "commit": git_commit(), "months": int(len(pm)), "method_version": METHOD_VERSION,
+               **vintage, "summary": summarise_evaluation(pm),
                "by_month": {m: {k: (round(float(r[k]), 6) if pd.notna(r[k]) else None)
                                 for k in ("ret", "universe", "index", "turnover")}
                             for m, r in pm.iterrows()}}
@@ -778,10 +869,13 @@ def summary_for_page(reg: list, latest: dict) -> dict:
                                              round(pooled["mean"] + q * pooled["se"], 4)]
         out["pooled_t"] = pooled["t"]
         out["pooled_detectable"] = detectable(pooled["se"], 1, pooled["n"])
+    out["method_version"] = base.get("method_version", 1)
     for e in reg:
         r = latest.get(e["id"])
+        # a row built on other data, or measured another way, does not compare with this baseline
         if not r or e["transform"]["kind"] == "baseline" or e.get("void") \
-                or r.get("data_hash") != base.get("data_hash"):
+                or r.get("data_hash") != base.get("data_hash") \
+                or r.get("method_version", 1) != base.get("method_version", 1):
             continue
         out["alternatives"] += 1
         v, vp = verdict(e, r, n), verdict_presample(e, r, n)
@@ -804,15 +898,20 @@ def report() -> Path:
     runs = sum(1 for _ in LEDGER.read_text(encoding="utf-8").splitlines()) if LEDGER.exists() else 0
     n = len([e for e in reg if e["transform"]["kind"] != "baseline"])
     vintages = sorted({r.get("data_hash", "before-fingerprint") for r in latest.values()})
+    methods = sorted({r.get("method_version", 1) for r in latest.values()})
     lines = ["# Research engine results", "",
              "Generated by `python v2_experiments.py report` from `ledger.jsonl` - do not edit by hand.",
              "Every experiment was registered, with its prediction, in `registry.yaml` before it ran; the git",
              f"history shows when. For the rows marked {KNOWN_MARK}, the 2020-2026 outcome had already been "
              "computed and committed in an earlier measurement before registration, so only their 2012-2019 "
              "result is a blind test (`outcome_known_at_registration`).",
-             "Judged on the held-out months (2023-07 .. 2026-08), paired by month with the current weighting: "
-             "each weighting's IC is computed on the stocks it can rank that month, which for a narrow screen "
-             "is a smaller set than the baseline's (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).",
+             "Judged on the held-out months (2023-07 .. 2026-08), paired by month with the current weighting "
+             "and, since method version 2 (2026-10-17), on the stocks the two rankings share that month: "
+             "each weighting ranks only what it has enough data to score, so a narrow screen covers fewer "
+             "stocks than the baseline (`research/measurements/2026-10-16-stocks-ranked-per-config.json`), and "
+             "both sides are recomputed on the intersection before the difference is taken. The baseline's own "
+             "row is its full universe - that is the published reading, and it is not what the differences in "
+             "the fifth column are measured against.",
              f"{n} experiments registered, {runs} runs in the ledger; the multiple-testing bar is p < 0.05 / {n} = "
              f"{0.05 / max(n, 1):.4f} and |t| >= {HLZ_T}, with p from Student's t on n - 1 degrees of freedom "
              f"(the bar is |t| >= {pass_bar(n, 38):.2f} over 38 held-out months and {pass_bar(n, 96):.2f} over 96).", "",
@@ -824,6 +923,7 @@ def report() -> Path:
               else "**Data: the rows below ran on more than one version of the monthly records ("
                    + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
                    "rows of different versions do not compare with each other. Rerun to bring them level."), "",
+             method_note(methods), "",
              "*sees* is the smallest true IC difference that comparison would detect 80% of the time at the "
              "bar above. A row that is \"not distinguishable\" would usually have caught a difference that "
              "large; it says nothing about smaller ones.", "",

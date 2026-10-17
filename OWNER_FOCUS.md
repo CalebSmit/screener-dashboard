@@ -51,6 +51,23 @@ Two things still outrank this file, and neither is negotiable:
   **Public since the same night:** `research.html` ("Has it been tested?"), linked from the
   dashboard's hero, footer, search palette and track record, beside a Factor Lab button.
 
+  **Progress (update this line each session):**
+  - **2026-10-17 (06:00 weekend) - the comparisons are now apples-to-apples, and it changed nothing,
+    which is worth knowing.** `plan/research-engine.md` item 8a. Until today each idea's score was
+    measured over the companies *it* could rank and compared with the current weighting's score over
+    the companies *the current weighting* could rank - two different sets - so part of every
+    published difference was a difference in **who was ranked** rather than in the ranking. A narrow
+    screen like free-cash-flow yield covers 348 companies a month where the current weighting covers
+    440. Both sides are now measured on the companies they share, every result in the ledger says
+    which way it was measured, and the report refuses to put the two kinds of row side by side.
+    **All 28 ideas and the trading-rule evaluation were rerun; not one of the 28 verdicts changed.**
+    The largest any comparison moved was **0.0068**, against a test that cannot reliably see
+    anything below about **0.040** - so the fix was needed for the claim to be true, and nothing the
+    page told you was resting on it. The public page now says plainly how the comparison is made.
+    Record and measurements: `research/2026-10-15-research-engine-first-batch.md` section 11.
+    **Next in the queue: 8(b)**, provenance hardening - every result recording the exact code and
+    data that produced it, and refusing to run from an edited tree.
+
 - **2026-10-14 - More sessions, faster development.** Owner: *"i want you to be doing more,
   scheduling more runs. I want to speed up the development of these tools please."*
   **Done the same day (owner-run):** two extra scheduled code sessions - 13:00 every day and

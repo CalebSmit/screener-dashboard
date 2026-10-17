@@ -892,7 +892,12 @@ engine** (`v2_experiments.py`; pre-registered in `research/experiments/registry.
 both eras, and the design can only see an IC difference of ~0.04-0.07**
 (`research/2026-10-15-research-engine-first-batch.md`). A new experiment is registered and committed
 **before** it runs, with a source and a prediction; a data fix reruns them all (the report flags mixed
-data versions); never register a variation of a near-miss. **The methodology page states the result** (claim
+data versions); never register a variation of a near-miss. **A change to *how* a comparison is measured
+reruns them all too** (2026-10-17): it bumps `METHOD_VERSION`, every ledger row carries it, and `report`
+and `summary_for_page` refuse to mix versions exactly as they refuse to mix data versions. Version 2
+pairs each comparison on the month's **common stocks** - under version 1 a narrow screen was measured
+over its own smaller set, so part of every difference was a difference in who was ranked. **The
+methodology page states the result** (claim
 `overview.research_engine`, read from `research/experiments/summary.json`, which `report` writes - commit it with
 the ledger). The two measurements, both reproducible from
 committed inputs:

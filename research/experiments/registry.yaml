@@ -2,12 +2,26 @@
 #
 # Every entry here was written and committed BEFORE it was run - the git history is the record.
 # A prediction is never edited after a run; a changed idea is a new entry with a new id. Results
-# are judged on the held-out months (2023-07 .. 2026-08), paired with the baseline by month,
-# against p < 0.05 / (number of experiments) and |t| >= 3. (Corrected 2026-10-16: this said "on the
-# same stocks and months". The pairing is by month only - each configuration ranks the stocks it has
-# enough weighted data to score, so a narrow screen's IC is on a different, usually smaller, set;
-# research/measurements/2026-10-16-stocks-ranked-per-config.json. Pairing on each month's common
-# stocks is queued in plan/research-engine.md.)
+# are judged on the held-out months (2023-07 .. 2026-08), paired with the baseline by month and on
+# the stocks the two rankings share that month, against p < 0.05 / (number of experiments) and
+# |t| >= 3.
+#
+# METHOD VERSIONS - how a comparison is measured. Every ledger row carries method_version, and the
+# report refuses to mix them, exactly as it refuses to mix data versions. Changing the method is
+# not a change to any hypothesis, prediction or transform; it reruns everything (rule 3).
+#   1 (2026-10-15) Each configuration's IC over the stocks it could rank that month, differenced
+#     against the baseline's IC over the stocks the baseline could rank. Paired by month only.
+#     Originally described here as "on the same stocks and months", corrected 2026-10-16 when the
+#     audit measured what each configuration actually ranked
+#     (research/measurements/2026-10-16-stocks-ranked-per-config.json): free-cash-flow yield alone
+#     ranks about 348 stocks a month against the baseline's 440 in 2020-2026, and 213 against 327
+#     in 2012-2019 - so part of every difference was a difference in who was ranked.
+#   2 (2026-10-17) Both sides recomputed on each month's intersection before the difference is
+#     taken, so the difference is a difference in ranking (plan/research-engine.md queue item 8a).
+#     n_common and the baseline's IC on that intersection are recorded per month in every row.
+#     The baseline's own row stays unpaired at its full universe - that is the published reading.
+#     Expected, and the reason for checking: no verdict changes, because the differences involved
+#     are far below what this design can detect.
 #
 # Disclosure fields added 2026-10-16, after the audit; no prediction, result or transform changed:
 #   outcome_known_at_registration - periods whose outcome had already been computed and committed

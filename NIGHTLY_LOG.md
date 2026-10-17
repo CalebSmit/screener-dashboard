@@ -12274,3 +12274,167 @@ have been swept into the data loop's stash).
   open Growth composition question.
 - Bot: corporate-action handling in the sim (renames, split guesses); the calendar ends in 2028.
 - The bot worktree folders `screener-bot-wt-*` could not be deleted (OneDrive lock); they are outside both repos.
+
+## 2026-10-17 (06:00 weekend session) - WEEKEND. A red gate fixed, then the research engine's comparisons made apples-to-apples (queue item 8a)
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_130001-midday.log`
+ends "Run complete: shipped to main"; an owner-run pass followed and `main` is at `f849b55`.
+Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete",
+HEALTH: PASS (no Saturday run is due; the loop is Mon-Fri). Evidence base at `1m`: **30 rows,
+newest 2026-09-15 (32 days ago, bound 40), 4 effective** - inside the bound, steady state.
+Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
+Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 9 days**).
+**Tests:** before **2619 passed, 2 skipped / 3 failed** (two a genuine red gate - see below - and
+one my own edit landing mid-run), after **2638 passed, 2 skipped / 0 failed** (+19). Dry run exits
+0; both payloads parse; tree clean. `scripts/rehearse_publish.py` **PASSED** (990 claims-gate
+tests), run because the diff touches a page generator.
+**Owner queue / rotation:** the top open owner item is the **research engine**
+(`OWNER_FOCUS.md` 2026-10-15), whose plan's next queued stage is `plan/research-engine.md` item
+**8(a)**. Took that. **0.11 (the context layer) deferred for the fourth consecutive session** - see
+"On the deferral streak" below, which is the accounting the rule asks for.
+
+### Did
+
+**1. Gate 1 was red at baseline, and it would have been red every weekend.** Two tests in
+`tests/test_option_quote_hours.py` stamped their cache fixture with today's UTC date and expected
+`options_cache` to serve it back. Two days in seven that date is a Saturday or a Sunday, and
+`reading_for` **deliberately refuses** a quote date naming a day the market never opened - the
+page states the session a quote closed in, so a stamp naming a non-session would make that
+sentence false. Production is right; the fixtures were not.
+
+Nobody had seen it because code sessions ran Mon-Fri. Since 2026-10-14 they also run at 13:00 daily
+and 06:00 at weekends, so **this was the first Saturday session and it opened on a red baseline with
+neither loop at fault.** The 13:00 slot would have hit it today too.
+
+Fixed: the fixtures take the most recent weekday on or before today (at most two days back, inside
+`MAX_AGE_DAYS` = 3), and a new parametrised test walks all seven days of a week and asserts the
+fixture date is always one `reading_for` accepts - so the class of fault cannot come back silently.
+Measured: the module went from 57 passed / 2 failed to **66 passed** (+7 guard tests). The suite had
+just been run on a Saturday and failed **exactly** these two, so the class is contained to them.
+
+**2. Queue item 8(a): every comparison is now measured on the stocks the two rankings share.**
+This is the research engine's next queued stage, and it is a correctness defect in what the public
+research page reports.
+
+Under **method version 1** each configuration's IC was computed over the stocks *it* could rank
+(`backtest_v2.rank_month` filters on coverage of that configuration's own weighted metrics) and
+differenced against the baseline's IC over the stocks the *baseline* could rank. A narrow screen
+ranks far fewer stocks - free-cash-flow yield alone 348 a month against the baseline's 440 - so
+part of every reported difference was a difference in **who was ranked**, not in the ranking. The
+registry had claimed "on the same stocks and months" until the 2026-10-16 audit corrected it to
+"by month only"; 8(a) is what makes the original claim true instead of withdrawing it.
+
+**Method version 2** recomputes both sides on each month's intersection before the difference is
+taken. `per_month(scores, fwd, baseline_scores=...)` returns `base_ic`,
+`base_top_minus_universe` and `n_common` beside the experiment's own figures, and `summarise`
+differences only within one frame - there is **no parameter for passing another configuration's
+frame** any more, because that is exactly what version 1 did. Every ledger row carries
+`method_version`, `n_common_by_month` and `base_ic_by_month`, so any difference can be rebuilt
+from the row without a rerun. `report` refuses to mix method versions (`method_note`) exactly as
+it refuses to mix data versions, and `summary_for_page` drops a row of either mismatch. The
+registry header records both versions and what changed between them.
+
+**All 28 experiments and the one evaluation were rerun** (rule 3) on the same data version the
+method-1 rows used, and `RESULTS.md`, `summary.json` and the public `research.html` regenerated
+from the new ledger. The method-1 rows stay in the ledger (rule 2: every run is kept) - my first
+version of the test asserted every row carried `method_version`, which would have required
+rewriting history, and it was corrected to assert it of the **newest row per id**, which is the one
+the report reads.
+
+**The public page now says how the comparison is made**, and says the more useful half of it: the
+narrow screen ranks almost only companies the current weighting also ranks, so pairing holds the
+**current weighting** down to that smaller set rather than cutting the screen down. Writing that
+sentence caught a presentation defect in my own first draft - it printed "348 ... the 348 they had
+in common", two identical numbers that read as a duplication error; it now gives the figure that is
+actually informative (fewer than one company a month is unique to the screen).
+
+### Evidence / research
+
+- **The defect is real; its effect is small, and both were measured.**
+  `research/measurements/2026-10-17-method-version-2-effect.py` compares the newest method-1 and
+  method-2 ledger row for every experiment **on the same data version**, so the only difference is
+  how the comparison was measured. Over 27 experiments and 81 period comparisons: **37 exactly
+  unchanged**, mean absolute shift **0.00048** (0.00089 among the 44 that moved), largest
+  **+0.0068** (`fcf-yield-only`, discovery), and **0 of 28 verdicts changed** - the outcome the
+  registry predicted before the rerun.
+- **The 37 unchanged comparisons are the finding, not a null.** Every `drop-*` ablation,
+  `equal-categories`, `orthogonalised-categories` and `whole-market-percentiles` ranks the same
+  stocks the baseline ranks, so for them the intersection *is* both sets and version 1 was already
+  right. The shifts sit entirely in the genuinely narrow screens - `fcf-yield-only` (333 stocks
+  compared), `magic-formula` (394), `only-size` and `only-valuation` (452) - which is exactly where
+  the defect was.
+- **Against what the design can see, that is nothing.** Section 5 of the first-batch note puts the
+  smallest detectable IC difference at about 0.040 on 2012-2019 and 0.070 on the held-out months.
+  The largest shift is a sixth of the smaller of those. So the correction was needed for the
+  engine's own claim to be true, and nothing it had published was resting on it.
+- **It is not a systematic shrinkage** - 20 of the 81 moved towards zero, 24 away. Once you look at
+  the structure that is what you expect: a narrow screen's stocks are a near-subset of the
+  baseline's (free-cash-flow yield ranks 348 a month and **fewer than one** is a company the
+  baseline cannot rank), so pairing does not cut the screen down, it cuts the **baseline** down to
+  the screen's universe, and the 92 dropped companies push it either way.
+- **A correction to my own first reading.** A 12-month smoke test before the rerun showed
+  `fcf-yield-only`'s difference moving from -0.0228 to -0.0158, which looked like a 30% effect; over
+  the full 176-month record the same experiment moves by 0.0068 at most. Twelve months is noise, and
+  I had written the larger figure down as the headline before the real one existed.
+- **Two free checks the rerun provided.** The baseline's method-2 row has an **identical** monthly
+  IC series and identical `mean`, `se`, `t`, `ac1` and `t_nw` in all four periods to its method-1
+  row (only `p` and `ci95` differ, and that is the 2026-10-16 Student's-t change finally reaching a
+  stored row) - so the refactor provably did not touch the unpaired path. And
+  `sector-relative-composite`, which is void because it reproduces the baseline exactly, differences
+  to **exactly 0.0000** in all three periods under both methods, which is a consistency check on the
+  pairing code for free.
+- **Design sources, unchanged:** Harvey, Liu & Zhu (2016) for the |t| >= 3 bar, and
+  Linnainmaa & Roberts (2018), *RFS* 31(7), for testing on the history before the sample. Nothing
+  about the bar, the periods or any prediction moved - this changes only how a difference is
+  computed, which is why it is a method version and why everything was rerun.
+- **Not used:** no engine number justifies anything here (rule 5), and no IC from this system's own
+  history (rule 4). 8(a) is a correctness fix to a measurement, not a methodology change.
+
+### Methodology changed
+
+- **None.** No weight, threshold, metric or score moved; nothing in `config.yaml` or
+  `factor_engine.py` was touched, so there is no `METHODOLOGY_CHANGELOG.md` entry to make. The
+  research engine does not feed scoring (CLAUDE.md rules 4 and 5) and may not before 2027-02-11.
+
+### On the deferral streak
+
+**0.11 (the context layer) has now been deferred four consecutive scheduled sessions** (2026-10-14
+06:00 for a red gate, 10-15 13:00, 10-16 13:00 for the open proposal, and today). The rule in
+`prompts/nightly.md` says the next session carrying **no owner item and no broken loop** must
+resolve it. Today carried both: a red gate 1 and the top open `OWNER_FOCUS.md` item, each of which
+outranks the roadmap explicitly. So the streak does not fire today - but it is now four, it will
+fire on the first session without one of those, and I am writing the count down rather than
+leaving the next session to re-derive it. Nothing in 0.11 is half-done; its next step is unchanged
+(`plan/context-layer.md` item 4's macro-backdrop and track-record notes, then item 6).
+
+### Tried and rejected
+
+- **Rewriting the historical ledger rows to carry `method_version: 1`.** My first version of
+  `test_every_ledger_row_says_how_its_comparison_was_measured` asserted *every* row had the field,
+  which would have required editing rows already written. Registry rule 2 is that every run is kept;
+  an append-only record you edit is not one. The absence of the field **is** version 1, and the test
+  now asserts the property that actually matters - the **newest row per id**, which is the row
+  `report` reads, was measured the current way.
+- **Keeping a `base` parameter on `summarise` for backwards compatibility.** It would have left the
+  version-1 path - differencing one configuration's reading against another's, each over its own
+  stocks - reachable from code and from a future test. The parameter is gone and a test asserts
+  calling it that way raises.
+- **Reporting the 12-month smoke-test figure as the result.** It showed a 30% change and the full
+  176-month rerun shows 0.0068 at most. Twelve months is noise; the number is corrected above and
+  in the note.
+- **Moving a verdict, a tolerance, a period or a prediction.** None was touched. 8(a) changes how a
+  difference is computed and nothing about what counts as a result - which is precisely why rule 3
+  requires the rerun rather than a footnote.
+
+### Next
+
+**0.11, the context layer** - `plan/context-layer.md` item 4's two remaining per-signal notes (the
+macro backdrop and the track record), then item 6, track-record hardening. It is the top open
+roadmap item at **age 9 days** and has now been deferred four consecutive sessions for reasons that
+each outranked it; the next session should take it unless a proposal opens or a gate is red.
+
+If the research engine is preferred instead, its queue is `plan/research-engine.md` item **8(b)**,
+provenance hardening: every ledger row recording `git describe --dirty` and the SHA-256 of each
+result-affecting source file, `run`/`evaluate` refusing on a dirty tree for those paths, and the
+data fingerprint widening from the member list to the content. 8(a) made that more valuable, not
+less - now that a row says *how* it was measured, the obvious next question is *with what code*.

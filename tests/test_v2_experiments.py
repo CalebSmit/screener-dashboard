@@ -65,9 +65,16 @@ def test_an_unregistered_experiment_cannot_be_run():
         X.run(["not-in-the-registry"])
 
 
-def _pm(ic, months):
-    return pd.DataFrame({"ic": ic, "top_minus_universe": [x / 10 for x in ic], "top": 0.01,
-                         "universe": 0.0, "n": 400}, index=months)
+def _pm(ic, months, base_ic=None):
+    """A per-month frame. With ``base_ic`` it is a *paired* frame - the shape ``per_month`` returns
+    when it was given the baseline's rankings, carrying the baseline's reading on the same stocks."""
+    df = pd.DataFrame({"ic": ic, "top_minus_universe": [x / 10 for x in ic], "top": 0.01,
+                       "universe": 0.0, "n": 400}, index=months)
+    if base_ic is not None:
+        df["base_ic"] = base_ic
+        df["base_top_minus_universe"] = [x / 10 for x in base_ic]
+        df["n_common"] = 400
+    return df
 
 
 def test_the_comparison_is_paired_month_by_month():
@@ -75,12 +82,85 @@ def test_the_comparison_is_paired_month_by_month():
     assert len(months) == 80
     rng = np.random.default_rng(1)
     base_ic = rng.normal(0, 0.12, 80)
-    exp = _pm(base_ic + 0.05, months)                   # better by exactly 0.05 every month
-    s = X.summarise(exp, _pm(base_ic, months))
+    exp = _pm(base_ic + 0.05, months, base_ic=base_ic)  # better by exactly 0.05 every month
+    s = X.summarise(exp)
     for period in ("discovery", "holdout"):
         d = s[period]["ic_vs_baseline"]
         assert d["mean"] == pytest.approx(0.05) and d["se"] == pytest.approx(0.0, abs=1e-9)
     assert s["discovery"]["ic"]["n"] + s["holdout"]["ic"]["n"] == s["all"]["ic"]["n"]
+
+
+def _scores(month: str, composites: dict) -> pd.DataFrame:
+    return pd.DataFrame({"month": month, "Ticker": list(composites), "Composite": list(composites.values())})
+
+
+def _fwd(month: str, rets: dict) -> pd.DataFrame:
+    return pd.DataFrame([rets], index=[month])
+
+
+def test_a_narrow_screen_is_compared_on_the_stocks_both_rankings_carry():
+    """Queue item 8a. The experiment ranks 60 of the baseline's 80 stocks; the comparison is over
+    those 60 on both sides, and ``n_common`` says so."""
+    month = "2024-01-31"
+    tickers = [f"T{i:03d}" for i in range(80)]
+    rng = np.random.default_rng(7)
+    rets = dict(zip(tickers, rng.normal(0, 0.05, 80)))
+    base = _scores(month, dict(zip(tickers, rng.normal(0, 1, 80))))
+    narrow = _scores(month, dict(zip(tickers[:60], rng.normal(0, 1, 60))))
+    pm = X.per_month(narrow, _fwd(month, rets), baseline_scores=base)
+    assert pm.loc[month, "n_common"] == 60 and pm.loc[month, "n"] == 60
+    # the baseline's reading in this frame is its reading on those 60, not on all 80
+    full = X.per_month(base, _fwd(month, rets))
+    assert pm.loc[month, "base_ic"] != pytest.approx(full.loc[month, "ic"])
+    on_60 = X.per_month(base[base["Ticker"].isin(tickers[:60])], _fwd(month, rets))
+    assert pm.loc[month, "base_ic"] == pytest.approx(on_60.loc[month, "ic"])
+    assert pm.loc[month, "base_top_minus_universe"] == pytest.approx(on_60.loc[month, "top_minus_universe"])
+
+
+def test_an_identical_ranking_differs_from_the_baseline_by_exactly_nothing():
+    """The property version 1 could not give: a configuration that ranks the same stocks the same
+    way must show a difference of exactly zero, whatever stocks it is missing."""
+    month = "2024-02-29"
+    tickers = [f"T{i:03d}" for i in range(90)]
+    rng = np.random.default_rng(11)
+    comps = dict(zip(tickers, rng.normal(0, 1, 90)))
+    rets = dict(zip(tickers, rng.normal(0, 0.05, 90)))
+    base = _scores(month, comps)
+    same_but_thinner = _scores(month, {t: comps[t] for t in tickers[:55]})
+    pm = X.per_month(same_but_thinner, _fwd(month, rets), baseline_scores=base)
+    assert pm.loc[month, "ic"] == pytest.approx(pm.loc[month, "base_ic"])
+    assert pm.loc[month, "top_minus_universe"] == pytest.approx(pm.loc[month, "base_top_minus_universe"])
+
+
+def test_a_month_too_thin_to_compare_is_dropped_rather_than_half_measured():
+    month = "2024-03-31"
+    tickers = [f"T{i:03d}" for i in range(80)]
+    rng = np.random.default_rng(3)
+    rets = dict(zip(tickers, rng.normal(0, 0.05, 80)))
+    base = _scores(month, dict(zip(tickers, rng.normal(0, 1, 80))))
+    tiny = _scores(month, dict(zip(tickers[:X.MIN_STOCKS_A_MONTH - 1], rng.normal(0, 1, X.MIN_STOCKS_A_MONTH - 1))))
+    assert X.per_month(tiny, _fwd(month, rets), baseline_scores=base).empty
+
+
+def test_the_unpaired_frame_is_still_the_configurations_own_full_reading():
+    """The baseline's own ledger row - the figure the methodology page publishes - is unpaired."""
+    month = "2024-04-30"
+    tickers = [f"T{i:03d}" for i in range(80)]
+    rng = np.random.default_rng(5)
+    base = _scores(month, dict(zip(tickers, rng.normal(0, 1, 80))))
+    pm = X.per_month(base, _fwd(month, dict(zip(tickers, rng.normal(0, 0.05, 80)))))
+    assert pm.loc[month, "n"] == 80 and "n_common" not in pm.columns and "base_ic" not in pm.columns
+
+
+def test_summarise_cannot_difference_against_a_separately_measured_baseline():
+    """Method version 2: the baseline a difference is taken from travels in the frame, measured on
+    the same stocks. There is deliberately no parameter for passing another configuration's frame -
+    that was method version 1, and it is what 8a removed."""
+    months = [d.strftime("%Y-%m-%d") for d in pd.date_range("2020-01-31", "2023-06-30", freq="ME")]
+    unpaired = _pm(list(np.linspace(-0.05, 0.05, len(months))), months)
+    assert "ic_vs_baseline" not in X.summarise(unpaired)["discovery"]
+    with pytest.raises(TypeError):
+        X.summarise(unpaired, _pm([0.0] * len(months), months))
 
 
 def test_the_verdict_needs_the_held_out_months_to_agree():
@@ -132,6 +212,51 @@ def test_the_ledger_says_which_data_each_run_used():
     assert X.data_fingerprint(dict(reversed(list(a.items())))) == fa      # order-free
 
 
+def test_every_ledger_row_says_how_its_comparison_was_measured():
+    """Queue item 8a: how a comparison is computed is as much a precondition for comparing two rows
+    as the data they ran on, so every row carries ``method_version`` and they all agree."""
+    rows = [json.loads(line) for line in X.LEDGER.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert rows
+    # the ledger is append-only (rule 2), so the method-1 rows run before 8a stay in it and carry
+    # no field at all - that absence *is* version 1. What must hold is that the row the report
+    # reads for each id, the newest, was measured the current way.
+    assert {r.get("method_version", 1) for r in rows} <= {1, X.METHOD_VERSION}
+    newest = {}
+    for r in rows:
+        newest[r["id"]] = r
+    assert newest and all(r.get("method_version") == X.METHOD_VERSION for r in newest.values()), \
+        sorted(i for i, r in newest.items() if r.get("method_version") != X.METHOD_VERSION)
+
+
+def test_an_experiment_row_records_what_its_comparison_covered():
+    """The intersection's size and the baseline's reading on it, month by month, so the difference
+    can be rebuilt from the row without a rerun. The baseline's own row carries neither."""
+    latest = {}
+    for line in X.LEDGER.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            r = json.loads(line)
+            latest[r["id"]] = r
+    assert "n_common_by_month" not in latest["baseline"] and "base_ic_by_month" not in latest["baseline"]
+    for e in X.load_registry():
+        if e["transform"]["kind"] == "baseline" or e["id"] not in latest:
+            continue
+        r = latest[e["id"]]
+        assert r["n_common_by_month"] and r["base_ic_by_month"], e["id"]
+        assert set(r["n_common_by_month"]) == set(r["ic_by_month"]), e["id"]
+        assert all(v >= X.MIN_STOCKS_A_MONTH for v in r["n_common_by_month"].values()), e["id"]
+
+
+def test_the_report_refuses_to_mix_two_ways_of_measuring():
+    """A method change is a rerun, not a footnote - the report flags a mixed ledger the way it
+    flags mixed data versions, so a reader cannot compare rows measured differently."""
+    assert X.method_note([2]) == "Method: every row was measured the same way (version 2)."
+    mixed = X.method_note([1, 2])
+    assert mixed.startswith("**Method:") and "version 1, 2" in mixed and "Rerun" in mixed
+    text = X.RESULTS.read_text(encoding="utf-8")
+    assert f"Method: every row was measured the same way (version {X.METHOD_VERSION})." in text
+    assert "measured in more than one way" not in text
+
+
 def test_the_period_before_the_sample_is_fixed_and_judged_by_its_own_rule():
     """Registered 2026-10-15 before any of its months was built (Linnainmaa & Roberts 2018)."""
     assert X.PRESAMPLE == ("2012-01-31", "2019-12-31") and X.PRESAMPLE[1] < X.DISCOVERY[0]
@@ -164,7 +289,7 @@ def test_a_void_experiment_says_so_instead_of_a_verdict():
 def test_months_before_the_sample_never_enter_the_sample_periods():
     months = [d.strftime("%Y-%m-%d") for d in pd.date_range("2012-01-31", "2026-08-31", freq="ME")]
     pm = _pm(list(np.linspace(-0.1, 0.1, len(months))), months)
-    s = X.summarise(pm, None)
+    s = X.summarise(pm)
     assert s["presample"]["ic"]["n"] == 96
     assert s["discovery"]["ic"]["n"] + s["holdout"]["ic"]["n"] == s["all"]["ic"]["n"] == 80
 
@@ -332,15 +457,38 @@ def test_results_md_marks_every_known_outcome_row():
     assert "on the same months" not in text and "paired by month" in text
 
 
-def test_the_comparison_is_described_as_paired_by_month_never_on_the_same_stocks():
-    """Item 3: each configuration scores its own universe; only a dated correction may quote the old
-    wording."""
-    for p in (ROOT / "v2_experiments.py", X.REGISTRY, ROOT / "research_page.py", ROOT / "research.html",
-              X.RESULTS, ROOT / "research" / "2026-10-15-research-engine-first-batch.md"):
-        text = p.read_text(encoding="utf-8")
-        for i, line in enumerate(text.splitlines()):
-            if "same stocks" in line:
-                assert '"' in line and "2026-10-16" in "\n".join(text.splitlines()[max(0, i - 3):i + 1]), (p.name, line)
+DESCRIBES_THE_PAIRING = (ROOT / "v2_experiments.py", X.REGISTRY, ROOT / "research_page.py",
+                         ROOT / "research.html", X.RESULTS,
+                         ROOT / "research" / "2026-10-15-research-engine-first-batch.md")
+
+
+def test_no_surface_still_says_a_narrow_screen_is_judged_on_its_own_stocks():
+    """The inverse of the check this replaced, because 8a reversed the fact it guarded.
+
+    Until method version 2 the pairing really was by month *only*, and the audit of 2026-10-16
+    rightly made every surface say so - that test forbade the phrase "same stocks" anywhere
+    outside a dated correction. Since 2026-10-17 both sides are recomputed on each month's
+    intersection, so "same stocks" is now the true description and the *old* wording is the one
+    that would mislead. The assertion is inverted rather than deleted: a surface may still carry
+    the version-1 wording, but only inside a passage that dates it as history.
+    """
+    stale = ("pairing is by month only", "paired by month only", "judged on fewer stocks",
+             "is on a different, usually smaller, set")
+    for p in DESCRIBES_THE_PAIRING:
+        lines = p.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if any(s in line.lower() for s in stale):
+                window = "\n".join(lines[max(0, i - 6):i + 2])
+                assert any(d in window for d in ("2026-10-15", "2026-10-16", "version 1")), (p.name, line)
+
+
+def test_every_surface_describes_the_pairing_as_on_the_shared_stocks():
+    """The positive half: the three generated surfaces a reader actually meets must say that the
+    comparison is on the stocks both rankings carry, not merely that it is monthly."""
+    for p in (X.RESULTS, ROOT / "research.html", X.REGISTRY):
+        text = p.read_text(encoding="utf-8").lower()
+        assert any(s in text for s in ("stocks the two rankings share", "stocks both rankings",
+                                       "shared stocks", "intersection")), p.name
 
 
 def test_within_sector_screens_carry_a_construction_note():

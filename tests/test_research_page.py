@@ -142,13 +142,21 @@ def test_every_outcome_known_screen_is_marked_and_the_pre_registration_sentence_
     assert "seven of them" in step1 and "only the 2012&ndash;2019 test is blind" in step1
 
 
-def test_the_page_says_the_pairing_is_by_month_and_states_the_universe_difference():
-    """Item 3: each configuration ranks its own stocks; the page says so with the committed counts."""
+def test_the_page_says_the_pairing_is_on_the_shared_stocks_and_states_the_universe_difference():
+    """Method version 2 (2026-10-17, plan/research-engine.md 8a) reversed what this guards.
+
+    Until then the pairing really was by month only, and this test rightly forbade "on the same
+    stocks" and required the page to say so. Now both sides are recomputed on each month's
+    intersection, so the page must say *that*, must still state how many stocks each side could
+    rank (the universe difference has not gone away - it is what makes the intersection smaller),
+    and must state the overlap the comparison was actually measured over, read from the ledger.
+    """
     page = rp.PAGE.read_text(encoding="utf-8")
-    assert "on the same stocks" not in page
     per = json.loads(rp.PER_CONFIG.read_text(encoding="utf-8"))["configs"]
-    assert "The pairing is by month" in page
+    assert "paired by month and measured on the stocks the two rankings share" in page
+    assert "The pairing is by month:" not in page and "judged on fewer stocks" not in page
     assert f'ranked <span class="num">{per["baseline"]["sample"]["mean_stocks"]:.0f}</span> stocks a month' in page
+    assert "pairing on the overlap" in page or "in the overlap" in page
 
 
 def test_every_headline_figure_carries_its_interval_from_the_ledger():
