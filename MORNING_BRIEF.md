@@ -1,4 +1,4 @@
-# Morning Brief - Friday 16 October 2026, 13:52
+# Morning Brief - Saturday 17 October 2026, 07:17
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -7,14 +7,14 @@ history is in `NIGHTLY_LOG.md`.
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran today |
+| Data run (2 AM) | **completed** - last ran yesterday |
 | Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-16T02:00:03.815047 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
 | Top 5 | EXPE, APA, HST, INCY, EG |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (31 rows, but overlapping windows are not independent; 85 rows across all horizons), newest 2026-10-09 |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (30 rows, but overlapping windows are not independent; 83 rows across all horizons), newest 2026-10-08 |
 | Context signals | Context signals: 7 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
 | Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 0 days ago |
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
@@ -22,69 +22,69 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
-- `870c4f5 the refusal recorded: changelog, owner queue, priorities and the day's log`
-- `6297aa4 a long filing tag wraps instead of being clipped at 375px`
-- `cb4c86b the earnings-yield row says what one-off charge is inside the earnings it scored`
-- `420464a the earnings-definition proposal: REVIEWED and REFUSED, with the measurements`
-- `260f994 wip: the earnings-definition proposal's input, measured at the window the engine scores`
-- `1379e24 wip: measure the open earnings-definition proposal's input against the filings`
-- `0498168 professional pass 7: last details; the day's log entry`
-- `405b254 professional pass 6: favicons everywhere, the last text chevron, a packed context grid, tidy labels`
-- `68e02d7 the claims gate runs the methodology typesetting test`
-- `78bf7f0 professional pass 5: the Factor Lab typesets its dashes and minus signs as it draws`
-- `0c80999 professional pass 4: the Methodology document - statement headings, one typesetting pass, two framing errors`
-- `fa9bab0 professional pass 3: bars drawn above their reference line, unwidened hyphens, one heading case`
-- `4a24c20 professional pass 2: 40px touch targets, one focus ring, selection colour, the stock sheet fits a phone`
-- `01f0fd6 professional pass 1: one voice in the copy, one date format, one disclosure icon; two defects`
-- `ec83782 brief: code session 2026-10-16`
+- `ccd68d3 log: the 2026-10-17 weekend session - gate fix, method version 2, and the rerun's result`
+- `1289e7d engine: rerun all 28 experiments and the evaluation on method version 2; no verdict changed`
+- `d5ec2ad docs: a method change reruns the engine, like a data fix (rule in CLAUDE.md)`
+- `5761f47 engine: comparisons are measured on the stocks both rankings share (method version 2)`
+- `2268c3e test: the option-cache fixtures name a real market session, not 'today'`
+- `f849b55 non-blocking fonts on the research page and the lab; the afternoon's log; two settled rows updated`
+- `78c5aa6 test: the Escape check finds the modal handler among several`
+- `d479628 docs: row 5's kept-name rule recorded, inventory names the ten fixes`
+- `e94c227 dashboard: ten functional defects fixed, payload byte-identical`
+- `6626c71 evidence base repaired: every forward return re-measured to a horizon end that exists`
+- `68866b6 forward returns are measured only to a close that exists, looking forward, and once`
+- `9b2f89f research docs: dated corrections and the audit's queued engine changes`
+- `b9a311d research page: claim only what the ledger supports (audit, 2026-10-16)`
+- `16bf997 measurements for the research-page audit: coverage by month, stocks ranked per configuration`
+- `70e7ba9 ignore Claude Code agent worktrees`
 
 ## The session's own account
 
-> 2026-10-16 (13:00 session) - QUEUE. The earnings-definition proposal: reviewed, refused, and the charge inside the earnings put on the row
+> 2026-10-17 (06:00 weekend session) - WEEKEND. A red gate fixed, then the research engine's comparisons made apples-to-apples (queue item 8a)
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_060001.log`
-> (the retrospective) ends "Run complete: shipped to main"; the owner-run professional pass followed it
-> and `main` is at `98fa2a0`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
-> "Data loop complete", HEALTH: PASS. Evidence base at `1m`: **31 rows, newest 2026-09-16 (30 days ago,
-> bound 40), 4 effective** - inside the bound and in steady state. Priority 0: unchanged,
-> `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.11, the
-> context layer** (opened 2026-10-08, **age 8 days**).
-> **Tests:** before **2492 passed / 0 failed**, after **2504 passed, 1 skipped / 0 failed** (+13, all
-> in the new `tests/test_special_item_note.py`; the skip is its published-payload check, which cannot
-> fire until the 2026-10-19 run puts the notes in the committed payload). Dry run exits 0.
-> `scripts/rehearse_publish.py` passed twice.
-> **Owner queue / rotation:** took the **open proposal**, which Orient makes the first job and which
-> the retrospective six hours earlier named as this session's Next. **0.11 (the context layer) was
-> deferred** - item 4's two remaining per-signal notes are untouched and nothing there is half-done.
+> **Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-16_130001-midday.log`
+> ends "Run complete: shipped to main"; an owner-run pass followed and `main` is at `f849b55`.
+> Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends "Data loop complete",
+> HEALTH: PASS (no Saturday run is due; the loop is Mon-Fri). Evidence base at `1m`: **30 rows,
+> newest 2026-09-15 (32 days ago, bound 40), 4 effective** - inside the bound, steady state.
+> Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
+> Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 9 days**).
+> **Tests:** before **2619 passed, 2 skipped / 3 failed** (two a genuine red gate - see below - and
+> one my own edit landing mid-run), after **2638 passed, 2 skipped / 0 failed** (+19). Dry run exits
+> 0; both payloads parse; tree clean. `scripts/rehearse_publish.py` **PASSED** (990 claims-gate
+> tests), run because the diff touches a page generator.
+> **Owner queue / rotation:** the top open owner item is the **research engine**
+> (`OWNER_FOCUS.md` 2026-10-15), whose plan's next queued stage is `plan/research-engine.md` item
+> **8(a)**. Took that. **0.11 (the context layer) deferred for the fourth consecutive session** - see
+> "On the deferral streak" below, which is the accounting the rule asks for.
 > 
 > ### Did
 > 
-> **Decided the one open proposal** (`research/2026-10-15-earnings-definition.md`, open 1 day): score
-> earnings yield on the source's "Normalized Income" - net income with its unusual items removed -
-> instead of net income as reported. **REFUSED.** Section 8 of that note is the review; the changelog
-> entry is 2026-10-16.
+> **1. Gate 1 was red at baseline, and it would have been red every weekend.** Two tests in
+> `tests/test_option_quote_hours.py` stamped their cache fixture with today's UTC date and expected
+> `options_cache` to serve it back. Two days in seven that date is a Saturday or a Sunday, and
+> `reading_for` **deliberately refuses** a quote date naming a day the market never opened - the
+> page states the session a quote closed in, so a stamp naming a non-session would make that
+> sentence false. Production is right; the fixtures were not.
 > 
-> The research is good and is **not** what it failed on. I re-read the paper carrying the argument:
-> Rouen, So & Wang (2021), *JFE* 142(3) 1068-1091, Table 3 Panel A - next-year persistence **0.810**
-> for core earnings against **0.637** for net income, **0.178** for the excluded items themselves; and
-> MSCI's Fundamental Data Methodology (March 2021, pp. 13-14) builds EPS the same way. Section 4's
-> diagnosis is right too: EV/EBITDA measures the recurring business while earnings yield measures it
-> plus this year's gains and charges, inside one category.
+> Nobody had seen it because code sessions ran Mon-Fri. Since 2026-10-14 they also run at 13:00 daily
+> and 06:00 at weekends, so **this was the first Saturday session and it opened on a red baseline with
+> neither loop at fault.** The 13:00 slot would have hit it today too.
 > 
-> **What the refusal rests on is the input, measured at the window the engine actually sums** - the
-> note measured the annual row. Both prior proposal decisions were refusals resting on a measurement
-> the note had not made, so I measured before deciding:
+> Fixed: the fixtures take the most recent weekday on or before today (at most two days back, inside
+> `MAX_AGE_DAYS` = 3), and a new parametrised test walks all seven days of a week and asserts the
+> fixture date is always one `reading_for` accepts - so the class of fault cannot come back silently.
+> Measured: the module went from 57 passed / 2 failed to **66 passed** (+7 guard tests). The suite had
+> just been run on a Saturday and failed **exactly** these two, so the class is contained to them.
 > 
-> - **23 companies have no four-quarter "Normalized Income" at all** - ABT, AMZN, APH, BA, BAC, BRK-B,
->   CHD, CHRW, CINF, CPRT, CPT, DLR, DTE, ES, EXR, GIS, ILMN, LEN, MDLZ, REG, TFC, WELL, ZBH. The
->   proposal's own fallback ("1 company of 497") would rank them on earnings *including* one-offs
->   beside 265 ranked excluding them. That is precisely the defect `factor_engine.py:2094` records
->   Phase 13 fixing **in this exact metric**: *"SINGLE definition across the universe ... the fallback
->   cohort was ranked on an incomparable basis inside one percentile rank."*
-> - **The fallback cohort is where the one-offs are biggest.** Of the 18 whose annual figures are both
->   known, **8 carry annual unusual items worth 10%+ of net income**: General Mills 2,193%, **Boeing
->   434%** ($9.70bn gain on a disposal), CPT 65%, DLR 56%, ZBH 37%, AMZN 20%, WELL 16%, ES 11%. The
->   change would remove the small distortions and **keep the two largest in the index** - worse than
+> **2. Queue item 8(a): every comparison is now measured on the stocks the two rankings share.**
+> This is the research engine's next queued stage, and it is a correctness defect in what the public
+> research page reports.
+> 
+> Under **method version 1** each configuration's IC was computed over the stocks *it* could rank
+> (`backtest_v2.rank_month` filters on coverage of that configuration's own weighted metrics) and
+> differenced against the baseline's IC over the stocks the *baseline* could rank. A narrow screen
+> ranks far fewer stocks - free-cash-flow yield alone 348 a month against the baseline's 440 - so
 > ...
 
 ---
