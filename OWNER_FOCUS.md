@@ -52,6 +52,31 @@ Two things still outrank this file, and neither is negotiable:
   dashboard's hero, footer, search palette and track record, beside a Factor Lab button.
 
   **Progress (update this line each session):**
+  - **2026-10-18 (13:00 midday) - the morning's work is finished and shipped, and finishing it
+    caught a bug in the new check itself.** Read this bullet rather than the one below it: **the
+    06:00 session failed its ship gates** and nothing it wrote reached the site. It had built all
+    the machinery described below, but of the 29 results that had to be rerun to actually carry the
+    new provenance it had rerun **2**, so the claim "all 28 ideas and the evaluation were rerun" was
+    written ahead of the fact and four tests were red. The gates refused the merge, the work was
+    kept on a branch, and this session recovered it - which is the system working as designed, not a
+    setback.
+    **What it took to finish:** all 28 ideas and the trading-rule evaluation rerun in one go on a
+    clean tree, and then the thing worth telling you - **it was checked rather than assumed that no
+    number moved.** 29 of 29 compared against their previous run, every stored statistic at full
+    precision: **0 differences anywhere, largest 0.0.** That was the expected answer, since neither
+    the data nor the method changed, but the public research page quotes these figures and "it
+    should be identical" is how a silent change gets published.
+    **The bug the rerun caught:** the "was the code edited when this ran" marker looked at the
+    *whole* project folder - and a run writes its own results into that folder, so the second half
+    of every rerun got branded unreproducible because of its own output. It had already mislabelled
+    the trading-rule result that way. The marker now looks at exactly the files that can change a
+    number, the same ones the refusal looks at, with a test that fails if anyone widens it back. The
+    lesson is written into the plan: a check that includes its own output in what it checks will
+    fire in normal use, and a warning that fires in normal use gets ignored.
+    **Next in the queue: 8(c)** - record the positive control (the deliberately-leaked arm that
+    scores t 4.7) as a result in its own right, plus a test that injects a signal of known size and
+    confirms the engine measures it back. That is the evidence that "we found nothing" means there
+    was nothing to find, rather than that the test cannot see.
   - **2026-10-18 (06:00 weekend) - every result now names the code, the weighting and the records it
     ran on, and the engine refuses to run from an edited tree.** `plan/research-engine.md` item 8(b).
     This is the part of "it has to be proven" that is about *someone else* being able to check it: a

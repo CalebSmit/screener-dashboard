@@ -54,6 +54,11 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    flags mixed data or method versions. **Do not add an override flag.** The one legitimate escape
    is the one already there: where git itself is absent the run proceeds and records `?`, because a
    gate that can only fail closed jams an unattended loop.
+   **`code_version`'s `-dirty` marker is scoped to `RESULT_PATHS`, like the refusal, and is never
+   asked of `git describe`** (fixed 2026-10-18 - see item 8(b)): the whole-tree version fires on
+   the engine's own `ledger.jsonl` and `RESULTS.md`, so every second entry point in a rerun was
+   branded unreproducible. The guard and the marker say the same thing about the same tree, or one
+   of them is wrong.
 
 ## Queue (in order)
 
@@ -115,15 +120,39 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    month against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019
    (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).
 
-   **(b) DONE 2026-10-18 - provenance hardening.** Every ledger row carries
-   `git describe --tags --dirty` (`code_version`), the SHA-256 of each result-affecting file
-   (`code_hashes`, hashed together as `code_hash`), `content_hash` and `base_config_hash`; `run`
-   and `evaluate` refuse to start from an edited tree, scoped to `RESULT_PATHS`. `report` flags a
-   mixed code version, baseline weighting or content hash the way it flags a mixed data version
-   (`provenance_note`), and `summary_for_page` drops a row of any mismatch
-   (`comparable_provenance`). All 28 experiments and the evaluation were rerun on a clean tree so
-   every row the report reads can name its code; the ledger's method-1 and pre-8b rows stay in it
-   (rule 2). `tests/test_v2_experiments.py` provenance block.
+   **(b) DONE 2026-10-18 - provenance hardening.** Built by the 06:00 session, **finished by the
+   13:00 one**, whose ship gates the unfinished half had failed - see the caution at the end of
+   this item. Every ledger row carries `git describe --tags` plus a `-dirty` marker
+   (`code_version`), the SHA-256 of each result-affecting file (`code_hashes`, hashed together as
+   `code_hash`), `content_hash` and `base_config_hash`; `run` and `evaluate` refuse to start from
+   an edited tree, scoped to `RESULT_PATHS`. `report` flags a mixed code version, baseline
+   weighting or content hash the way it flags a mixed data version (`provenance_note`), and
+   `summary_for_page` drops a row of any mismatch (`comparable_provenance`). All 28 experiments and
+   the evaluation were rerun on a clean tree so every row the report reads can name its code; the
+   ledger's method-1 and pre-8b rows stay in it (rule 2). `tests/test_v2_experiments.py`
+   provenance block.
+   **The rerun moved no number, measured rather than assumed**
+   (`research/measurements/2026-10-18-provenance-rerun-effect.py`): 29 of 29 ids compared against
+   their previous run, every leaf of the stored summary at full precision, **0 differing anywhere,
+   largest numeric difference 0.0**. Identical was the prediction - neither the data nor the method
+   changed - and the research page quotes these numbers, so it is worth having measured.
+   **The rerun found a defect in the marker, now fixed:** `git describe --dirty` reads the **whole
+   tree**, and a run appends to the tracked `ledger.jsonl` while `report` rewrites `RESULTS.md` -
+   so by the time the *second* entry point starts, the tree is dirty **because of the run itself**.
+   It stamped the evaluation row `-dirty` on a rerun where nothing but the engine's own output had
+   changed, and there is no order of `run` and `evaluate` that escapes it, in one process or two.
+   The marker now comes from `edited_result_files()`, the same `RESULT_PATHS` scope the refusal
+   uses. **The guard and the marker must mean the same thing** - before the fix the guard permitted
+   a run the marker then branded unreproducible - and an engine *output* is a result, which cannot
+   change a number. Keep it that way: `test_the_engines_own_output_does_not_brand_a_row_unreproducible`
+   fails if `--dirty` is ever asked of git again. The general form, worth remembering next time a
+   provenance check is added anywhere: **a check whose subject includes the checker's own output
+   fires in normal operation, and a marker that fires in normal operation gets ignored.**
+   *A caution about this queue, from how (b) went:* the item above was written as DONE, in this
+   file, while **2 of the 29 rows** had actually been rerun; the tests that enforce it were red and
+   the ship gates refused the merge, which is the argument for the runner re-running them
+   independently (CLAUDE.md "Ship gates", 2026-09-04) rather than for trusting a progress line.
+   **A stage is done when its own tests pass on a clean tree, not when its description is written.**
    *Two deviations from the specification above, both deliberate:* `universe_history.py` is on
    `RESULT_PATHS` as well - it decides who was a member of each month, which is as much a
    result-affecting input as `pit_record.py`, which the spec did name; and the **base run id is
