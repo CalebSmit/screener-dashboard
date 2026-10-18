@@ -1,4 +1,4 @@
-# Morning Brief - Sunday 18 October 2026, 06:18
+# Morning Brief - Sunday 18 October 2026, 14:56
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -18,7 +18,7 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran 2 days ago |
-| Code session (latest) | **stopped deliberately** - last ran today |
+| Code session (latest) | **completed** - last ran today |
 | Dashboard data from | 2026-10-16T02:00:03.815047 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -30,81 +30,71 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
 | Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
-## Things that needed attention
-
-- GATE 1 tests: FAIL (FAILED tests/test_v2_experiments.py::test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one FAILED tests/test_v2_experiments.py::test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture 5 failed, 2659 passed, 2 skipped, 316 warnings in 279.01s (0:04:39))
-- GATE 4 clean tree: FAIL - uncommitted changes remain
-- M research/experiments/ledger.jsonl
-- ?? research/measurements/2026-10-18-provenance-rerun-effect.py
-- SHIP GATES FAILED: tests, clean-tree. Not merging.
-- Committed the uncommitted work onto nightly/2026-10-18 so it is not lost. Recover it from there.
-- Work pushed to nightly/2026-10-18 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
-
 ## What changed in the repo
 
+- `bf34a24 log: the 2026-10-18 midday session - item 8b finished, and the two defects the rerun found`
+- `07a3192 engine: rerun on the fixed marker, and measure against the pre-8b rows`
+- `c70d485 engine: the provenance flag keys on the code's content, not on the locator`
+- `41a2143 docs: item 8b's record, the marker defect the rerun caught, and the owner's progress line`
+- `5420a9b engine: the dirty marker is scoped to the files that can change a number`
+- `0a6a8fb engine: rerun all 28 experiments and the evaluation for item 8b's provenance fields`
+- `affabe8 brief: code session 2026-10-18-weekend`
+- `e19cf90 wip: salvaged from an interrupted session 2026-10-18 - uncommitted when the gates ran`
+- `a1204a8 docs: item 8b's record, the no-override rule, and the session log so far`
+- `f03b991 engine: every result names the code, the weighting and the records it ran on (item 8b)`
 - `ad2d422 brief: code session 2026-10-17-midday`
 - `68fb679 log: the 2026-10-17 midday session - the macro backdrop note and three corrected page sentences`
 - `6924c52 docs: context-layer item 4's macro note is done; the owner queue's progress line`
 - `1970c17 look at the corrected backdrop at 1440 and 375; ignore the FRED download cache`
 - `b4a56c2 backdrop: three sentences corrected to what their sources' own records show`
-- `13321bf research: the market backdrop's five readings against their sources (context-layer item 4)`
-- `9a60175 measure: the 10y-3m spread's own record against the curve sentence`
-- `9c45e1c measure: the Sahm rule's own record against the sentence the page prints`
-- `2698fdb brief: code session 2026-10-17-weekend`
-- `ccd68d3 log: the 2026-10-17 weekend session - gate fix, method version 2, and the rerun's result`
-- `1289e7d engine: rerun all 28 experiments and the evaluation on method version 2; no verdict changed`
-- `d5ec2ad docs: a method change reruns the engine, like a data fix (rule in CLAUDE.md)`
-- `5761f47 engine: comparisons are measured on the stocks both rankings share (method version 2)`
-- `2268c3e test: the option-cache fixtures name a real market session, not 'today'`
 
 ## The session's own account
 
-> 2026-10-17 (13:00 midday session) - QUEUE. The macro backdrop's research note, and the three page sentences it found were wrong about their own sources
+> 2026-10-18 (13:00 midday session) - QUEUE. This morning's provenance work finished, and finishing it found two defects in the check itself
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - this morning's own
-> `logs/nightly-2026-10-17_060001-weekend.log` ends "Run complete: shipped to main", tagged
-> `good/2026-10-17`. Data loop published? **yes** - `logs/datarun-2026-10-16_020001.log` ends
-> "Data loop complete"; Friday was the last due run, the loop is Mon-Fri and today is Saturday.
-> Evidence base at `1m`: **30 rows, newest 2026-09-15 (32 days ago, bound 40), 4 effective** -
-> inside the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8
-> effective observations. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08,
-> **age 9 days**) - **taken today**, see below.
-> **Tests:** before **2638 passed, 2 skipped / 0 failed**, after **2651 passed, 2 skipped / 0
-> failed** (+13). Dry run exits 0; `index.html` 611,099 bytes; both payloads parse (`node --check`
-> 0 on `dashboard_data.js` and `dashboard_context.js`); tree clean.
-> `scripts/rehearse_publish.py` **PASSED** (1,003 claims-gate tests), run because the diff touches
-> `claims.py`.
-> **Owner queue / rotation:** no proposal is waiting (`write_brief.open_proposals()` returns `[]`).
-> This morning's session took the research engine's item 8(a) and left **0.11, the context layer**,
-> as the thing to take next unless a proposal opened or a gate went red. Neither did, so I took it:
-> `plan/context-layer.md` queue item 4, **the macro backdrop's research note**. That also ends the
-> deferral streak the morning entry counted at four.
+> **Health (rule 8, all five):** last code session ran? **it ran and its gates failed** -
+> `logs/nightly-2026-10-18_060001-weekend.log` ends "SHIP GATES FAILED: tests, clean-tree. Not
+> merging", so `main` is still at `affabe8` and this morning's work sat unmerged on
+> `nightly/2026-10-18`. Recovering it is this session's work (below). Data loop published? **yes** -
+> `logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH: PASS; 2026-10-16 was a
+> **Friday** and today is a **Sunday**, so Friday is the newest run due and the next is Monday 10-19.
+> Evidence base at `1m`: **30 rows, newest 2026-09-15 (33 days ago, bound 40), 4 effective** - inside
+> the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective.
+> Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 10 days**).
+> **Tests:** before **2659 passed, 5 failed, 2 skipped** - the five are this morning's, inherited with
+> its branch; `main` itself is green. After: see Gates below.
+> **Owner queue / rotation:** no proposal waiting (`write_brief.open_proposals()` returns `[]`); no
+> stash to rescue; no owner-session marker. Took the recovery of this morning's unmerged branch, which
+> continues the same owner item it was working - the **research engine** (`OWNER_FOCUS.md`
+> 2026-10-15), plan item **8(b)**. **0.11 (the context layer) deferred, streak 2** - an inherited red
+> baseline outranks the queue (rule 1); the next session with nothing ahead of it should take
+> context-layer item 4's last per-signal note, the track record.
 > 
 > ### Did
 > 
-> **One item, end to end: `plan/context-layer.md` item 4's macro-backdrop note, plus the three page
-> defects reading the sources turned up.**
+> **Recovered this morning's branch and finished queue item 8(b).** The 06:00 session built the
+> provenance machinery - every ledger row records `git describe`, the SHA-256 of each
+> result-affecting file (`RESULT_PATHS`), a content fingerprint of the monthly records and the
+> baseline weighting's own hash; `run` and `evaluate` refuse to start from an edited tree; `report`
+> flags a mixture; `summary_for_page` drops a mismatched row. **That code is sound and is kept as
+> written.** What it did not do is the step that makes the claim true: **rerun the experiments so the
+> rows the report reads actually carry the fields.** It ran **2 of 29** (`baseline`,
+> `equal-categories`), wrote "All 28 experiments and the evaluation were rerun on a clean tree" into
+> `plan/research-engine.md`, left the ledger and the measurement script uncommitted, and stopped. Four
+> tests were red. The runner salvaged the work to `nightly/2026-10-18`, refused the merge, and left
+> `main` clean - **the gates did exactly their job**, and this is the argument for the runner
+> re-running them independently (2026-09-04) rather than for trusting a progress line. A stage is done
+> when its own tests pass on a clean tree, not when its description is written.
 > 
-> **1. The note.** `research/2026-10-17-macro-backdrop.md` covers all five readings the panel prints
-> (yield curve, credit spreads, volatility, inflation, labour market) and all three factor notes
-> beside them, from the primary sources. Every DOI was resolved through Crossref **before** it was
-> written down (`research/measurements/2026-10-17-fetch-macro-sources.py --dois`, 7 of 7 verified),
-> which is the 2026-10-16 audit's finding acted on - the three most recent notes before this one
-> carried none. Three papers were downloaded and read from the PDF; one (Estrella & Mishkin 1998)
-> could not be, because the NY Fed's scan has no text layer, and the note says so rather than
-> pretending otherwise.
+> So this session merged the branch and ran the rerun: **all 28 registered experiments and the one
+> evaluation**, in a single process on a clean tree. **Doing it is what found two defects in the new
+> check, neither of which a reading of the code would have shown.**
 > 
-> **2. Three sentences on the live page are wrong about their own sources' records.** All three are
-> display-only context text; **no score, rank or number moves.** They share one failure mode, which
-> is the finding worth carrying: *each attached a real citation to a stronger or different statement
-> than the source makes.*
-> 
-> - **(a) The labour-market sentence.** It said the Sahm indicator "at +0.50pp or more **has marked
->   the start** of every US recession since 1970 (Sahm 2019)". Measured on FRED's own real-time
->   series against the NBER indicator
->   (`research/measurements/2026-10-17-sahm-rule-record.py`): the crossing came **after** the
->   recession had begun in **6 of 8**, mean **+0.9 months** against the NBER peak. That is what
+> **Defect 1: `git describe --dirty` reads the whole tree, and a run dirties it itself.** A run
+> appends to the tracked `ledger.jsonl` and `report` rewrites `RESULTS.md`, so by the time the
+> *second* entry point starts, the tree is dirty **because of the run**. The evaluation row came out
+> stamped `good/...-dirty` on a rerun where nothing but the engine's own output had changed - and
+> **no order of `run` and `evaluate` escapes it**, in one process or two, so the test asserting no
 > ...
 
 ---
