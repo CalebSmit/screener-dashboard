@@ -1,0 +1,358 @@
+{
+ "ledger_rows": 143,
+ "ids": 29,
+ "ids_compared": 29,
+ "ids_with_any_difference": 0,
+ "largest_numeric_difference": 0.0,
+ "where": null,
+ "by_id": {
+  "52-week-high": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "baseline": {
+   "compared": true,
+   "leaves": 434,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "bot-rule-v1.1": {
+   "compared": true,
+   "leaves": 838,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-growth": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-investment": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-momentum": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-quality": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-risk": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-size": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-valuation": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "equal-categories": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "fcf-yield-only": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "low-volatility-only": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "magic-formula": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "momentum-12-1-only": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-growth": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-investment": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-momentum": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-quality": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-risk": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-size": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-valuation": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "orthogonalised-categories": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "piotroski-only": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "profitability-and-low-volatility": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "profitability-and-value": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "sector-relative-composite": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "value-and-momentum": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "whole-market-percentiles": {
+   "compared": true,
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  }
+ }
+}
