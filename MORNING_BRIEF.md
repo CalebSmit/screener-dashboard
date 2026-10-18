@@ -1,14 +1,24 @@
-# Morning Brief - Saturday 17 October 2026, 13:37
+# Morning Brief - Sunday 18 October 2026, 06:18
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
+
+## THE ROUTINE IS NOT RUNNING
+
+- **Data run** has not run since 2 days ago
+
+Nothing below is current. A loop that stops firing writes no log, so
+the rest of this page describes the last run that *did* happen, not
+today. Most likely cause: the PC rebooted and nobody logged back in -
+the tasks only run while a user is signed in. See NIGHTLY_LOG.md
+2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran yesterday |
-| Code session (latest) | **completed** - last ran today |
+| Data run (2 AM) | **completed** - last ran 2 days ago |
+| Code session (latest) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-10-16T02:00:03.815047 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -20,8 +30,20 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
 | Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
+## Things that needed attention
+
+- GATE 1 tests: FAIL (FAILED tests/test_v2_experiments.py::test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one FAILED tests/test_v2_experiments.py::test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture 5 failed, 2659 passed, 2 skipped, 316 warnings in 279.01s (0:04:39))
+- GATE 4 clean tree: FAIL - uncommitted changes remain
+- M research/experiments/ledger.jsonl
+- ?? research/measurements/2026-10-18-provenance-rerun-effect.py
+- SHIP GATES FAILED: tests, clean-tree. Not merging.
+- Committed the uncommitted work onto nightly/2026-10-18 so it is not lost. Recover it from there.
+- Work pushed to nightly/2026-10-18 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `ad2d422 brief: code session 2026-10-17-midday`
 - `68fb679 log: the 2026-10-17 midday session - the macro backdrop note and three corrected page sentences`
 - `6924c52 docs: context-layer item 4's macro note is done; the owner queue's progress line`
 - `1970c17 look at the corrected backdrop at 1440 and 375; ignore the FRED download cache`
@@ -35,8 +57,6 @@ history is in `NIGHTLY_LOG.md`.
 - `d5ec2ad docs: a method change reruns the engine, like a data fix (rule in CLAUDE.md)`
 - `5761f47 engine: comparisons are measured on the stocks both rankings share (method version 2)`
 - `2268c3e test: the option-cache fixtures name a real market session, not 'today'`
-- `f849b55 non-blocking fonts on the research page and the lab; the afternoon's log; two settled rows updated`
-- `78c5aa6 test: the Escape check finds the modal handler among several`
 
 ## The session's own account
 
