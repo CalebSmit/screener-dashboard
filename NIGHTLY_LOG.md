@@ -12628,3 +12628,29 @@ statement than the source makes - is exactly the risk in a page that describes i
 
 If the research engine is preferred instead, its queue is still `plan/research-engine.md` item
 **8(b)**, provenance hardening, unchanged from this morning's entry.
+
+## 2026-10-18 (06:00 weekend session) - WEEKEND. The research engine's results now name the code, the weighting and the records they ran on (queue item 8b)
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-17_130001-midday.log`
+ends with the merge; `main` is at `ad2d422`. Data loop published? **yes** -
+`logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH: PASS. **2026-10-17 was a
+Saturday and 2026-10-18 is a Sunday**, so Friday 10-16 is the newest run due; the loop is Mon-Fri
+and the next is Monday 10-19. (I checked this the wrong way round first - no `datarun-2026-10-17`
+log looked like a missed weekday until I asked what day it was.) Evidence base at `1m`: **30 rows,
+newest 2026-09-15 (33 days ago, bound 40), 4 effective** - inside the bound, steady state.
+Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective observations.
+Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 10 days**).
+**Tests:** before **2651 passed, 2 skipped, 0 failed**; after - see below.
+**Owner queue / rotation:** no proposal waiting (`write_brief.open_proposals()` returns `[]`); no
+stash to rescue. Top open owner item is the **research engine** (`OWNER_FOCUS.md` 2026-10-15),
+whose plan's next queued stage is `plan/research-engine.md` item **8(b)**. Took that.
+**0.11 (the context layer) deferred, streak 1** - yesterday's 13:00 session *advanced* it (the
+macro backdrop's research note is context-layer queue item 4), so the four-session streak the
+2026-10-17 06:00 entry was carrying is closed and the deferral rule is not armed. The next session
+with no owner item ahead of it should take item 4's last per-signal note, the track record.
+
+### Did
+
+**Queue item 8(b): provenance hardening.** A result nobody can rebuild is not evidence, and until
+today a ledger row recorded only the short commit - which says nothing about whether the tree was
+edited when it ran.

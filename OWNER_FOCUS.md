@@ -52,6 +52,20 @@ Two things still outrank this file, and neither is negotiable:
   dashboard's hero, footer, search palette and track record, beside a Factor Lab button.
 
   **Progress (update this line each session):**
+  - **2026-10-18 (06:00 weekend) - every result now names the code, the weighting and the records it
+    ran on, and the engine refuses to run from an edited tree.** `plan/research-engine.md` item 8(b).
+    This is the part of "it has to be proven" that is about *someone else* being able to check it: a
+    result nobody can rebuild is not evidence, and until today each result recorded only a short
+    commit - which cannot say whether the code had been edited since that commit, which is exactly
+    the state research code is usually in while it is being written. Each row now records the full
+    code version with a `-dirty` marker, a fingerprint of every file that can change a number, the
+    baseline weighting it started from, and a fingerprint of the monthly records' **contents**. The
+    last one matters most: the old fingerprint covered only *who* was in each month, so a rebuild
+    that fixed a metric or re-fetched the filings could change every number while the fingerprint
+    said nothing had changed. And `run` now refuses to start at all from an uncommitted tree.
+    **Nothing a reader sees moved:** all 28 ideas and the trading-rule evaluation were rerun on the
+    same data so every published row can name its code, and no verdict, interval or figure changed -
+    the rerun was for the provenance, not the numbers.
   - **2026-10-17 (06:00 weekend) - the comparisons are now apples-to-apples, and it changed nothing,
     which is worth knowing.** `plan/research-engine.md` item 8a. Until today each idea's score was
     measured over the companies *it* could rank and compared with the current weighting's score over

@@ -46,6 +46,15 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `RESULTS.md` and `summary.json` together - the claims gate fails if the summary and the ledger
    disagree.
 
+7. **A result names the code that produced it, or it is not a result** (2026-10-18, item 8b).
+   `run` and `evaluate` refuse to start from an edited tree, over the files that can change a
+   number (`v2_experiments.RESULT_PATHS`) - so commit first; the commit is also the
+   pre-registration proof rule 1 rests on. Every row carries `code_version`, `code_hash`,
+   `content_hash` and `base_config_hash`, and `report` flags a mixture of any of them the way it
+   flags mixed data or method versions. **Do not add an override flag.** The one legitimate escape
+   is the one already there: where git itself is absent the run proceeds and records `?`, because a
+   gate that can only fail closed jams an unattended loop.
+
 ## Queue (in order)
 
 1. **DONE 2026-10-15 - and the guard refined** (note section 2: a mismatch is excluded only when today's
@@ -106,13 +115,27 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    month against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019
    (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).
 
-   **(b) Provenance hardening.** Every ledger row records `git describe --dirty` and the SHA-256 of
-   each result-affecting source file (`v2_experiments.py`, `backtest_v2.py`,
-   `backtest_v2_returns.py`, `factor_engine.py`, `pit_record.py`, `config.yaml`, `registry.yaml`).
-   `run` and `evaluate` refuse on a dirty tree for those paths. The data fingerprint widens from the
-   member list to the content: a hash of each month's metrics parquet, of `cache/v2_daily.parquet`,
-   of the SEC facts and splits files the months were built from, and the base run id. `report`
-   flags mixed baseline `config_hash` values across rows the way it flags mixed data versions.
+   **(b) DONE 2026-10-18 - provenance hardening.** Every ledger row carries
+   `git describe --tags --dirty` (`code_version`), the SHA-256 of each result-affecting file
+   (`code_hashes`, hashed together as `code_hash`), `content_hash` and `base_config_hash`; `run`
+   and `evaluate` refuse to start from an edited tree, scoped to `RESULT_PATHS`. `report` flags a
+   mixed code version, baseline weighting or content hash the way it flags a mixed data version
+   (`provenance_note`), and `summary_for_page` drops a row of any mismatch
+   (`comparable_provenance`). All 28 experiments and the evaluation were rerun on a clean tree so
+   every row the report reads can name its code; the ledger's method-1 and pre-8b rows stay in it
+   (rule 2). `tests/test_v2_experiments.py` provenance block.
+   *Two deviations from the specification above, both deliberate:* `universe_history.py` is on
+   `RESULT_PATHS` as well - it decides who was a member of each month, which is as much a
+   result-affecting input as `pit_record.py`, which the spec did name; and the **base run id is
+   `unrecorded` for the months on disk today**, because they were built on 2026-10-15 and nothing
+   recorded it then. `backtest_v2.record_build` records it per month from now on, merging across
+   shards. Inferring it from directory timestamps was considered and rejected: a guess printed in
+   the place a record belongs is worse than an honest absence.
+   *What `base_config_hash` is for, since it is easy to mistake for the existing field:*
+   `config_hash` covers the configuration *after* the transform, so it differs between experiments
+   by design and can never say whether two rows started from the same `config.yaml`.
+   *Kept for the record:* the specified data fingerprint was the member list only, which a rebuild
+   can leave byte-identical while every number inside the months moves.
 
    **(c) The positive control, in the ledger.** The look-ahead arm (today's filings for every
    month, IC +0.050, t 4.71 on 2020-2026) is the page's evidence that the test can see a signal, but
