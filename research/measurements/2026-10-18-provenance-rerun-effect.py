@@ -5,9 +5,16 @@ one evaluation to populate them. Neither the data nor the method changed, so eve
 identical to the method-version-2 run of 2026-10-17 - but "should be" is how a silent regression
 gets published, and the research page quotes these numbers.
 
-So this pairs each id's newest row (today's, carrying ``code_version``) with its previous one and
-compares every statistic in the summary, to the full stored precision. It writes
+So this pairs each id's newest row (today's, carrying ``code_version``) with the newest row that
+**predates 8b** - the last one written before any provenance field existed - and compares every
+statistic in the summary, to the full stored precision. It writes
 ``2026-10-18-provenance-rerun-effect.json`` and prints the largest absolute difference it found.
+
+Pairing against the pre-8b row rather than simply the previous one is deliberate: the day took two
+reruns, the second after the rerun itself exposed a defect in the dirty marker, so "the previous
+row" would compare one 8b rerun against another and answer a question nobody asked. The comparison
+that matters is against the last figures published without provenance, and it stays that comparison
+however many times the engine is rerun afterwards.
 
 Run: python research/measurements/2026-10-18-provenance-rerun-effect.py
 """
@@ -47,10 +54,15 @@ def main() -> int:
         if len(runs) < 2:
             report[i] = {"compared": False, "why": "only one run on file"}
             continue
-        new, old = runs[-1], runs[-2]
+        new = runs[-1]
         if not new.get("code_version"):
             report[i] = {"compared": False, "why": "newest row predates item 8b"}
             continue
+        pre = [r for r in runs if not r.get("code_version")]
+        if not pre:
+            report[i] = {"compared": False, "why": "no pre-8b run on file to compare against"}
+            continue
+        old = pre[-1]
         a = {k: v for k, v in walk({k: v for k, v in old.items() if k not in PROVENANCE})}
         b = {k: v for k, v in walk({k: v for k, v in new.items() if k not in PROVENANCE})}
         diffs, numeric = {}, []
@@ -66,7 +78,8 @@ def main() -> int:
                 diffs[k] = {"before": x, "after": y, "abs_diff": d}
             else:
                 diffs[k] = {"before": x, "after": y}
-        report[i] = {"compared": True, "leaves": len(b), "differing": len(diffs),
+        report[i] = {"compared": True, "against": old["run_at"], "leaves": len(b),
+                     "differing": len(diffs),
                      "max_abs_numeric_diff": max(numeric) if numeric else 0.0,
                      "method_version": [old.get("method_version", 1), new.get("method_version", 1)],
                      "data_hash_same": old.get("data_hash") == new.get("data_hash"),
@@ -77,7 +90,7 @@ def main() -> int:
            "ids_with_any_difference": sum(1 for v in compared if v["differing"]),
            "largest_numeric_difference": worst[0], "where": worst[1], "by_id": report}
     OUT.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(compared)} ids compared against their previous run; "
+    print(f"{len(compared)} ids compared against their newest pre-8b run; "
           f"{out['ids_with_any_difference']} differ anywhere; "
           f"largest numeric difference {worst[0]!r} ({worst[1]})")
     for i, v in sorted(report.items()):

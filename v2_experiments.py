@@ -762,13 +762,14 @@ def provenance_note(rows: list[dict]) -> str:
     hashes = sorted({r.get("code_hash", "unrecorded") for r in rows})
     configs = sorted({r.get("base_config_hash", "unrecorded") for r in rows})
     contents = sorted({r.get("content_hash", "unrecorded") for r in rows})
-    out = []
+    out, locator = [], ""
     if len(hashes) == 1 and len(versions) == 1:
         out.append(f"every row ran on the same code (`{versions[0]}`)")
     elif len(hashes) == 1:
-        out.append("every row ran on the same code (`" + hashes[0] + "`, byte-identical across "
-                   "every file that can change a number), run from more than one commit (`"
-                   + "`, `".join(versions) + "`) - the locator moved, the code did not")
+        out.append(f"every row ran on the same code (`{hashes[0]}`)")
+        locator = (" The rows were run from more than one commit (`" + "`, `".join(versions)
+                   + "`), but every file that can change a number was byte-identical across them:"
+                     " the locator moved, the code did not.")
     else:
         out.append("**the rows ran on more than one version of the code (`" + "`, `".join(hashes)
                    + "`, from `" + "`, `".join(versions) + "`)** - rerun to bring them level")
@@ -786,7 +787,7 @@ def provenance_note(rows: list[dict]) -> str:
             and not dirty else "**Provenance:** ")
     tail = ("" if not dirty else " **Rows marked `-dirty` ran from an edited tree and cannot be "
             "reproduced exactly; `run` has refused that since 2026-10-18.**")
-    return lead + ", ".join(out) + "." + tail
+    return lead + ", ".join(out) + "." + locator + tail
 
 
 def _vs_cell(vs: dict, n_tests: int) -> str:
