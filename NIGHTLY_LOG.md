@@ -12654,3 +12654,138 @@ with no owner item ahead of it should take item 4's last per-signal note, the tr
 **Queue item 8(b): provenance hardening.** A result nobody can rebuild is not evidence, and until
 today a ledger row recorded only the short commit - which says nothing about whether the tree was
 edited when it ran.
+
+## 2026-10-18 (13:00 midday session) - QUEUE. This morning's provenance work finished, and finishing it found two defects in the check itself
+
+**Health (rule 8, all five):** last code session ran? **it ran and its gates failed** -
+`logs/nightly-2026-10-18_060001-weekend.log` ends "SHIP GATES FAILED: tests, clean-tree. Not
+merging", so `main` is still at `affabe8` and this morning's work sat unmerged on
+`nightly/2026-10-18`. Recovering it is this session's work (below). Data loop published? **yes** -
+`logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH: PASS; 2026-10-16 was a
+**Friday** and today is a **Sunday**, so Friday is the newest run due and the next is Monday 10-19.
+Evidence base at `1m`: **30 rows, newest 2026-09-15 (33 days ago, bound 40), 4 effective** - inside
+the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective.
+Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 10 days**).
+**Tests:** before **2659 passed, 5 failed, 2 skipped** - the five are this morning's, inherited with
+its branch; `main` itself is green. After: see Gates below.
+**Owner queue / rotation:** no proposal waiting (`write_brief.open_proposals()` returns `[]`); no
+stash to rescue; no owner-session marker. Took the recovery of this morning's unmerged branch, which
+continues the same owner item it was working - the **research engine** (`OWNER_FOCUS.md`
+2026-10-15), plan item **8(b)**. **0.11 (the context layer) deferred, streak 2** - an inherited red
+baseline outranks the queue (rule 1); the next session with nothing ahead of it should take
+context-layer item 4's last per-signal note, the track record.
+
+### Did
+
+**Recovered this morning's branch and finished queue item 8(b).** The 06:00 session built the
+provenance machinery - every ledger row records `git describe`, the SHA-256 of each
+result-affecting file (`RESULT_PATHS`), a content fingerprint of the monthly records and the
+baseline weighting's own hash; `run` and `evaluate` refuse to start from an edited tree; `report`
+flags a mixture; `summary_for_page` drops a mismatched row. **That code is sound and is kept as
+written.** What it did not do is the step that makes the claim true: **rerun the experiments so the
+rows the report reads actually carry the fields.** It ran **2 of 29** (`baseline`,
+`equal-categories`), wrote "All 28 experiments and the evaluation were rerun on a clean tree" into
+`plan/research-engine.md`, left the ledger and the measurement script uncommitted, and stopped. Four
+tests were red. The runner salvaged the work to `nightly/2026-10-18`, refused the merge, and left
+`main` clean - **the gates did exactly their job**, and this is the argument for the runner
+re-running them independently (2026-09-04) rather than for trusting a progress line. A stage is done
+when its own tests pass on a clean tree, not when its description is written.
+
+So this session merged the branch and ran the rerun: **all 28 registered experiments and the one
+evaluation**, in a single process on a clean tree. **Doing it is what found two defects in the new
+check, neither of which a reading of the code would have shown.**
+
+**Defect 1: `git describe --dirty` reads the whole tree, and a run dirties it itself.** A run
+appends to the tracked `ledger.jsonl` and `report` rewrites `RESULTS.md`, so by the time the
+*second* entry point starts, the tree is dirty **because of the run**. The evaluation row came out
+stamped `good/...-dirty` on a rerun where nothing but the engine's own output had changed - and
+**no order of `run` and `evaluate` escapes it**, in one process or two, so the test asserting no
+row is dirty could never have passed for a full rerun. The marker now comes from
+`edited_result_files()`, the same `RESULT_PATHS` scope `refuse_edited_tree` already used. **The
+guard and the marker have to mean the same thing**: before this, the guard permitted a run that the
+marker then branded unreproducible, about the same tree. An engine *output* is a result and cannot
+change a number.
+
+**Defect 2, found the same way one commit later: the flag keyed on the locator, not on the code.**
+`code_version` is `git describe` output, which moves whenever *any* commit lands - so committing the
+plan update between `run` and `evaluate` split it across two values while every file in
+`RESULT_PATHS` was byte-identical (`code_hash` identical, **0 numeric differences across 29 ids**).
+`provenance_note` flagged that as "more than one version of the code - rerun to bring them level",
+prescribing a rerun that would reproduce the same numbers exactly. Since "commit as you go" is this
+routine's standing instruction, that flag would have fired in normal operation. It now keys on
+`code_hash` and reports `code_version` as a locator: *"every row ran on the same code (`8c6c...`) ...
+The rows were run from more than one commit (...), but every file that can change a number was
+byte-identical across them: the locator moved, the code did not."*
+
+**Both defects are the same mistake, and the general form is now written into the plan:** a check
+whose subject includes the checker's own output, or whose key moves for reasons that cannot change
+the answer, **fires in normal operation - and a marker that fires in normal operation gets
+ignored.** That is the converse of the lesson rule 8 already carries about the `1m` tripwire ("a
+tripwire wired to a number that cannot stand still is decoration"). Flag on the thing that can
+change a number, not on the thing that merely moves. Two tests hold it:
+`test_the_engines_own_output_does_not_brand_a_row_unreproducible` (which also fails if `--dirty` is
+ever asked of git again) and the locator case in
+`test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture`.
+
+**The rerun moved no number, measured rather than assumed.**
+`research/measurements/2026-10-18-provenance-rerun-effect.py` pairs each id's newest row with its
+newest **pre-8b** row - the last figures published before any provenance field existed - and
+compares every leaf of the stored summary at full precision:
+
+- **29 of 29 ids compared**, all against their **2026-10-17** run; **0 differ anywhere**; largest
+  numeric difference **0.0**.
+- `research/experiments/summary.json` is **byte-identical** to its state before the reruns, and
+  `research.html` is **unmodified** - so nothing on the public research page moved, and the
+  methodology page's `overview.research_engine` claim reads the same numbers it did yesterday.
+
+I changed the script's pairing from "the previous row" to "the newest pre-8b row" because the day
+took two reruns; "previous" would have compared one 8b rerun against another and answered a question
+nobody asked. Identical was the prediction - neither the data nor the method changed - but the
+public page quotes these figures and "it should be identical" is how a silent change gets published.
+
+**Final state of the ledger:** 172 rows, 29 ids, every newest row carrying one `code_hash`
+(`8c6c3164d9a8`), one `content_hash`, one `base_config_hash`, none `-dirty`. The method-1 and pre-8b
+rows stay in it (rule 2, append-only); their absence of these fields is the honest record of a time
+when the engine could not say.
+
+### Evidence / research
+
+- No literature this session: this is the completion of a specified, sourced queue item
+  (`plan/research-engine.md` item 8(b)), whose justification is the one the plan gives - a result
+  that cannot name the code that produced it is not reproducible, so it is not evidence.
+- The measured results above are the evidence **for this change** (a rerun that moved no number; two
+  defects demonstrated live, each with the numbers that show it). **No engine statistic is cited
+  here as justification for any methodology change** - rules 4 and 5 are untouched, nothing was
+  taken from the backtest or the IC series, and no weight, threshold, score, rank or published
+  figure moved.
+
+### Methodology changed
+
+- **None.** `METHODOLOGY_CHANGELOG.md` is untouched, which is correct: provenance is a record of how
+  a result was produced, not a change to the screener. The dashboard payload is untouched, so
+  nothing the 02:00 loop publishes about a stock moves.
+
+### Tried and rejected
+
+- **Making the report tolerate legacy rows instead of rerunning.** The cheap way to green was to let
+  the "every newest row names its code" test treat a missing field as acceptable. Rejected: that is
+  the gate-weakening the engine's own rule 3 exists to prevent ("a data fix reruns everything"), and
+  the point of 8(b) is that the rows the public page quotes can be rebuilt. ~90 minutes of compute
+  across the two reruns is the cheaper half of that trade.
+- **A third full rerun to make all 29 rows share one `code_version` string.** Rejected after the
+  flag was fixed: with `code_hash` identical the rows demonstrably ran on the same code, the report
+  now says so accurately, and 45 more minutes to make a locator string tidier buys nothing. The
+  published line explains itself, so a later session should not read it as a fault.
+- **Inferring provenance for the 83 pre-8b rows.** Left absent, for the same reason the morning
+  session left `base_run` as `unrecorded`: a guess printed where a record belongs is worse than an
+  honest absence.
+
+### Next
+- **Context-layer queue item 4's last per-signal note: the track record**
+  (`plan/context-layer.md`, owner item 0.11, now deferred twice). After it, item 6, track-record
+  hardening.
+- On the research engine the next queued stage is **8(c)**: the look-ahead positive control recorded
+  as a ledger row of `kind: control` rather than living in a measurement file, plus the synthetic
+  calibration test (inject a known IC of 0.03 / 0.05 / 0.10 and assert the engine measures it back
+  and detects 0.10 at the bar). That is what turns "we found nothing" into "there was nothing to
+  find" rather than "the test cannot see".
