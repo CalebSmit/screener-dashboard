@@ -48,6 +48,7 @@ import contextlib
 import copy
 import io
 import json
+import subprocess
 import warnings
 from pathlib import Path
 
@@ -94,7 +95,7 @@ class Inputs:
 
     def __init__(self, daily: pd.DataFrame, index: pd.DataFrame, splits: pd.DataFrame,
                  facts: pd.DataFrame, base: dict, ciks: dict | None = None,
-                 month_ciks: dict | None = None):
+                 month_ciks: dict | None = None, base_run: str = "unrecorded"):
         daily = daily.copy()
         daily["date"] = pd.to_datetime(daily["date"])
         # one ticker form everywhere - the universe's (``BRK-B``, not ``BRK.B``); a cache written
@@ -116,6 +117,11 @@ class Inputs:
         # month-end -> {symbol: CIK} as that month's revision listed them (from mid-2014; the older
         # revisions carry no CIK column): who a symbol belonged to *then*
         self.month_ciks = month_ciks or {}
+        # which live run's raw fetch the static fields (sector, industry, share class) came from.
+        # ``load`` takes the newest, so it changes as the data loop runs; a month built in August
+        # and a month built today can disagree on a company's sector, and the sector is the peer
+        # group the engine ranks within. Recorded so a ledger row can name it (item 8b).
+        self.base_run = base_run
         self._by_cik: dict = {}
         for tk, cik in self.ciks.items():
             if tk in base:
@@ -143,7 +149,7 @@ class Inputs:
                    pd.read_parquet(root / "cache" / "v2_index.parquet"),
                    pd.read_parquet(root / "cache" / "splits.parquet"),
                    pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base,
-                   _load_ciks(root), _load_month_ciks(root))
+                   _load_ciks(root), _load_month_ciks(root), base_run=runs[-1].parent.name)
 
 
 def _load_month_ciks(root: Path) -> dict:
@@ -274,6 +280,62 @@ def score_month(records: list[dict], cfg: dict, market_returns: pd.Series, rf: f
 
 
 METRICS_DIR = CACHE / "v2_metrics"
+BUILD_RECORD = METRICS_DIR / "_build.json"
+
+
+def record_build(months: list[str], base_run: str, path: Path | None = None) -> Path:
+    """What the cached months were built from, beside the months themselves (item 8b).
+
+    The monthly metrics are a cache that experiments re-rank without recomputing, and the research
+    engine's ledger has to be able to name what went into them. Two things are not recoverable from
+    the parquet files: which live run supplied the static fields, and which commit built them. This
+    merges the record rather than replacing it, because a build is often sharded or run a period at
+    a time, so each month carries its own."""
+    p = path or BUILD_RECORD
+    try:
+        old = json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+    except (OSError, ValueError):
+        old = {}
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
+                                text=True, cwd=ROOT).stdout.strip() or "?"
+    except OSError:
+        commit = "?"
+    by_month = dict(old.get("months") or {})
+    for m in months:
+        by_month[m] = {"base_run": base_run, "commit": commit}
+    runs = sorted({v["base_run"] for v in by_month.values()})
+    rec = {"base_run": runs[0] if len(runs) == 1 else "+".join(runs),
+           "commits": sorted({v["commit"] for v in by_month.values()}),
+           "months": dict(sorted(by_month.items()))}
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(rec, indent=1), encoding="utf-8")
+    return p
+
+
+def merge_build_records(k: int, path: Path | None = None) -> Path:
+    """Fold the shards' build records into one. Shards run as separate processes, so each writes
+    its own file - a shared read-modify-write would lose whichever shard finished first."""
+    p = path or BUILD_RECORD
+    by_month = {}
+    try:
+        by_month.update((json.loads(p.read_text(encoding="utf-8")).get("months") or {}) if p.is_file() else {})
+    except (OSError, ValueError):
+        pass
+    for i in range(k):
+        q = p.with_name(f"{p.stem}.shard{i}.json")
+        if q.is_file():
+            try:
+                by_month.update(json.loads(q.read_text(encoding="utf-8")).get("months") or {})
+            except (OSError, ValueError):
+                continue
+            q.unlink()
+    runs = sorted({v["base_run"] for v in by_month.values()}) or ["unrecorded"]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"base_run": runs[0] if len(runs) == 1 else "+".join(runs),
+                             "commits": sorted({v["commit"] for v in by_month.values()}),
+                             "months": dict(sorted(by_month.items()))}, indent=1), encoding="utf-8")
+    return p
 
 
 def save_metrics(as_of: str, metrics: pd.DataFrame, state: dict, path: Path | None = None) -> Path:
@@ -382,6 +444,7 @@ def main():
         CENSUS_PATH.write_text(json.dumps(allc, indent=1), encoding="utf-8")
         for p in parts + cens:
             p.unlink()
+        merge_build_records(args.merge)
         print(f"merged {len(allc)} months -> {SCORES_PATH.name}, {CENSUS_PATH.name}")
         return
     cfg = v2_config(yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")))
@@ -393,10 +456,12 @@ def main():
         months = months[k::K]
         scores_path = CACHE / f"v2_scores{tag}.shard{k}.parquet"
         census_path = CACHE / f"v2_census{tag}.shard{k}.json"
-    frames, census = [], []
+    frames, census, built = [], [], []
     for m in months:
         try:
             out, c = build_month(m, inputs, cfg, f_as_of)
+            if f_as_of is None:
+                built.append(m)          # the diagnostic build caches no metrics, so it records none
         except uh.UniverseHistoryError as e:
             # no cached membership for the month: say so, never guess with today's list
             census.append({"month": m, "skipped": f"no cached universe: {e}"})
@@ -410,6 +475,10 @@ def main():
     (pd.concat(frames) if frames else pd.DataFrame(columns=["month", "Ticker", "Composite", "Rank"])
      ).to_parquet(scores_path)
     census_path.write_text(json.dumps(census, indent=1), encoding="utf-8")
+    if built:
+        k = args.shard.split("/")[0] if args.shard else None
+        record_build(built, inputs.base_run,
+                     BUILD_RECORD.with_name(f"{BUILD_RECORD.stem}.shard{k}.json") if k else None)
 
 
 if __name__ == "__main__":

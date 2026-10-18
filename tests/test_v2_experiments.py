@@ -500,3 +500,204 @@ def test_within_sector_screens_carry_a_construction_note():
         if single or e["id"] in ("only-size", "profitability-and-value"):
             note = (e.get("construction_note") or "").lower()
             assert "within" in note and "sector" in note, e["id"]
+
+
+# --------------------------------------------------------------------------- provenance (item 8b)
+# A result nobody can rebuild is not evidence. These pin what every ledger row has to be able to
+# name: the exact code, the exact baseline weighting, and the *contents* - not merely the member
+# lists - of the monthly records it ran on. Added 2026-10-18 with plan/research-engine.md item 8b.
+
+def test_every_result_affecting_file_is_named_and_present():
+    """The provenance list is the whole claim: if a file that can move a number is missing from it,
+    every hash below is of the wrong thing. Both backtest modules, the metric engine, the
+    point-in-time record builder, the membership history, the weights and the registry."""
+    for rel in X.RESULT_PATHS:
+        assert (ROOT / rel).is_file(), rel
+    assert {"v2_experiments.py", "backtest_v2.py", "backtest_v2_returns.py", "factor_engine.py",
+            "pit_record.py", "universe_history.py", "config.yaml"} <= set(X.RESULT_PATHS)
+    assert any(r.endswith("registry.yaml") for r in X.RESULT_PATHS)
+
+
+def test_a_run_records_the_code_it_ran_on(tmp_path):
+    """``git describe --dirty`` plus a content hash per file. The hashes are the part that cannot be
+    faked by moving a tag, and a file that is not there is reported missing rather than skipped."""
+    fp = X.code_fingerprint()
+    assert fp["code_version"]
+    assert set(fp["code_hashes"]) == set(X.RESULT_PATHS)
+    assert all(re.fullmatch(r"[0-9a-f]{16}", v) for v in fp["code_hashes"].values()), fp["code_hashes"]
+    assert re.fullmatch(r"[0-9a-f]{12}", fp["code_hash"])
+    empty = X.code_fingerprint(tmp_path)
+    assert set(empty["code_hashes"].values()) == {"missing"}
+    assert empty["code_hash"] != fp["code_hash"]        # the hash moves with the files it covers
+    (tmp_path / "config.yaml").write_text("a: 1", encoding="utf-8")
+    assert X.code_fingerprint(tmp_path)["code_hash"] != empty["code_hash"]
+
+
+def test_the_engine_refuses_to_run_from_an_edited_tree(monkeypatch):
+    """Item 8b: commit before running. A row whose code is "whatever was in the working copy that
+    afternoon" cannot be rerun by anyone, including its author, and the commit is the
+    pre-registration proof rule 1 rests on."""
+    monkeypatch.setattr(X, "edited_result_files", lambda root=X.ROOT: ["config.yaml"])
+    with pytest.raises(SystemExit, match="the tree is edited"):
+        X.refuse_edited_tree()
+    monkeypatch.setattr(X, "edited_result_files", lambda root=X.ROOT: [])
+    X.refuse_edited_tree()                                            # a clean tree: allowed
+    monkeypatch.undo()
+    # the guard is scoped to files that can change a number - an edited test, plan or log must not
+    # stop a run, or it would be switched off within a week
+    assert all(any(p.endswith(r) for r in X.RESULT_PATHS) for p in X.edited_result_files()), \
+        X.edited_result_files()
+
+
+def test_run_and_evaluate_both_check_the_tree_before_reading_any_data(monkeypatch):
+    """Both entry points, and before the months are loaded - the check is worthless after the fact."""
+    def boom(root=X.ROOT):
+        raise SystemExit("edited tree")
+
+    for fn in (X.run, X.run_evaluations):
+        monkeypatch.setattr(X, "refuse_edited_tree", boom)
+        monkeypatch.setattr(X, "load_months", lambda: pytest.fail("checked before any data is read"))
+        with pytest.raises(SystemExit, match="edited tree"):
+            fn([])
+
+
+def test_the_fingerprint_covers_the_records_contents_not_only_their_members(tmp_path):
+    """The crux of item 8b. ``data_fingerprint`` hashes each month's member list, which a rebuild
+    can leave identical while every number inside it moves - a metric fixed, filings re-fetched, a
+    split corrected. Same tickers, different numbers, has to be a different vintage."""
+    a, b = tmp_path / "a", tmp_path / "b"
+    for d, value in ((a, 1.0), (b, 2.0)):
+        d.mkdir()
+        pd.DataFrame({"Ticker": ["A", "B"], "roic": [value, value]}).to_parquet(d / "2024-01-31.parquet")
+    months = {"2024-01-31": (pd.DataFrame({"Ticker": ["A", "B"]}), {})}
+    assert X.data_fingerprint(months) == X.data_fingerprint(months)          # members: identical
+    fa = X.content_fingerprint(tmp_path, metrics_dir=a)
+    fb = X.content_fingerprint(tmp_path, metrics_dir=b)
+    assert fa["content_hash"] != fb["content_hash"]
+    assert fa["content_parts"]["month_file_count"] == 1
+    # the price, index, split and filing files the months were built from, and the live run whose
+    # static fields they borrow - absent here, so reported missing rather than silently omitted
+    assert set(X.DATA_SOURCES) <= set(fa["content_parts"])
+    assert {fa["content_parts"][k] for k in X.DATA_SOURCES} == {"missing"}
+    assert fa["content_parts"]["base_run"] == "unrecorded"
+    assert X.build_record(tmp_path) == {}
+
+
+def test_the_live_fingerprint_reads_the_real_inputs():
+    """Against the real cache: every data source is found and hashed, not quietly missing."""
+    if not all((ROOT / rel).is_file() for rel in X.DATA_SOURCES.values()):
+        pytest.skip("the v2 cache is not built here (it is gitignored)")
+    fp = X.content_fingerprint()
+    parts = fp["content_parts"]
+    assert parts["month_file_count"] > 100, parts["month_file_count"]
+    for name in X.DATA_SOURCES:
+        assert re.fullmatch(r"[0-9a-f]{16}", parts[name]), (name, parts[name])
+    assert re.fullmatch(r"[0-9a-f]{12}", fp["content_hash"])
+
+
+def _newest_ledger_rows() -> dict:
+    newest = {}
+    for line in X.LEDGER.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            r = json.loads(line)
+            newest[r["id"]] = r
+    return newest
+
+
+def test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline():
+    """What item 8b is for. The ledger is append-only (rule 2), so rows written before 2026-10-18
+    carry none of these fields - that absence is the record of a time when the engine could not
+    say. What must hold is that the row the report reads for each id, the newest, can."""
+    newest = _newest_ledger_rows()
+    assert newest
+    for i, r in newest.items():
+        for k in ("code_version", "code_hash", "content_hash", "base_config_hash"):
+            assert r.get(k), (i, k)
+        assert not r["code_version"].endswith("-dirty"), i          # the guard above forbids it
+    # and they all agree with each other, or they do not compare with each other
+    for k in ("code_hash", "content_hash", "base_config_hash"):
+        assert len({r[k] for r in newest.values()}) == 1, (k, sorted({r[k] for r in newest.values()}))
+
+
+def test_the_baseline_weighting_is_hashed_separately_from_the_transformed_one():
+    """``config_hash`` covers the transform too, so it differs between experiments by design and
+    cannot say whether two rows started from the same ``config.yaml``. ``base_config_hash`` can."""
+    cfg0 = X.base_config()
+    base_h = X.config_hash(cfg0, {"kind": "baseline"})
+    tr = {"kind": "factor_weights", "weights": dict(cfg0["factor_weights"], growth=50)}
+    assert X.config_hash(X.apply_transform(cfg0, tr), tr) != base_h
+    newest = _newest_ledger_rows()
+    assert len({r["config_hash"] for r in newest.values() if "config_hash" in r}) > 1   # per transform
+    assert all(r["base_config_hash"] == base_h for r in newest.values()), \
+        "the ledger's baseline weighting is not the committed config.yaml - rerun"
+
+
+def test_a_row_built_on_another_baseline_or_another_vintage_does_not_compare():
+    """A change to ``config.yaml`` moves the baseline every row is differenced against, so such a
+    row is dropped from the page's count exactly as a row of another data version is."""
+    base = {"base_config_hash": "aaa", "content_hash": "bbb"}
+    assert X.comparable_provenance(dict(base), base)
+    assert not X.comparable_provenance(dict(base, base_config_hash="zzz"), base)
+    assert not X.comparable_provenance(dict(base, content_hash="zzz"), base)
+    # pre-8b rows: the fields did not exist, so claiming they disagree would be as false as
+    # claiming they agree - absent on both sides stays comparable, absent on one side does not
+    assert X.comparable_provenance({}, {})
+    assert not X.comparable_provenance({}, base)
+    assert not X.comparable_provenance(base, {})
+
+
+def test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture():
+    """Flagged the way a mixed data version is, because the remedy is the same: rerun."""
+    one = [{"code_version": "good/2026-10-18", "base_config_hash": "aaa", "content_hash": "bbb"}]
+    note = X.provenance_note(one)
+    assert note.startswith("Provenance: ") and "same code" in note and "good/2026-10-18" in note
+    mixed = X.provenance_note(one + [dict(one[0], code_version="good/2026-10-11")])
+    assert mixed.startswith("**Provenance:**") and "more than one version of the code" in mixed
+    cfg = X.provenance_note(one + [dict(one[0], base_config_hash="ccc")])
+    assert "more than one baseline weighting" in cfg and "config.yaml` changed" in cfg
+    vintage = X.provenance_note(one + [dict(one[0], content_hash="ccc")])
+    assert "contents differ" in vintage
+    dirty = X.provenance_note([dict(one[0], code_version="good/2026-10-18-dirty")])
+    assert "edited tree" in dirty
+    assert X.provenance_note([]) == "Provenance: no runs in the ledger."
+    text = X.RESULTS.read_text(encoding="utf-8")
+    assert "Provenance: " in text and "**Provenance:**" not in text, "the committed report is mixed"
+
+
+def test_the_build_record_names_the_live_run_the_months_borrowed_static_fields_from(tmp_path):
+    """``Inputs.load`` takes the *newest* run's raw fetch for sector, industry and share class, and
+    the data loop writes a new one every weekday - so two months built months apart can disagree
+    about a company's sector, which is the peer group the engine ranks within. The build records
+    which run it used, per month, and merges rather than replaces because builds are sharded."""
+    import backtest_v2 as v2
+    p = tmp_path / "_build.json"
+    v2.record_build(["2024-01-31", "2024-02-29"], "20260101_000000", p)
+    rec = json.loads(p.read_text(encoding="utf-8"))
+    assert rec["base_run"] == "20260101_000000" and set(rec["months"]) == {"2024-01-31", "2024-02-29"}
+    assert rec["commits"] and all(rec["commits"])
+    v2.record_build(["2024-03-31"], "20260202_000000", p)             # a later, separate build
+    rec = json.loads(p.read_text(encoding="utf-8"))
+    assert len(rec["months"]) == 3                                    # merged, not replaced
+    assert rec["base_run"] == "20260101_000000+20260202_000000"       # and it says so
+
+
+def test_the_shards_build_records_are_merged_not_overwritten(tmp_path):
+    """Shards are separate processes; a shared read-modify-write would lose whichever finished
+    first, so each writes its own file and ``--merge`` folds them in."""
+    import backtest_v2 as v2
+    p = tmp_path / "_build.json"
+    for k, m in enumerate(("2024-01-31", "2024-02-29", "2024-03-31")):
+        v2.record_build([m], "20260101_000000", p.with_name(f"_build.shard{k}.json"))
+    v2.merge_build_records(3, p)
+    rec = json.loads(p.read_text(encoding="utf-8"))
+    assert len(rec["months"]) == 3 and rec["base_run"] == "20260101_000000"
+    assert not list(tmp_path.glob("_build.shard*.json"))               # consumed
+
+
+def test_the_diagnostic_build_records_nothing_because_it_caches_nothing():
+    """The look-ahead arm deliberately writes no monthly metrics (``build_month`` guards on
+    ``filings_as_of``), so it must not stamp the build record either - that would name a base run
+    for months it never wrote."""
+    src = (ROOT / "backtest_v2.py").read_text(encoding="utf-8")
+    assert "if f_as_of is None:\n                built.append(m)" in src
+    assert "if filings_as_of is None:\n        try:\n            save_metrics" in src
