@@ -96,6 +96,31 @@ SAMPLE = (DISCOVERY[0], HOLDOUT[1])
 METHOD_VERSION = 2
 MIN_STOCKS_A_MONTH = 50          # a month enters a comparison only with this many ranked stocks
 
+# --------------------------------------------------------------------------- provenance (item 8b)
+# Every file whose content can change a number this engine reports. A run records the SHA-256 of
+# each one and refuses to start if any of them is edited but not committed, because a ledger row
+# that cannot name the exact code that produced it is not a record of anything - and "I reran it
+# and got something else" has to be answerable with a diff rather than a recollection.
+# A path is on this list only if the result moves when it changes: the two backtest modules and
+# this one compute the comparison, ``factor_engine`` and ``pit_record`` compute the metrics the
+# months are made of, ``config.yaml`` is the baseline weighting every transform starts from, and
+# the registry holds the transforms and predictions themselves.
+# ``universe_history`` is on the list for the same reason ``pit_record`` is, though item 8b names
+# only the latter: both run at build time rather than at run time, and both decide what a month
+# contains - who was a member, and what their filings said.
+RESULT_PATHS = ("v2_experiments.py", "backtest_v2.py", "backtest_v2_returns.py", "factor_engine.py",
+                "pit_record.py", "universe_history.py", "config.yaml",
+                "research/experiments/registry.yaml")
+
+# What the monthly records were built from, by content. The member list (``data_fingerprint``) says
+# *who* was in each month; these say what their numbers were, which a rebuild can change without
+# changing a single ticker.
+DATA_SOURCES = {"v2_daily": "cache/v2_daily.parquet",       # the prices every return and momentum reads
+                "v2_index": "cache/v2_index.parquet",       # the market return and risk-free rate
+                "splits": "cache/splits.parquet",           # the split adjustment on every price history
+                "sec_facts": "data/sec/pit/facts.parquet"}  # the filings every fundamental comes from
+BUILD_RECORD = "cache/v2_metrics/_build.json"   # written by backtest_v2 when it builds the months
+
 
 # --------------------------------------------------------------------------- configurations
 def base_config() -> dict:
@@ -419,6 +444,113 @@ def git_commit() -> str:
         return "?"
 
 
+def git_describe(root: Path = ROOT) -> str:
+    """The code a row ran on, in one string: the newest tag, how far past it, the commit, and
+    ``-dirty`` if a *result-affecting* file is uncommitted. ``git rev-parse`` alone cannot say the
+    second thing, which is the one that matters for trusting a result.
+
+    The suffix is computed from ``edited_result_files`` - the same ``RESULT_PATHS`` scope
+    ``refuse_edited_tree`` uses - and deliberately **not** from ``git describe --dirty``, which
+    reads the whole tree. That mattered immediately (2026-10-18): a run appends to the tracked
+    ``ledger.jsonl`` and ``report`` rewrites ``RESULTS.md``, so by the time the second entry point
+    starts the tree is dirty *because of the run itself*, and ``--dirty`` branded the evaluation row
+    unreproducible on a rerun where nothing but the engine's own output had changed. There is no
+    order of ``run`` and ``evaluate`` that escapes it, in one process or two.
+
+    So the guard and the marker now mean the same thing, which is the only coherent reading: an
+    engine *output* is a result and cannot change a number, while the files in ``RESULT_PATHS``
+    can. A marker that fires in normal operation is a marker that gets ignored."""
+    try:
+        out = subprocess.run(["git", "describe", "--tags", "--always"],
+                             capture_output=True, text=True, cwd=root).stdout.strip()
+    except OSError:
+        return "?"
+    if not out:
+        return "?"
+    return out + "-dirty" if edited_result_files(root) else out
+
+
+def _file_sha256(p: Path) -> str:
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _hash_of(obj) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()[:12]
+
+
+def code_fingerprint(root: Path = ROOT) -> dict:
+    """``git describe`` plus the SHA-256 of every result-affecting file. The hashes are what a later
+    reader checks: a tag can be moved and a commit reused, a file's content cannot."""
+    files = {}
+    for rel in RESULT_PATHS:
+        p = root / rel
+        files[rel] = _file_sha256(p)[:16] if p.is_file() else "missing"
+    return {"code_version": git_describe(root), "code_hash": _hash_of(files), "code_hashes": files}
+
+
+def edited_result_files(root: Path = ROOT) -> list[str]:
+    """Which result-affecting files are uncommitted, from ``git status --porcelain`` over exactly
+    those paths. Scoped deliberately: an edit to a test, a plan or the log cannot change a number,
+    and a guard that fires on those would be turned off within a week."""
+    try:
+        r = subprocess.run(["git", "status", "--porcelain", "--", *RESULT_PATHS],
+                           capture_output=True, text=True, cwd=root)
+    except OSError:
+        return []                      # no git here: the run still records code_version "?"
+    out = set()
+    for line in r.stdout.splitlines():
+        if line.strip():
+            out.add(line[3:].strip().strip('"').split(" -> ")[-1])
+    return sorted(out)
+
+
+def refuse_edited_tree(root: Path = ROOT) -> None:
+    """Refuse to run from an edited tree (plan/research-engine.md item 8b). Commit first - the
+    commit is the pre-registration proof that rule 1 rests on, and a row whose code is "whatever
+    was in the working copy that afternoon" cannot be rerun by anyone, including its author."""
+    bad = edited_result_files(root)
+    if bad:
+        raise SystemExit(
+            "the tree is edited - commit before running, so the ledger can name the exact code "
+            f"that produced each row (plan/research-engine.md item 8b): {', '.join(bad)}")
+
+
+def build_record(root: Path = ROOT) -> dict:
+    """What ``backtest_v2.py`` recorded when it last built the months. Absent for months built
+    before 8b, which is reported as ``unrecorded`` rather than guessed."""
+    p = root / BUILD_RECORD
+    if not p.is_file():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def content_fingerprint(root: Path = ROOT, metrics_dir: Path | None = None) -> dict:
+    """The monthly records by *content*, not by who was in them. ``data_fingerprint`` hashes each
+    month's member list, which a rebuild can leave identical while every number inside it moves -
+    a fix to a metric, a re-fetch of the filings, a split correction. So this hashes each month's
+    parquet, the price, index, split and filing files they were built from, and the live run whose
+    static fields (sector, industry, share class) the records borrow."""
+    parts, n = {}, 0
+    h = hashlib.sha256()
+    for p in sorted((metrics_dir or v2.METRICS_DIR).glob("*.parquet")):
+        h.update((p.name + ":" + _file_sha256(p) + ";").encode("utf-8"))
+        n += 1
+    parts["month_files"] = h.hexdigest()[:16] if n else "none"
+    parts["month_file_count"] = n
+    for name, rel in DATA_SOURCES.items():
+        p = root / rel
+        parts[name] = _file_sha256(p)[:16] if p.is_file() else "missing"
+    parts["base_run"] = build_record(root).get("base_run", "unrecorded")
+    return {"content_hash": _hash_of(parts), "content_parts": parts}
+
+
 def load_registry() -> list[dict]:
     return yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["experiments"]
 
@@ -513,11 +645,13 @@ def run(ids: list[str] | None = None) -> list[dict]:
         if unknown:
             raise SystemExit(f"not registered (register before running): {unknown}")
     refuse_known_outcomes([e for e in reg if not ids or e["id"] in ids])
+    refuse_edited_tree()
     months = load_months()
     if not months:
         raise SystemExit("no cached monthly metrics - run backtest_v2.py first")
     fwd = forward_returns(sorted(months))
-    vintage = data_fingerprint(months)
+    vintage = data_fingerprint(months) | content_fingerprint()
+    code = code_fingerprint()
     cfg0 = base_config()
     base_scores = rank_all(months, cfg0)
     base_pm = per_month(base_scores, fwd)      # the baseline's own published row: its full universe
@@ -531,8 +665,13 @@ def run(ids: list[str] | None = None) -> list[dict]:
             rank_all(months, cfg, whole_market=(tr["kind"] == "whole_market")), fwd,
             baseline_scores=base_scores)
         res = {"id": e["id"], "run_at": datetime.now().isoformat(timespec="seconds"),
-               "commit": git_commit(), "config_hash": config_hash(cfg, tr), "months": int(len(pm)),
-               "method_version": METHOD_VERSION, **vintage,
+               "commit": git_commit(), "config_hash": config_hash(cfg, tr),
+               # the baseline weighting this transform started from, separately from the transformed
+               # one: ``config_hash`` differs between experiments by design, so only this can say
+               # whether two rows were built on the same ``config.yaml`` (item 8b)
+               "base_config_hash": config_hash(cfg0, {"kind": "baseline"}),
+               "months": int(len(pm)),
+               "method_version": METHOD_VERSION, **vintage, **code,
                "summary": summarise(pm),
                # the monthly series themselves (2026-10-15), so a later check reads them, not a rerun
                "ic_by_month": {m: round(float(v), 5) for m, v in pm["ic"].items() if pd.notna(v)},
@@ -589,6 +728,66 @@ def method_note(methods: list[int]) -> str:
             + ", ".join(map(str, methods)) + ")** - how a comparison is computed changed, so rows of "
             "different method versions do not compare with each other any more than rows built on "
             "different data do. Rerun to bring them level.")
+
+
+def comparable_provenance(row: dict, base: dict) -> bool:
+    """Whether ``row`` was built on the same baseline weighting and the same record contents as the
+    baseline row it would be differenced against (item 8b). A field absent from *both* rows is the
+    pre-8b ledger and is left comparable - the fields it is missing did not exist, so claiming they
+    disagree would be as false as claiming they agree. A field present on one row only *is* a
+    disagreement: that row is known to have run on something the other cannot name."""
+    return all(row.get(k, "unrecorded") == base.get(k, "unrecorded")
+               for k in ("base_config_hash", "content_hash"))
+
+
+def provenance_note(rows: list[dict]) -> str:
+    """The report's line on the code and the baseline weighting its rows ran on (item 8b).
+
+    Two things can differ between rows without the data version or the method version moving, and
+    both change a number: the code, and ``config.yaml``'s own weights - which every transform
+    starts from, so a change there moves the baseline *and* every row measured against it. Mixed
+    values are flagged the way a mixed data version is, because the remedy is the same: rerun.
+
+    **Which field decides that is the whole point.** The flag keys on ``code_hash`` - the content of
+    every file in ``RESULT_PATHS`` - and never on ``code_version``, which is a human-readable
+    locator. ``code_version`` moves whenever *any* commit lands, so committing a log entry or a plan
+    between ``run`` and ``evaluate`` split it while the code was byte-identical, and the remedy the
+    flag prescribes (rerun) would have reproduced the same numbers exactly. Measured on 2026-10-18:
+    two locators, one ``code_hash``, 0 numeric differences across 29 ids. A differing locator with an
+    identical hash is reported as information and not as an alarm - flag on the thing that can
+    change a number, not on the thing that merely moves."""
+    if not rows:
+        return "Provenance: no runs in the ledger."
+    versions = sorted({r.get("code_version", "unrecorded") for r in rows})
+    hashes = sorted({r.get("code_hash", "unrecorded") for r in rows})
+    configs = sorted({r.get("base_config_hash", "unrecorded") for r in rows})
+    contents = sorted({r.get("content_hash", "unrecorded") for r in rows})
+    out, locator = [], ""
+    if len(hashes) == 1 and len(versions) == 1:
+        out.append(f"every row ran on the same code (`{versions[0]}`)")
+    elif len(hashes) == 1:
+        out.append(f"every row ran on the same code (`{hashes[0]}`)")
+        locator = (" The rows were run from more than one commit (`" + "`, `".join(versions)
+                   + "`), but every file that can change a number was byte-identical across them:"
+                     " the locator moved, the code did not.")
+    else:
+        out.append("**the rows ran on more than one version of the code (`" + "`, `".join(hashes)
+                   + "`, from `" + "`, `".join(versions) + "`)** - rerun to bring them level")
+    if len(configs) == 1:
+        out.append(f"on the same baseline weighting (`{configs[0]}`)")
+    else:
+        out.append("**and on more than one baseline weighting (`" + "`, `".join(configs)
+                   + "`)** - `config.yaml` changed, which moves the baseline every row is "
+                     "differenced against, so these rows do not compare with each other")
+    if len(contents) > 1:
+        out.append("**and on monthly records whose contents differ (`" + "`, `".join(contents)
+                   + "`)** - the member lists may match while the numbers inside them do not")
+    dirty = sorted({r.get("code_version", "") for r in rows if str(r.get("code_version", "")).endswith("-dirty")})
+    lead = ("Provenance: " if len(hashes) == 1 and len(configs) == 1 and len(contents) == 1
+            and not dirty else "**Provenance:** ")
+    tail = ("" if not dirty else " **Rows marked `-dirty` ran from an edited tree and cannot be "
+            "reproduced exactly; `run` has refused that since 2026-10-18.**")
+    return lead + ", ".join(out) + "." + locator + tail
 
 
 def _vs_cell(vs: dict, n_tests: int) -> str:
@@ -780,9 +979,11 @@ def run_evaluations(ids: list[str] | None = None) -> list[dict]:
         unknown = [i for i in ids if i not in {e["id"] for e in evs}]
         if unknown:
             raise SystemExit(f"not registered (register before running): {unknown}")
+    refuse_edited_tree()
     months = load_months()
     fwd = forward_returns(sorted(months))
-    vintage = data_fingerprint(months)
+    vintage = data_fingerprint(months) | content_fingerprint()
+    code = code_fingerprint()
     cfg0 = base_config()
     inputs = bot_month_inputs(months, cfg0)
     results = []
@@ -792,7 +993,8 @@ def run_evaluations(ids: list[str] | None = None) -> list[dict]:
         pm = simulate_bot(inputs, fwd, e["rule"])
         res = {"id": e["id"], "kind": "evaluation", "run_at": datetime.now().isoformat(timespec="seconds"),
                "commit": git_commit(), "months": int(len(pm)), "method_version": METHOD_VERSION,
-               **vintage, "summary": summarise_evaluation(pm),
+               "base_config_hash": config_hash(cfg0, {"kind": "baseline"}),
+               **vintage, **code, "summary": summarise_evaluation(pm),
                "by_month": {m: {k: (round(float(r[k]), 6) if pd.notna(r[k]) else None)
                                 for k in ("ret", "universe", "index", "turnover")}
                             for m, r in pm.iterrows()}}
@@ -872,10 +1074,12 @@ def summary_for_page(reg: list, latest: dict) -> dict:
     out["method_version"] = base.get("method_version", 1)
     for e in reg:
         r = latest.get(e["id"])
-        # a row built on other data, or measured another way, does not compare with this baseline
+        # a row built on other data, measured another way, or built on another baseline weighting
+        # or another version of the records' contents, does not compare with this baseline
         if not r or e["transform"]["kind"] == "baseline" or e.get("void") \
                 or r.get("data_hash") != base.get("data_hash") \
-                or r.get("method_version", 1) != base.get("method_version", 1):
+                or r.get("method_version", 1) != base.get("method_version", 1) \
+                or not comparable_provenance(r, base):
             continue
         out["alternatives"] += 1
         v, vp = verdict(e, r, n), verdict_presample(e, r, n)
@@ -924,6 +1128,7 @@ def report() -> Path:
                    + ", ".join(vintages) + ")** - each compares with the baseline of its own run, but "
                    "rows of different versions do not compare with each other. Rerun to bring them level."), "",
              method_note(methods), "",
+             provenance_note(list(latest.values())), "",
              "*sees* is the smallest true IC difference that comparison would detect 80% of the time at the "
              "bar above. A row that is \"not distinguishable\" would usually have caught a difference that "
              "large; it says nothing about smaller ones.", "",

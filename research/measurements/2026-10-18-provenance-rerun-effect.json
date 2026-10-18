@@ -1,0 +1,387 @@
+{
+ "ledger_rows": 172,
+ "ids": 29,
+ "ids_compared": 29,
+ "ids_with_any_difference": 0,
+ "largest_numeric_difference": 0.0,
+ "where": null,
+ "by_id": {
+  "52-week-high": {
+   "compared": true,
+   "against": "2026-10-17T06:54:12",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "baseline": {
+   "compared": true,
+   "against": "2026-10-17T06:14:42",
+   "leaves": 434,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "bot-rule-v1.1": {
+   "compared": true,
+   "against": "2026-10-17T06:57:28",
+   "leaves": 838,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-growth": {
+   "compared": true,
+   "against": "2026-10-17T06:31:59",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-investment": {
+   "compared": true,
+   "against": "2026-10-17T06:38:16",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-momentum": {
+   "compared": true,
+   "against": "2026-10-17T06:33:33",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-quality": {
+   "compared": true,
+   "against": "2026-10-17T06:30:25",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-risk": {
+   "compared": true,
+   "against": "2026-10-17T06:35:07",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-size": {
+   "compared": true,
+   "against": "2026-10-17T06:36:41",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "drop-valuation": {
+   "compared": true,
+   "against": "2026-10-17T06:28:51",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "equal-categories": {
+   "compared": true,
+   "against": "2026-10-17T06:16:18",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "fcf-yield-only": {
+   "compared": true,
+   "against": "2026-10-17T06:44:10",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "low-volatility-only": {
+   "compared": true,
+   "against": "2026-10-17T06:47:10",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "magic-formula": {
+   "compared": true,
+   "against": "2026-10-17T06:39:46",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "momentum-12-1-only": {
+   "compared": true,
+   "against": "2026-10-17T06:45:40",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-growth": {
+   "compared": true,
+   "against": "2026-10-17T06:21:01",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-investment": {
+   "compared": true,
+   "against": "2026-10-17T06:27:17",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-momentum": {
+   "compared": true,
+   "against": "2026-10-17T06:22:35",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-quality": {
+   "compared": true,
+   "against": "2026-10-17T06:19:28",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-risk": {
+   "compared": true,
+   "against": "2026-10-17T06:24:09",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-size": {
+   "compared": true,
+   "against": "2026-10-17T06:25:43",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "only-valuation": {
+   "compared": true,
+   "against": "2026-10-17T06:17:53",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "orthogonalised-categories": {
+   "compared": true,
+   "against": "2026-10-17T06:48:50",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "piotroski-only": {
+   "compared": true,
+   "against": "2026-10-17T06:41:15",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "profitability-and-low-volatility": {
+   "compared": true,
+   "against": "2026-10-17T06:55:45",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "profitability-and-value": {
+   "compared": true,
+   "against": "2026-10-17T06:42:48",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "sector-relative-composite": {
+   "compared": true,
+   "against": "2026-10-17T06:50:25",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "value-and-momentum": {
+   "compared": true,
+   "against": "2026-10-17T06:52:41",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  },
+  "whole-market-percentiles": {
+   "compared": true,
+   "against": "2026-10-17T06:51:08",
+   "leaves": 866,
+   "differing": 0,
+   "max_abs_numeric_diff": 0.0,
+   "method_version": [
+    2,
+    2
+   ],
+   "data_hash_same": true,
+   "diffs": {}
+  }
+ }
+}

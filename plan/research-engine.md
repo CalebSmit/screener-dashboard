@@ -46,6 +46,20 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `RESULTS.md` and `summary.json` together - the claims gate fails if the summary and the ledger
    disagree.
 
+7. **A result names the code that produced it, or it is not a result** (2026-10-18, item 8b).
+   `run` and `evaluate` refuse to start from an edited tree, over the files that can change a
+   number (`v2_experiments.RESULT_PATHS`) - so commit first; the commit is also the
+   pre-registration proof rule 1 rests on. Every row carries `code_version`, `code_hash`,
+   `content_hash` and `base_config_hash`, and `report` flags a mixture of any of them the way it
+   flags mixed data or method versions. **Do not add an override flag.** The one legitimate escape
+   is the one already there: where git itself is absent the run proceeds and records `?`, because a
+   gate that can only fail closed jams an unattended loop.
+   **`code_version`'s `-dirty` marker is scoped to `RESULT_PATHS`, like the refusal, and is never
+   asked of `git describe`** (fixed 2026-10-18 - see item 8(b)): the whole-tree version fires on
+   the engine's own `ledger.jsonl` and `RESULTS.md`, so every second entry point in a rerun was
+   branded unreproducible. The guard and the marker say the same thing about the same tree, or one
+   of them is wrong.
+
 ## Queue (in order)
 
 1. **DONE 2026-10-15 - and the guard refined** (note section 2: a mismatch is excluded only when today's
@@ -106,13 +120,51 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    month against the baseline's 440 in 2020-2026, and 213 against 327 in 2012-2019
    (`research/measurements/2026-10-16-stocks-ranked-per-config.json`).
 
-   **(b) Provenance hardening.** Every ledger row records `git describe --dirty` and the SHA-256 of
-   each result-affecting source file (`v2_experiments.py`, `backtest_v2.py`,
-   `backtest_v2_returns.py`, `factor_engine.py`, `pit_record.py`, `config.yaml`, `registry.yaml`).
-   `run` and `evaluate` refuse on a dirty tree for those paths. The data fingerprint widens from the
-   member list to the content: a hash of each month's metrics parquet, of `cache/v2_daily.parquet`,
-   of the SEC facts and splits files the months were built from, and the base run id. `report`
-   flags mixed baseline `config_hash` values across rows the way it flags mixed data versions.
+   **(b) DONE 2026-10-18 - provenance hardening.** Built by the 06:00 session, **finished by the
+   13:00 one**, whose ship gates the unfinished half had failed - see the caution at the end of
+   this item. Every ledger row carries `git describe --tags` plus a `-dirty` marker
+   (`code_version`), the SHA-256 of each result-affecting file (`code_hashes`, hashed together as
+   `code_hash`), `content_hash` and `base_config_hash`; `run` and `evaluate` refuse to start from
+   an edited tree, scoped to `RESULT_PATHS`. `report` flags a mixed code version, baseline
+   weighting or content hash the way it flags a mixed data version (`provenance_note`), and
+   `summary_for_page` drops a row of any mismatch (`comparable_provenance`). All 28 experiments and
+   the evaluation were rerun on a clean tree so every row the report reads can name its code; the
+   ledger's method-1 and pre-8b rows stay in it (rule 2). `tests/test_v2_experiments.py`
+   provenance block.
+   **The rerun moved no number, measured rather than assumed**
+   (`research/measurements/2026-10-18-provenance-rerun-effect.py`): 29 of 29 ids compared against
+   their previous run, every leaf of the stored summary at full precision, **0 differing anywhere,
+   largest numeric difference 0.0**. Identical was the prediction - neither the data nor the method
+   changed - and the research page quotes these numbers, so it is worth having measured.
+   **The rerun found a defect in the marker, now fixed:** `git describe --dirty` reads the **whole
+   tree**, and a run appends to the tracked `ledger.jsonl` while `report` rewrites `RESULTS.md` -
+   so by the time the *second* entry point starts, the tree is dirty **because of the run itself**.
+   It stamped the evaluation row `-dirty` on a rerun where nothing but the engine's own output had
+   changed, and there is no order of `run` and `evaluate` that escapes it, in one process or two.
+   The marker now comes from `edited_result_files()`, the same `RESULT_PATHS` scope the refusal
+   uses. **The guard and the marker must mean the same thing** - before the fix the guard permitted
+   a run the marker then branded unreproducible - and an engine *output* is a result, which cannot
+   change a number. Keep it that way: `test_the_engines_own_output_does_not_brand_a_row_unreproducible`
+   fails if `--dirty` is ever asked of git again. The general form, worth remembering next time a
+   provenance check is added anywhere: **a check whose subject includes the checker's own output
+   fires in normal operation, and a marker that fires in normal operation gets ignored.**
+   *A caution about this queue, from how (b) went:* the item above was written as DONE, in this
+   file, while **2 of the 29 rows** had actually been rerun; the tests that enforce it were red and
+   the ship gates refused the merge, which is the argument for the runner re-running them
+   independently (CLAUDE.md "Ship gates", 2026-09-04) rather than for trusting a progress line.
+   **A stage is done when its own tests pass on a clean tree, not when its description is written.**
+   *Two deviations from the specification above, both deliberate:* `universe_history.py` is on
+   `RESULT_PATHS` as well - it decides who was a member of each month, which is as much a
+   result-affecting input as `pit_record.py`, which the spec did name; and the **base run id is
+   `unrecorded` for the months on disk today**, because they were built on 2026-10-15 and nothing
+   recorded it then. `backtest_v2.record_build` records it per month from now on, merging across
+   shards. Inferring it from directory timestamps was considered and rejected: a guess printed in
+   the place a record belongs is worse than an honest absence.
+   *What `base_config_hash` is for, since it is easy to mistake for the existing field:*
+   `config_hash` covers the configuration *after* the transform, so it differs between experiments
+   by design and can never say whether two rows started from the same `config.yaml`.
+   *Kept for the record:* the specified data fingerprint was the member list only, which a rebuild
+   can leave byte-identical while every number inside the months moves.
 
    **(c) The positive control, in the ledger.** The look-ahead arm (today's filings for every
    month, IC +0.050, t 4.71 on 2020-2026) is the page's evidence that the test can see a signal, but
