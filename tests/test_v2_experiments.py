@@ -533,6 +533,37 @@ def test_a_run_records_the_code_it_ran_on(tmp_path):
     assert X.code_fingerprint(tmp_path)["code_hash"] != empty["code_hash"]
 
 
+def test_the_engines_own_output_does_not_brand_a_row_unreproducible(monkeypatch):
+    """Found by running the rerun item 8b asked for (2026-10-18). ``git describe --dirty`` reads the
+    *whole* tree, and a run appends to the tracked ``ledger.jsonl`` while ``report`` rewrites
+    ``RESULTS.md`` - so by the time the second entry point starts, the tree is dirty because of the
+    run itself. It branded ``bot-rule-v1.1`` ``-dirty`` on a rerun where nothing but the engine's
+    own output had changed, and no order of ``run`` and ``evaluate`` escapes it.
+
+    So the marker is scoped to ``RESULT_PATHS``, exactly like the refusal: the guard and the marker
+    have to mean the same thing, or one of them is lying about the same tree. An engine output is a
+    result and cannot change a number."""
+    monkeypatch.setattr(X, "edited_result_files", lambda root=X.ROOT: [])
+    clean = X.git_describe()
+    assert clean and not clean.endswith("-dirty")
+    monkeypatch.setattr(X, "edited_result_files", lambda root=X.ROOT: ["config.yaml"])
+    assert X.git_describe() == clean + "-dirty"          # and it still fires on a real edit
+    # the engine's own artifacts are never in the scope that can mark a row dirty
+    for out in ("research/experiments/ledger.jsonl", "research/experiments/RESULTS.md",
+                "research/experiments/summary.json", "research.html"):
+        assert out not in X.RESULT_PATHS
+    # and the marker is never asked of git itself, which is where the whole-tree scope came from
+    seen = []
+
+    class _R:
+        stdout = "good/2026-10-18-1-gabc1234\n"
+
+    monkeypatch.setattr(X, "edited_result_files", lambda root=X.ROOT: [])
+    monkeypatch.setattr(X.subprocess, "run", lambda cmd, **kw: seen.append(cmd) or _R())
+    assert X.git_describe() == "good/2026-10-18-1-gabc1234"
+    assert seen and "--dirty" not in seen[0], seen[0]
+
+
 def test_the_engine_refuses_to_run_from_an_edited_tree(monkeypatch):
     """Item 8b: commit before running. A row whose code is "whatever was in the working copy that
     afternoon" cannot be rerun by anyone, including its author, and the commit is the

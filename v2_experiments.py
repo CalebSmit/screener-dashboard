@@ -444,16 +444,30 @@ def git_commit() -> str:
         return "?"
 
 
-def git_describe() -> str:
+def git_describe(root: Path = ROOT) -> str:
     """The code a row ran on, in one string: the newest tag, how far past it, the commit, and
-    ``-dirty`` if anything in the tree is uncommitted. ``git rev-parse`` alone cannot say the
-    second thing, which is the one that matters for trusting a result."""
+    ``-dirty`` if a *result-affecting* file is uncommitted. ``git rev-parse`` alone cannot say the
+    second thing, which is the one that matters for trusting a result.
+
+    The suffix is computed from ``edited_result_files`` - the same ``RESULT_PATHS`` scope
+    ``refuse_edited_tree`` uses - and deliberately **not** from ``git describe --dirty``, which
+    reads the whole tree. That mattered immediately (2026-10-18): a run appends to the tracked
+    ``ledger.jsonl`` and ``report`` rewrites ``RESULTS.md``, so by the time the second entry point
+    starts the tree is dirty *because of the run itself*, and ``--dirty`` branded the evaluation row
+    unreproducible on a rerun where nothing but the engine's own output had changed. There is no
+    order of ``run`` and ``evaluate`` that escapes it, in one process or two.
+
+    So the guard and the marker now mean the same thing, which is the only coherent reading: an
+    engine *output* is a result and cannot change a number, while the files in ``RESULT_PATHS``
+    can. A marker that fires in normal operation is a marker that gets ignored."""
     try:
-        out = subprocess.run(["git", "describe", "--tags", "--always", "--dirty"],
-                             capture_output=True, text=True, cwd=ROOT).stdout.strip()
+        out = subprocess.run(["git", "describe", "--tags", "--always"],
+                             capture_output=True, text=True, cwd=root).stdout.strip()
     except OSError:
         return "?"
-    return out or "?"
+    if not out:
+        return "?"
+    return out + "-dirty" if edited_result_files(root) else out
 
 
 def _file_sha256(p: Path) -> str:
@@ -469,13 +483,13 @@ def _hash_of(obj) -> str:
 
 
 def code_fingerprint(root: Path = ROOT) -> dict:
-    """``git describe --dirty`` plus the SHA-256 of every result-affecting file. The hashes are what
-    a later reader checks: a tag can be moved and a commit reused, a file's content cannot."""
+    """``git describe`` plus the SHA-256 of every result-affecting file. The hashes are what a later
+    reader checks: a tag can be moved and a commit reused, a file's content cannot."""
     files = {}
     for rel in RESULT_PATHS:
         p = root / rel
         files[rel] = _file_sha256(p)[:16] if p.is_file() else "missing"
-    return {"code_version": git_describe(), "code_hash": _hash_of(files), "code_hashes": files}
+    return {"code_version": git_describe(root), "code_hash": _hash_of(files), "code_hashes": files}
 
 
 def edited_result_files(root: Path = ROOT) -> list[str]:
