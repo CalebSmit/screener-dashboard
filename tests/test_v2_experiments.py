@@ -679,11 +679,21 @@ def test_a_row_built_on_another_baseline_or_another_vintage_does_not_compare():
 
 def test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture():
     """Flagged the way a mixed data version is, because the remedy is the same: rerun."""
-    one = [{"code_version": "good/2026-10-18", "base_config_hash": "aaa", "content_hash": "bbb"}]
+    one = [{"code_version": "good/2026-10-18", "code_hash": "c0de", "base_config_hash": "aaa",
+            "content_hash": "bbb"}]
     note = X.provenance_note(one)
     assert note.startswith("Provenance: ") and "same code" in note and "good/2026-10-18" in note
-    mixed = X.provenance_note(one + [dict(one[0], code_version="good/2026-10-11")])
+    mixed = X.provenance_note(one + [dict(one[0], code_hash="other")])
     assert mixed.startswith("**Provenance:**") and "more than one version of the code" in mixed
+    # the flag keys on the code's *content*, never on the locator (2026-10-18). ``code_version``
+    # moves whenever any commit lands, so committing a log entry between ``run`` and ``evaluate``
+    # split it while every result-affecting file was byte-identical - measured that day: two
+    # locators, one ``code_hash``, 0 numeric differences across 29 ids. Flagging that would
+    # prescribe a rerun that reproduces the same numbers exactly, which is how a flag gets ignored.
+    moved = X.provenance_note(one + [dict(one[0], code_version="good/2026-10-18-1-gabc1234")])
+    assert moved.startswith("Provenance: "), moved
+    assert "the locator moved, the code did not" in moved and "more than one commit" in moved
+    assert "rerun to bring them level" not in moved
     cfg = X.provenance_note(one + [dict(one[0], base_config_hash="ccc")])
     assert "more than one baseline weighting" in cfg and "config.yaml` changed" in cfg
     vintage = X.provenance_note(one + [dict(one[0], content_hash="ccc")])

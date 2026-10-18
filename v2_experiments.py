@@ -746,18 +746,32 @@ def provenance_note(rows: list[dict]) -> str:
     Two things can differ between rows without the data version or the method version moving, and
     both change a number: the code, and ``config.yaml``'s own weights - which every transform
     starts from, so a change there moves the baseline *and* every row measured against it. Mixed
-    values are flagged the way a mixed data version is, because the remedy is the same: rerun."""
+    values are flagged the way a mixed data version is, because the remedy is the same: rerun.
+
+    **Which field decides that is the whole point.** The flag keys on ``code_hash`` - the content of
+    every file in ``RESULT_PATHS`` - and never on ``code_version``, which is a human-readable
+    locator. ``code_version`` moves whenever *any* commit lands, so committing a log entry or a plan
+    between ``run`` and ``evaluate`` split it while the code was byte-identical, and the remedy the
+    flag prescribes (rerun) would have reproduced the same numbers exactly. Measured on 2026-10-18:
+    two locators, one ``code_hash``, 0 numeric differences across 29 ids. A differing locator with an
+    identical hash is reported as information and not as an alarm - flag on the thing that can
+    change a number, not on the thing that merely moves."""
     if not rows:
         return "Provenance: no runs in the ledger."
     versions = sorted({r.get("code_version", "unrecorded") for r in rows})
+    hashes = sorted({r.get("code_hash", "unrecorded") for r in rows})
     configs = sorted({r.get("base_config_hash", "unrecorded") for r in rows})
     contents = sorted({r.get("content_hash", "unrecorded") for r in rows})
     out = []
-    if len(versions) == 1:
+    if len(hashes) == 1 and len(versions) == 1:
         out.append(f"every row ran on the same code (`{versions[0]}`)")
+    elif len(hashes) == 1:
+        out.append("every row ran on the same code (`" + hashes[0] + "`, byte-identical across "
+                   "every file that can change a number), run from more than one commit (`"
+                   + "`, `".join(versions) + "`) - the locator moved, the code did not")
     else:
-        out.append("**the rows ran on more than one version of the code (`"
-                   + "`, `".join(versions) + "`)** - rerun to bring them level")
+        out.append("**the rows ran on more than one version of the code (`" + "`, `".join(hashes)
+                   + "`, from `" + "`, `".join(versions) + "`)** - rerun to bring them level")
     if len(configs) == 1:
         out.append(f"on the same baseline weighting (`{configs[0]}`)")
     else:
@@ -768,7 +782,8 @@ def provenance_note(rows: list[dict]) -> str:
         out.append("**and on monthly records whose contents differ (`" + "`, `".join(contents)
                    + "`)** - the member lists may match while the numbers inside them do not")
     dirty = sorted({r.get("code_version", "") for r in rows if str(r.get("code_version", "")).endswith("-dirty")})
-    lead = "Provenance: " if len(versions) == 1 and len(configs) == 1 and len(contents) == 1 else "**Provenance:** "
+    lead = ("Provenance: " if len(hashes) == 1 and len(configs) == 1 and len(contents) == 1
+            and not dirty else "**Provenance:** ")
     tail = ("" if not dirty else " **Rows marked `-dirty` ran from an edited tree and cannot be "
             "reproduced exactly; `run` has refused that since 2026-10-18.**")
     return lead + ", ".join(out) + "." + tail
