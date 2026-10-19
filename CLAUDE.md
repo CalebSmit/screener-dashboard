@@ -489,7 +489,9 @@ outcome.
   session if any test wrote one (isolation landed 2026-10-09; priority 8).
 
 ### Routine
-- `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop)
+- `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop); `prompts/continuation.md`
+  (the one resume of a session that ended dirty); `scripts/wait_for.py` (foreground waits) and
+  `scripts/rerun_experiments.py` (resumable engine reruns)
 - `scripts/data-run.ps1` (2:00 AM data loop)
 - `NIGHTLY_LOG.md`, `research/`, `ROLLBACK.md`, `logs/` (gitignored)
 
@@ -660,6 +662,7 @@ already shipped to the live public site.
 | -1 | The watchdog runs **outside** the machine it watches, and must not alarm faster than two *consecutive* missed weekdays. A watchdog that cries wolf gets muted, and a muted watchdog still looks like coverage | `tests/test_loop_watchdog.py` |
 | -1 | The morning brief is published as a single-file commit built on `origin/main`. **Never go back to pushing a local ref** - from `finally`, that publishes work the gates just refused | `tests/test_brief_publish_safety.py` |
 | -1 | The `nightly/*` branch sweep keeps its `--merged origin/main` filter, and a failed delete stays non-fatal | `tests/test_branch_sweep.py` |
+| -1 | **A session never ends its reply while a background job runs or the tree is dirty** - under `claude --print` that reply *is* the end, the job dies with the CLI, and "you will be notified" never arrives (2026-10-18 and 10-19 both ended this way mid-rerun, no 429, and failed gates 1 and 4). Waits are foreground (`scripts/wait_for.py`, under the Bash tool's 600 s ceiling); engine reruns resume (`scripts/rerun_experiments.py`); the prompt states a `{{DEADLINE}}` inside the 4-hour task limit. The runner resumes a session that still ends dirty **once**, turn-capped, **before** the gates (`prompts/continuation.md`) - never instead of a gate, never merging, never after a session that did not run | `tests/test_session_ends_clean.py`; `research/2026-10-19-session-ended-on-a-background-job.md` |
 | 0 | `_effective_observations()` gates every proposal; `allow_auto_apply` stays **`false`**; quote `_n_observations`, never `_n_raw_observations`. Independent 1-month observations accrue about **one a month** - say that plainly rather than engineering around it | `tests/test_evidence_integrity.py` |
 | 0.5/0.7 | `check_run_health.py` discards a run **before publishing** on: missing fetch evidence, price coverage <90%, analyst-target coverage <50%, category dispersion >20% below the trailing median, or (2026-10-14) **a weighted metric that went missing for most of the universe since the last run** - the source-outage case dispersion cannot see, because renormalisation preserves the spread. A weight-0 metric is a note, a *regained* metric is never a failure, and unreadable weights are a note: a gate that can only fail closed jams an unattended loop. **It judges only the run's own artifacts** (2026-10-16): no fallback to the published payload, the payload's run_timestamp must equal the run's meta.json, the newest snapshot must be this run's (exit 2 otherwise); the latest run is `run_context.latest_run_dir` (meta.json start_time) for the gate and the generator alike | `tests/test_run_health.py`, `tests/test_cache_freshness.py` |
 | 1 | The pipeline **never fabricates data**. Both entry points refuse without `--allow-synthetic`. Metric-drift severity is scored against the population a metric applies to, not the whole universe | `tests/test_no_synthetic_by_default.py`, `tests/test_metric_drift_scoping.py` |

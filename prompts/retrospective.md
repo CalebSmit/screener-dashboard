@@ -7,6 +7,13 @@ whether it is actually producing value, and change the process where it is not.
 
 Read `CLAUDE.md` first. Its rules still apply.
 
+**You run under `claude --print`: a reply with no tool call ends the session.** A background
+command's "you will be notified" never arrives and the command dies with the session - that is
+how 2026-10-18 and 2026-10-19 ended dirty and failed gates 1 and 4
+(`research/2026-10-19-session-ended-on-a-background-job.md`). Wait in the foreground with
+`python scripts/wait_for.py`, and write your final reply only after `git status --porcelain` is
+empty and the branch is pushed - by {{DEADLINE}} at the latest.
+
 ## 1. Gather the evidence
 
 Do not rely on impressions. Go and look:

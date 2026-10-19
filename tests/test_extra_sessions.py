@@ -106,6 +106,18 @@ def test_a_usage_limit_is_recorded_and_stands_only_the_extra_slots_down():
     assert "'429|rate.?limit|usage limit'" in src
 
 
+def test_every_slot_gets_the_continuation_and_a_429_in_it_still_stands_the_extras_down():
+    """2026-10-19: the continuation (one --resume of a session that ended with uncommitted work)
+    is not slot-specific - 2026-10-18's dirty ending was a weekend slot - and a usage limit hit
+    inside it must be recorded like one hit in the session, or the extra slots would not yield."""
+    src = _src(NIGHTLY)
+    block = src[src.index("# --- One continuation"):src.index('Write-Log "--- Ship gates ---"')]
+    assert "$IsExtra" not in block and "$Slot " not in block
+    assert "$SlotTag-continuation.json" in block, "each slot keeps its own continuation transcript"
+    assert "[System.IO.File]::WriteAllText($UsageLimitFile" in block
+    assert "'429|rate.?limit|usage limit'" in block
+
+
 def test_retrospectives_stay_with_the_morning_slot_and_extra_slots_get_their_own_focus():
     src = _src(NIGHTLY)
     assert "if ($IsExtra) { $IsRetro = $false }" in src

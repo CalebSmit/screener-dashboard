@@ -22,6 +22,33 @@ for the owner.
 the tree. Commit after every stage that passes its own tests (a small `wip:`
 commit costs nothing), and write the `NIGHTLY_LOG.md` entry early and extend it.
 
+**How this session ends - read this before you start anything long.** You run under
+`claude --print`. **The session ends the moment you write a reply that makes no tool call.** There
+is no later turn: a background command's "you will be notified when it completes" is never
+delivered, and the command is killed when the session exits. On 2026-10-18 and 2026-10-19 the
+06:00 session started the research engine's full rerun in the background, wrote that it "will
+notify me when it finishes", and ended - with 1 and then 14 of 29 experiments written, the tree
+dirty, gates 1 and 4 red, and the day's work left on a `nightly/*` branch for someone else to
+salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as hard rules:
+
+- **Never end a reply while a background command you started is still running, or while
+  `git status --porcelain` shows anything.** Your final reply comes after a clean
+  `git status --porcelain` and a pushed branch, never before.
+- **Wait in the foreground:** `python scripts/wait_for.py --file <its output> --contains "<done
+  marker>"` blocks for at most 9.5 minutes; on exit 3 call it again. Shell `until`/`sleep` loops
+  and `Monitor` are refused by the tool guard, and a foreground Bash call that runs past 600
+  seconds is moved to the background - which is the same trap.
+- **Research-engine reruns resume:** `python scripts/rerun_experiments.py` runs only the rows not
+  yet current (`--status` to see them; `--limit 4`, about 8 minutes, fits one foreground call).
+  The full rerun is about **47 minutes** (measured 2026-10-19: 1.7 min to build the baseline, 1.6
+  min per experiment). Commit the ledger and the report after every call.
+- **Time budget: be finished - committed, pushed, clean - by {{DEADLINE}}** (local time). Task
+  Scheduler stops this whole run four hours after it starts, gates and salvage included, and the
+  runner needs about six minutes of that for the gates. Do not start a job you cannot finish and
+  commit before then; commit what you have and make the rest the log's Next.
+- If you end with uncommitted work anyway, the runner resumes you once with
+  `prompts/continuation.md` before the gates. That is a safety net, not a plan.
+
 ## 1. Orient
 
 - **Run `git stash list` straight away.** An `auto-rescue` entry is a
