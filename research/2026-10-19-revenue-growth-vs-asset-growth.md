@@ -952,6 +952,11 @@ pre-registered prediction that fails should be reported by whoever made it.
 The engine's own verdict line: **"different only in the held-out months - not confirmed"**, and
 "not distinguishable in 2012-2019".
 
+*2026-10-19, later: rerun on months rebuilt after two `pit_record` fixes (a 10-Q no longer overwrites
+a fiscal year; same-day ties no longer depend on row order). Held out -0.0072 at t -2.45, 2012-2019
+-0.0011 at t -0.69; both verdicts unchanged. The figures below are the first run's, kept as reported
+(`research/2026-10-19-pit-fix-rebuild-effect.md`).*
+
 **My prediction said the difference would be "zero or positive, never materially negative". The sign
 came out negative.** Removing the leg made the held-out ranking *worse* by 0.007 of IC at t -2.5.
 Read honestly, that is:

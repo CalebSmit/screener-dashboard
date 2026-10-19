@@ -102,6 +102,8 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `research/2026-10-19-revenue-growth-vs-asset-growth.md` (sections 7, 9 and 10), registered and
    committed before it ran. Result: held-out difference **-0.007 at t -2.5**, pre-sample -0.001 at
    t -0.69 - **not confirmed**, and **the sign came out opposite to the registered prediction**.
+   *(2026-10-19, after the `pit_record` record fixes and a full rebuild and rerun: -0.0072 at
+   t -2.45; verdict unchanged - `research/2026-10-19-pit-fix-rebuild-effect.md`.)*
    The note reports that against itself rather than around it, which is what registering a
    direction is for. Nothing was changed on the strength of it (rule 5 bans citing it either way,
    including keeping a weight because of it).
