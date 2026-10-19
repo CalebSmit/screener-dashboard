@@ -32,7 +32,11 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
 2. **Every run is kept** (`ledger.jsonl`, append-only, with the data version it used). The
    significance bar counts every experiment ever registered (p < 0.05/N, |t| >= 3).
 3. **A data fix reruns everything.** Rows from different data versions do not compare; the report
-   says so when they are mixed.
+   says so when they are mixed. **Run a rerun with `python scripts/rerun_experiments.py`**
+   (2026-10-19): it runs only the rows not yet current, so a rerun that was cut off resumes instead
+   of restarting; `--limit 4` (about 8 minutes) fits one foreground call, `--status` changes nothing.
+   A full rerun is about 47 minutes - never start one in the background and end the reply, which is
+   how 2026-10-18 and 2026-10-19 lost theirs (`research/2026-10-19-session-ended-on-a-background-job.md`).
 4. **Never register a variation of a near-miss.** If size or momentum looked good, the next entry
    is not "size, but 70%". That is the forking path the rules exist to close. A new entry needs its
    own source.

@@ -136,6 +136,18 @@ def test_nothing_reaches_main_before_the_gates_have_decided():
     )
 
 
+def test_the_continuation_is_upstream_of_every_gate_and_publishes_nothing():
+    """2026-10-19: a session that ends with uncommitted work is resumed once before the gates.
+    It must stay a precondition's input, never a way round one: all four gates run after it,
+    and it never merges, pushes or tags."""
+    cont = CODE.index("--resume $sid")
+    gates = CODE.index('Write-Log "--- Ship gates ---"')
+    assert cont < gates < CODE.index("SHIP GATES FAILED") < CODE.index("All gates passed")
+    block = CODE[CODE.index("if (-not $SessionFailed) {"):gates]
+    for banned in ("'merge'", "'push'", "'tag'", "SuccessMarker"):
+        assert banned not in block, banned
+
+
 def test_the_gate_failure_path_still_stops_the_run():
     """A failed gate must exit non-zero, not fall through to the merge."""
     tail = CODE[CODE.index("SHIP GATES FAILED"):CODE.index("All gates passed")]

@@ -55,6 +55,20 @@ $LockFile = Join-Path $LogDir '.nightly.lock'
 $Date     = Get-Date -Format 'yyyy-MM-dd'
 $Stamp    = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 
+# The session's time budget, stated to it as a clock time ({{DEADLINE}} in the prompt). Every code
+# slot is registered with a 4-hour ExecutionTimeLimit (scripts/register-tasks.ps1), and Task
+# Scheduler stops the WHOLE run at that limit - the gates, the salvage commit and the brief
+# included - so the session must be finished well inside it. Counted from the task's start, not
+# from when Claude is invoked, because a wait on the repo lock spends the same four hours.
+# 180 min for the session, a continuation only if it can still start by 190, then ~6 min of gates
+# (the suite took 279 s on 2026-10-19): 190 + a turn-capped continuation + gates stays under 240.
+# tests/test_session_ends_clean.py holds these against register-tasks.ps1.
+$RunStart                  = Get-Date
+$SessionBudgetMinutes      = 180
+$ContinuationCutoffMinutes = 190
+$ContinuationMaxTurns      = 60
+$DeadlineText              = $RunStart.AddMinutes($SessionBudgetMinutes).ToString('HH:mm')
+
 # The day's sessions. '' is the 06:00 weekday rotation; the others are extra sessions.
 $Slots = @('', 'midday', 'weekend')
 if ($Slots -notcontains $Slot) { Write-Host "Unknown -Slot '$Slot'. Use one of: midday, weekend."; exit 1 }
@@ -193,6 +207,21 @@ function Get-SessionOutcome {
     }
 
     return [pscustomobject]@{ Ok = $ok; Reason = $reason }
+}
+
+# The session id the CLI printed in its JSON result, for --resume. Only a well-formed UUID is
+# returned: it goes on a command line, so anything else is treated as absent.
+function Get-SessionId {
+    param([string]$TranscriptPath)
+    try {
+        if (-not (Test-Path $TranscriptPath)) { return '' }
+        $tr = Get-Content $TranscriptPath -Raw | ConvertFrom-Json
+        $sid = [string]$tr.session_id
+        if ($sid -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { return $sid }
+    } catch {
+        return ''
+    }
+    return ''
 }
 
 function Restore-Artifacts {
@@ -521,7 +550,8 @@ try {
     if (-not (Test-Path $TemplatePath)) { Stop-Run "Prompt template missing at $TemplatePath." }
     Write-Log "Using prompt template: $TemplateName"
     $Prompt = (Get-Content $TemplatePath -Raw).
-        Replace('{{FOCUS}}', $Focus).Replace('{{DATE}}', $Date).Replace('{{BRANCH}}', $Branch)
+        Replace('{{FOCUS}}', $Focus).Replace('{{DATE}}', $Date).Replace('{{BRANCH}}', $Branch).
+        Replace('{{DEADLINE}}', $DeadlineText)
 
     if ($DryRun) {
         # A dry run publishes nothing, the brief included: it is not a session, and the brief
@@ -559,6 +589,56 @@ try {
     }
 
     Restore-Artifacts 'left by session test runs'
+
+    # --- One continuation for a session that ended with work in the tree ---
+    # 2026-10-18 (06:00) and 2026-10-19 (06:00): under --print a session ends the moment the model
+    # writes a reply with no tool call. Both sessions started the research engine's 29-experiment
+    # rerun in the background, wrote that it "will notify me when it finishes", and ended - so the
+    # notification never came, the CLI's exit killed the rerun (1 of 29 rows, then 14 of 29; the
+    # last row 07:02:56, the CLI out at 07:03:46), and the gates found a dirty tree: gates 1 and 4
+    # failed and the day went to the salvage path. research/2026-10-19-session-ended-on-a-background-job.md.
+    #
+    # prompts/nightly.md now forbids ending a reply that way. This is the net under that rule: if
+    # the session ran and still left uncommitted work, resume the SAME session once (it keeps its
+    # context) with prompts/continuation.md, turn-capped, and only while there is time before the
+    # task's 4-hour limit. It changes nothing downstream: the gates below run exactly as before,
+    # on whatever the continuation leaves, and the salvage and revert paths are untouched. A failed
+    # or skipped continuation is a WARN, never fatal.
+    if (-not $SessionFailed) {
+        $pending = Invoke-Native 'git' @('status', '--porcelain')
+        if ($pending.Text.Trim()) {
+            $ContinuationPath = Join-Path $RepoPath 'prompts\continuation.md'
+            $sid = Get-SessionId -TranscriptPath $JsonLog
+            if (-not $sid) {
+                Write-Log "Session left uncommitted work, but its transcript names no session id - no continuation." 'WARN'
+            } elseif ((Get-Date) -gt $RunStart.AddMinutes($ContinuationCutoffMinutes)) {
+                Write-Log "Session left uncommitted work, but it is past the continuation cutoff ($ContinuationCutoffMinutes min) - no continuation." 'WARN'
+            } elseif (-not (Test-Path $ContinuationPath)) {
+                Write-Log "Session left uncommitted work, but prompts/continuation.md is missing - no continuation." 'WARN'
+            } else {
+                Write-Log "CONTINUATION: the session ended with uncommitted work - resuming it once to finish:" 'WARN'
+                Write-NativeOutput $pending 'WARN'
+                $statusText = ($pending.Output | Where-Object { $_ -and $_.Trim() } | ForEach-Object { "    $_" }) -join "`n"
+                $contPrompt = (Get-Content $ContinuationPath -Raw).
+                    Replace('{{STATUS}}', $statusText).Replace('{{DEADLINE}}', $DeadlineText).Replace('{{BRANCH}}', $Branch)
+                $ContJson = Join-Path $LogDir "nightly-$Stamp$SlotTag-continuation.json"
+                $contPrompt | claude --print --resume $sid --max-turns $ContinuationMaxTurns --permission-mode acceptEdits --output-format json |
+                    Out-File -FilePath $ContJson -Encoding utf8
+                $contExit = $LASTEXITCODE
+                $cont = Get-SessionOutcome -TranscriptPath $ContJson -ExitCode $contExit
+                if ($cont.Ok) {
+                    Write-Log "CONTINUATION exited $contExit. Transcript: $ContJson"
+                } else {
+                    Write-Log "CONTINUATION did not finish cleanly ($($cont.Reason)). The gates decide as usual." 'WARN'
+                    if ($cont.Reason -match '429|rate.?limit|usage limit') {
+                        [System.IO.File]::WriteAllText($UsageLimitFile, (Get-Date -Format 's'))
+                        Write-Log "Recorded a usage limit in logs/.usage-limited - the extra sessions will stand down for 24h." 'WARN'
+                    }
+                }
+                Restore-Artifacts 'left by the continuation'
+            }
+        }
+    }
 
     # =======================================================================
     #  SHIP GATES - re-verified here, independently of what the session
