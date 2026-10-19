@@ -13016,3 +13016,13 @@ Research Affiliates' *"income statement growth... economically scalable"* agains
   registers anything** - see the new note in that plan.
 - Then, for a build day: the four methodology-page additions specified in §11.2 of today's note
   (generator only, rule 10; claims registered in `claims.py`).
+
+### Noticed, not acted on
+- **Three stale agent worktrees are still registered and locked**, from the 2026-10-16 owner-run
+  audit session: `.claude/worktrees/agent-{a0d38ad2203de044d, a5f3c6c76ec6162e5, adad749d6a6ce8601}`,
+  holding three `worktree-agent-*` local branches at commits dated 2026-10-16. They are **gitignored,
+  so no ship gate sees them** and nothing here is blocked. Left alone deliberately: they are
+  `locked`, which is a signal that something intended to keep them, and `git worktree prune` will
+  not clear a locked worktree. **Not deleted on a guess** - but they accumulate, the `nightly/*`
+  sweep does not cover `worktree-agent-*`, and a retrospective should decide whether the sweep
+  should.
