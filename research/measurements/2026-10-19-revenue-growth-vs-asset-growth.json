@@ -1,0 +1,105 @@
+{
+ "run_timestamp": "2026-10-19T02:00:04.793163",
+ "stocks_in_payload": 501,
+ "points": {
+  "revenue_growth": 3.25,
+  "asset_growth": 5.0,
+  "net_if_identical": -1.75
+ },
+ "coverage": {
+  "revenue_growth": 501,
+  "asset_growth": 497,
+  "both": 497
+ },
+ "overlap": {
+  "universe_spearman_raw": 0.5083,
+  "universe_spearman_scored_percentiles": -0.4925,
+  "within_sector_spearman_raw": 0.4924,
+  "within_sector_n": 497,
+  "sectors_used": 11,
+  "shared_variance_within_sector_pct": 24.2
+ },
+ "net_exposure": {
+  "n": 497,
+  "pair_points_range": [
+   0.63,
+   7.8
+  ],
+  "pair_points_sd": 1.278,
+  "spearman_pair_points_vs_revenue_growth": 0.0446,
+  "spearman_pair_points_vs_asset_growth": -0.7363,
+  "spearman_pts_rg_vs_pts_ag": -0.4925,
+  "spearman_investment_leg_alone_vs_asset_growth": -0.9227,
+  "spearman_growth_leg_alone_vs_revenue_growth": 0.8857
+ },
+ "cells": {
+  "n_classified": 497,
+  "table": {
+   "low": {
+    "low": 177,
+    "high": 75
+   },
+   "high": {
+    "low": 74,
+    "high": 171
+   }
+  },
+  "off_diagonal": 149,
+  "off_diagonal_pct": 30.0,
+  "revenue up, assets flat (capital-light growth)": {
+   "n": 74,
+   "median_composite": 53.41,
+   "median_pair_points": 5.9,
+   "median_growth_score": 61.7,
+   "median_investment_score": 74.5
+  },
+  "assets up, revenue flat (capital without demand)": {
+   "n": 75,
+   "median_composite": 48.58,
+   "median_pair_points": 2.57,
+   "median_growth_score": 39.3,
+   "median_investment_score": 35.3
+  }
+ },
+ "spanning": {
+  "rg_pct_on_ag_pct": {
+   "beta": -0.4904,
+   "r2": 0.2418,
+   "n": 497,
+   "residual_share": 0.7582
+  },
+  "ag_pct_on_rg_pct": {
+   "beta": -0.4932,
+   "r2": 0.2418,
+   "n": 497,
+   "residual_share": 0.7582
+  }
+ },
+ "three_year_cagr": {
+  "within_sector_spearman_vs_asset_growth": 0.2466,
+  "within_sector_spearman_vs_revenue_growth": 0.3159,
+  "points": 1.95
+ },
+ "top25": {
+  "median_revenue_growth": 0.1082,
+  "median_asset_growth": 0.0693,
+  "universe_median_revenue_growth": 0.0931,
+  "universe_median_asset_growth": 0.0601,
+  "median_revenue_growth_pct": 63.3,
+  "median_asset_growth_pct": 46.0
+ },
+ "spread": {
+  "spearman_pair_points_vs_rank_spread": 0.892,
+  "spearman_pair_points_vs_raw_spread": 0.7406,
+  "median_raw_spread": 0.0329,
+  "share_revenue_outgrew_assets": 0.6559
+ },
+ "three_legs": {
+  "n": 497,
+  "points_top_line": 5.2,
+  "points_asset_growth": 5.0,
+  "spearman_vs_revenue_growth": 0.1716,
+  "spearman_vs_three_year_cagr": 0.3048,
+  "spearman_vs_asset_growth": -0.5635
+ }
+}
