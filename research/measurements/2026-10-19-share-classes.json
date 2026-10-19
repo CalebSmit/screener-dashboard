@@ -1,0 +1,1504 @@
+{
+ "run": "377ec40838b1",
+ "A_inventory": {
+  "pairs_in_universe": {
+   "NWS, NWSA": "News Corporation",
+   "GOOG, GOOGL": "Alphabet Inc.",
+   "FOX, FOXA": "Fox Corporation"
+  },
+  "rows_for_companies": "503 rows, 500 companies",
+  "other_listed_common_class_outside_universe": {
+   "BRK-B": "BRK-A",
+   "BF-B": "BF-A",
+   "LEN": "LEN-B",
+   "MKC": "MKC-V"
+  },
+  "line_shares_under_90pct_of_company_shares": {
+   "DELL": {
+    "line_over_company_shares": 0.493,
+    "marketCap_over_price_over_company_shares": 0.993
+   },
+   "ECHO": {
+    "line_over_company_shares": 0.549,
+    "marketCap_over_price_over_company_shares": 1.001
+   },
+   "RL": {
+    "line_over_company_shares": 0.633,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "BF-B": {
+    "line_over_company_shares": 0.633,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "EL": {
+    "line_over_company_shares": 0.685,
+    "marketCap_over_price_over_company_shares": 1.001
+   },
+   "ABNB": {
+    "line_over_company_shares": 0.711,
+    "marketCap_over_price_over_company_shares": 1.015
+   },
+   "HSY": {
+    "line_over_company_shares": 0.728,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "PCG": {
+    "line_over_company_shares": 0.734,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "RDDT": {
+    "line_over_company_shares": 0.76,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "AOS": {
+    "line_over_company_shares": 0.794,
+    "marketCap_over_price_over_company_shares": 0.98
+   },
+   "TSN": {
+    "line_over_company_shares": 0.801,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "NKE": {
+    "line_over_company_shares": 0.812,
+    "marketCap_over_price_over_company_shares": 1.001
+   },
+   "WDAY": {
+    "line_over_company_shares": 0.813,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "COIN": {
+    "line_over_company_shares": 0.845,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "LEN": {
+    "line_over_company_shares": 0.863,
+    "marketCap_over_price_over_company_shares": 0.988
+   },
+   "META": {
+    "line_over_company_shares": 0.865,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "UHS": {
+    "line_over_company_shares": 0.877,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "HOOD": {
+    "line_over_company_shares": 0.879,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "UPS": {
+    "line_over_company_shares": 0.881,
+    "marketCap_over_price_over_company_shares": 1.0
+   },
+   "ERIE": {
+    "line_over_company_shares": 0.883,
+    "marketCap_over_price_over_company_shares": 1.0
+   }
+  },
+  "marketCap_is_company_level_within_2pct": 457,
+  "marketCap_checked": 502,
+  "per_share_unit_check": {
+   "book_value_off_by_10x_or_more": {
+    "BRK-B": 0.00067,
+    "FDXF": -7.23544
+   },
+   "trailing_eps_off_by_10x_or_more": {
+    "DD": -1.55068,
+    "GIS": 0.0999,
+    "GPN": -1.6574,
+    "LYV": -0.52091,
+    "SKYD": 61.38221
+   },
+   "BRK-B": {
+    "bookValue": 522225.9,
+    "priceToBook": 0.001019,
+    "price": 532.02,
+    "sharesBS (Class A equivalents)": 1431693.0,
+    "book_per_B_share = equity / (sharesBS x 1500)": 348.26,
+    "trailingEps (per B share, check)": 39.94
+   }
+  }
+ },
+ "B_pairs": {
+  "NWSA / NWS": {
+   "designated (higher dollar volume)": "NWSA",
+   "ranks": {
+    "NWSA": 61,
+    "NWS": 98
+   },
+   "composites": {
+    "NWSA": 60.56,
+    "NWS": 56.69
+   },
+   "composite_gap_by_category (points)": {
+    "valuation": 1.89,
+    "quality": 0.0,
+    "growth": 0.0,
+    "momentum": 1.36,
+    "risk": 0.26,
+    "revisions": 0.14,
+    "size": 0.23,
+    "investment": 0.0
+   },
+   "metrics_that_differ": {
+    "ev_ebitda": {
+     "category": "valuation",
+     "NWSA": 10.9231,
+     "NWS": 11.8708,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "fcf_yield": {
+     "category": "valuation",
+     "NWSA": 0.0456,
+     "NWS": 0.042,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "earnings_yield": {
+     "category": "valuation",
+     "NWSA": 0.0354,
+     "NWS": 0.0323,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "ev_sales": {
+     "category": "valuation",
+     "NWSA": 1.9685,
+     "NWS": 2.1393,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "return_12_1": {
+     "category": "momentum",
+     "NWSA": 0.174,
+     "NWS": 0.1419,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "return_6m": {
+     "category": "momentum",
+     "NWSA": 0.1646,
+     "NWS": 0.1195,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "jensens_alpha": {
+     "category": "momentum",
+     "NWSA": 0.1004,
+     "NWS": 0.0471,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "volatility": {
+     "category": "risk",
+     "NWSA": 0.2637,
+     "NWS": 0.2702,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "beta": {
+     "category": "risk",
+     "NWSA": 0.2182,
+     "NWS": 0.2866,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "max_drawdown_1y": {
+     "category": "risk",
+     "NWSA": -0.2781,
+     "NWS": -0.2576,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "fy1_revision_3m": {
+     "category": "revisions",
+     "NWSA": 0.0009,
+     "NWS": 0.0009,
+     "differ": true,
+     "input_class": "analyst revision per share (the source's record for this line), over this line's price"
+    },
+    "price_target_upside": {
+     "category": "revisions",
+     "NWSA": 0.2042,
+     "NWS": null,
+     "differ": true,
+     "input_class": "analyst target in this line's price"
+    },
+    "short_interest_ratio": {
+     "category": "revisions",
+     "NWSA": 2.41,
+     "NWS": 3.31,
+     "differ": true,
+     "input_class": "this line's own market data (short interest / volume)"
+    },
+    "size_log_mcap": {
+     "category": "size",
+     "NWSA": -23.5069,
+     "NWS": -23.5976,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    }
+   },
+   "metrics_identical": [
+    "accruals",
+    "analyst_surprise",
+    "asset_growth",
+    "beneish_m_score",
+    "consecutive_beat_streak",
+    "forward_eps_growth",
+    "gross_profit_assets",
+    "net_debt_to_ebitda",
+    "piotroski_f_score",
+    "revenue_cagr_3yr",
+    "revenue_growth",
+    "roic",
+    "sustainable_growth"
+   ],
+   "price_checks": {
+    "price_ratio": 0.9133,
+    "marketCap_ratio": 0.9133,
+    "earnings_yield_ratio_x_price_ratio (1 = price explains it)": 1.0,
+    "fcf_yield_ratio_x_price_ratio": 0.9926,
+    "EV_gap_minus_marketCap_gap ($bn, 0 = price explains it)": -0.007
+   },
+   "inputs": {
+    "trailingEps": {
+     "NWSA": 1.03,
+     "NWS": 1.03
+    },
+    "forwardEps": {
+     "NWSA": 1.5117,
+     "NWS": 1.5117
+    },
+    "_fy1_eps_current": {
+     "NWSA": 1.3196,
+     "NWS": 1.3196
+    },
+    "_fy2_eps_current": {
+     "NWSA": 1.5117,
+     "NWS": 1.5117
+    },
+    "_fy1_eps_90d_ago": {
+     "NWSA": 1.2912,
+     "NWS": 1.2912
+    },
+    "numberOfAnalystOpinions": {
+     "NWSA": 8.0,
+     "NWS": null
+    },
+    "targetMeanPrice": {
+     "NWSA": 36.1625,
+     "NWS": null
+    },
+    "bookValue": {
+     "NWSA": 15.689,
+     "NWS": 15.689
+    },
+    "dividendRate": {
+     "NWSA": 0.2,
+     "NWS": 0.2
+    },
+    "netIncome": {
+     "NWSA": 573000000.0,
+     "NWS": 573000000.0
+    },
+    "totalEquity": {
+     "NWSA": 8526000000.0,
+     "NWS": 8526000000.0
+    },
+    "avg_daily_dollar_volume": {
+     "NWSA": 115458483.6149,
+     "NWS": 36492819.4459
+    },
+    "heldPercentInsiders": {
+     "NWSA": 0.0004,
+     "NWS": 0.3535
+    }
+   },
+   "eps_history [quarter, actual, estimate, surprise]": {
+    "NWSA": [
+     [
+      "2025-09-30",
+      0.22,
+      0.18842,
+      0.16760428829211335
+     ],
+     [
+      "2025-12-31",
+      0.4,
+      0.3741,
+      0.06923282544774134
+     ],
+     [
+      "2026-03-31",
+      0.21,
+      0.19913,
+      0.05458745543112535
+     ],
+     [
+      "2026-06-30",
+      0.35,
+      0.23142,
+      0.5124016938898971
+     ]
+    ],
+    "NWS": [
+     [
+      "2025-09-30",
+      0.22,
+      0.18842,
+      0.16760428829211335
+     ],
+     [
+      "2025-12-31",
+      0.4,
+      0.3741,
+      0.06923282544774134
+     ],
+     [
+      "2026-03-31",
+      0.21,
+      0.19913,
+      0.05458745543112535
+     ],
+     [
+      "2026-06-30",
+      0.35,
+      0.23142,
+      0.5124016938898971
+     ]
+    ]
+   },
+   "feg_basis": {
+    "NWSA": "msci_12m",
+    "NWS": "msci_12m"
+   }
+  },
+  "GOOGL / GOOG": {
+   "designated (higher dollar volume)": "GOOGL",
+   "ranks": {
+    "GOOGL": 226,
+    "GOOG": 133
+   },
+   "composites": {
+    "GOOGL": 51.23,
+    "GOOG": 55.19
+   },
+   "composite_gap_by_category (points)": {
+    "valuation": -1.05,
+    "quality": 0.0,
+    "growth": -4.0,
+    "momentum": 0.59,
+    "risk": -0.65,
+    "revisions": 1.38,
+    "size": -0.23,
+    "investment": 0.0
+   },
+   "metrics_that_differ": {
+    "ev_ebitda": {
+     "category": "valuation",
+     "GOOGL": 23.4967,
+     "GOOG": 23.2363,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "fcf_yield": {
+     "category": "valuation",
+     "GOOGL": 0.0131,
+     "GOOG": 0.0133,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "earnings_yield": {
+     "category": "valuation",
+     "GOOGL": 0.0586,
+     "GOOG": 0.0593,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "ev_sales": {
+     "category": "valuation",
+     "GOOGL": 9.1098,
+     "GOOG": 9.0089,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "forward_eps_growth": {
+     "category": "growth",
+     "GOOGL": -0.1875,
+     "GOOG": 0.315,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "return_12_1": {
+     "category": "momentum",
+     "GOOGL": 0.3671,
+     "GOOG": 0.3508,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "return_6m": {
+     "category": "momentum",
+     "GOOGL": 0.0047,
+     "GOOG": 0.0011,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "jensens_alpha": {
+     "category": "momentum",
+     "GOOGL": 0.1517,
+     "GOOG": 0.137,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "volatility": {
+     "category": "risk",
+     "GOOGL": 0.3067,
+     "GOOG": 0.3018,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "beta": {
+     "category": "risk",
+     "GOOGL": 1.3567,
+     "GOOG": 1.3383,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "max_drawdown_1y": {
+     "category": "risk",
+     "GOOGL": -0.2105,
+     "GOOG": -0.2075,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "fy1_revision_3m": {
+     "category": "revisions",
+     "GOOGL": 0.0186,
+     "GOOG": 0.0032,
+     "differ": true,
+     "input_class": "analyst revision per share (the source's record for this line), over this line's price"
+    },
+    "analyst_surprise": {
+     "category": "revisions",
+     "GOOGL": 0.5923,
+     "GOOG": 0.0586,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "price_target_upside": {
+     "category": "revisions",
+     "GOOGL": 0.264,
+     "GOOG": 0.249,
+     "differ": true,
+     "input_class": "analyst target in this line's price"
+    },
+    "consecutive_beat_streak": {
+     "category": "revisions",
+     "GOOGL": 10.0,
+     "GOOG": 6.0,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "short_interest_ratio": {
+     "category": "revisions",
+     "GOOGL": 2.99,
+     "GOOG": 2.96,
+     "differ": true,
+     "input_class": "this line's own market data (short interest / volume)"
+    },
+    "size_log_mcap": {
+     "category": "size",
+     "GOOGL": -29.0578,
+     "GOOG": -29.047,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    }
+   },
+   "metrics_identical": [
+    "accruals",
+    "asset_growth",
+    "beneish_m_score",
+    "gross_profit_assets",
+    "net_debt_to_ebitda",
+    "piotroski_f_score",
+    "revenue_cagr_3yr",
+    "revenue_growth",
+    "roic",
+    "sustainable_growth"
+   ],
+   "price_checks": {
+    "price_ratio": 1.0109,
+    "marketCap_ratio": 1.0109,
+    "earnings_yield_ratio_x_price_ratio (1 = price explains it)": 1.0,
+    "fcf_yield_ratio_x_price_ratio": 0.9997,
+    "EV_gap_minus_marketCap_gap ($bn, 0 = price explains it)": 0.0
+   },
+   "inputs": {
+    "trailingEps": {
+     "GOOGL": 19.93,
+     "GOOG": 19.93
+    },
+    "forwardEps": {
+     "GOOGL": 15.2916,
+     "GOOG": 15.2916
+    },
+    "_fy1_eps_current": {
+     "GOOGL": 20.5882,
+     "GOOG": 13.14
+    },
+    "_fy2_eps_current": {
+     "GOOGL": 15.0761,
+     "GOOG": 15.2896
+    },
+    "_fy1_eps_90d_ago": {
+     "GOOGL": 14.2494,
+     "GOOG": 12.062
+    },
+    "numberOfAnalystOpinions": {
+     "GOOGL": 54.0,
+     "GOOG": 14.0
+    },
+    "targetMeanPrice": {
+     "GOOGL": 430.5111,
+     "GOOG": 420.7886
+    },
+    "bookValue": {
+     "GOOGL": 50.896,
+     "GOOG": 50.896
+    },
+    "dividendRate": {
+     "GOOGL": 0.88,
+     "GOOG": 0.88
+    },
+    "netIncome": {
+     "GOOGL": 244205000000.0,
+     "GOOG": 244205000000.0
+    },
+    "totalEquity": {
+     "GOOGL": 640480000000.0,
+     "GOOG": 640480000000.0
+    },
+    "avg_daily_dollar_volume": {
+     "GOOGL": 9223929139.2205,
+     "GOOG": 6066932110.135
+    },
+    "heldPercentInsiders": {
+     "GOOGL": 0.016,
+     "GOOG": 0.0052
+    }
+   },
+   "eps_history [quarter, actual, estimate, surprise]": {
+    "GOOGL": [
+     [
+      "2025-09-30",
+      2.87,
+      2.26204,
+      0.26876624639705765
+     ],
+     [
+      "2025-12-31",
+      2.82,
+      2.63521,
+      0.07012344367242081
+     ],
+     [
+      "2026-03-31",
+      5.11,
+      2.66714,
+      0.9159099259881374
+     ],
+     [
+      "2026-06-30",
+      9.11,
+      2.89914,
+      2.142311168139517
+     ]
+    ],
+    "GOOG": [
+     [
+      "2025-09-30",
+      2.87,
+      2.26211,
+      0.2687269849830469
+     ],
+     [
+      "2025-12-31",
+      2.82,
+      2.64089,
+      0.06782183279121798
+     ],
+     [
+      "2026-03-31",
+      2.76,
+      2.62989,
+      0.0494735521257542
+     ],
+     [
+      "2026-06-30",
+      2.85,
+      2.91271,
+      -0.02152977811041952
+     ]
+    ]
+   },
+   "feg_basis": {
+    "GOOGL": "msci_12m",
+    "GOOG": "msci_12m"
+   }
+  },
+  "FOXA / FOX": {
+   "designated (higher dollar volume)": "FOXA",
+   "ranks": {
+    "FOXA": 47,
+    "FOX": 31
+   },
+   "composites": {
+    "FOXA": 62.21,
+    "FOX": 63.71
+   },
+   "composite_gap_by_category (points)": {
+    "valuation": -1.74,
+    "quality": 0.0,
+    "growth": -3.69,
+    "momentum": 0.8,
+    "risk": -0.45,
+    "revisions": 4.05,
+    "size": -0.45,
+    "investment": 0.0
+   },
+   "metrics_that_differ": {
+    "ev_ebitda": {
+     "category": "valuation",
+     "FOXA": 7.8007,
+     "FOX": 7.0562,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "fcf_yield": {
+     "category": "valuation",
+     "FOXA": 0.0482,
+     "FOX": 0.0533,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "earnings_yield": {
+     "category": "valuation",
+     "FOXA": 0.0623,
+     "FOX": 0.0698,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "ev_sales": {
+     "category": "valuation",
+     "FOXA": 1.7791,
+     "FOX": 1.6093,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    },
+    "forward_eps_growth": {
+     "category": "growth",
+     "FOXA": 0.0966,
+     "FOX": 0.4961,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "return_12_1": {
+     "category": "momentum",
+     "FOXA": 0.1715,
+     "FOX": 0.1656,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "return_6m": {
+     "category": "momentum",
+     "FOXA": 0.0212,
+     "FOX": 0.0156,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "jensens_alpha": {
+     "category": "momentum",
+     "FOXA": 0.0872,
+     "FOX": 0.0821,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "volatility": {
+     "category": "risk",
+     "FOXA": 0.3507,
+     "FOX": 0.3366,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "beta": {
+     "category": "risk",
+     "FOXA": 0.0656,
+     "FOX": 0.0389,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "max_drawdown_1y": {
+     "category": "risk",
+     "FOXA": -0.3558,
+     "FOX": -0.3414,
+     "differ": true,
+     "input_class": "this line's own return series"
+    },
+    "fy1_revision_3m": {
+     "category": "revisions",
+     "FOXA": 0.0031,
+     "FOX": null,
+     "differ": true,
+     "input_class": "analyst revision per share (the source's record for this line), over this line's price"
+    },
+    "analyst_surprise": {
+     "category": "revisions",
+     "FOXA": 0.3688,
+     "FOX": null,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "price_target_upside": {
+     "category": "revisions",
+     "FOXA": 0.2182,
+     "FOX": null,
+     "differ": true,
+     "input_class": "analyst target in this line's price"
+    },
+    "consecutive_beat_streak": {
+     "category": "revisions",
+     "FOXA": 10.0,
+     "FOX": null,
+     "differ": true,
+     "input_class": "analyst inputs per share (the source's record for this line)"
+    },
+    "short_interest_ratio": {
+     "category": "revisions",
+     "FOXA": 9.72,
+     "FOX": 7.3,
+     "differ": true,
+     "input_class": "this line's own market data (short interest / volume)"
+    },
+    "size_log_mcap": {
+     "category": "size",
+     "FOXA": -24.021,
+     "FOX": -23.9066,
+     "differ": true,
+     "input_class": "company figure / company value at this line's price"
+    }
+   },
+   "metrics_identical": [
+    "accruals",
+    "asset_growth",
+    "beneish_m_score",
+    "gross_profit_assets",
+    "net_debt_to_ebitda",
+    "piotroski_f_score",
+    "revenue_cagr_3yr",
+    "revenue_growth",
+    "roic",
+    "sustainable_growth"
+   ],
+   "price_checks": {
+    "price_ratio": 1.1211,
+    "marketCap_ratio": 1.1211,
+    "earnings_yield_ratio_x_price_ratio (1 = price explains it)": 1.0,
+    "fcf_yield_ratio_x_price_ratio": 1.0141,
+    "EV_gap_minus_marketCap_gap ($bn, 0 = price explains it)": -0.014
+   },
+   "inputs": {
+    "trailingEps": {
+     "FOXA": 3.84,
+     "FOX": 3.84
+    },
+    "forwardEps": {
+     "FOXA": 5.8967,
+     "FOX": 5.745
+    },
+    "_fy1_eps_current": {
+     "FOXA": 5.9954,
+     "FOX": null
+    },
+    "_fy2_eps_current": {
+     "FOXA": 5.8967,
+     "FOX": null
+    },
+    "_fy1_eps_90d_ago": {
+     "FOXA": 5.7961,
+     "FOX": null
+    },
+    "numberOfAnalystOpinions": {
+     "FOXA": 18.0,
+     "FOX": null
+    },
+    "targetMeanPrice": {
+     "FOXA": 78.1444,
+     "FOX": null
+    },
+    "bookValue": {
+     "FOXA": 27.713,
+     "FOX": 27.713
+    },
+    "dividendRate": {
+     "FOXA": 0.58,
+     "FOX": 0.58
+    },
+    "netIncome": {
+     "FOXA": 1685000000.0,
+     "FOX": 1685000000.0
+    },
+    "totalEquity": {
+     "FOXA": 11628000000.0,
+     "FOX": 11628000000.0
+    },
+    "avg_daily_dollar_volume": {
+     "FOXA": 297043688.4139,
+     "FOX": 61755657.5046
+    },
+    "heldPercentInsiders": {
+     "FOXA": 0.014,
+     "FOX": 0.3987
+    }
+   },
+   "eps_history [quarter, actual, estimate, surprise]": {
+    "FOXA": [
+     [
+      "2025-09-30",
+      1.51,
+      1.09885,
+      0.37416389862128574
+     ],
+     [
+      "2025-12-31",
+      0.82,
+      0.51701,
+      0.5860428231562252
+     ],
+     [
+      "2026-03-31",
+      1.32,
+      0.96808,
+      0.3635236757292786
+     ],
+     [
+      "2026-06-30",
+      1.79,
+      1.38448,
+      0.29290419507685206
+     ]
+    ],
+    "FOX": null
+   },
+   "feg_basis": {
+    "FOXA": "msci_12m",
+    "FOX": "fy2_over_trailing"
+   }
+  }
+ },
+ "filed_quarterly_diluted_eps": {
+  "GOOGL": {
+   "2025-03-31": 2.81,
+   "2025-06-30": 2.31,
+   "2025-09-30": 2.87,
+   "2025-12-31": 2.82,
+   "2026-03-31": 5.11,
+   "2026-06-30": 9.11
+  },
+  "AMZN": {
+   "2025-03-31": 1.59,
+   "2025-06-30": 1.68,
+   "2025-09-30": 1.95,
+   "2025-12-31": 1.95,
+   "2026-03-31": 2.78,
+   "2026-06-30": 5.75
+  }
+ },
+ "source_eps_history_amzn": [
+  [
+   "2025-09-30",
+   1.95,
+   1.55757,
+   0.2519501531231342
+  ],
+  [
+   "2025-12-31",
+   1.95,
+   1.95962,
+   -0.004909115032506283
+  ],
+  [
+   "2026-03-31",
+   2.78,
+   1.65303,
+   0.6817601616425593
+  ],
+  [
+   "2026-06-30",
+   5.75,
+   1.82604,
+   2.1488904952794026
+  ]
+ ],
+ "stocks_with_a_quarter_surprise_over_50pct": {
+  "count": 67,
+  "tickers": [
+   "AES",
+   "ALB",
+   "ARE",
+   "GOOGL",
+   "AMZN",
+   "BAX",
+   "BIIB",
+   "BE",
+   "BA",
+   "BF-B",
+   "BG",
+   "BXP",
+   "CPT",
+   "CVNA",
+   "CNC",
+   "COIN",
+   "FIX",
+   "DELL",
+   "DLTR",
+   "DOW",
+   "ECHO",
+   "ERIE",
+   "EL",
+   "FRT",
+   "F",
+   "FOXA",
+   "GEV",
+   "DOC",
+   "HAS",
+   "HST",
+   "INTC",
+   "IP",
+   "LYV",
+   "LULU",
+   "LYB",
+   "MPC",
+   "META",
+   "MGM",
+   "MRNA",
+   "MOS",
+   "NWS",
+   "NWSA",
+   "NKE",
+   "NCLH",
+   "OXY",
+   "PSX",
+   "PNW",
+   "PLD",
+   "PTC",
+   "RDDT",
+   "REG",
+   "CRM",
+   "SNDK",
+   "SKYD",
+   "LUV",
+   "SMCI",
+   "TTWO",
+   "TGT",
+   "TPL",
+   "TKO",
+   "TRV",
+   "TFC",
+   "UBER",
+   "UDR",
+   "VTR",
+   "VST",
+   "WY"
+  ]
+ },
+ "baseline_reproduces_published_ranks": "501 of 501",
+ "C_stakes": {
+  "BASE": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> 31",
+     "composite": "63.71 -> 63.71",
+     "growth": 74.1,
+     "revisions": 25.0
+    },
+    "FOXA": {
+     "rank": "47 -> 47",
+     "composite": "62.21 -> 62.21",
+     "growth": 45.7,
+     "revisions": 65.5
+    },
+    "GOOG": {
+     "rank": "133 -> 133",
+     "composite": "55.19 -> 55.19",
+     "growth": 71.9,
+     "revisions": 67.1
+    },
+    "GOOGL": {
+     "rank": "226 -> 226",
+     "composite": "51.23 -> 51.23",
+     "growth": 41.1,
+     "revisions": 80.9
+    },
+    "NWS": {
+     "rank": "98 -> 98",
+     "composite": "56.69 -> 56.69",
+     "growth": 39.3,
+     "revisions": 58.7
+    },
+    "NWSA": {
+     "rank": "61 -> 61",
+     "composite": "60.56 -> 60.56",
+     "growth": 39.3,
+     "revisions": 60.1
+    }
+   },
+   "others_moved_any": 0,
+   "others_max_abs_move": 0,
+   "biggest_other_moves": {
+    "EXPE": {
+     "sector": "Consumer Discretionary",
+     "rank": "1 -> 1"
+    },
+    "APA": {
+     "sector": "Energy",
+     "rank": "2 -> 2"
+    },
+    "INCY": {
+     "sector": "Health Care",
+     "rank": "3 -> 3"
+    },
+    "HST": {
+     "sector": "Real Estate",
+     "rank": "4 -> 4"
+    },
+    "SNDK": {
+     "sector": "Information Technology",
+     "rank": "5 -> 5"
+    }
+   },
+   "same_sector_others_mean_composite_change": 0.0,
+   "others_moved_10_or_more_by_sector": {},
+   "top25_out": [],
+   "top25_in": [],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  },
+  "FILL": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> 6",
+     "composite": "63.71 -> 68.28",
+     "growth": 74.1,
+     "revisions": 70.7
+    },
+    "FOXA": {
+     "rank": "47 -> 49",
+     "composite": "62.21 -> 62.05",
+     "growth": 45.7,
+     "revisions": 63.9
+    },
+    "GOOG": {
+     "rank": "133 -> 135",
+     "composite": "55.19 -> 55.02",
+     "growth": 71.9,
+     "revisions": 65.4
+    },
+    "GOOGL": {
+     "rank": "226 -> 224",
+     "composite": "51.23 -> 51.31",
+     "growth": 41.1,
+     "revisions": 81.6
+    },
+    "NWS": {
+     "rank": "98 -> 112",
+     "composite": "56.69 -> 56.03",
+     "growth": 39.3,
+     "revisions": 52.1
+    },
+    "NWSA": {
+     "rank": "61 -> 61",
+     "composite": "60.56 -> 60.38",
+     "growth": 39.3,
+     "revisions": 58.3
+    }
+   },
+   "others_moved_any": 86,
+   "others_max_abs_move": 5,
+   "biggest_other_moves": {
+    "RDDT": {
+     "sector": "Communication Services",
+     "rank": "215 -> 220"
+    },
+    "DIS": {
+     "sector": "Communication Services",
+     "rank": "315 -> 320"
+    },
+    "TMUS": {
+     "sector": "Communication Services",
+     "rank": "208 -> 213"
+    },
+    "APP": {
+     "sector": "Communication Services",
+     "rank": "286 -> 290"
+    },
+    "TKO": {
+     "sector": "Communication Services",
+     "rank": "169 -> 172"
+    }
+   },
+   "same_sector_others_mean_composite_change": -0.09,
+   "others_moved_10_or_more_by_sector": {},
+   "top25_out": [
+    "WDC"
+   ],
+   "top25_in": [
+    "FOX"
+   ],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  },
+  "CONSENSUS": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> 26",
+     "composite": "63.71 -> 64.74",
+     "growth": 49.3,
+     "revisions": 67.6
+    },
+    "FOXA": {
+     "rank": "47 -> 46",
+     "composite": "62.21 -> 62.42",
+     "growth": 49.3,
+     "revisions": 62.9
+    },
+    "GOOG": {
+     "rank": "133 -> 188",
+     "composite": "55.19 -> 52.76",
+     "growth": 42.3,
+     "revisions": 81.4
+    },
+    "GOOGL": {
+     "rank": "226 -> 227",
+     "composite": "51.23 -> 51.15",
+     "growth": 42.3,
+     "revisions": 78.6
+    },
+    "NWS": {
+     "rank": "98 -> 101",
+     "composite": "56.69 -> 56.55",
+     "growth": 44.0,
+     "revisions": 51.2
+    },
+    "NWSA": {
+     "rank": "61 -> 59",
+     "composite": "60.56 -> 60.91",
+     "growth": 44.0,
+     "revisions": 57.4
+    }
+   },
+   "others_moved_any": 146,
+   "others_max_abs_move": 17,
+   "biggest_other_moves": {
+    "OMC": {
+     "sector": "Communication Services",
+     "rank": "344 -> 327"
+    },
+    "META": {
+     "sector": "Communication Services",
+     "rank": "340 -> 325"
+    },
+    "NFLX": {
+     "sector": "Communication Services",
+     "rank": "322 -> 310"
+    },
+    "T": {
+     "sector": "Communication Services",
+     "rank": "110 -> 100"
+    },
+    "RDDT": {
+     "sector": "Communication Services",
+     "rank": "215 -> 223"
+    }
+   },
+   "same_sector_others_mean_composite_change": 0.2,
+   "others_moved_10_or_more_by_sector": {
+    "Communication Services": 4
+   },
+   "top25_out": [],
+   "top25_in": [],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  },
+  "CONS_GOOG": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> 26",
+     "composite": "63.71 -> 64.74",
+     "growth": 44.5,
+     "revisions": 73.8
+    },
+    "FOXA": {
+     "rank": "47 -> 49",
+     "composite": "62.21 -> 61.99",
+     "growth": 44.5,
+     "revisions": 64.8
+    },
+    "GOOG": {
+     "rank": "133 -> 123",
+     "composite": "55.19 -> 55.48",
+     "growth": 73.1,
+     "revisions": 68.5
+    },
+    "GOOGL": {
+     "rank": "226 -> 163",
+     "composite": "51.23 -> 53.87",
+     "growth": 73.1,
+     "revisions": 65.7
+    },
+    "NWS": {
+     "rank": "98 -> 110",
+     "composite": "56.69 -> 56.12",
+     "growth": 39.3,
+     "revisions": 53.0
+    },
+    "NWSA": {
+     "rank": "61 -> 61",
+     "composite": "60.56 -> 60.47",
+     "growth": 39.3,
+     "revisions": 59.2
+    }
+   },
+   "others_moved_any": 113,
+   "others_max_abs_move": 12,
+   "biggest_other_moves": {
+    "VZ": {
+     "sector": "Communication Services",
+     "rank": "117 -> 129"
+    },
+    "APP": {
+     "sector": "Communication Services",
+     "rank": "286 -> 280"
+    },
+    "TMUS": {
+     "sector": "Communication Services",
+     "rank": "208 -> 203"
+    },
+    "TKO": {
+     "sector": "Communication Services",
+     "rank": "169 -> 173"
+    },
+    "RDDT": {
+     "sector": "Communication Services",
+     "rank": "215 -> 218"
+    }
+   },
+   "same_sector_others_mean_composite_change": -0.07,
+   "others_moved_10_or_more_by_sector": {
+    "Communication Services": 1
+   },
+   "top25_out": [],
+   "top25_in": [],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  },
+  "ONCE": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> 43",
+     "composite": "63.71 -> 62.75",
+     "growth": 49.3,
+     "revisions": 64.3
+    },
+    "FOXA": {
+     "rank": "47 -> 43",
+     "composite": "62.21 -> 62.75",
+     "growth": 49.3,
+     "revisions": 64.3
+    },
+    "GOOG": {
+     "rank": "133 -> 207",
+     "composite": "55.19 -> 51.8",
+     "growth": 42.3,
+     "revisions": 79.3
+    },
+    "GOOGL": {
+     "rank": "226 -> 207",
+     "composite": "51.23 -> 51.8",
+     "growth": 42.3,
+     "revisions": 79.3
+    },
+    "NWS": {
+     "rank": "98 -> 69",
+     "composite": "56.69 -> 59.74",
+     "growth": 44.0,
+     "revisions": 56.0
+    },
+    "NWSA": {
+     "rank": "61 -> 69",
+     "composite": "60.56 -> 59.74",
+     "growth": 44.0,
+     "revisions": 56.0
+    }
+   },
+   "others_moved_any": 206,
+   "others_max_abs_move": 15,
+   "biggest_other_moves": {
+    "META": {
+     "sector": "Communication Services",
+     "rank": "340 -> 325"
+    },
+    "VZ": {
+     "sector": "Communication Services",
+     "rank": "117 -> 103"
+    },
+    "OMC": {
+     "sector": "Communication Services",
+     "rank": "344 -> 331"
+    },
+    "NFLX": {
+     "sector": "Communication Services",
+     "rank": "322 -> 310"
+    },
+    "TKO": {
+     "sector": "Communication Services",
+     "rank": "169 -> 181"
+    }
+   },
+   "same_sector_others_mean_composite_change": 0.2,
+   "others_moved_10_or_more_by_sector": {
+    "Communication Services": 5
+   },
+   "top25_out": [],
+   "top25_in": [],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  },
+  "ONCE_DROP": {
+   "lines": {
+    "FOX": {
+     "rank": "31 -> (not ranked)",
+     "composite": "63.71 -> None",
+     "growth": null,
+     "revisions": null
+    },
+    "FOXA": {
+     "rank": "47 -> 28",
+     "composite": "62.21 -> 64.39",
+     "growth": 47.6,
+     "revisions": 67.3
+    },
+    "GOOG": {
+     "rank": "133 -> (not ranked)",
+     "composite": "55.19 -> None",
+     "growth": null,
+     "revisions": null
+    },
+    "GOOGL": {
+     "rank": "226 -> 197",
+     "composite": "51.23 -> 52.22",
+     "growth": 41.7,
+     "revisions": 79.9
+    },
+    "NWS": {
+     "rank": "98 -> (not ranked)",
+     "composite": "56.69 -> None",
+     "growth": null,
+     "revisions": null
+    },
+    "NWSA": {
+     "rank": "61 -> 52",
+     "composite": "60.56 -> 61.63",
+     "growth": 43.2,
+     "revisions": 60.3
+    }
+   },
+   "others_moved_any": 381,
+   "others_max_abs_move": 59,
+   "biggest_other_moves": {
+    "LYV": {
+     "sector": "Communication Services",
+     "rank": "391 -> 332"
+    },
+    "TKO": {
+     "sector": "Communication Services",
+     "rank": "169 -> 112"
+    },
+    "OMC": {
+     "sector": "Communication Services",
+     "rank": "344 -> 298"
+    },
+    "DIS": {
+     "sector": "Communication Services",
+     "rank": "315 -> 274"
+    },
+    "TMUS": {
+     "sector": "Communication Services",
+     "rank": "208 -> 167"
+    }
+   },
+   "same_sector_others_mean_composite_change": 1.56,
+   "others_moved_10_or_more_by_sector": {
+    "Communication Services": 14
+   },
+   "top25_out": [],
+   "top25_in": [],
+   "companies_twice_in_top25": {},
+   "companies_twice_in_top40": {}
+  }
+ },
+ "designated_lines": {
+  "NWS": "NWSA",
+  "GOOG": "GOOGL",
+  "FOX": "FOXA"
+ },
+ "sector_peer_group": {
+  "sector": "Communication Services",
+  "rows": 22,
+  "rows_that_are_second_lines": 3,
+  "all_six_lines_in_it": true
+ },
+ "D_history": {
+  "snapshots": 59,
+  "first": "2026-02-20_ca066971900d",
+  "last": "2026-10-19_377ec40838b1",
+  "pairs": {
+   "NWSA/NWS": {
+    "runs": 59,
+    "both_top25": [],
+    "both_top40_one_top25": [],
+    "median_rank_gap": 39.0,
+    "max_rank_gap": 231
+   },
+   "GOOGL/GOOG": {
+    "runs": 59,
+    "both_top25": [],
+    "both_top40_one_top25": [],
+    "median_rank_gap": 31.0,
+    "max_rank_gap": 112
+   },
+   "FOXA/FOX": {
+    "runs": 59,
+    "both_top25": [
+     "2026-02-20",
+     "2026-02-21",
+     "2026-02-22",
+     "2026-02-23"
+    ],
+    "both_top40_one_top25": [
+     "2026-02-20",
+     "2026-02-21",
+     "2026-02-22",
+     "2026-02-23",
+     "2026-03-15",
+     "2026-03-16",
+     "2026-04-14",
+     "2026-07-29"
+    ],
+    "median_rank_gap": 19.0,
+    "max_rank_gap": 349
+   }
+  }
+ }
+}
