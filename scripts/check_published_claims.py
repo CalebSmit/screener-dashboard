@@ -167,6 +167,11 @@ MODULES: tuple[tuple[str, str], ...] = (
      "no baked summary carries advice language"),
     ("tests/test_dashboard_surfaces.py",
      "deleted surfaces and payload keys stay deleted"),
+    # Added 2026-10-19: the Track record panel's sentences against track_record.build - entry
+    # timing read from each run's own prices, turnover and break-even cost by hand arithmetic,
+    # the coin-toss and standard-error figures, and the nine corrected sentences.
+    ("tests/test_track_record_claims.py",
+     "the Track record panel says what track_record.build computes, and no more"),
 )
 
 PYTEST_MISSING = 3

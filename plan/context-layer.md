@@ -197,7 +197,20 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    a stored summary of it - item 2's lesson, that a claim whose check tests the plumbing is an
    unchecked claim, applied in advance this time.
 
-   **What stays open after 2026-10-17: the one signal with no note of its own - the track record**
+   **The track record's note is DONE 2026-10-19 - `research/2026-10-19-track-record.md`, so every
+   context signal now has a note.** It finds the record cannot discriminate skill (the day-by-day lead
+   over RSP is 0.8 standard errors from zero after 165 days; 4.3 years to reach two at the same pace;
+   5 of 7 periods is a coin toss's 23%), quotes Lo (2002), Bailey & López de Prado (2012), Fama &
+   French (2010), McLean & Pontiff (2016) and GIPS 2020 (2.A.12, 2.A.13, 4.C.18, 4.C.48), DOIs resolved
+   through Crossref. **Nine panel sentences said more than the arithmetic and are corrected**
+   (note section 6; claims `context.track_record`, `context.track_luck`, `context.track_turnover`;
+   `tests/test_track_record_claims.py`, in the publish gate; two `FORBIDDEN` patterns), among them
+   "with nothing backfilled" (the February snapshots were written on 2026-03-09 from saved output),
+   "the like-for-like benchmark", "monthly holding periods", a percentage-point spread printed as a
+   percent, and a takeover-premium explanation beside two picks the screener's own records price
+   flat. One was a defect in the arithmetic, fixed: see item 6. **The track record is not a score
+   candidate, structurally** (it is the score's outcome). **What was open before that note:** the one
+   signal with no note of its own - the track record
    (the options panel's note is done, and its three findings with it; see below). Plus each signal's
    *measured* record, which `context_eval.py` starts reporting after 2026-11-07. Original text:
    **One research note per signal** (Monday standard: literature with effect sizes *and* practice):
@@ -268,8 +281,23 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    prices a renamed pick under its new symbol (CIK) and a pick that stopped trading from the snapshots'
    `price_at_scoring` until its last record (price only - the page says so); a pick with no price on
    the day its basket formed is still left out and listed (EA and HOLX in February: the snapshots carry
-   no price before 2026-03-06). Claim `context.track_record`, 2 tests. Remaining: turnover/cost and
-   the benchmark question. History: Prices for names that left the index (some tickers fail to download -
+   no price before 2026-03-06). Claim `context.track_record`, 2 tests.
+   **Turnover/cost DONE 2026-10-19** (`research/2026-10-19-track-record.md` section 7): one-way
+   turnover per rebalance from the drifted basket (`one_way_turnover`; mean 31%, 19-53%) and the
+   break-even cost per dollar traded that would erase the lead over RSP (`break_even_cost`; 1.48% on
+   the cached prices), display-only, claim `context.track_turnover`. **No estimated cost is shown**:
+   GIPS 2020 4.C.18 wants an estimate's basis disclosed and no primary source for large-cap US costs
+   was verifiable this session (Frazzini, Israel & Moskowitz 2018 read only second-hand). Adding one
+   needs that source first. **The same session fixed an entry-timing defect**: the 2026-08-10
+   rebalance run was made after that day's close and entered at it; `runs_after_the_close` now reads
+   each run's time of day from its own `price_at_scoring` (2026-02-20 and 04-14 record no prices and
+   are named on the page as untimed). Do **not** "simplify" this to entering every run a day later:
+   measured, that moves five periods whose runs came before the close and the headline from +12.7% to
+   +17.2% (note section 6). **The benchmark question is answered as "keep both"** (note section 8):
+   RSP isolates selection, SPY answers "better than the index I could hold"; they disagreed by more
+   than the lead itself this window. Open: record each run's timestamp in its snapshot (needs
+   `improvement_engine.record_run_snapshot`), so section 6's inference is not needed for future runs.
+   History: Prices for names that left the index (some tickers fail to download -
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25). *Diagnosed
    2026-10-15 (owner-run):* **four are renames** - the SEC CIK in `data/universe_history/ticker_ciks.json`
    maps EQR->VMRK, BK->BNY, MMC->MRSH, SATS->ECHO, each priced under its new symbol (backtest v2's
