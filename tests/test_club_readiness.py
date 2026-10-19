@@ -258,6 +258,50 @@ def test_the_run_note_sits_beside_the_rule_it_reads():
     assert "\n**Momentum regime rule" in run_screener.build_screener_overview(cfg)
 
 
+def _glosses() -> dict[str, str]:
+    """The plain-English glosses added to the options, insider and market panels, as published."""
+    js = gd._js_context()
+    opt = re.findall(r"og\.push\('([^']+)'\)", js)
+    plan = re.search(r'ctx-gloss">(A <b>Rule 10b5-1 plan</b>[^<]+(?:<[^>]+>[^<]*)*?)</p>', js).group(1)
+    sahm = re.search(r"MK_GLOSS = \{jobs: '([^']+)'\}", js).group(1)
+    return {"implied volatility": _text(opt[0]), "put skew": _text(opt[1]), "10b5-1": _text(plan),
+            "sahm": _text(sahm)}
+
+
+def test_the_context_terms_are_glossed_on_first_use():
+    g = _glosses()
+    assert "Implied volatility is the size of the yearly price swings that option prices assume" in g["implied volatility"]
+    assert "realised is the swing the stock actually had over the past year" in g["implied volatility"]
+    # the measure the page computes (context_signals: the OTM put nearest 95% of the price minus
+    # the ATM call), said in words; and a reading of the sign that holds when it is negative
+    assert "put that pays out only after a fall of roughly 5% or more, minus that of a call at today" in g["put skew"]
+    assert "A higher figure means protection against a drop costs more." in g["put skew"]
+    import context_signals
+    assert context_signals.XZZ_PUT_TARGET == 0.95
+    assert "schedule of trades an insider sets up in advance" in g["10b5-1"]
+    # the Sahm gloss is market_context.sahm_indicator's arithmetic: the 3-month average minus its
+    # lowest 3-month average over the prior 12 months, against the rule's 0.50pp
+    assert "averaged over three months, has risen above its lowest three-month average of the past year" in g["sahm"]
+    import market_context
+    u = pd.Series([4.0] * 13 + [4.3, 4.6, 4.9])
+    avg3 = u.rolling(3).mean()
+    assert market_context.sahm_indicator(u) == round(avg3.iloc[-1] - avg3.iloc[-13:-1].min(), 2)
+    assert "0.50 percentage points" in g["sahm"]
+
+
+def test_the_glosses_carry_no_advice_and_read_plainly():
+    for name, text in _glosses().items():
+        assert stock_summary.advice_terms_in(text) == [], (name, stock_summary.advice_terms_in(text))
+        assert "—" not in text and "&mdash;" not in text, name
+        assert not re.search(r"\w, not (a|an|the)?\s?\w+", text), (name, text)
+
+
+def test_the_score_cards_spell_out_points_of_the_most_possible():
+    js = gd.generate_html()
+    assert "' pts (' " not in js and " wt';" not in js
+    assert "fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points'" in js
+
+
 def test_the_market_backdrop_glosses_pp_and_fred():
     js = gd._js_context()
     assert "A pp is a percentage point" in js
@@ -398,6 +442,127 @@ def test_two_stocks_side_by_side_fit_a_phone(browser):
         page.wait_for_selector(".cmp-scroll", state="visible")
         fits = page.evaluate("(() => { const s = document.querySelector('.cmp-scroll'); return s.scrollWidth <= s.clientWidth + 1; })()")
         assert fits
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_a_phone_reader_deep_in_the_ranking_has_a_way_back(browser):
+    """Below 760px the header scrolls away and below 400px it has no Methodology button. A Menu
+    button appears once the header is gone and reaches the top, search, Methodology, the key and
+    every section the header reaches."""
+    ctx, page, errors = _open(browser)
+    try:
+        assert page.evaluate("document.getElementById('m-nav-btn').hidden")          # not at the top
+        page.evaluate("document.getElementById('sec-universe').scrollIntoView(); window.scrollBy(0, 20000)")
+        page.wait_for_function("!document.getElementById('m-nav-btn').hidden", timeout=5000)
+        page.tap("#m-nav-btn")
+        page.wait_for_selector("#m-nav", state="visible")
+        items = page.locator("#m-nav button").all_inner_texts()
+        header = page.evaluate("[...document.querySelectorAll('.header-nav a')].filter(a => a.style.display !== 'none').map(a => a.textContent)")
+        assert items[:4] == ["Back to top", "Search stocks", "Methodology", "What the columns mean"], items
+        assert set(header) <= set(items[4:]), (header, items)
+        box = page.locator("#m-nav").bounding_box()
+        assert box["x"] >= 0 and box["x"] + box["width"] <= 375 and box["y"] >= 0, box
+        for b in page.locator("#m-nav button").all():
+            assert b.bounding_box()["height"] >= 40
+        assert _no_sideways_scroll(page)
+        page.locator("#m-nav button", has_text="Methodology").tap()
+        page.wait_for_function("document.getElementById('methodology-modal').style.display === 'flex'")
+        assert page.evaluate("document.getElementById('m-nav').hidden")
+        page.evaluate("closeMethodology()")
+        page.tap("#m-nav-btn")
+        page.locator("#m-nav button", has_text="Back to top").tap()
+        page.wait_for_function("scrollY < 50", timeout=5000)
+        page.wait_for_function("document.getElementById('m-nav-btn').hidden", timeout=5000)
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_the_phone_menu_stays_out_of_the_sheet_and_the_tray(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("try { localStorage.setItem('screener_ux_compare', JSON.stringify(['EXPE', 'JPM'])) } catch (e) {}")
+        page.reload(wait_until="load")
+        page.wait_for_function("document.querySelectorAll('#universe-tbody tr[data-t]').length > 0", timeout=30000)
+        page.evaluate("window.scrollTo(0, 20000)")
+        page.wait_for_function("!document.getElementById('m-nav-btn').hidden", timeout=5000)
+        fab, tray = page.locator("#m-nav-btn").bounding_box(), page.locator("#cmp-tray").bounding_box()
+        assert fab["y"] + fab["height"] <= tray["y"], (fab, tray)                    # above the tray
+        page.evaluate("openStockDetail('JPM')")
+        page.wait_for_selector("#stock-modal .msr-note", state="visible")
+        x, y = fab["x"] + fab["width"] / 2, fab["y"] + fab["height"] / 2
+        assert page.evaluate(f"document.elementFromPoint({x}, {y}).id") != "m-nav-btn"  # the sheet covers it
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_no_phone_menu_at_desktop_width(browser):
+    ctx, page, errors = _open(browser, phone=False)
+    try:
+        page.evaluate("window.scrollTo(0, 20000)")
+        page.wait_for_timeout(300)
+        assert not page.locator("#m-nav-btn").is_visible()
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_the_score_cards_read_as_points_of_the_most_possible(browser):
+    for phone in (True, False):
+        ctx, page, errors = _open(browser, phone=phone, hash_="#stock=JPM")
+        try:
+            page.wait_for_selector("#stock-modal .msr-note", state="visible")
+            got = page.evaluate("[...document.querySelectorAll('#stock-modal .modal-score-card:not(.composite) .modal-score-sub')].map(e => [e.textContent, e.scrollWidth <= e.clientWidth + 1])")
+            want = page.evaluate("(() => { const s = D.stock_detail.JPM, ew = effWeights(s); return ['valuation','quality','growth','momentum','risk','revisions','size','investment'].map(c => s.cat_scores[c] == null ? null : fmt(s.contrib[c], 'score') + ' of ' + fmtWeight(ew[c]).replace('%', '') + ' points'); })()")
+            assert [t for t, _ in got] == [w or "Not scored: no data" for w in want]
+            assert all(re.fullmatch(r"\d+(\.\d)? of \d+(\.\d)? points", t) for t, _ in got), got
+            assert all(fits for _, fits in got), got
+            assert errors == []
+        finally:
+            ctx.close()
+
+
+@needs_browser
+def test_methodology_opens_on_the_overview_and_the_run_note_follows_its_rule(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        page.evaluate("openMethodology()")
+        page.wait_for_selector("#methodology-modal .method-run-note", state="attached")
+        before = page.evaluate("document.querySelector('.method-run-note').previousElementSibling.textContent.trim()")
+        assert before.startswith("Momentum regime rule"), before[:80]
+        first_h2 = page.evaluate("document.querySelector('#methodology-modal .methodology-body h2').textContent")
+        assert first_h2 == "Overview"
+        assert page.evaluate("document.querySelector('#methodology-modal .methodology-body h2').compareDocumentPosition(document.querySelector('.method-run-note')) & Node.DOCUMENT_POSITION_FOLLOWING")
+        assert _no_sideways_scroll(page)
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+@needs_browser
+def test_the_glosses_render_on_a_phone(browser):
+    ctx, page, errors = _open(browser)
+    try:
+        page.wait_for_function("!!window.SCREENER_CONTEXT", timeout=30000)
+        # a stock whose options and insider panels carry the terms
+        t = page.evaluate("Object.keys(D.stock_detail).find(k => { const c = (window.SCREENER_CONTEXT.ctx || {})[k] || {}; return (c.os === 'ok') && c.oi !== undefined && c.osk !== undefined && c.ins && c.ins.src === 'sec' && (c.ins.recent || []).some(r => r.plan); })")
+        if not t:
+            pytest.skip("no stock this run carries every glossed term")
+        page.evaluate(f"openStockDetail('{t}')")
+        page.wait_for_selector("#stock-modal .ctx-gloss", state="attached", timeout=15000)
+        text = " ".join(page.locator("#stock-modal .ctx-gloss").all_inner_texts())
+        assert "Implied volatility is" in text and "Put skew is" in text and "Rule 10b5-1 plan is" in text
+        page.evaluate("closeModal(); goToSection('sec-market')")
+        page.wait_for_selector(".mk-gloss", state="attached", timeout=15000)
+        assert "averaged over three months" in page.inner_text(".mk-gloss")
+        assert _no_sideways_scroll(page)
         assert errors == []
     finally:
         ctx.close()

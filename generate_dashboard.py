@@ -2196,6 +2196,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
         </div>
 
+        <!-- A way back on a phone (club readiness, 2026-10-19). Below 760px the header scrolls away
+             and below 400px it has no Methodology button; 501 ranking cards run to ~48,000px. The
+             menu is built when opened (openMobileNav), so it adds two elements to the first paint. -->
+        <button type="button" class="m-nav-btn" id="m-nav-btn" hidden aria-haspopup="true" aria-expanded="false" aria-controls="m-nav" onclick="toggleMobileNav()">Menu</button>
+        <nav class="m-nav" id="m-nav" hidden aria-label="Go to"></nav>
+
         <!-- Side-by-side comparison -->
         <div class="cmp-tray" id="cmp-tray" hidden role="region" aria-label="Comparison tray">
             <span class="cmp-tray-label">Compare</span>
@@ -3669,12 +3675,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const score = s.cat_scores[c];
             const contrib = s.contrib[c];
             const weight = (score === null || score === undefined) ? null : ew[c];
-            const wtText = weight === null ? 'no data' : fmtWeight(weight) + ' wt';
+            // Spelled out for a first-year reader (club readiness, 2026-10-19): the category's points
+            // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
+            const ptsText = weight === null ? 'Not scored: no data' : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
             scoreHtml += `<div class="modal-score-card" style="--v:${{sv.toFixed(3)}}" onclick="openWorkings('${{c}}')" title="Show how this score is built">
                 <div class="modal-score-label">${{CAT_LABELS[c]}}</div>
                 <div class="modal-score-val">${{fmt(score,'score')}}</div>
-                <div class="modal-score-sub">${{fmt(contrib,'score')}} pts (${{wtText}})</div>
+                <div class="modal-score-sub">${{ptsText}}</div>
             </div>`;
         }});
         // How to read the eight numbers above, said once where they are first met (club readiness,
@@ -8781,6 +8789,77 @@ def _js_ux() -> str:
         el.click();
     });
 
+    // ---- phone menu ----------------------------------------------------------------
+    // Below 760px the header is static, so from deep in the ranking the only ways back were
+    // scrolling or the search palette (club readiness, 2026-10-19). A small Menu button appears
+    // once the header has scrolled away and opens a list of the places the header reaches.
+    const M_NAV_MQ = window.matchMedia ? window.matchMedia('(max-width: 760px)') : { matches: false };
+    let M_NAV_ITEMS = [];
+    function buildMobileNav() {
+        const nav = document.getElementById('m-nav');
+        if (!nav) return;
+        const top = [
+            ['Back to top', () => window.scrollTo({ top: 0, behavior: 'smooth' })],
+            ['Search stocks', () => openPalette()],
+            ['Methodology', () => openMethodology()],
+            ['What the columns mean', () => openScoreKey()],
+        ];
+        const secs = [...document.querySelectorAll('.header-nav a')].map(a => {
+            const id = a.getAttribute('href').slice(1), el = document.getElementById(id);
+            return (el && el.style.display !== 'none' && a.style.display !== 'none') ? [a.textContent, () => goToSection(id)] : null;
+        }).filter(Boolean);
+        M_NAV_ITEMS = top.concat(secs);
+        const btn = (x, i) => '<button type="button" data-i="' + i + '">' + escapeHtml(x[0]) + '</button>';
+        nav.innerHTML = '<div class="m-nav-group">' + top.map(btn).join('') + '</div>' +
+            '<div class="m-nav-h">Sections</div><div class="m-nav-group">' + secs.map((x, i) => btn(x, i + top.length)).join('') + '</div>';
+    }
+    function openMobileNav() {
+        const nav = document.getElementById('m-nav'), btn = document.getElementById('m-nav-btn');
+        if (!nav || !btn) return;
+        buildMobileNav();                 // rebuilt on each open: a section can appear after load
+        nav.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        const first = nav.querySelector('button');
+        if (first) first.focus({ preventScroll: true });
+    }
+    function closeMobileNav() {
+        const nav = document.getElementById('m-nav'), btn = document.getElementById('m-nav-btn');
+        if (!nav || nav.hidden) return;
+        nav.hidden = true;
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    function toggleMobileNav() {
+        const nav = document.getElementById('m-nav');
+        if (nav && nav.hidden) openMobileNav(); else closeMobileNav();
+    }
+    function initMobileNav() {
+        const btn = document.getElementById('m-nav-btn'), nav = document.getElementById('m-nav');
+        if (!btn || !nav) return;
+        nav.addEventListener('click', e => {
+            const b = e.target.closest('button[data-i]');
+            if (!b) return;
+            const x = M_NAV_ITEMS[+b.dataset.i];
+            closeMobileNav();
+            if (x) x[1]();
+        });
+        let queued = false;
+        const update = () => {
+            queued = false;
+            const show = M_NAV_MQ.matches && window.scrollY > window.innerHeight;
+            if (btn.hidden === show) btn.hidden = !show;
+            if (!show) closeMobileNav();
+        };
+        window.addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+        window.addEventListener('resize', update);
+        document.addEventListener('click', e => {
+            if (!nav.hidden && !nav.contains(e.target) && e.target !== btn) closeMobileNav();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !nav.hidden) { closeMobileNav(); btn.focus(); }
+        });
+        update();
+    }
+
     function initUX() {
         UX.recent = (uxStore.get('recent', []) || []).filter(t => D.stock_detail[t]).slice(0, 6);
         UX.compare = (uxStore.get('compare', []) || []).filter(t => D.stock_detail[t]).slice(0, COMPARE_MAX);
@@ -8788,6 +8867,7 @@ def _js_ux() -> str:
         renderCompareTray();
         updateSectionMeta();
         initScrollSpy();
+        initMobileNav();
         bindAnalyticsLinks();
         bindRankChartHover();
         if (uxStore.get('guide_done', false)) { const g = document.getElementById('guide'); if (g) g.hidden = true; }
@@ -9612,7 +9692,12 @@ def _js_context() -> str:
                 o += '<tr><td>Put skew (out-of-the-money put vs at-the-money call)</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
                 if (c.oskp !== undefined && c.oskc !== undefined) o += '<tr class="ctx-sub"><td>' + cPrice(c.oskps) + ' put ' + cPlain(c.oskp, 0) + ' − ' + cPrice(c.oskcs) + ' call ' + cPlain(c.oskc, 0) + '</td><td class="num">' + (c.osk >= 0 ? '+' : '−') + Math.abs(c.osk * 100).toFixed(1) + ' pts</td></tr>';
             }
-            o += '</tbody></table><p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
+            // Plain-English glosses on first use (club readiness, 2026-10-19). Definitions only,
+            // matching context_signals.options_context and research/2026-10-12-option-implied-signals.md.
+            const og = [];
+            if (c.oi !== undefined) og.push('<b>Implied volatility</b> is the size of the yearly price swings that option prices assume, as an annualised standard deviation; <b>realised</b> is the swing the stock actually had over the past year.');
+            if (c.osk !== undefined) og.push('<b>Put skew</b> is the implied volatility of a put that pays out only after a fall of roughly 5% or more, minus that of a call at today&rsquo;s price, in percentage points. A higher figure means protection against a drop costs more.');
+            o += '</tbody></table>' + (og.length ? '<p class="ctx-line ctx-gloss">' + og.join(' ') + '</p>' : '') + '<p class="ctx-why">Expected move = at-the-money call + put, divided by the price ' + cPrice(c.px) + ': a straddle costs about the average absolute move to expiry. Put skew is Xing, Zhang &amp; Zhao&rsquo;s (2010) measure: the implied volatility of the out-of-the-money put nearest 95% of the price, minus that of the at-the-money call. Steeper skew preceded weaker returns there: over 1996&ndash;2005 the flattest-skew fifth of stocks beat the steepest by 10.9% a year risk-adjusted held for one week, and by 6.5% held for four (their Table 4), on options of 10 to 60 days' + (c.oskw === false ? '. <b>This expiry is ' + c.od + ' days, outside that range</b>, so their figures are background here rather than a reading of this number' : '') + '. Across 97 published predictors returns have averaged 58% lower after publication than in the original sample (McLean &amp; Pontiff 2016), so read those gaps as an upper bound. Shown, never scored. ' + (c.oqd ? 'Quotes are the close of <b>' + escapeHtml(cDate(c.oqd)) + '</b>; options are not quoted at the hour this run fetches, so the last session&rsquo;s close is used.' : 'Quotes are the previous close.') + '</p>';
         } else if (c.os === 'quotes-closed') {
             o += '<p class="ctx-line">No option quotes for this stock. The run fetches at 2 AM, when the source returns the chain with every bid and ask at zero, so there is nothing to price a straddle from; the quotes it does carry are collected after the close and this stock had none from a recent session.</p>';
         } else {
@@ -9626,6 +9711,9 @@ def _js_context() -> str:
         if (ins) {
             i += '<div class="ctx-pair"><div><span class="ctx-fk">Open-market buys, 90 days</span><span class="ctx-fv">' + (ins.buy_n ? cMoney(ins.buy_value) : 'None') + '</span><span class="ctx-fs">' + (ins.buy_n ? ins.buy_people + ' insider' + (ins.buy_people === 1 ? '' : 's') + ', ' + ins.buy_n + ' trade' + (ins.buy_n === 1 ? '' : 's') : '&nbsp;') + '</span></div>' +
                  '<div><span class="ctx-fk">Open-market sales, 90 days</span><span class="ctx-fv">' + (ins.sell_n ? cMoney(ins.sell_value) : 'None') + '</span><span class="ctx-fs">' + (ins.sell_n ? ins.sell_people + ' insider' + (ins.sell_people === 1 ? '' : 's') + (ins.sell_planned_value != null && ins.sell_value > 0 ? ', ' + Math.round(100 * ins.sell_planned_value / ins.sell_value) + '% on pre-set plans' : '') : '&nbsp;') + '</span></div></div>';
+            // What a pre-set plan is, where the panel first mentions one (club readiness, 2026-10-19).
+            if (ins.src === 'sec' && ((ins.sell_planned_value != null && ins.sell_value > 0) || (ins.recent || []).some(r => r.plan)))
+                i += '<p class="ctx-line ctx-gloss">A <b>Rule 10b5-1 plan</b> is a schedule of trades an insider sets up in advance, with the dates or prices fixed when it is made; a trade under one goes ahead without a fresh decision.</p>';
             if (ins.holder_buy_n || ins.holder_sell_n) {
                 const hb = [];
                 if (ins.holder_buy_n) hb.push('bought ' + cMoney(ins.holder_buy_value));
@@ -9697,8 +9785,12 @@ def _js_context() -> str:
             meta.textContent = bits.join(' · ');
         }
         let h = '<p class="section-desc">The macro backdrop for this run, from FRED, the St. Louis Fed&rsquo;s public economic database. Shown for context only; none of it enters a score. A pp is a percentage point: a yield that moves from 4.0% to 4.5% has risen 0.5pp.</p>';
+        // The Sahm indicator in plain words, under the reading that names it (club readiness, 2026-10-19).
+        // Its definition is market_context.sahm_indicator's (claim context.sahm).
+        const MK_GLOSS = {jobs: 'In plain terms, the indicator measures how far unemployment, averaged over three months, has risen above its lowest three-month average of the past year. The rule triggers at a rise of 0.50 percentage points.'};
         h += '<div class="mk-readings">' + (M.readings || []).map(r =>
-            '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p></div>').join('') + '</div>';
+            '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p>' +
+            (MK_GLOSS[r.k] && /Sahm/.test(r.text) ? '<p class="mk-gloss">' + MK_GLOSS[r.k] + '</p>' : '') + '</div>').join('') + '</div>';
         const order = ['DGS10', 'DGS2', 'T10Y3M', 'BAA10Y', 'VIXCLS', 'DFF', 'CPIAUCSL', 'UNRATE', 'ICSA', 'T10Y2Y'];
         h += '<div class="mk-grid">' + order.filter(k => S[k]).map(k => {
             const sr = S[k];
@@ -10399,6 +10491,7 @@ def _css_context() -> str:
         .ctx-big { font-size: 26px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
         .ctx-line { font-size: 13px; color: var(--text-secondary); line-height: 1.55; margin: 0 0 10px; }
         .ctx-line b { color: var(--text-primary); font-weight: 600; }
+        .ctx-line.ctx-gloss { margin: 10px 0 0; font-size: 12.5px; }
         .ctx-why { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin: 10px 0 0; }
         .ctx-why a { color: var(--accent-text); }
         .ctx-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -10464,6 +10557,7 @@ def _css_context() -> str:
         .mk-state { font-size: 11.5px; padding: 2px 9px; border-radius: var(--radius-pill); border: 1px solid var(--border-bright); color: var(--text-secondary); text-transform: capitalize; }
         .mk-inverted, .mk-wide, .mk-elevated, .mk-triggered, .mk-above-target { color: var(--amber); border-color: rgba(250,178,25,.4); }
         .mk-reading p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+        .mk-reading p.mk-gloss { margin-top: 8px; font-size: 12.5px; color: var(--text-muted); }
         .mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 10px; }
         .mk-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 12px 14px; }
         .mk-label { font-size: 12px; color: var(--text-muted); min-height: 32px; }
@@ -10532,6 +10626,30 @@ def _css_context() -> str:
             .tr-kpi { border-bottom: 1px solid var(--border); }
             .mk-rate-row { grid-template-columns: 120px 1fr 56px; }
         }
+
+        /* ---- PHONE MENU (club readiness, 2026-10-19): a way back from deep in the page ---- */
+        .m-nav-btn {
+            position: fixed; right: 16px; bottom: 16px; z-index: 990; height: 44px; padding: 0 18px;
+            border-radius: var(--radius-pill); border: 1px solid var(--border-bright); background: var(--bg-elevated);
+            color: var(--text-primary); font: 600 13px var(--font-body); box-shadow: var(--shadow-overlay); cursor: pointer;
+        }
+        .m-nav-btn[hidden], .m-nav[hidden] { display: none; }
+        .m-nav {
+            position: fixed; right: 16px; bottom: 68px; z-index: 990; width: min(260px, calc(100vw - 32px));
+            max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain; padding: 6px;
+            border: 1px solid var(--border-bright); border-radius: 12px; background: var(--bg-elevated); box-shadow: var(--shadow-overlay);
+        }
+        .m-nav-group { display: flex; flex-direction: column; }
+        .m-nav button {
+            display: block; width: 100%; min-height: 40px; padding: 0 12px; text-align: left; border: 0; border-radius: 8px;
+            background: none; color: var(--text-primary); font: 500 14px var(--font-body); cursor: pointer;
+        }
+        .m-nav button:hover, .m-nav button:focus-visible { background: var(--bg-card); outline: none; }
+        .m-nav-h { padding: 10px 12px 4px; font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 6px; }
+        body.has-tray .m-nav-btn { bottom: 76px; }
+        body.has-tray .m-nav { bottom: 128px; }
+        @media (min-width: 761px) { .m-nav-btn, .m-nav { display: none !important; } }
+        @media print { .m-nav-btn, .m-nav { display: none !important; } }
 """
 
 
