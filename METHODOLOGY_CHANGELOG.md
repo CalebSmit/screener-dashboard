@@ -4336,7 +4336,9 @@ it now starts at the dated year-ago quarter and still needs four adjacent quarte
 The annual statements' "column one is the year before" was checked the same way and holds for all
 501 stocks (no change made there).
 
-**Evidence:** a documented failure. `research/2026-10-19-bank-roe-roa.md` section 6: Berkshire
+**Evidence:** a documented failure, found by the 2026-10-19 bank ROE/ROA note (section 6; that
+note's own proposal is a separate question and stays open - this is the fetch fix it set aside as
+"a separate, general change"). Berkshire
 Hathaway's quarterly statements omit September 2025, so column four was March 2025; the 330-400-day
 check rejected it and the June 2025 balance sheet sitting in column three went unused, leaving
 BRK-B's asset growth unscored, its sustainable growth on ending rather than average equity and its
