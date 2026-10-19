@@ -164,8 +164,11 @@ class Filed:
         # restatements still flow, because a restated year reaches the filings as a later 10-K's
         # comparative column. research/measurements/2026-10-19-top-of-ranking-data-audit.py.
         f["_annual_report"] = (f["days"].between(340, 380) & f["form"].str.startswith("10-K")).astype(int)
-        f = f.sort_values(["_annual_report", "filed"])
-        f = f.drop_duplicates(["concept", "start", "end"], keep="last").sort_values("filed")
+        # Stable sorts throughout, and an amendment after its original on the same day, so a tie
+        # is never settled by an unstable sort's order (2026-10-19, see ``_one``).
+        f["_amendment"] = f["form"].str.endswith("/A").astype(int)
+        f = f.sort_values(["_annual_report", "filed", "_amendment"], kind="mergesort")
+        f = f.drop_duplicates(["concept", "start", "end"], keep="last").sort_values("filed", kind="mergesort")
         self._by = {c: g for c, g in f.groupby("concept")}
         self._fam: dict = {}
 
@@ -195,14 +198,29 @@ class Filed:
         return self._fam[concept]
 
     @staticmethod
-    def _one(rows: pd.DataFrame) -> float | None:
-        return None if rows is None or rows.empty else float(rows.sort_values("filed").iloc[-1]["val"])
+    def _one(rows: pd.DataFrame, end=None) -> float | None:
+        """The value of the latest-filed row. Rows filed the same day are told apart by how near
+        their end is to ``end`` (when given), then by end and value - never by row order.
+
+        Found 2026-10-19, rebuilding the v2 months after the fiscal-year fix: the tie was broken by
+        an unstable sort's order, so it moved when unrelated code changed the order. It matters
+        where one filing carries two instants within ``TOL`` of each other - an accounting
+        change's opening balance beside the period end (911 such pairs in the cache, mostly 1
+        January: ASC 842's adoption date beside 31 December). Air Products' FY2018 10-K carries
+        both 2018-09-30 and 2018-10-01; its current assets were read from one date and its current
+        liabilities from the other, and which one moved with the code. The period asked for is
+        the period end, so the nearest end wins."""
+        if rows is None or rows.empty:
+            return None
+        near = -(rows["end"] - end).abs() if end is not None else pd.Series(pd.Timedelta(0), index=rows.index)
+        r = rows.assign(_near=near).sort_values(["filed", "_near", "end", "val"], kind="mergesort")
+        return float(r.iloc[-1]["val"])
 
     def _instant1(self, concept, end):
         g = self._rows(concept)
         if g is None:
             return None
-        return self._one(g[g["start"].isna() & ((g["end"] - end).abs() <= TOL)])
+        return self._one(g[g["start"].isna() & ((g["end"] - end).abs() <= TOL)], end)
 
     def _duration1(self, concept, end, lo, hi, start=None):
         g = self._rows(concept)
@@ -218,7 +236,7 @@ class Filed:
         if fy is None:
             return None
         if not fy.empty:
-            return self._one(fy)
+            return self._one(fy, end)
         ytd = self._duration1(concept, end, 80, 339)
         if ytd.empty:
             return None
@@ -235,7 +253,7 @@ class Filed:
         if q is None:
             return None
         if not q.empty:
-            return self._one(q)
+            return self._one(q, end)
         # a year-to-date (or a fiscal year, for Q4) less the year-to-date one quarter earlier
         ytd = self._duration1(concept, end, 160, 380)
         if ytd.empty:
@@ -267,7 +285,7 @@ class Filed:
         return self._pick(key, self._ttm1, end, largest=(key == "revenue"))
 
     def fy(self, key, end):
-        return self._pick(key, lambda c, e: self._one(self._duration1(c, e, 340, 380)), end,
+        return self._pick(key, lambda c, e: self._one(self._duration1(c, e, 340, 380), e), end,
                           largest=(key == "revenue"))
 
     def quarter(self, key, end):

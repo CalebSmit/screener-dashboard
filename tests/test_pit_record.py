@@ -101,6 +101,44 @@ def test_quarters_and_year_to_dates_still_take_the_latest_filing():
     assert F.quarter("net_income", pd.Timestamp("2025-03-31")) == pytest.approx(115.0)
 
 
+def test_an_opening_balance_filed_beside_the_period_end_does_not_displace_it():
+    """Air Products, 2026-10-19: its FY2018 10-K carries the 2018-09-30 balance sheet and a
+    2018-10-01 opening balance (an accounting change's adoption date), both filed the same day and
+    within ``TOL`` of each other. The tie was settled by an unstable sort's row order, so current
+    assets came from one date and current liabilities from the other, and which moved when
+    unrelated code changed. The period asked for is the period end: the nearest end wins."""
+    rows = [("AssetsCurrent", None, "2018-09-30", "2018-11-20", "10-K", 5082.2),
+            ("AssetsCurrent", None, "2018-10-01", "2018-11-20", "10-K", 5108.4),
+            ("LiabilitiesCurrent", None, "2018-10-01", "2018-11-20", "10-K", 2364.5),
+            ("LiabilitiesCurrent", None, "2018-09-30", "2018-11-20", "10-K", 2338.3)]
+    end = pd.Timestamp("2018-09-30")
+    for order in (rows, rows[::-1], [rows[1], rows[2], rows[0], rows[3]]):
+        F = pr.Filed(_f(order), "AAA", "2018-11-30")
+        assert F._instant1("AssetsCurrent", end) == 5082.2
+        assert F._instant1("LiabilitiesCurrent", end) == 2338.3
+    # a later filing still wins over a nearer end: restatements flow as before
+    later = rows + [("AssetsCurrent", None, "2018-10-01", "2019-01-25", "10-Q", 5110.0)]
+    assert pr.Filed(_f(later), "AAA", "2019-02-28")._instant1("AssetsCurrent", end) == 5110.0
+
+
+def test_the_record_does_not_depend_on_the_order_of_the_facts():
+    """Every tie is broken by a value, never by row order (stable sorts, an amendment after its
+    original on the same day): shuffling the facts cannot change a record."""
+    rows = ROWS + [("Assets", None, "2025-10-01", "2025-11-03", "10-Q", 5100.0),
+                   (NI, "2024-01-01", "2024-12-31", "2025-02-10", "10-K/A", 401.0)]
+    base = {"Ticker": "AAA"}
+    ref = pr.record_as_of(base, _f(rows), "2025-11-10", price=10.0)
+    for seed in range(5):
+        shuffled = _f(rows).sample(frac=1.0, random_state=seed).reset_index(drop=True)
+        rec = pr.record_as_of(base, shuffled, "2025-11-10", price=10.0)
+        for k, v in ref.items():
+            if isinstance(v, float) and np.isnan(v):
+                assert isinstance(rec[k], float) and np.isnan(rec[k]), k
+            else:
+                assert rec[k] == v, (seed, k, v, rec[k])
+    assert pr.Filed(_f(rows), "AAA", "2025-11-10").fy("net_income", pd.Timestamp("2024-12-31")) == 401.0
+
+
 def test_the_record_keeps_no_value_the_filings_cannot_supply():
     base = {"Ticker": "AAA", "totalRevenue": 9e9, "capex": -1e9, "marketCap": 1e12,
             "_beneish_sga": 5.0, "price_latest": 10.0, "forwardEps": 2.0, "currentPrice": 10.0}
