@@ -9811,8 +9811,8 @@ def _js_context() -> str:
                       'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, carried from one run to the next and ending at the last run that recorded them (' +
                       escapeHtml(T.filled.from_records.join(', ')) + '), on price alone without dividends' : '') + '. ' : '') +
             'Equal weights; each list enters at the close of the first trading day on or after its run&rsquo;s date' +
-            ((T.after_close || []).length ? ', or the next one where the run&rsquo;s own recorded prices show it was made after that close (' + T.after_close.map(cDate).join(', ') + ')' : '') + '. ' +
-            ((T.untimed || []).length ? 'The runs of ' + T.untimed.map(cDate).join(' and ') + ' recorded no prices, so when in the day they ran cannot be checked; they enter at their own date&rsquo;s close. ' : '') +
+            ((T.after_close || []).length ? ', or the next one where the run was made after that close, read from the start time the run recorded or, for runs before 19 October 2026, from its own recorded prices (' + T.after_close.map(cDate).join(', ') + ')' : '') + '. ' +
+            ((T.untimed || []).length ? 'The runs of ' + T.untimed.map(cDate).join(' and ') + ' recorded neither a start time nor any prices, so when in the day they ran cannot be checked; they enter at their own date&rsquo;s close. ' : '') +
             'Dividends are included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + '. ' +
             (TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' +
                   (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. '

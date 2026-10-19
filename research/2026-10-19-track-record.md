@@ -358,3 +358,8 @@ record has no cross-section to evaluate.
 anywhere; the data loop prunes `runs/`. (b) A verified cost basis for large-cap US trades, from a
 primary source, would let the panel state an estimated net figure under GIPS 4.C.18. (c) Recording
 the run's timestamp in each snapshot would make section 6's inference unnecessary for future runs.
+*(c) done later on 2026-10-19: `record_run_snapshot(..., run_started=ctx.start_time)` stores
+`run_started_at` (ISO 8601 with its UTC offset; the backfill stores each run's own `meta.json` start),
+and `runs_after_the_close` reads it first - after the close means a later New York date, or 16:00 New
+York time or later on the run's date - keeping the price inference for snapshots without it.
+`tests/test_snapshot_run_time.py`, `tests/test_track_record_claims.py`.)*

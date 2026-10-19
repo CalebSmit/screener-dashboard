@@ -788,8 +788,9 @@ CLAIMS: tuple[Claim, ...] = (
             "The track record is a model record, with no money invested: the ranking's top 25 in "
             "equal weights, rebalanced at the first comparable run of each month, measured from the "
             "list each run recorded on its date. Each list enters at the close of the first trading "
-            "day on or after its run's date, or the next one where the run's own recorded prices "
-            "show it was made after that close; runs that recorded no prices are named. Dividends "
+            "day on or after its run's date, or the next one where the run was made after that "
+            "close, read from the start time the run recorded or, for runs before 2026-10-19, from "
+            "its own recorded prices; runs that recorded neither are named. Dividends "
             "included, no costs deducted; RSP is the same index in equal weights and its price is "
             "after the fund's own costs. A pick the price source no longer serves is priced under "
             "its new symbol if renamed, or from the screener's own recorded prices, carried between "
@@ -809,6 +810,9 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_a_run_made_before_the_close_enters_at_that_close",
             "tests/test_track_record_claims.py::test_the_previous_list_is_held_until_the_late_runs_entry",
             "tests/test_track_record_claims.py::test_a_snapshot_with_no_recorded_prices_is_named_as_untimed",
+            "tests/test_track_record_claims.py::test_a_recorded_start_time_after_the_close_enters_at_the_next_close",
+            "tests/test_track_record_claims.py::test_a_recorded_start_time_before_the_close_overrides_the_prices",
+            "tests/test_track_record_claims.py::test_a_snapshot_with_a_start_time_is_not_untimed",
             "tests/test_track_record_claims.py::test_the_record_publishes_no_annualised_figure",
             "tests/test_track_record_claims.py::test_the_panel_does_not_claim_a_record_with_nothing_backfilled",
             "tests/test_track_record_claims.py::test_the_panel_says_no_money_was_invested",

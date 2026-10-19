@@ -17,9 +17,10 @@ What it measures, and what it is not:
   through any month with no run (as someone following it would have done).
 * Entry is the close of the **first trading day on or after** the run date (the 02:00 run uses the
   previous close, so a reader could not have traded at that price). A run made **after** its
-  date's close enters at the next close instead - read from the run's own recorded prices
-  (``runs_after_the_close``), because a snapshot records no time. Until 2026-10-19 the 2026-08-10
-  rebalance, made in the evening, entered at a close set before its ranking existed.
+  date's close enters at the next close instead (``runs_after_the_close``): read from the run's
+  recorded start time (``run_started_at``, in every snapshot from 2026-10-19) and, for older
+  snapshots that record no time, inferred from the run's own recorded prices. Until 2026-10-19 the
+  2026-08-10 rebalance, made in the evening, entered at a close set before its ranking existed.
 * It is **not** a portfolio to follow. The Model Portfolio panel was removed on 2026-08-26 because
   a fixed buy list on a public page is the closest this tool came to a recommendation; this page
   lists no current holdings and no weights to copy.
@@ -34,7 +35,7 @@ from __future__ import annotations
 import json
 import math
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -232,9 +233,46 @@ def entry_day(index: pd.DatetimeIndex, run_date: str, after_close: bool = False)
     return after[0] if len(after) else None
 
 
+MARKET_TZ = "America/New_York"
+CLOSE_HOUR = 16                     # the regular session's close, 16:00 New York time
+
+
+def after_the_close(started, run_date: str) -> bool | None:
+    """Whether a run that started at ``started`` (ISO 8601, with its UTC offset) came after the
+    close of ``run_date``: started on a later New York date, or on that date at or after 16:00
+    New York time. None when the stamp cannot be read. Early-close days (13:00) are not modelled;
+    a run between 13:00 and 16:00 on one would be read as before the close."""
+    try:
+        ts = pd.Timestamp(str(started))
+        if ts.tzinfo is None:                       # naive: this machine's local time
+            ts = ts.tz_localize(datetime.now().astimezone().tzinfo)
+        et = ts.tz_convert(MARKET_TZ)
+    except (TypeError, ValueError):
+        return None
+    day = pd.Timestamp(run_date).date()
+    return et.date() > day or (et.date() == day and et.hour >= CLOSE_HOUR)
+
+
+def run_started_at(path: Path) -> str | None:
+    """The run's start time recorded in a snapshot (``run_started_at``), or None for a snapshot
+    written before 2026-10-19 or unreadable."""
+    try:
+        df = pd.read_parquet(path)
+    except (OSError, ValueError):
+        return None
+    if "run_started_at" not in df.columns:
+        return None
+    vals = df["run_started_at"].dropna()
+    return str(vals.iloc[0]) if len(vals) else None
+
+
 def runs_after_the_close(run_dates, prices: pd.DataFrame, snap_dir: Path = SNAPSHOT_DIR,
                          tol: float = 0.002, floor: float = 0.25) -> list[str]:
     """Run dates whose ranking had already seen that day's close.
+
+    2026-10-19, second change: a snapshot written from today on records the run's start time
+    (``run_started_at``), and where it does that time decides - ``after_the_close``. The inference
+    below stays for every older snapshot, which records only a date.
 
     2026-10-19 (research/2026-10-19-track-record.md section 6). A snapshot records its date and
     not its time, and the entry rule assumed a run made before that day's close - true of the
@@ -255,6 +293,13 @@ def runs_after_the_close(run_dates, prices: pd.DataFrame, snap_dir: Path = SNAPS
         day = pd.Timestamp(d)
         if f is None or day not in prices.index:
             continue
+        started = run_started_at(f)
+        if started is not None:
+            late = after_the_close(started, d)
+            if late is not None:
+                if late:
+                    out.append(d)
+                continue
         prev = prices.index[prices.index < day]
         if not len(prev):
             continue
@@ -278,8 +323,8 @@ def runs_after_the_close(run_dates, prices: pd.DataFrame, snap_dir: Path = SNAPS
 
 
 def untimed_runs(run_dates, snap_dir: Path = SNAPSHOT_DIR) -> list[str]:
-    """Run dates whose snapshot records no prices, so whether the run came after the close
-    cannot be tested."""
+    """Run dates whose snapshot records neither the run's start time nor its prices, so whether
+    the run came after the close cannot be tested."""
     out = []
     for d in sorted(run_dates):
         f = next(iter(sorted(Path(snap_dir).glob(f"{d}_*.parquet"))), None)
@@ -289,7 +334,7 @@ def untimed_runs(run_dates, snap_dir: Path = SNAPSHOT_DIR) -> list[str]:
             cols = pd.read_parquet(f).columns
         except (OSError, ValueError):
             continue
-        if "price_at_scoring" not in cols:
+        if "price_at_scoring" not in cols and "run_started_at" not in cols:
             out.append(d)
     return out
 
