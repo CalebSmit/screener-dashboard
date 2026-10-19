@@ -187,7 +187,11 @@ mis-tag. `sec_fundamentals.roe_history` reads 10-K facts only.
 
 ## 6. One company, two scores - for a later session
 
-**Proposal status: OPEN** - score a share class whose consensus estimates are missing, or disagree
+**Proposal status: SUPERSEDED 2026-10-19** by `research/2026-10-19-share-classes.md`, which measured
+this proposal (its "CONSENSUS" option: FOX #26, top 25 unchanged), found that it fixes the data
+artefact but leaves two ranked lines per company and a double count in the sector peer group, and
+replaces it with scoring each company once on its designated listing; the open decision is in that note. The original
+line read: score a share class whose consensus estimates are missing, or disagree
 with its sibling class's, on one company-level consensus figure (the class with more analysts), and
 say on the page when two rows are one company.
 
