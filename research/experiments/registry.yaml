@@ -280,14 +280,14 @@ experiments:
   # disclose). This is plan/research-engine.md queue item 6 - the route by which a Monday note
   # grows the engine, one sourced idea at a time.
   - id: drop-revenue-growth
-    hypothesis: >
+    hypothesis: >-
       Removing the one-year revenue-growth leg from Growth does not make the ranking worse. The
       screener scores high revenue growth positively, for 3.25 composite points live and 5.91 in
       this configuration; no published study found for that question supports the positive sign,
       and the leg's net effect is in any case almost entirely cancelled by the asset-growth leg
       it correlates with (measured: the pair's points correlate +0.045 with raw revenue growth
       against +0.886 for the revenue leg alone).
-    source: >
+    source: >-
       Hou, Xue & Zhang (2015), Review of Financial Studies 28(3), 650-705,
       doi:10.1093/rfs/hhu068 - sales growth is classified under value-versus-growth (Table 2,
       p. 664), not under investment, and is insignificant in the broad cross-section
@@ -298,7 +298,7 @@ experiments:
       any of the size groups" (p. 1631); large-firm panel t -0.68 (Table III Panel D, p. 1630).
       Fama & French (2015) and (2016) do not test sales growth at all.
       research/2026-10-19-revenue-growth-vs-asset-growth.md sections 3 and 7.
-    prediction: >
+    prediction: >-
       Not distinguishable from the baseline in either period. The direction is the informative
       part and is predicted now: the difference is zero or positive, never materially negative.
       This design can see less than most entries here - the leave-one-out comparisons detect
@@ -310,7 +310,7 @@ experiments:
       kind: config
       set:
         metric_weights.growth.revenue_growth: 0
-    construction_note: >
+    construction_note: >-
       Two differences from the cited papers and one from the live screener, all stated rather
       than assumed. (1) Both papers test the Lakonishok-Shleifer-Vishny FIVE-YEAR weighted rank
       of sales growth; this metric is one year - the latest quarter against the same quarter a
