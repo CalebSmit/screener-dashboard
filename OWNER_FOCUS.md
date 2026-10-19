@@ -52,6 +52,32 @@ Two things still outrank this file, and neither is negotiable:
   dashboard's hero, footer, search palette and track record, beside a Factor Lab button.
 
   **Progress (update this line each session):**
+  - **2026-10-19 (06:00) - the engine grew by one idea, from a research note, and the idea's own
+    prediction was wrong.** This is the part of the queue (item 6) that turns reading into tested
+    claims: a Monday note ends with something falsifiable, it is written down and committed
+    *before* it is run, and then it is run. Today's note asked whether the screener should be
+    rewarding one-year revenue growth at all - the published research says no, and one quant shop
+    has measured exactly that construction at **-2% a year** - so the registered test was "take that
+    leg out; the ranking should not get worse."
+    **It got worse** - by 0.007 of ranking accuracy in the held-out years, which is **the opposite
+    direction to the one I predicted**. It does not clear the bar the rules set in advance (it needs
+    t of 3, it reached 2.5) and it shows nothing at all in 2012-2019, so the verdict is **"not
+    confirmed"** and nothing was changed on the strength of it - the rules forbid that in both
+    directions. But the prediction is on the public record and so is its failure, which is the whole
+    reason for writing predictions down.
+    **No weight was changed, and the note explains why in a way that corrected itself twice.** The
+    first argument it drafted was measured and refuted; the second was undercut by a paper found
+    later in the day. What survives is the honest version: the screener's two growth metrics
+    together are a bet on *revenue rising faster than the balance sheet*, documented practice
+    rewards exactly that (FTSE scores it, S&P frames its quality screen on it), and the academic
+    evidence for it is **absent rather than unfavourable** - the one paper that would settle it is
+    paywalled and the major replication never tested it. Practice and research disagree, so the
+    rule written in advance says the weight stays.
+    **One cost worth your knowing:** registering an experiment forces a rerun of all of them,
+    because the engine refuses to compare results produced by different code. Today that was 29
+    runs. It is the right behaviour; it just means a session that adds an idea must budget for it.
+    **Next in the queue is still 8(c)** - the positive control, deferred twice now, and the next
+    13:00 or weekend session should take it rather than a fifteenth thing.
   - **2026-10-18 (13:00 midday) - the morning's work is finished and shipped, and finishing it
     caught a bug in the new check itself.** Read this bullet rather than the one below it: **the
     06:00 session failed its ship gates** and nothing it wrote reached the site. It had built all
