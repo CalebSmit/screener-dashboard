@@ -227,4 +227,176 @@ the screener's exposure to asset-turnover growth is reinforced by 23 further poi
 in the 8.25 - and **Valuation and Quality, the two 22-point categories, are flat on it** (-0.08,
 -0.02), which is the reassuring half: the position is not a disguised value or quality bet.
 
-<!-- LITERATURE AND PRACTICE SECTIONS 6-9 TO FOLLOW -->
+---
+
+## 6. The literature on asset growth: which measure, and does it survive among large companies
+
+Three papers were obtained and read from the PDFs; every figure below was spot-checked against
+the extracted text by the author of this note, not taken on a reader's report. Page numbers are
+the published journal pages except where marked.
+
+- **Cooper, Gulen & Schill (2008)**, "Asset Growth and the Cross-Section of Stock Returns",
+  *Journal of Finance* 63(4), 1609-1651. DOI [10.1111/j.1540-6261.2008.01370.x](https://doi.org/10.1111/j.1540-6261.2008.01370.x)
+- **Fama & French (2008)**, "Dissecting Anomalies", *Journal of Finance* 63(4), 1653-1678.
+  DOI [10.1111/j.1540-6261.2008.01371.x](https://doi.org/10.1111/j.1540-6261.2008.01371.x)
+  *(read as the December 2006 working draft; the published text was not obtained - see 6.4)*
+- **Lipson, Mortal & Schill (2011)**, "On the Scope and Drivers of the Asset Growth Effect",
+  *Journal of Financial and Quantitative Analysis* 46(6), 1651-1682.
+  DOI [10.1017/S0022109011000561](https://doi.org/10.1017/S0022109011000561)
+- **Fama & French (2015)**, "A five-factor asset pricing model", *Journal of Financial Economics*
+  116(1), 1-22. DOI [10.1016/j.jfineco.2014.10.010](https://doi.org/10.1016/j.jfineco.2014.10.010)
+- **Hou, Xue & Zhang (2015)**, "Digesting Anomalies: An Investment Approach", *Review of Financial
+  Studies* 28(3), 650-705. DOI [10.1093/rfs/hhu068](https://doi.org/10.1093/rfs/hhu068)
+- **Fama & French (2016)**, "Dissecting Anomalies with a Five-Factor Model", *Review of Financial
+  Studies* 29(1), 69-103. DOI [10.1093/rfs/hhv043](https://doi.org/10.1093/rfs/hhv043)
+
+### 6.1 The screener computes the measure that has the large-company evidence
+
+This turned out to be the most consequential single fact in the literature, and it is a point in
+the screener's favour that nobody had written down.
+
+CGS, p. 1613: *"our main variable of concern, the annual firm asset growth rate (ASSETG), is
+calculated using the year-on-year percentage change in total assets (Compustat data item 6)"*.
+That is **exactly** what `factor_engine.py:2969` computes: `(totalAssets - totalAssets_prior) /
+totalAssets_prior`. Same quantity, same one-year window, same scaling by beginning assets.
+
+It is **not** the measure Fama & French (2008) use. Their `dA/A` is the log change in *assets per
+split-adjusted share*, which they state (draft p. 23) *"is equivalent to the natural log of the
+ratio of gross assets at t-1 divided by gross assets at t-2 **minus net stock issues** from t-2 to
+t-1"* - deliberately, so that their separate net-share-issues variable can carry the issuance
+(draft p. 7). That distinction decides the whole large-cap dispute, and Lipson, Mortal & Schill
+proved it by running both measures on one sample with the same breakpoints and weighting
+(Table 3, p. 1662; equal-weighted quintile spreads, big stocks):
+
+| Measure | Big-stock spread | t |
+|---|---|---|
+| FF's per-share `dA/A` | 0.25%/month | 1.71 |
+| **CGS's total-asset growth** | **0.67%/month** | **4.04** |
+
+LMS, p. 1663: *"The distinction between the 2 findings is based on the definition of the measures
+and in particular the dampening effect caused by the per share normalization. This normalization
+effectively ignores growth associated with share issuance, which we find impacts growth measures
+for large firms more than small firms."* CGS's own decomposition says the same from the other end
+(p. 1638): among large firms *"growth in stock financing exhibits the strongest effect"*, and with
+stock financing in the regression asset growth itself goes to t = -0.56.
+
+So the honest reading is **not** "FF found no asset-growth effect in big stocks, therefore the
+screener's 5 points are unsupported." FF measured a different thing. The thing the screener
+measures has three independent large-company confirmations:
+
+| Source | Large-company result | Where |
+|---|---|---|
+| CGS (2008) | VW 3-factor alpha spread **-0.81%/month, t -2.91** (~-10%/year); EW -0.86%, t -3.12 | Table II Panel C, p. 1620 |
+| CGS (2008) | Fama-MacBeth slope **-0.0594, t -3.60** in the large-firm panel | Table III Panel D, p. 1630 |
+| LMS (2011) | Big-stock EW quintile spread **0.67%/month, t 4.04**; VW regression slope -0.008, t -3.54 | Table 3 Panel C p. 1662; Table 2 Panel B Reg 8 p. 1660 |
+
+CGS state it plainly (p. 1620-1624): *"Thus, the asset growth effect is present across all size
+groups"*, and in the introduction, *"the annualized three-factor alpha VW portfolio spread between
+low and high growth rate firms for the large size group is 10%."*
+
+### 6.2 But it is roughly half-size among large companies, and FF2015's own big-stock leg is weak
+
+Two counterweights, both of which belong on the page.
+
+**The effect declines monotonically in size on every measure in every paper.** CGS's
+Fama-MacBeth slopes run -0.0944 (small) -> -0.0793 (medium) -> **-0.0594 (large)**. CGS's own
+headline: *"firms with low asset growth rates earn subsequent annualized risk-adjusted returns of
+9.1% ... while firms with high asset growth rates earn -10.4%. The large 19.5% per year spread is
+highly significant. Weighting the firms by capitalization reduces the spread to a still large and
+significant 8.4% per year"* (p. 1647). LMS: 1.37% -> 0.77% -> 0.67%.
+
+**And FF2015's CMA - which *does* use total-asset growth, not the per-share measure - still finds
+the big-stock leg weak.** This is a genuine disagreement with CGS and must not be smoothed over.
+FF2015 defines `Inv` as *"the growth of total assets for the fiscal year ending in t-1 divided by
+total assets at the end of t-2"* (p. 4) and reports the factor split by size (Table 4 Panel A,
+p. 7, 606 months, July 1963 - December 2013):
+
+| Construction | CMA | t | CMA small | t | **CMA big** | **t** |
+|---|---|---|---|---|---|---|
+| 2x3 | 0.33 | 4.07 | 0.45 | 5.49 | **0.22** | **2.00** |
+| 2x2 | 0.22 | 3.72 | 0.33 | 5.37 | **0.11** | **1.50** |
+| 2x2x2x2 (joint controls) | 0.14 | 2.71 | 0.23 | 4.64 | **0.07** | **1.03** |
+
+And in their own words (p. 8, verified against the PDF): *"there is strong evidence that the
+expected investment premium is larger for small stocks. The average value of CMA_S is 4.64-5.49
+standard errors from zero, but the average value of CMA_B is only 1.03-2.00 standard errors from
+zero ... and **almost all the average value of CMA is from small stocks.**"*
+
+**This independently corroborates the lab measurement in section 4.** Section 4 measured the
+big-company investment factor at t 1.46 on the French library's own portfolios; FF's published
+range for the same object is t 1.03-2.00. Two routes, one answer. The lab is reproducing the
+paper, which is what it is for.
+
+### 6.3 The shape: an extreme-tail effect, which a linear percentile score is the wrong instrument for
+
+This is the finding with the most direct consequence for the screener, and it is derived from
+CGS's table rather than stated by them - so here is the row, read off Table II Panel C.2, p. 1620
+(value-weighted 3-factor monthly alphas, large size group, decimal in the paper):
+
+| Decile | 1 (low) | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 (high) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| alpha | **+0.52%** | +0.18 | +0.13 | +0.19 | +0.03 | +0.05 | +0.18 | +0.15 | +0.08 | **-0.28%** |
+
+The end-to-end spread is 0.80pp. **Deciles 2 through 9 span 0.16pp** - a fifth of it - and are not
+monotone (they go 0.18, 0.13, 0.19, 0.03, 0.05, 0.18, 0.15, 0.08). The whole large-company effect
+is the two end deciles against a flat interior. Fama & French find no systematic gradient for big
+stocks even in the extremes (draft p. 13): *"only tiny stocks produce a systematic negative
+relation between asset growth and abnormal returns."*
+
+The screener scores `asset_growth` as a **linear sector percentile** - every rank step worth the
+same points. That spends almost all of its 5 points' resolution on the interior, where the
+large-company evidence is flat, and compresses the two tails where it lives. It also explains part
+of the CGS/FF2015 disagreement: FF's CMA uses 30/70 breakpoints, which average the tails into
+thirds; CGS uses extreme deciles. An extreme-tail effect shows up in the second design and washes
+out in the first.
+
+**This is a candidate finding, not a change.** Moving `asset_growth` from a linear percentile to a
+tail-weighted treatment is a methodology change that needs its own note, its own synthesis against
+the other seven categories, and a changelog entry - and it would make the screener harder to
+explain, which the mandate counts as a real cost. It is recorded here, with the row above, as the
+strongest open question this note found.
+
+### 6.4 The limit the published evidence does not reach: large *and* low-volatility
+
+LMS's central finding is not about size at all, and it is the one that should temper any
+confidence here. Their abstract (p. 1651): *"In general, there appears to be no asset growth
+effect in firms with low IVOL."* Table 7 Panel C, p. 1672, equal-weighted spreads by
+idiosyncratic-volatility quintile:
+
+| IVOL quintile | 1 (low) | 2 | 3 | 4 | 5 (high) |
+|---|---|---|---|---|---|
+| low-minus-high asset growth | **0.1% (t 1.02)** | 0.6 (4.48) | 1.0 (6.67) | 1.2 (7.72) | 1.7 (7.47) |
+
+Monotone across all five - stronger evidence than their size result, which is not monotone. And in
+regression (Table 4 Reg 2, p. 1665): with an asset-growth x IVOL interaction included, *"the
+coefficient on the asset growth rate becomes insignificant ... (-0.002 [t-statistic = -0.62]),
+suggesting that the asset growth effect exists only when in conjunction with IVOL."* They conclude
+(p. 1679) that *"the firm IVOL is a necessary condition for asset growth effects."*
+
+**Large-company stocks are disproportionately low-IVOL, and the cell that matters - large *and*
+low-IVOL - is reported by none of these papers.** LMS say the IVOL gradient survives a size control
+but the test is unreported (footnote 19, p. 1673): *"In unreported tests, we use 3-way sorts ... we
+still observe that the asset growth effect is increasing in the degree of IVOL."* That tells us the
+gradient holds; it does not give the level in the cell an S&P 500 screener occupies.
+
+Three further honest limits:
+
+- **"Large" in all three papers is far broader than the top 500.** CGS: above the 70th NYSE
+  percentile. FF and LMS: above the NYSE median, which FF say is *"more than 90% of total market
+  cap"* (draft p. 9). The S&P 500 sits deep inside the upper tail of even CGS's large group, where
+  every paper's gradient is weakest.
+- **Reward-to-variability in the low-IVOL quintile is 0.04** (LMS Table 8, p. 1674) against 0.21,
+  0.31, 0.35, 0.35 for the rest. Even where a spread exists in calm stocks, it is not a spread an
+  investor is paid for bearing.
+- **The published FF (2008) text was not obtained.** It was read as the December 2006 draft from
+  ivey.uwo.ca. Its sample (1963-2005) and headline figures match the published abstract, and LMS
+  quote the published pages 1653 and 1655 second-hand, but the draft pagination is marked as such
+  above and no published page is cited from it in this note.
+
+**Net reading for the Investment weight.** The measure the screener uses is the one with
+large-company evidence; the effect there is about half the all-stock size, concentrated in the two
+end deciles, and the published work does not establish it in the large-low-volatility corner this
+screener actually occupies. By the reading rules fixed before these questions were researched
+(`plan/factor-lab.md`) that is "not confirmed for this universe", which is **not** grounds to cut
+the weight - and the long-only half measured in section 4 (+0.132%/month, t 2.22) is the half a
+book like this keeps. **5 points stays.** What must change is what the page claims for it.
