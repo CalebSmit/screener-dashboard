@@ -1,0 +1,311 @@
+{
+ "source": "Kenneth R. French data library, 2x3 size-by-investment portfolios, via factor_lab experiment 8 (big-and-small)",
+ "span": [
+  196307,
+  202608
+ ],
+ "n_months": 758,
+ "legs": {
+  "big": "conservative big minus aggressive big",
+  "long": "conservative big minus the market (the long-only half)",
+  "short": "the market minus aggressive big",
+  "small": "the factor among small companies"
+ },
+ "factors": {
+  "value": {
+   "big": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1898,
+     "t": 1.557,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.1366,
+     "t": 0.621,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.0661,
+     "t": -0.191,
+     "months": 152
+    }
+   },
+   "long": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1956,
+     "t": 2.121,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.1886,
+     "t": 1.069,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.1106,
+     "t": 0.424,
+     "months": 152
+    }
+   },
+   "short": {
+    "1963-2026": {
+     "mean_pct_per_month": -0.0058,
+     "t": -0.143,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": -0.052,
+     "t": -0.89,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.1767,
+     "t": -1.891,
+     "months": 152
+    }
+   },
+   "small": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.3984,
+     "t": 3.34,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.3008,
+     "t": 1.442,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.0442,
+     "t": -0.149,
+     "months": 152
+    }
+   }
+  },
+  "profitability": {
+   "big": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.2242,
+     "t": 2.351,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.3868,
+     "t": 2.24,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.3108,
+     "t": 1.321,
+     "months": 152
+    }
+   },
+   "long": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.0857,
+     "t": 2.189,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.1183,
+     "t": 1.785,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.1501,
+     "t": 1.795,
+     "months": 152
+    }
+   },
+   "short": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1385,
+     "t": 2.116,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.2685,
+     "t": 2.199,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.1607,
+     "t": 0.91,
+     "months": 152
+    }
+   },
+   "small": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.2787,
+     "t": 2.785,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.332,
+     "t": 1.582,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.0586,
+     "t": 0.233,
+     "months": 152
+    }
+   }
+  },
+  "investment": {
+   "big": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1489,
+     "t": 1.459,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.1809,
+     "t": 1.035,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.1208,
+     "t": -0.453,
+     "months": 152
+    }
+   },
+   "long": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1317,
+     "t": 2.224,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.1563,
+     "t": 1.521,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.0451,
+     "t": 0.294,
+     "months": 152
+    }
+   },
+   "short": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.0172,
+     "t": 0.324,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.0247,
+     "t": 0.285,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.1659,
+     "t": -1.229,
+     "months": 152
+    }
+   },
+   "small": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.3378,
+     "t": 4.612,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.2631,
+     "t": 2.154,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.0378,
+     "t": -0.221,
+     "months": 152
+    }
+   }
+  },
+  "momentum": {
+   "big": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.3686,
+     "t": 2.125,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.0757,
+     "t": 0.244,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.0023,
+     "t": 0.006,
+     "months": 152
+    }
+   },
+   "long": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.2047,
+     "t": 2.961,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.0353,
+     "t": 0.305,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.0034,
+     "t": 0.023,
+     "months": 152
+    }
+   },
+   "short": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.1639,
+     "t": 1.403,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.0403,
+     "t": 0.188,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": -0.0011,
+     "t": -0.004,
+     "months": 152
+    }
+   },
+   "small": {
+    "1963-2026": {
+     "mean_pct_per_month": 0.8241,
+     "t": 5.51,
+     "months": 758
+    },
+    "since 2000": {
+     "mean_pct_per_month": 0.2999,
+     "t": 1.045,
+     "months": 320
+    },
+    "since 2014": {
+     "mean_pct_per_month": 0.3993,
+     "t": 1.355,
+     "months": 152
+    }
+   }
+  }
+ },
+ "findings": {
+  "big_company_factor_not_distinguishable_full_sample": true,
+  "long_leg_distinguishable_full_sample": true,
+  "small_over_big_mean_ratio": 2.27,
+  "long_legs_clearing_t2_full_sample": [
+   "investment",
+   "momentum",
+   "profitability",
+   "value"
+  ],
+  "big_legs_clearing_t2_full_sample": [
+   "momentum",
+   "profitability"
+  ]
+ }
+}
