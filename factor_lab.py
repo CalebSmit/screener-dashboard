@@ -59,6 +59,7 @@ FRENCH_FILES = {
     "profitability_portfolios": ("Portfolios_Formed_on_OP_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "cash_flow_yield_portfolios": ("Portfolios_Formed_on_CF-P_CSV.zip", "Value Weight Returns -- Monthly"),
     "accruals_portfolios": ("Portfolios_Formed_on_AC_CSV.zip", "Value Weighted Returns -- Monthly"),
+    "investment_portfolios": ("Portfolios_Formed_on_INV_CSV.zip", "Average Value Weight Returns -- Monthly"),
     "split_value": ("6_Portfolios_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_profitability": ("6_Portfolios_ME_OP_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "split_investment": ("6_Portfolios_ME_INV_2x3_CSV.zip", "Average Value Weighted Returns -- Monthly"),
@@ -101,6 +102,11 @@ SORTS = {
     # spread (last minus first) is the paper's hedge return
     "accruals": {"file": "accruals_portfolios", "ew": "Equal Weighted Returns -- Monthly",
                  "columns": [14, 13, 12, 11, 10, 9, 8, 7, 6, 5]},
+    # three terciles, five quintiles, then the ten deciles, slowest asset growth first; listed here
+    # fastest first, so the last group is the slow-growth end the paper buys and the screener's
+    # Investment category favours, and the spread (last minus first) is the paper's 1 minus 10
+    "asset-growth": {"file": "investment_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
+                     "columns": [17, 16, 15, 14, 13, 12, 11, 10, 9, 8]},
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -115,8 +121,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
 # 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
-# 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them.
-ASSET_VERSION = 22
+# 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
+# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group.
+ASSET_VERSION = 23
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1869,6 +1876,132 @@ EXPERIMENTS = [
             "more strongly. When the momentum regime rule cuts Momentum in a market panic, half the "
             "freed weight goes to Valuation; this experiment is the check on that choice."),
     },
+    {
+        "id": "asset-growth",
+        "group": "Investment",
+        "kind": "sort",
+        "topic": "Investment and Growth",
+        "title": "Do companies that grow their assets fastest earn less?",
+        "tab": "Asset growth",
+        "paper": {
+            "authors": "Michael J. Cooper, Huseyin Gulen and Michael J. Schill",
+            "year": 2008,
+            "title": "Asset growth and the cross-section of stock returns",
+            "journal": "Journal of Finance 63(4), 1609-1651",
+            "doi": "10.1111/j.1540-6261.2008.01370.x",
+        },
+        "claim": ("Sorted each June into ten groups by the growth of their total assets over the last fiscal "
+                  "year, the slowest-growing tenth of US non-financial companies beat the fastest-growing "
+                  "tenth by 1.73% a month equally weighted (t-statistic 8.45) and by 1.05% a month weighted "
+                  "by market value (t 5.04), July 1968 to June 2003 - the returns falling step by step from "
+                  "the slowest growers to the fastest."),
+        "reference": {
+            "source": ("The published article, Table II, Panels B.1 (p. 1618, equal-weighted) and B.2 (p. 1619, "
+                       "value-weighted): average monthly raw returns of asset-growth deciles in the year after "
+                       "formation (the 'YEAR 1' row), July 1968 to June 2003, with the 10-1 spread and its "
+                       "t-statistic; the text on p. 1622 restates the two ends and both spreads. Read from the "
+                       "text layer of a copy of the publisher's PDF. The paper's spread is high growth minus "
+                       "low (-1.73%); here the groups are listed fastest growth first, so the spread is the "
+                       "slowest minus the fastest and carries the opposite sign."),
+            "start": "196807", "end": "200306", "weighting": "ew", "also": "vw",
+            # Written 2026-10-19 BEFORE the comparison was run: the library's investment file had been
+            # downloaded and only its header and first rows (1963-64, before the paper's sample) looked
+            # at to find the columns; nothing had been computed on it. The library sorts on the paper's
+            # own variable (total assets t-1 over t-2, less one, formed each June), so this is not a
+            # different-measure rerun - but three things differ: the library keeps financial companies
+            # and utilities (the paper drops SIC 6000-6999), draws its decile lines on NYSE stocks only
+            # (the paper's deciles split all its firms, NASDAQ included), and does not require two years
+            # on Compustat. NYSE lines put more small, extreme-growth NASDAQ companies in the end groups
+            # and fewer in the middle; expected beforehand: the shape matches, the equal-weighted ends
+            # and spread land below the paper's, the value-weighted ones closer.
+            # Group averages: 0.10% a month, experiment 10's scale for a construction difference (the
+            # same-file reruns of experiments 4-7 used 0.05). Spreads: 0.20% a month, about one
+            # standard error of the paper's own estimate (1.73 / 8.45 = 0.205; 1.05 / 5.04 = 0.208).
+            # t-statistics: 1.5 - the spread's tolerance is one unit of t, plus half a unit for a
+            # different volatility from a different set of companies.
+            # Plan rule 8, checked from the record before committing: a result of no effect matches 6
+            # of these 24 (three middle deciles in each weighting) and misses both spreads, both
+            # t-statistics and every end group.
+            "tolerances_written": "before",
+            "figures": [
+                {"key": "mean1", "label": "Fastest asset growth (decile 10): average month, equally weighted (%)", "paper": 0.26, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1, decile 10 (p. 1618)"},
+                {"key": "mean2", "label": "Decile 9: average month, equally weighted (%)", "paper": 0.85, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean3", "label": "Decile 8: average month, equally weighted (%)", "paper": 1.14, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean4", "label": "Decile 7: average month, equally weighted (%)", "paper": 1.18, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean5", "label": "Decile 6: average month, equally weighted (%)", "paper": 1.24, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean6", "label": "Decile 5: average month, equally weighted (%)", "paper": 1.34, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean7", "label": "Decile 4: average month, equally weighted (%)", "paper": 1.41, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean8", "label": "Decile 3: average month, equally weighted (%)", "paper": 1.54, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean9", "label": "Decile 2: average month, equally weighted (%)", "paper": 1.76, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1 (p. 1618)"},
+                {"key": "mean10", "label": "Slowest asset growth (decile 1): average month, equally weighted (%)", "paper": 1.99, "tolerance": 0.10, "where": "Table II, Panel B.1, year 1, decile 1 (p. 1618; text p. 1622)"},
+                {"key": "spread", "label": "Slowest growth minus fastest, equally weighted, a month (%)", "paper": 1.73, "tolerance": 0.20, "where": "Table II, Panel B.1, year 1, spread (10-1) = -0.0173, sign reversed (p. 1618; text p. 1622)"},
+                {"key": "t_spread", "label": "Its t-statistic", "paper": 8.45, "tolerance": 1.5, "where": "Table II, Panel B.1, year 1, t(spread) = -8.45, sign reversed (p. 1618)"},
+                {"key": "vw_mean1", "label": "Fastest asset growth (decile 10): average month, by market value (%)", "paper": 0.43, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1, decile 10 (p. 1619; text p. 1622)"},
+                {"key": "vw_mean2", "label": "Decile 9: average month, by market value (%)", "paper": 0.77, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean3", "label": "Decile 8: average month, by market value (%)", "paper": 0.92, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean4", "label": "Decile 7: average month, by market value (%)", "paper": 1.02, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean5", "label": "Decile 6: average month, by market value (%)", "paper": 1.00, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean6", "label": "Decile 5: average month, by market value (%)", "paper": 1.00, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean7", "label": "Decile 4: average month, by market value (%)", "paper": 1.16, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean8", "label": "Decile 3: average month, by market value (%)", "paper": 1.22, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean9", "label": "Decile 2: average month, by market value (%)", "paper": 1.24, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1 (p. 1619)"},
+                {"key": "vw_mean10", "label": "Slowest asset growth (decile 1): average month, by market value (%)", "paper": 1.48, "tolerance": 0.10, "where": "Table II, Panel B.2, year 1, decile 1 (p. 1619; text p. 1622)"},
+                {"key": "vw_spread", "label": "Slowest growth minus fastest, by market value, a month (%)", "paper": 1.05, "tolerance": 0.20, "where": "Table II, Panel B.2, year 1, spread (10-1) = -0.0105, sign reversed (p. 1619; text p. 1622)"},
+                {"key": "vw_t_spread", "label": "Its t-statistic", "paper": 5.04, "tolerance": 1.5, "where": "Table II, Panel B.2, year 1, t(spread) = -5.04, sign reversed (p. 1619)"},
+            ],
+        },
+        "verdict_note": ("The shape reproduces in both weightings - returns fall from the slowest growers to "
+                         "the fastest, and both spreads are well clear of zero (t 8.0 and 4.1) - but the "
+                         "public sort's ends are closer together than the paper's, so both spreads land "
+                         "below it and outside their tolerances: 1.22% against 1.73% equally weighted, 0.67% "
+                         "against 1.05% by market value. The equal-weighted shortfall was expected beforehand "
+                         "(financial companies kept, decile lines drawn on NYSE stocks); the value-weighted "
+                         "one was not. The middle groups match closely."),
+        "sort": {
+            "data": "asset-growth",
+            "groups": ["Fastest asset growth", "Decile 9", "Decile 8", "Decile 7", "Decile 6", "Decile 5", "Decile 4", "Decile 3", "Decile 2", "Slowest asset growth"],
+            "ends": ["fastest asset growth", "slowest"],
+            "low": "group with the fastest asset growth", "high": "group with the slowest",
+            "spread": "Slowest asset growth minus fastest",
+            "accent": [9],
+            "key_accent": "The slowest asset growth - the end the screener's Investment category favours",
+            "key_rest": "The other nine groups",
+            "chart": "by asset growth, fastest first",
+            "presets": [["The paper · 1968–2003", "196807", "200306"],
+                        ["After the paper · 2003–now", "200307", "LAST"],
+                        ["Since 2014", "201401", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["ew", "Equally · paper"], ["vw", "By market value · paper"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each June, companies are put in one of ten groups by the growth of their total "
+                           "assets over the last fiscal year (assets at the fiscal year ending in the previous "
+                           "calendar year, divided by assets a year before that, less one) - the paper's own "
+                           "measure - with the dividing lines drawn on New York Stock Exchange stocks."],
+            ["Data", "Kenneth R. French's Data Library, \"Portfolios Formed on Investment\"."],
+            ["Weighting", "The paper reports both, and both are compared: equally weighted (its first panel) "
+                          "and by market value. The chart opens on equal weighting; the other is one click away."],
+            ["Returns", "Raw monthly returns, as in the paper's table, held from July to the next June."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper leaves out financial companies (SIC codes 6000-6999); the public file keeps them, "
+            "and utilities.",
+            "The paper's deciles divide all its companies; the public file's dividing lines are drawn on "
+            "New York Stock Exchange stocks only, so its end groups hold more small, fast- or slow-growing "
+            "NASDAQ companies than the paper's.",
+            "The paper's stronger claims are after adjusting for size and value (Fama-French alphas, Table "
+            "II Panel C) and among large companies alone (a value-weighted alpha spread of 0.81% a month, "
+            "t 2.91, in its largest size third). Neither is reproduced here: the public file has no "
+            "size-by-asset-growth deciles.",
+        ],
+        "in_the_screener": (
+            "Asset growth is the whole of the screener's Investment category (5% of the composite), scored "
+            "lower-is-better, as this paper implies. Growth (13%) pulls the other way: it scores revenue "
+            "growth higher-is-better, and across the screener's companies revenue growth and asset growth "
+            "have a rank correlation of +0.51, so for many companies the two categories score one fact in "
+            "opposite directions. This sort is across the whole market and does not compare within "
+            "sectors, as the screener does."),
+    },
 ]
 
 
@@ -1913,6 +2046,9 @@ TAKEAWAYS = {
                         "still have since. Weighted by market value - where large companies count most - "
                         "the gap has been about zero since 1990 and below zero since 2007, though not "
                         "distinguishably."),
+    "asset-growth": ("Companies that grew their assets slowest beat the fastest growers in the paper's years on "
+                     "the public sort too, by less than the paper found. Since the paper, equally weighted the "
+                     "gap is a quarter of its old size, and weighted by market value it has been about zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -1936,11 +2072,13 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
             "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
             "year by year, for decades; the accruals sort covers one of Beneish's eight inputs."},
-    {"category": "Growth", "key": "growth", "experiments": [],
-     "has": "Nothing yet.",
+    {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
+     "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
+            "the one Growth's revenue growth moves with, and the two categories score it in opposite "
+            "directions.",
      "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
-            "cites, needs company accounts."},
+            "cites, needs company accounts, and the library has no sort on sales or earnings growth."},
     {"category": "Momentum", "key": "momentum",
      "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth"],
      "has": "Momentum's risk, when it crashes, its size among big companies, and how it offsets value.",
@@ -1958,8 +2096,9 @@ CATEGORY_MAP = [
     {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
-    {"category": "Investment", "key": "investment", "experiments": ["five-factors", "big-and-small"],
-     "has": "The investment factor - companies that grow their assets slowly, minus those that grow them fast.",
+    {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small"],
+     "has": "Stocks sorted by asset growth - the category's one measure - and the investment factor: "
+            "companies that grow their assets slowly, minus those that grow them fast.",
      "gap": "It overlaps heavily with value; the five-factor experiment shows by how much."},
 ]
 
@@ -2006,7 +2145,7 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -2021,6 +2160,8 @@ def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
     idx = range(len(split["months"]))
     overlap = correlation([split["value"]["big"][i] for i in idx], [split["investment"]["big"][i] for i in idx])
     nine_ten = size_run(size, size["months"][0], "209912", "ew")["nine_ten"]
+    ag_paper, ag_after = (sort_run(asset_growth, a, b, "vw")["spread"] for a, b in
+                          (("196807", "200306"), ("200307", "209912")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -2034,7 +2175,11 @@ def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
                     f"it is profitable companies beating the market "
                     f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
                     f"unprofitable ones lagging it."),
-        "growth": "Nothing. There is no published return premium for growth to rerun.",
+        "growth": (f"Nothing on the category's own measures - there is no published return premium for growth "
+                   f"to rerun. The nearest sort is Investment's asset growth, which revenue growth moves with: "
+                   f"by market value, the slowest growers beat the fastest by {ag_paper['mean']:.2f}% a month in "
+                   f"its paper's years (t-statistic {ag_paper['t']:.2f}) and by {ag_after['mean']:+.2f}% since "
+                   f"(t-statistic {ag_after['t']:.2f})."),
         "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
                      f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "
                      f"{small(whole, 'momentum')['mean']:.2f}% among small ones - and "
@@ -2111,7 +2256,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -2176,7 +2321,9 @@ def compare(reference: dict, measured: dict, tolerances: dict = TOLERANCES) -> l
 NULL_KEEPS_PREFIX = ("mkt_", "worst", "bear_months")      # the market's own figures, counts, worst months
 NULL_KEEPS_SUFFIX = ("_mktrf",)
 _NULL_VOL = re.compile(r"(^|_)std\d*($|_)")                # a volatility: std1, std_value, wml_std
-_NULL_LEVEL = re.compile(r"(mean|dec)\d+$")
+# a group's level: mean3, dec7, or vw_mean3 for a second weighting of the same table (`also`),
+# whose groups all earn that weighting's own average under the null
+_NULL_LEVEL = re.compile(r"((?:[a-z]+_)?)(mean|dec)\d+$")
 STAT_ORDER = ("max", "min", "mean", "std", "kurt", "skew", "sharpe")
 NULL_MEANING = {
     "risk-managed": ("“No effect” here means the risk-managed strategy matching the plain one figure "
@@ -2194,15 +2341,19 @@ def null_rows(exp: dict) -> list[dict]:
         return [{"paper": ref[leg][k], "null": ref["plain"][k], "tolerance": TOLERANCES[k]}
                 for leg in ("plain", "managed") for k in STAT_ORDER]
     figs = ref["figures"]
-    levels = [f["paper"] for f in figs if _NULL_LEVEL.match(f["key"])]
-    centre = 0.0 if ref.get("relative") or not levels else sum(levels) / len(levels)
+    levels: dict[str, list[float]] = {}
+    for f in figs:
+        m = _NULL_LEVEL.match(f["key"])
+        if m:
+            levels.setdefault(m.group(1), []).append(f["paper"])
+    centres = {pre: 0.0 if ref.get("relative") else sum(v) / len(v) for pre, v in levels.items()}
     out = []
     for f in figs:
         k = f["key"]
         if k.startswith(NULL_KEEPS_PREFIX) or k.endswith(NULL_KEEPS_SUFFIX) or _NULL_VOL.search(k):
             null = f["paper"]
         elif _NULL_LEVEL.match(k):
-            null = centre
+            null = centres[_NULL_LEVEL.match(k).group(1)]
         else:
             null = 0.0
         out.append({"paper": f["paper"], "null": null, "tolerance": f["tolerance"]})
@@ -2288,10 +2439,19 @@ def reproduce_sort(data: dict, exp: dict) -> dict:
     # that reports size-adjusted returns, whose groups average close to zero; ``scale``: the
     # paper's unit (12 for percent a year from percent a month)
     scale = ref.get("scale", 1)
-    centre = (sum(s["mean"] for s in r["groups"]) / len(r["groups"])) if ref.get("relative") else rf
-    got = {"spread": r["spread"]["mean"] * scale}
-    for g, s in enumerate(r["groups"], 1):
-        got[f"mean{g}"], got[f"std{g}"] = (s["mean"] - centre) * scale, s["std"]
+
+    def figures(run: dict, prefix: str = "") -> dict:
+        centre = (sum(s["mean"] for s in run["groups"]) / len(run["groups"])) if ref.get("relative") else rf
+        out = {f"{prefix}spread": run["spread"]["mean"] * scale, f"{prefix}t_spread": run["spread"]["t"]}
+        for g, s in enumerate(run["groups"], 1):
+            out[f"{prefix}mean{g}"], out[f"{prefix}std{g}"] = (s["mean"] - centre) * scale, s["std"]
+        return out
+
+    got = figures(r)
+    # ``also``: a paper that reports the same table under a second weighting (experiment 14: equal
+    # and value weights) - those figures carry the weighting as a prefix, ``vw_mean1``, ``vw_spread``
+    if ref.get("also"):
+        got.update(figures(sort_run(data, ref["start"], ref["end"], ref["also"]), ref["also"] + "_"))
     rows = []
     for f in ref["figures"]:
         here = got[f["key"]]
@@ -2387,7 +2547,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles),
-        "scorecard": scorecard(split, size, screener_weights()),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},

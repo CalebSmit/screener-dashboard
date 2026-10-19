@@ -42,7 +42,7 @@ tolerance is never widened to absorb it (`test_the_tolerances_are_the_recorded_o
 | `lab_data.js` | **Generated** (`python factor_lab.py --build`). Derived monthly series, the paper's figures, the computed comparison. Never hand-edit. |
 | `lab.html` | Hand-written source (not generated). Controls, charts, the four parts, the code it ran. |
 | `data/lab/french/` | The library's own files. **Gitignored**, re-downloadable (`--fetch`), never committed. |
-| `tests/test_factor_lab.py` | 59 tests (counted 2026-10-16; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
+| `tests/test_factor_lab.py` | 61 tests (counted 2026-10-19; recount rather than trust it): the arithmetic, the parity (including every row of every comparison with the paper, `E.compare*`, to 1e-9), the computed verdicts, the four parts, when each experiment's tolerances were written, what a null result would match, every printed difference against its verdict, no advice language, no scoring import, and real-browser runs at 1200/1440 and 375 px (in-page links, the year pickers, the charts by keyboard, no table sliding sideways on a phone). |
 
 The dashboard may not compute its own numbers (row 0.8). The lab has to - rerunning is the
 point - so it carries that rule in a different form: **Python is the reference, the browser must
@@ -190,6 +190,7 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 6b | Does a high earnings yield pay? Fama & French (1992), Table IV | Valuation | `Portfolios_Formed_on_E-P` | **Shipped 2026-10-12 as experiment 6, with no change to the page** (the generic layout). **7 of 11 within**; the misses are small and mostly at the two ends. The cash-flow-yield sort (`_CF-P`) **shipped 2026-10-15 as experiment 11** (Lakonishok, Shleifer & Vishny 1994; 11 of 11 within). Still open: the book-to-market panel of the same table. |
 | 6c | Accruals (Sloan 1996) | Quality | `Portfolios_Formed_on_AC` | **Shipped 2026-10-15 (owner-run, night) as experiment 12. 6 of 11 within**; the direction reproduces (t 4.7 in the paper's years) but the library's gradient is flatter - half the paper's spread - because its measure has no depreciation term and divides by book equity. The paper's PDF text layer carries only the end rows: the middle rows were read from the rendered page, *after* the ends and spread had been compared (the record's comment says so). The paper has no DOI; the lab now takes a stable `url` in its place. |
 | 7 | Asness, Moskowitz & Pedersen (2013), value and momentum together | Valuation + Momentum | French 2x3 value and momentum portfolios | **Premise MEASURED 2026-10-15 (owner-run) - `research/2026-10-15-value-momentum-correlation.md`.** Among big companies over the paper's 1972-2011 window each premium matches the paper (Sharpe 0.27 vs 0.29; 0.35 vs 0.33) but the correlation is milder (-0.20 vs -0.53, likely the library's lagged book-to-market price); the hedge grew stronger after 2011 (-0.39) while both premia went to about zero. The rule's weight transfer is supported as a diversifier, not as a return source. **Shipped the same night as experiment 13** with a new layout (kind `combo`: `factor_lab.combo_run`, `lab_engine.comboRun`, `together()` in `lab.html`): 7 of 10 within. The tolerances follow experiment 10's scale because the Sharpe ratios and correlation had been seen in the measurement first - the record says so. |
+| 7b | **Cooper, Gulen & Schill (2008), asset growth** | Investment (and the Growth composition question) | `Portfolios_Formed_on_INV` | **Shipped 2026-10-19 as experiment 14. 13 of 24 within** tolerances committed in a separate commit before the run (`8f7ec9f`). First sort compared under **both** weightings its paper reports (`reference["also"] = "vw"`, figures `vw_mean1`..., `vw_spread`; the null gives each weighting its own centre). The shape reproduces (t 8.0 equal-weighted, 4.1 by market value); both spreads land below the paper's and outside (1.22 vs 1.73; 0.67 vs 1.05). **Since the paper, by market value, about zero** (-0.07% a month, t -0.29, 278 months). `research/2026-10-19-lab-asset-growth.md`. Still open: the paper's large-firm alpha (Table II Panel C) on the 2x3 size-by-investment file. |
 | 8 | Results in their papers' samples and since (the question McLean & Pontiff 2016 study) | All | The experiments' own series | **Shipped 2026-10-12** as a table on the front page (`factor_lab.after_the_paper`): eleven headline results, each with its months. 9 of the 10 that claim a direction were weaker after their sample. A new experiment adds its row there. Still open: reproducing McLean & Pontiff's own figures, which needs their list of anomalies. |
 | - | **Cannot be rerun on free data:** Piotroski (2000), Beneish (1999), analyst revisions (Chan, Jegadeesh & Lakonishok 1996), post-earnings drift | Quality, Revisions, Growth | Needs stock-level fundamentals and estimates history | Give each a card saying exactly that and what data it would take. Check first whether the French library's accruals and net-issuance portfolios can stand in for Sloan (1996). |
 
@@ -241,6 +242,17 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-19 - experiment 14: Cooper, Gulen & Schill (2008), asset growth.** Read from the published
+  article (Table II Panels B.1/B.2, pp. 1618-1619); tolerances committed on their own before the
+  library's investment file was compared (rule 3), and checked against rule 8 from the record (a null
+  matches 6 of 24, missing every end, spread and t-statistic). **13 of 24 within**; both spreads below
+  the paper's and outside. The generic sort now takes `also` (a second weighting compared in the same
+  table) and reports each spread's t-statistic (`t_spread`). After the paper, value-weighted: -0.07% a
+  month (t -0.29). What it says for the Growth/Investment composition question is in
+  `research/2026-10-19-lab-asset-growth.md` section 6 - research only, no weight proposed. The menu has
+  an Investment group; Growth's map row and scorecard now point at this sort. Fourteen experiments,
+  124 of 186 within.
 
 - **2026-10-15 (owner-run, 22:30) - experiment 13: Asness, Moskowitz & Pedersen (2013), value and momentum
   together, and a new layout (`combo`).** 7 of 10 within: each premium and the mix's average match
