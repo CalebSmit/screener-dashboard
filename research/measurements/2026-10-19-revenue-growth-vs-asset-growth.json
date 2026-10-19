@@ -101,5 +101,22 @@
   "spearman_vs_revenue_growth": 0.1716,
   "spearman_vs_three_year_cagr": 0.3048,
   "spearman_vs_asset_growth": -0.5635
+ },
+ "composite_exposure": {
+  "vs_revenue_growth": -0.0039,
+  "vs_asset_growth": -0.203,
+  "vs_rank_spread": 0.2017,
+  "vs_raw_spread": 0.1721,
+  "n": 497,
+  "by_category": {
+   "valuation": -0.0823,
+   "quality": -0.0226,
+   "growth": 0.3231,
+   "momentum": 0.21,
+   "risk": -0.0307,
+   "revisions": 0.1827,
+   "size": -0.0303,
+   "investment": 0.4687
+  }
  }
 }

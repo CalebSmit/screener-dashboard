@@ -52,6 +52,7 @@ OUT = Path(__file__).with_suffix(".json")
 
 # The two metrics under examination, and the third growth metric that shares their basis.
 RG, AG = "revenue_growth", "asset_growth"
+CATS = ["valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"]
 
 
 def load() -> tuple[dict, pd.DataFrame]:
@@ -356,6 +357,47 @@ def main() -> None:
           f"{t3['spearman_vs_three_year_cagr']:+.4f}")
     print(f"  the three legs' points vs raw asset growth    : "
           f"{t3['spearman_vs_asset_growth']:+.4f}")
+
+    # ---- 10. does the WHOLE composite hold the position the pair holds? -------------------
+    # Sections 3 and 8 are about 8.25 of the composite's 100 points. The coherence question
+    # (CLAUDE.md, "Build a coherent screener") is whether the finished ranking inherits that
+    # position or whether the other 91.75 points wash it out - and whether the other categories
+    # are already leaning the same way, in which case the pair is not the only place the
+    # screener bets on asset turnover.
+    cw = sp.dropna(subset=["composite"]).copy()
+    res["composite_exposure"] = {
+        "vs_revenue_growth": round(
+            float(cw["composite"].corr(cw["rg_raw"], method="spearman")), 4),
+        "vs_asset_growth": round(
+            float(cw["composite"].corr(cw["ag_raw"], method="spearman")), 4),
+        "vs_rank_spread": round(
+            float(cw["composite"].corr(cw["spread_rank"], method="spearman")), 4),
+        "vs_raw_spread": round(
+            float(cw["composite"].corr(cw["spread_raw"], method="spearman")), 4),
+        "n": int(len(cw)),
+    }
+    ce = res["composite_exposure"]
+    print("\n--- 10. the finished composite's own exposure (all 100 points) ---")
+    print(f"composite vs raw revenue growth : {ce['vs_revenue_growth']:+.4f}")
+    print(f"composite vs raw asset growth   : {ce['vs_asset_growth']:+.4f}")
+    print(f"composite vs the rank spread    : {ce['vs_rank_spread']:+.4f}  "
+          f"(the pair alone: {s8['spearman_pair_points_vs_rank_spread']:+.4f})")
+
+    # Where else in the composite does that exposure come from? Each category score against the
+    # spread, so the note can say whether the pair is the screener's only bet on asset turnover.
+    print("\ncategory scores against the within-sector rank spread:")
+    res["composite_exposure"]["by_category"] = {}
+    cat_cols = {c: c + "_score" for c in CATS}
+    text = (ROOT / "dashboard_data.js").read_text(encoding="utf-8")
+    table = pd.DataFrame(json.loads(
+        text[text.index("{"): text.rindex("}") + 1])["table_data"]).set_index("Ticker")
+    for c, col in cat_cols.items():
+        if col not in table.columns:
+            continue
+        s = pd.to_numeric(table[col], errors="coerce").reindex(cw.index)
+        rho = float(s.corr(cw["spread_rank"], method="spearman"))
+        res["composite_exposure"]["by_category"][c] = round(rho, 4)
+        print(f"  {c:11s} (weight {fw[c]:>2}): {rho:+.4f}")
 
     OUT.write_text(json.dumps(res, indent=1) + "\n", encoding="utf-8")
     print(f"\nwrote {OUT.relative_to(ROOT)}")
