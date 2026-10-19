@@ -12827,4 +12827,192 @@ composition questions (`research/2026-10-12-growth-category.md` section 11): *th
 `revenue_growth` against `asset_growth` - two categories, one fact, opposite directions.*
 
 ### Did
-- *(in progress - this entry is extended as the session goes)*
+
+**The note: `research/2026-10-19-revenue-growth-vs-asset-growth.md`.** The question the 2026-10-13
+Growth refusal named first among the open composition questions - *the sign of `revenue_growth`
+against `asset_growth`, two categories, one fact, opposite directions.* It is complete today and
+ends in no open proposal.
+
+**1. The strong form of the complaint is wrong, and the weights do something nobody chose.**
+Within sector - the only frame the engine scores in - the two raw metrics are Spearman **+0.4924**,
+so **24.2% shared variance and 75.8% of each is its own**, and **30.0% of the universe (149 of 497)**
+sits in the two cells where a company grew one without the other. So not "the same fact". But the
+weights (3.25 points on high revenue growth, 5.00 on low asset growth) make the pair a position on
+neither level: counting both legs its composite points correlate **+0.045** with raw revenue growth,
+**−0.736** with raw asset growth, and **+0.892 with the within-sector spread between them**. The
+revenue leg alone is a +0.886 position on revenue growth; adding the asset leg takes that to +0.045.
+**The screener pays 3.25 points for a position it does not hold, and what it holds instead is a bet
+on revenue rising faster than the balance sheet - growth in asset turnover.** The finished composite
+inherits it: −0.004 on revenue growth, −0.203 on asset growth, **+0.202 on the spread**.
+`research/measurements/2026-10-19-revenue-growth-vs-asset-growth.py`.
+
+**2. Replayed over 40 committed runs, because the Growth review left that challenge open about its
+own headline number.** Every `dashboard_data.js` from 2026-09-10 to 2026-10-19, each scored at the
+weights its own commit configured: the spread correlation runs **+0.892 to +0.911**, the composite's
+**+0.193 to +0.215**. Flat. **And it dated a step nobody had looked for:** between the two payloads
+of 2026-10-09 the pair's residual exposure to revenue growth fell 0.137 → 0.045 and the raw overlap
+rose 0.477 → 0.508. Attribution checked rather than assumed - the step is in the correlation between
+the two *raw* values, `asset_growth` is untouched in that commit range, and exactly one commit there
+touches `revenue_growth`: `0a470e4`, the window fix. **Putting `revenue_growth` on an honest 12-month
+window made it measure the same twelve months as `asset_growth`, so the asset leg cancels more of
+it.** A correctness fix moved the screener's joint position, invisibly.
+
+**3. The screener computes the measure that has the large-company evidence - which was unsaid.**
+Cooper, Gulen & Schill's `ASSETG` is *"the year-on-year percentage change in total assets"* (p. 1613),
+which is exactly `factor_engine.py:2969`. It is **not** Fama & French (2008)'s assets-per-split-
+adjusted-share, which subtracts net share issuance and is the measure that fails among big stocks;
+Lipson, Mortal & Schill isolate that difference on one sample (big-stock spread **0.67%/mo t 4.04**
+on CGS's measure against **0.25% t 1.71** on FF's). Three large-company confirmations on the
+screener's measure. **Counterweights kept in:** the effect halves monotonically with size; FF2015's
+CMA_B - which *does* use total-asset growth - is t 1.03-2.00 with the authors writing *"almost all
+the average value of CMA is from small stocks"*, independently corroborating this session's own lab
+measurement of **t 1.46**; and LMS find **no effect at all in the lowest idiosyncratic-volatility
+quintile** (0.1%, t 1.02), with the large-and-low-volatility cell - this universe - reported by none
+of the three papers.
+
+**4. Both legs are tail effects and the screener scores both linearly.** CGS's large-company
+asset-growth alphas: deciles 2-9 span **0.16pp of an 0.80pp** spread. LSV's sales-growth deciles:
+decile 10 carries **41% of the 4.6pp** size-adjusted spread. Recorded as the note's strongest open
+question, **not acted on** - it would touch every percentile-scored metric and make the tool harder
+to explain.
+
+**5. The Investment category's 5 points, measured for a long-only large-company book.** From the
+lab's own French-library data, 758 months: among big companies the factor is +0.149%/mo at **t 1.46**
+(not distinguishable over 63 years), but **the long-only half is +0.132%/mo at t 2.22**, and small
+companies earn **2.27x** the big-company figure. The cross-factor check that makes those readable:
+over the full sample **all four long legs clear |t| >= 2** while **only two of four long-short factors
+do**. `research/measurements/2026-10-19-investment-factor-by-leg.py`.
+
+**6. Registered and ran one experiment in the research engine** - `plan/research-engine.md` queue
+item 6, the route by which a Monday note grows the engine. See "Tried and rejected": **the prediction
+was wrong.**
+
+**7. Kept two plans true (rule 9).** `plan/factor-lab.md` question 7 was still listed as an open
+Monday question four days after it was decided (2026-10-15, operating income) - corrected, with a
+note that it was stale. Question 3's asset-growth half is now marked answered. `plan/research-engine.md`
+records the new experiment and the rerun cost it exposed.
+
+### Evidence / research
+
+Papers obtained and **read from the PDFs**; every figure below was spot-checked against the
+extracted text or the rendered page by me, not taken on a reader's report.
+
+- **Cooper, Gulen & Schill (2008)**, *JF* 63(4) 1609-1651, [doi:10.1111/j.1540-6261.2008.01370.x](https://doi.org/10.1111/j.1540-6261.2008.01370.x).
+  Large-group VW 3-factor alpha spread **−0.81%/mo (t −2.91)**, ~−10%/yr; FM slope **−0.0594 (t −3.60)**.
+  And verbatim p. 1631: *"5-year growth rate in sales is not significant within any of the size
+  groups"* (all firms t −0.27 against asset growth's −7.41).
+- **Fama & French (2008)**, *JF* 63(4) 1653-1678, [doi:10.1111/j.1540-6261.2008.01371.x](https://doi.org/10.1111/j.1540-6261.2008.01371.x)
+  - read as the Dec-2006 draft, the published text **not obtained**, and flagged as such. Big-stock
+  VW hedge −0.02% (t −0.10).
+- **Lipson, Mortal & Schill (2011)**, *JFQA* 46(6) 1651-1682, [doi:10.1017/S0022109011000561](https://doi.org/10.1017/S0022109011000561).
+  The measure isolation (Table 3 p. 1662) and the IVOL result: **no asset-growth effect in the lowest
+  IVOL quintile**, 0.1% (t 1.02), monotone across five.
+- **Fama & French (2015)**, *JFE* 116(1) 1-22, [doi:10.1016/j.jfineco.2014.10.010](https://doi.org/10.1016/j.jfineco.2014.10.010).
+  CMA_B 0.22/0.11/0.07 at t 2.00/1.50/1.03 (Table 4 Panel A, p. 7); *"almost all the average value of
+  CMA is from small stocks"* (p. 8). **Zero occurrences of "sale" in the whole paper.**
+- **Hou, Xue & Zhang (2015)**, *RFS* 28(3) 650-705, [doi:10.1093/rfs/hhu068](https://doi.org/10.1093/rfs/hhu068).
+  Sales growth filed under **value-versus-growth** (Table 2, p. 664), not investment, and insignificant
+  (**−0.27%/mo, t −1.34**, Table 3 p. 667) so it never reaches their q-model. Asset growth is *"the
+  premier manifestation of the investment channel"* (p. 656).
+- **Hou, Xue & Zhang (2020)**, *RFS* 33(5) 2019-2133, [doi:10.1093/rfs/hhy131](https://doi.org/10.1093/rfs/hhy131).
+  Soliman's own `Ato` **fails in all eight specifications** (|t| 0.44-1.92); **`dAto` 0 occurrences
+  in 115 pages** - the change was never tested; and the spread's asset-growth leg replicates
+  robustly where its turnover leg does not (`dNoa` t 4.14, `dLno` t 2.99, `I/A` t 2.89 against `Ato`
+  t 1.89).
+- **Lakonishok, Shleifer & Vishny (1994)**, *JF* 49(5) 1541-1578, [doi:10.1111/j.1540-6261.1994.tb04772.x](https://doi.org/10.1111/j.1540-6261.1994.tb04772.x)
+  - **note the DOI usually cited for this paper (`tb00079.x`) resolves to a different article.**
+  Read off the rendered page: high sales growth → **lower** returns, size-adjusted +0.022 to −0.024.
+  And p. 1557 verbatim, on the largest 20% *"which effectively mimics the S&P 500"*: *"our results
+  apply to the largest stocks as well"* - **asserted, with no numbers published**, and reported as an
+  assertion.
+- **Chan, Karceski & Lakonishok (2003)**, *JF* 58(2) 643-684, [doi:10.1111/1540-6261.00540](https://doi.org/10.1111/1540-6261.00540).
+  Sales growth **is** persistent (6.3% five-year runs against 3.1% by chance; **7.5% among large
+  firms**); earnings growth is **not** (2.2% among large firms, below chance); past five-year sales
+  growth predicts five-year earnings growth at **t −4.2**. Their mechanism, p. 655: *"'empire-building'
+  efforts, such as expanding market share regardless of profitability... profit margins are likely to
+  be shrinking as well"* - the asset-growth story reached from the revenue side.
+- **Nissim & Penman (2001)**, *RAST* 6(1) 109-154, [doi:10.1023/A:1011338221623](https://doi.org/10.1023/A:1011338221623).
+  ΔATO autocorrelation **0.166 then −0.100**, variance ratio 0.031 - *"changes in ATO are mean
+  reverting, and rapidly so"* - against **0.947** for the level.
+- **Wu & Jiang (2026)**, *JRFM* 19(6) 408, [doi:10.3390/jrfm19060408](https://doi.org/10.3390/jrfm19060408),
+  open access - the route by which Fairfield & Yohn's 0.1799/t 8.08 is reported here, **second-hand
+  and marked as such**, plus their own 1981-2020 replication (0.157, t 9.02).
+
+**Documented practice** (primary methodology PDFs; four load-bearing quotations spot-checked by me):
+
+- **Barra GEMTR datasheet (Sept 2016, p. 4)** carries **both signs in one model**: Growth holds
+  *Sales per Share Growth Rate*, Investment Quality holds *Total Assets Growth Rate*.
+- **MSCI Growth Target Indexes Methodology (Nov 2023, §2.4 p. 5)**: Investment Quality exposure
+  constrained **one-sidedly to 0 to +0.25 SD** - the growth tilt is allowed but **may not be financed
+  by asset growth.** The closest documented precedent for the screener's construction, and it
+  constrains the joint position the screener does not.
+- **FTSE Global Factor Index Series Ground Rules (v8.8, rule 5.4)**: *"Quality is defined as a
+  composite of profitability and leverage"*, and profitability includes **Δ Asset Turnover =
+  Sales/Assets − prior** - scored positively. **"asset growth" 0 occurrences, "sales growth" 0
+  occurrences in 43 pages.** FTSE uses neither of the screener's raw legs and scores the spread
+  between them.
+- **Robeco, Blitz, "The many faces of growth" (Apr 2025, p. 3)**: net operating assets **+5 to 7% a
+  year** against **sales growth −2%**, same library, same period - and measured *"over the previous
+  **one or three years**"*, which is the screener's own construction, closing the gap the five-year-rank
+  papers left open.
+- **MSCI, "Foundations of Factor Investing" (Dec 2013, p. 7)**: *"factors such as Growth... have not
+  outperformed the market over long periods. These types of factors are not considered good
+  candidates for long-term factor investing."*
+- Nine of eleven provider families penalise asset growth, and almost all house it **inside Quality**
+  rather than as a standalone category - which answers the asset-growth half of `plan/factor-lab.md`
+  question 3.
+
+**Where academia and practice disagree, and two practitioners disagree with each other** (§9.5-9.6):
+practice rewards the spread; the published return evidence neither supports nor refutes it (Soliman
+not obtained, the change never replicated, the level does not price, the change is transitory).
+Research Affiliates' *"income statement growth... economically scalable"* against Robeco's measured
+−2%. **By the reading rule written before any of this was researched, the weight stays.**
+
+### Methodology changed
+- **None.** No weight, threshold or formula moved; no production code was touched (Monday). The note
+  recommends **no change to either weight** and leaves **no open proposal**.
+- Specified for a build day, not built today: the methodology page's Investment section has **no
+  large-company caveat** where Size and Momentum both carry one. **Nothing on the page is false** -
+  which is why this is a recommendation and not a defect fix - and one of its sentences (*"rewards
+  companies that grow efficiently rather than just growing big"*) turns out to be **accidentally
+  supported** at the system level by §3 and §5 while describing a category that measures no such
+  thing. The four additions are specified to the point of being mechanical in §11.2.
+
+### Tried and rejected
+
+- **A weight change on either leg - refused, and the first two arguments for refusing it were both
+  wrong.** Draft one said removing `revenue_growth` would swing the ranking from neutral on revenue
+  growth to short it (the metric-level version of the 2026-10-13 Growth refusal). **Measured: −0.004
+  → −0.063**, a mild tilt, not a position. Draft two said the spread exposure it costs (+0.2015 →
+  +0.1625) is plainly worth keeping - **undercut by HXZ (2020) and Nissim & Penman later the same
+  day**, which show the turnover level does not price, the change was never tested, and the change is
+  97%-transitory within a year. What survives is the reading rule: practice and research disagree, so
+  the weight stays. `research/measurements/2026-10-19-what-removing-the-revenue-leg-does.py`.
+- **`drop-revenue-growth`, the pre-registered experiment: MY PREDICTION WAS WRONG.** Registered and
+  committed before it ran (`1383a38`, `687229e`). I predicted the difference would be *"zero or
+  positive, never materially negative"*. Measured: held-out **−0.007 at t −2.5** - removing the leg
+  made the ranking **worse** - and 2012-2019 shows nothing (−0.001, t −0.69). It does **not** clear
+  the bar set in advance (|t| >= 3, p < 0.05/28), so the verdict is **"not confirmed"**, and under
+  rule 5 it may not be cited either way - **including not keeping the leg because of it.** Reported
+  here by the person who made the prediction, which is the point of writing directions down.
+- **Building a ΔATO metric - explicitly guarded against** in §11.1, because §3 invites exactly that
+  mistake. The practitioner precedent is real but the return evidence is absent rather than
+  favourable, the quantity is transitory at this review cadence, the screener's spread is over
+  **total** assets where the literature's ATO is over **net operating assets**, and it would duplicate
+  `operating_leverage` to an unmeasured degree.
+- **Three papers could not be obtained** and are named rather than paraphrased: **Soliman (2008)** (the
+  one that would settle whether the spread predicts returns), **Fairfield, Whisenant & Yohn (2003)**,
+  and **Fairfield & Yohn (2001)**. All paywalled with no free full text; **no bot check was worked
+  around.** Getting Soliman needs a library login, not a different URL.
+
+### Next
+- **`plan/research-engine.md` item 8(c) - the positive control in the ledger, plus the synthetic
+  calibration test.** It has now been the named Next for three consecutive sessions (2026-10-18
+  midday, and deferred today for the Monday focus). The next 13:00 or weekend session should take
+  **that and nothing else**: record the deliberately-leaked arm (IC +0.050, t 4.71) as a
+  `kind: control` ledger row, and add a test that injects a signal of known size (target IC 0.03,
+  0.05, 0.10) and asserts the engine measures it back and detects 0.10 at the bar. That is what turns
+  "we found nothing" into "there was nothing to find". **Budget for a full 29-run rerun if it
+  registers anything** - see the new note in that plan.
+- Then, for a build day: the four methodology-page additions specified in §11.2 of today's note
+  (generator only, rule 10; claims registered in `claims.py`).
