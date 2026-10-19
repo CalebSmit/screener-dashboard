@@ -1129,6 +1129,8 @@ above to the point of being mechanical.
 ### 11.4 Status
 
 **No proposal is left open by this note.** The weight question it was asked to settle is settled -
-no change, for the reason in §11.1 - so there is deliberately no `**Proposal status: OPEN**` line
-for a later session to decide. What is left is the page work in §11.2, which is a build task with no
+no change, for the reason in §11.1 - so there is deliberately no open-proposal status line
+for a later session to decide. *(Reworded the same day by an owner-run session: this sentence first
+quoted the status marker verbatim, and `tests/test_morning_brief.py` - which reads any note containing
+it as open - counted this note as carrying the very proposal it says it does not.)* What is left is the page work in §11.2, which is a build task with no
 judgement call in it, and the four ranked questions in §11.3.
