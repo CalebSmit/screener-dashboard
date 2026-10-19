@@ -785,11 +785,18 @@ CLAIMS: tuple[Claim, ...] = (
         id="context.track_record",
         surface=DRILLDOWN,
         asserts=(
-            "The track record holds the ranking's top 25 in equal weights, rebalanced at the "
-            "first comparable run of each month, entering at the close of the first trading "
-            "day on or after the run, with dividends and without costs; the benchmark is RSP. A pick "
-            "the price source no longer serves is priced under its new symbol if renamed, or from the "
-            "screener's own recorded prices until it stopped trading (without dividends)."
+            "The track record is a model record, with no money invested: the ranking's top 25 in "
+            "equal weights, rebalanced at the first comparable run of each month, measured from the "
+            "list each run recorded on its date. Each list enters at the close of the first trading "
+            "day on or after its run's date, or the next one where the run's own recorded prices "
+            "show it was made after that close; runs that recorded no prices are named. Dividends "
+            "included, no costs deducted; RSP is the same index in equal weights and its price is "
+            "after the fund's own costs. A pick the price source no longer serves is priced under "
+            "its new symbol if renamed, or from the screener's own recorded prices, carried between "
+            "runs and ending at the last run that recorded it (without dividends); a pick still "
+            "unpriced is named with its share of the baskets' picks. The top-fifth-minus-bottom-fifth "
+            "figure is a difference of total returns in percentage points; the ticks are dated "
+            "changelog entries, not every one a scoring change; no return is annualised."
         ),
         made_true_by="track_record:build",
         checked_by=(
@@ -798,6 +805,80 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer.py::test_rebalances_on_the_first_run_of_each_month",
             "tests/test_context_layer.py::test_a_renamed_pick_is_priced_under_its_new_symbol",
             "tests/test_context_layer.py::test_a_pick_that_stopped_trading_is_priced_from_the_record_until_it_stopped",
+            "tests/test_track_record_claims.py::test_a_run_that_saw_its_own_close_enters_at_the_next_close",
+            "tests/test_track_record_claims.py::test_a_run_made_before_the_close_enters_at_that_close",
+            "tests/test_track_record_claims.py::test_the_previous_list_is_held_until_the_late_runs_entry",
+            "tests/test_track_record_claims.py::test_a_snapshot_with_no_recorded_prices_is_named_as_untimed",
+            "tests/test_track_record_claims.py::test_the_record_publishes_no_annualised_figure",
+            "tests/test_track_record_claims.py::test_the_panel_does_not_claim_a_record_with_nothing_backfilled",
+            "tests/test_track_record_claims.py::test_the_panel_says_no_money_was_invested",
+            "tests/test_track_record_claims.py::test_the_benchmark_is_described_with_its_costs_and_not_as_like_for_like",
+            "tests/test_track_record_claims.py::test_the_spread_is_printed_in_percentage_points",
+            "tests/test_track_record_claims.py::test_the_changelog_ticks_are_called_entries_not_changes",
+            "tests/test_track_record_claims.py::test_left_out_picks_are_sized_and_no_takeover_premium_is_asserted",
+            "tests/test_track_record_claims.py::test_entry_sentence_names_the_late_and_the_untimed_runs",
+            "tests/test_track_record_claims.py::test_the_panel_and_the_tile_count_months_the_same_way",
+            "tests/test_track_record_claims.py::test_the_panel_renders_every_corrected_sentence_from_a_record",
+        ),
+        caveat=(
+            "Fixed 2026-10-19 (research/2026-10-19-track-record.md section 6). Until then the panel said "
+            "the record was 'measured forward from each run as it was published, with nothing "
+            "backfilled' (the February snapshots were written on 2026-03-09 from saved run output, and "
+            "the public page began on 2026-02-23); entered the 2026-08-10 list at a close set before "
+            "the run (its recorded prices are that close for 47% of stocks within 0.2%, against 10% "
+            "for the day before); called the periods 'monthly' (11 to 105 days) and RSP "
+            "'like-for-like'; printed a difference of returns as a percent; counted changelog dates "
+            "as methodology changes; and said leaving out acquired picks 'usually understates' a "
+            "basket 'because takeovers come at a premium' beside two picks the screener's own "
+            "records price flat. Standing limit: 2026-02-20 and 2026-04-14 recorded no prices, so "
+            "whether they ran before the close cannot be tested; they keep their own date's close "
+            "and the page names them."
+        ),
+    ),
+    Claim(
+        id="context.track_luck",
+        surface=DRILLDOWN,
+        asserts=(
+            "'Periods ahead of RSP' is set against the chance a fair coin does at least as well "
+            "(the binomial tail). The day-by-day lead over RSP is reported as its mean over its "
+            "standard error, against the usual two, with the years of record the same daily lead "
+            "and noise would need to reach two: (2/t)^2 x trading days / 252."
+        ),
+        made_true_by="track_record:excess_record",
+        checked_by=(
+            "tests/test_track_record_claims.py::test_the_coin_toss_chance_is_the_binomial_tail",
+            "tests/test_track_record_claims.py::test_the_excess_t_is_the_daily_mean_over_its_standard_error",
+            "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
+        ),
+        caveat=(
+            "Fixed 2026-10-19: until then the panel set no figure against chance. The t treats daily differences as independent; Lo (2002) shows serial "
+            "correlation changes the standard error, so the figure is a guide to scale, not a test "
+            "result. The years figure extrapolates the lead seen so far, which makes it the most "
+            "optimistic reading the record allows, and the page says 'even if the lead went on'."
+        ),
+    ),
+    Claim(
+        id="context.track_turnover",
+        surface=DRILLDOWN,
+        asserts=(
+            "Traded at each rebalance is one-way turnover of the top 25: half the sum of absolute "
+            "weight changes from the basket as it had drifted to equal weights on the new list; the "
+            "first purchase is not counted. The break-even cost is the cost per dollar traded, paid "
+            "on every sale and purchase, at which (1 + top) x prod(1 - 2 c TO_k) equals 1 + RSP; it is "
+            "shown only when there is a lead to erase. No cost is assumed or deducted."
+        ),
+        made_true_by="track_record:one_way_turnover",
+        checked_by=(
+            "tests/test_track_record_claims.py::test_turnover_is_the_share_of_the_basket_sold",
+            "tests/test_track_record_claims.py::test_turnover_in_the_record_counts_the_drift_by_hand",
+            "tests/test_track_record_claims.py::test_the_break_even_cost_erases_the_lead_exactly",
+        ),
+        caveat=(
+            "Fixed 2026-10-19 (plan/context-layer.md item 6): until then the panel said only 'no trading costs'. A pick held at its last price after its "
+            "prices stopped (acquired) is counted as sold at the next rebalance, though a cash-out "
+            "costs nothing to trade; the turnover is a slight overstatement there. No estimated "
+            "cost is shown, because GIPS 2020 (4.C.18) requires an estimate's basis to be disclosed "
+            "and no free source states one for this basket that this session could verify."
         ),
     ),
     Claim(
@@ -1065,6 +1146,18 @@ FORBIDDEN: tuple[Forbidden, ...] = (
              "client-side percentile transform, which would have stopped the "
              "recompute reproducing the engine's own published numbers."),
         fixed="2026-10-07 (T0a)",
+    ),
+    Forbidden(
+        pattern=r"with nothing backfilled",
+        why=("The Track record panel's opening sentence. The February snapshots were written on "
+             "2026-03-09 from saved run output, and the first of them predates the public page."),
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"because takeovers come at a premium",
+        why=("The Track record panel, beside EA and HOLX: both were under agreed takeovers that the "
+             "screener's own recorded prices show flat across the window, so no premium was missed."),
+        fixed="2026-10-19",
     ),
     Forbidden(
         pattern=r"redistributed equally to ROIC",

@@ -156,8 +156,18 @@ Context is **shown beside the score, never in it** (CLAUDE.md settled row "ctx")
   1m/1y change, 3-year spark line and 10-year percentile; each sector's median rate sensitivity;
   three factor notes. Payload `market` (from `data/market_context.json`).
 - **Track Record** (`sec-track`, collapsed) - the ranking's top 25 vs RSP and SPY since the first
-  comparable run, the top fifth vs bottom fifth view, every monthly holding period, methodology-change
-  ticks on the chart, and the caveats. No current holdings. Payload `track` (from `data/track_record.json`).
+  comparable run, the top fifth vs bottom fifth view (in percentage points), every holding period
+  (with a "Traded" one-way turnover column), changelog-entry ticks on the chart, and the caveats.
+  No current holdings. Payload `track` (from `data/track_record.json`). **2026-10-19:** six stats
+  (adds "Traded at each rebalance"; "Periods ahead of RSP" is set against a coin toss); the caveats
+  state the day-by-day lead in standard errors and the years to two, which runs entered a day late
+  because they were made after the close (`after_close`) or cannot be timed (`untimed`), the
+  turnover and the break-even cost per dollar traded, and that no return is annualised; the opening
+  says it is a model record with no money invested. Month count from one `trMonths()` for panel and
+  tile. Every sentence is a claim (`context.track_record`, `context.track_luck`,
+  `context.track_turnover`; `tests/test_track_record_claims.py`;
+  `research/2026-10-19-track-record.md`). The new payload fields arrive at the next full run; the
+  panel renders without them until then.
 - **Context filter** on the rankings: uptrend, downtrend, insider buying in 90 days, reports within 14
   days. It filters; it never reorders or rescores.
 - **Reporting Soon** (`sec-reporting`, collapsed, nav "Reporting") - every scored stock whose next

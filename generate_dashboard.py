@@ -9612,10 +9612,23 @@ def _js_context() -> str:
         ends.forEach(e => { labels += '<text x="' + (W - R + 8) + '" y="' + (e.y + 4).toFixed(1) + '" class="tr-end ' + e.cls + '">' + (e.v - 100 >= 0 ? '+' : '−') + Math.abs(e.v - 100).toFixed(1) + '%</text>'; });
         return '<svg class="tr-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Growth of 100 since ' + escapeHtml(T.start) + '">' + g + marks + lines + labels +
             '<text x="' + L + '" y="' + (Hh - 6) + '" class="tr-tick">' + escapeHtml(cDate(S.d[0])) + '</text><text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="tr-tick" text-anchor="end">' + escapeHtml(cDate(S.d[n])) + '</text></svg>' +
-            '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology change (hover)</span></div>';
+            '<div class="tr-legend">' + keys.map(k => '<span><i class="tr-k ' + k[2] + '"></i>' + escapeHtml(k[1]) + '</span>').join('') + '<span><i class="tr-k tr-k-mark"></i>Methodology changelog entry (hover)</span></div>';
     }
     let TR_SHOW_Q = false;
     function setTrackView(q) { TR_SHOW_Q = q; renderTrack(); }
+    // One month count for the panel and the tile (they used to divide by 30 and by 30.4, so the
+    // two could disagree by a month on the same record; 2026-10-19).
+    function trMonths(T) { return Math.max(1, Math.round((T.days || 0) / 30.44)); }
+    // A difference between two returns is in percentage points, not percent.
+    function cPp(v, d) {
+        if (v === null || v === undefined || !isFinite(v)) return '&mdash;';
+        const dd = d === undefined ? 1 : d;
+        const x = Number((v * 100).toFixed(dd));
+        return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(dd) + 'pp';
+    }
+    // Every sentence below is checked against track_record.build (claims context.track_record,
+    // context.track_luck, context.track_turnover; tests/test_track_record_claims.py;
+    // research/2026-10-19-track-record.md).
     function renderTrack() {
         const host = document.getElementById('track-body');
         const meta = document.getElementById('meta-track');
@@ -9623,35 +9636,56 @@ def _js_context() -> str:
         if (!host) return;
         if (!T || !T.available) { host.innerHTML = '<p class="modal-note">' + ctxMissing('track record') + '</p>'; return; }
         const tot = T.total || {};
-        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal\u2011weight S&P 500 ' + cPct(tot.RSP)
+        if (meta) meta.textContent = 'Top 25 ' + cPct(tot.top).replace(/&mdash;/, '-') + ' vs equal‑weight S&P 500 ' + cPct(tot.RSP)
             + (tot.SPY === null || tot.SPY === undefined ? '' : ', S&P 500 ' + cPct(tot.SPY)) + ' since ' + cDate(T.start);
         const kpi = (lab, v, sub) => '<div class="tr-kpi"><div class="tr-kpi-l">' + lab + '</div><div class="tr-kpi-v">' + v + '</div><div class="tr-kpi-s">' + sub + '</div></div>';
-        let h = '<p class="section-desc">How the ranking has actually done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from each run as it was published, with nothing backfilled. It measures the ranking, not a portfolio to follow.</p>';
+        const TO = T.turnover || null;
+        const chance = (T.beat_rsp_chance === null || T.beat_rsp_chance === undefined) ? null : Math.round(T.beat_rsp_chance * 100);
+        let h = '<p class="section-desc">How the ranking has done since <b>' + escapeHtml(cDate(T.start)) + '</b>, measured forward from the list each run recorded on its date. No money was invested: this is a model record of the ranking, not the result of real trades and not a portfolio to follow.</p>';
         h += '<div class="tr-kpis">' +
-            kpi('Top 25, total return', cPct(tot.top), 'equal-weight, rebalanced monthly') +
-            kpi('S&amp;P 500 equal-weight', cPct(tot.RSP), 'RSP, the like-for-like benchmark') +
+            kpi('Top 25, total return', cPct(tot.top), 'equal weights, before trading costs') +
+            kpi('S&amp;P 500 equal-weight', cPct(tot.RSP), 'RSP: the same index in equal weights, after the fund&rsquo;s own costs') +
             kpi('S&amp;P 500', cPct(tot.SPY), 'SPY, weighted by size') +
-            kpi('Top fifth minus bottom fifth', cPct(T.spread), 'does the ranking separate stocks?') +
-            kpi('Periods ahead of RSP', T.beat_rsp + ' of ' + T.periods_compared, 'monthly holding periods') + '</div>';
+            kpi('Top fifth minus bottom fifth', cPp(T.spread), 'difference in total return, percentage points') +
+            kpi('Periods ahead of RSP', T.beat_rsp + ' of ' + T.periods_compared,
+                chance === null ? 'holding periods of unequal length' : 'a coin toss does at least this well ' + chance + '% of the time') +
+            (TO ? kpi('Traded at each rebalance', cPlain(TO.mean, 0), 'one way, on average; ' + cPlain(TO.min, 0) + ' to ' + cPlain(TO.max, 0)) : '') + '</div>';
         h += '<div class="seg-control tr-seg"><button type="button" class="seg-btn' + (TR_SHOW_Q ? '' : ' active') + '" onclick="setTrackView(false)">Top 25 vs index</button><button type="button" class="seg-btn' + (TR_SHOW_Q ? ' active' : '') + '" onclick="setTrackView(true)">Top fifth vs bottom fifth</button></div>';
         h += '<div class="tr-chart">' + trackChartSvg(T, TR_SHOW_Q) + '</div>';
-        h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th></tr></thead><tbody>' +
-            T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPct(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td></tr>').join('') +
+        const hasTo = T.periods.some(p => p.turnover !== undefined);
+        h += '<details class="why-panel tr-periods"><summary>Every holding period (' + T.periods.length + ')</summary><div class="tr-table-wrap"><table class="tr-table"><thead><tr><th>Ranked on</th><th>Held</th><th class="num">Top 25</th><th class="num">RSP</th><th class="num">Difference</th><th class="num">Top fifth</th><th class="num">Bottom fifth</th><th class="num">Names changed</th>' + (hasTo ? '<th class="num">Traded</th>' : '') + '</tr></thead><tbody>' +
+            T.periods.map(p => '<tr><td>' + escapeHtml(cDate(p.date)) + '</td><td>' + escapeHtml(cDate(p.entry)) + ' &ndash; ' + escapeHtml(cDate(p.exit)) + '</td><td class="num">' + cPct(p.top) + '</td><td class="num">' + cPct(p.RSP) + '</td><td class="num">' + (p.top !== undefined && p.RSP !== undefined ? cPp(p.top - p.RSP) : '&mdash;') + '</td><td class="num">' + cPct(p.q1) + '</td><td class="num">' + cPct(p.q5) + '</td><td class="num">' + (p.changed === null || p.changed === undefined ? '&mdash;' : p.changed) + '</td>' + (hasTo ? '<td class="num">' + (p.turnover === null || p.turnover === undefined ? '&mdash;' : cPlain(p.turnover, 0)) + '</td>' : '') + '</tr>').join('') +
             '</tbody></table></div></details>';
-        h += '<div class="tr-caveats"><b>Read with care.</b> ' + Math.round(T.days / 30) + ' months is far too short to judge a long-term strategy, and the methodology changed during it (the ticks under the chart; ' + (T.methodology_changes || []).length + ' changes). ' +
-            (T.gaps && T.gaps.length ? 'There were no runs for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
-            (T.unpriced && (T.unpriced.q1 || []).concat(T.unpriced.q5 || [], T.unpriced.top || []).length
-                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed, usually companies taken private or acquired (' +
-                  escapeHtml((T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i).join(', ')) +
-                  '). Leaving them out can move a basket&rsquo;s return either way; for a company that was acquired it usually understates it, because takeovers come at a premium. ' : '') +
+        const unp = T.unpriced ? (T.unpriced.top || []).concat(T.unpriced.q1 || [], T.unpriced.q5 || []).filter((x, i, a) => a.indexOf(x) === i) : [];
+        const picks = T.picks || {};
+        const unpParts = ['top', 'q1', 'q5'].filter(k => T.unpriced && (T.unpriced[k] || []).length && picks[k])
+            .map(k => (T.unpriced[k].length) + ' of the ' + picks[k] + ' picks in the ' + ({ top: 'top-25', q1: 'top-fifth', q5: 'bottom-fifth' })[k] + ' baskets');
+        const X = T.excess || null;
+        h += '<div class="tr-caveats"><b>Read with care.</b> ' + trMonths(T) + ' months is far too short to judge a long-term strategy. ' +
+            (X && X.t !== null && X.t !== undefined
+                ? 'Measured day by day against RSP over ' + X.days + ' trading days, the top 25&rsquo;s lead is ' + Number(X.t).toFixed(1) + ' standard errors from zero; two is the usual minimum for telling skill from luck' +
+                  (X.years_to_two ? ', and even if the lead went on at the same pace it would take about ' + Number(X.years_to_two).toFixed(1) + ' years of record to get there' : '') + '. '
+                : '') +
+            'The methodology changelog has entries on ' + (T.methodology_changes || []).length + ' dates inside this window (the ticks under the chart); not every entry changed how stocks are scored. ' +
+            (T.gaps && T.gaps.length ? 'There was no run the record could use for a stretch before ' + T.gaps.map(cDate).join(', ') + '; the previous list was held through it. ' : '') +
+            (unp.length
+                ? 'A few picks are left out of a basket because neither the free price source nor the screener&rsquo;s own records price them on the day it was formed (' +
+                  escapeHtml(unp.join(', ')) + '). Leaving them out can move that basket&rsquo;s return either way' + (unpParts.length ? '; they are ' + unpParts.join(' and ') : '') + '. ' : '') +
             (T.filled && ((T.filled.from_records || []).length || Object.keys(T.filled.renamed || {}).length)
                 ? 'Picks the price source no longer serves are kept in: ' +
                   (Object.keys(T.filled.renamed || {}).length ? 'renamed companies are priced under their new symbol (' +
                       Object.keys(T.filled.renamed).map(k => escapeHtml(k) + ' &rarr; ' + escapeHtml(T.filled.renamed[k])).join(', ') + ')' : '') +
                   ((T.filled.from_records || []).length ? (Object.keys(T.filled.renamed || {}).length ? '; ' : '') +
-                      'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, until they stopped (' +
+                      'companies that stopped trading are priced from the screener&rsquo;s own record of their price at each run, carried from one run to the next and ending at the last run that recorded them (' +
                       escapeHtml(T.filled.from_records.join(', ')) + '), on price alone without dividends' : '') + '. ' : '') +
-            'Equal weights, entry at the close of the first trading day after each run, dividends included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + ', no trading costs or taxes. This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
+            'Equal weights; each list enters at the close of the first trading day on or after its run&rsquo;s date' +
+            ((T.after_close || []).length ? ', or the next one where the run&rsquo;s own recorded prices show it was made after that close (' + T.after_close.map(cDate).join(', ') + ')' : '') + '. ' +
+            ((T.untimed || []).length ? 'The runs of ' + T.untimed.map(cDate).join(' and ') + ' recorded no prices, so when in the day they ran cannot be checked; they enter at their own date&rsquo;s close. ' : '') +
+            'Dividends are included' + (T.filled && (T.filled.from_records || []).length ? ' except where said' : '') + '. ' +
+            (TO ? 'No trading costs or taxes are deducted. At each rebalance the top 25 traded ' + cPlain(TO.mean, 0) + ' of its value on average, one way' +
+                  (TO.break_even_cost !== null && TO.break_even_cost !== undefined ? '; a cost of ' + cPlain(TO.break_even_cost, 2) + ' on every dollar traded would have erased its lead over RSP' : '') + '. '
+                : 'No trading costs or taxes are deducted. ') +
+            ((T.days || 0) < 365 ? 'No return here is annualised, because none covers a full year. ' : '') + 'This record is not used to set the methodology. A few months cannot show whether the ranking works; <a href="research.html">the ranking tested on 2012&ndash;2026 history</a> is the longer answer.</div>';
         host.innerHTML = h;
     }
 
@@ -9770,7 +9804,7 @@ def _js_context() -> str:
             const kv = document.getElementById('kpi-track-v'), ks = document.getElementById('kpi-track-s');
             if (kv && ks) {
                 kv.textContent = f(tot.top);
-                const mo = Math.max(1, Math.round((T.days || 0) / 30.4));
+                const mo = trMonths(T);
                 ks.textContent = 'Top 25, vs ' + f(tot.RSP) + ' equal\u2011weight' + (hasSpy ? ', ' + f(tot.SPY) + ' S&P 500' : '') + ' · ' + mo + '-month record';
                 const card = document.getElementById('kpi-track');
                 if (card) { card.classList.add('kpi-link'); card.tabIndex = 0; card.setAttribute('role', 'link');
