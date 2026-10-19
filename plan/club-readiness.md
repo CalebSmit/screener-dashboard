@@ -135,25 +135,37 @@ describes, on constructed cases; a flag changes neither score nor rank, and Lead
 excludes flagged names). `scripts/rehearse_publish.py` now runs `tests/test_club_readiness.py`
 with the page tests.
 
+## Second pass, 2026-10-19 - the first pass's Open list
+
+Same method (Playwright, 375x812 with mobile emulation and 1440x900, served on localhost, run
+`377ec40838b1`). Items 1, 3, 4 and 5 are display-only and were regenerated presentation-only
+(`dashboard_data.js` and `dashboard_context.js` sha256 unchanged). Item 2 changes payload text from
+the next data run; `scripts/rehearse_publish.py` regenerated the page from the newest run with it and
+passed (page tests and the data loop's claims gate).
+
+| # | What a phone reader met | What changed | Test |
+|---|---|---|---|
+| 1 | From row 300 of the ranking (scrollY ~22,500 at 375) the only ways back were scrolling or the palette; the header had gone and had no Methodology button below 400px | A **Menu** pill, bottom right, appears once the header has scrolled away (`scrollY > innerHeight`, below 760px only). It opens Back to top, Search stocks, Methodology, What the columns mean and every section the header reaches, read from `.header-nav` at open. 44px pill, 40px rows, inside 375px, no sideways scroll. It sits above the comparison tray, under every dialog (the stock sheet covers it), and is absent at desktop width. Two elements at first paint (built on open): 2,010 nodes at 375, 2,265 at 1440, against a 3,000 budget | `test_a_phone_reader_deep_in_the_ranking_has_a_way_back`, `test_the_phone_menu_stays_out_of_the_sheet_and_the_tray`, `test_no_phone_menu_at_desktop_width` |
+| 2 | "Its weakest scored category is Size at 2 out of 100" - the weakest-category sentence for **107 of 501** stocks this run; Investment for 78 and Risk for 51 | Below 50 in those three categories the sentence adds what the low score means: "A higher Size score means a smaller company, so a score of 2 makes it one of the largest companies in its sector" (at 10 or under; "a larger company than most of its sector" from 11 to 49); Risk "on the more volatile side of its sector on those three measures taken together"; Investment "its total assets grew faster than most of its sector's". Measured on the payload: every stock scoring under 50 on Size is above its sector's median market value, every one under 10 at or above its 90th percentile; every one under 50 on Investment above its sector's median asset growth | `tests/test_stock_summary.py` (four tests, one against the payload); claim `summary.weakest` |
+| 3 | Methodology opened on "Momentum rule, this run ... The panic state needs a negative return and volatility above 20.6%" before the Overview, and the Overview named `METRIC_COLS` | The run note follows the paragraph that states the rule (in the Momentum section); the dialog opens on the title and the Overview. The Overview says "In all the screener computes 46 metrics: the 31 that carry weight ... and 15 candidates that are calculated but held at weight 0" | `test_methodology_opens_on_the_overview_and_the_run_note_follows_its_rule`, `test_the_methodology_overview_names_no_developer_identifier`, `test_the_run_note_sits_beside_the_rule_it_reads` |
+| 4 | Score cards read "7.9 pts (22% wt)" | "7.9 of 22 points" at every width: the category's points of its effective weight, the most it could add. Checked against `contrib` and `effWeights` for JPM at 375 and 1440, no overflow | `test_the_score_cards_read_as_points_of_the_most_possible` |
+| 5 | Implied volatility, put skew, a 10b5-1 plan and the Sahm indicator were defined only in a research paragraph or a tooltip a phone never shows | One line each where the term is first met: under the options table (implied volatility as an annualised standard deviation that option prices assume, against the realised figure; put skew as the implied volatility of a put that pays out only after a fall of roughly 5% minus that of a call at today's price, and that a higher figure means protection costs more - true of a negative reading too, as JPM's -0.7 is), under the insider pair when a plan is shown, and under the Labor market reading (the Sahm indicator's own arithmetic, `market_context.sahm_indicator`). Registered in `context.put_skew`, `context.insider_plan`, `context.sahm` | `test_the_context_terms_are_glossed_on_first_use`, `test_the_glosses_carry_no_advice_and_read_plainly`, `test_the_glosses_render_on_a_phone` |
+
+Seen at 375 and 1440 on every changed surface (deep in the ranking, the open menu, Methodology, JPM's
+sheet, its options and insider cards, the Market backdrop): no horizontal scroll, no console errors.
+The pill floats over the right edge of whatever is beneath it (a composite figure, the end of a
+market card's percentile line) as the page scrolls; nothing is permanently hidden under it.
+
 ## Open (for a later session)
 
-1. **A way back from deep in the ranking on a phone.** The header is static below 760px and its
-   Methodology button hidden below 400px; 501 cards are about 48,000px. Options: a sticky compact
-   header on phones, or a "Top" control. Either is a layout change - judge it against the investor
-   pass's first-screen budget (`tests/test_dashboard_browser.py`).
-2. **"Its weakest scored category is Size at 2 out of 100"** (the summary sentence, payload) reads
-   as a business weakness for every megacap. It is a true statement about the score. A change is a
-   `stock_summary` sentence change, so it goes through `claims.py` (`summary.weakest`) and is not
-   display-only.
-3. **Methodology's opening**: the run's momentum-rule note comes before "Overview", and the
-   Overview names `METRIC_COLS`. Both are generated (`run_screener.build_screener_overview`,
-   `generate_dashboard._load_methodology_html`); edit the generator and rerun the overview claims
-   tests.
-4. **The score cards' "18.6 pts (22% wt)"** abbreviations; "How it adds up" spells the same
-   arithmetic out, so this is low value.
-5. **Context jargon left as is**: implied volatility, straddle, put skew, 10b5-1, VIX, Sahm. Each
-   card already explains its terms in its research paragraph; the plain-English pass there is
-   `plan/context-layer.md` item 4's territory.
-6. **Adding a departed stock to My holdings.** The add box now says why it cannot; the panel keeps a
+1. **Adding a departed stock to My holdings.** The add box says why it cannot; the panel keeps a
    saved name the run stopped scoring, but cannot take a new one. Allowing it would touch settled
    row 5's storage rules.
+2. **"Straddle" and "VIX"** are left as they are: the straddle is defined in the options card's
+   research paragraph ("a straddle costs about the average absolute move to expiry") and the VIX in
+   the Volatility reading ("the S&P 500 options market's price for the next 30 days' swings").
+3. **The comparison tray's chips** scroll inside a 97px strip at 375, so the second ticker is
+   half-visible beside "2 stocks". The count is stated; low value.
+4. **The payload sentence lands with the next data run.** The live site keeps "Its weakest scored
+   category is Size at 2 out of 100" until the 02:00 loop rebuilds `stock_detail[t].summary`; check
+   one megacap's sheet the next morning.

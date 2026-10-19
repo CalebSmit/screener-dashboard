@@ -37,6 +37,25 @@ What a later session must know before touching these:
 - Holdings' rank-change chip prints the date as "Sep 18"; Market backdrop's opening glosses FRED and
   "pp"; `research.html` carries a "Reading the numbers" line (from `research_page.py`).
 
+**Second pass, same day (the first pass's "Open" list):**
+- **Phone menu** (`#m-nav-btn` + `#m-nav`, `initMobileNav`/`openMobileNav` in `_js_ux`, CSS at the
+  end of `_css_investor`): below 760px a fixed "Menu" pill appears once `scrollY > innerHeight` and
+  opens Back to top, Search stocks, Methodology, What the columns mean, then every visible
+  `.header-nav` link (read at open, so a new header section appears in the menu by itself). Built on
+  open: two elements at first paint. z-index 990 - under every dialog (1000+), lifted above the
+  comparison tray by `body.has-tray`; hidden at 761px and up and in print.
+- **Score cards** read "7.9 of 22 points" (the category's points of its effective weight, which is the
+  most it can add); a category with no score reads "Not scored: no data".
+- **Glosses** (`.ctx-gloss`, `.mk-gloss`): implied volatility and put skew under the options table,
+  a Rule 10b5-1 plan under the insider pair (SEC source, only when a plan is shown), the Sahm
+  indicator under the Labor market reading (`MK_GLOSS`, keyed on the reading's `k`). Each is in its
+  claim's `checked_by` (`context.put_skew`, `context.insider_plan`, `context.sahm`).
+- **Methodology**: `methodologyRunNote` puts this run's momentum-rule reading after the paragraph
+  that states the rule (fallback: before the second `h2`), so the dialog opens on the Overview; the
+  Overview no longer names `METRIC_COLS` (`run_screener.build_screener_overview`).
+- **Payload, from the next data run**: the weakest-category sentence for Size, Risk or Investment
+  below 50 says which way the score runs (`stock_summary.LOW_SCORE_MEANS`, claim `summary.weakest`).
+
 ## Ten functional fixes, 2026-10-16 - `tests/test_dashboard_interaction.py`
 
 No number, rank or sentence in the payload changed (payload byte-identical). What a later session must
