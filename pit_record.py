@@ -151,9 +151,21 @@ class Filed:
         f = f[f["form"].isin(FORMS) & (pd.to_datetime(f["filed"]) <= self.as_of)].copy()
         for c in ("start", "end", "filed"):
             f[c] = pd.to_datetime(f[c], errors="coerce")
-        f = f.dropna(subset=["end", "val"]).sort_values("filed")
-        f = f.drop_duplicates(["concept", "start", "end"], keep="last")
+        f = f.dropna(subset=["end", "val"])
         f["days"] = (f["end"] - f["start"]).dt.days
+        # A fiscal year is reported in a 10-K. Of several versions of a fiscal-year context, the
+        # latest **10-K** wins over any 10-Q filed after it; a 10-Q's value is used only where no
+        # annual report carries that year. Found 2026-10-19 (research/2026-10-19-top-of-ranking-
+        # data-audit.md): Comfort Systems' Q1 2026 10-Q tagged its first-quarter figures with a
+        # calendar-2025 context, so "latest filed" read FY2025 revenue as $1.83bn against the
+        # 10-K's $9.10bn, and its trailing revenue, gross profit, operating income and D&A with it.
+        # In the 2026-10-15 cache 29 such 10-Q values for 13 companies disagreed with their 10-K
+        # and were never superseded by a later one (FIX, CBOE, HPE, MNST and ZBRA since 2024);
+        # restatements still flow, because a restated year reaches the filings as a later 10-K's
+        # comparative column. research/measurements/2026-10-19-top-of-ranking-data-audit.py.
+        f["_annual_report"] = (f["days"].between(340, 380) & f["form"].str.startswith("10-K")).astype(int)
+        f = f.sort_values(["_annual_report", "filed"])
+        f = f.drop_duplicates(["concept", "start", "end"], keep="last").sort_values("filed")
         self._by = {c: g for c, g in f.groupby("concept")}
         self._fam: dict = {}
 
