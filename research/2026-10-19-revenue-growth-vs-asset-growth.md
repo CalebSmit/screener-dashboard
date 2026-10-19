@@ -1002,6 +1002,12 @@ reproduces the published one at Spearman 1.0000, 25 of 25 top names):
 -0.063 is a mild tilt, not a position. So the note does **not** argue that removal would take a
 short, and a future session should not resurrect that claim.
 
+*(The "now" column reads +0.2015 against §5's +0.2017 for the same quantity: this script requires
+every stock to carry all five Growth percentiles so the two columns are computed on one sample,
+where §5 requires only the two metrics under examination. Two decimal places in the fourth place,
+not a disagreement - but worth saying, since an unexplained difference in a published number is
+exactly what a sceptical reader should stop on.)*
+
 **What removal would actually cost is the exposure to the spread.** `revenue_growth` is what
 converts an asset-growth screen into an **asset-turnover** screen - and whether that is worth having
 is exactly where academia and practice part company, which is what decides this note.
