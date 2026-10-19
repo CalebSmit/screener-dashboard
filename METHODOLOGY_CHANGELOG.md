@@ -4316,3 +4316,61 @@ morning. The existing evidence-integrity tests pass unchanged.
 
 **Applied by:** owner-run session (subagent), 2026-10-16.
 **Rollback:** revert the commits; `git checkout good/2026-10-16 -- improvement/` restores the files.
+
+## 2026-10-19 - Documented defect: the year-ago period was taken by column position, not by date
+**Area:** data inputs (fetch) - the prior-year figures behind revenue growth, asset growth, average
+equity (sustainable growth) and Piotroski signals 5-7. No weight, threshold or formula changed.
+
+**Changed:** the fetch took "a year earlier" as **column four** of a newest-first quarterly statement:
+the fifth quarter with revenue (`_rev_q4`), column four of the quarterly balance sheet (every
+`*_prior` balance-sheet input) and quarters four to seven for the prior twelve months
+(`totalRevenue_prior`, `grossProfit_prior`, `netIncome_prior`). That is a year earlier only when the
+source carries every quarter in between. It now takes the period whose end date lies within a
+tolerance of 365 days before the latest (`factor_engine._year_ago_position`), and leaves the input
+NaN when there is none. The tolerances are the windows each comparison already applied to column
+four, unchanged: 15 days for a quarter's flows (350-380, the revenue check since 2026-10-09; it
+admits a 52/53-week calendar's 364 or 371 days) and 35 for a balance sheet (330-400, the
+balance-sheet check since 2026-10-09). The prior twelve months had **no** date check before - only
+that its four quarters were adjacent - so it could have summed a window ending fifteen months back;
+it now starts at the dated year-ago quarter and still needs four adjacent quarters, never annualised.
+The annual statements' "column one is the year before" was checked the same way and holds for all
+501 stocks (no change made there).
+
+**Evidence:** a documented failure. `research/2026-10-19-bank-roe-roa.md` section 6: Berkshire
+Hathaway's quarterly statements omit September 2025, so column four was March 2025; the 330-400-day
+check rejected it and the June 2025 balance sheet sitting in column three went unused, leaving
+BRK-B's asset growth unscored, its sustainable growth on ending rather than average equity and its
+Piotroski score below the six testable signals it needs. No paper is needed for "a year earlier
+means a year earlier": it is the construction every metric here already states (`metric_lineage`:
+"the same quarter a year earlier", "assets a year earlier").
+
+**Measured** (`research/measurements/2026-10-19-year-ago-by-date.py`, on run `377ec40838b1`, the
+2026-10-19 02:00 run, with the four statements re-read for all 501 scored stocks the same day): the
+old rule, replicated, **reproduces the run's raw fetch for 501 of 501 stocks**, so every difference
+below is the rule's. Choosing by date changes the year-ago period for **3 stocks** and **8 metric
+values**:
+
+| Stock | What was missing | Metric changes | Composite | Rank |
+|---|---|---|---|---|
+| BRK-B | Sep 2025 quarter (income statement and balance sheet) | asset growth NaN -> 8.5%; revenue growth -3.2% (annual basis) -> +19.2% (Jun 2026 vs Jun 2025 quarter); Piotroski NaN -> 4; sustainable growth 11.5% -> 12.1% | 60.76 -> 60.63 | 60 -> 60 |
+| FERG | a quarter, across its 2025 fiscal-year change (column four was Apr 2025, 426 days back; Jul 2025 is in column three) | asset growth NaN -> 8.9%; Piotroski 6 -> 8; sustainable growth 22.0% -> 22.7% | 46.59 -> 47.50 | 333 -> 307 |
+| SKYD | the Sep 2025 income-statement quarter | revenue growth -1.5% (annual) -> +0.9% (quarter) | 23.56 -> 23.91 | 500 -> 500 |
+
+Through sector percentiles 139 composites move, 97 ranks (largest 26, FERG); Spearman of the
+composites 0.99996; **top 25 unchanged**. FERG's revenue quarter is *not* paired: its nearest
+period is May-July 2025 against April-June 2026 (334 days), outside the 15-day flow window - a
+seasonal comparison of different months - so its revenue growth stays on the annual basis.
+
+**Expected effect:** the next run scores BRK-B, FERG and SKYD on the year-ago figures above; any
+future stock with a quarter missing from the source keeps its year-ago comparison instead of losing
+it (or, for the prior twelve months, instead of silently reading the wrong year). `scoring_schema`
+11 -> 12 so a same-day warm start does not serve the 02:00 table.
+
+**Validated by:** `tests/test_year_ago_by_date.py` (16 tests: BRK-B's shape picks June 2025 for the
+balance sheet, revenue and the prior twelve months; a complete statement still uses column four; the
+two tolerances and AutoZone's 334-day balance-sheet label; a 52/53-week year; none -> NaN; a tripwire
+that the fetch holds no `offset=4`, `_qc[4]` or `_bs_prior_col = 4`). The metric-lineage equation
+and recompute tests pass unchanged - the fields keep their names and meaning.
+
+**Applied by:** subagent session, 2026-10-19.
+**Rollback:** revert the commit; `scoring_schema` back to 11.

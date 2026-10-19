@@ -273,6 +273,9 @@ balance sheet a year earlier for it: Yahoo's quarterly sheet omits September 202
 `totalAssets_prior` are NaN - which already leaves its asset growth unscored today).
 Its two weights redistribute within bank Quality and it moves 60th -> 56th. The fix belongs in the
 fetch - pick the year-ago column by date, not by position - and is a separate, general change.
+*(Made later on 2026-10-19: `factor_engine._year_ago_position`; changelog "the year-ago period was
+taken by column position". From the next run BRK-B has its June 2025 balance sheet, so this
+paragraph's "loses both ratios" no longer applies to it.)*
 
 ## 7. The proposal, for a later session to decide
 

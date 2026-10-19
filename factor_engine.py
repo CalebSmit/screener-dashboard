@@ -480,6 +480,45 @@ def _quarters_adjacent(cols, start: int, n: int) -> bool:
     return len(d) == n and all(75 <= (d[i] - d[i + 1]).days <= 105 for i in range(n - 1))
 
 
+# How far from 365 days a "year earlier" period end may lie. Each is the window that comparison
+# already applied to column four before 2026-10-19 - only the way the column is found changed.
+YEAR_AGO_TOL_FLOW_DAYS = 15      # a quarter's flows (revenue growth): 350-380 days, since 2026-10-09
+YEAR_AGO_TOL_BALANCE_DAYS = 35   # a balance sheet (asset growth, Piotroski 5-7): 330-400 days
+
+
+def _year_ago_position(cols, anchor: int = 0, tol: int = YEAR_AGO_TOL_FLOW_DAYS):
+    """Position in ``cols`` of the period that ended one year before ``cols[anchor]`` - by DATE.
+
+    WHY - 2026-10-19 (``research/2026-10-19-bank-roe-roa.md`` section 6). The fetch used to take
+    the year-ago quarter as column four of a newest-first quarterly statement. That is a year
+    earlier only when the source carries every quarter in between. Berkshire Hathaway's quarterly
+    balance sheet omits September 2025, so its column four was March 2025 - fifteen months back;
+    the gap check then rejected it and BRK-B's asset growth, average equity and three Piotroski
+    signals all went without a prior year that was sitting in column three. Where no check stood
+    guard, the wrong quarter would simply have been used.
+
+    The year-ago period is the one whose end date lies within ``tol`` days of 365 days before the
+    anchor - the nearest, if the source's labels put two inside. The tolerances are the windows
+    each comparison already used on column four, unchanged: 15 days for a quarter's flows (a
+    52/53-week calendar puts the same quarter 364 or 371 days earlier; a wider window would
+    compare different months of a seasonal business) and 35 for a balance sheet, which the
+    source sometimes labels inconsistently - AutoZone's third quarter is dated 2026-04-30 on its
+    balance sheet and 2025-05-31 a year before (334 days; measured 2026-10-19, a 20-day window
+    would have dropped a prior the run uses today). None when no period matches, two match
+    equally, or the columns are not dates: then the caller leaves the prior-year input NaN,
+    which the metrics already read as missing - never a guess.
+    """
+    try:
+        want = pd.Timestamp(cols[anchor]) - pd.Timedelta(days=365)
+        hits = sorted((abs((pd.Timestamp(c) - want).days), i) for i, c in enumerate(cols)
+                      if i != anchor and abs((pd.Timestamp(c) - want).days) <= tol)
+    except (IndexError, TypeError, ValueError):
+        return None
+    if not hits or (len(hits) > 1 and hits[0][0] == hits[1][0]):
+        return None
+    return hits[0][1]
+
+
 def _stmt_val(stmt, label, col=0, default=np.nan):
     """Pull a value from a yfinance financial-statement DataFrame.
 
@@ -643,7 +682,8 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
     n_quarters : int
         Number of quarters to sum (default 4 for LTM).
     offset : int
-        Starting column offset. 0 = most recent LTM, 4 = prior-year LTM.
+        Starting column offset. 0 = most recent LTM. The prior-year LTM is NOT offset 4 - a
+        year earlier is chosen by date (``_stmt_val_ltm_year_ago``, 2026-10-19).
     default : float
         Value returned if data is unavailable.
     partial_labels : list or None
@@ -724,6 +764,45 @@ def _stmt_val_ltm(stmt, label, n_quarters=4, offset=0, default=np.nan,
             })
         warnings.warn(f"_stmt_val_ltm failed for label='{label}', offset={offset}: {type(e).__name__}: {e}")
         return default
+
+
+def _stmt_val_ltm_year_ago(stmt, label, n_quarters=4, default=np.nan):
+    """The twelve months ending one year before the statement's latest period, or ``default``.
+
+    The four quarters start at the period chosen by ``_year_ago_position`` - by date, never as
+    "column four" (2026-10-19) - and must be four adjacent quarters with a value each, exactly as
+    the current twelve months must; nothing is annualised or rolled forward for the prior year.
+    """
+    try:
+        if stmt is None or stmt.empty:
+            return default
+        idx = _find_stmt_label(stmt, label)
+        if idx is None:
+            return default
+        j = _year_ago_position(list(_period_row(stmt, idx).index))
+    except (KeyError, IndexError, TypeError, ValueError):
+        return default
+    if j is None:
+        return default
+    return _stmt_val_ltm(stmt, label, n_quarters=n_quarters, offset=j, default=default)
+
+
+def _year_ago_quarter(stmt, label="Total Revenue"):
+    """(latest value, value a year earlier, latest date, year-earlier date) for one line of a
+    quarterly statement, the year-earlier quarter chosen by date (2026-10-19), or None.
+
+    Read over the quarters that carry a value for the line, newest first, as the revenue-growth
+    comparison always has been (Jegadeesh & Livnat 2006's same-quarter-a-year-earlier)."""
+    if stmt is None or stmt.empty or label not in stmt.index:
+        return None
+    row = stmt.loc[label]
+    if isinstance(row, pd.DataFrame):
+        row = row.bfill().iloc[0]
+    cols = sorted([c for c in row.index if pd.notna(row[c])], key=pd.Timestamp, reverse=True)
+    j = _year_ago_position(cols) if cols else None
+    if j is None:
+        return None
+    return float(row[cols[0]]), float(row[cols[j]]), pd.Timestamp(cols[0]), pd.Timestamp(cols[j])
 
 
 _NON_RETRYABLE_PATTERNS = ["404", "no data", "not found", "delisted"]
@@ -1231,15 +1310,16 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
 
         # ---- Income statement: LTM (sum of last 4 quarters) ----
         # Current-period flow metrics use LTM (sum of Q0..Q3).
-        # Prior-period flow metrics try LTM (Q4..Q7) first, but yfinance
-        # typically provides only 4-5 quarters. When prior-year LTM is
+        # Prior-period flow metrics try the twelve months ending a year before the latest
+        # quarter first - its start chosen by date, not as column four (2026-10-19,
+        # _year_ago_position) - but yfinance typically provides only 4-6 quarters. When that is
         # unavailable, fall back to annual statement col=1 (prior year).
         _ltm_partial = []  # tracks labels where 3-of-4 quarter annualization was used
         _ltm_rolled = []   # tracks labels rolled forward from the last fiscal year instead
         rec["totalRevenue"]           = _stmt_val_ltm(q_fins, "Total Revenue", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
-        rec["totalRevenue_prior"]     = _stmt_val_ltm(q_fins, "Total Revenue", offset=4)
+        rec["totalRevenue_prior"]     = _stmt_val_ltm_year_ago(q_fins, "Total Revenue")
         rec["grossProfit"]            = _stmt_val_ltm(q_fins, "Gross Profit", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
-        rec["grossProfit_prior"]      = _stmt_val_ltm(q_fins, "Gross Profit", offset=4)
+        rec["grossProfit_prior"]      = _stmt_val_ltm_year_ago(q_fins, "Gross Profit")
         # Operating income first (2026-10-09 audit): Yahoo's "EBIT" row is pretax income plus
         # interest expense, so it carries non-operating gains - GOOGL's read $301.5B against
         # $147.6B of operating income, doubling its ROIC. ROIC, EV/EBITDA and net debt / EBITDA
@@ -1250,7 +1330,7 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["ebit"]               = _stmt_val_ltm(q_fins, "EBIT", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         rec["ebitda"]                 = _stmt_val_ltm(q_fins, "EBITDA", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         rec["netIncome"]              = _stmt_val_ltm(q_fins, "Net Income", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
-        rec["netIncome_prior"]        = _stmt_val_ltm(q_fins, "Net Income", offset=4)
+        rec["netIncome_prior"]        = _stmt_val_ltm_year_ago(q_fins, "Net Income")
         rec["incomeTaxExpense"]       = _stmt_val_ltm(q_fins, "Tax Provision", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
         if np.isnan(rec["incomeTaxExpense"]):
             rec["incomeTaxExpense"]   = _stmt_val_ltm(q_fins, "Income Tax", partial_labels=_ltm_partial, annual=fins, rolled_labels=_ltm_rolled)
@@ -1285,7 +1365,7 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         else:
             rec["_data_source"] = "quarterly"
             # Prior-year fallback: yfinance typically provides only 4-5
-            # quarterly columns, so prior-year LTM (offset=4) often fails.
+            # quarterly columns, so the year-earlier LTM often fails.
             # Fall back to annual statement col=1 for prior-year values.
             if np.isnan(rec["totalRevenue_prior"]):
                 rec["totalRevenue_prior"] = _stmt_val(fins, "Total Revenue", 1)
@@ -1298,17 +1378,14 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         # quarter against the same quarter a year earlier - the seasonal comparison quarterly
         # revenue is modelled on (Jegadeesh & Livnat 2006). Kept only when the two quarters
         # really are a year apart. research/2026-10-09-revenue-growth-window.md
+        # The year-earlier quarter is chosen by its date (2026-10-19): it used to be the fifth
+        # quarter with a value, which is a year earlier only when no quarter between is missing.
         try:
-            if q_fins is not None and "Total Revenue" in q_fins.index:
-                _qr = q_fins.loc["Total Revenue"]
-                _qc = sorted([c for c in _qr.index if pd.notna(_qr[c])], reverse=True)
-                if len(_qc) >= 5:
-                    _gap = (pd.Timestamp(_qc[0]) - pd.Timestamp(_qc[4])).days
-                    if 350 <= _gap <= 380 and float(_qr[_qc[4]]) > 0:
-                        rec["_rev_q0"] = float(_qr[_qc[0]])
-                        rec["_rev_q4"] = float(_qr[_qc[4]])
-                        rec["_rev_q0_date"] = str(pd.Timestamp(_qc[0]).date())
-                        rec["_rev_q4_date"] = str(pd.Timestamp(_qc[4]).date())
+            _yq = _year_ago_quarter(q_fins, "Total Revenue")
+            if _yq is not None and _yq[1] > 0:
+                rec["_rev_q0"], rec["_rev_q4"] = _yq[0], _yq[1]
+                rec["_rev_q0_date"] = str(_yq[2].date())
+                rec["_rev_q4_date"] = str(_yq[3].date())
         except (KeyError, TypeError, ValueError, AttributeError) as e:
             warnings.warn(f"{ticker_str}: quarterly revenue YoY unavailable: {type(e).__name__}: {e}")
 
@@ -1342,27 +1419,23 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
             rec["ebit_prior"] = _stmt_val(fins, "EBIT", 1)
 
         # ---- Balance sheet: MRQ (most recent quarter) ----
-        # Use quarterly BS for current values; col=4 for year-ago MRQ.
-        # Fall back to annual BS if quarterly is unavailable.
+        # Use quarterly BS for current values and the balance sheet a year earlier for the
+        # *_prior inputs. Fall back to annual BS if quarterly is unavailable.
         _bs_src = q_bs if (q_bs is not None and not q_bs.empty) else bs
-        _bs_is_quarterly = (_bs_src is q_bs)
-        _bs_prior_col = 4 if (_bs_is_quarterly and _bs_src is not None
-                               and len(_bs_src.columns) >= 5) else 1
-        # The "prior" balance sheet must be a year earlier: with a four-column quarterly sheet
-        # column 1 is the previous QUARTER, and asset growth / Piotroski 5-7 would compare three
-        # months while calling it a year. Then no prior is used (2026-10-09; latent - measured
-        # 40 of 40 sampled sheets had 5+ columns). research/2026-10-09-revenue-growth-window.md
+        # The "prior" balance sheet must be a year earlier, and it is chosen by its DATE among
+        # the populated periods _stmt_val reads (2026-10-19, _year_ago_position). It used to be
+        # column four of a quarterly sheet (column one of an annual one), with a 330-400-day
+        # check: BRK-B's quarterly sheet omits September 2025, so column four was March 2025, the
+        # check rejected it, and the June 2025 sheet in column three went unused. Before
+        # 2026-10-09 a four-column sheet compared the previous QUARTER while calling it a year.
+        # No period a year earlier -> no prior: every *_prior reads NaN.
         try:
-            # judged on the populated periods, which are what _stmt_val reads
-            _bs_cols = _populated_columns(_bs_src) if _bs_src is not None else []
-            if len(_bs_cols) <= _bs_prior_col:
-                _bs_prior_col = 10_000
-            else:
-                _gap = (pd.Timestamp(_bs_cols[0]) - pd.Timestamp(_bs_cols[_bs_prior_col])).days
-                if not 330 <= _gap <= 400:
-                    _bs_prior_col = 10_000          # out of range: every *_prior reads NaN
+            _bs_cols = _populated_columns(_bs_src) if (_bs_src is not None and not _bs_src.empty) else []
         except (TypeError, ValueError):
-            pass
+            _bs_cols = []
+        _bs_prior_col = _year_ago_position(_bs_cols, tol=YEAR_AGO_TOL_BALANCE_DAYS) if _bs_cols else None
+        if _bs_prior_col is None:
+            _bs_prior_col = 10_000                  # out of range: every *_prior reads NaN
 
         rec["totalAssets"]            = _stmt_val(_bs_src, "Total Assets")
         rec["totalAssets_prior"]      = _stmt_val(_bs_src, "Total Assets", _bs_prior_col)
@@ -2962,7 +3035,8 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         rec["size_log_mcap"] = -np.log(mc) if (pd.notna(mc) and mc > 0) else np.nan
 
         # -- Investment metric (asset growth, Fama-French CMA proxy) --
-        # Uses MRQ balance sheet data (quarterly_balance_sheet col=0 vs col=4).
+        # Uses MRQ balance sheet data (the latest quarterly balance sheet against the one a year
+        # earlier, chosen by date - 2026-10-19).
         # Falls back to annual balance sheet if quarterly unavailable.
         _ta_curr = d.get("totalAssets", np.nan)
         _ta_prior = d.get("totalAssets_prior", np.nan)
