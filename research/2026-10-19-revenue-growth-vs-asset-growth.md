@@ -970,7 +970,12 @@ Read honestly, that is:
 
 Registering it also exposed a structural cost worth recording: **`registry.yaml` is in
 `v2_experiments.RESULT_PATHS`, so adding an experiment changes the engine's `code_hash` and rule 3
-requires every experiment to be rerun** so the rows still compare. All 29 were. That is correct -
+requires every experiment to be rerun** so the rows still compare. That is 30 runs - the 29
+registry entries and the trading-rule evaluation. *(Corrected the same day by an owner-run session:
+this line first read "All 29 were", but the 06:00 session's time ran out after 15 of them, and
+its ship gates failed on exactly that mixture. The other 15 were run from the committed code, with
+the same `code_hash`; `drop-revenue-growth`'s own row was not rerun and its figures above are
+unchanged.)* That is correct -
 the multiple-testing bar moved for every row anyway (p < 0.05/27 to 0.05/28, |t| >= 3.35 to 3.37) -
 but it means **every Monday note that registers an experiment triggers a full rerun of the engine**,
 which queue item 6 asks for one of per week. Noted in `plan/research-engine.md` so the next session

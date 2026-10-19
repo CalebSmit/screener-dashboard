@@ -74,8 +74,10 @@ Two things still outrank this file, and neither is negotiable:
     paywalled and the major replication never tested it. Practice and research disagree, so the
     rule written in advance says the weight stays.
     **One cost worth your knowing:** registering an experiment forces a rerun of all of them,
-    because the engine refuses to compare results produced by different code. Today that was 29
-    runs. It is the right behaviour; it just means a session that adds an idea must budget for it.
+    because the engine refuses to compare results produced by different code. Today that was 30
+    runs - and the 06:00 session ran out of time after 15 of them, so its gates failed; an
+    owner-run session finished the other 15 the same day. It is the right behaviour; it just means a
+    session that adds an idea must budget for it.
     **Next in the queue is still 8(c)** - the positive control, deferred twice now, and the next
     13:00 or weekend session should take it rather than a fifteenth thing.
   - **2026-10-18 (13:00 midday) - the morning's work is finished and shipped, and finishing it

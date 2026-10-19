@@ -106,7 +106,9 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    `research/experiments/registry.yaml` is in `RESULT_PATHS`, so adding an entry changes
    `code_hash`, and rule 3 plus `test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline`
    then require every id's newest row to have been produced by that code - i.e. all of them rerun.
-   On 2026-10-19 that was 29 runs. It is the right behaviour and should not be weakened: the
+   On 2026-10-19 that was 30 runs (29 registry entries plus the evaluation), ~1.6 minutes each -
+   and the 06:00 session that registered it ran out of time after 15, so its gates failed and an
+   owner-run session finished the other 15. It is the right behaviour and should not be weakened: the
    multiple-testing bar moves for every row anyway when N changes (p < 0.05/27 -> 0.05/28, |t| >= 3.35
    -> 3.37), so a mixed ledger really would be incomparable. But a session that registers an
    experiment must plan for the rerun **and run `report` afterwards**, or it hands the runner a red
