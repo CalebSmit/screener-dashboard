@@ -1563,6 +1563,74 @@ def prepare_dashboard_data(run_data: dict) -> str:
 # HTML generation
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# The score key (priority 7, investment-club readiness, 2026-10-19)
+# ---------------------------------------------------------------------------
+# What each column of the ranking means, in a student's words. On a wide screen the table's
+# header tooltips said most of this; a phone hides the header and never shows a tooltip, so a
+# reader there met "Risk 21" and "Value" chips with nothing to say which way a score runs or what
+# a flag is. plan/club-readiness.md has the walkthrough. Each line is checked against the
+# payload by tests/test_club_readiness.py (claims `dashboard.score_key` and
+# `dashboard.trap_flag_key`): a higher category score must move with what its line says.
+SCORE_KEY = (
+    ("valuation", "Val", "Valuation", "a lower price against cash flow, earnings and sales than its sector."),
+    ("quality", "Qual", "Quality", "more profitable and financially sounder than its sector."),
+    ("growth", "Grow", "Growth", "faster growth in sales and in expected earnings."),
+    ("momentum", "Mom", "Momentum", "a stronger price trend over the past year."),
+    ("risk", "Risk", "Risk", "a calmer price: lower volatility, lower beta and smaller drawdowns. A high Risk score is low risk."),
+    ("revisions", "Rev", "Revisions", "analysts' expectations are improving."),
+    ("size", "Size", "Size", "a smaller company than its sector peers. The largest company in each sector scores near 0."),
+    ("investment", "Inv", "Investment", "slower growth in total assets."),
+)
+
+
+def _trap_rules(cfg: dict | None = None) -> dict:
+    """The trap-flag thresholds the engine reads (`factor_engine.apply_value_trap_flags` and
+    `apply_growth_trap_flags`), from `config.yaml` with the engine's own defaults."""
+    if cfg is None:
+        import yaml
+        try:
+            cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8")) or {}
+        except (OSError, ValueError):
+            cfg = {}
+    vtf, gtf = cfg.get("value_trap_filters", {}) or {}, cfg.get("growth_trap_filters", {}) or {}
+    return {
+        "v_top": 100 - int(vtf.get("valuation_percentile", 70)),
+        "v_floors": sorted({int(vtf.get("quality_floor_percentile", 30)),
+                            int(vtf.get("momentum_floor_percentile", 30)),
+                            int(vtf.get("revisions_floor_percentile", 30))}),
+        "g_top": 100 - int(gtf.get("growth_ceiling_percentile", 70)),
+        "g_floors": sorted({int(gtf.get("quality_floor_percentile", 35)),
+                            int(gtf.get("revisions_floor_percentile", 35))}),
+    }
+
+
+def score_key_html(cfg: dict | None = None) -> str:
+    """The "What the columns mean" panel above the full ranking. Display only."""
+    r = _trap_rules(cfg)
+
+    def floors(fs):
+        return f"bottom {fs[0]}%" if len(fs) == 1 else "bottom " + " to ".join(f"{f}%" for f in fs)
+
+    cats = "".join(
+        f'<div><dt><b>{short}</b>{"" if short == name else " " + name}</dt><dd>Higher means {text}</dd></div>'
+        for _, short, name, text in SCORE_KEY)
+    return f"""<details class="why-panel score-key" id="score-key">
+                    <summary>What the columns mean</summary>
+                    <div class="score-key-body">
+                        <p class="sk-lead">Each of the eight scores runs from 0 to 100 and compares a company with its own sector, where about 50 is the sector median. On all eight, a higher score adds more to the composite.</p>
+                        <dl class="sk-list">
+                            <div><dt><b>Composite</b></dt><dd>The weighted sum of the eight scores, from 0 to 100, and the number the ranking sorts by.<span id="sk-median"></span> Open a stock to see its exact rank and how its points add up.</dd></div>
+                            {cats}
+                            <div id="sk-delta-row"><dt><b>&#9650; &#9660;</b></dt><dd id="sk-delta">The change in rank since an earlier run.</dd></div>
+                            <div id="key-traps"><dt><b>Value trap</b></dt><dd>In the top {r['v_top']}% of Valuation scores and in the {floors(r['v_floors'])} on at least two of Quality, Momentum and Revisions: priced low, with weaknesses that may explain the price.</dd></div>
+                            <div><dt><b>Growth trap</b></dt><dd>In the top {r['g_top']}% of Growth scores, with Quality or Revisions in the {floors(r['g_floors'])}.</dd></div>
+                        </dl>
+                        <p class="sk-foot">A flag is a prompt to read the detail. It changes neither the score nor the rank, and flagged stocks are left out of Leading the ranking. <a href="#" onclick="openMethodology();return false">Methodology</a> has every rule.</p>
+                    </div>
+                </details>"""
+
+
 def generate_html(data_json: str = "", methodology_html: str = "", data_timestamp: str = "", data_version: str = "",
                   context_version: str = "") -> str:
     """Build the complete dashboard HTML string.
@@ -1676,7 +1744,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
              per browser; reopened from the search palette. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50, and a higher score adds more to the composite on all eight, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
                 <li><span class="guide-n">2</span><div><strong>One composite.</strong> A weighted sum of the eight scores. The Weighting menu above the table re-ranks the list with a Value, Growth or Momentum tilt.</div></li>
                 <li><span class="guide-n">3</span><div><strong>Fully traceable.</strong> Open any stock to follow each score back to its inputs, formulas and sector peers.</div></li>
             </ol>
@@ -1933,6 +2001,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     <button type="button" class="filter-clear" id="filter-clear" onclick="clearFilters()" hidden>Clear filters</button>
                     <span class="result-count" id="result-count" aria-live="polite"></span>
                 </div>
+                {score_key_html()}
                 <div class="table-section">
                     <table class="data-table" id="universe-table" aria-label="Full universe rankings" aria-rowcount="-1">
                         <thead><tr>
@@ -2288,10 +2357,12 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 `${{fw.momentum > bw.momentum ? 'raised' : 'cut'}} from ${{fmtWeight(bw.momentum)}} by the momentum regime rule this run`));
         }} else {{
             cards.push(kpiCard('Trap flags', `${{k.value_traps}} <span class="kpi-sep">/</span> ${{k.growth_traps || 0}}`,
-                `value / growth &middot; ${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks`));
+                `value / growth &middot; ${{pct(k.value_traps)}} and ${{pct(k.growth_traps || 0)}} of stocks` +
+                '<a class="kpi-more" href="#score-key" onclick="openScoreKey(\\'key-traps\\');return false">What a flag means</a>'));
         }}
         const html = cards.join('');
         document.getElementById('kpi-row').innerHTML = html;
+        fillScoreKey();
         // the analytics tile's headline: the published trap rate that stands out most
         const vt = D.vt_by_sector || {{}}, top = Object.keys(vt).sort((a, b) => vt[b].rate - vt[a].rate)[0];
         const ma = document.getElementById('meta-analytics');
@@ -2305,6 +2376,35 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // Only set gen-time via JS if it wasn't already embedded as a static value
         const genEl = document.getElementById('gen-time');
         if (genEl && ts) genEl.textContent = `${{fmtDate}}, ${{fmtTime}}`;
+    }}
+
+    // The score key's two run-specific lines: the median composite (the engine's own
+    // kpis.median_composite) and the window and noise threshold the change column uses.
+    function fillScoreKey() {{
+        const md = document.getElementById('sk-median'), k = D.kpis || {{}};
+        if (md && typeof k.median_composite === 'number')
+            md.textContent = ' The median this run is ' + k.median_composite.toFixed(1) +
+                ', so a composite above it is in the upper half of the ' + (k.universe_size || '') + ' stocks.';
+        const dl = document.getElementById('sk-delta'), row = document.getElementById('sk-delta-row');
+        const key = (typeof rankDeltaKey === 'function') ? rankDeltaKey() : null;
+        if (!dl) return;
+        if (!key) {{ if (row) row.hidden = true; return; }}
+        const cmp = H.compare[key], floor = (H.noise && H.noise.material_threshold) || 0;
+        dl.textContent = 'Places moved up or down the ranking since the run of ' + prettyDate(cmp.date) +
+            ' (' + cmp.gap_days + (cmp.gap_days === 1 ? ' day' : ' days') + ' earlier).' +
+            (floor ? ' Moves under ' + floor + ' places carry no colour: they are within ordinary run-to-run variation.' : '');
+    }}
+    // Open the key and bring one of its lines into view (the Trap flags tile, the palette).
+    function openScoreKey(rowId) {{
+        const det = document.getElementById('score-key');
+        if (!det) return;
+        const sec = document.getElementById('sec-universe');
+        if (sec && sec.classList.contains('collapsed')) toggleSection('sec-universe');
+        det.open = true;
+        const target = (rowId && document.getElementById(rowId)) || det;
+        target.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        target.classList.add('sk-hit');
+        setTimeout(() => target.classList.remove('sk-hit'), 1600);
     }}
 
     // Jump to a section, opening it first if it is collapsed.
@@ -3573,6 +3673,9 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                 <div class="modal-score-sub">${{fmt(contrib,'score')}} pts (${{wtText}})</div>
             </div>`;
         }});
+        // How to read the eight numbers above, said once where they are first met (club readiness,
+        // 2026-10-19): a reader on a phone never sees the table's header tooltips.
+        scoreHtml += '<p class="msr-note">Each score is 0&ndash;100 against the stock&rsquo;s sector, where about 50 is the sector median. A higher score adds more points on all eight: a high Risk score means a calmer price, a high Size score a smaller company and a high Investment score slower asset growth.</p>';
         document.getElementById('modal-score-row').innerHTML = scoreHtml;
 
         // Analyst price targets
@@ -5260,9 +5363,29 @@ def _js_table() -> str:
             '<td class="vt-cell">' + flags + '</td></tr>';
     }
 
+    // A ticker-shaped query that matches no scored stock: say the stock is not in this run, and why
+    // a stock can be missing. '' for anything else, so a name fragment keeps the usual message.
+    // Shared by the table's empty state and the search palette (club readiness, 2026-10-19).
+    function notInRunText(q) {
+        const t = String(q || '').trim().toUpperCase();
+        if (!/^[A-Z]{1,5}([.\-][A-Z]{1,2})?$/.test(t)) return '';
+        if (D.stock_detail && (D.stock_detail[t] || D.stock_detail[t.replace(/\./g, '-')])) return '';
+        const rows = D.table_data || [], ql = t.toLowerCase();
+        if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
+        const n = (D.kpis && D.kpis.universe_size) || rows.length;
+        return 'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
+    }
+
     function emptyRowsHtml(cols) {
         const fc = document.getElementById('filter-ctx');
         const why = (fc && typeof ctxFilterReason === 'function') ? ctxFilterReason(fc.value) : '';
+        // A ticker typed into the search that this run did not score is named as such: "No stocks
+        // match these filters" sent a reader holding a stock that left the index to the sector menu.
+        const sq = ((document.getElementById('filter-search') || {}).value || '').trim();
+        const gone = notInRunText(sq);
+        if (gone) return '<tr class="vt-empty"><td colspan="' + cols + '"><div class="empty-state"><strong>' + escapeHtml(sq.toUpperCase()) + ' is not in this ranking.</strong>' +
+            '<span>' + gone + '</span>' +
+            '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
         return '<tr class="vt-empty"><td colspan="' + cols + '"><div class="empty-state"><strong>No stocks match these filters.</strong>' +
             '<span>' + (why || 'Try a wider sector or a lower composite minimum.') + '</span>' +
             '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
@@ -8047,6 +8170,7 @@ def _js_ux() -> str:
         { label: 'Has it been tested?', hint: 'The ranking on 2012–2026 history', run: () => { window.location.href = 'research.html'; } },
         { label: 'Open the comparison', hint: 'Compare', run: () => openCompare(), when: () => UX.compare.length >= 2 },
         { label: 'How to read this screener', hint: 'Guide', run: () => showGuide() },
+        { label: 'What the columns mean', hint: 'Scores, trap flags and rank changes', keys: 'trap flags value growth composite score key glossary risk size', run: () => openScoreKey() },
         { label: 'Keyboard shortcuts', hint: 'Help', run: () => openShortcuts() },
     ];
 
@@ -8089,7 +8213,7 @@ def _js_ux() -> str:
         });
         scored.sort((a, b) => b[0] - a[0]);
         scored.slice(0, 8).forEach(([, r]) => items.push(stockItem(r, q, 'Stocks')));
-        PAL_ACTIONS.filter(a => (!a.when || a.when()) && a.label.toLowerCase().includes(q))
+        PAL_ACTIONS.filter(a => (!a.when || a.when()) && (a.label + ' ' + (a.keys || '')).toLowerCase().includes(q))
             .forEach(a => items.push({ kind: 'action', group: 'Go to', a: a, q: q }));
         return items;
     }
@@ -8098,7 +8222,11 @@ def _js_ux() -> str:
         const list = document.getElementById('pal-list');
         const items = UX.pal.items;
         if (!items.length) {
-            list.innerHTML = '<div class="pal-empty">No stock or section matches. Try a ticker (AAPL) or part of a name.</div>';
+            const q = ((document.getElementById('pal-input') || {}).value || '').trim();
+            const gone = notInRunText(q);
+            list.innerHTML = gone
+                ? '<div class="pal-empty"><strong>' + escapeHtml(q.toUpperCase()) + ' is not in this ranking.</strong> ' + gone + '</div>'
+                : '<div class="pal-empty">No stock or section matches. Try a ticker (AAPL) or part of a name.</div>';
             return;
         }
         let html = '', group = null;
@@ -9557,7 +9685,7 @@ def _js_context() -> str:
             if (S.CPIAUCSL) bits.push('inflation ' + Number(S.CPIAUCSL.last).toFixed(1) + '%');
             meta.textContent = bits.join(' · ');
         }
-        let h = '<p class="section-desc">The macro backdrop for this run, from FRED. Shown for context only; none of it enters a score.</p>';
+        let h = '<p class="section-desc">The macro backdrop for this run, from FRED, the St. Louis Fed&rsquo;s public economic database. Shown for context only; none of it enters a score. A pp is a percentage point: a yield that moves from 4.0% to 4.5% has risen 0.5pp.</p>';
         h += '<div class="mk-readings">' + (M.readings || []).map(r =>
             '<div class="mk-reading"><div class="mk-r-h"><span>' + escapeHtml(r.title) + '</span><span class="mk-state mk-' + escapeHtml(r.state.replace(/\s+/g, '-')) + '">' + escapeHtml(r.state) + '</span></div><p>' + escapeHtml(r.text) + '</p></div>').join('') + '</div>';
         const order = ['DGS10', 'DGS2', 'T10Y3M', 'BAA10Y', 'VIXCLS', 'DFF', 'CPIAUCSL', 'UNRATE', 'ICSA', 'T10Y2Y'];
@@ -10144,6 +10272,46 @@ def _css_investor() -> str:
             .sec-grid > .collapsible-section { padding: 0 16px; }
             .sec-grid .sec-meta { display: block; font-size: 13.5px; }
             .sec-grid .section-header { padding: 15px 0; }
+        }
+        /* ---- club readiness (2026-10-19, plan/club-readiness.md): explanation, not decoration ---- */
+        .score-key { margin: 0 0 12px; padding-top: 0; border-top: 0; }
+        .score-key-body { margin-top: 10px; padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); font-size: 13px; line-height: 1.55; color: var(--text-secondary); max-width: 880px; }
+        .score-key .sk-lead, .score-key .sk-foot { margin: 0 0 10px; }
+        .score-key .sk-foot { margin: 10px 0 0; }
+        .score-key .sk-list { margin: 0; display: grid; gap: 6px; }
+        .score-key .sk-list > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 3px 8px; margin: 0 -8px;
+            border-radius: 6px; transition: background-color var(--t-fast) ease-out; }
+        .score-key dt { margin: 0; color: var(--text-muted); }
+        .score-key dt b { color: var(--text-primary); font-weight: 600; margin-right: 6px; }
+        .score-key dd { margin: 0; }
+        .score-key .sk-hit { background: var(--bg-elevated); }
+        .score-key a { color: var(--accent); text-decoration: none; }
+        .score-key a:hover { text-decoration: underline; }
+        @media (max-width: 520px) {
+            .score-key .sk-list > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+        }
+        .kpi-more { display: block; margin-top: 6px; color: var(--accent); font-size: 12px; text-decoration: none; }
+        .kpi-more:hover { text-decoration: underline; }
+        .guide-steps a { color: var(--accent); text-decoration: none; white-space: nowrap; }
+        .guide-steps a:hover { text-decoration: underline; }
+        .msr-note { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
+        .pal-empty strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; }
+        /* On a phone each row is a card with no "Trap flags" header above it, and a bare "Value" chip
+           read as a style label. The word is drawn there only, so the row's text is unchanged */
+        @media (max-width: 760px) {
+            .data-table .vt-cell .flag::after { content: ' trap'; }
+        }
+        /* Side by side at 375px: two stocks ran 52px past the dialog (a company name held its column open),
+           clipping the second column's bars */
+        @media (max-width: 420px) {
+            .cmp-table { min-width: calc(96px + var(--n) * 108px); }
+            .cmp-n { white-space: normal; max-width: none; }
+            .cmp-cell { grid-template-columns: 36px minmax(40px, 1fr); column-gap: 6px; }
+            .cmp-pts { white-space: nowrap; }
+        }
+        @media (pointer: coarse) {
+            .kpi-more { min-height: 40px; display: inline-flex; align-items: center; margin-top: 0; }
         }
     """
 

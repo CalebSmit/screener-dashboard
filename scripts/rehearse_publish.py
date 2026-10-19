@@ -39,7 +39,7 @@ PAGE_TESTS = ("tests/test_dashboard_browser.py", "tests/test_dashboard_navigatio
               "tests/test_index_is_the_dashboard.py", "tests/test_payload_parse_gate.py",
               "tests/test_bot_payload_contract.py", "tests/test_calculation_reproducibility.py",
               "tests/test_metric_lineage.py", "tests/test_holdings_panel.py",
-              "tests/test_dashboard_interaction.py")
+              "tests/test_dashboard_interaction.py", "tests/test_club_readiness.py")
 MIN_UNIVERSE = 495
 
 
