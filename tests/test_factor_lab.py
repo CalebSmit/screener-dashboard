@@ -207,6 +207,27 @@ def test_the_tolerances_are_the_recorded_ones():
         "rmw_intercept": 0.43, "cma_intercept": 0.28}
 
 
+def test_the_asset_growth_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 14 (2026-10-19): Cooper, Gulen & Schill (2008), Table II Panels B.1 and B.2, year 1.
+    These paper figures and tolerances were committed on their own, before the library's file was
+    first compared with them (plan/factor-lab.md rule 3). Neither moves to turn a miss into a match;
+    and by rule 8 a result of no effect matches 6 of the 24 and misses every end and spread."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "asset-growth")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["also"], ref["tolerances_written"]) == (
+        "196807", "200306", "ew", "vw", "before")
+    ew = [0.26, 0.85, 1.14, 1.18, 1.24, 1.34, 1.41, 1.54, 1.76, 1.99]        # decile 10 (fastest) first
+    vw = [0.43, 0.77, 0.92, 1.02, 1.00, 1.00, 1.16, 1.22, 1.24, 1.48]
+    want = {**{f"mean{g}": (ew[g - 1], 0.10) for g in range(1, 11)}, "spread": (1.73, 0.20), "t_spread": (8.45, 1.5),
+            **{f"vw_mean{g}": (vw[g - 1], 0.10) for g in range(1, 11)}, "vw_spread": (1.05, 0.20),
+            "vw_t_spread": (5.04, 1.5)}
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == want
+    assert fl.null_within(exp) == 6
+    nulls = dict(zip([f["key"] for f in ref["figures"]], fl.null_rows(exp)))
+    for k in ("mean1", "mean10", "spread", "t_spread", "vw_mean1", "vw_mean10", "vw_spread", "vw_t_spread"):
+        assert abs(nulls[k]["null"] - nulls[k]["paper"]) > nulls[k]["tolerance"], k
+
+
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
     """Experiment 4 reruns a 1992 table on a different set of companies from the paper's and
     most figures miss. The tolerances were written first and stay; the page says how many
