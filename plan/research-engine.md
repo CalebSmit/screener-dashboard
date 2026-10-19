@@ -93,6 +93,26 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
 6. **New ideas come from Monday notes.** Each Monday research note that ends with a testable claim
    registers one experiment for it. That is the route by which the engine grows - one sourced idea
    at a time - and the multiple-testing bar tightens as it does, which is correct.
+
+   **First one landed 2026-10-19: `drop-revenue-growth`**, from
+   `research/2026-10-19-revenue-growth-vs-asset-growth.md` (sections 7, 9 and 10), registered and
+   committed before it ran. Result: held-out difference **-0.007 at t -2.5**, pre-sample -0.001 at
+   t -0.69 - **not confirmed**, and **the sign came out opposite to the registered prediction**.
+   The note reports that against itself rather than around it, which is what registering a
+   direction is for. Nothing was changed on the strength of it (rule 5 bans citing it either way,
+   including keeping a weight because of it).
+
+   **Budget for this: registering one experiment costs a full rerun of all of them.**
+   `research/experiments/registry.yaml` is in `RESULT_PATHS`, so adding an entry changes
+   `code_hash`, and rule 3 plus `test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline`
+   then require every id's newest row to have been produced by that code - i.e. all of them rerun.
+   On 2026-10-19 that was 29 runs. It is the right behaviour and should not be weakened: the
+   multiple-testing bar moves for every row anyway when N changes (p < 0.05/27 -> 0.05/28, |t| >= 3.35
+   -> 3.37), so a mixed ledger really would be incomparable. But a session that registers an
+   experiment must plan for the rerun **and run `report` afterwards**, or it hands the runner a red
+   gate 1 - and `research.html` cannot even represent a registered-but-unrun entry, because
+   `research_page.display_label` labels anything carrying a `construction_note` and the page lists
+   only rows the ledger has.
 7. **DONE 2026-10-16 (audit of `research.html`): the page now claims only what the ledger supports.**
    Size's lead is stated as a survivorship hypothesis the data cannot separate from time (the
    sentence is generated, `research_page.size_coverage_relation`); the seven `only-*` entries whose

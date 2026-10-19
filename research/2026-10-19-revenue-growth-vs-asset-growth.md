@@ -823,6 +823,94 @@ resolving.
    portfolio or a standalone single factor strategy."* A reader should know that a provider's
    product line is not evidence about a premium.
 
+### 9.6 But is asset turnover actually a *return* signal? The evidence is thinner than §9.2 suggests
+
+This subsection exists because the answer qualifies §9.2 sharply, and finding it out changed this
+note's conclusion. §9.2 establishes that practice **rewards** change in asset turnover. It does not
+establish that doing so is right.
+
+- **Soliman (2008)**, "The Use of DuPont Analysis by Market Participants", *The Accounting Review*
+  83(3), 823-853, [DOI 10.2308/accr.2008.83.3.823](https://doi.org/10.2308/accr.2008.83.3.823) -
+  the paper that would answer this - **was not obtained.** Paywalled at the AAA, the only recorded
+  open location is an SSRN page that serves a bot check, and the author's faculty page hosts no
+  PDF. **No number is quoted from it anywhere in this note.** Treat any ΔATO return figure
+  attributed to it elsewhere as unverified.
+- **Fairfield & Yohn (2001)**, *Review of Accounting Studies* 6(4), 371-385, is closed access and
+  was also not obtained.
+
+What *was* obtained and read changes the picture:
+
+**1. The annual asset-turnover level does not price - in Soliman's own variable.** Hou, Xue & Zhang
+(2020), "Replicating Anomalies", *Review of Financial Studies* 33(5), 2019-2133,
+[DOI 10.1093/rfs/hhy131](https://doi.org/10.1093/rfs/hhy131), replicate it by name. Verified off
+the PDF, high-minus-low decile monthly returns and |t| (row *"Ato: Assets turnover, Soliman
+(2008)"*):
+
+| | NYSE-VW | NYSE-EW | All-VW | All-EW | FM-WLS | FM-OLS |
+|---|---|---|---|---|---|---|
+| `Ato` | 0.33 / **1.89** | 0.25 / 1.60 | 0.33 / 1.92 | 0.25 / 1.57 | 0.05 / 1.03 | 0.01 / 0.44 |
+| `Atoq1` (quarterly) | 0.62 / **3.44** | 1.02 / 6.53 | 0.81 / 4.06 | 1.05 / 6.58 | 0.18 / 3.73 | 0.21 / 6.18 |
+
+**Not one specification clears |t| >= 1.96**, and it fails equally on equal-weighted all-stock sorts
+(1.57) - so this is not a microcap artefact in either direction. Only the *quarterly* turnover level
+prices, and strongly. Their construction, verified: *"Ato is sales for the fiscal year ending in
+calendar year t−1 divided by Noa for the fiscal year ending in t−2"* - note **net operating assets**,
+so it is not literally the screener's sales-over-total-assets spread.
+
+**2. ΔATO has never been tested by the major replication.** Grepped over the full 115-page extracted
+text of HXZ (2020): **`dAto` 0 occurrences, "change in asset turnover" 0 occurrences.** The only
+change-in-turnover variable in their library is a binary indicator inside the Piotroski composites.
+So there is **no replication evidence for ΔATO's return predictability, for or against** - a gap, not
+a negative result, and it is the gap that matters most here.
+
+**3. ΔATO is rapidly transitory.** Nissim & Penman (2001), "Ratio Analysis and Equity Valuation",
+*Review of Accounting Studies* 6(1), 109-154,
+[DOI 10.1023/A:1011338221623](https://doi.org/10.1023/A:1011338221623) - read in full from the
+authors' own copy. Spearman rank autocorrelation with the t-lagged value, 1963-1999 (Table 3,
+p. 146), verified off the PDF:
+
+| | t+1 | t+2 | t+3 | t+4 | t+5 |
+|---|---|---|---|---|---|
+| **ATO (level)** | **0.947** | 0.894 | 0.857 | 0.830 | 0.808 |
+| **ΔATO** | **0.166** | **−0.100** | −0.082 | −0.039 | −0.009 |
+| ΔCore Sales PM | −0.039 | −0.083 | −0.059 | −0.043 | −0.012 |
+
+with variance ratios for ΔATO of 0.031, 0.024, 0.010 - **97% of its cross-sectional dispersion is
+gone after one year.** Their words, p. 147: *"changes in ATO are mean reverting, and rapidly so"*,
+and footnote 21 adds that even the 0.166 is partly an artefact of averaging the denominator. The
+**level** of ATO is the most persistent ratio in their whole hierarchy; the **change** is close to
+noise. For a screener on a monthly-to-quarterly review cadence that is a serious caution.
+
+**4. The decomposition gives a specific reason to think the spread adds nothing new.** Read the
+spread as *(sales growth − asset growth)*. In HXZ (2020), the **asset-growth leg is a robust
+large-cap-surviving predictor** while the **turnover level is not a predictor at all**
+(NYSE-VW, high-minus-low, |t|): `dNoa` −0.55 / **4.14**; `Ig` −0.46 / **3.76**; `Noa` −0.44 /
+**3.25**; `I/A` −0.44 / **2.89**; `dLno` (Fairfield, Whisenant & Yohn 2003) −0.39 / **2.99**;
+against `Ato` 0.33 / 1.89. So the prior has to be that whatever a ΔATO sort would show is carried by
+its growth leg - **which `asset_growth` already is**.
+
+**5. What ΔATO *is* well supported for is future profitability, not returns.** Fairfield & Yohn's
+headline - ΔATO predicting next year's change in return on net operating assets at **0.1799,
+t 8.08**, with ΔPM insignificant - is reported here **second-hand**, from Wu & Jiang (2026),
+"Earnings Predictability of DuPont Factors", *Journal of Risk and Financial Management* 19(6), 408,
+[DOI 10.3390/jrfm19060408](https://doi.org/10.3390/jrfm19060408) (open access), which replicates
+their Table 2 and quotes the original coefficients from p. 378. Wu & Jiang's own 1981-2020
+re-estimate: ΔATO **0.157, t 9.02**, with balance-sheet growth (ΔNOA) in the regression at
+−0.070, t −28.37 - so it is not merely repackaged asset growth *for forecasting profitability*.
+Their p. 28 names the return test as still undone: future work *"could examine... whether trading
+strategies based on the model generate abnormal returns."*
+
+**One overlap to carry forward.** Li, Nissim & Penman (2014) note that *"asset turnover... becomes a
+proxy for unobservable operating leverage"*. The screener holds `operating_leverage` at weight 0 (a
+candidate since 2026-10-09, `research/2026-10-09-operating-leverage.md`). If the spread is partly
+operating leverage, then re-weighting either one needs the other considered.
+
+**Net reading, and it is the one that governs §11.1:** practice rewards the quantity the screener's
+pair expresses; the published return evidence neither supports nor refutes it, shows the related
+level does not price, and shows the change is transitory. **That is a genuine academia-versus-practice
+disagreement about the screener's own joint position** - which, by the reading rule written before
+any of these questions were researched, means the weight stays.
+
 **Not obtained, stated rather than paraphrased:** MSCI "Introducing Investment Quality" (Ting Fang,
 2016 - the originating paper; full PDF behind a contact form, only the public abstract read);
 S&P Global blocks automated access, so the S&P Quality methodology was read from a Wayback snapshot
@@ -903,20 +991,43 @@ reproduces the published one at Spearman 1.0000, 25 of 25 top names):
 -0.063 is a mild tilt, not a position. So the note does **not** argue that removal would take a
 short, and a future session should not resurrect that claim.
 
-**What removal would actually cost is the exposure to the spread**, and that is the argument:
+**What removal would actually cost is the exposure to the spread.** `revenue_growth` is what
+converts an asset-growth screen into an **asset-turnover** screen - and whether that is worth having
+is exactly where academia and practice part company, which is what decides this note.
 
-> `revenue_growth` is what converts an asset-growth screen into an **asset-turnover** screen. Of
-> everything in this area, asset turnover is the one quantity documented practice actually rewards -
-> FTSE Russell scores **Δ Asset Turnover** positively inside Quality and uses neither raw leg
-> (§9.2); S&P frames its quality index as companies generating revenue *"through prudent use of
-> assets"*; Research Affiliates' written defence is precisely that income-statement growth is
-> *"economically scalable"* where balance-sheet growth is *"empire building"* (§9.5).
+- **Practice rewards it.** FTSE Russell scores **Δ Asset Turnover** positively inside Quality and
+  uses *neither* of the screener's raw legs (§9.2); S&P frames its quality index as companies
+  generating revenue *"through prudent use of assets"*; Research Affiliates' written defence is
+  that income-statement growth is *"economically scalable"* where balance-sheet growth is *"empire
+  building"* (§9.5).
+- **The published return evidence does not.** Soliman (2008), the paper that would settle it, could
+  not be obtained. Hou, Xue & Zhang's replication shows the annual asset-turnover **level** does not
+  price in any of eight specifications (|t| 0.44-1.92, and no better equal-weighted), **never tested
+  the change at all**, and shows the spread's asset-growth leg is a robust predictor while its
+  turnover leg is not - so the predictability a ΔATO sort would show is probably already in
+  `asset_growth`. Nissim & Penman measure ΔATO as near-transitory: autocorrelation 0.166 then
+  −0.100, **97% of its dispersion gone within a year**. What ΔATO is well supported for is
+  forecasting next year's *profitability*, not returns (§9.6).
 
-So the pair earns its place as a pair, for a reason neither category states. Remove the revenue leg
-and the screener keeps a weaker version of a bet (asset growth) whose large-company support is
-tail-concentrated, halved against small caps, absent in FF2015's big-stock leg and unestablished in
-the low-volatility corner this universe occupies (§6.2, §6.4, §9.4), while giving up part of the one
-bet with a live practitioner precedent. That is a bad trade.
+**So the reading rule written before any of these questions were researched decides it**
+(`plan/factor-lab.md`: *"A change needs the lab and the literature or practice pointing the same way.
+Where they disagree the note says so and the weight stays."*). They disagree, about the screener's
+own joint position. **The weight stays.**
+
+That is a weaker and more honest basis than the one this note first drafted, which was that the
+spread exposure is plainly worth keeping. It is not plainly worth keeping. What can be said is that
+removing the revenue leg would trade a position practice endorses and academia has not tested for a
+slightly larger dose of a position (asset growth) whose large-company support is tail-concentrated,
+halved against small caps, absent in FF2015's big-stock leg and unestablished in the low-volatility
+corner this universe occupies (§6.2, §6.4, §9.4). Neither side of that trade is well enough
+established to make it on.
+
+**And a guard, because §3 invites the opposite mistake:** *do not build a ΔATO metric on the strength
+of this note.* The practitioner precedent is real, but the return evidence is absent rather than
+favourable, the quantity is transitory at the horizon this screener reviews on, and the screener's
+spread is sales-over-**total**-assets where the literature's ATO is sales-over-**net operating
+assets**. Adding such a metric would also duplicate `operating_leverage` to an unmeasured degree
+(§9.6). That would need its own Monday, starting by obtaining Soliman.
 
 **The honest residue, stated plainly:** the screener's *positive* sign on one-year revenue growth
 is against the weight of published evidence - Robeco measures it at **-2% a year at exactly one and
@@ -980,9 +1091,15 @@ above to the point of being mechanical.
    asset-growth half of `plan/factor-lab.md` question 3** ("Is Investment Valuation counted
    twice?"): the overlap with value is real (CMA-HML 0.70; 0.52 among big companies) and is exactly
    why practitioners merge them.
-3. **Fairfield, Whisenant & Yohn (2003) was not obtained** and is the one paper that puts accruals
-   and operating-asset growth in a single specification. A session with institutional access, or
-   willing to email the authors, should close that gap before anyone reopens question 2.
+3. **Three papers could not be obtained, and two of them are load-bearing.** **Soliman (2008)** is
+   the one that would say whether change in asset turnover predicts *returns* - the quantity §3
+   shows this screener's pair actually expresses - and without it §9.6 can only report that the
+   major replication never tested it. **Fairfield, Whisenant & Yohn (2003)** is the one that puts
+   accruals and operating-asset growth in a single specification; **Fairfield & Yohn (2001)** is
+   quoted here only second-hand through an open-access replication. All three are paywalled with no
+   free full text, and no bot check was worked around to try. **Getting Soliman needs a library
+   login, not a different URL** - a session with institutional access, or willing to email the
+   author, should close that before anyone reopens question 2 or builds anything on the spread.
 4. **Does `revenue_cagr_3yr` duplicate `revenue_growth`?** Measured today at **+0.316** within
    sector (§6 of the measurement script) - lower than expected, so they are not redundant - but it
    carries 1.95 points on the horizon Robeco measures at -2%, and was not the subject of this note.
