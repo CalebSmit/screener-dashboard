@@ -400,3 +400,88 @@ screener actually occupies. By the reading rules fixed before these questions we
 (`plan/factor-lab.md`) that is "not confirmed for this universe", which is **not** grounds to cut
 the weight - and the long-only half measured in section 4 (+0.132%/month, t 2.22) is the half a
 book like this keeps. **5 points stays.** What must change is what the page claims for it.
+
+---
+
+## 7. The literature on sales growth: a different dimension, and an unrewarded one
+
+### 7.1 The modern factor models classify sales growth away from investment, explicitly
+
+This is the cleanest answer to "two categories, one fact" that the literature gives, and it is
+structural rather than a matter of interpretation.
+
+**Hou, Xue & Zhang (2015)** sort roughly 80 anomalies into six categories (Table 2, p. 664). Their
+**Panel C, "Investment"**, holds 14 variables including `I/A` - *"the annual change in total assets
+... divided by 1-year-lagged total assets"* (p. 659), the same quantity the screener computes.
+**Sales growth is not in it.** `SG` is filed in **Panel B, "Value-versus-growth"**, beside
+book-to-market, cash-flow-to-price, dividend yield and analysts' long-term growth forecasts, and
+attributed to Lakonishok, Shleifer & Vishny (1994). The appendix files it the same way
+(A.1.2.10, p. 689, under "Value-versus-growth", not A.1.3 "Investment").
+
+**Fama & French never mention sales growth at all.** Grepped over the full extracted text of
+FF2015: **zero occurrences of "sale"** (the word "revenue" appears only inside the operating-
+profitability definition). FF2016's anomaly list is fixed and short - market beta, net share
+issues, total variance, residual variance, accruals, momentum (pp. 73-75) - and sales growth is
+absent. So FF2016 cannot be cited for sales growth in either direction, and this note does not.
+
+**The theory has no revenue term.** HXZ's q-theory (eq. 4, p. 655) prices expected return as
+expected profitability divided by `1 + a(I/A)`: *"low discount rates imply high marginal q and
+high investment, and high discount rates imply low marginal q and low investment"* (p. 655). The
+right-hand side is cash committed to assets. FF's version is an accounting identity on book equity
+(FF2015 p. 2): *"for fixed values of B, M, and expected earnings, higher expected growth in book
+equity - investment - implies a lower expected return"*; sales appear in none of equations (1)-(3).
+Revenue is not a subtraction from the cash flow available to shareholders, so on either derivation
+it cannot be the investment term. HXZ extend the investment channel to net stock issues, composite
+issuance, accruals, valuation ratios and long-term reversal (p. 655) - **not** to sales growth.
+
+A detail worth having, because it cuts the other way: HXZ call asset growth *"the most
+comprehensive measure of investment-to-assets ... the premier manifestation of the investment
+channel"* (p. 656), citing CGS. The screener's Investment category is, by this literature's own
+account, the right single metric for the dimension it names.
+
+### 7.2 What sales growth earns: nothing measurable - but check which construction
+
+**HXZ Table 3, "Insignificant anomalies in the broad cross section" (p. 667), value-weighted
+high-minus-low decile: `SG` m = -0.27% per month, t = -1.34.** Sales growth is one of the 38 of
+~80 anomalies they cannot distinguish from zero, which also means it never reaches their q-factor
+model - there is nothing for the investment factor to explain.
+
+**CGS put sales growth and asset growth in the same regression and asset growth wins outright**
+(Table III, pp. 1628-1630). All firms, with sales growth included: asset growth t = **-7.41**,
+sales growth t = **-0.27**. And the sentence that matters most for this note, verified verbatim
+from the PDF (p. 1631):
+
+> *"In fact, asset growth appears to subsume many of the other growth-related variables, especially
+> within the large firms: In the regressions with asset growth, capital investment is not
+> significant for large size firms; **5-year growth rate in sales is not significant within any of
+> the size groups**; and the accrual effect is not significant within medium and large firms."*
+
+Large-firm panel, sales-growth coefficient: -0.0132, t = -0.68 (Table III Panel D, p. 1630).
+
+### 7.3 The construction caveat, stated rather than buried
+
+**Both papers test the LSV five-year weighted rank, not a one-year growth rate.** CGS's `5YSALESG`
+is *"a 5-year weighted average rank of growth rate in sales"* (Table III note, p. 1628), with years
+-5, -4, -3, -2 weighted 10/20/30/40%. HXZ's `SG` is the same object: *"the weighted average of the
+annual SG ranks for the prior 5 years"* (p. 689).
+
+The screener's `revenue_growth` is **one year**, latest quarter against the same quarter a year
+earlier. Its `revenue_cagr_3yr` is a **three-year CAGR**. Neither is the five-year weighted rank
+these papers test.
+
+This matters and is the sort of thing this project has got wrong before - the 2026-10-14 session
+recorded the lesson as *"a figure from a paper printed beside a number the paper did not measure"*.
+So, precisely:
+
+- The null on **five-year** sales growth is well established and holds in every size group (CGS
+  p. 1631; HXZ p. 667). That bears directly on `revenue_cagr_3yr` (1.95 points), which is the
+  nearest of the screener's legs to the tested construction, and indirectly on `revenue_growth`.
+- The null on **one-year** sales growth specifically is *not* what these two papers establish.
+  What they establish is that a longer-horizon sales-growth rank adds nothing once asset growth is
+  in the regression, and that the factor-model literature does not treat sales growth as an
+  investment-dimension variable at all.
+- Nothing in either paper supports scoring revenue growth **positively**. The sign of every
+  sales-growth coefficient reported above is negative (CGS -0.0041 all firms, -0.0132 large; HXZ
+  -0.27%/month) - small and insignificant, but never positive. The screener scores it the other
+  way, which is the direction the evidence is least able to support even though it cannot reject
+  it.
