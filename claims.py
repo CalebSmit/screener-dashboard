@@ -701,7 +701,9 @@ CLAIMS: tuple[Claim, ...] = (
             "across 97 predictors. The number and its two legs are published as a unit, so a "
             "skew whose legs are absent - a run fetched before 2026-10-14, carrying the "
             "superseded measure - is withheld rather than shown under this sentence. "
-            "Never scored."
+            "Never scored. A one-line gloss under the table (2026-10-19) says the same in plain "
+            "words: the implied volatility of a put that pays out only after a fall of roughly 5% "
+            "or more, minus that of a call at today's price."
         ),
         made_true_by="context_signals:_xzz_skew",
         checked_by=(
@@ -717,7 +719,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_option_implied_claims.py::test_the_skew_row_prints_both_legs",
             "tests/test_option_implied_claims.py::test_a_skew_without_its_legs_is_not_published",
             "tests/test_option_implied_claims.py::test_a_skew_with_both_legs_is_published_whole",
-            "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",
+            "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",            "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
         ),
         caveat=(
             "Fixed 2026-10-14, reading the paper (JFQA 45(3) p. 644-645, 649-654) rather "
@@ -766,12 +768,14 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "Plan marks a sale the Form 4 reports under a Rule 10b5-1 trading plan; the share of "
             "sales on pre-set plans is shown only where the source carries that flag (the SEC), "
-            "never as 0% from a source that does not."
+            "never as 0% from a source that does not. Where a plan is shown, one line says what "
+            "a Rule 10b5-1 plan is: a schedule of trades set up in advance (2026-10-19)."
         ),
         made_true_by="insider_activity:rows_from_sec",
         checked_by=(
             "tests/test_context_layer.py::test_sec_rows_keep_open_market_trades_with_plan_flag_and_filing_link",
             "tests/test_context_layer.py::test_planned_sales_are_summarised_and_unknown_stays_unknown",
+            "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
         ),
     ),
     Claim(
@@ -917,10 +921,13 @@ CLAIMS: tuple[Claim, ...] = (
                  "*around* the start of every US recession since 1970 - usually in the first months of one "
                  "rather than before it, because unemployment lags the cycle - and twice (1976, 2024) with "
                  "no recession following. It names Sahm's own purpose for the rule: a trigger for automatic "
-                 "stimulus, not a forecast."),
+                 "stimulus, not a forecast. The Market panel's plain-words line under the reading "
+                 "(2026-10-19) restates the definition: how far the 3-month average has risen above "
+                 "its lowest 3-month average of the past year, triggering at 0.50 percentage points."),
         made_true_by="market_context:readings",
         checked_by=(
             "tests/test_context_layer.py::test_sahm_indicator_definition",
+            "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_does_not_say_the_rule_marks_the_start",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_names_both_false_alarms",
             "tests/test_macro_backdrop_claims.py::test_the_jobs_sentence_says_what_sahm_proposed_the_rule_for",
