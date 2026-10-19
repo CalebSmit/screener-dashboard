@@ -1,37 +1,29 @@
-# Morning Brief - Sunday 18 October 2026, 14:56
+# Morning Brief - Monday 19 October 2026, 02:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## THE ROUTINE IS NOT RUNNING
-
-- **Data run** has not run since 2 days ago
-
-Nothing below is current. A loop that stops firing writes no log, so
-the rest of this page describes the last run that *did* happen, not
-today. Most likely cause: the PC rebooted and nobody logged back in -
-the tasks only run while a user is signed in. See NIGHTLY_LOG.md
-2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran 2 days ago |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-16T02:00:03.815047 |
+| Dashboard data from | 2026-10-19T02:00:04.793163 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | EXPE, APA, HST, INCY, EG |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (30 rows, but overlapping windows are not independent; 83 rows across all horizons), newest 2026-10-08 |
-| Context signals | Context signals: 7 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 0 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#18: a period behind its filings); ES (#19: a period behind its filings) |
-| Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+| Top 5 | EXPE, APA, INCY, HST, SNDK |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (31 rows, but overlapping windows are not independent; 85 rows across all horizons), newest 2026-10-09 |
+| Context signals | Context signals: 8 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 3 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#7: net income 16% off the filing); MU (#15: a period behind its filings); WDC (#25: net income 2.56x after-tax operating income) |
+| Context coverage | options usable 483/501 (18 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
 ## What changed in the repo
 
+- `ddc5083 data: screener run 2026-10-19 - 501 scored, top: EXPE APA INCY HST SNDK`
+- `14bc138 brief: code session 2026-10-18-midday`
 - `bf34a24 log: the 2026-10-18 midday session - item 8b finished, and the two defects the rerun found`
 - `07a3192 engine: rerun on the fixed marker, and measure against the pre-8b rows`
 - `c70d485 engine: the provenance flag keys on the code's content, not on the locator`
@@ -42,11 +34,6 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 - `e19cf90 wip: salvaged from an interrupted session 2026-10-18 - uncommitted when the gates ran`
 - `a1204a8 docs: item 8b's record, the no-override rule, and the session log so far`
 - `f03b991 engine: every result names the code, the weighting and the records it ran on (item 8b)`
-- `ad2d422 brief: code session 2026-10-17-midday`
-- `68fb679 log: the 2026-10-17 midday session - the macro backdrop note and three corrected page sentences`
-- `6924c52 docs: context-layer item 4's macro note is done; the owner queue's progress line`
-- `1970c17 look at the corrected backdrop at 1440 and 375; ignore the FRED download cache`
-- `b4a56c2 backdrop: three sentences corrected to what their sources' own records show`
 
 ## The session's own account
 
