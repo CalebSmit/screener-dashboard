@@ -1,0 +1,39 @@
+{
+ "run_timestamp": "2026-10-19T02:00:04.793163",
+ "growth_weights_now": {
+  "forward_eps_growth": 45,
+  "revenue_growth": 25,
+  "revenue_cagr_3yr": 15,
+  "sustainable_growth": 15
+ },
+ "growth_weights_without_revenue_growth": {
+  "forward_eps_growth": 45,
+  "revenue_cagr_3yr": 15,
+  "sustainable_growth": 15
+ },
+ "approximation": {
+  "spearman_vs_published": 1.0,
+  "top25_in_common": 25
+ },
+ "exposure": {
+  "now": {
+   "composite_vs_revenue_growth": -0.004,
+   "composite_vs_asset_growth": -0.203,
+   "composite_vs_spread": 0.2015,
+   "growth_score_vs_revenue_growth": 0.6643
+  },
+  "without revenue_growth": {
+   "composite_vs_revenue_growth": -0.0629,
+   "composite_vs_asset_growth": -0.227,
+   "composite_vs_spread": 0.1625,
+   "growth_score_vs_revenue_growth": 0.4289
+  }
+ },
+ "ranking_effect": {
+  "spearman_now_vs_cut": 0.9939,
+  "median_abs_rank_move": 7.0,
+  "p90_abs_rank_move": 27.0,
+  "max_abs_rank_move": 67.0,
+  "top25_retained": 23
+ }
+}
