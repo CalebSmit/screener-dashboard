@@ -485,3 +485,49 @@ So, precisely:
   -0.27%/month) - small and insignificant, but never positive. The screener scores it the other
   way, which is the direction the evidence is least able to support even though it cannot reject
   it.
+
+---
+
+## 8. Is the spread position stable, or one run's artifact?
+
+The Growth weight review left this open about its own headline number
+(`research/2026-10-12-growth-category.md` section 11: *"What the ranking's growth exposure does
+over time. -0.01 is one run."*). It is a fair challenge to this note too, so it was answered rather
+than deferred: every committed `dashboard_data.js` from 2026-09-10 to 2026-10-19 was replayed - 40
+payloads - each scored at the weights **its own commit's** `config.yaml` configured
+(`research/measurements/2026-10-19-spread-exposure-over-time.py`).
+
+| The claim | min | median | max |
+|---|---|---|---|
+| the pair's points vs the within-sector spread | **+0.892** | **+0.910** | **+0.911** |
+| the pair's points vs raw revenue growth | +0.045 | +0.135 | +0.138 |
+| the pair's points vs raw asset growth | -0.737 | -0.736 | -0.736 |
+| the finished composite vs the spread | +0.193 | +0.200 | +0.215 |
+
+Flat across all 40 runs. The central claim is a property of the construction, not of a day.
+
+### 8.1 And it dates a step, which a correctness fix caused
+
+Between the two payloads committed on 2026-10-09 the pair's residual exposure to revenue growth
+**falls from +0.137 to +0.045**, and the two metrics' raw overlap **rises from +0.477 to +0.508**.
+
+The attribution was checked rather than assumed, because the whole metric audit landed in that
+same range. The step is in the correlation between the two **raw metric values**, which only a
+change to one of the two computations can move. In that commit range:
+
+- `asset_growth` is untouched in `factor_engine.py` (`git log -S` over the range returns nothing);
+- exactly one commit touches `revenue_growth` - **`0a470e4`, "growth: revenue_growth compares
+  periods exactly a year apart (latest quarter vs same quarter a year earlier)"** - and it is an
+  ancestor of the later payload but not of the earlier one.
+
+So the window fix is the cause, and the effect is the opposite of what anyone would have predicted
+from the changelog entry: **putting `revenue_growth` on an honest 12-month window made it measure
+the same twelve months as `asset_growth`, so the two correlate more, so the asset leg cancels more
+of the revenue leg.** A fix made for correctness moved the pair roughly a third of the way further
+toward being a pure spread position, and reduced the net exposure the screener holds to revenue
+growth from a small positive to almost nothing.
+
+Nobody intended that, and nobody would have seen it: it is invisible in the changelog, invisible in
+the tests, and invisible in any single run. It is the clearest illustration in this note of why the
+pair's net position needs writing down - two independently-chosen weights produce a joint position
+that moves when either leg's *definition* changes, not only when a weight does.
