@@ -356,6 +356,7 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="run_screener:build_screener_overview",
         checked_by=(
             "tests/test_claims_register.py::test_overview_states_the_coverage_discount_from_config",
+            "tests/test_methodology_claims_audit.py::test_the_discount_example_is_a_coverage_a_ranked_stock_can_have",
         ),
         detect=r"coverage discount described under Data quality safeguards",
     ),
@@ -1142,6 +1143,237 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_metric_lineage.py::test_beneish_indices_rebuild_the_m_score",
         ),
     ),
+
+    # --- the methodology page's claims audit, 2026-10-19 ----------------------------------
+    # research/2026-10-19-methodology-claims-audit.md: every sentence on the generated page that
+    # states a computation, threshold, window, source, filter, weight, rule or count, against the
+    # code. The entries below are the ones found false or stale (each "Fixed 2026-10-19") and the
+    # true ones a student relies on most, now held to the code that makes them true.
+    Claim(
+        id="overview.roic_invested_capital",
+        surface=OVERVIEW,
+        asserts=(
+            "ROIC is NOPAT over invested capital = equity + debt - excess cash, where excess cash is "
+            "cash beyond 2% of revenue but never more than 50% of the cash, and invested capital is "
+            "floored at 10% of total assets - the three shares read from factor_engine's constants. "
+            "The table row, the Quality rationale and the design-decisions row all say so."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_roic_formula_on_the_page_rebuilds_the_scored_roic",
+            "tests/test_methodology_claims_audit.py::test_the_page_states_the_engines_own_roic_constants",
+        ),
+        detect=r"but never more than [\d.]+% of the cash, and invested capital is floored at [\d.]+% of total assets",
+        caveat=(
+            "Fixed 2026-10-19. The page described the 2%-of-revenue rule alone; the 50%-of-cash cap "
+            "bound for 334 of 452 stocks with a ROIC on the 2026-10-19 run and the floor for 8, and "
+            "the bare rule reproduces the scored ROIC for 138 of 447 published stocks against 450 of "
+            "450 for the rule as now stated. The drilldown's lineage note was already right."
+        ),
+    ),
+    Claim(
+        id="overview.cache_window",
+        surface=OVERVIEW,
+        asserts=(
+            "The only cache is the fully scored dataset, reused only on the day it was written (the "
+            "price tier's refresh interval, factor_scores_cache_max_age_days); there is no separate "
+            "weekly fundamentals cache, so each new day's run refetches prices and statements."
+        ),
+        made_true_by="factor_engine:factor_scores_cache_max_age_days",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_cache_sentence_states_the_window_the_run_applies",
+            "tests/test_methodology_claims_audit.py::test_there_is_no_separate_weekly_fundamentals_cache",
+        ),
+        detect=r"The fully scored dataset is cached locally in Parquet format and reused",
+        caveat=("Fixed 2026-10-19. The page said data was 'refreshed daily for prices, weekly for "
+                "fundamentals'; nothing caches fundamentals for a week - the scored-data bound is the "
+                "price tier (tests/test_cache_freshness.py)."),
+    ),
+    Claim(
+        id="overview.coverage_filter",
+        surface=OVERVIEW,
+        asserts=(
+            "A stock leaves the ranking when it has values for fewer than the configured share of "
+            "the metrics that carry weight in its score, counted in whole metrics and rounded down: "
+            "16 of 27, 14 of 24 for a bank-like stock and 15 of 26 for another financial at 60% - "
+            "from factor_engine.coverage_minimum, which the run's filter calls."
+        ),
+        made_true_by="factor_engine:coverage_minimum",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_coverage_filter_bars_are_the_ones_the_run_applies",
+            "tests/test_methodology_claims_audit.py::test_every_ranked_stock_clears_the_stated_bar",
+        ),
+        detect=r"counted in whole metrics and rounded down: it needs \d+ of \d+",
+        caveat=("Fixed 2026-10-19. The page said stocks with 'fewer than 60%' were excluded while the "
+                "filter, rounding down, keeps 16 of 27 (59.3%); and the coverage discount's example, "
+                "'a stock at 56% coverage', described a stock the filter had already removed."),
+    ),
+    Claim(
+        id="overview.metric_alerts",
+        surface=OVERVIEW,
+        asserts=(
+            "The run warns, and logs, for every metric that carries weight (generic or bank table) "
+            "that is missing for more than the configured share of the stocks it applies to; the "
+            "list is taken before the auto-reduce can zero a weight."
+        ),
+        made_true_by="run_screener:drift_alert_metrics",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_missing_data_alert_covers_every_metric_that_carries_weight",),
+        detect=r"for any metric that carries weight and is missing for more than \d+% of the stocks it applies to",
+        caveat=("Fixed 2026-10-19, in the code: the alert read a hand-kept list of 26 that left out "
+                "eight weighted metrics - FY1 EPS Revision, the Revisions category's heaviest, "
+                "revenue CAGR, net debt / EBITDA, Beneish, Jensen's alpha, max drawdown and short "
+                "interest - while the page said 'any metric'."),
+    ),
+    Claim(
+        id="overview.auto_disable",
+        surface=OVERVIEW,
+        asserts=(
+            "Revisions or Investment is switched off for the run when fewer than 30% of the (stock, "
+            "weighted metric) values it needs are present, and its weight is shared among the other "
+            "categories in proportion to their weights."
+        ),
+        made_true_by="run_screener:auto_disable_sparse_category",
+        checked_by=("tests/test_methodology_claims_audit.py::test_a_sparse_category_is_switched_off_and_its_weight_shared_in_proportion",),
+        detect=r"Auto-disable \(category-level\):\*\* If fewer than \d+% of the values",
+    ),
+    Claim(
+        id="overview.weight_sensitivity",
+        surface=OVERVIEW,
+        asserts=(
+            "Weight sensitivity moves each category weight up and down by 5 percentage points (not "
+            "5% of itself), one at a time, rescaling the others in proportion, and compares the "
+            "top 20 by Jaccard similarity."
+        ),
+        made_true_by="factor_engine:run_weight_sensitivity",
+        checked_by=("tests/test_methodology_claims_audit.py::test_weight_sensitivity_moves_each_weight_by_percentage_points",),
+        detect=r"moves each factor category weight up and down by [\d.]+ percentage points",
+        caveat=("Fixed 2026-10-19. The page said each weight was 'perturbed by ±5%'; for Size's 5% "
+                "that reads as 4.75-5.25 where the run tries 0 and 10."),
+    ),
+    Claim(
+        id="overview.factor_correlation",
+        surface=OVERVIEW,
+        asserts=(
+            "The Factor Correlation sheet is the Spearman correlation of every metric's sector "
+            "percentile, metric against metric - not of the eight category scores; the 6-1 month "
+            "window lies inside the 12-1 month one (five shared months)."
+        ),
+        made_true_by="factor_engine:compute_factor_correlation",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_correlation_matrix_is_of_metrics_not_categories",),
+        detect=r"metric against metric, not category against category",
+        caveat="Fixed 2026-10-19. The page called it a matrix of 'all 8 category scores'.",
+    ),
+    Claim(
+        id="overview.workbook_sheets",
+        surface=OVERVIEW,
+        asserts=(
+            "The workbook's dashboard sheet holds the top 25 with the Valuation, Quality and "
+            "Momentum scores and the value-trap flag; the Factor Scores sheet carries scores, "
+            "contributions and flags but no raw metrics; the DataValidation sheet shows the top 10 "
+            "of the ranking (not the portfolio) with twelve headline metrics, price and target, and "
+            "highlights seven flags - beta overlap is shown, not highlighted."
+        ),
+        made_true_by="portfolio_constructor:write_full_excel",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_dashboard_sheet_holds_what_the_page_says",
+            "tests/test_methodology_claims_audit.py::test_the_factor_scores_sheet_carries_no_raw_metrics",
+            "tests/test_methodology_claims_audit.py::test_the_validation_sheet_is_the_top_of_the_ranking_with_seven_flags_highlighted",
+        ),
+        detect=r"The top \d+ stocks by composite, formatted for quick review",
+        caveat=("Fixed 2026-10-19. The page described a dashboard sheet of the top 50 with all eight "
+                "category scores and both trap flags with severity; a Factor Scores sheet with raw "
+                "and bank metrics, data source and EPS flag; and a DataValidation sheet of the top 10 "
+                "'portfolio' stocks with market cap, revenue, net income and EPS, flagging 'stale "
+                "price targets'. None of it was what portfolio_constructor writes."),
+    ),
+    Claim(
+        id="overview.eps_basis",
+        surface=OVERVIEW,
+        asserts=(
+            "Since 2026-10-09 Forward EPS Growth sets the twelve-month consensus against the last "
+            "four quarters on the same basis, so the EPS-basis flag (forward over GAAP trailing "
+            "outside 0.3-2x) does not remove it; only the fallback construction, used where those "
+            "inputs are missing, still sets growth to NaN on an extreme ratio."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_eps_flag_no_longer_removes_the_scored_growth_figure",),
+        detect=r"Since 2026-10-09 the scored Forward EPS Growth does not use that pair",
+        caveat=("Fixed 2026-10-19. The defensibility section and Limitation 2 still said the flag "
+                "marked a distorted growth score and that growth was set to NaN on it; on 2026-10-19 "
+                "all 101 flagged stocks were on the twelve-month construction and 94 kept a growth "
+                "figure (the other 7 have a loss base, which gives none)."),
+    ),
+    Claim(
+        id="overview.data_source",
+        surface=OVERVIEW,
+        asserts=("`_data_source` reads `quarterly` or `annual` - the statement basis of the twelve-month "
+                 "flows - which are the only values the fetch writes."),
+        made_true_by="factor_engine:_fetch_single_ticker_inner",
+        checked_by=("tests/test_methodology_claims_audit.py::test_data_source_names_the_values_the_fetch_writes",),
+        detect=r"`_data_source` \(`quarterly` when",
+        caveat="Fixed 2026-10-19. The page gave its values as 'yfinance', 'cache' and 'sample'.",
+    ),
+    Claim(
+        id="overview.bank_set",
+        surface=OVERVIEW,
+        asserts=("The bank set and the generic set name every GICS sub-industry factor_engine lists, "
+                 "Diversified Capital Markets included; a bank-like stock is scored on 24 metrics and "
+                 "another financial on 26."),
+        made_true_by="factor_engine:_is_bank_like",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_every_sub_industry_the_code_lists_is_named_on_the_page",
+            "tests/test_methodology_claims_audit.py::test_the_overview_states_how_many_metrics_each_kind_of_stock_is_scored_on",
+        ),
+        detect=r"Investment Banking & Brokerage and Diversified Capital Markets",
+        caveat=("Fixed 2026-10-19: the list left out Diversified Capital Markets, and the overview said "
+                "every stock is scored on 'about 27' metrics where a bank-like one is scored on 24."),
+    ),
+    Claim(
+        id="overview.summary_steps",
+        surface=OVERVIEW,
+        asserts=("The summary's liquidity filter is the workbook portfolio's, not a step of the "
+                 "ranking; the 2026-09-03 size-tilt figures are dated, not called current."),
+        made_true_by="portfolio_constructor:construct_portfolio",
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_liquidity_filter_is_the_portfolios_not_the_rankings",
+            "tests/test_methodology_claims_audit.py::test_the_size_example_is_dated_not_called_current",
+        ),
+        detect=r"For the model portfolio in the Excel workbook only, apply a liquidity filter",
+        caveat=("Fixed 2026-10-19: the summary listed 'Apply a liquidity filter' among the ranking's "
+                "steps, and the size section called 2026-09-03 figures (CAT 1, UAL 59) 'the current "
+                "universe' - on 2026-10-19 they read 0.6 and 60.4."),
+    ),
+    Claim(
+        id="overview.metric_weight_tables",
+        surface=OVERVIEW,
+        asserts=("Every metric table on the page, generic and bank, every category heading and the "
+                 "composite line carry the weights the stocks are scored with "
+                 "(metric_weight_profiles, factor_weights)."),
+        made_true_by="factor_engine:metric_weight_profiles",
+        checked_by=("tests/test_methodology_claims_audit.py::test_every_weight_table_on_the_page_is_the_engines",),
+        detect=r"### 1\. Valuation \(\d+% of final score\)",
+    ),
+    Claim(
+        id="overview.percentile_rule",
+        surface=OVERVIEW,
+        asserts=("A metric percentile is the midpoint rank, (k - 0.5) / n x 100, flipped for "
+                 "lower-is-better metrics, within the sector - or across the universe where fewer "
+                 "than 10 stocks in the sector have a value."),
+        made_true_by="factor_engine:compute_sector_percentiles",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_percentile_rule_is_the_midpoint_rank_with_a_small_sector_fallback",),
+        detect=r"the k-th lowest of n stocks scores",
+    ),
+    Claim(
+        id="overview.trap_rules",
+        surface=OVERVIEW,
+        asserts=("A value trap is in the top 30% of Valuation scores and in the bottom 30% on at least "
+                 "two of Quality, Momentum and Revisions; a growth trap is above the 70th percentile "
+                 "of Growth with Quality or Revisions below the 35th - thresholds read from config "
+                 "and reproduced flag for flag from the engine."),
+        made_true_by="factor_engine:apply_value_trap_flags",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_trap_rules_on_the_page_are_the_rules_the_engine_applies",),
+        detect=r"it falls in the bottom \d+% of \*\*at least two\*\*",
+    ),
 )
 
 
@@ -1203,6 +1435,53 @@ FORBIDDEN: tuple[Forbidden, ...] = (
              "freed F-Score weight in proportion to the recipients' weights (ROIC 29 to 33.55, "
              "Gross Profit / Assets 22 to 25.45), never equally."),
         fixed="2026-10-16",
+    ),
+    Forbidden(
+        pattern=r"refreshed daily for prices, weekly for fundamentals",
+        why=("The methodology page's Step 1. The only cache is the scored dataset, reused only on the "
+             "day it was written; no fundamentals cache is kept for a week."),
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"Excess cash is cash beyond [\d.]+% of revenue\. ",
+        why=("The methodology page's ROIC row, stating the 2%-of-revenue rule as the whole definition; "
+             "the deduction is also capped at half of cash, which bound for 334 of 452 stocks."),
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"a stock at 56% coverage gets",
+        why="The coverage discount's example: 56% is below the coverage filter's bar, so no ranked stock has it.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"A warning is printed if any metric has more than \d+% missing",
+        why="The alert read a hand-kept list that left out eight weighted metrics.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"correlation matrix of all \d+ category scores",
+        why="The Factor Correlation sheet correlates every metric's percentile, not the category scores.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"The top 50 stocks, formatted for quick review",
+        why="The workbook's dashboard sheet holds the top 25 with three category scores.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"The top 10 portfolio stocks are displayed",
+        why="The DataValidation sheet shows the top 10 of the ranking, not the portfolio's holdings.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"e\.g\., \"yfinance\", \"cache\", \"sample\"",
+        why="`_data_source` is the statement basis, `quarterly` or `annual`; the fetch writes nothing else.",
+        fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"perturbs each factor category weight by ±5%",
+        why="The run moves each weight 5 percentage points (Size 5% -> 0% and 10%), not 5% of itself.",
+        fixed="2026-10-19",
     ),
 )
 
