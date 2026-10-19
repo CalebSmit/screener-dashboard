@@ -24,10 +24,21 @@ both legs, its composite points correlate **+0.045** with revenue growth and **-
 growth, while correlating **+0.892** with the *within-sector spread between them*. So the screener
 pays 3.25 points for a position on revenue growth that it does not hold, and what it holds
 instead is a bet on **growth in asset turnover** - revenue rising faster than the balance sheet
-that produced it. That is a real and separately-documented signal, not a double count. **No weight
-change is proposed.** What is wrong is that nothing - not the methodology page, not the changelog,
-not either category's rationale - says this is the position, and the Investment section states a
-premium for large companies that its own cited factor does not establish for them.
+that produced it. **So it is not a double count.** Whether it is a *good* bet is the harder half and
+the answer is uncomfortable: **documented practice rewards exactly that quantity** (FTSE Russell
+scores change in asset turnover positively inside Quality and uses neither of the screener's raw
+legs; S&P frames its quality index the same way), while **the published return evidence neither
+supports nor refutes it** - the paper that would settle it is paywalled and was not obtained, the
+major replication never tested the change, the related *level* does not price in any of eight
+specifications, and the change is 97%-transitory within a year (§9.6). Academia and practice
+disagree about the screener's own joint position, so by the reading rule written before any of
+this was researched, **the weight stays. No weight change is proposed, and no proposal is left
+open.** What is actually wrong is that nothing - not the methodology page, not the changelog, not
+either category's rationale - says this is the position; that the Investment section carries no
+large-company caveat where Size and Momentum both do; and that the screener's *positive* sign on
+one-year revenue growth is against the weight of published evidence and survives only because the
+asset leg cancels it to +0.045 - **which is luck, not design, and moved once already when a
+correctness fix landed (§8.1).**
 
 Everything below is measured on the **2026-10-19 02:00 run** (501 stocks; 497 carry both metrics)
 and reproducible from two committed scripts:
@@ -969,7 +980,7 @@ budgets for it rather than discovering it.
 
 ## 11. Conclusions, and what should change
 
-### 11.1 No weight change - and the measured reason, which is not the one I expected
+### 11.1 No weight change - and the reason, after two earlier reasons were measured or read away
 
 **The recommendation is to change neither weight.** `revenue_growth` stays at 25% of Growth,
 `asset_growth` at 100% of Investment. But the argument matters more than the verdict, because the
