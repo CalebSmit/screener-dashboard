@@ -13064,3 +13064,61 @@ from committed code with full provenance, so they stay (rule 2, append-only).
   to 30 runs, with the 15 + 15 split stated.
 - No weight, threshold or formula changed (rules 4 and 5). Neither page generator changed, so
   `rehearse_publish.py` did not apply.
+
+## 2026-10-19 (owner-run, day) - rounds 2 and 3 of the agent pass: 13 branches merged across the screener and the bot
+
+**Health (rule 8):** last code session ran? **it ran but failed its gates** - `logs/nightly-2026-10-19_060001.log`
+ended "Run finished with failing gates" (the session ended its reply while the engine rerun ran in the background;
+diagnosed and fixed below; its work was finished and merged here). Data loop published? **yes** -
+`logs/datarun-2026-10-19_020001.log` "Data loop complete", HEALTH: PASS. Evidence base at `1m` = **31 rows, newest
+2026-09-16 (33 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8. Top open roadmap item:
+**0.11, the context layer** (opened 2026-10-08, **age 11 days**) - worked today: item 4's track-record note and item
+6's turnover/cost are done.
+
+**Owner:** *"i want you to get back to work and keep finding and making even more improvements. Send out a bunch of
+agents to do so."* The 13:00 session stood down for the owner marker; the work it would have done (finishing the
+06:00 branch) was done here.
+
+### Merged (screener main `good/2026-10-19-owner-1` to `-4`; full suite 2,815 at the last)
+- **The 06:00 session finished**: the Growth-composition note, its pre-registered test (prediction wrong, no weight
+  changed), and the engine rerun completed on one code version (30 runs, no result changed).
+- **Why sessions ended with uncommitted work** (`research/2026-10-19-session-ended-on-a-background-job.md`): not a
+  usage limit. Under `claude --print` a reply without a tool call ends the session; both failing sessions started the
+  ~47-minute rerun in the background and ended their reply. Fixed: a prompt rule, a stated deadline, foreground
+  waits (`scripts/wait_for.py`), a resumable rerun (`scripts/rerun_experiments.py`), and one continuation of the
+  same session before the gates (never after them; no gate weakened). **Not yet exercised in production.**
+- **Factor Lab experiment 14, asset growth** (Cooper, Gulen & Schill 2008): 13 of 24 within; the premium reproduces
+  in the paper's years and is about zero among large companies since 2003.
+- **Top-of-ranking data audit**: none of the top 40's inputs wrong; one backtest-reader defect fixed (`pit_record`).
+- **Methodology claims audit**: 16 false sentences on the public methodology page corrected (ROIC's formula, the cache,
+  the coverage filter, the workbook sheets, a superseded EPS description, among others); the page now reads those
+  rules from the code; 17 claims registered.
+- **Track record**: a late run's entry price fixed, nine sentences corrected, the record's power stated (0.8 SE),
+  turnover and break-even cost shown; snapshots now record their run's start time.
+- **Fetch**: the year-ago quarter and balance sheet chosen by date, not position (BRK-B, FERG, SKYD; changelog,
+  scoring_schema 12).
+- **Club readiness, two rounds** (`plan/club-readiness.md`): a key to the columns and flags, plain answers for a stock
+  not in the ranking, a way back on phones, the Size/Risk/Investment sentence explained, glosses for options and
+  insider terms, readable score cards.
+- **Research notes with OPEN proposals** for a later session to decide: bank ROE/ROA computed from filings; bank
+  price-to-book as market value over common equity (**it also fixes a live BRK-B defect: P/B 0.001 against about
+  1.52, because the source's book value is per Class A share**); share classes scored once per company.
+
+### Merged (screener-bot main; 324 tests, green on GitHub)
+Corporate actions in the sim (renames carried, split guesses checked against Alpaca), the chart's windows computed in
+Python, the calendar to 2030 (its tripwire skipped inside the trade gate so a date cannot halt trading), Node 24
+actions. Today's rebalance ran cleanly (no trades needed); a dry-run dispatch confirmed the journal push on checkout v7.
+
+### The backtest rebuild after today's `pit_record` fixes
+Two record defects fixed: a 10-Q's restated fiscal-year context overrode the 10-K (485 name-months, 53 companies; FIX's
+FY2025 revenue read $1.83bn against $9.10bn), and same-day ties were settled by sort order (662 name-months, mostly
+Beneish). 176 months rebuilt, all 30 runs redone: **no verdict changed** (largest IC-difference change 0.00065;
+`research/2026-10-19-pit-fix-rebuild-effect.md`). The rebuilt months were installed in the main checkout's gitignored
+`cache/v2_metrics` (the 2026-10-15 months kept as `cache/v2_metrics_pre_2026-10-19`).
+
+### Next
+- **One more engine rerun is due**: `scripts/rerun_experiments.py --status` reports all 30 rows level with each other but
+  not on the current code, because the day's later merges (fetch fixes, the methodology audit's constants) changed files
+  the engine fingerprints. Run it in foreground chunks (`--limit 4`).
+- **Three OPEN proposals for a second session to decide**: bank ROE/ROA, bank price-to-book (fixes BRK-B's live
+  P/B defect), share classes.
