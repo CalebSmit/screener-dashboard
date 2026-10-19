@@ -92,6 +92,19 @@ price history / no free history / static) and fails on an unclassified one.
   holds 43% of what the screener would have said at the time. By year 80% (2020) falling to 2.6% in
   2026-09. **The fundamentals half is the larger one.**
 
+### A record defect fixed - 2026-10-19: rebuild and rerun before quoting the batch again
+
+`pit_record.Filed` took the latest-filed version of every context, so a **10-Q carrying a fiscal-year
+context overrode the 10-K**. Comfort Systems' Q1 2026 10-Q tags its quarter with a calendar-2025
+context: v2 read FY2025 revenue as $1.83bn (10-K: $9.10bn) and FIX's trailing revenue, gross profit,
+operating income and D&A with it from May 2026. 29 such never-superseded values for 13 companies in
+the cache (FIX, CBOE, ZBRA, HPE, MNST since 2024). A fiscal-year context now takes the latest 10-K;
+quarters and year-to-dates still take the latest filing (`tests/test_pit_record.py`;
+`research/2026-10-19-top-of-ranking-data-audit.md` section 4). `pit_record.py` is on
+`v2_experiments.RESULT_PATHS`, so the code hash moved: **rebuild the monthly records and rerun the
+batch before its figures are quoted again.** The effect should be small (one company's last few
+months, four impairment add-backs), which is a prediction to check, not a reason to skip the rerun.
+
 ### Extended to 2012, renames recovered, and the research engine - 2026-10-15 evening (owner-run)
 
 `research/2026-10-15-research-engine-first-batch.md`. **v2 now runs 2012-01 .. 2026-08 (176 months).**

@@ -76,6 +76,31 @@ def test_a_restatement_filed_before_the_date_wins_and_one_filed_after_does_not()
     assert pr.Filed(_f(rows), "AAA", "2025-06-01").fy("net_income", pd.Timestamp("2024-12-31")) == 380.0
 
 
+def test_a_10q_cannot_overwrite_a_fiscal_year_its_10k_reported():
+    """Comfort Systems, 2026-10-19: its Q1 2026 10-Q tagged the quarter's revenue ($1.83bn) with a
+    calendar-2025 context, after the 10-K had filed FY2025 at $9.10bn. "Latest filed" took the
+    10-Q's figure and its trailing revenue came out $3.96bn against $11.23bn. A fiscal year is
+    what a 10-K reports; the 10-Q's value stands only where no annual report has that year."""
+    mistag = (NI, "2024-01-01", "2024-12-31", "2025-05-05", "10-Q", 110.0)   # Q1's figure, FY's context
+    F = pr.Filed(_f(ROWS + [mistag]), "AAA", "2025-11-10")
+    assert F.fy("net_income", pd.Timestamp("2024-12-31")) == 400.0
+    assert F.ttm("net_income", pd.Timestamp("2025-09-30")) == pytest.approx(360 + 400 - 295)
+    # a later 10-K/A still restates it, so restatements keep flowing
+    rows = ROWS + [mistag, (NI, "2024-01-01", "2024-12-31", "2025-06-01", "10-K/A", 380.0)]
+    assert pr.Filed(_f(rows), "AAA", "2025-11-10").fy("net_income", pd.Timestamp("2024-12-31")) == 380.0
+    # and a year no 10-K carries is still read from the 10-Q that does
+    only_q = [(NI, "2023-01-01", "2023-12-31", "2024-05-06", "10-Q", 333.0)]
+    assert pr.Filed(_f(ROWS + only_q), "AAA", "2025-11-10").fy("net_income", pd.Timestamp("2023-12-31")) == 333.0
+
+
+def test_quarters_and_year_to_dates_still_take_the_latest_filing():
+    """The 10-K preference is for fiscal-year contexts only: a quarter restated in a later 10-Q's
+    comparative column is still read at its latest version."""
+    rows = ROWS + [(NI, "2025-01-01", "2025-03-31", "2026-05-04", "10-Q", 115.0)]
+    F = pr.Filed(_f(rows), "AAA", "2026-06-01")
+    assert F.quarter("net_income", pd.Timestamp("2025-03-31")) == pytest.approx(115.0)
+
+
 def test_the_record_keeps_no_value_the_filings_cannot_supply():
     base = {"Ticker": "AAA", "totalRevenue": 9e9, "capex": -1e9, "marketCap": 1e12,
             "_beneish_sga": 5.0, "price_latest": 10.0, "forwardEps": 2.0, "currentPrice": 10.0}
