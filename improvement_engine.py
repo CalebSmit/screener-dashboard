@@ -191,18 +191,43 @@ def _effective_observations(run_dates, horizon: str = "1m") -> int:
 # Phase A: Forward Return Tracking
 # =========================================================================
 
+def run_started_iso(started) -> str | None:
+    """A run's start time as ISO 8601 **with its UTC offset**, or None.
+
+    ``RunContext.start_time`` and ``meta.json``'s ``start_time`` are naive local times; a naive
+    value is read as this machine's local time (where the run was made) and given its offset, so
+    a reader in another zone - or ``track_record`` comparing it with the New York close - does not
+    have to know where the screener ran."""
+    if started is None or started == "":
+        return None
+    try:
+        ts = started if isinstance(started, datetime) else datetime.fromisoformat(str(started))
+    except (TypeError, ValueError):
+        return None
+    if ts.tzinfo is None:
+        ts = ts.astimezone()
+    return ts.isoformat()
+
+
 def record_run_snapshot(
     run_id: str,
     run_date: str,
     scored_df: pd.DataFrame,
     portfolio_df: pd.DataFrame | None,
     cfg: dict,
+    run_started=None,
 ) -> Path:
     """Record a snapshot of this run's scores for future return tracking.
 
     Saves to improvement/snapshots/{run_date}_{run_id}.parquet.
     Also triggers forward return computation for prior snapshots.
     Also records dispersion for regime detection.
+
+    ``run_started`` (a datetime or ISO string; the run context's start time) is stored as
+    ``run_started_at`` with its UTC offset (2026-10-19). Until then a snapshot recorded its date and
+    not its time, and ``track_record.runs_after_the_close`` had to infer from the recorded prices
+    whether a run had already seen its date's close (research/2026-10-19-track-record.md
+    section 6); it now reads this column where present and keeps the inference for older files.
     """
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -229,6 +254,9 @@ def record_run_snapshot(
 
     snap["run_date"] = run_date
     snap["run_id"] = run_id
+    _started = run_started_iso(run_started)
+    if _started is not None:
+        snap["run_started_at"] = _started
 
     # === Turnover calculation ===
     # Compare current portfolio to the most recent prior snapshot to compute
@@ -743,6 +771,9 @@ def backfill_from_existing_runs() -> int:
 
             snap["run_date"] = run_date
             snap["run_id"] = run_id
+            _started = run_started_iso(start_time)      # the run's own start, not this backfill's
+            if _started is not None:
+                snap["run_started_at"] = _started
 
             path = SNAPSHOTS_DIR / f"{run_date}_{run_id}.parquet"
             snap.to_parquet(path, index=False)

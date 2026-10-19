@@ -1,0 +1,222 @@
+{
+ "run": "377ec40838b1",
+ "stocks_read": 501,
+ "not_read": [
+  "HONA",
+  "VYLR"
+ ],
+ "old_rule_does_not_reproduce_run": [],
+ "stocks_whose_year_ago_column_changes": [
+  "BRK-B",
+  "FERG",
+  "SKYD"
+ ],
+ "stocks_with_an_input_change": [
+  "BRK-B",
+  "FERG",
+  "SKYD"
+ ],
+ "input_changes_by_field": {
+  "totalAssets_prior": 2,
+  "totalEquity_prior": 2,
+  "longTermDebt_prior": 2,
+  "currentAssets_prior": 1,
+  "currentLiabilities_prior": 1,
+  "sharesBS_prior": 2,
+  "totalRevenue_prior": 0,
+  "grossProfit_prior": 0,
+  "netIncome_prior": 0,
+  "_rev_q0": 2,
+  "_rev_q4": 2,
+  "_rev_q0_date": 2,
+  "_rev_q4_date": 2
+ },
+ "stocks_with_a_metric_change": [
+  "BRK-B",
+  "FERG",
+  "SKYD"
+ ],
+ "metric_values_changed": 8,
+ "metric_changes_by_metric": {
+  "piotroski_f_score": 2,
+  "revenue_growth": 2,
+  "sustainable_growth": 2,
+  "asset_growth": 2
+ },
+ "composite_moved": 139,
+ "largest_composite_move": {
+  "ticker": "FERG",
+  "points": 0.91
+ },
+ "rank_moved": 97,
+ "largest_rank_move": 26,
+ "spearman_composite": 0.9999620439606349,
+ "top25_changed": [],
+ "annual_col_not_a_year_apart": {},
+ "per_stock": {
+  "BRK-B": {
+   "bs_prior_old": null,
+   "bs_prior_new": "2025-06-30",
+   "bs_latest": "2026-06-30",
+   "rev_q4_old": null,
+   "rev_q4_new": "2025-06-30",
+   "fields": {
+    "totalAssets_prior": [
+     null,
+     1163968000000.0
+    ],
+    "totalEquity_prior": [
+     null,
+     667989000000.0
+    ],
+    "longTermDebt_prior": [
+     null,
+     124034000000.0
+    ],
+    "sharesBS_prior": [
+     null,
+     1438223.0
+    ],
+    "_rev_q0": [
+     null,
+     117885000000.0
+    ],
+    "_rev_q4": [
+     null,
+     98879000000.0
+    ],
+    "_rev_q0_date": [
+     null,
+     "2026-06-30"
+    ],
+    "_rev_q4_date": [
+     null,
+     "2025-06-30"
+    ]
+   },
+   "reproduces_run": true,
+   "metrics": {
+    "piotroski_f_score": [
+     null,
+     4.0
+    ],
+    "revenue_growth": [
+     -0.032317222651756586,
+     0.1922147270906866
+    ],
+    "sustainable_growth": [
+     0.11467689962696047,
+     0.12114988427846901
+    ],
+    "asset_growth": [
+     null,
+     0.08514237504811129
+    ]
+   },
+   "composite": [
+    60.76,
+    60.63
+   ],
+   "rank": [
+    60,
+    60
+   ]
+  },
+  "FERG": {
+   "bs_prior_old": null,
+   "bs_prior_new": "2025-07-31",
+   "bs_latest": "2026-06-30",
+   "rev_q4_old": null,
+   "rev_q4_new": null,
+   "fields": {
+    "totalAssets_prior": [
+     null,
+     17729000000.0
+    ],
+    "totalEquity_prior": [
+     null,
+     5832000000.0
+    ],
+    "longTermDebt_prior": [
+     null,
+     3752000000.0
+    ],
+    "currentAssets_prior": [
+     null,
+     10146000000.0
+    ],
+    "currentLiabilities_prior": [
+     null,
+     6028000000.0
+    ],
+    "sharesBS_prior": [
+     null,
+     194128511.0
+    ]
+   },
+   "reproduces_run": true,
+   "metrics": {
+    "piotroski_f_score": [
+     6.0,
+     8.0
+    ],
+    "sustainable_growth": [
+     0.22044831478793742,
+     0.227208509931023
+    ],
+    "asset_growth": [
+     null,
+     0.08878109312425969
+    ]
+   },
+   "composite": [
+    46.59,
+    47.5
+   ],
+   "rank": [
+    333,
+    307
+   ]
+  },
+  "SKYD": {
+   "bs_prior_old": "2025-06-30",
+   "bs_prior_new": "2025-06-30",
+   "bs_latest": "2026-06-30",
+   "rev_q4_old": null,
+   "rev_q4_new": "2025-06-30",
+   "fields": {
+    "_rev_q0": [
+     null,
+     6913000000.0
+    ],
+    "_rev_q4": [
+     null,
+     6849000000.0
+    ],
+    "_rev_q0_date": [
+     null,
+     "2026-06-30"
+    ],
+    "_rev_q4_date": [
+     null,
+     "2025-06-30"
+    ]
+   },
+   "reproduces_run": true,
+   "metrics": {
+    "revenue_growth": [
+     -0.014805072170511264,
+     0.009344429843772813
+    ]
+   },
+   "composite": [
+    23.56,
+    23.91
+   ],
+   "rank": [
+    500,
+    500
+   ]
+  }
+ }
+}

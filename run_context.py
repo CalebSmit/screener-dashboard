@@ -179,7 +179,9 @@ class RunContext:
             # 8 = no forward EPS growth from a loss base (2026-10-09, after the rehearsals).
             # 9 = bank-like financials by GICS sub-industry; 10 = Beneish skips all Financials.
             # 11 = Beneish not counted as missing for Financials; stale history not a FEG base.
-            "scoring_schema": 11,
+            # 12 = the year-ago quarter / balance sheet chosen by date, not column four
+            # (2026-10-19): BRK-B, FERG and SKYD score differently from the 02:00 table.
+            "scoring_schema": 12,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

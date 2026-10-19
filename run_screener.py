@@ -2851,7 +2851,8 @@ def main():
     elif cfg.get("improvement", {}).get("enabled", True):
         try:
             from improvement_engine import record_run_snapshot
-            record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg)
+            record_run_snapshot(ctx.run_id, datetime.now().strftime("%Y-%m-%d"), df, port, cfg,
+                                run_started=ctx.start_time)
             print("  Improvement snapshot recorded")
         except Exception as e:
             print(f"  WARNING: Improvement tracking failed: {e}")

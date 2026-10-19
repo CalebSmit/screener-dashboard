@@ -120,6 +120,59 @@ def test_a_snapshot_with_no_recorded_prices_is_named_as_untimed(tmp_path):
     assert tr.untimed_runs(["2026-01-07", "2026-01-08"], snap_dir=tmp_path) == ["2026-01-07"]
 
 
+# ---- the run's own start time (2026-10-19): recorded in every new snapshot, and it decides
+def _timed_snapshot(tmp_path, day: str, prices_for: pd.Series, started: str):
+    pd.DataFrame({"Ticker": list(prices_for.index), "price_at_scoring": list(prices_for.values),
+                  "run_started_at": started}).to_parquet(tmp_path / f"{day}_abc.parquet")
+
+
+def test_a_recorded_start_time_after_the_close_enters_at_the_next_close(tmp_path):
+    """19:22 CDT is 20:22 in New York, after the 16:00 close - decided by the stamp, even though
+    the recorded prices here are the previous day's (which the inference would read as early)."""
+    prices = _prices(n_names=80)
+    names = [c for c in prices.columns if c.startswith("T")]
+    _timed_snapshot(tmp_path, "2026-01-07", prices.loc["2026-01-06", names], "2026-01-07T19:22:00-06:00")
+    assert tr.runs_after_the_close(["2026-01-07"], prices, snap_dir=tmp_path) == ["2026-01-07"]
+
+
+def test_a_recorded_start_time_before_the_close_overrides_the_prices(tmp_path):
+    """The 02:00 data loop: before the close by its stamp, though its prices here are that day's."""
+    prices = _prices(n_names=80)
+    names = [c for c in prices.columns if c.startswith("T")]
+    _timed_snapshot(tmp_path, "2026-01-07", prices.loc["2026-01-07", names], "2026-01-07T02:00:04-06:00")
+    assert tr.runs_after_the_close(["2026-01-07"], prices, snap_dir=tmp_path) == []
+
+
+def test_a_snapshot_without_a_start_time_keeps_the_price_inference(tmp_path):
+    """Older snapshots record only a date: the inference still reads them (the 2026-08-10 case)."""
+    prices = _prices(n_names=80)
+    names = [c for c in prices.columns if c.startswith("T")]
+    _snapshot(tmp_path, "2026-01-07", prices.loc["2026-01-07", names])
+    assert tr.run_started_at(tmp_path / "2026-01-07_abc.parquet") is None
+    assert tr.runs_after_the_close(["2026-01-07"], prices, snap_dir=tmp_path) == ["2026-01-07"]
+
+
+def test_a_snapshot_with_a_start_time_is_not_untimed(tmp_path):
+    pd.DataFrame({"Ticker": ["T1"], "Rank": [1], "run_started_at": "2026-01-07T02:00:00-06:00"}
+                 ).to_parquet(tmp_path / "2026-01-07_x.parquet")
+    assert tr.untimed_runs(["2026-01-07"], snap_dir=tmp_path) == []
+
+
+@pytest.mark.parametrize("stamp, day, late", [
+    ("2026-01-07T15:59:00-05:00", "2026-01-07", False),   # a minute before the New York close (EST)
+    ("2026-01-07T16:00:00-05:00", "2026-01-07", True),    # at the close
+    ("2026-01-07T14:59:00-06:00", "2026-01-07", False),   # 15:59 New York, stamped in Central time
+    ("2026-01-07T15:00:00-06:00", "2026-01-07", True),    # 16:00 New York
+    ("2026-01-08T00:30:00+00:00", "2026-01-07", True),    # 19:30 New York on the 7th, stamped in UTC
+    ("2026-07-07T14:30:00-05:00", "2026-07-07", False),   # CDT 14:30 = EDT 15:30, summer offsets
+    ("2026-07-07T15:00:00-05:00", "2026-07-07", True),    # CDT 15:00 = EDT 16:00
+    ("2026-10-19T02:00:04.793163-05:00", "2026-10-19", False),   # the data loop's own stamp
+    ("not a time", "2026-01-07", None),
+])
+def test_after_the_close_reads_the_stamp_in_new_york_time(stamp, day, late):
+    assert tr.after_the_close(stamp, day) is late
+
+
 # --------------------------------------------------------------------------- turnover and cost
 def test_turnover_is_the_share_of_the_basket_sold():
     # drifted A 60% / B 40% -> equal B, C: sell all of A (60%), buy 10% more B and 50% C
@@ -241,6 +294,10 @@ def test_entry_sentence_names_the_late_and_the_untimed_runs():
     js = _render_js()
     assert "first trading day on or after its run&rsquo;s date" in js
     assert "T.after_close" in js and "T.untimed" in js
+    # 2026-10-19: the start time decides where a snapshot records one; prices only for older runs
+    assert "read from the start time the run recorded" in js
+    assert "recorded neither a start time nor any prices" in js
+    assert "own recorded prices show it was made after" not in js
 
 
 def test_the_panel_and_the_tile_count_months_the_same_way():
@@ -300,7 +357,7 @@ def test_the_panel_renders_every_corrected_sentence_from_a_record():
     assert "Traded at each rebalance" in text
     assert "standard errors from zero" in text
     assert "Feb 2" in text and "made after that close" in text
-    assert "Jan 5 recorded no prices" in text
+    assert "Jan 5 recorded neither a start time nor any prices" in text
     assert "1 of the" in text and "top-fifth baskets" in text
     assert "pp" in text and "No return here is annualised" in text
     assert not stock_summary.advice_terms_in(text)
