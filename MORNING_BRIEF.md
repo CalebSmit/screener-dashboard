@@ -1,4 +1,4 @@
-# Morning Brief - Monday 19 October 2026, 02:25
+# Morning Brief - Monday 19 October 2026, 07:08
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,7 +8,7 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **completed** - last ran today |
+| Code session (latest) | **stopped deliberately** - last ran today |
 | Dashboard data from | 2026-10-19T02:00:04.793163 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
@@ -20,8 +20,22 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#7: net income 16% off the filing); MU (#15: a period behind its filings); WDC (#25: net income 2.56x after-tax operating income) |
 | Context coverage | options usable 483/501 (18 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
+## Things that needed attention
+
+- GATE 1 tests: FAIL (FAILED tests/test_v2_experiments.py::test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline FAILED tests/test_v2_experiments.py::test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture 4 failed, 2662 passed, 1 skipped, 316 warnings in 279.04s (0:04:39))
+- GATE 4 clean tree: FAIL - uncommitted changes remain
+- M research.html
+- M research/experiments/RESULTS.md
+- M research/experiments/ledger.jsonl
+- M research/experiments/summary.json
+- SHIP GATES FAILED: tests, clean-tree. Not merging.
+- Committed the uncommitted work onto nightly/2026-10-19 so it is not lost. Recover it from there.
+- Work pushed to nightly/2026-10-19 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
+- Run finished with failing gates - see above.
+
 ## What changed in the repo
 
+- `8b701ab brief: data run 2026-10-19`
 - `ddc5083 data: screener run 2026-10-19 - 501 scored, top: EXPE APA INCY HST SNDK`
 - `14bc138 brief: code session 2026-10-18-midday`
 - `bf34a24 log: the 2026-10-18 midday session - item 8b finished, and the two defects the rerun found`
