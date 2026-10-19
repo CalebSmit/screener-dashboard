@@ -8,7 +8,7 @@
 
 The screener scores every company in the S&P 500 (about 500 stocks) on up to 31 financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.
 
-No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones, so each stock is scored on about 27. The full metric registry (`METRIC_COLS`) has 46 entries: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
+No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones, so each stock is scored on about 27. In all the screener computes 46 metrics: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
 
 No single number describes a company well: a low price can reflect a declining business or high risk. Scoring valuation, quality, growth, momentum, risk, revisions, size, investment separately favours companies that are strong on several of them at once.
 

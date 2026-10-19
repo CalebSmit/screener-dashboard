@@ -260,8 +260,40 @@ def _sentence_drivers(detail: dict) -> str | None:
     )
 
 
+# What a low score means in the three categories where a reader's instinct runs the wrong way
+# (club readiness, 2026-10-19; `plan/club-readiness.md`). "Its weakest scored category is Size at
+# 2 out of 100" was the weakest-category sentence for 107 of 501 stocks on the 2026-10-19 run,
+# and it reads as a weakness of the business for every megacap: a high Size score is a *smaller*
+# company, so a 2 says the company is one of the largest in its sector. Risk and Investment run
+# the same way ("Risk at 21" reads as low risk). The direction is the one the page's key states
+# (`generate_dashboard.SCORE_KEY`, claim `dashboard.score_key`). Said only below 50, where the
+# score is on the "more" side of the sector median; each clause is checked against the payload
+# by `tests/test_stock_summary.py::test_a_low_score_in_an_inverted_category_says_what_it_means`.
+LOW_SCORE_MEANS = {
+    "size": "A higher Size score means a smaller company, so a score of {n} makes it {what}.",
+    "risk": ("A higher Risk score means a calmer price (lower volatility, lower beta and smaller "
+             "drawdowns), so a score of {n} puts it on the more volatile side of its sector on "
+             "those three measures taken together."),
+    "investment": ("A higher Investment score means slower growth in total assets, so a score of "
+                   "{n} means its total assets grew faster than most of its sector's."),
+}
+# A Size score at or below this is in roughly the largest tenth of its sector by market value
+# (measured 2026-10-19: every stock scoring under 10 was at or above its sector's 90th percentile).
+LARGEST_SIZE_SCORE = 10
+
+
+def _low_score_means(cat: str, score: float) -> str | None:
+    n = round(score)
+    if cat not in LOW_SCORE_MEANS or n >= 50:
+        return None
+    what = ("one of the largest companies in its sector" if n <= LARGEST_SIZE_SCORE
+            else "a larger company than most of its sector")
+    return LOW_SCORE_MEANS[cat].format(n=n, what=what)
+
+
 def _sentence_weakest(detail: dict) -> str | None:
-    """The lowest-scoring category it actually has a score for."""
+    """The lowest-scoring category it actually has a score for, and - for Size, Risk and
+    Investment, where a low score is easily misread - what that low score means."""
     contrib = detail.get("contrib") or {}
     scores = detail.get("cat_scores") or {}
     live = [(c, _num(scores.get(c)), _num(contrib.get(c)))
@@ -271,9 +303,11 @@ def _sentence_weakest(detail: dict) -> str | None:
     live.sort(key=lambda t: t[1])
     cat, score, points = live[0]
     tail = f", contributing {points:.1f} points" if points is not None else ""
+    means = _low_score_means(cat, score)
     return (
         f"Its weakest scored category is {CAT_LABELS[cat]} at {score:.0f} "
         f"out of 100{tail}. A category score near 50 is the sector median."
+        + (f" {means}" if means else "")
     )
 
 

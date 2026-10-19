@@ -540,7 +540,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 
 The screener scores every company in the S&P 500 (about 500 stocks) on up to {n_total} financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.
 
-No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones, so each stock is scored on about {n_generic}. The full metric registry (`METRIC_COLS`) has {n_registry} entries: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
+No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones, so each stock is scored on about {n_generic}. In all the screener computes {n_registry} metrics: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
 
 No single number describes a company well: a low price can reflect a declining business or high risk. Scoring {', '.join(factor_labels[f] for f in active_factors).lower()} separately favours companies that are strong on several of them at once.
 

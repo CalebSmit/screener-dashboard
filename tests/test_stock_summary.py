@@ -277,6 +277,87 @@ def test_weakest_explains_what_a_category_score_of_50_means():
     assert "50 is the sector median" in _fact(_build(), "weakest")
 
 
+# --- what a low score means where the instinct runs the wrong way (club readiness, 2026-10-19) ---
+
+def _weakest_with(cat: str, score: float) -> str:
+    detail = _detail()
+    detail["cat_scores"] = {**detail["cat_scores"], cat: score}
+    return _fact(_build(detail), "weakest")
+
+
+def test_a_low_size_score_says_it_is_a_large_company():
+    """"Its weakest scored category is Size at 2" read as a business weakness for every megacap
+    (107 of 501 stocks on 2026-10-19). A high Size score is a smaller company."""
+    fact = _weakest_with("size", 2.0)
+    assert "Size at 2 out of 100" in fact
+    assert "A higher Size score means a smaller company, so a score of 2 makes it one of the largest companies in its sector." in fact
+    fact = _weakest_with("size", 30.0)
+    assert "so a score of 30 makes it a larger company than most of its sector." in fact
+
+
+def test_a_low_risk_or_investment_score_says_which_way_it_runs():
+    risk = _fact(_build(), "weakest")            # the fixture's weakest is Risk at 37.62
+    assert "A higher Risk score means a calmer price" in risk
+    assert "so a score of 38 puts it on the more volatile side of its sector" in risk
+    inv = _weakest_with("investment", 12.0)
+    assert "A higher Investment score means slower growth in total assets, so a score of 12 means its total assets grew faster than most of its sector's." in inv
+
+
+def test_no_gloss_where_the_score_reads_the_way_it_looks_or_is_not_low():
+    assert "A higher" not in _weakest_with("momentum", 5.0)
+    detail = _detail()
+    detail["cat_scores"] = {c: 80.0 for c in CATEGORIES}
+    detail["cat_scores"]["size"] = 55.0         # weakest, but above the median
+    assert "A higher" not in _fact(_build(detail), "weakest")
+
+
+def test_the_low_score_glosses_are_advice_free_and_plain():
+    for cat, score in (("size", 2.0), ("size", 30.0), ("risk", 20.0), ("investment", 12.0)):
+        fact = _weakest_with(cat, score)
+        assert ss.advice_terms_in(fact) == [], fact
+        assert "—" not in fact
+
+
+def _published_detail():
+    import json
+    p = REPO / "dashboard_data.js"
+    if not p.exists():
+        pytest.skip("no published payload")
+    s = p.read_text(encoding="utf-8")
+    return json.loads(s[s.index("=") + 1:].rstrip().rstrip(";"))["stock_detail"]
+
+
+def test_a_low_score_in_an_inverted_category_says_what_it_means():
+    """Claim ``summary.weakest``: each gloss is held to the published payload, built by the
+    sentence builder from every stock's own record. Size and Investment are single-metric
+    categories scored on the sector percentile of market value and asset growth."""
+    import pandas as pd
+    sd = _published_detail()
+    rows = [dict(t=t, sector=v["sector"], mc=(v.get("financials") or {}).get("market_cap"),
+                 ag=(v.get("raw") or {}).get("asset_growth"), vol=(v.get("raw") or {}).get("volatility"),
+                 volp=(v.get("pct") or {}).get("volatility"),
+                 fact=next((f["t"] for f in ss.build_summary(v, universe_size=len(sd), metric_meta={},
+                                                               metric_weights={}) if f["k"] == "weakest"), ""))
+            for t, v in sd.items()]
+    df = pd.DataFrame(rows)
+    df["mc_rank"] = df.groupby("sector")["mc"].rank(pct=True)
+    df["ag_rank"] = df.groupby("sector")["ag"].rank(pct=True)
+    largest = df[df.fact.str.contains("one of the largest companies in its sector", regex=False)]
+    larger = df[df.fact.str.contains("a larger company than most of its sector", regex=False)]
+    faster = df[df.fact.str.contains("its total assets grew faster than most", regex=False)]
+    volatile = df[df.fact.str.contains("on the more volatile side of its sector", regex=False)]
+    assert len(largest) > 20 and len(faster) > 20 and len(volatile) > 20, (len(largest), len(faster), len(volatile))
+    assert largest.mc_rank.min() >= 0.85, largest.sort_values("mc_rank").head()
+    assert larger.mc_rank.min() > 0.5, larger.sort_values("mc_rank").head()
+    assert faster.ag_rank.min() > 0.5, faster.sort_values("ag_rank").head()
+    # a higher volatility percentile is a calmer price: within a sector the percentile runs
+    # against the raw value, and the stocks the sentence calls more volatile mostly are
+    d = df.dropna(subset=["vol", "volp"]).copy()
+    d["vol_rank"] = d.groupby("sector")["vol"].rank(pct=True)
+    assert d["vol_rank"].corr(d["volp"], method="spearman") < -0.95
+    assert d[d.t.isin(volatile.t)]["vol_rank"].median() > 0.6
+
+
 def test_best_inputs_come_from_the_leading_category_only():
     """Momentum has no weighted metrics in the fixture; Valuation leads on
     contribution, so the inputs named must be Valuation metrics."""
