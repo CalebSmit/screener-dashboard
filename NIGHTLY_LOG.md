@@ -12789,3 +12789,42 @@ when the engine could not say.
   calibration test (inject a known IC of 0.03 / 0.05 / 0.10 and assert the engine measures it back
   and detects 0.10 at the bar). That is what turns "we found nothing" into "there was nothing to
   find" rather than "the test cannot see".
+
+---
+
+## 2026-10-19 (06:00 session) - RESEARCH. Revenue growth against asset growth: the screener's position is on neither, it is on the spread between them
+
+**Health (rule 8, all five):**
+- **Last code session ran?** YES - `logs/nightly-2026-10-18_130001-midday.log` ends "Run complete:
+  shipped to main", tagged `good/2026-10-18`.
+- **Data loop published?** YES - `logs/datarun-2026-10-19_020001.log` ends "Data loop complete";
+  claims gate PASS (1017 passed, 271 warnings); 501 scored; published to main at 02:24.
+- **Evidence base at `1m`:** **31 rows, newest `run_date` 2026-09-16 (33 days ago, bound 40),
+  4 effective observations.** Within the bound; the lag is the steady-state 30-33 days. The gate
+  needs 8 effective, so the engine still may not propose.
+- **Priority 0:** fixed and holding - `allow_auto_apply` is `false`, `_effective_observations()`
+  gates proposals, and the figure quoted above is `_n_observations`, not the row count.
+- **Top open roadmap item:** the research engine (`OWNER_FOCUS.md`, opened **2026-10-15 - age 4
+  days**), queue `plan/research-engine.md` item **8(c)**. Deferred today, deliberately - see
+  "Owner queue / rotation".
+
+**Tests:** before 2666 passed / 1 skipped; after 2666 passed / 1 skipped (research only, no
+production code - Monday).
+**Gate 2 at baseline:** `--dry-run` PASSED.
+
+**Owner queue / rotation:** no proposal is waiting for a decision
+(`write_brief.open_proposals()` returns `[]`). The top open owner item is the research engine,
+whose next queue stage is **8(c)** - a ledger row and a synthetic calibration test, i.e.
+production code on a day whose focus forbids it. I took the **Monday note** instead, which is
+that same item's own queue item 6: *"New ideas come from Monday notes. Each Monday research note
+that ends with a testable claim registers one experiment for it. That is the route by which the
+engine grows."* So this is not a deferral of the owner item in favour of the rotation - it is the
+half of the owner item that a research day can do, and it ends in a registered experiment.
+**8(c) is handed to the 13:00 session as the explicit Next.**
+
+The question taken is the one the 2026-10-13 Growth refusal named first among the open
+composition questions (`research/2026-10-12-growth-category.md` section 11): *the sign of
+`revenue_growth` against `asset_growth` - two categories, one fact, opposite directions.*
+
+### Did
+- *(in progress - this entry is extended as the session goes)*
