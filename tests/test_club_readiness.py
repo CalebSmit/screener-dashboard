@@ -237,6 +237,27 @@ def test_the_tested_page_says_how_to_read_its_numbers():
     assert stock_summary.advice_terms_in(terms) == []
 
 
+def test_the_methodology_overview_names_no_developer_identifier():
+    """The Overview is the first thing Methodology shows a student; until 2026-10-19 its second
+    paragraph named the metric registry by its Python name (`METRIC_COLS`). Read from the
+    generator, which the data loop publishes, never from the committed file (rule 10)."""
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    doc = run_screener.build_screener_overview(cfg)
+    overview = doc[doc.index("## Overview"):doc.index("\n## ", doc.index("## Overview") + 5)]
+    assert "`" not in overview and "METRIC_COLS" not in overview
+    assert "In all the screener computes" in overview
+
+
+def test_the_run_note_sits_beside_the_rule_it_reads():
+    js = gd.generate_html()
+    fn = js[js.index("function methodologyRunNote()"):js.index("function goToMethod(")]
+    assert "/^Momentum regime rule/" in fn and "rule.after(p)" in fn
+    import run_screener
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    assert "\n**Momentum regime rule" in run_screener.build_screener_overview(cfg)
+
+
 def test_the_market_backdrop_glosses_pp_and_fred():
     js = gd._js_context()
     assert "A pp is a percentage point" in js

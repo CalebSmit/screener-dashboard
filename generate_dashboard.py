@@ -4353,11 +4353,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     ? 'The return is negative and volatility is above ' + pc(m.vol_threshold) + ', so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.'
                     : 'The panic state needs a negative return and volatility above ' + pc(m.vol_threshold) + ', so Momentum&rsquo;s weight is unchanged.');
         }}
-        const toc = body.querySelector('.method-toc');
         const p = document.createElement('p');
         p.className = 'method-run-note';
         p.innerHTML = h;
-        body.insertBefore(p, toc ? toc.nextSibling : body.firstChild);
+        // Beside the paragraph that states the rule, so a reader meets the rule before this run's
+        // reading of it. It used to open the document, above the Overview (club readiness,
+        // 2026-10-19). If that paragraph is not found, it goes after the Overview.
+        const rule = [...body.querySelectorAll('p')].find(el => /^Momentum regime rule/.test(el.textContent.trim()));
+        const heads = body.querySelectorAll('h2');
+        const toc = body.querySelector('.method-toc');
+        if (rule) rule.after(p);
+        else if (heads.length > 1) heads[1].before(p);
+        else body.insertBefore(p, toc ? toc.nextSibling : body.firstChild);
     }}
 
     function goToMethod(id) {{

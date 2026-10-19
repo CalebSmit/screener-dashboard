@@ -4106,7 +4106,7 @@
 <hr />
 <h2>Overview</h2>
 <p>The screener scores every company in the S&amp;P 500 (about 500 stocks) on up to 31 financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.</p>
-<p>No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones, so each stock is scored on about 27. The full metric registry (<code>METRIC_COLS</code>) has 46 entries: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.</p>
+<p>No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones, so each stock is scored on about 27. In all the screener computes 46 metrics: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.</p>
 <p>No single number describes a company well: a low price can reflect a declining business or high risk. Scoring valuation, quality, growth, momentum, risk, revisions, size, investment separately favours companies that are strong on several of them at once.</p>
 <hr />
 <h2>Data sources</h2>
@@ -9148,11 +9148,18 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                     ? 'The return is negative and volatility is above ' + pc(m.vol_threshold) + ', so the market is in the panic state and Momentum&rsquo;s weight is cut for this run.'
                     : 'The panic state needs a negative return and volatility above ' + pc(m.vol_threshold) + ', so Momentum&rsquo;s weight is unchanged.');
         }
-        const toc = body.querySelector('.method-toc');
         const p = document.createElement('p');
         p.className = 'method-run-note';
         p.innerHTML = h;
-        body.insertBefore(p, toc ? toc.nextSibling : body.firstChild);
+        // Beside the paragraph that states the rule, so a reader meets the rule before this run's
+        // reading of it. It used to open the document, above the Overview (club readiness,
+        // 2026-10-19). If that paragraph is not found, it goes after the Overview.
+        const rule = [...body.querySelectorAll('p')].find(el => /^Momentum regime rule/.test(el.textContent.trim()));
+        const heads = body.querySelectorAll('h2');
+        const toc = body.querySelector('.method-toc');
+        if (rule) rule.after(p);
+        else if (heads.length > 1) heads[1].before(p);
+        else body.insertBefore(p, toc ? toc.nextSibling : body.firstChild);
     }
 
     function goToMethod(id) {
