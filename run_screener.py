@@ -353,6 +353,42 @@ def build_screener_overview(cfg: dict) -> str:
         if cov_disc.get("enabled", False) else ""
     )
 
+    # 2026-10-19 claims audit (research/2026-10-19-methodology-claims-audit.md): every figure
+    # below is read from the code that applies it, so the page cannot restate a rule the engine
+    # does not run. Each is a registered claim in claims.py.
+    from factor_engine import (ROIC_EXCESS_CASH_CAP, ROIC_IC_FLOOR_SHARE, ROIC_OPERATING_CASH_SHARE,
+                               coverage_minimum, factor_scores_cache_max_age_days)
+    from portfolio_constructor import DASHBOARD_TOP_N, DATA_VALIDATION_TOP_N
+    _roic_op = _pts(ROIC_OPERATING_CASH_SHARE * 100)
+    _roic_cap = _pts(ROIC_EXCESS_CASH_CAP * 100)
+    _roic_floor = _pts(ROIC_IC_FLOOR_SHARE * 100)
+    _qual_desc = {**_QUAL_DESCRIPTIONS, "roic": (
+        "Return on Invested Capital — NOPAT divided by invested capital (equity + debt - excess "
+        f"cash). Excess cash is cash beyond {_roic_op}% of revenue, but never more than {_roic_cap}% "
+        f"of the cash, and invested capital is floored at {_roic_floor}% of total assets. Tax rate: "
+        "actual effective rate (clamped 0-50%) when pretax income is positive; 0% for tax-loss "
+        "positions (negative pretax); 21% default when data is missing. Higher = better use of capital.")}
+    _cache_days = factor_scores_cache_max_age_days(cfg.get("caching", {}))
+    _cache_span = ("only on the day it was written" if _cache_days == 1 else
+                   f"for {_cache_days} calendar days, counting the day it was written")
+    _min_cov_pct = dq.get("min_data_coverage_pct", 60)
+    _n_gen, _n_bank = len(_w_gen), len(_w_bank)
+    _n_fin = _n_gen - 1  # a financial on the generic table is never given the Beneish score
+    _bars = {n: coverage_minimum(n, _min_cov_pct) for n in (_n_gen, _n_bank, _n_fin)}
+
+    def _cov_pct(k: int, n: int) -> str:
+        return f"{k / n * 100:.1f}"
+
+    _thr_frac = cov_disc.get("threshold", 0.80)
+    _rate_frac = cov_disc.get("penalty_rate", 0.15)
+    # A worked example at a coverage a ranked stock can actually have (the old one, 56%, was
+    # below the coverage filter's bar), and the deepest cut the filter leaves possible.
+    _ex_k = next((k for k in range(_n_gen, 0, -1) if k / _n_gen < _thr_frac - 0.05), _bars[_n_gen])
+    _ex_disc = (_thr_frac - _ex_k / _n_gen) * _rate_frac * 100
+    _floor_n = min(_bars, key=lambda n: _bars[n] / n)
+    _max_disc = max(0.0, (_thr_frac - _bars[_floor_n] / _floor_n) * _rate_frac * 100)
+    _retry_cooldown = fetch.get("retry_cooldown", 30)
+
     # Helper to format metric weight tables
     def _metric_table(weights: dict, descriptions: dict) -> str:
         rows = []
@@ -468,7 +504,7 @@ def build_screener_overview(cfg: dict) -> str:
 
 The Piotroski F-Score is a broad checklist of financial health signals — but its predictive power varies depending on how expensive a stock is. For cheap stocks (high valuation score), the F-Score is highly predictive: it separates genuinely undervalued companies from deteriorating ones. For expensive stocks (low valuation score), the F-Score is less informative because the market has already priced in quality.
 
-When enabled (current: **on**), the screener reduces the Piotroski F-Score weight by {reduction_pct}% for non-bank stocks with a valuation score below {threshold} (i.e., the more expensive half of the universe). {pio_split}
+When enabled (current: **on**), the screener reduces the Piotroski F-Score weight by {reduction_pct}% for non-bank stocks with a valuation score below {threshold} – roughly the more expensive half of non-bank stocks, each judged against its own sector, since the valuation score is built from sector percentiles. {pio_split}
 
 Bank-like stocks are unaffected — their quality weights are already tailored.
 
@@ -540,7 +576,7 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 
 The screener scores every company in the S&P 500 (about 500 stocks) on up to {n_total} financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.
 
-No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones, so each stock is scored on about {n_generic}. In all the screener computes {n_registry} metrics: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
+No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones in place of the general metrics that do not fit them, so a bank-like stock is scored on {_n_bank}, and a financial company outside the bank set on {_n_fin} (it is never given the Beneish score). In all the screener computes {n_registry} metrics: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
 
 No single number describes a company well: a low price can reflect a declining business or high risk. Scoring {', '.join(factor_labels[f] for f in active_factors).lower()} separately favours companies that are strong on several of them at once.
 
@@ -550,14 +586,14 @@ No single number describes a company well: a low price can reflect a declining b
 
 All data is pulled from **Yahoo Finance** via the `yfinance` Python library. For each stock, the screener fetches:
 
-- **Financial statements** — income statement, balance sheet, and cash flow statement (annual + prior year for trend comparisons)
+- **Financial statements** — income statement, balance sheet, and cash flow statement, quarterly and annual (the last four quarters for twelve-month figures, the latest balance sheet, and earlier periods for year-on-year and three-year comparisons)
 - **Price history** — 13 months of daily closing prices and volume (calendar-based lookbacks for momentum, volatility, and liquidity)
 - **Summary statistics** — market cap, enterprise value, P/E ratios, EPS estimates, analyst price targets, number of covering analysts
 - **Earnings history** — last 4 quarters of actual vs. estimated EPS (for earnings surprise calculations)
 
 The S&P 500 member list is pulled primarily from a **GitHub-hosted CSV** (`datasets/s-and-p-500-companies`), with Wikipedia as a secondary fallback and a local backup (`sp500_tickers.json`) as a last resort. The local JSON is auto-updated whenever a network source succeeds.
 
-Data is fetched in batches of {batch_size} tickers with {max_workers} concurrent threads per batch and a {inter_batch_delay}-second inter-batch delay to manage Yahoo Finance rate limits. Failed tickers are automatically retried in a second pass with conservative settings (single-threaded, 30-second cooldown).
+Data is fetched in batches of {batch_size} tickers with {max_workers} concurrent threads per batch and a {inter_batch_delay}-second inter-batch delay to manage Yahoo Finance rate limits. Failed tickers are automatically retried in a second pass with conservative settings (single-threaded, after a {_retry_cooldown}-second cooldown).
 
 ---
 
@@ -597,15 +633,15 @@ Every stock is scored in {n_factors} categories, each measuring a different aspe
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-{_metric_table(qual_w, _QUAL_DESCRIPTIONS)}
+{_metric_table(qual_w, _qual_desc)}
 
 **Bank-like stocks:**
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
-{_metric_table(qual_bank_w, _QUAL_DESCRIPTIONS)}
+{_metric_table(qual_bank_w, _qual_desc)}
 
-**Rationale.** A cheap stock is only a good investment if the underlying business is sound. ROIC is the single best measure of business quality — the ROIC formula deducts only *excess* cash (cash beyond 2% of revenue) from invested capital, preventing cash-rich companies like AAPL or GOOG from showing artificially inflated returns. For banks, ROIC is meaningless (invested capital = deposits + equity), so ROE and ROA replace it. The Piotroski F-Score catches deteriorating businesses by checking 9 binary signals about whether profitability, leverage, and efficiency are improving or declining. Accruals catch companies whose reported earnings aren't backed by real cash.
+**Rationale.** A cheap stock is only a good investment if the underlying business is sound. ROIC is the single best measure of business quality — the ROIC formula deducts only *excess* cash from invested capital – cash beyond {_roic_op}% of revenue, never more than {_roic_cap}% of the cash – and floors invested capital at {_roic_floor}% of total assets, preventing cash-rich companies like AAPL or GOOG from showing artificially inflated returns. For banks, ROIC is meaningless (invested capital = deposits + equity), so ROE and ROA replace it. The Piotroski F-Score catches deteriorating businesses by checking 9 binary signals about whether profitability, leverage, and efficiency are improving or declining. Accruals catch companies whose reported earnings aren't backed by real cash.
 
 ---
 
@@ -687,7 +723,7 @@ This category is weighted at only {fw.get('revisions', 0)}% of the composite bec
 
 **What the log does, and what it does not do.** The metric is stored as `-log(marketCap)`, but no stock's score depends on the log. Every metric here is converted to a **sector percentile rank** (see "How scoring works" below), and a rank is unchanged by any transformation that preserves order. Measured on the live universe, `rank(-log mcap)`, `rank(-mcap)` and `rank(-sqrt mcap)` are identical to ten decimal places. The log makes the stored number easier to read; it does not compress the tilt.
 
-**So how strong is the tilt?** Stronger than the metric's name suggests, which is worth stating plainly. Because the score is linear in rank, ordinary market-cap gaps become large score gaps: on the current universe CAT ($364B) scores 1 and UAL ($35B) scores 59, so a 10x cap ratio becomes a 57-point gap. For comparison, MSCI's Low Size indexes weight holdings in proportion to 1/ln(mcap), which across this same universe turns a **798x** spread in market cap into a **1.295x** spread in weight. This screener runs an equal-weight-style size tilt, not a log-compressed one. That is a defensible design - it is close to the bet the S&P 500 Equal Weight index makes - but it is a *stronger* bet than the name implies, and holding it to 5% of the composite is what keeps it proportionate.
+**So how strong is the tilt?** Stronger than the metric's name suggests, which is worth stating plainly. Because the score is linear in rank, ordinary market-cap gaps become large score gaps: on the 2026-09-03 universe CAT ($364B) scored 1 and UAL ($35B) scored 59, so a 10x cap ratio became a 57-point gap. For comparison, MSCI's Low Size indexes weight holdings in proportion to 1/ln(mcap), which across that universe turns a **798x** spread in market cap into a **1.295x** spread in weight. This screener runs an equal-weight-style size tilt, not a log-compressed one. That is a defensible design - it is close to the bet the S&P 500 Equal Weight index makes - but it is a *stronger* bet than the name implies, and holding it to 5% of the composite is what keeps it proportionate.
 
 **Known weakness.** No published study establishes a size premium *within* the largest two market-cap deciles, which is the entire S&P 500. Applying SMB here extrapolates from research run on much broader universes, and the payoff is regime-dependent: S&P 500 Equal Weight has returned roughly +63 bps/yr since 1990 but trailed cap weighting by about 32% over 2023-2025. Measured on public data in the [Factor Lab](https://calebsmit.github.io/screener-dashboard/lab.html#size-effect), the ninth size decile has out-earned the tenth by about 0.1% a month over the past century - the same sign in every period checked, and distinguishable from zero only over the full hundred years. That is a small, weak tilt, not a premium to lean on. Detail and citations: `research/2026-08-31-size-factor-in-a-large-cap-universe.md`.
 
@@ -703,7 +739,7 @@ This category is weighted at only {fw.get('revisions', 0)}% of the composite bec
 
 **Why this?** The Fama-French CMA (Conservative Minus Aggressive) factor captures the historical tendency for companies that invest conservatively to outperform those that aggressively expand their asset base. High asset growth often signals empire-building, dilutive acquisitions, or capex that won't generate adequate returns. The screener rewards companies that grow efficiently rather than just growing big.
 
-When coverage drops below 30% (e.g., many stocks lack prior-year asset data), the Investment category is automatically disabled and its weight redistributes to the other categories.
+When coverage drops below {CATEGORY_AUTO_DISABLE_PCT}% (e.g., many stocks lack prior-year asset data), the Investment category is automatically disabled and its weight redistributes to the other categories.
 
 ---
 
@@ -713,7 +749,7 @@ Traditional financial metrics like EV/EBITDA, ROIC, and Debt/Equity are meaningl
 
 The screener decides by **GICS sub-industry** (since 2026-10-09), from the S&P 500 list itself:
 
-1. **Bank set** — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life & Health / Multi-line / Property & Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire) and Investment Banking & Brokerage: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.
+1. **Bank set** — Diversified and Regional Banks, Consumer Finance, Mortgage Finance, Life & Health / Multi-line / Property & Casualty Insurance, Reinsurance, Multi-Sector Holdings (Berkshire), Investment Banking & Brokerage and Diversified Capital Markets: businesses whose liabilities — deposits, insurance float, customer funds — are an operating input.
 2. **Generic set** — Insurance Brokers, Asset Management, Financial Exchanges & Data, and Payment Processing: fee businesses with conventional profit and loss statements, valued in practice on EV/EBITDA and P/E.
 3. **Named exceptions** inside Asset Management & Custody Banks use the bank set, each for a stated reason: the custody banks BNY, State Street and Northern Trust (they take deposits), Apollo and KKR (they consolidate the insurers Athene and Global Atlantic) and Ameriprise (it owns a bank and a life insurer).
 
@@ -732,7 +768,7 @@ The scoring pipeline has six steps:
 ### Step 1: Collect the raw data
 For each of the ~500 stocks, the screener pulls quarterly financial statements, price data, earnings history, and analyst estimates from Yahoo Finance. Flow metrics (income statement and cash flow) use **LTM** (Last Twelve Months = sum of 4 most recent quarters); balance sheet items use **MRQ** (Most Recent Quarter). Falls back to annual filings if quarterly data is unavailable. Enterprise Value is cross-validated against computed MC + Debt - Cash; discrepancies > 10% (25% for Financials) trigger automatic correction.
 
-Several inputs arrive from **two places** — Yahoo's summary fields and the filed statements — and the screener prefers one but uses the other when the first is missing: total debt and cash for Enterprise Value prefer the summary figure (it matches Yahoo's own EV definition), while invested capital for ROIC prefers the balance sheet (so equity, debt and cash come from one filing). Since 2026-09-25 those fallbacks actually fire; before that a bug meant they never did, and three S&P 500 companies lost a metric on every run despite the data being present. See `METHODOLOGY_CHANGELOG.md` 2026-09-25. Data is cached locally in Parquet format (refreshed daily for prices, weekly for fundamentals) to avoid unnecessary API calls. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
+Several inputs arrive from **two places** — Yahoo's summary fields and the filed statements — and the screener prefers one but uses the other when the first is missing: total debt and cash for Enterprise Value prefer the summary figure (it matches Yahoo's own EV definition), while invested capital for ROIC prefers the balance sheet (so equity, debt and cash come from one filing). Since 2026-09-25 those fallbacks actually fire; before that a bug meant they never did, and three S&P 500 companies lost a metric on every run despite the data being present. See `METHODOLOGY_CHANGELOG.md` 2026-09-25. The fully scored dataset is cached locally in Parquet format and reused {_cache_span} (the price data's refresh interval, because the scores carry price-based metrics), so each new day's run fetches prices and statements afresh. Cache files are config-aware — changing weights or settings automatically invalidates stale caches.
 
 ### Step 2: Flag outliers, without altering them
 Every metric below is scored by its **rank** within its sector, and a rank does not care how far away an outlier is — only that it is last. A company with a Debt/Equity of 50x when everyone else is under 5x ranks worst either way. So the screener does **not** clip extreme values: it records them in the data-quality log (the tails beyond the {out_lo}st and {out_hi}th percentiles) and scores the number it actually fetched.
@@ -796,11 +832,11 @@ The screener includes several layers of data quality protection:
 
 - **Denominator floors:** Analyst surprise uses a $0.10 floor on estimated EPS; forward EPS growth uses a $1.00 floor on trailing EPS. These prevent near-zero denominators from producing extreme ratios.
 - **Output clamping (configurable):** Forward EPS growth is clamped to [{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[0] * 100)}%, +{int(clamps.get('forward_eps_growth', [-0.75, 3.0])[1] * 100)}%]; price target upside is clamped to [{int(clamps.get('price_target_upside', [-0.50, 1.0])[0] * 100)}%, +{int(clamps.get('price_target_upside', [-0.50, 1.0])[1] * 100)}%]. These bounds are configurable in `config.yaml` under `metric_clamps`. They limit the impact of data anomalies (e.g., GAAP vs. normalized EPS mismatches, extreme analyst targets) while still allowing meaningful differentiation among high-growth stocks.
-- **Coverage filter:** Stocks with fewer than {min_coverage}% of the metrics that carry weight in their score available are excluded from the ranking entirely - the same coverage the composite's discount reads.
-- **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is reduced by up to {int(cov_disc.get('penalty_rate', 0.15) * 100)}% per unit of coverage gap (e.g., a stock at 56% coverage gets a ~3.6% discount). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
-- **Auto-disable (category-level):** If fewer than 30% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.
+- **Coverage filter:** A stock is excluded from the ranking entirely when it has values for fewer than {min_coverage}% of the metrics that carry weight in its score, counted in whole metrics and rounded down: it needs {_bars[_n_gen]} of {_n_gen} ({_cov_pct(_bars[_n_gen], _n_gen)}%), {_bars[_n_bank]} of {_n_bank} if it is bank-like ({_cov_pct(_bars[_n_bank], _n_bank)}%), and {_bars[_n_fin]} of {_n_fin} for another financial ({_cov_pct(_bars[_n_fin], _n_fin)}%). This is the same coverage the composite's discount reads.
+- **Coverage discount:** Stocks that pass the coverage filter but still have many missing metrics receive a mild composite discount. Below {int(cov_disc.get('threshold', 0.80) * 100)}% metric coverage, the composite is multiplied by 1 − ({int(cov_disc.get('threshold', 0.80) * 100)}% − coverage) × {int(cov_disc.get('penalty_rate', 0.15) * 100)}% (e.g., a stock with {_ex_k} of {_n_gen} metrics, {_cov_pct(_ex_k, _n_gen)}% coverage, loses {_ex_disc:.2f}% of its composite; the deepest cut the coverage filter leaves possible is {_max_disc:.2f}%, at {_bars[_floor_n]} of {_floor_n}). This prevents stocks with sparse data from ranking artificially high due to weight redistribution concentrating the score on a few favorable metrics. {'**Currently enabled.**' if cov_disc.get('enabled', False) else '**Currently disabled.**'}
+- **Auto-disable (category-level):** If fewer than {CATEGORY_AUTO_DISABLE_PCT}% of the values the Revisions or Investment category's weighted metrics need are present across the universe, the entire category's weight is zeroed and redistributed proportionally to the remaining categories. Metrics at weight 0 are not counted.
 - **Auto-reduce (metric-level):** If any metric that carries weight has more than {auto_reduce_thresh}% NaN across the universe (e.g., a data source outage), its weight is automatically set to zero and redistributed, in proportion, to the other weighted metrics in its category.
-- **Metric-level alerts:** A warning is printed if any metric has more than {alert_thresh}% missing data across the universe.
+- **Metric-level alerts:** A warning is printed, and written to the data-quality log, for any metric that carries weight and is missing for more than {alert_thresh}% of the stocks it applies to (a bank-only metric is counted against banks alone).
 - **LTM / MRQ data freshness:** All flow metrics (revenue, net income, EBITDA, cash flow) use LTM (Last Twelve Months = sum of 4 most recent quarters). Balance sheet items use MRQ (Most Recent Quarter). This reduces data staleness from up to 12 months (annual filings) to ~3 months. Falls back to annual filings if quarterly data is unavailable; prior-year comparisons fall back to annual col=1 when quarterly history is insufficient (< 8 quarters).
 - **Checked against the filings:** each run compares total assets, equity, revenue, net income, operating cash flow and market value with the companies' own SEC filings (`sec_crosscheck.py`), reports the agreement counts in its health check, and calls attention if a field disagrees for dozens of companies at once - the sign of a source changing a field's scale or meaning. A report, not a refusal: it never stops a run.
 - **EV cross-validation:** The API-provided Enterprise Value is cross-checked against computed MC + Debt - Cash. If the discrepancy exceeds 10% (or 25% for Financials, whose "debt" includes customer deposits that legitimately diverge from simple EV math), the computed value is used and the ticker is flagged (`_ev_flag`). This catches known yfinance EV parsing bugs (4x+ discrepancy for some tickers).
@@ -875,25 +911,25 @@ If a sector would exceed its cap, the excess stocks are dropped and replaced by 
 The screener produces an **Excel workbook** (`factor_output.xlsx`) with up to 7 sheets (a ReadMe/Disclaimers sheet leads the workbook):
 
 ### Sheet 1: Factor Scores
-Every stock in the universe with all raw metrics, {n_factors} category scores, the composite score, rank, value trap flag (with severity 0-100), growth trap flag (with severity 0-100), financial sector caveat flag, bank classification, and bank-specific metrics (P/B, ROE, ROA, Equity Ratio) where applicable. Each stock also carries a data provenance tag (`_data_source`), metric coverage count, and an EPS basis mismatch flag. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.
+Every stock in the universe with its {n_factors} category scores, the composite, `Composite_Pct`, a confidence figure and its rank; each category's contribution to the composite in points; the value-trap and growth-trap flags with their severity (0-100); the Beneish flag; the financial-sector caveat; and the bank classification. Raw metric values are not on this sheet: they are in the scored Parquet file below and, for the top {DATA_VALIDATION_TOP_N}, on the DataValidation sheet. Score columns use quartile-based coloring (Q1=red, Q2=yellow, Q3=light green, Q4=green) for at-a-glance assessment.
 
 ### Sheet 2: Screener Dashboard
-The top 50 stocks, formatted for quick review. Includes rank, composite score (quartile-colored), all {n_factors} category scores, and the value trap and growth trap flags with severity scores. Color-coded cells highlight strengths and weaknesses.
+The top {DASHBOARD_TOP_N} stocks by composite, formatted for quick review: rank, sector, composite (quartile-colored), the Valuation, Quality and Momentum scores and the value-trap flag. Below them, a sector summary (average composite, number of stocks, number in the top {DASHBOARD_TOP_N}) and the distribution of composites in ten-point bands.
 
 ### Sheet 3: Model Portfolio
 The final portfolio with ticker, sector, composite score, position weights, and portfolio-level statistics (weighted average beta, dividend yield, sector allocation breakdown).
 
 ### Sheet 4: DataValidation
-The top 10 stocks with raw financial values (market cap, revenue, EPS, etc.) displayed for manual spot-checking. Highlights potential issues including EPS basis mismatches (GAAP vs. normalized), stale data, EV cross-validation discrepancies, LTM partial annualization flags, channel-stuffing flags (receivables rising much faster than revenue over the fiscal year), and beta overlap warnings. Also includes a sector-median context table showing 25th/median/75th percentile for 8 key metrics across each sector.
+The top {DATA_VALIDATION_TOP_N} stocks of the ranking with raw metric values, price and analyst target displayed for manual spot-checking, and their data-quality flags highlighted – see DataValidation Sheet under Defensibility and transparency below. Also includes a sector context table showing 25th/median/75th percentile for 8 key metrics in each of those stocks' sectors.
 
 ### Sheet 5: Weight Sensitivity (when available)
-Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is perturbed ±5%. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
+Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-{SENSITIVITY_TOP_N} ranking when that category's weight is moved {_pts(SENSITIVITY_PERTURBATION_PTS)} percentage points up and down. Jaccard similarity measures how stable the ranking is — higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (<0.70).
 
 ### Sheet 6: Factor Correlation (when available)
-Spearman rank correlation matrix of all {n_factors} category scores across the universe. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate factor overlap. Useful for understanding effective independent factor count.
+Spearman rank correlation matrix of the sector-relative percentiles of every metric in the registry, across the universe – metric against metric, not category against category. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate overlapping metrics. Useful for understanding the effective number of independent signals.
 
 Additional outputs:
-- **Parquet cache** (`cache/factor_scores_<hash>_<date>.parquet`) — full scored dataset for programmatic access, tagged with a config hash for reproducibility.
+- **Parquet cache** (`cache/factor_scores_<hash>_<date>.parquet`) — the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.
 - **Data quality log** (`validation/data_quality_log.csv`) — every data issue encountered during the run.
 - **Run artifacts** (`runs/<run_id>/`) — raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via `RunContext`.
 
@@ -937,16 +973,16 @@ Every screener run is assigned a unique run ID and tracked via `RunContext`. Thi
 The screener includes several features designed to make its outputs auditable and defensible:
 
 ### Weight sensitivity
-After scoring, the pipeline perturbs each factor category weight by ±5% (one at a time) and measures how much the top-20 ranking changes using **Jaccard similarity** (intersection / union of the two top-20 sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.
+After scoring, the pipeline moves each factor category weight up and down by {_pts(SENSITIVITY_PERTURBATION_PTS)} percentage points, one category at a time, with the other categories rescaled in proportion so the weights still sum to 100 – Size's {fw.get('size', 0)}% is tried at {_pts(max(fw.get('size', 0) - SENSITIVITY_PERTURBATION_PTS, 0))}% and {_pts(fw.get('size', 0) + SENSITIVITY_PERTURBATION_PTS)}% – and measures how much the top-{SENSITIVITY_TOP_N} ranking changes using **Jaccard similarity** (intersection / union of the two top-{SENSITIVITY_TOP_N} sets). A Jaccard of 1.0 means the ranking is completely unchanged; below 0.70 suggests the ranking is sensitive to that factor's weight. Results are printed to the console and saved in the Weight Sensitivity Excel sheet. This lets you verify that small weight changes don't drastically alter the output — a key requirement for any defensible quantitative process.
 
 ### EPS basis mismatches
-Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of forward-to-trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with `_eps_basis_mismatch = True`. This alerts users that the forward EPS growth and PEG ratio metrics may be distorted by a GAAP/non-GAAP mismatch rather than a genuine change in earnings expectations. Flagged stocks appear highlighted in the DataValidation sheet.
+Yahoo Finance provides GAAP trailing EPS but normalized (non-GAAP) forward consensus EPS. When the ratio of Yahoo's forward EPS to its trailing EPS exceeds 2.0× or falls below 0.3× (and trailing EPS is above $0.10), the stock is flagged with `_eps_basis_mismatch = True`. Since 2026-10-09 the scored Forward EPS Growth does not use that pair – it sets the next twelve months' consensus against the last four quarters reported on the same basis – so for most flagged stocks the flag is a warning about the PEG ratio (shown, not scored), not about the growth score. Only where the consensus inputs are missing does the growth metric fall back to forward over trailing EPS, and there an extreme ratio sets it to NaN (Limitation 2). Flagged stocks appear highlighted in the DataValidation sheet.
 
 ### Factor correlation
-A Spearman rank correlation matrix of all category scores is computed and written to the Factor Correlation Excel sheet. This makes explicit the degree of overlap between factors — for example, Momentum's two sub-metrics (12-1M and 6-1M return) share ~6 months of overlap, and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.
+A Spearman rank correlation matrix of every metric's sector-relative percentile is computed and written to the Factor Correlation Excel sheet, and pairs above the configured alert level are printed in the run summary. This makes explicit the degree of overlap between metrics — for example, the 6-1 month return's window lies entirely inside the 12-1 month return's (they share five months), and EV-based valuation metrics are structurally correlated. Correlations above 0.6 are highlighted orange; above 0.8 are highlighted red. This transparency allows users to assess the effective number of independent signals.
 
 ### Data provenance
-Every stock carries three provenance fields: `_data_source` (where the data came from — e.g., "yfinance", "cache", "sample"), `_metric_count` (how many of the metrics that apply to that stock have a value), and `_metric_total` (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.
+Every stock carries three provenance fields: `_data_source` (`quarterly` when the twelve-month flows were built from quarterly statements, `annual` when the quarterly income statement was empty and the latest annual one was used instead), `_metric_count` (how many of the metrics that apply to that stock have a value), and `_metric_total` (how many apply to it: fewer for a bank than for a non-bank). This makes per-stock data completeness visible at a glance, and it is the same count the composite's coverage discount reads. The drilldown also states the date of the balance sheet, income statement and cash-flow statement each figure comes from.
 
 ### The workings behind every score
 Open any stock and **The workings** section rebuilds its score from the bottom. For each category it lists every metric with a weight: the raw value, the sector percentile it earned, the weight it actually carried for *this* stock (bank weighting, the Piotroski conditional adjustment, and rescaling when a metric has no data all change it), and the points it contributed. The points add up to the category score, the category points add up to the composite, and a coverage discount, where one applies, is shown as its own line. Each metric row opens to its formula, the reported figures behind it (market cap, EBIT, cash flow, prices, and so on), who it was ranked against and where it placed, and a plain note wherever the code does something its name would not suggest.
@@ -954,7 +990,7 @@ Open any stock and **The workings** section rebuilds its score from the bottom. 
 The page does not ask to be taken on trust. The data run rebuilds every category score and composite from the published weights before it will publish, and refuses to publish a day on which any stock fails to reproduce; `scripts/audit_stock.py` repeats the whole calculation for any stock with code that shares nothing with the scoring engine, reading only the published data file. Since 2026-10-14 it also checks the underlying figures against the companies' own SEC filings: total assets, equity, revenue, net income and operating cash flow are rebuilt from each company's XBRL filing for the same quarters, and every stock's Data Provenance panel says which agree within 2%. Measured that day, total assets agreed within 0.5% for 99.8% of the companies compared, operating cash flow for 98.8% and net income for 94.3%; the larger differences examined were definitions (a bank's revenue, profit belonging to minority shareholders, sales taxes), not wrong numbers (`research/2026-10-14-yahoo-vs-sec.md`). What it still cannot check is a figure with no counterpart in a filing - prices and analysts' estimates - and those are as delivered by Yahoo Finance.
 
 ### DataValidation Sheet
-The top 10 portfolio stocks are displayed with raw financial values (market cap, revenue, net income, EPS, price) for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights six types of potential issues: EPS basis mismatches, stale data (price targets that may be outdated), EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (Beneish's receivables index at 1.465 or more), and beta overlap warnings (<80% date overlap with market). A sector-median context table shows 25th/median/75th percentile for 8 key metrics across each sector, enabling quick sanity checks.
+The top {DATA_VALIDATION_TOP_N} stocks of the ranking (not the portfolio's holdings) are displayed with their metric coverage count, raw values of twelve headline metrics (EV/EBITDA, FCF yield, earnings yield, ROIC, debt/equity, forward EPS growth, revenue growth, 12-1 month return, volatility, beta, analyst surprise, short interest), price, mean analyst target and number of analysts, for manual spot-checking against external sources (e.g., Bloomberg, SEC filings). The sheet highlights seven types of potential issue: EPS basis mismatches, financial statements older than {dq.get('stale_data_threshold_days', 120)} days, EV cross-validation discrepancies, LTM partial annualization (3-of-4 quarters extrapolated to LTM), channel-stuffing flags (Beneish's receivables index at 1.465 or more), the Beneish M-score flag, and ROIC invested capital held at its floor; each stock's beta overlap with the market is shown beside them. A sector context table shows 25th/median/75th percentile for 8 key metrics in each of those stocks' sectors, enabling quick sanity checks.
 
 ---
 
@@ -968,7 +1004,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 | **Valuation + Quality as the two largest categories** ({fw.get('valuation',0)}% each) | These are the two most robust factors in academic literature. Growth and Momentum get {fw.get('growth',0)}% each — they're powerful but noisier. Size and Investment get {fw.get('size',0)}% each as supplementary signals. |
 | **FCF Yield as the top valuation metric** ({val_w.get('fcf_yield',0)}% weight) | Cash flow is harder to manipulate than earnings. FCF Yield is the purest measure of how much cash a business generates per dollar of value. |
 | **Bank-specific metric weights** | EV/EBITDA, ROIC, and D/E are meaningless for banks. P/B, ROE, ROA, and Equity Ratio are the standard bank analysis toolkit. |
-| **ROIC excess cash deduction** (cash - 2% revenue) | Deducting ALL cash inflates ROIC for cash-rich companies (e.g. AAPL, GOOG). Keeping 2% of revenue as operating cash provides a more accurate invested capital base. |
+| **ROIC excess cash deduction** (cash beyond {_roic_op}% of revenue, at most {_roic_cap}% of cash) | Deducting ALL cash inflates ROIC for cash-rich companies (e.g. AAPL, GOOG). Keeping {_roic_op}% of revenue as operating cash provides a more accurate invested capital base; capping the deduction at {_roic_cap}% of cash and flooring invested capital at {_roic_floor}% of total assets stops the denominator collapsing toward zero for the most cash-rich. |
 | **ROIC tax-loss handling** (0% tax rate when pretax < 0) | Companies with negative pretax income are in a tax-loss position and would not pay tax. Using the statutory 21% rate would create a fictional tax charge that understates NOPAT. |
 | **EV cross-validation** (API vs MC+Debt-Cash) | yfinance has known EV parsing bugs (4x+ discrepancy for some tickers). When the API-provided EV differs from the computed value by more than 10% (25% for Financials), the computed value is used and the discrepancy is flagged. Financials use a wider tolerance because their "debt" includes deposits and other liabilities that structurally diverge from simple EV math. |
 | **Momentum skip-month** (12-1 and 6-1, not 12-0) | The most recent month's return tends to reverse. Skipping it improves signal quality (standard in academic momentum literature). |
@@ -994,7 +1030,7 @@ The top 10 portfolio stocks are displayed with raw financial values (market cap,
 
    **Fetch reliability, measured:** the 18 scheduled runs from 2026-09-02 to 2026-09-25 report **0 fetch failures across 9,036 ticker-fetches**. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; *corrected 2026-09-25*. Rate limiting remains possible on a free API, which is why a run that fetches badly is **discarded before publication** rather than shipped: `scripts/check_run_health.py` refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median. A number on this site has passed that gate.
 
-2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. As of the 2026-07 review, when the forward/trailing EPS ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
+2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. Since 2026-10-09 Forward EPS Growth avoids the mix: it sets the next twelve months' consensus against the last four quarters' actual EPS as the same analysts report it, and gives no growth rate at all when those four quarters sum to a loss. Where those inputs are missing it falls back to Yahoo's forward EPS over GAAP trailing EPS, and there, when the ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
 3. **Point-in-time:** The screener scores the latest available financial data. A backtest that applies today's figures to past dates has look-ahead bias, and for this screener it is large: *measured 2026-10-15*, scoring each month of 2020-2026 on the filings as they then stood, rather than as they stand today, puts **72.5% of stock-months in a different tenth** of the ranking. A research rebuild that reads each month's filings as they were filed now exists (`pit_record.py`, `backtest_v2.py`; `research/2026-10-15-pit-record-validation.md`). It does not set any weight on this page, and nothing it produces will before 2027-02-11.{_research_engine_sentence()}
 
@@ -1047,9 +1083,9 @@ It does this in seven steps:
 1. Pull financial data for about 500 stocks from Yahoo Finance.
 2. Compute up to {n_total} metrics across {n_factors} categories ({n_generic} general and {n_bank_only} bank-specific, by company type).
 3. Rank each metric within its sector, so a bank is compared with banks.
-4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for financial companies and conditional Piotroski weighting.
+4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.
 5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
-6. Apply a liquidity filter.
+6. For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).
 7. Report how stable the ranking is when the weights shift.
 
 Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.
@@ -1655,11 +1691,12 @@ def run_factor_engine(cfg, args, ctx=None):
         # carry weight in the table this stock is scored with (factor_engine.applicable_coverage,
         # since 2026-10-09). Until then it counted every registered metric, so a stock could be
         # dropped from the universe for missing candidates that never enter a score.
-        from factor_engine import applicable_coverage
+        from factor_engine import applicable_coverage, coverage_minimum
         metric_count, applicable_count = applicable_coverage(df, cfg)
-        coverage_pct = cfg["data_quality"]["min_data_coverage_pct"] / 100
+        _min_cov_pct = cfg["data_quality"]["min_data_coverage_pct"]
         df["_mc"] = metric_count
-        min_needed = (applicable_count * coverage_pct).apply(lambda x: max(1, int(x)))
+        # One function for the filter and the methodology page (claim overview.coverage_filter).
+        min_needed = applicable_count.apply(lambda x: coverage_minimum(x, _min_cov_pct))
         low = df["_mc"] < min_needed
         for t in df.loc[low, "Ticker"]:
             dq_log(t, "missing_metric", "Medium",
@@ -1713,47 +1750,28 @@ def run_factor_engine(cfg, args, ctx=None):
     # Coverage over the Revisions metrics that carry weight (weighted_coverage_pct). Until
     # 2026-10-16 a hard-coded list counted the weight-0 earnings_acceleration and left out
     # fy1_revision_3m, the category's heaviest metric.
-    rev_pct = weighted_coverage_pct(df, cfg, "revisions")
-    rev_disabled = False
-
-    if rev_pct < 30:
-        print(f"\n!! Revisions coverage {rev_pct:.1f}% < 30%; auto-disabling")
-        # Deep copy to avoid mutating the original config dict
-        cfg["factor_weights"] = copy.deepcopy(cfg["factor_weights"])
-        old_w = cfg["factor_weights"]["revisions"]
-        cfg["factor_weights"]["revisions"] = 0
-        others = [k for k in cfg["factor_weights"] if k != "revisions"]
-        s = sum(cfg["factor_weights"][k] for k in others)
-        if s > 0:
-            for k in others:
-                cfg["factor_weights"][k] += old_w * cfg["factor_weights"][k] / s
-            for k in cfg["factor_weights"]:
-                cfg["factor_weights"][k] = round(cfg["factor_weights"][k], 2)
-        rev_disabled = True
-        pipeline_log.warning("Revisions auto-disabled: %.1f%% coverage < 30%%", rev_pct)
+    # (Extracted into auto_disable_sparse_category 2026-10-19 so the methodology page's
+    # threshold and the rule it describes are one thing - claim overview.auto_disable.)
+    rev_disabled, rev_pct = auto_disable_sparse_category(df, cfg, "revisions")
+    if rev_disabled:
+        print(f"\n!! Revisions coverage {rev_pct:.1f}% < {CATEGORY_AUTO_DISABLE_PCT}%; auto-disabled")
+        pipeline_log.warning("Revisions auto-disabled: %.1f%% coverage < %d%%",
+                             rev_pct, CATEGORY_AUTO_DISABLE_PCT)
 
     stats["rev_disabled"] = rev_disabled
 
     # ---- Investment auto-disable (mirror revisions logic) ----
-    inv_pct = weighted_coverage_pct(df, cfg, "investment")
-    inv_disabled = False
-
-    if inv_pct < 30:
-        print(f"\n!! Investment coverage {inv_pct:.1f}% < 30%; auto-disabling")
-        cfg["factor_weights"] = copy.deepcopy(cfg["factor_weights"])
-        old_w = cfg["factor_weights"].get("investment", 0)
-        cfg["factor_weights"]["investment"] = 0
-        others = [k for k in cfg["factor_weights"] if k != "investment"]
-        s = sum(cfg["factor_weights"][k] for k in others)
-        if s > 0:
-            for k in others:
-                cfg["factor_weights"][k] += old_w * cfg["factor_weights"][k] / s
-            for k in cfg["factor_weights"]:
-                cfg["factor_weights"][k] = round(cfg["factor_weights"][k], 2)
-        inv_disabled = True
-        pipeline_log.warning("Investment auto-disabled: %.1f%% coverage < 30%%", inv_pct)
+    inv_disabled, inv_pct = auto_disable_sparse_category(df, cfg, "investment")
+    if inv_disabled:
+        print(f"\n!! Investment coverage {inv_pct:.1f}% < {CATEGORY_AUTO_DISABLE_PCT}%; auto-disabled")
+        pipeline_log.warning("Investment auto-disabled: %.1f%% coverage < %d%%",
+                             inv_pct, CATEGORY_AUTO_DISABLE_PCT)
 
     stats["inv_disabled"] = inv_disabled
+
+    # The metric-level drift alert's list is fixed here, before the auto-reduce below can
+    # zero a weight: a metric reduced for being mostly missing is exactly one to alert on.
+    _alert_metrics = drift_alert_metrics(cfg)
 
     # ---- Auto-reduce high-NaN metrics ----
     _auto_reduce_high_nan_metrics(df, cfg, pipeline_log=pipeline_log)
@@ -1848,26 +1866,11 @@ def run_factor_engine(cfg, args, ctx=None):
     stats["scored"] = len(df)
 
     # ---- Missing data stats ----
-    labels = [
-        ("EV/EBITDA", "ev_ebitda"), ("FCF Yield", "fcf_yield"),
-        ("Earnings Yield", "earnings_yield"), ("EV/Sales", "ev_sales"),
-        ("P/B Ratio (bank)", "pb_ratio"),
-        ("ROIC", "roic"), ("Gross Profit/Assets", "gross_profit_assets"),
-        ("Debt/Equity", "debt_equity"), ("Piotroski F-Score", "piotroski_f_score"),
-        ("Accruals", "accruals"),
-        ("ROE (bank)", "roe"), ("ROA (bank)", "roa"),
-        ("Equity Ratio (bank)", "equity_ratio"),
-        ("Forward EPS Growth", "forward_eps_growth"),
-        ("Revenue Growth", "revenue_growth"), ("Sustainable Growth", "sustainable_growth"),
-        ("12-1 Month Return", "return_12_1"), ("6-Month Return", "return_6m"),
-        ("Volatility", "volatility"), ("Beta", "beta"),
-        ("Analyst Surprise", "analyst_surprise"),
-        ("Price Target Upside", "price_target_upside"),
-        ("Earnings Acceleration", "earnings_acceleration"),
-        ("Beat Score", "consecutive_beat_streak"),
-        ("Log Market Cap (size)", "size_log_mcap"),
-        ("Asset Growth", "asset_growth"),
-    ]
+    # Every metric that carries weight (drift_alert_metrics). Until 2026-10-19 this was a
+    # hard-coded list of 26 that left out eight weighted metrics - FY1 EPS Revision, the
+    # Revisions category's heaviest, among them - while the methodology page said the alert
+    # covered "any metric" (research/2026-10-19-methodology-claims-audit.md).
+    labels = _alert_metrics
     # Recomputed here rather than reusing the `is_bank` from the coverage
     # filter above: `df` has been through several row-filtering and
     # reassignment steps since then, and a stale mask risks index misalignment.
@@ -1967,7 +1970,8 @@ def run_factor_engine(cfg, args, ctx=None):
 
     # ---- Weight sensitivity analysis ----
     print("Running weight sensitivity analysis...")
-    sens_df = run_weight_sensitivity(df, cfg, perturbation_pct=5.0, top_n=20)
+    sens_df = run_weight_sensitivity(df, cfg, perturbation_pct=SENSITIVITY_PERTURBATION_PTS,
+                                     top_n=SENSITIVITY_TOP_N)
     if not sens_df.empty:
         avg_jaccard = sens_df["jaccard_similarity"].mean()
         min_jaccard = sens_df["jaccard_similarity"].min()
@@ -2169,6 +2173,57 @@ def weighted_coverage_pct(df: pd.DataFrame, cfg: dict, cat: str) -> float:
         return 0.0
     avail = sum(int(df[m].notna().sum()) for m in ms if m in df.columns)
     return avail / total * 100
+
+
+# A category whose weighted metrics hold fewer than this share of their values across the
+# universe is switched off for the run and its weight shared out (Revisions and Investment).
+CATEGORY_AUTO_DISABLE_PCT = 30
+
+
+def auto_disable_sparse_category(df: pd.DataFrame, cfg: dict, cat: str,
+                                 threshold: float = CATEGORY_AUTO_DISABLE_PCT) -> tuple[bool, float]:
+    """Zero ``cat``'s category weight when its weighted metrics are too sparse to score.
+
+    Coverage is ``weighted_coverage_pct`` - the share of (stock, weighted metric) cells in the
+    category that hold a value. Below ``threshold`` the category's weight is set to 0 and shared
+    among the other categories in proportion to their weights, on a copy of
+    ``cfg["factor_weights"]`` written back to ``cfg`` (the caller reads the new weights from it).
+    Returns ``(disabled, coverage_pct)``. Claim ``overview.auto_disable``.
+    """
+    pct = weighted_coverage_pct(df, cfg, cat)
+    if pct >= threshold:
+        return False, pct
+    fw = copy.deepcopy(cfg["factor_weights"])
+    old_w = fw.get(cat, 0)
+    fw[cat] = 0
+    others = [k for k in fw if k != cat]
+    s = sum(fw[k] for k in others)
+    if s > 0:
+        for k in others:
+            fw[k] += old_w * fw[k] / s
+        for k in fw:
+            fw[k] = round(fw[k], 2)
+    cfg["factor_weights"] = fw
+    return True, pct
+
+
+def drift_alert_metrics(cfg: dict) -> list:
+    """``[(label, metric), ...]`` - the metrics the run's missing-data alert checks.
+
+    Every metric that carries weight for some stock (``factor_engine.weighted_metric_sets``,
+    generic and bank-like tables together), in ``CAT_METRICS`` order, labelled as the
+    methodology page labels them. Claim ``overview.metric_alerts``."""
+    from factor_engine import CAT_METRICS, weighted_metric_sets
+    gen, bank = weighted_metric_sets(cfg)
+    live = gen | bank
+    return [(_METRIC_LABELS.get(m, m), m)
+            for cat in CAT_METRICS for m in CAT_METRICS[cat] if m in live]
+
+
+# Weight sensitivity: each category weight moved this many percentage points up and down, one
+# at a time, the others rescaled in proportion; stability is measured on the top N.
+SENSITIVITY_PERTURBATION_PTS = 5.0
+SENSITIVITY_TOP_N = 20
 
 
 def auto_reduce_candidates(cfg: dict) -> dict:

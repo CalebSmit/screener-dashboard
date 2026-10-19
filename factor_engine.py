@@ -2149,18 +2149,21 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     # Excess cash: cash beyond 2% of revenue (operating cash needs)
                     # Cap at 50% of total cash to prevent near-total IC elimination
                     # for cash-heavy companies (e.g. EXPE, asset-light platforms).
-                    _operating_cash = 0.02 * rev_c if pd.notna(rev_c) and rev_c > 0 else 0
+                    # The three shares are named constants so the methodology page states
+                    # them from here (2026-10-19 claims audit: the page described the 2%
+                    # rule alone while the cap bound for 334 of 452 stocks).
+                    _operating_cash = ROIC_OPERATING_CASH_SHARE * rev_c if pd.notna(rev_c) and rev_c > 0 else 0
                     _excess_cash = max(0, _cash_bs - _operating_cash)
-                    _excess_cash = min(_excess_cash, 0.5 * _cash_bs)
+                    _excess_cash = min(_excess_cash, ROIC_EXCESS_CASH_CAP * _cash_bs)
                     ic = eq_v + _debt_bs - _excess_cash
                     # Floor IC at 10% of Total Assets — prevents denominator
                     # collapse for asset-light or cash-heavy companies.
                     _ic_floored = False
-                    if pd.notna(ta) and ta > 0 and ic < 0.10 * ta:
-                        ic = 0.10 * ta
+                    if pd.notna(ta) and ta > 0 and ic < ROIC_IC_FLOOR_SHARE * ta:
+                        ic = ROIC_IC_FLOOR_SHARE * ta
                         _ic_floored = True
                     elif pd.notna(ta) and ta > 0:
-                        ic = max(ic, 0.10 * ta)
+                        ic = max(ic, ROIC_IC_FLOOR_SHARE * ta)
                     rec["_roic_ic_floored"] = _ic_floored
                     rec["roic"] = (nopat / ic) if ic > 0 else np.nan
                 else:
@@ -3711,6 +3714,18 @@ def applicable_coverage(df: pd.DataFrame, cfg: dict | None = None):
     return present, applicable
 
 
+def coverage_minimum(n_applicable: int, min_pct: float) -> int:
+    """The fewest metrics a stock may have a value for and stay in the ranking.
+
+    ``min_pct`` (config ``data_quality.min_data_coverage_pct``) of the metrics that apply to it,
+    **rounded down to a whole metric**, and at least one. Rounding down means the bar sits a
+    little under ``min_pct``: 16 of 27 is 59.3%, 14 of 24 is 58.3%. The run's coverage filter and
+    the methodology page both read this one function (claim ``overview.coverage_filter``,
+    2026-10-19), so the page cannot say "fewer than 60%" while the filter keeps 59.3%.
+    """
+    return max(1, int(n_applicable * (min_pct / 100)))
+
+
 def compute_composite(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     if df.empty:
         df["Composite"] = pd.Series(dtype=float)
@@ -4171,6 +4186,14 @@ EH_MAX_AGE_DAYS = 200
 # Beneish (1999): mean days-sales-in-receivables index among the earnings manipulators in his
 # sample (1.031 among non-manipulators). The channel-stuffing flag fires at or above it.
 DSRI_FLAG = 1.465
+
+# ROIC's invested capital = equity + debt - excess cash, where excess cash is cash beyond
+# ROIC_OPERATING_CASH_SHARE of revenue but never more than ROIC_EXCESS_CASH_CAP of cash, and the
+# result is floored at ROIC_IC_FLOOR_SHARE of total assets. The methodology page reads these
+# (claim overview.roic_invested_capital).
+ROIC_OPERATING_CASH_SHARE = 0.02
+ROIC_EXCESS_CASH_CAP = 0.5
+ROIC_IC_FLOOR_SHARE = 0.10
 
 # Industries within Financials that should use bank-specific metrics.
 # These companies have balance sheets where deposits are liabilities,

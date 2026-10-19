@@ -172,6 +172,12 @@ MODULES: tuple[tuple[str, str], ...] = (
     # the coin-toss and standard-error figures, and the nine corrected sentences.
     ("tests/test_track_record_claims.py",
      "the Track record panel says what track_record.build computes, and no more"),
+    # Added 2026-10-19: the methodology page's computational sentences against the code - ROIC's
+    # invested capital rebuilt from the published inputs, the cache window, the coverage bars,
+    # the alerts, the weight tables, the percentile and trap rules, and the workbook's sheets.
+    ("tests/test_methodology_claims_audit.py",
+     "every formula, threshold, window and rule the methodology page states is the one the code "
+     "applies (research/2026-10-19-methodology-claims-audit.md)"),
 )
 
 PYTEST_MISSING = 3
