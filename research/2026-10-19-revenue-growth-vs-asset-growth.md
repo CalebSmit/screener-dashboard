@@ -486,6 +486,101 @@ So, precisely:
   way, which is the direction the evidence is least able to support even though it cannot reject
   it.
 
+### 7.4 The two papers that study sales growth directly - and they *do* have large-company evidence
+
+Both obtained and read from the published versions; the figures below were read off the printed
+tables by the author of this note (LSV is an image-only scan, so its pages were rendered and read
+visually).
+
+- **Lakonishok, Shleifer & Vishny (1994)**, "Contrarian Investment, Extrapolation, and Risk",
+  *Journal of Finance* 49(5), 1541-1578.
+  DOI [10.1111/j.1540-6261.1994.tb04772.x](https://doi.org/10.1111/j.1540-6261.1994.tb04772.x)
+  *(note: the DOI widely cited for this paper, `tb00079.x`, resolves to a different article -
+  Rubinstein's "Implied Binomial Trees". Corrected here.)*
+- **Chan, Karceski & Lakonishok (2003)**, "The Level and Persistence of Growth Rates", *Journal of
+  Finance* 58(2), 643-684. DOI [10.1111/1540-6261.00540](https://doi.org/10.1111/1540-6261.00540)
+- **Fairfield, Whisenant & Yohn (2003)**, *The Accounting Review* 78(1), 353-371 - **not obtained.**
+  It is the paper that puts accruals and operating-asset growth in one specification, and it has no
+  free full text (the only open record is an abstract-only SSRN page). Nothing in this note is
+  attributed to it. That is a real gap in this note's coverage, named rather than papered over.
+
+**LSV: high past sales growth predicted *lower* returns, and they tested large companies.** Their
+`GS` is *"the weighted average rank, giving the weight of 5 to its growth rank in Year −1, the
+weight of 4 to its growth rank in Year −2, etc."* (p. 1550) - so again a five-year rank, not a
+one-year rate. Table I Panel D, p. 1549, verified off the page (note Panel D carries its **own
+reversed header**: decile 1 is *lowest* GS / Value, decile 10 *highest* GS / Glamour):
+
+| GS decile | 1 (lowest) | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 (highest) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| avg annual return, 5 yrs | 0.195 | 0.195 | 0.188 | 0.183 | 0.171 | 0.171 | 0.165 | 0.164 | 0.155 | **0.127** |
+| **size-adjusted (SAAR)** | +0.022 | +0.027 | +0.025 | +0.024 | +0.015 | +0.015 | +0.008 | +0.008 | 0.000 | **−0.024** |
+
+A 4.6pp size-adjusted spread, in the direction *opposite* to the screener's sign. LSV's own verdict
+(p. 1550): *"These magnitudes are not as dramatic as those for the B/M and C/P strategies,
+nevertheless the spread in returns is sizeable"* - GS is the weakest of their four one-way sorts
+(B/M 7.8pp, C/P 8.8pp, E/P 5.4pp, GS 4.6pp).
+
+**And here is the large-company part, which matters because section 6 made so much of it for the
+other leg.** Table III takes the largest 50% of NYSE/AMEX: GS still separates size-adjusted returns
+by 2.5-5.8pp a year *within every valuation tercile*, and the extreme-corner (C/P, GS) spread is
+**8.7pp - identical to the full sample**. Then, verified verbatim from p. 1557:
+
+> *"We have also done the analysis for the largest 20 percent of the stocks, **which effectively
+> mimics the S&P 500**, and get a very similar spread of returns between glamour and value stocks.
+> The conclusion is clear: **our results apply to the largest stocks as well.**"*
+
+**No numbers are published for that largest-20% test** - it is an assertion, and must be read as
+one. But it is the only statement in any paper found for this note that speaks directly to this
+screener's universe, and it says the sales-growth effect is there. In LSV's Fama-MacBeth
+regressions (Table IV, p. 1558) `GS` also survives every multivariate specification
+(−0.044, t −2.125 with B/M, size and C/P in) while **B/M collapses to zero** - so it is not a
+book-to-market proxy.
+
+**CKL: revenue growth is genuinely persistent; the profit it is supposed to represent is not.**
+This is the finding that most changes how `revenue_growth` should be read. Percentage of firms
+beating the cross-sectional median *every year* for five consecutive years, against 3.1% by chance
+(Table III, p. 654; Table IV Panel D, p. 656 for large firms):
+
+| | all firms | **large firms** | chance |
+|---|---|---|---|
+| **sales** growth | 6.3% | **7.5%** | 3.1% |
+| operating income growth | 3.6% | 3.7% | 3.1% |
+| income before extraordinary items | 3.0% | **2.2%** | 3.1% |
+
+CKL, p. 655: *"**There is a great deal of persistence in sales growth**... roughly twice more than
+expected achieve runs over five years"*, and *"**Any sign of persistence vanishes as we get closer
+to the bottom line.**"* Among large firms the earnings figure is *below* chance (p. 657: *"While
+sales growth tends to be more persistent for large firms, it does not translate into persistent
+growth in income"*). In their forecasting regressions (Table X, pp. 677-678) past five-year sales
+growth predicts next-year **sales** growth at t +3.7 and five-year **earnings** growth at
+**t −4.2** - the right sign for revenue, the wrong sign for profit.
+
+And CKL name the mechanism themselves, which ties the two halves of this note together (p. 655):
+
+> *"Persistence in sales may also arise from managers' **'empire-building' efforts, such as
+> expanding market share regardless of profitability**. In all these cases, however, **profit
+> margins are likely to be shrinking as well**, so growth in profits may not show as much
+> persistence as sales growth."*
+
+That is the same empire-building story the asset-growth literature tells, reached from the revenue
+side. The two metrics are not merely correlated by accident: the literature says persistent revenue
+growth and aggressive asset growth are often *the same corporate behaviour*, and that the behaviour
+does not reach the bottom line. The screener rewards the first and penalises the second.
+
+### 7.5 Both legs are tail effects, and the screener scores both linearly
+
+Worth putting beside section 6.3, because the two findings converge and neither paper makes the
+point. LSV's size-adjusted returns across GS deciles 1-9 span **2.7pp** (+0.027 to 0.000); decile 10
+alone drops to −0.024, contributing about **41% of the 4.6pp total spread while being 10% of the
+universe**. CGS's large-company asset-growth alphas have the same shape, more sharply: deciles 2-9
+span 0.16pp of an 0.80pp spread.
+
+So on both legs, the published effect lives in the extremes and the interior is close to flat - and
+the screener scores both as **linear sector percentiles**. LSV draw the implication for their own
+variable (p. 1550, that GS *"alone is not an ideal contrarian strategy"*); the implication for a
+linearly-scored screen is this note's, not theirs, and it is recorded in section 11 as the strongest
+open question rather than acted on.
+
 ---
 
 ## 8. Is the spread position stable, or one run's artifact?
@@ -531,3 +626,208 @@ Nobody intended that, and nobody would have seen it: it is invisible in the chan
 the tests, and invisible in any single run. It is the clearest illustration in this note of why the
 pair's net position needs writing down - two independently-chosen weights produce a joint position
 that moves when either leg's *definition* changes, not only when a weight does.
+
+---
+
+## 9. Documented practice: eleven provider families, and the construction they converge on
+
+Primary methodology documents were obtained and read. The four load-bearing quotations below were
+spot-checked against the PDFs by the author of this note. Where a document could not be obtained
+it is named as such in 9.5 rather than paraphrased from a summary.
+
+### 9.1 The crux: does anyone put opposite signs on both? Yes - and it is MSCI
+
+**"Datasheet - Barra Global Total Market Equity Trading Model", MSCI, September 2016, p. 4**
+([PDF](https://cdn2.hubspot.net/hubfs/2174119/Return%20Downloads/Datasheet%20-%20Barra%20Global%20Total%20Market%20Equity%20Trading%20Model.pdf))
+carries both, as two separate style factors in one model - verified verbatim:
+
+| Style factor | MSCI's stated purpose | Descriptors |
+|---|---|---|
+| **Growth** | *"Measures company growth prospects using sales growth and earnings growth over trailing five years and predicted earnings growth"* | Analyst-Predicted Earnings Long-Term Growth; Earnings per Share Growth Rate; **Sales per Share Growth Rate** |
+| **Investment Quality** | *"Combination of asset, investment, net issuance growth measures that captures common variation in stock returns of companies experiencing rapid growth or contraction of assets"* | **Total Assets Growth Rate**; Capital Expenditure Growth; Issuance Growth |
+
+The same split appears in the two US models under the name *Management Quality*
+(`barra-usslow-datasheet.pdf` pp. 2-3; `barra-usfast-datasheet.pdf` pp. 3-4), and the full
+descriptor tree is drawn in one diagram in **"Anatomy of Active Portfolios", MSCI, July 2017,
+p. 5** - verified: *"Investment Quality: Asset growth, Capex growth, Issuance growth."*
+
+So the screener's construction has a commercial precedent. **But MSCI does not leave the two to
+fight.** **"Growth Target Indexes Methodology", MSCI, November 2023, §2.4, p. 5** - verified
+verbatim:
+
+> *"Exposure to Book-to-Price, Earnings Yield, Long-Term reversal, Dividend Yield, Momentum,
+> Profitability, Earnings Quality, **Investment Quality** and Mid-Capitalization factors will be
+> constrained to be within the range of **0 to 0.25** standard deviations relative to the Parent
+> Index."*
+
+and, in the same list, Beta, Residual Volatility, Earnings Variability, Leverage and Size are
+constrained to **-0.25 to 0**. Both bounds are deliberately **one-sided**. MSCI maximises a Growth
+score that is 20% sales-per-share growth (Appendix III, p. 10: `Growth = 0.7 EGRLF + 0.1 EGRO +
+0.2 SGRO`) while **forbidding the resulting portfolio from taking negative Investment Quality
+exposure**. In plain terms: *the growth tilt is allowed, but it may not be financed by asset
+growth.* That is a constraint on the joint position - precisely the thing this screener has never
+stated and does not control.
+
+### 9.2 Practice converges on the spread - the same quantity section 3 found
+
+The most striking result in the practitioner documents is that where revenue growth survives at
+all as a return signal, it survives **scaled by the assets that produced it**.
+
+**FTSE Russell, "FTSE Global Factor Index Series Ground Rules", v8.8, July 2026, rule 5.4,
+pp. 10-11** - verified verbatim: *"Quality is defined as a composite of profitability and
+leverage"*, and the three profitability measures are Return on Assets, Accruals, and:
+
+> **Δ Asset Turnover = Sales_t / Total Assets_t − Sales_{t−1} / Total Assets_{t−1}**
+
+Measured over all 43 pages of that document: **"asset growth" 0 occurrences, "sales growth" 0
+occurrences.** FTSE uses neither of the screener's two metrics. It uses the *change in the ratio
+between them*, scores it positively, and puts it inside Quality.
+
+That is the same economic quantity the screener's pair expresses at +0.892, arrived at
+independently, by the provider that carries neither raw leg. And the correspondence extends to the
+awkward cases: ΔAsset Turnover is zero for a company growing sales and assets in step, and
+positive for one that shrinks its balance sheet faster than its sales - exactly how the screener's
+spread behaves.
+
+S&P frames its quality screen the same way. **Invesco Exchange-Traded Fund Trust, Form 485BPOS**
+(SPHQ) describes the index as selecting companies that *"seek to generate higher revenue and cash
+flow than their counterparts **through prudent use of assets and finances**"*, and the metric is
+**Accruals Ratio = (NOA_t − NOA_{t−1}) / average total assets**, entered as an **inverted** z-score
+("S&P Quality Indices Methodology", March 2025, Appendix A, p. 22: *"Accruals and Leverage are
+represented by an inverted Z score... as lower values are preferred"*). Revenue appears as a
+numerator over assets, never as a growth rate.
+
+### 9.3 Nobody rewards sales growth as a return factor - and one shop has measured the screener's own construction
+
+**This closes the construction gap section 7.3 left open**, and it is the single most directly
+relevant practitioner finding in this note.
+
+**David Blitz, "The many faces of growth", Robeco, April 2025, p. 3**
+([PDF](https://www.robeco.com/files/docm/docu-20250424-the-many-faces-of-growth.pdf)) - measured on
+the Jensen-Kelly-Pedersen factor library, US, capped value weighting, July 1963 to December 2023.
+Verified verbatim:
+
+> *"quality factors such as cash-based operating profitability and net operating assets, which can
+> be interpreted as cumulated accruals and investments"* earn *"around **5 to 7% per annum**"*.
+> *"By contrast, profitability growth... carries a return of just **2%**, while **sales growth even
+> has a negative return of around −2%**. In other words, **companies with high sales growth over the
+> previous one or three years tend to have below-average subsequent returns.**"*
+
+**"over the previous one or three years"** - that is the screener's `revenue_growth` (one year) and
+`revenue_cagr_3yr` (three years), not the five-year rank CGS and HXZ tested. Same library, same
+period, same method, opposite signs on the two legs: the asset side **+5 to 7%**, the sales side
+**−2%**. And Blitz's conclusion, p. 4: *"growth is not a solid factor in its own right on a par
+with established quant factors... growth factors fail to make it into the top 15."*
+
+Corroboration from elsewhere:
+
+- **MSCI's own research excludes Growth from its rewarded set.** "Foundations of Factor Investing",
+  December 2013, p. 7 - verified verbatim: *"there are factors that are significant in explaining
+  returns but which do not earn a premium over reasonably long horizons. For instance... **factors
+  such as Growth and Liquidity... have not outperformed the market over long periods. These types
+  of factors are not considered good candidates for long-term factor investing.**"* MSCI's six
+  equity risk premia are Value, Low Size, Low Volatility, High Yield, Quality and Momentum.
+  (Reported honestly: MSCI nonetheless *sells* Growth Target Indexes, so its research and its index
+  business do not fully agree. Both documents are primary.)
+- **FTSE tested growth inside Quality and dropped it.** "Factor exposure indexes - Quality factor",
+  FTSE Russell Research, August 2014, p. 14: *"combining growth with profitability has not
+  historically resulted in any incremental improvement in the spread between the Sharpe Ratios of
+  extreme quintiles."*
+- **AQR scores growth, but deliberately not of sales or assets.** "Quality Minus Junk" (Asness,
+  Frazzini & Pedersen), Appendix A2: growth is *"the change in the numerator (e.g. profits)
+  divided by the **lagged** denominator (e.g. assets)"*. Holding the denominator lagged is exactly
+  what stops asset growth contaminating the growth measure - a construction trick worth knowing.
+  No sales-growth and no asset-growth variable appears in the paper.
+- **MSCI's Value & Growth classification** scores `g = ROE x (1 − payout)` positively ("MSCI Global
+  Investable Market Value and Growth Index Methodology", February 2021, Appendix I, p. 30) - the
+  sustainable growth rate of book equity, which is the quantity the investment factor penalises.
+  But its stated purpose (§1.2.3, p. 7) is to *"divide constituents... each targeting 50% of the
+  free float-adjusted market capitalization"* - an exhaustive partition. **Classification, not a
+  premium.** The screener's `sustainable_growth` metric is the same `ROE x retention`.
+
+### 9.4 Asset growth: penalised almost everywhere, but housed in Quality, not as a standalone factor
+
+| Provider | Asset growth | Where it lives | Sales growth |
+|---|---|---|---|
+| Barra / MSCI risk models | **Yes, penalised** | Investment Quality (Quality group, +0.25 of the Quality score) | Yes, in **Growth** |
+| MSCI indices | Quality index: **no**; Growth Target: constrained >= 0 | - | +0.2 weight in Growth Target |
+| S&P DJI | **Yes in substance** - ΔNOA / avg assets, inverted | Quality ("accruals ratio"), 1/3 | Yes, + - 3-yr sales-per-share growth, 1/3 of the Growth Score (classification) |
+| FTSE Russell | **No - none at all** | - | **No** - uses Δ asset turnover instead |
+| AQR (QMJ) | No | - | No |
+| Dimensional | **Yes, negative** | "investment characteristics", small-cap exclusion | **No - zero occurrences** |
+| Robeco | **Yes** | Inside Quality | **No** - measured at **−2%/yr** |
+| Research Affiliates | **Yes, subtracted** | Half of Quality: *"Quality = average of Profitability minus the average of Investment"* | No in core RAFI; yes in a **separate** growth index |
+| Northern Trust | **Yes** - capex and financing penalised | Quality ("Management Efficiency") | No; growth actively **minimised** as a style exposure |
+| Scientific Beta | **Yes** - standalone **Low Investment** factor | Its own factor, 1 of 6 | **No - absent entirely** |
+| Invesco | Via licensed FTSE / S&P scores | Inside Quality | No |
+
+Two things follow for this screener's design.
+
+**First, almost nobody runs asset growth as a standalone 5%-weight category.** Scientific Beta is
+the one clear exception ("Low Investment", 1 of 6 factors). Everyone else who uses it puts it
+**inside Quality**, alongside profitability - Research Affiliates most explicitly: *"Quality measure
+is the average of Profitability minus the average of Investment... Investment is the average of the
+z-scores of asset growth and book growth"* (RAFI Multi-Factor rulebook v5.3, §2.8.1, p. 10). And
+Hsu, Kalesnik & Kose, "What Is Quality?", *Financial Analysts Journal* 75(2), 2019, p. 57
+([DOI 10.1080/0015198X.2019.1567194](https://doi.org/10.1080/0015198X.2019.1567194)): *"The
+combination of the profitability and investment signals is the most parsimonious quality definition
+and is associated with the strongest academic evidence."* The screener's separate Investment
+category is a minority construction - defensible, but it should be known to be one.
+
+**Second, practice confirms the large-company caveat from the other side.** Dimensional, "What Does
+High Asset Growth Say About a Company's Expected Return?", 21 July 2020: *"the return spreads are
+mainly driven by the strong and reliable underperformance of small cap stocks with high investment.
+**The return spreads in large cap stocks, while directionally consistent with valuation theory, are
+generally not reliable.**"* Their implementation matches: the exclusion is small-cap-only and capped
+at 5% of the eligible small-cap universe, applied that way even inside all-cap indices, and they
+have built no large-cap high-asset-growth product. Two further decay measurements, both from
+Research Affiliates: Low Asset Growth monthly long-short 0.30% (t 3.97) pre-publication against
+**0.07% (t 0.48) post-publication** ("What Is Quality?" Table 6, p. 56, with their own
+noise caveat); and the investment factor's annualised return 5.4% for 1963-2003 against **0.3%**
+after ("Alice's Adventures in Factorland", *JPM* 45(4), 2019, p. 32).
+
+Against that, Scientific Beta publishes Low Investment long-leg Carhart alpha **+1.66%** and
+short-leg **−1.40%** on the **largest 500 US stocks**, 1975-2015 ("The Dimensions of Quality
+Investing", May 2017, Exhibit 5, p. 17) - the closest published figure to this screener's universe,
+and it supports the long leg, consistent with section 4's +0.132%/month at t 2.22.
+
+### 9.5 Where academia and practice disagree, and where two practitioners disagree with each other
+
+The mandate asks for this explicitly, and there are three disagreements worth recording rather than
+resolving.
+
+1. **Academia vs practice on housing.** The literature treats investment as a *standalone* factor
+   (Fama-French's CMA, Hou-Xue-Zhang's I/A, both of which stand in the model beside profitability).
+   Practice overwhelmingly folds it **into Quality**. The reason practice gives is overlap: CMA's
+   correlation with HML is 0.70 (FF2015 Table 4 Panel C), and Hsu, Kalesnik & Kose find
+   *"investment has a weaker multifactor alpha because it is correlated with the value factor"*
+   (p. 54). The screener keeps it standalone, which is the academic construction - and this project
+   has already measured that overlap at 0.70 across all stocks and 0.52 among big companies
+   (`plan/factor-lab.md` question 3). **That question is now answered for the asset-growth half:
+   the overlap is real, it is why practitioners merge the two, and merging is a live option the
+   screener has never considered.**
+2. **Two top-tier quant shops, both publishing, genuinely disagreeing about sales growth.**
+   Research Affiliates, "Outgrowing Glamour: A Fundamental Approach to Growth Investing", April
+   2026, p. 1: *"**Income statement growth rewards shareholders through increasing sales and
+   profits, while balance sheet growth often reflects capital accumulation that does not
+   necessarily translate into shareholder value**"*, and p. 2, on book-value and dividend growth,
+   *"these types of growth do not add value... Balance sheet growth, in particular, can be
+   backward-looking or capital-intensive, while income-statement growth is economically scalable."*
+   Against Robeco's measured **−2% a year** for sales growth at one and three years. **RA is the
+   best available written defence of the screener's pair of signs; Robeco is the best available
+   refutation of its positive sales-growth leg.** Both are primary; neither is decisive; the
+   disagreement is the finding.
+3. **MSCI's research against MSCI's index business**, noted in 9.3. Its research says Growth has
+   not earned a premium and is *"not considered a good candidate for long-term factor investing"*;
+   its index arm sells Growth Target Indexes described as providing *"diversification to a factor
+   portfolio or a standalone single factor strategy."* A reader should know that a provider's
+   product line is not evidence about a premium.
+
+**Not obtained, stated rather than paraphrased:** MSCI "Introducing Investment Quality" (Ting Fang,
+2016 - the originating paper; full PDF behind a contact form, only the public abstract read);
+S&P Global blocks automated access, so the S&P Quality methodology was read from a Wayback snapshot
+and the S&P Style methodology from a mirror, both genuine S&P texts, while S&P GARP's methodology
+was **not** obtained; Scientific Beta's Strategy and Index Calculation Rules are gated, so its
+definitions here come from its white papers rather than its rulebooks; Dimensional's Rizova & Saito
+and O'Reilly & Rizova white papers are behind a login, so **no effect size is quoted from them**;
+and two Robeco SSRN papers returned 403. No bot check was worked around.
