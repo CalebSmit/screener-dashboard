@@ -13026,3 +13026,41 @@ Research Affiliates' *"income statement growth... economically scalable"* agains
   not clear a locked worktree. **Not deleted on a guess** - but they accumulate, the `nightly/*`
   sweep does not cover `worktree-agent-*`, and a retrospective should decide whether the sweep
   should.
+
+### Addendum - finished by an owner-run session, same day
+
+The 06:00 session's time ran out at 07:03 and its gates failed: **gate 1 4 failed, 2662 passed**
+and **gate 4** found `research.html`, `RESULTS.md`, `ledger.jsonl` and `summary.json` uncommitted.
+The runner salvaged those files onto this branch (`0524d36`). The "Tests: after 2666 passed" line
+above was written before the gates ran and was not true of the tree it handed over. Nothing reached
+`main`.
+
+**Why the provenance tests failed.** The ledger rows were **not** run on dirty code, and none was
+edited or discarded. Registering `drop-revenue-growth` changed `registry.yaml`, which is in
+`RESULT_PATHS`, so `code_hash` moved from `8c6c3164d9a8` to `eb7acc42822f`. Rule 3 then requires
+every id's newest row to come from the new code: **30 runs**, the 29 registry entries plus the
+evaluation. The session had completed **15** (`drop-revenue-growth`, then `baseline` and 13 more,
+all clean, no `-dirty`) when it stopped. So the report read a mixture of two code hashes. That is
+what `test_every_ledger_row_..._names_its_code_and_its_baseline` and
+`test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture` exist to catch. Those 15 rows came
+from committed code with full provenance, so they stay (rule 2, append-only).
+
+**What was done.**
+- Ran the other 15 (14 experiments plus `bot-rule-v1.1`) through the engine's own `run` and
+  `evaluate` on a clean tree, then ran `report`. Every newest row now carries one `code_hash`
+  (`eb7acc42822f`), one `content_hash` (`318ed0cfc297`) and one `base_config_hash`
+  (`0bbe39fba9b1`), with no `-dirty` marker. The page reads "Provenance: every row ran on the same
+  code". **Checked, not assumed:** against each id's previous run, **29 of 29 ids differ in 0
+  leaves of the stored summary**. `drop-revenue-growth` was not rerun, so its figures in the note
+  are unchanged: held-out -0.00744 at t -2.5, pre-sample -0.0011 at t -0.69, "not confirmed".
+  `research.html` and `summary.json` were unchanged by the regenerated report.
+- **The other two of the four failures were real, and both were fixed:**
+  - `SCREENER_OVERVIEW.md` still said 26 alternatives where `summary.json` now says 27. Regenerated
+    from the unchanged `build_screener_overview(cfg)` per rule 10, and the diff is that one line.
+  - The note's section 11.4 quoted the `Proposal status: OPEN` marker verbatim while saying it had
+    none, so `test_morning_brief` counted the note as open. Reworded, with the reason recorded in
+    the note.
+- The note, `plan/research-engine.md` and `OWNER_FOCUS.md` said "All 29 were" / "29 runs". Corrected
+  to 30 runs, with the 15 + 15 split stated.
+- No weight, threshold or formula changed (rules 4 and 5). Neither page generator changed, so
+  `rehearse_publish.py` did not apply.
