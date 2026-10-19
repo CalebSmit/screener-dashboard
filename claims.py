@@ -1374,6 +1374,17 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=("tests/test_methodology_claims_audit.py::test_the_trap_rules_on_the_page_are_the_rules_the_engine_applies",),
         detect=r"it falls in the bottom \d+% of \*\*at least two\*\*",
     ),
+    Claim(
+        id="overview.clamps_and_floors",
+        surface=OVERVIEW,
+        asserts=("Forward EPS growth divides by trailing EPS floored at $1.00 and is clamped to the "
+                 "configured [-75%, +150%]; analyst surprise divides by the estimate floored at $0.10; "
+                 "price target upside is clamped to the configured [-50%, +100%]. Every published value "
+                 "is what those floors and clamps give from the stock's own published inputs."),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=("tests/test_methodology_claims_audit.py::test_the_clamps_and_floors_on_the_page_are_the_ones_applied",),
+        detect=r"Analyst surprise uses a \$[\d.]+ floor on estimated EPS",
+    ),
 )
 
 

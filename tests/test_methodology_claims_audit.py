@@ -613,3 +613,37 @@ def test_the_trap_rules_on_the_page_are_the_rules_the_engine_applies(page, cfg):
     gt_expect = grow & ((df["quality_score"] <= q(g_q)["quality_score"])
                         | (df["revisions_score"] <= q(g_r)["revisions_score"]))
     assert (out["Growth_Trap_Flag"] == gt_expect).all()
+
+
+# ---------------------------------------------------------------------------
+# Clamps and denominator floors (claim overview.clamps_and_floors)
+# ---------------------------------------------------------------------------
+
+def test_the_clamps_and_floors_on_the_page_are_the_ones_applied(page, cfg, payload):
+    """The metric rows hard-code their clamps; the Data quality bullet reads config. Both must
+    be config's, and the published values must be what the stated floors and clamps give."""
+    clamps = cfg["metric_clamps"]
+    for lab, key in (("Forward EPS Growth", "forward_eps_growth"), ("Price Target Upside", "price_target_upside")):
+        m = re.search(rf"^\| \*\*{re.escape(lab)}\*\* \|.*?Clamped to \[(-?\d+)%, \+(\d+)%\]", page, re.M)
+        assert m, f"the {lab} row no longer states its clamp"
+        assert (int(m.group(1)), int(m.group(2))) == tuple(round(x * 100) for x in clamps[key])
+    floors = re.search(r"Analyst surprise uses a \$([\d.]+) floor on estimated EPS; forward EPS growth uses a "
+                       r"\$([\d.]+) floor on trailing EPS", page)
+    assert floors
+    sur_floor, eps_floor = (float(x) for x in floors.groups())
+    lo, hi = clamps["forward_eps_growth"]
+    n_sur = n_feg = 0
+    for s in payload["stock_detail"].values():
+        raw, inp = s["raw"], s.get("inp") or {}
+        eq4 = s.get("eq4") or []
+        q = [r for r in eq4 if r[1] is not None and r[2] is not None and abs(r[2]) > 0.001]
+        if raw.get("analyst_surprise") is not None and len(q) >= 2 and len(eq4) == len(q):
+            want = float(np.median([(r[1] - r[2]) / max(abs(r[2]), sur_floor) for r in q]))
+            assert raw["analyst_surprise"] == pytest.approx(want, abs=1e-6)
+            n_sur += 1
+        f12, b12 = inp.get("feg_f12"), inp.get("feg_b12")
+        if raw.get("forward_eps_growth") is not None and f12 is not None and b12 is not None and b12 > 0:
+            want = float(np.clip((f12 - b12) / max(abs(b12), eps_floor), lo, hi))
+            assert raw["forward_eps_growth"] == pytest.approx(want, abs=1e-4)
+            n_feg += 1
+    assert n_sur > 300 and n_feg > 300, (n_sur, n_feg)
