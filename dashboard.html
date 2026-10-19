@@ -6216,7 +6216,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const label = d.dr === 0
                 ? 'rank unchanged'
                 : (Math.abs(d.dr) + ' rank' + (Math.abs(d.dr) === 1 ? '' : 's'));
-            const since = d.date ? (' since ' + escapeHtml(d.date)) : '';
+            const since = d.date ? (' since ' + escapeHtml(prettyDate(d.date))) : '';
             deltaChip = '<span class="holding-delta holding-delta-' + cls + '" '
                 + 'title="Rank change since the comparison run. Shown for context - this list is not sorted or filtered by it.">'
                 + arrow + ' ' + label + since + '</span>';
@@ -6335,7 +6335,11 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 .slice(0, 8);
             if (input.setAttribute) input.setAttribute('aria-expanded', 'true');
             if (!matches.length) {
-                dropdown.innerHTML = '<div class="peer-search-empty">No matches</div>';
+                // a ticker this run did not score says so, as the palette and the table do
+                const raw = this.value.trim(), gone = notInRunText(raw);
+                dropdown.innerHTML = '<div class="peer-search-empty">' + (gone
+                    ? '<strong>' + escapeHtml(raw.toUpperCase()) + ' is not in this ranking.</strong> ' + gone
+                    : 'No matches') + '</div>';
                 dropdown.style.display = 'block';
                 return;
             }

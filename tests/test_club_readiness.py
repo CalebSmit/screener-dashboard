@@ -324,6 +324,12 @@ def test_a_ticker_this_run_did_not_score_is_named(browser):
         page.select_option("#filter-sector", "Energy")
         page.wait_for_timeout(200)
         assert "No stocks match these filters." in page.inner_text(".vt-empty")
+        # and the My holdings add box, where a student first types what they own
+        page.evaluate("goToSection('sec-holdings')")
+        page.wait_for_timeout(400)
+        page.fill("#holdings-search-input", "WBA")
+        page.wait_for_selector("#holdings-search-results .peer-search-empty", state="visible")
+        assert "WBA is not in this ranking." in page.inner_text("#holdings-search-results")
         assert errors == []
     finally:
         ctx.close()
