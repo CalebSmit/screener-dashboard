@@ -170,11 +170,20 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "The lowest *category score* the stock has (not the lowest "
             "contribution), its points, and that a category score near 50 is the "
-            "sector median."
+            "sector median. Where that score is below 50 in Size, Risk or Investment, "
+            "it says what the low score means: a higher Size score is a smaller company, "
+            "so a low one is a larger company than most of its sector (at 10 or under, "
+            "one of the largest); a higher Risk score is a calmer price, so a low one is "
+            "on the more volatile side of its sector on volatility, beta and drawdown "
+            "together; a higher Investment score is slower asset growth, so a low one is "
+            "faster asset growth than most of its sector (2026-10-19)."
         ),
         made_true_by="stock_summary:_sentence_weakest",
         checked_by=(
             "tests/test_stock_summary.py::test_weakest_is_the_lowest_category_score_not_the_lowest_contribution",
+            "tests/test_stock_summary.py::test_a_low_size_score_says_it_is_a_large_company",
+            "tests/test_stock_summary.py::test_a_low_risk_or_investment_score_says_which_way_it_runs",
+            "tests/test_stock_summary.py::test_a_low_score_in_an_inverted_category_says_what_it_means",
         ),
     ),
     Claim(
