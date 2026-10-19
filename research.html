@@ -59,6 +59,8 @@ section { margin-top: 40px; }
 strong { color: var(--text-primary); }
 .answer { display: grid; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; max-width: 76ch; }
 .answer li { padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }
+.terms { max-width: 76ch; margin: 12px 0 0; line-height: 1.55; }
+.terms strong { color: var(--text-secondary); font-weight: 600; }
 .steps { list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 8px; max-width: 76ch; }
 .steps li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 10px; }
 .steps li > .num { color: var(--accent-text); }
@@ -125,6 +127,7 @@ details summary { cursor: pointer; color: var(--accent-text); font-size: 14px; m
     <li><strong>No alternative did better.</strong> None of the 27 alternative weightings cleared the bar set before the test, in either period.</li>
     <li><strong>The test can see a signal when there is one.</strong> Fed information it could not have had at the time (today's filings, for past months), the same test finds a strong one.</li>
   </ul>
+  <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
 
   <section>
     <h2>How it was tested</h2>

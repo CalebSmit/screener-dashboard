@@ -1011,6 +1011,44 @@ CLAIMS: tuple[Claim, ...] = (
         # "Rounding aside" is part of the claim, not a caveat on it: points are published to
         # 2dp, so eight lines can differ from the gap by up to ~0.09 for an undiscounted pair.
     ),
+    # --- the score key and the sheet's score note (club readiness, 2026-10-19) ---------------
+    Claim(
+        id="dashboard.score_key",
+        surface=DRILLDOWN,
+        asserts=(
+            "The 'What the columns mean' key above the ranking, the line under the stock sheet's "
+            "scores and the guide's first statement say which way each category score runs: a "
+            "higher Valuation score is a lower price against cash flow, earnings and sales, a "
+            "higher Risk score a calmer price, a higher Size score a smaller company than its "
+            "sector peers (the largest in each sector near 0), a higher Investment score slower "
+            "asset growth, and so on; a higher score adds more to the composite on all eight; "
+            "the median composite quoted is the engine's own kpis.median_composite."
+        ),
+        made_true_by="generate_dashboard:SCORE_KEY",
+        checked_by=(
+            "tests/test_club_readiness.py::test_each_line_of_the_key_says_which_way_its_score_runs",
+            "tests/test_club_readiness.py::test_the_largest_company_in_each_sector_scores_near_zero_on_size",
+            "tests/test_club_readiness.py::test_the_median_the_key_quotes_is_the_engines",
+            "tests/test_club_readiness.py::test_the_sheet_says_which_way_the_scores_run",
+        ),
+    ),
+    Claim(
+        id="dashboard.trap_flag_key",
+        surface=DRILLDOWN,
+        asserts=(
+            "The key's trap-flag lines state the engine's rules with the thresholds read from "
+            "config.yaml: a value trap is in the top 30% of Valuation scores and in the bottom 30% "
+            "on at least two of Quality, Momentum and Revisions; a growth trap is in the top 30% of "
+            "Growth scores with Quality or Revisions in the bottom 35%. A flag changes neither the "
+            "score nor the rank, and flagged stocks are left out of Leading the ranking."
+        ),
+        made_true_by="factor_engine:apply_value_trap_flags",
+        checked_by=(
+            "tests/test_club_readiness.py::test_the_key_reads_the_trap_thresholds_from_config",
+            "tests/test_club_readiness.py::test_the_engine_flags_what_the_key_describes",
+            "tests/test_club_readiness.py::test_a_flag_changes_neither_the_score_nor_the_rank",
+        ),
+    ),
     Claim(
         id="drilldown.inputs_rebuild",
         surface=DRILLDOWN,
