@@ -224,6 +224,19 @@ def test_the_new_copy_is_plain_declarative(html):
         assert not re.search(r"\w, not (a|an|the)?\s?\w+", text), (name, text)
 
 
+def test_the_tested_page_says_how_to_read_its_numbers():
+    """research.html opens on a rank correlation of -0.003 with t-statistics and basis points
+    below it; a first-year reader needs the scale. The page is generated, and
+    tests/test_research_page.py holds the committed file to the generator."""
+    page = (ROOT / "research.html").read_text(encoding="utf-8")
+    terms = page[page.index('class="fine terms"'):]
+    terms = _text(terms[:terms.index("</p>")])
+    for phrase in ("A rank correlation runs from", "A t-statistic is", "A basis point is"):
+        assert phrase in terms, phrase
+    assert page.index('class="fine terms"') < page.index("How it was tested")
+    assert stock_summary.advice_terms_in(terms) == []
+
+
 def test_the_market_backdrop_glosses_pp_and_fred():
     js = gd._js_context()
     assert "A pp is a percentage point" in js
