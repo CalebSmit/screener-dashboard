@@ -105,6 +105,19 @@ quarters and year-to-dates still take the latest filing (`tests/test_pit_record.
 batch before its figures are quoted again.** The effect should be small (one company's last few
 months, four impairment add-backs), which is a prediction to check, not a reason to skip the rerun.
 
+**DONE 2026-10-19 (later the same day): rebuilt, rerun, no verdict changed** -
+`research/2026-10-19-pit-fix-rebuild-effect.md`. The prediction half-held: the fiscal-year rule
+touched 485 of 67,308 name-months at 53 companies (wider than one company, as the census's 106
+later-superseded values implied), and FIX's 2026 months are the only rankings it moved by more than
+100 places. **The first rebuild exposed a second defect, fixed and rebuilt again:** `Filed._one`
+settled same-day ties by an unstable sort's row order, so the fix's new sort moved 569 name-months
+it had nothing to do with (adoption-date opening balances beside the period end; 911 same-day pairs
+in the cache). Ties now go to the end nearest the period asked for; every sort is stable; a test
+shuffles the facts and requires an identical record. All 29 experiments and the bot evaluation
+rerun on the final months: largest change in any IC difference 0.00065, baseline IC -0.00282 ->
+-0.00275 (2012-2019), still 0 of 27 alternatives at the bar. **The months are now a build record**
+(`cache/v2_metrics/_build.json`: base run `377ec40838b1`, commit `b3dfaff`).
+
 ### Extended to 2012, renames recovered, and the research engine - 2026-10-15 evening (owner-run)
 
 `research/2026-10-15-research-engine-first-batch.md`. **v2 now runs 2012-01 .. 2026-08 (176 months).**

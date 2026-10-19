@@ -6,6 +6,10 @@ evidence for a methodology change). Registry: `research/experiments/registry.yam
 `research/experiments/ledger.jsonl`. Generated table: `research/experiments/RESULTS.md`. Analysis:
 `research/measurements/2026-10-15-research-engine-analysis.py`, `...-size-survivorship.py`.
 
+*2026-10-19: the monthly records were rebuilt after two `pit_record` fixes and every row rerun;
+no verdict changed. Figures quoted below are the ones each section reported - section 12 has the
+current ones and `research/2026-10-19-pit-fix-rebuild-effect.md` the measurement.*
+
 ## 1. What was asked, and what was built
 
 The owner asked for the methodology to be tested the way automated research loops are being built -
@@ -391,3 +395,21 @@ move a weight before 2027-02-11 (CLAUDE.md rule 5), and the baseline's IC is sti
 8a removes one way the engine could have been wrong; the much larger limits in sections 4 and 5
 are untouched, and the survivorship rebuild (queue item 8d, with its prediction already written
 down) is the one that would move them.
+
+## 12. The records rebuilt after two `pit_record` fixes (2026-10-19)
+
+The top-of-ranking audit found that `pit_record.Filed` let a 10-Q's fiscal-year context overwrite the
+10-K (Comfort Systems' FY2025 revenue read $1.83bn against $9.10bn). Fixing it and rebuilding the 176
+months exposed a second defect: same-day ties were settled by an unstable sort's row order, so the
+fix moved 569 name-months it had nothing to do with. Both are fixed, the months rebuilt once more
+(base run `377ec40838b1`, commit `b3dfaff`, content hash `97c40a1303ae`), and all 29 experiments and
+the bot evaluation rerun (rule 3). Measured in `research/2026-10-19-pit-fix-rebuild-effect.md`:
+
+* **No verdict changed**, held out or 2012-2019; still 0 of 27 alternatives better or worse at the
+  bar. Largest change in any IC difference against the baseline: **0.00065**.
+* Baseline IC: 2012-2019 **-0.00275** (was -0.00282), 2020-2026 -0.00003 (unchanged), pooled -0.00151
+  (t -0.18). The months of record needed to show an IC of 0.05 (section 5's "47 months") now reads 48.
+* Figures quoted in this note that moved: `drop-size` 2012-2019 t -2.71 -> **-2.76** (section 4);
+  orthogonalised categories held out t 2.39 -> **2.41** (section 3); the bot rule's 2020-mid-2023
+  excess -0.73% (t -2.72) -> **-0.70% (t -2.64)** (section 9). None crosses a threshold the verdicts
+  use.
