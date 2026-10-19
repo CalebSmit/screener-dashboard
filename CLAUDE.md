@@ -763,9 +763,11 @@ constraints survive it:
 
 **0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day**, one finished
-experiment a session; next lab Friday is 2026-10-23. Thirteen experiments as of 2026-10-15,
-**111 of 162 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
-("0.13, the lab's first thirteen experiments") on 2026-10-16.
+experiment a session; next lab Friday is 2026-10-23. Fourteen experiments as of 2026-10-19,
+**124 of 186 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
+("0.13, the lab's first thirteen experiments") on 2026-10-16. Experiment 14 (asset growth,
+Cooper, Gulen & Schill 2008; 13 of 24) is in `plan/factor-lab.md` and
+`research/2026-10-19-lab-asset-growth.md`: by market value it has earned about nothing since 2003.
 
 **The rules, which do not move:**
 

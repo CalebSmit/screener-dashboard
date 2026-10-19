@@ -121,8 +121,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 12 = the two sides of each big-company factor; 13 = the scorecard's Growth row after the review;
 # 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
-# 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them.
-ASSET_VERSION = 22
+# 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
+# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group.
+ASSET_VERSION = 23
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -1949,7 +1950,13 @@ EXPERIMENTS = [
                 {"key": "vw_t_spread", "label": "Its t-statistic", "paper": 5.04, "tolerance": 1.5, "where": "Table II, Panel B.2, year 1, t(spread) = -5.04, sign reversed (p. 1619)"},
             ],
         },
-        "verdict_note": "To be written from the comparison.",
+        "verdict_note": ("The shape reproduces in both weightings - returns fall from the slowest growers to "
+                         "the fastest, and both spreads are well clear of zero (t 8.0 and 4.1) - but the "
+                         "public sort's ends are closer together than the paper's, so both spreads land "
+                         "below it and outside their tolerances: 1.22% against 1.73% equally weighted, 0.67% "
+                         "against 1.05% by market value. The equal-weighted shortfall was expected beforehand "
+                         "(financial companies kept, decile lines drawn on NYSE stocks); the value-weighted "
+                         "one was not. The middle groups match closely."),
         "sort": {
             "data": "asset-growth",
             "groups": ["Fastest asset growth", "Decile 9", "Decile 8", "Decile 7", "Decile 6", "Decile 5", "Decile 4", "Decile 3", "Decile 2", "Slowest asset growth"],
@@ -2039,6 +2046,9 @@ TAKEAWAYS = {
                         "still have since. Weighted by market value - where large companies count most - "
                         "the gap has been about zero since 1990 and below zero since 2007, though not "
                         "distinguishably."),
+    "asset-growth": ("Companies that grew their assets slowest beat the fastest growers in the paper's years on "
+                     "the public sort too, by less than the paper found. Since the paper, equally weighted the "
+                     "gap is a quarter of its old size, and weighted by market value it has been about zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2062,11 +2072,13 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
             "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
             "year by year, for decades; the accruals sort covers one of Beneish's eight inputs."},
-    {"category": "Growth", "key": "growth", "experiments": [],
-     "has": "Nothing yet.",
+    {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
+     "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
+            "the one Growth's revenue growth moves with, and the two categories score it in opposite "
+            "directions.",
      "gap": "The methodology's case for Growth is an argument about forward-looking information, not a "
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
-            "cites, needs company accounts."},
+            "cites, needs company accounts, and the library has no sort on sales or earnings growth."},
     {"category": "Momentum", "key": "momentum",
      "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth"],
      "has": "Momentum's risk, when it crashes, its size among big companies, and how it offsets value.",
@@ -2084,8 +2096,9 @@ CATEGORY_MAP = [
     {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
-    {"category": "Investment", "key": "investment", "experiments": ["five-factors", "big-and-small"],
-     "has": "The investment factor - companies that grow their assets slowly, minus those that grow them fast.",
+    {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small"],
+     "has": "Stocks sorted by asset growth - the category's one measure - and the investment factor: "
+            "companies that grow their assets slowly, minus those that grow them fast.",
      "gap": "It overlaps heavily with value; the five-factor experiment shows by how much."},
 ]
 
@@ -2132,7 +2145,7 @@ def screener_weights(path: Path = ROOT / "config.yaml") -> dict:
     return dict(yaml.safe_load(path.read_text(encoding="utf-8"))["factor_weights"])
 
 
-def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
+def scorecard(split: dict, size: dict, weights: dict, asset_growth: dict) -> list[dict]:
     """One row per category of the screener: its weight, what the lab has measured that bears
     on it among large companies, and what that leaves open."""
     whole, late, recent = (split_run(split, "196307", "209912"), split_run(split, "200001", "209912"),
@@ -2147,6 +2160,8 @@ def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
     idx = range(len(split["months"]))
     overlap = correlation([split["value"]["big"][i] for i in idx], [split["investment"]["big"][i] for i in idx])
     nine_ten = size_run(size, size["months"][0], "209912", "ew")["nine_ten"]
+    ag_paper, ag_after = (sort_run(asset_growth, a, b, "vw")["spread"] for a, b in
+                          (("196807", "200306"), ("200307", "209912")))
     measured = {
         "valuation": (f"Among big companies the value factor has averaged {big(whole, 'value')['mean']:.2f}% a month "
                       f"since 1963 (t-statistic {big(whole, 'value')['t']:.2f}), about half its "
@@ -2160,7 +2175,11 @@ def scorecard(split: dict, size: dict, weights: dict) -> list[dict]:
                     f"it is profitable companies beating the market "
                     f"({whole['factors']['profitability']['long']['mean']:.2f}% a month); the rest is "
                     f"unprofitable ones lagging it."),
-        "growth": "Nothing. There is no published return premium for growth to rerun.",
+        "growth": (f"Nothing on the category's own measures - there is no published return premium for growth "
+                   f"to rerun. The nearest sort is Investment's asset growth, which revenue growth moves with: "
+                   f"by market value, the slowest growers beat the fastest by {ag_paper['mean']:.2f}% a month in "
+                   f"its paper's years (t-statistic {ag_paper['t']:.2f}) and by {ag_after['mean']:+.2f}% since "
+                   f"(t-statistic {ag_after['t']:.2f})."),
         "momentum": (f"Among big companies momentum has averaged {big(whole, 'momentum')['mean']:.2f}% a month since "
                      f"1963 (t-statistic {big(whole, 'momentum')['t']:.2f}), under half its "
                      f"{small(whole, 'momentum')['mean']:.2f}% among small ones - and "
@@ -2237,7 +2256,7 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -2420,10 +2439,19 @@ def reproduce_sort(data: dict, exp: dict) -> dict:
     # that reports size-adjusted returns, whose groups average close to zero; ``scale``: the
     # paper's unit (12 for percent a year from percent a month)
     scale = ref.get("scale", 1)
-    centre = (sum(s["mean"] for s in r["groups"]) / len(r["groups"])) if ref.get("relative") else rf
-    got = {"spread": r["spread"]["mean"] * scale}
-    for g, s in enumerate(r["groups"], 1):
-        got[f"mean{g}"], got[f"std{g}"] = (s["mean"] - centre) * scale, s["std"]
+
+    def figures(run: dict, prefix: str = "") -> dict:
+        centre = (sum(s["mean"] for s in run["groups"]) / len(run["groups"])) if ref.get("relative") else rf
+        out = {f"{prefix}spread": run["spread"]["mean"] * scale, f"{prefix}t_spread": run["spread"]["t"]}
+        for g, s in enumerate(run["groups"], 1):
+            out[f"{prefix}mean{g}"], out[f"{prefix}std{g}"] = (s["mean"] - centre) * scale, s["std"]
+        return out
+
+    got = figures(r)
+    # ``also``: a paper that reports the same table under a second weighting (experiment 14: equal
+    # and value weights) - those figures carry the weighting as a prefix, ``vw_mean1``, ``vw_spread``
+    if ref.get("also"):
+        got.update(figures(sort_run(data, ref["start"], ref["end"], ref["also"]), ref["also"] + "_"))
     rows = []
     for f in ref["figures"]:
         here = got[f["key"]]
@@ -2519,7 +2547,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
         "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles),
-        "scorecard": scorecard(split, size, screener_weights()),
+        "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
         "factors": {k: factors[k] for k in ["months"] + FACTOR_KEYS},

@@ -149,7 +149,7 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -683,6 +683,16 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert since["momentum"]["big"]["mean"] * 12 < 3 and abs(since["momentum"]["big"]["t"]) < 2
     for a, b in (("192701", "201112"), ("192701", "209912"), ("200001", "209912")):
         assert abs(fl.split_run(qd, a, b)["factors"]["value"]["big"]["t"]) < 2, (a, b)
+    # 14. "slowest beat the fastest in the paper's years, by less than the paper found; since, equally
+    #     weighted a quarter of its old size, by market value about zero"
+    ag = published["sorts"]["asset-growth"]
+    for w, paper in (("ew", 1.73), ("vw", 1.05)):
+        r = fl.sort_run(ag, "196807", "200306", w)["spread"]
+        assert 0 < r["mean"] < paper and r["t"] > 2, w
+    inside, after = (fl.sort_run(ag, a, b, "ew")["spread"]["mean"] for a, b in (("196807", "200306"), ("200307", "209912")))
+    assert 0.15 < after / inside < 0.35
+    late = fl.sort_run(ag, "200307", "209912", "vw")["spread"]
+    assert abs(late["mean"]) < 0.15 and abs(late["t"]) < 1
 
 
 def test_the_factors_are_measured_within_each_half_of_the_market():
@@ -790,7 +800,8 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
     card = published["scorecard"]
     assert [(r["key"], r["weight"]) for r in card] == list(cfg["factor_weights"].items())
-    assert card == json.loads(json.dumps(fl.scorecard(published["split"], published["size"], cfg["factor_weights"])))
+    assert card == json.loads(json.dumps(fl.scorecard(published["split"], published["size"], cfg["factor_weights"],
+                                                      published["sorts"]["asset-growth"])))
     assert all(r["measured"] and r["open"] for r in card) and set(fl.SCORECARD_OPEN) == set(cfg["factor_weights"])
     assert advice_terms_in(json.dumps(card)) == []
     sp = published["split"]
@@ -807,10 +818,16 @@ def test_the_scorecard_is_computed_and_carries_the_screeners_own_weights(publish
     assert ratio["momentum"] < 0.5 and abs(late["momentum"]["big"]["t"]) < 1
     # investment: "it moves with value"
     assert fl.correlation(sp["value"]["big"], sp["investment"]["big"]) > 0.4
-    # growth and revisions have nothing rerun, and say so
+    # revisions has nothing rerun, and says so; growth has nothing on its own measures, and points
+    # at the asset-growth sort, whose two figures are rebuilt here
     by_key = {r["key"]: r for r in card}
-    for k in ("growth", "revisions"):
-        assert by_key[k]["experiments"] == [] and by_key[k]["measured"].startswith("Nothing.")
+    assert by_key["revisions"]["experiments"] == [] and by_key["revisions"]["measured"].startswith("Nothing.")
+    assert by_key["growth"]["experiments"] == ["asset-growth"]
+    assert by_key["growth"]["measured"].startswith("Nothing on the category's own measures")
+    ag = published["sorts"]["asset-growth"]
+    inside, after = (fl.sort_run(ag, a, b, "vw")["spread"] for a, b in (("196807", "200306"), ("200307", "209912")))
+    assert f"{inside['mean']:.2f}% a month in its paper's years" in by_key["growth"]["measured"]
+    assert f"{after['mean']:+.2f}% since" in by_key["growth"]["measured"]
     # the page says, above the table, that none of this sets a weight
     html = PAGE.read_text(encoding="utf-8")
     assert "The lab does not set the screener's weights, and none has changed because of it." in html
@@ -1188,6 +1205,24 @@ def test_the_accruals_sort_is_published_as_the_miss_it_is(published):
     assert rows["spread"]["here"] > 0 and rows["spread"]["here"] < rows["spread"]["paper"] - 4.0
 
 
+def test_the_asset_growth_sort_is_published_as_it_landed(published):
+    """Experiment 14 (2026-10-19): Cooper, Gulen & Schill (2008), Table II, year 1, compared in both
+    weightings the paper reports. 13 of 24 within tolerances committed before the run. The shape
+    holds; both spreads are below the paper's and outside, and stay marked so."""
+    exp = next(x for x in published["experiments"] if x["id"] == "asset-growth")
+    r = exp["result"]
+    assert (r["within"], r["total"], r["null_within"]) == (13, 24, 6)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert not rows["spread"]["within"] and not rows["vw_spread"]["within"]
+    assert 0 < rows["vw_spread"]["here"] < rows["spread"]["here"] < rows["spread"]["paper"]
+    assert rows["t_spread"]["within"] and rows["vw_t_spread"]["within"] and rows["t_spread"]["here"] > 2
+    for pre in ("", "vw_"):                                   # the slowest growers earn the most, the fastest the least
+        means = [rows[f"{pre}mean{g}"]["here"] for g in range(1, 11)]
+        assert means.index(max(means)) == 9 and means.index(min(means)) == 0, pre
+    assert sum(rows[f"vw_mean{g}"]["within"] for g in range(3, 10)) == 7          # the middle matches by market value
+    assert exp["sort"]["accent"] == [9] and exp["reference"]["also"] == "vw"
+
+
 COMBO_SETTINGS = [{"start": "197201", "end": "201107", "group": "big"}, {"start": "201108", "end": "209912", "group": "big"},
                   {"start": "192701", "end": "209912", "group": "all"}]
 
@@ -1339,7 +1374,7 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
     assert {x["id"]: fl.null_within(x) for x in fl.EXPERIMENTS} == {
         "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
-        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3}
+        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"

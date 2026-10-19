@@ -228,8 +228,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=22"></script>
-<script src="lab_engine.js?v=22"></script>
+<script src="lab_data.js?v=23"></script>
+<script src="lab_engine.js?v=23"></script>
 <script>
 (function () {
     'use strict';
@@ -1139,7 +1139,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     const tabs = document.getElementById('tabs');
     // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
     // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
-    const GROUPS = ['Momentum', 'Value', 'Quality', 'Risk', 'Across the factors'];
+    const GROUPS = ['Momentum', 'Value', 'Quality', 'Investment', 'Risk', 'Across the factors'];
     D.experiments.forEach(x => { if (GROUPS.indexOf(x.group || 'More') < 0) GROUPS.push(x.group || 'More'); });
     tabs.innerHTML = '<div class="tg tg-start"><a href="#overview" data-id="overview">Overview</a></div>' +
         GROUPS.map(g => { const xs = D.experiments.filter(x => (x.group || 'More') === g);

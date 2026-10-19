@@ -329,21 +329,28 @@
 
     // A sorted-portfolio experiment (reproduce_sort). `excess`: the paper reports returns over the
     // T-bill, so each group's average loses the T-bill's average over the same months; `relative`:
-    // each group against the average of the groups; `scale`: the paper's unit (12 = % a year).
+    // each group against the average of the groups; `scale`: the paper's unit (12 = % a year);
+    // `also`: the same table under a second weighting, its figures prefixed ('vw_mean1', 'vw_spread').
     function compareSort(data, ref) {
-        const r = sortRun(data, { start: ref.start, end: ref.end, weighting: ref.weighting }), scale = ref.scale || 1;
-        let centre = 0;
-        if (ref.relative) { for (const g of r.groups) centre += g.mean; centre /= r.groups.length; }
-        else if (ref.excess) {
+        const scale = ref.scale || 1, got = {};
+        let rf = 0;
+        if (ref.excess) {
             let s = 0, k = 0;
             for (let i = 0; i < data.months.length; i++) {
                 const m = data.months[i];
                 if (m >= ref.start && m <= ref.end && data.rf[i] !== null) { s += data.rf[i]; k++; }
             }
-            centre = s / k;
+            rf = s / k;
         }
-        const got = { spread: r.spread.mean * scale };
-        r.groups.forEach((g, i) => { got['mean' + (i + 1)] = (g.mean - centre) * scale; got['std' + (i + 1)] = g.std; });
+        const add = (weighting, prefix) => {
+            const r = sortRun(data, { start: ref.start, end: ref.end, weighting: weighting });
+            let centre = rf;
+            if (ref.relative) { centre = 0; for (const g of r.groups) centre += g.mean; centre /= r.groups.length; }
+            got[prefix + 'spread'] = r.spread.mean * scale; got[prefix + 't_spread'] = r.spread.t;
+            r.groups.forEach((g, i) => { got[prefix + 'mean' + (i + 1)] = (g.mean - centre) * scale; got[prefix + 'std' + (i + 1)] = g.std; });
+        };
+        add(ref.weighting, '');
+        if (ref.also) add(ref.also, ref.also + '_');
         return compareFigures(ref.figures, got);
     }
 
