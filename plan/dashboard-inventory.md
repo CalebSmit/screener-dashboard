@@ -13,6 +13,30 @@ edit it - `.claude/` was blocked as sensitive. The plans now live in
 `plan/` precisely so that cannot happen again; there is no excuse for
 leaving it wrong.
 
+## Club readiness, 2026-10-19 - `plan/club-readiness.md`, `tests/test_club_readiness.py`
+
+A first-year student's walkthrough at 375px (priority 7). Display only, payload byte-identical.
+What a later session must know before touching these:
+- **"What the columns mean"** (`#score-key`, a `why-panel` `<details>` between the filters and the
+  table, closed by default): the composite with the run's median (`kpis.median_composite`), one line
+  per category from `generate_dashboard.SCORE_KEY` (direction words; claim `dashboard.score_key`,
+  checked against the payload), ▲▼ with the comparison date and noise threshold (`fillScoreKey`, from
+  `H`), and the trap rules with thresholds read from `config.yaml` at build (`_trap_rules`; claim
+  `dashboard.trap_flag_key`). `openScoreKey(rowId)` opens it from the Trap flags tile's "What a flag
+  means" (`a.kpi-more`), the guide's first statement and the palette (`PAL_ACTIONS` entries may carry
+  a `keys` string the search also matches). **A category's meaning changes -> change its
+  `SCORE_KEY` line and the test's `DIRECTION` row together.**
+- **The stock sheet** has one line under the eight scores (`.msr-note`, inside `#modal-score-row`):
+  0-100 against the sector, higher adds more on all eight, what high means for Risk, Size, Investment.
+- **Flag chips on a phone** read "Value trap" / "Growth trap" through CSS `::after` below 760px; the
+  cell's text stays "Value" / "Growth" (`test_dashboard_browser` pins it).
+- **A ticker the run did not score** (`notInRunText`, in `_js_table`): the palette, the table's empty
+  state and My holdings' add box say "<T> is not in this ranking" and why a stock can be missing. A
+  name fragment, or a scored ticker hidden by another filter, keeps the usual message.
+- **Side by side below 420px**: company names wrap and score cells tighten so two stocks fit 375px.
+- Holdings' rank-change chip prints the date as "Sep 18"; Market backdrop's opening glosses FRED and
+  "pp"; `research.html` carries a "Reading the numbers" line (from `research_page.py`).
+
 ## Ten functional fixes, 2026-10-16 - `tests/test_dashboard_interaction.py`
 
 No number, rank or sentence in the payload changed (payload byte-identical). What a later session must
