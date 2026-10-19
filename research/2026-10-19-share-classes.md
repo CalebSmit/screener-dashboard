@@ -17,8 +17,9 @@ paper-trading bot, which buys the top 25, need?
 1. **The universe has three companies with two ranked lines (Alphabet, Fox, News Corp) and 21 more
    with a second class that is not ranked** (four listed outside the index - BRK-A, BF-A, LEN-B,
    MKC-V - and the rest unlisted). Every statement-driven metric is identical across a pair, as it
-   must be. The rows differ for three reasons: **price** (every valuation ratio differs by exactly
-   the ratio of the two prices - measured to four decimals), **each line's own return series**
+   must be. The rows differ for three reasons: **price** (earnings yield differs by exactly the ratio
+   of the two prices, to four decimals, and enterprise value by exactly the gap in market value),
+   **each line's own return series**
    (momentum and risk), and **the source's analyst record for the line**, which is the only
    difference with no economic content: FOX has none, NWS has no price target, and GOOG and GOOGL
    carry different consensus *and* different earnings histories.
@@ -296,11 +297,14 @@ does not certify that line's data.**
 - **What the screener is for.** It ranks companies for a club deciding what to look at and buy. Two
   rows for one company say the tool thinks Fox is two investment ideas; it is one idea with two
   tickets. A student who sees FOX at #31 and FOXA at #47 learns something false about Fox.
-- **Valuation is not lost.** Because every valuation ratio differs between lines by exactly the price
-  ratio (section 3), the second line's valuation is fully stated by one sentence on the page: "FOX
+- **Valuation is not lost.** Because every valuation ratio differs between lines only through the
+  price (section 3: earnings yield by exactly the price ratio, the EV ratios by exactly the gap in
+  market value), the second line's valuation is fully stated by one sentence on the page: "FOX
   trades 10.8% below FOXA for the same claim on Fox's earnings." That is a fact about the two tickets,
-  not a factor signal - the value premium is a cross-company finding, and no provider scores a class
-  discount as value.
+  not a factor signal: the value premium is a cross-company finding. FTSE Russell copies the pricing
+  vehicle's style to every class and S&P DJI scores style per company, so neither scores a class
+  discount as value; MSCI's security-level ratios do differ by class price, and MSCI bounds the result
+  by capping each issuer.
 - **Momentum and risk are not lost either.** The paired lines' 12-month and 6-month returns differ by
   under 5 points; the designated line is the more liquid one, which is the line a club would trade.
 - **Nothing else in the screener reads the second line.** It carries no statement data of its own; the
@@ -333,7 +337,9 @@ never sees it, so it cannot hold one company twice.
 - Evidence that the designated line's analyst record is systematically worse than the other's. On this
   run the only such case is section 7's, which is a source-wide basis problem, not a class one.
 - A view that a club should be able to rank the cheaper class above the dearer one. That would make the
-  class discount a factor signal, which no provider does.
+  class discount a factor signal. MSCI's security ratios do this implicitly (section 8); S&P DJI's and
+  FTSE Russell's style scores do not, and the value literature offers no evidence that a class
+  discount earns the value premium.
 
 **Before it can ship** (CLAUDE.md rows 0.8, 0.8c, 1.5 and the bot contract):
 
