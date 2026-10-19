@@ -831,3 +831,165 @@ was **not** obtained; Scientific Beta's Strategy and Index Calculation Rules are
 definitions here come from its white papers rather than its rulebooks; Dimensional's Rizova & Saito
 and O'Reilly & Rizova white papers are behind a login, so **no effect size is quoted from them**;
 and two Robeco SSRN papers returned 403. No bot check was worked around.
+
+---
+
+## 10. The pre-registered test, and a prediction that came out wrong
+
+`plan/research-engine.md` queue item 6 says a Monday note that ends in a testable claim registers
+one experiment. This note's claim - that the one-year revenue-growth leg earns nothing, so removing
+it should not make the ranking worse - was registered as **`drop-revenue-growth`** and **committed
+before it was run** (rule 1; commits `1383a38` and `687229e` precede the run). No outcome was known
+at registration: nothing in sections 1-9 computes an IC, a forward return or a backtest figure.
+
+**Rule 5 governs what follows. This is a *Backtest observation*, not Evidence.** It may not justify
+a weight change and is not quoted in `METHODOLOGY_CHANGELOG.md` under Evidence. It is here because a
+pre-registered prediction that fails should be reported by whoever made it.
+
+| | discovery | held out | vs baseline (held out) | 2012-2019 vs baseline |
+|---|---|---|---|---|
+| `drop-revenue-growth` | IC -0.002 | IC -0.003 | **-0.007 (t -2.5; sees 0.013)** | -0.001 (t -0.69; sees 0.006) |
+
+The engine's own verdict line: **"different only in the held-out months - not confirmed"**, and
+"not distinguishable in 2012-2019".
+
+**My prediction said the difference would be "zero or positive, never materially negative". The sign
+came out negative.** Removing the leg made the held-out ranking *worse* by 0.007 of IC at t -2.5.
+Read honestly, that is:
+
+- **Not confirmed, by the rule written before the run.** The bar is p < 0.05/28 and |t| >= 3; t -2.5
+  does not clear it, and the pre-sample era shows nothing (t -0.69) - the registry's `presample`
+  block requires the same direction *and* the bar in both, which this fails.
+- **But the direction is against me, and that is the informative half.** I registered the direction
+  precisely so that this could not be waved away afterwards. The honest statement is that section
+  7's reading - that the leg is unrewarded - is **not refuted and not supported**: the one test run
+  on this screener's own point-in-time history leans the other way, below the bar, in one era only.
+- **It does not reverse the recommendation, and it was never going to be allowed to.** Rule 5 forbids
+  citing it either way; CLAUDE.md puts the ban explicitly in both directions ("do not cut a weight
+  because the backtest shows no edge: that is rule 5's ban read backwards"). Keeping the leg
+  *because* of t -2.5 would be the same error with the sign flipped.
+
+Registering it also exposed a structural cost worth recording: **`registry.yaml` is in
+`v2_experiments.RESULT_PATHS`, so adding an experiment changes the engine's `code_hash` and rule 3
+requires every experiment to be rerun** so the rows still compare. All 29 were. That is correct -
+the multiple-testing bar moved for every row anyway (p < 0.05/27 to 0.05/28, |t| >= 3.35 to 3.37) -
+but it means **every Monday note that registers an experiment triggers a full rerun of the engine**,
+which queue item 6 asks for one of per week. Noted in `plan/research-engine.md` so the next session
+budgets for it rather than discovering it.
+
+---
+
+## 11. Conclusions, and what should change
+
+### 11.1 No weight change - and the measured reason, which is not the one I expected
+
+**The recommendation is to change neither weight.** `revenue_growth` stays at 25% of Growth,
+`asset_growth` at 100% of Investment. But the argument matters more than the verdict, because the
+obvious argument turns out to be wrong.
+
+The obvious argument - *"removing the revenue leg would leave the asset-growth leg unopposed and
+swing the ranking from neutral on revenue growth to short it"*, the metric-level version of the
+2026-10-13 Growth refusal - **was measured and does not hold**
+(`research/measurements/2026-10-19-what-removing-the-revenue-leg-does.py`; the rebuilt composite
+reproduces the published one at Spearman 1.0000, 25 of 25 top names):
+
+| The published composite, against... | now | without `revenue_growth` | change |
+|---|---|---|---|
+| raw revenue growth | -0.0040 | **-0.0629** | -0.0589 |
+| raw asset growth | -0.2030 | -0.2270 | -0.0240 |
+| **the within-sector spread** | **+0.2015** | **+0.1625** | **-0.0390** |
+| the Growth score vs revenue growth | +0.6643 | +0.4289 | -0.2354 |
+
+-0.063 is a mild tilt, not a position. So the note does **not** argue that removal would take a
+short, and a future session should not resurrect that claim.
+
+**What removal would actually cost is the exposure to the spread**, and that is the argument:
+
+> `revenue_growth` is what converts an asset-growth screen into an **asset-turnover** screen. Of
+> everything in this area, asset turnover is the one quantity documented practice actually rewards -
+> FTSE Russell scores **Δ Asset Turnover** positively inside Quality and uses neither raw leg
+> (§9.2); S&P frames its quality index as companies generating revenue *"through prudent use of
+> assets"*; Research Affiliates' written defence is precisely that income-statement growth is
+> *"economically scalable"* where balance-sheet growth is *"empire building"* (§9.5).
+
+So the pair earns its place as a pair, for a reason neither category states. Remove the revenue leg
+and the screener keeps a weaker version of a bet (asset growth) whose large-company support is
+tail-concentrated, halved against small caps, absent in FF2015's big-stock leg and unestablished in
+the low-volatility corner this universe occupies (§6.2, §6.4, §9.4), while giving up part of the one
+bet with a live practitioner precedent. That is a bad trade.
+
+**The honest residue, stated plainly:** the screener's *positive* sign on one-year revenue growth
+is against the weight of published evidence - Robeco measures it at **-2% a year at exactly one and
+three years** (§9.3), LSV at **-4.6pp size-adjusted** and asserted to hold in an S&P-500-like
+universe (§7.4), HXZ and CGS at insignificant-but-negative on the five-year rank (§7.2). The
+screener survives that only because the asset leg cancels the exposure to **+0.045**. **It holds
+almost no position on the thing it has the sign wrong on - and that is luck, not design.** It was
++0.137 until a correctness fix on 2026-10-09 moved it (§8.1), and it would move again if either
+leg's definition or weight changed. That is the finding this note most wants on the record.
+
+### 11.2 What the methodology page should say, and why that is a build day's work not today's
+
+`SCREENER_OVERVIEW.md` §8 (Investment) is five lines, gives no figure, no sample and **no
+large-company caveat** - where the Size section carries a thorough one and the Momentum section
+another. The same standard applied unevenly is the defect here.
+
+**Nothing on the page is false**, which is why this is a recommendation and not a fix. *"The
+Fama-French CMA factor captures the historical tendency for companies that invest conservatively to
+outperform"* is true of CMA in aggregate (0.33%/month, t 4.07). *"The screener rewards companies
+that grow efficiently rather than just growing big"* is, remarkably, **supported** by §3 and §5 at
+the system level (+0.892 for the pair, +0.202 for the composite) - it is accidentally right about
+the screener while describing a category that measures no such thing.
+
+What a build session should add, in the generator (`build_screener_overview()` in
+`run_screener.py`, never the markdown - rule 10), with claims registered in `claims.py`:
+
+1. **A large-company caveat on Investment**, matching Size's. The figures are measured and
+   committed: among big companies the factor is +0.149%/month at **t 1.46** over 63 years, the
+   long-only half +0.132% at **t 2.22**, small companies **2.27x** the big-company figure
+   (§4). FF2015's own CMA_B is t 1.03-2.00 and *"almost all the average value of CMA is from small
+   stocks"*.
+2. **That the screener uses the measure with the large-company evidence** - CGS's year-on-year
+   percentage change in total assets, not FF2008's per-share version (§6.1). This is a point in the
+   screener's favour and is currently unsaid.
+3. **What the pair does jointly** - that Growth's revenue leg and Investment's asset leg together
+   express growth in asset turnover, with the measured +0.892, and that FTSE scores that same
+   quantity. A reader following the page today cannot discover this, and it is the single most
+   interesting true thing about these 8.25 points.
+4. **The honest line on revenue growth's sign**, in the Growth section, which already carries an
+   unusually candid "What the research says" paragraph: that the published work on past sales
+   growth points the other way at the screener's own horizons, and that the category's net exposure
+   is near zero.
+
+Today is Monday - research, **no production code** - so none of this was built. It is specified
+above to the point of being mechanical.
+
+### 11.3 The open questions this note leaves, ranked
+
+1. **Both legs are tail effects scored linearly** (§6.3, §7.5). CGS's large-company asset-growth
+   alphas are flat across deciles 2-9 (0.16pp of an 0.80pp spread); LSV's decile 10 carries 41% of
+   its spread. The screener scores both as linear sector percentiles, spending its resolution where
+   the evidence is flat. **This is the strongest open question in the note** - and it is not a small
+   change: it would affect every metric scored by percentile, make the tool harder to explain, and
+   needs its own Monday, its own synthesis and a changelog entry. Do not treat §6.3's table as
+   authorising it.
+2. **Should Investment be folded into Quality?** Practice says yes almost unanimously (§9.4) - nine
+   of eleven provider families house asset growth inside Quality, Research Affiliates as literally
+   *"Profitability minus Investment"*, and Hsu, Kalesnik & Kose call that pairing *"the most
+   parsimonious quality definition... associated with the strongest academic evidence"*. The
+   screener keeps it standalone, which is the academic construction. **This answers the
+   asset-growth half of `plan/factor-lab.md` question 3** ("Is Investment Valuation counted
+   twice?"): the overlap with value is real (CMA-HML 0.70; 0.52 among big companies) and is exactly
+   why practitioners merge them.
+3. **Fairfield, Whisenant & Yohn (2003) was not obtained** and is the one paper that puts accruals
+   and operating-asset growth in a single specification. A session with institutional access, or
+   willing to email the authors, should close that gap before anyone reopens question 2.
+4. **Does `revenue_cagr_3yr` duplicate `revenue_growth`?** Measured today at **+0.316** within
+   sector (§6 of the measurement script) - lower than expected, so they are not redundant - but it
+   carries 1.95 points on the horizon Robeco measures at -2%, and was not the subject of this note.
+
+### 11.4 Status
+
+**No proposal is left open by this note.** The weight question it was asked to settle is settled -
+no change, for the reason in §11.1 - so there is deliberately no `**Proposal status: OPEN**` line
+for a later session to decide. What is left is the page work in §11.2, which is a build task with no
+judgement call in it, and the four ranked questions in §11.3.
