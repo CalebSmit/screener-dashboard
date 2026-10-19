@@ -272,3 +272,56 @@ experiments:
     transform:
       kind: metrics
       metrics: {quality: {roic: 50}, risk: {volatility: 50}}
+
+  # ---- batch 3, registered 2026-10-19 (06:00 session), from that day's Monday note
+  # research/2026-10-19-revenue-growth-vs-asset-growth.md. Registered and committed BEFORE its
+  # first run, per rule 1; nothing in that note computes an IC, a forward return or a backtest
+  # number, so no outcome is known at registration (refuse_known_outcomes has nothing to
+  # disclose). This is plan/research-engine.md queue item 6 - the route by which a Monday note
+  # grows the engine, one sourced idea at a time.
+  - id: drop-revenue-growth
+    hypothesis: >
+      Removing the one-year revenue-growth leg from Growth does not make the ranking worse. The
+      screener scores high revenue growth positively, for 3.25 composite points live and 5.91 in
+      this configuration; no published study found for that question supports the positive sign,
+      and the leg's net effect is in any case almost entirely cancelled by the asset-growth leg
+      it correlates with (measured: the pair's points correlate +0.045 with raw revenue growth
+      against +0.886 for the revenue leg alone).
+    source: >
+      Hou, Xue & Zhang (2015), Review of Financial Studies 28(3), 650-705,
+      doi:10.1093/rfs/hhu068 - sales growth is classified under value-versus-growth (Table 2,
+      p. 664), not under investment, and is insignificant in the broad cross-section
+      (SG -0.27% a month, t -1.34; Table 3, p. 667), so it never reaches their q-factor model.
+      Cooper, Gulen & Schill (2008), Journal of Finance 63(4), 1609-1651,
+      doi:10.1111/j.1540-6261.2008.01370.x - with asset growth in the same regression, sales
+      growth is t -0.27 for all firms and "5-year growth rate in sales is not significant within
+      any of the size groups" (p. 1631); large-firm panel t -0.68 (Table III Panel D, p. 1630).
+      Fama & French (2015) and (2016) do not test sales growth at all.
+      research/2026-10-19-revenue-growth-vs-asset-growth.md sections 3 and 7.
+    prediction: >
+      Not distinguishable from the baseline in either period. The direction is the informative
+      part and is predicted now: the difference is zero or positive, never materially negative.
+      This design can see less than most entries here - the leave-one-out comparisons detect
+      differences of about 0.009 to 0.022 - so unlike a whole-category swap this one may well be
+      readable rather than merely "not distinguishable". A distinguishable NEGATIVE difference
+      would mean the leg earns something after all and would refute the note's section 7 reading
+      for this universe; that is the outcome that falsifies it.
+    transform:
+      kind: config
+      set:
+        metric_weights.growth.revenue_growth: 0
+    construction_note: >
+      Two differences from the cited papers and one from the live screener, all stated rather
+      than assumed. (1) Both papers test the Lakonishok-Shleifer-Vishny FIVE-YEAR weighted rank
+      of sales growth; this metric is one year - the latest quarter against the same quarter a
+      year earlier (changelog 2026-10-09). The established null is therefore about the
+      longer-horizon construction, and this experiment is what tests the one-year one here.
+      (2) Both papers rank across the market; the engine ranks every metric within the stock's
+      GICS sector (factor_engine.compute_sector_percentiles), so the screen is relative to sector
+      peers. (3) In this configuration forward_eps_growth has no free history and carries no
+      weight, so Growth is revenue_growth 25 / revenue_cagr_3yr 15 / sustainable_growth 15 and
+      this leg is 5.91 composite points rather than the live 3.25; the engine renormalises the
+      two that remain, so the category keeps its 13 points and its role as the composite's
+      counterweight (research/2026-10-12-growth-category.md section 10). This is deliberately
+      NOT drop-growth, which removes the counterweight itself and was already run (-0.003,
+      t -0.49).
