@@ -812,6 +812,15 @@ def write_factor_scores_sheet(wb: Workbook, df: pd.DataFrame):
 
 
 # ---- Sheet 2: ScreenerDashboard ----
+# The workbook's review sheets, named here so the methodology page describes them from the
+# code that writes them (2026-10-19 claims audit: the page said the dashboard sheet held the
+# top 50 with all eight category scores and both trap flags; it holds the top 25 with three).
+DASHBOARD_TOP_N = 25
+DASHBOARD_TOP_COLUMNS = ("Rank", "Ticker", "Company", "Sector", "Composite",
+                         "Val_Pct", "Qual_Pct", "Mom_Pct", "Value_Trap_Flag")
+DATA_VALIDATION_TOP_N = 10
+
+
 def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
     """Write ScreenerDashboard with Top 25, Sector Summary, Score Distribution."""
     ws = wb.create_sheet("ScreenerDashboard")
@@ -823,10 +832,9 @@ def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
 
     # ==== TOP 25 TABLE ====
     row = 4
-    ws.cell(row=row, column=1, value="TOP 25 STOCKS BY COMPOSITE SCORE").font = SUBTITLE_FONT
+    ws.cell(row=row, column=1, value=f"TOP {DASHBOARD_TOP_N} STOCKS BY COMPOSITE SCORE").font = SUBTITLE_FONT
     row += 1
-    top25_headers = ["Rank", "Ticker", "Company", "Sector", "Composite",
-                     "Val_Pct", "Qual_Pct", "Mom_Pct", "Value_Trap_Flag"]
+    top25_headers = list(DASHBOARD_TOP_COLUMNS)
     for c, h in enumerate(top25_headers, 1):
         ws.cell(row=row, column=c, value=h)
     _style_header_row(ws, row, len(top25_headers))
@@ -837,7 +845,7 @@ def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
     _comp_q = ((_comp_vals.quantile(0.25), _comp_vals.quantile(0.50), _comp_vals.quantile(0.75))
                if len(_comp_vals) >= 4 else (40, 55, 70))
 
-    top25 = df.nsmallest(25, "Rank")
+    top25 = df.nsmallest(DASHBOARD_TOP_N, "Rank")
     for _, stock in top25.iterrows():
         ws.cell(row=row, column=1, value=int(stock["Rank"]))
         ws.cell(row=row, column=2, value=stock["Ticker"])
@@ -870,7 +878,7 @@ def write_screener_dashboard(wb: Workbook, df: pd.DataFrame):
     row += 2
     ws.cell(row=row, column=1, value="SECTOR SUMMARY").font = SUBTITLE_FONT
     row += 1
-    sec_headers = ["Sector", "Avg Composite", "# Stocks", "# in Top 25"]
+    sec_headers = ["Sector", "Avg Composite", "# Stocks", f"# in Top {DASHBOARD_TOP_N}"]
     for c, h in enumerate(sec_headers, 1):
         ws.cell(row=row, column=c, value=h)
     _style_header_row(ws, row, len(sec_headers))
@@ -1437,7 +1445,7 @@ def write_full_excel(df: pd.DataFrame, port: pd.DataFrame,
         write_factor_correlation_sheet(wb, corr_df)
 
     # Sheet 6: DataValidation (always — top-10 raw values for spot-checking)
-    write_data_validation_sheet(wb, df, top_n=10)
+    write_data_validation_sheet(wb, df, top_n=DATA_VALIDATION_TOP_N)
 
     try:
         wb.save(str(out_path))

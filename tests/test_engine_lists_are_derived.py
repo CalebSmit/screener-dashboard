@@ -157,8 +157,11 @@ def test_the_heaviest_revisions_metric_counts(cfg):
 def test_the_pipeline_calls_the_derived_helpers():
     import inspect
     src = inspect.getsource(rs)
-    assert 'weighted_coverage_pct(df, cfg, "revisions")' in src
-    assert 'weighted_coverage_pct(df, cfg, "investment")' in src
+    # Since 2026-10-19 both auto-disables go through one function (claim overview.auto_disable),
+    # which reads the derived coverage.
+    assert 'auto_disable_sparse_category(df, cfg, "revisions")' in src
+    assert 'auto_disable_sparse_category(df, cfg, "investment")' in src
+    assert "weighted_coverage_pct(df, cfg, cat)" in inspect.getsource(rs.auto_disable_sparse_category)
     assert '"earnings_acceleration", "consecutive_beat_streak"]' not in src, (
         "a hand-typed Revisions list is back in run_screener.py")
 
