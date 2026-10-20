@@ -180,9 +180,11 @@ def test_no_production_module_imports_it():
     pat = re.compile(r"^\s*(import v2_experiments|from v2_experiments)\b", re.M)
     # research_page.py is the engine's own report writer (2026-10-16: it reads the engine's Student's t
     # and pass bar rather than re-deriving them), and is itself never imported by production -
-    # tests/test_research_page.py::test_no_production_module_imports_the_generator
+    # tests/test_research_page.py::test_no_production_module_imports_the_generator. overfitting.py
+    # (2026-10-20) reads the engine's comparability rule the same way, under the same guard -
+    # tests/test_overfitting.py::test_no_production_module_imports_it
     for p in ROOT.glob("*.py"):
-        if p.name in ("v2_experiments.py", "conftest.py", "research_page.py"):
+        if p.name in ("v2_experiments.py", "conftest.py", "research_page.py", "overfitting.py"):
             continue
         assert not pat.search(p.read_text(encoding="utf-8", errors="replace")), p.name
 

@@ -181,6 +181,78 @@ def bot_sentence(b: dict, periods: list, p_value) -> str:
     return " ".join(out)
 
 
+def _pbo_words(pbo: float) -> str:
+    """How a PBO compares with the 0.5 that luck alone gives (Bailey et al. 2017)."""
+    if pbo >= 0.55:
+        return "worse than a coin toss"
+    if pbo > 0.45:
+        return "about what luck alone gives"
+    return "better than luck alone would give"
+
+
+def overfitting_section(reg: list, latest: dict) -> str:
+    """"If you had kept the best backtest" (2026-10-20): the probability of backtest overfitting
+    (Bailey, Borwein, Lopez de Prado & Zhu 2017) over the ledger's configurations, from
+    ``overfitting.check``. Every sentence is generated from the numbers - including whether the
+    whole-history reading survives in the recent era and without its most frequent winner, because
+    a low PBO measures consistency, not cause."""
+    import overfitting
+    r = overfitting.check(reg, latest)
+    if not r:
+        return ""
+    a, rec, wo = r["all"], r.get("recent"), r.get("without")
+    top = a["top_winners"][0] if a["top_winners"] else None
+    cards = [(f'{a["pbo"]:.2f}', f"chance the best-looking weighting landed in the bottom half, "
+                                 f"{a['first_month'][:4]}&ndash;{a['last_month'][:4]}")]
+    if rec:
+        cards.append((f'{rec["pbo"]:.2f}', f"the same over {rec['first_month'][:4]}&ndash;{rec['last_month'][:4]} alone"))
+    if wo:
+        cards.append((f'{wo["pbo"]:.2f}', f"every year, with {html.escape(label(wo['dropped']))} dropped from the set"))
+    stats = "".join(f'<div class="stat"><div class="v">{v}</div><div class="k">{k}</div></div>' for v, k in cards)
+
+    read = (f"Over {a['first_month'][:4]}&ndash;{a['last_month'][:4]} the PBO was "
+            f'<span class="num">{a["pbo"]:.2f}</span>, {_pbo_words(a["pbo"])}, and the winner beat the current '
+            f'weighting on the other half in <span class="num">{a["winner_beat_current_out_of_sample"] * 100:.0f}%</span> '
+            f"of trials.")
+    if top:
+        s = (latest.get(top["id"]) or {}).get("summary") or {}
+        pre = (s.get("presample") or {}).get("ic_vs_baseline") or {}
+        hold = (s.get("holdout") or {}).get("ic_vs_baseline") or {}
+        read += (f" But one weighting did most of the winning: {html.escape(label(top['id']))}, in "
+                 f'<span class="num">{top["share"] * 100:.0f}%</span> of trials.')
+        if pre and hold:
+            read += (f" Its lead over the current weighting was <span class=\"num\">{num(pre['mean'])}</span> over "
+                     f"2012&ndash;2019 and <span class=\"num\">{num(hold['mean'])}</span> over the held-out months"
+                     + (", where it fell behind." if hold["mean"] < 0 < pre["mean"] else "."))
+        if top["id"] == "only-size":
+            read += " That is the Size result above, which survivorship could explain."
+    rest = []
+    if rec:
+        rest.append(f"Over {rec['first_month'][:4]}&ndash;{rec['last_month'][:4]} alone the PBO was "
+                    f'<span class="num">{rec["pbo"]:.2f}</span>, {_pbo_words(rec["pbo"])}, and the winner beat the '
+                    f'current weighting out of sample in <span class="num">{rec["winner_beat_current_out_of_sample"] * 100:.0f}%</span> '
+                    f"of trials.")
+    if wo:
+        rest.append(f"Drop {html.escape(label(wo['dropped']))} from the set and the PBO over every year is "
+                    f'<span class="num">{wo["pbo"]:.2f}</span>, {_pbo_words(wo["pbo"])}.')
+    robust = (rec is None or rec["pbo"] < 0.45) and (wo is None or wo["pbo"] < 0.45)
+    so = ("So the best-looking backtest held up consistently, in every reading this page can make. That is a "
+          "reason to research it, not to adopt it: a bias in the history can be consistent too."
+          if robust else
+          "So a low reading over the whole history did not survive either check. Keeping the best of many "
+          "backtests would mostly have picked whatever the history happened to reward, which is why the "
+          "screener's weights come from published research and every test here is registered before it runs.")
+    return f"""
+  <section>
+    <h2>If you had kept the best backtest</h2>
+    <p>A common way to choose a strategy is to backtest many and keep the winner. That rewards luck as well as skill. Bailey, Borwein, L&oacute;pez de Prado &amp; Zhu (2017) measure how much: split the history into equal blocks of months, and for every way of picking half of them (<span class="num">{a['splits']:,}</span> ways here, from {a['blocks']} blocks), take the weighting that did best on that half and see where it ranks on the other half. The <strong>probability of backtest overfitting</strong> (PBO) is the share of those trials in which the winner lands in the bottom half. Luck alone gives about 0.5; a weighting that is genuinely better pushes it toward 0. This uses the current weighting and the {a['configurations'] - 1} alternatives above, each scored month by month against the current one on the stocks both ranked, and reruns nothing.</p>
+    <div class="stats">{stats}</div>
+    <p>{read}</p>
+    <p>{' '.join(rest)}</p>
+    <p>{so}</p>
+  </section>"""
+
+
 def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list) -> str:
     """The page, from the registry, the latest ledger row per id, the engine's page summary,
     the engine's ``detectable(se, n)`` and the registered evaluations."""
@@ -303,6 +375,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
 
     size_html = size_paragraph(rows[0], size_coverage_relation(latest, coverage), bar_p) \
         if rows and rows[0]["id"] == "only-size" else ""
+
+    overfit_html = overfitting_section(reg, latest)
 
     bot_html = ""
     ev = next((e for e in evaluations if e["id"] == "bot-rule-v1.1"), None)
@@ -503,7 +577,7 @@ details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; 
       </table></div>
     </details>
   </section>
-{bot_html}
+{overfit_html}{bot_html}
   <section>
     <h2>How long would it take to prove an edge?</h2>
     <div class="stats">
