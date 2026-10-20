@@ -1,0 +1,305 @@
+{
+ "before_run": "a35b687ccf19",
+ "after_run": "7c12b43a07b6",
+ "before_started": "2026-10-20T06:16:57.643100",
+ "after_started": "2026-10-20T13:21:50.724316",
+ "universe": [
+  501,
+  501
+ ],
+ "compared": 501,
+ "bank_like": 46,
+ "1_coverage": {
+  "roe scored, after": "46 of 46",
+  "roa scored, after": "46 of 46",
+  "roe scored, before": "46 of 46",
+  "roa scored, before": "46 of 46",
+  "lost roe": [],
+  "lost roa": [],
+  "gained roe": []
+ },
+ "2_rebuilds_from_its_published_inputs": {
+  "roe": "46 of 46",
+  "roa": "46 of 46",
+  "worst relative error": {
+   "roe": [
+    null,
+    0.0
+   ],
+   "roa": [
+    null,
+    0.0
+   ]
+  }
+ },
+ "3_two_published_runs_drift_included": {
+  "WARNING": "7.5 hours and a full refetch apart; the non-bank and top-25 movement below is market drift, NOT this change. Section 5 isolates the change.",
+  "universe composite spearman": 0.99814,
+  "bank_like median abs rank move": 6.0,
+  "moved 10+": 17,
+  "moved 25+": 5,
+  "top 25 lost": [
+   "DECK",
+   "DLTR"
+  ],
+  "top 25 gained": [
+   "ES",
+   "NEM"
+  ],
+  "non-bank composites changed": 434,
+  "largest rank moves": {
+   "IBKR": [
+    392,
+    449
+   ],
+   "PRU": [
+    172,
+    120
+   ],
+   "STT": [
+    149,
+    195
+   ],
+   "FITB": [
+    347,
+    317
+   ],
+   "C": [
+    192,
+    219
+   ],
+   "PNC": [
+    157,
+    181
+   ],
+   "RJF": [
+    204,
+    227
+   ],
+   "NTRS": [
+    313,
+    333
+   ],
+   "COF": [
+    159,
+    141
+   ],
+   "BNY": [
+    276,
+    294
+   ]
+  },
+  "largest ratio changes": {
+   "KKR": {
+    "roe": [
+     0.0728,
+     0.1064
+    ],
+    "roa": [
+     0.01386,
+     0.00793
+    ],
+    "rank": [
+     479,
+     481
+    ]
+   },
+   "CINF": {
+    "roe": [
+     0.2148,
+     0.1873
+    ],
+    "roa": [
+     0.06409,
+     0.07025
+    ],
+    "rank": [
+     47,
+     57
+    ]
+   },
+   "IBKR": {
+    "roe": [
+     0.2367,
+     0.2099
+    ],
+    "roa": [
+     0.02281,
+     0.00525
+    ],
+    "rank": [
+     392,
+     449
+    ]
+   },
+   "APO": {
+    "roe": [
+     0.1141,
+     0.093
+    ],
+    "roa": [
+     0.00941,
+     0.0041
+    ],
+    "rank": [
+     492,
+     496
+    ]
+   },
+   "PGR": {
+    "roe": [
+     0.3324,
+     0.3494
+    ],
+    "roa": [
+     0.07525,
+     0.09729
+    ],
+    "rank": [
+     170,
+     153
+    ]
+   },
+   "HIG": {
+    "roe": [
+     0.2206,
+     0.235
+    ],
+    "roa": [
+     0.03851,
+     0.05087
+    ],
+    "rank": [
+     38,
+     30
+    ]
+   }
+  },
+  "the mixed-basis pair": {
+   "MS": {
+    "roe": [
+     0.1733,
+     0.1795
+    ],
+    "roa": [
+     0.01203,
+     0.01331
+    ],
+    "rank": [
+     447,
+     435
+    ]
+   },
+   "WRB": {
+    "roe": [
+     0.1961,
+     0.2016
+    ],
+    "roa": [
+     0.04221,
+     0.04365
+    ],
+    "rank": [
+     198,
+     197
+    ]
+   }
+  },
+  "IBKR": {
+   "roa": [
+    0.02281,
+    0.00525
+   ],
+   "roe": [
+    0.2367,
+    0.2099
+   ],
+   "rank": [
+    392,
+    449
+   ]
+  }
+ },
+ "4_one_roe_not_two": {
+  "bank-like stocks where the scored ROE equals sustainable growth's ROE": "46 of 46"
+ },
+ "5_attribution_same_run_old_vs_new_construction": {
+  "note": "the published 13:40 table, scored both ways - the only difference is roe/roa",
+  "new reproduces the published ranking": "501 of 501",
+  "universe composite spearman": 0.99973,
+  "bank_like median abs rank move": 5.0,
+  "moved 10+": 13,
+  "moved 25+": 2,
+  "top 25 lost": [],
+  "top 25 gained": [],
+  "non-bank composites changed": 0,
+  "largest rank moves": {
+   "PRU": [
+    150,
+    120
+   ],
+   "IBKR": [
+    419,
+    449
+   ],
+   "C": [
+    198,
+    219
+   ],
+   "PNC": [
+    162,
+    181
+   ],
+   "STT": [
+    176,
+    195
+   ],
+   "BNY": [
+    276,
+    294
+   ],
+   "TFC": [
+    253,
+    235
+   ],
+   "PFG": [
+    293,
+    275
+   ],
+   "CFG": [
+    130,
+    146
+   ],
+   "USB": [
+    107,
+    92
+   ]
+  },
+  "largest composite moves": {
+   "IBKR": [
+    41.9,
+    38.69
+   ],
+   "APO": [
+    29.6,
+    28.16
+   ],
+   "PRU": [
+    54.37,
+    55.61
+   ],
+   "STT": [
+    53.46,
+    52.5
+   ],
+   "CINF": [
+    61.85,
+    60.89
+   ],
+   "MS": [
+    38.64,
+    39.57
+   ]
+  }
+ }
+}
