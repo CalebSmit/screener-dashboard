@@ -471,6 +471,43 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-20 (13:00) - the bank ROE/ROA proposal: REVIEWED and ACCEPTED. Two of the heaviest
+  numbers in a bank's quality score were ratios nobody had a definition for.** Raised 2026-10-19
+  and decided by the next scheduled session, as the routine requires. ROE and ROA are 60 of the
+  bank Quality table's 100 points - about 13 composite points for each of the 46 bank-like
+  companies - and they were read straight from the data provider's own two ratios. **Neither the
+  provider nor the library documents what those ratios mean**, which is the exact objection that
+  got another provider-supplied growth figure thrown out of the engine earlier. Working out what
+  they are by trying every candidate construction showed they are built on *consolidated* profit
+  and equity, including the share belonging to minority holders of subsidiaries the company only
+  partly owns.
+  The decisive test was against the companies' own SEC filings: rebuilt from the filings, the new
+  construction - profit over the **average** of the balance sheet now and a year ago - agrees
+  within **0.5% for 37 of 37** companies that can be checked, where the provider's ratios agreed
+  within 2% for **21** (ROE) and **12** (ROA) of 35. Averaging is what the FDIC, the FFIEC and
+  JPMorgan's own 10-K all do, because a bank earns its profit on the balance sheet it carried
+  *through* the year. It also means the screener now has **one** definition of ROE instead of two:
+  the figure inside Sustainable Growth already worked this way, so the page had to carry a note
+  warning readers the two were different. They now agree for 46 of 46.
+  **It also fixed a live defect.** The provider serves no ratio at all for Morgan Stanley or W. R.
+  Berkley, so those two were being ranked on a *different* formula from the other 44 inside the
+  same comparison - the very fault the screener removed from its earnings metric once before. The
+  original note caught one such company; there were two by today.
+  **What the review added**, which is why a second session decides these: availability was
+  re-measured on a second day's run and a fresh probe (**46 of 46**, balance sheets exactly 365
+  days apart) rather than taken from the note's single morning. And the note left one judgement
+  call open - whether the asset ratio should count the minority holders' profit too. **Refused**,
+  with the measurement: it would flatter exactly the three unusual companies whose shareholders own
+  least of the balance sheet being divided (Interactive Brokers reads 2.3% on group profit against
+  0.5% on its shareholders'), and the regulators put that income on a separate line for this
+  reason. The asymmetry that remains is now printed on the page instead of hidden.
+  Effect, isolated properly: **top 25 unchanged, no company outside the 46 affected**, bank-like
+  median move 5 places, IBKR 419 -> 449 the largest. A full run was made in the session, so it is
+  live now. `METHODOLOGY_CHANGELOG.md` 2026-10-20 (13:00 session);
+  `research/2026-10-19-bank-roe-roa.md` section 9.
+  **One proposal from 2026-10-19 is still waiting for a decision:** scoring each company once
+  where it has several share classes (`research/2026-10-19-share-classes.md`).
+
 - **2026-10-20 - the bank price-to-book proposal: REVIEWED and ACCEPTED, and it fixes a number the
   site had published wrong since March.** Raised 2026-10-19 and decided by the next scheduled
   session, as the routine requires. Price-to-book is the heaviest thing in a bank's or insurer's

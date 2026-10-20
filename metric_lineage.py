@@ -356,7 +356,7 @@ LINEAGE = {
                ("Equity", "totalEquity", USD),
                ("Equity a year earlier", "totalEquity_prior", USD)],
               how="Net income over the last four quarters, divided by the average of shareholders' equity at the latest balance-sheet date and a year earlier. Average balances are the FDIC's, the FFIEC's and the banks' own convention: the income was earned on the balance sheet the company carried through the year. Both balances must be positive, and the year-ago one is matched by date (330-400 days), never by column position.",
-              caveat="Until 2026-10-20 this read the data source's undocumented `returnOnEquity`, which is built on consolidated income and equity including the minority holders' share; it agreed with the companies' own filings for 21 of 35, against 37 of 37 for the figure above."),
+              caveat="Until 2026-10-20 this read the data provider's own return-on-equity figure, which has no published definition and is built on consolidated income and equity including the minority holders' share of partly-owned subsidiaries. Against the companies' own SEC filings it agreed within 2% for 21 of 35 bank-like stocks; the figure above agrees within 0.5% for 37 of 37."),
     "roa": _L("Return on assets (banks and insurers)",
               [("Net income (TTM)", "netIncome", USD),
                ("Total assets", "totalAssets", USD),

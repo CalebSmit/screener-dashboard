@@ -13269,3 +13269,171 @@ one before it, every numeric statistic at full precision - **30 of 30 identical,
   the preferred share of equity, which is under 5% for 24 of the 46 and at most 12.6%). Re-measure
   availability on a fresh probe first, as this session did; that is what separated this decision
   from the 2026-10-16 refusal. The share-class proposal is the third and the largest in scope.
+
+---
+
+## 2026-10-20 (13:00 session) - QUEUE. The bank ROE/ROA proposal reviewed and ACCEPTED: 60% of bank Quality rested on two ratios with no published definition
+
+**Health (rule 8, all five):** last code session ran? **yes** - `logs/nightly-2026-10-20_060001.log`
+ends "Run complete: shipped to main", tagged `good/2026-10-20`. Data loop published? **yes** -
+`logs/datarun-2026-10-20_020001.log` ends "Data loop complete", HEALTH: PASS. Evidence base at
+`1m` = **33 rows, newest 2026-09-18 (32 days ago, bound 40), 4 effective**. Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations - unchanged, and nothing here rests on
+it. Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 12 days**) -
+deferred again today, see below.
+**Tests:** before **2,830 passed, 1 skipped**; after **2,852 passed, 1 skipped** (+22, exactly the
+new module; no pre-existing failures either side).
+**Owner queue / rotation:** I am the day's **second** session, so I read the 06:00 entry first and
+took its **Next** verbatim: decide the second of the three proposals opened 2026-10-19. That is
+also an open-proposal obligation, which outranks the rotation (`prompts/nightly.md` section 1).
+**Deferred:** the context layer (0.11) and the third proposal (share classes). Nothing there was
+started, so nothing is half-done. I did not revisit or reverse anything the 06:00 session decided.
+
+### Did
+
+**Reviewed, re-measured and ACCEPTED the bank ROE/ROA proposal**
+(`research/2026-10-19-bank-roe-roa.md` section 7; the review is now section 9 of that note).
+ROE and ROA are 35 and 25 of the bank Quality table's 100 points - about **13.2 composite points
+for each of the 46 bank-like stocks** - and both were read straight from the data source's
+`.info` `returnOnEquity` / `returnOnAssets`.
+
+- **Why that was wrong, and not merely untidy.** Neither the provider nor `yfinance` documents
+  either field. The engine threw out `earningsGrowth` for exactly this reason - "a black-box input
+  with no verifiable definition". Reverse-engineered, the source's ROE is *consolidated* net income
+  over average *total* equity **including minority interests**.
+- **The decisive measurement, against the companies' own SEC filings** (TTM `NetIncomeLoss` over
+  averaged `StockholdersEquity` / `Assets` from the weekly `companyfacts` cache): the new
+  construction agrees **within 0.5% for 37 of 37** comparable stocks (ROA 36 of 37, worst 0.79%);
+  the source's ratios agree **within 2% for 21 (ROE) and 12 (ROA) of 35**. The change makes the
+  metric agree with the primary source.
+- **Now:** `roe = netIncome / ((totalEquity + totalEquity_prior) / 2)`, `roa` the same on total
+  assets, both balances required positive, **no fallback** to the source's ratio and none to an
+  ending balance (the Phase 13 F19 rule). The prior balances are the ones `_year_ago_position`
+  matches by date (330-400 days).
+- **Shipped with its frontend, same commit** (CLAUDE.md 0.8c): `metric_lineage` LINEAGE / RECOMPUTE
+  / one **exact** EQUATIONS template each, `pit_record` (both fields leave `FIELD_CLASSES` and
+  `market_fields` stops building them - they were a *third* construction, on ending balances),
+  `scoring_schema` 13 -> 14, the generated methodology paragraph, `run_audit`'s field provenance,
+  claim `overview.bank_roe_roa`, `METHODOLOGY_CHANGELOG.md`, `tests/test_bank_roe_roa.py` (22).
+- **A full screener run was made in the session** so the fix is live now rather than at 02:00:
+  **501 scored**, `check_run_health` **PASS**, `scripts/check_published_claims.py` **PASS (1,152
+  tests)**, `scripts/rehearse_publish.py` **PASSED**, both payloads `node --check` OK.
+
+**What the review added, which is the reason a second session decides these.**
+
+1. **Availability re-measured, 46 of 46.** The note's evidence was one morning's probe. Re-measured
+   on a **second day's run** through the engine's own extraction path plus a **fresh probe**:
+   `netIncome`, `totalEquity_prior`, `totalAssets_prior` present and positive for **46 of 46**, the
+   two balance sheets **exactly 365 days apart for all 46**. So the no-fallback rule leaves nobody
+   unscored. This is the test the earnings-definition proposal **failed** on 2026-10-16 (23
+   companies with no figure) and it is the whole difference between the two decisions.
+2. **The note's own prediction was already stale, in the proposal's favour.** Section 6 says
+   Berkshire "loses both ratios under any averaged construction". It does not:
+   `_year_ago_position` (made late on 2026-10-19) finds its year-ago sheet at column **3**, and the
+   probe shows BRK-B is the *only* one of the 46 whose prior sheet is not at column four - the only
+   one taking it by position would have got wrong.
+3. **The mixed-basis cohort had grown from one stock to two.** The note names MS as the only stock
+   the source serves no ratio for; **WRB** had joined it, so two stocks were ranked on *ending*
+   balances inside a percentile ranking of 44 on the source's construction. The proposal removes a
+   live defect. Both rose on the fix (MS 447 -> 435, WRB 198 -> 197).
+4. **The judgement call the note explicitly left open, decided with a measurement.** ROA's
+   numerator is the shareholders' income and its denominator the whole consolidated balance sheet.
+   Minority interests exceed 5% of equity for **6 of 46** and are large only for three names
+   (IBKR 2.77x, KKR 1.59x, APO 0.97x), measured two independent ways that agree exactly. The
+   alternative - counting the minority holders' profit too - was **refused**: the FFIEC's UBPR puts
+   that income on its own line (item 14) and JPMorgan's 10-K agrees, so the regulators' numerator
+   *is* the proposal's; and including it would flatter precisely the three companies whose
+   shareholders own least of the assets being divided by (IBKR reads 2.28% on group profit against
+   **0.53%** on its shareholders'), the wrong direction of error for a long-only screener. The
+   asymmetry is real, so it is **stated on the page** rather than hidden.
+5. **One ROE instead of two.** `sustainable_growth` already used average equity, so the lineage had
+   to warn readers "this ROE is not the Yahoo ROE shown for banks". They now agree for **46 of 46**
+   and the caveat is gone.
+
+**The effect, isolated properly** (`research/measurements/2026-10-20-bank-roe-roa-shipped.py`):
+the published run's own table scored both ways - composite Spearman **0.99973**, **top 25
+unchanged**, **0 of 455 non-bank composites changed**, bank-like median move **5 places**, 13 moved
+10+, 2 moved 25+; largest **IBKR 419 -> 449** (ROA 2.28% -> 0.53%, composite -3.2), PRU 150 -> 120,
+C 198 -> 219, PNC 162 -> 181, STT 176 -> 195. Every bank-like stock keeps both metrics (46 of 46)
+and each figure rebuilds from its two published inputs for **46 of 46**, worst error **0.0**.
+
+**Looked at the page** (the standing rule for a scoring change). JPM's and IBKR's ROE and ROA rows
+opened at 1440 and 375px: *"$65.1B net income / (($374.6B equity + $356.9B equity a year earlier) /
+2) = 17.8%"*, *"Ranked 18th of 46 in Financials, higher being better; sector median 13.4%"*,
+*"61.96 percentile x 35% weight = 21.68 points"*, and *"Rebuilt from the inputs above: the same
+17.8% that was scored."* IBKR's ROA row carries the minority-interest caveat, which is exactly the
+stock it is about. Two-line card on the phone, nothing clipped. `logs/design/bankroe-*.png`.
+**One defect found by looking and fixed:** my first draft of the ROE caveat used backticks around
+a field name, and this surface renders them literally - the page showed the backticks. It was the
+only one of 17 lineage caveats using them. Reworded to prose and the dashboard regenerated, so the
+published payload carries the corrected text.
+
+### Evidence / research
+
+- **FDIC, *Quarterly Banking Profile*, Notes to Users (Q2 2026)**, pp. 2 and 6: return on assets is
+  net income "as a percentage of average total (consolidated) assets"; return on equity the same
+  net income "as a percentage of average total equity capital".
+  https://www.fdic.gov/quarterly-banking-profile/qbp-notes-users-second-quarter-2026.pdf
+- **FFIEC, *UBPR User's Guide*, Summary Ratios page 1 (2026-08-20)**, item 16: "divided by average
+  assets"; **item 14** is a separate line for income attributed to minority interests - the detail
+  that settled the ROA judgement call.
+  https://www.cdr.ffiec.gov/CDRDownload/CDR/UserGuide/v186/FFIEC%20UBPR%20User%20Guide%20Summary%20Ratios--Page%201_2026-08-20.PDF
+- **JPMorgan Chase, 2022 Form 10-K**, MD&A p. 59: "ROA: Reported net income / Total average
+  assets"; "ROE: Net income / Average common stockholders' equity".
+  https://www.sec.gov/Archives/edgar/data/19617/000001961723000231/jpm-20221231.htm
+- **MSCI, *Quality Indexes Methodology* (May 2025)**, Appendix I, and ***Fundamental Data
+  Methodology* (March 2021)** section 1.2.5 - the *other* convention: **latest** book equity
+  excluding minority interests and preferred. Named in the changelog as a disagreement with a
+  reason, not ignored.
+  https://www.msci.com/indexes/documents/methodology/2_MSCI_Quality_Indexes_Methodology_20250520.pdf
+- **Asness, Frazzini & Pedersen (2019), "Quality minus junk"**, *Review of Accounting Studies*
+  24(1), 34-112, Appendix: "ROE is net income divided by book-equity", book equity being
+  "shareholders' equity minus preferred stock"; no averaging described.
+  https://research-api.cbs.dk/ws/portalfiles/portal/60211462/lasse_heje_pedersen_et_al_quality_minus_junk_publishersversion.pdf
+- **Damodaran (2009), "Valuing Financial Service Firms"**, pp. 30-31: of the determinants of
+  price-to-book "the return on equity has the biggest impact" - the P/B-ROE pairing the bank metric
+  set rests on, and the reason both halves of it changing today sharpens the double-count question.
+  https://pages.stern.nyu.edu/~adamodar/pdfiles/papers/finfirm09.pdf
+- **No IC series, no backtest number, and no research-engine figure was used** (rules 4 and 5).
+  The justification is documented practice plus agreement with the companies' own filings.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-10-20 (13:00 session) - Proposal ACCEPTED: bank ROE and ROA are
+  net income over AVERAGE balances, not the source's undocumented ratios.** `scoring_schema`
+  13 -> 14. Rollback: revert the commit, schema back to 13.
+
+### Tried and rejected
+
+- **The common-equity basis** (net income to common over average common equity) - what banks and
+  analysts actually quote, and MSCI's book value. Rejected on measurement: it ranks the bank set
+  almost identically (rank correlation 0.987, median ratio 1.008), needs a fetch field whose rows
+  are unreliable (Apollo's "Net Income Common Stockholders" is 23% of its net income, a data
+  artefact that would collapse its ROE to 2.3%), and the preferred share of equity is under 5% for
+  24 of the 46. Worth revisiting only if the common rows improve.
+- **ROA including minority interests** - the note's named alternative. Rejected on the UBPR's own
+  schema and on the direction of the error; see item 4 above.
+- **Keeping an ending-balance fallback** for stocks missing a prior sheet. Rejected: it is the
+  defect being removed, and at 46 of 46 availability it would never fire anyway - a branch that
+  cannot execute is a second definition waiting for a bad data day.
+- **Differencing the 06:00 and 13:40 published runs to state the effect.** This is what I first
+  did, and it is wrong: the two runs are 7.5 hours and a full refetch apart, so it showed 434
+  non-bank composites moving and two top-25 changes, none of it this change. The measurement script
+  now carries the warning and the attribution comes from scoring **one** table both ways. Recorded
+  because the number was nearly published in the changelog.
+
+### Next
+
+- **Decide the last of the three proposals: score each company once where it has several share
+  classes** (`research/2026-10-19-share-classes.md`) - the only one still open, and the largest in
+  scope of the three. It changes `run_screener.py`'s pipeline order rather than one metric, so
+  re-measure its own stated stakes (top 25 unchanged; FOXA 47 -> 28, GOOGL 226 -> 197, NWSA
+  61 -> 52) on a current run before trusting them: today's two accepted changes both moved the
+  bank set, and the note's figures are from the 2026-10-19 table.
+- **Then the context layer (0.11), deferred three sessions running now** (2026-10-19, and both of
+  today's). Per the deferral-streak rule, the next session carrying no proposal and no broken loop
+  must either advance item 4's track-record note or argue in writing for what outranks it.
+- **A Wednesday question this change sharpened, not an open defect:** bank ROE now equals earnings
+  yield x P/B on a near-common book, and both of those changed definition today, so whether 35
+  points of bank Quality duplicating two Valuation inputs is a double count is worth the synthesis
+  day (section 5 of the note).
