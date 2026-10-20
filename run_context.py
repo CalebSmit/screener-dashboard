@@ -181,7 +181,11 @@ class RunContext:
             # 11 = Beneish not counted as missing for Financials; stale history not a FEG base.
             # 12 = the year-ago quarter / balance sheet chosen by date, not column four
             # (2026-10-19): BRK-B, FERG and SKYD score differently from the 02:00 table.
-            "scoring_schema": 12,
+            # 13 = the bank P/B is market value / common equity at the balance-sheet date
+            # (2026-10-20), which needs the new raw field `commonEquity`: without the bump a warm
+            # start would serve a table fetched before it existed and every bank-like stock would
+            # lose 60% of its Valuation weight.
+            "scoring_schema": 13,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

@@ -1445,6 +1445,11 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["totalEquity_prior"]      = _stmt_val(_bs_src, "Stockholders Equity", _bs_prior_col)
         if np.isnan(rec["totalEquity_prior"]):
             rec["totalEquity_prior"]  = _stmt_val(_bs_src, "Total Stockholder", _bs_prior_col)
+        # Common shareholders' equity - stockholders' equity less preferred stock - at the same
+        # balance-sheet date. The bank P/B is market value over this (2026-10-20;
+        # research/2026-10-19-bank-price-to-book.md). Deliberately no fallback: a bank-like stock
+        # whose balance sheet omits the row scores no P/B rather than one on another definition.
+        rec["commonEquity"]           = _stmt_val(_bs_src, "Common Stock Equity")
         rec["totalDebt_bs"]           = _stmt_val(_bs_src, "Total Debt")
         rec["longTermDebt"]           = _stmt_val(_bs_src, "Long Term Debt")
         rec["longTermDebt_prior"]     = _stmt_val(_bs_src, "Long Term Debt", _bs_prior_col)
@@ -2971,14 +2976,26 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
             rec["_is_bank_like"] = _is_bank
 
             if _is_bank:
-                # Bank Valuation: Price-to-Book
-                ptb = d.get("priceToBook", np.nan)
-                if pd.notna(ptb) and ptb > 0:
-                    rec["pb_ratio"] = ptb
-                else:
-                    bv = d.get("bookValue", np.nan)
-                    price = _coalesce(d, "currentPrice", "price_latest")
-                    rec["pb_ratio"] = (price / bv) if (pd.notna(price) and pd.notna(bv) and bv > 0) else np.nan
+                # Bank Valuation: Price-to-Book - market value over common shareholders' equity
+                # at the run's own balance-sheet date (2026-10-20; the proposal in
+                # research/2026-10-19-bank-price-to-book.md, reviewed and measured again in
+                # research/measurements/2026-10-20-bank-pb-review.py).
+                #
+                # It used to read the source's `.info` `priceToBook`, which is
+                # `currentPrice / bookValue` with `bookValue` a *per-share* figure. Two things were
+                # wrong with that. Berkshire's book value is per Class A share ($522,226) against a
+                # Class B price ($532), so its P/B published 0.0010 instead of 1.52 - the cheapest
+                # bank-like stock by a factor of 1,000, at the 98.9th percentile in all 52
+                # snapshots since March. And for 18 of the 46 the source's book was a quarter newer
+                # than every other figure scored. A company-level ratio has no per-share unit to
+                # get wrong and is on the same balance sheet as the rest of the record.
+                #
+                # No fallback to `priceToBook` or `bookValue`: one construction for every
+                # bank-like stock (the Phase 13 F19 rule), so a missing row costs the metric
+                # rather than scoring one stock on a different definition.
+                ce = d.get("commonEquity", np.nan)
+                rec["pb_ratio"] = (mc / ce) if (pd.notna(mc) and pd.notna(ce)
+                                                and mc > 0 and ce > 0) else np.nan
 
                 # Bank Quality: ROE
                 roe_info = d.get("returnOnEquity", np.nan)

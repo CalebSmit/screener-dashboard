@@ -78,11 +78,8 @@ def _ev_sales(i):
 
 
 def _pb(i):
-    pb = i.get("priceToBook")
-    if _ok(pb) and pb > 0:
-        return pb
-    bv, p = i.get("bookValue"), i.get("currentPrice")
-    return p / bv if _ok(bv, p) and bv > 0 else None
+    mc, ce = i.get("marketCap"), i.get("commonEquity")
+    return mc / ce if _ok(mc, ce) and mc > 0 and ce > 0 else None
 
 
 def _roic(i):
@@ -319,10 +316,9 @@ LINEAGE = {
     "ev_sales": _L("Enterprise value / revenue",
                    [("Enterprise value (used)", "ev_used", USD), ("Revenue (TTM)", "totalRevenue", USD)],
                    caveat=EV_NOTE),
-    "pb_ratio": _L("Price / book value",
-                   [("Price / book (Yahoo)", "priceToBook", RATIO), ("Book value per share", "bookValue", PRICE),
-                    ("Price", "currentPrice", PRICE)],
-                   how="Yahoo's price-to-book when positive, otherwise price / book value per share. Banks and insurers only."),
+    "pb_ratio": _L("Market value / common shareholders' equity",
+                   [("Market value", "marketCap", USD), ("Common equity", "commonEquity", USD)],
+                   how="Market value over common shareholders' equity - stockholders' equity less preferred stock - at the balance-sheet date, both from the same filing. Banks and insurers only. A company-level ratio, so no per-share figure can be on the wrong share class's unit; before 2026-10-20 this read the source's price-to-book, and Berkshire's book value per Class A share against a Class B price published a P/B of 0.0010 instead of 1.52."),
     # ---- quality
     "roic": _L("After-tax operating profit / invested capital",
                [("Operating income (TTM)", "ebit", USD), ("Income tax", "incomeTaxExpense", USD), ("Pre-tax income", "pretaxIncome", USD),
@@ -490,8 +486,7 @@ EQUATIONS = {
     "fcf_yield": (True, ["{fcf_used|free cash flow} ÷ {ev_used|enterprise value}"]),
     "earnings_yield": (True, ["{netIncome|net income} ÷ {marketCap|market cap}"]),
     "ev_sales": (True, ["{ev_used|enterprise value} ÷ {totalRevenue|revenue}"]),
-    "pb_ratio": (True, ["{priceToBook|price-to-book, as reported}",
-                        "{currentPrice|price} ÷ {bookValue|book value per share}"]),
+    "pb_ratio": (True, ["{marketCap|market value} ÷ {commonEquity|common equity}"]),
     "roic": (False, ["{ebit|operating income} after tax ÷ ({totalEquity|equity} + {totalDebt_bs|debt} − excess cash)",
                      "{ebit|operating income} after tax ÷ invested capital"]),
     "gross_profit_assets": (True, ["{grossProfit|gross profit} ÷ {totalAssets|total assets}"]),

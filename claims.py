@@ -1170,6 +1170,31 @@ CLAIMS: tuple[Claim, ...] = (
     # code. The entries below are the ones found false or stale (each "Fixed 2026-10-19") and the
     # true ones a student relies on most, now held to the code that makes them true.
     Claim(
+        id="overview.bank_price_to_book",
+        surface=OVERVIEW,
+        asserts=(
+            "Bank P/B is market value divided by common shareholders' equity at the balance-sheet "
+            "date, with no fallback to the data source's per-share price-to-book or book value - "
+            "which is what compute_metrics computes, and what the drilldown's equation shows."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_bank_price_to_book.py::test_the_metric_is_market_value_over_common_equity",
+            "tests/test_bank_price_to_book.py::test_there_is_no_fallback_to_the_sources_ratio",
+            "tests/test_bank_price_to_book.py::test_the_page_states_the_construction_the_engine_uses",
+            "tests/test_bank_price_to_book.py::test_a_class_a_book_value_per_share_cannot_reach_the_metric",
+        ),
+        # the page's typography pass turns " - " into a spaced en dash, so match either
+        detect=r"Market value divided by common shareholders' equity [–—] stockholders' equity less preferred stock",
+        caveat=(
+            "Fixed 2026-10-20 (research/2026-10-19-bank-price-to-book.md, reviewed in "
+            "research/measurements/2026-10-20-bank-pb-review.py). The metric read the source's "
+            "`.info` `priceToBook`; Berkshire's book value is per Class A share against a Class B "
+            "price, so its P/B published 0.0010 against 1.5234 from its own filed equity, at the "
+            "98.9th percentile in all 52 snapshots since March."
+        ),
+    ),
+    Claim(
         id="overview.roic_invested_capital",
         surface=OVERVIEW,
         asserts=(

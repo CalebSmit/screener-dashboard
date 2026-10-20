@@ -171,7 +171,7 @@ def test_inputs_the_registry_names_are_published_for_most_stocks(payload):
     for key in ml.INPUT_KEYS:
         have = sum(1 for s in stocks if (s.get("inp") or {}).get(key) is not None)
         if key in {"bookValue", "priceToBook", "returnOnEquity", "returnOnAssets", "dividendsPaid",
-                   "payoutRatio", "totalEquity_prior"}:
+                   "payoutRatio", "totalEquity_prior", "commonEquity"}:
             continue  # legitimately sparse: bank-only or payer-only fields
         assert have / len(stocks) > 0.5, f"{key} is published for only {have} of {len(stocks)} stocks"
 
