@@ -13122,3 +13122,14 @@ Beneish). 176 months rebuilt, all 30 runs redone: **no verdict changed** (larges
   the engine fingerprints. Run it in foreground chunks (`--limit 4`).
 - **Three OPEN proposals for a second session to decide**: bank ROE/ROA, bank price-to-book (fixes BRK-B's live
   P/B defect), share classes.
+
+### Evening addendum (owner-run, after the usage-limit interruptions)
+- **Engine rerun finished on the final code**: all 30 runs, in foreground chunks with `scripts/rerun_experiments.py`
+  (the session fix's own pattern, exercised for real). `--status`: 0 stale, rows level. `research.html`,
+  `summary.json` and the methodology page came out byte-identical, so every published figure is confirmed on the
+  final code; the baseline reproduced the afternoon rebuild's rows digit for digit.
+- **Cleanup for future runs**: 15 agent worktrees and 21 merged local branches removed in this repo (git's
+  `.git/worktrees` entries had been left read-only, which is why earlier removals failed; one empty folder,
+  `.claude/worktrees/agent-a4157336e84f3e5c2`, stays held by a process and is gitignored); the merged remote
+  `nightly/2026-10-19` deleted. In screener-bot, the three leftover worktrees and two merged branches removed. Both
+  repos: one worktree, one branch, clean, level with origin. The owner marker is removed.
