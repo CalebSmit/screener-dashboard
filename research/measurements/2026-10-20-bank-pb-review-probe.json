@@ -1,0 +1,1156 @@
+{
+ "run": "b2dec67a410e",
+ "probed_at": "2026-10-20 06:04",
+ "tickers": {
+  "ACGL": {
+   "info": {
+    "priceToBook": 1.470769,
+    "bookValue": 68.318,
+    "marketCap": 34286702592,
+    "currentPrice": 100.48,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 24030000000.0,
+    "Common Stock Equity": 23200000000.0,
+    "Total Equity Gross Minority Interest": 24030000000.0,
+    "Tangible Book Value": 22037000000.0,
+    "Ordinary Shares Number": 341000000.0,
+    "Total Assets": 85179000000.0
+   }
+  },
+  "AFL": {
+   "info": {
+    "priceToBook": 1.9662976,
+    "bookValue": 60.352,
+    "marketCap": 59494408192,
+    "currentPrice": 118.67,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 30312000000.0,
+    "Common Stock Equity": 30312000000.0,
+    "Total Equity Gross Minority Interest": 30312000000.0,
+    "Tangible Book Value": 30312000000.0,
+    "Ordinary Shares Number": 502257000.0,
+    "Total Assets": 115961000000.0
+   }
+  },
+  "AIG": {
+   "info": {
+    "priceToBook": 1.0423074,
+    "bookValue": 77.386,
+    "marketCap": 42176565248,
+    "currentPrice": 80.66,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 40606000000.0,
+    "Common Stock Equity": 40606000000.0,
+    "Total Equity Gross Minority Interest": 40626000000.0,
+    "Tangible Book Value": 37184000000.0,
+    "Ordinary Shares Number": 524718691.0,
+    "Total Assets": 163464000000.0
+   }
+  },
+  "AIZ": {
+   "info": {
+    "priceToBook": 2.2720351,
+    "bookValue": 123.484,
+    "marketCap": 13838276608,
+    "currentPrice": 280.56,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 6097900000.0,
+    "Common Stock Equity": 6097900000.0,
+    "Total Equity Gross Minority Interest": 6097900000.0,
+    "Tangible Book Value": 2953900000.0,
+    "Ordinary Shares Number": 49382180.0,
+    "Total Assets": 36081400000.0
+   }
+  },
+  "ALL": {
+   "info": {
+    "priceToBook": 1.9781075,
+    "bookValue": 124.791,
+    "marketCap": 62417985536,
+    "currentPrice": 246.85,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 33698000000.0,
+    "Common Stock Equity": 31697000000.0,
+    "Total Equity Gross Minority Interest": 33678000000.0,
+    "Tangible Book Value": 28579000000.0,
+    "Ordinary Shares Number": 254000000.0,
+    "Total Assets": 124756000000.0
+   }
+  },
+  "AMP": {
+   "info": {
+    "priceToBook": 6.674772,
+    "bookValue": 71.974,
+    "marketCap": 42436161536,
+    "currentPrice": 480.41,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 6366000000.0,
+    "Common Stock Equity": 6366000000.0,
+    "Total Equity Gross Minority Interest": 6366000000.0,
+    "Tangible Book Value": 6366000000.0,
+    "Ordinary Shares Number": 88448832.0,
+    "Total Assets": 197871000000.0
+   }
+  },
+  "APO": {
+   "info": {
+    "priceToBook": 3.2591136,
+    "bookValue": 34.043,
+    "marketCap": 65520762880,
+    "currentPrice": 110.95,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 21006000000.0,
+    "Common Stock Equity": 19608000000.0,
+    "Total Equity Gross Minority Interest": 41482000000.0,
+    "Tangible Book Value": 13696000000.0,
+    "Ordinary Shares Number": 575971752.0,
+    "Total Assets": 494048000000.0
+   }
+  },
+  "AXP": {
+   "info": {
+    "priceToBook": 6.230383,
+    "bookValue": 50.785,
+    "marketCap": 213674786816,
+    "currentPrice": 316.41,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 34280000000.0,
+    "Common Stock Equity": 34280000000.0,
+    "Total Equity Gross Minority Interest": 34280000000.0,
+    "Tangible Book Value": 34280000000.0,
+    "Ordinary Shares Number": 682326443.0,
+    "Total Assets": 308203000000.0
+   }
+  },
+  "BAC": {
+   "info": {
+    "priceToBook": 1.283658,
+    "bookValue": 39.255,
+    "marketCap": 352364593152,
+    "currentPrice": 50.39,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-03-31",
+   "bs_cols": [
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30",
+    "2025-03-31"
+   ],
+   "rows": {
+    "Stockholders Equity": 300668000000.0,
+    "Common Stock Equity": 275672000000.0,
+    "Total Equity Gross Minority Interest": 300668000000.0,
+    "Tangible Book Value": 206651000000.0,
+    "Ordinary Shares Number": 7129908032.0,
+    "Total Assets": 3496186000000.0
+   }
+  },
+  "BNY": {
+   "info": {
+    "priceToBook": 2.4378722,
+    "bookValue": 58.428,
+    "marketCap": 96646127616,
+    "currentPrice": 142.44,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-03-31",
+   "bs_cols": [
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30",
+    "2025-03-31"
+   ],
+   "rows": {
+    "Stockholders Equity": 44783000000.0,
+    "Common Stock Equity": 39452000000.0,
+    "Total Equity Gross Minority Interest": 45319000000.0,
+    "Tangible Book Value": 17198000000.0,
+    "Ordinary Shares Number": 686379045.0,
+    "Total Assets": 561517000000.0
+   }
+  },
+  "BRK-B": {
+   "info": {
+    "priceToBook": 0.0010191567,
+    "bookValue": 522225.9,
+    "marketCap": 1139349913600,
+    "currentPrice": 532.23,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-06-30",
+    "2025-03-31"
+   ],
+   "rows": {
+    "Stockholders Equity": 747910000000.0,
+    "Common Stock Equity": 747910000000.0,
+    "Total Equity Gross Minority Interest": 750177000000.0,
+    "Tangible Book Value": 630788000000.0,
+    "Ordinary Shares Number": 1431693.0,
+    "Total Assets": 1263071000000.0
+   }
+  },
+  "C": {
+   "info": {
+    "priceToBook": 1.0525815,
+    "bookValue": 115.611,
+    "marketCap": 204127289344,
+    "currentPrice": 121.69,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 212015000000.0,
+    "Common Stock Equity": 192465000000.0,
+    "Total Equity Gross Minority Interest": 214450000000.0,
+    "Tangible Book Value": 168449000000.0,
+    "Ordinary Shares Number": 1677436783.0,
+    "Total Assets": 2894654000000.0
+   }
+  },
+  "CB": {
+   "info": {
+    "priceToBook": 1.8228191,
+    "bookValue": 195.45,
+    "marketCap": 137448914944,
+    "currentPrice": 356.27,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 75372000000.0,
+    "Common Stock Equity": 75372000000.0,
+    "Total Equity Gross Minority Interest": 80845000000.0,
+    "Tangible Book Value": 46056000000.0,
+    "Ordinary Shares Number": 385634049.0,
+    "Total Assets": 281322000000.0
+   }
+  },
+  "CFG": {
+   "info": {
+    "priceToBook": 1.1129239,
+    "bookValue": 56.392,
+    "marketCap": 26433054720,
+    "currentPrice": 62.76,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 26183000000.0,
+    "Common Stock Equity": 24072000000.0,
+    "Total Equity Gross Minority Interest": 26183000000.0,
+    "Tangible Book Value": 15747000000.0,
+    "Ordinary Shares Number": 422677660.0,
+    "Total Assets": 233836000000.0
+   }
+  },
+  "CINF": {
+   "info": {
+    "priceToBook": 1.5632563,
+    "bookValue": 108.677,
+    "marketCap": 26074386432,
+    "currentPrice": 169.89,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-03-31",
+   "bs_cols": [
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30",
+    "2025-03-31"
+   ],
+   "rows": {
+    "Stockholders Equity": 15714000000.0,
+    "Common Stock Equity": 15714000000.0,
+    "Total Equity Gross Minority Interest": 15714000000.0,
+    "Tangible Book Value": 15714000000.0,
+    "Ordinary Shares Number": 154600000.0,
+    "Total Assets": 41211000000.0
+   }
+  },
+  "COF": {
+   "info": {
+    "priceToBook": 1.1904634,
+    "bookValue": 167.859,
+    "marketCap": 122592681984,
+    "currentPrice": 199.83,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 113793000000.0,
+    "Common Stock Equity": 113793000000.0,
+    "Total Equity Gross Minority Interest": 113793000000.0,
+    "Tangible Book Value": 65850000000.0,
+    "Ordinary Shares Number": 613484836.0,
+    "Total Assets": 673835000000.0
+   }
+  },
+  "EG": {
+   "info": {
+    "priceToBook": 0.97938836,
+    "bookValue": 398.708,
+    "marketCap": 14972454912,
+    "currentPrice": 390.49,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 15430000000.0,
+    "Common Stock Equity": 15430000000.0,
+    "Total Equity Gross Minority Interest": 15430000000.0,
+    "Tangible Book Value": 15430000000.0,
+    "Ordinary Shares Number": 38700000.0,
+    "Total Assets": 62167000000.0
+   }
+  },
+  "FITB": {
+   "info": {
+    "priceToBook": 1.6736803,
+    "bookValue": 30.179,
+    "marketCap": 45807140864,
+    "currentPrice": 50.51,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 34482000000.0,
+    "Common Stock Equity": 32300000000.0,
+    "Total Equity Gross Minority Interest": 34482000000.0,
+    "Tangible Book Value": 19450000000.0,
+    "Ordinary Shares Number": 906572635.0,
+    "Total Assets": 300180000000.0
+   }
+  },
+  "GL": {
+   "info": {
+    "priceToBook": 2.101014,
+    "bookValue": 79.89,
+    "marketCap": 12899180544,
+    "currentPrice": 167.85,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 6155815000.0,
+    "Common Stock Equity": 6155815000.0,
+    "Total Equity Gross Minority Interest": 6155815000.0,
+    "Tangible Book Value": 5665369000.0,
+    "Ordinary Shares Number": 77054008.0,
+    "Total Assets": 31562519000.0
+   }
+  },
+  "GS": {
+   "info": {
+    "priceToBook": 2.3526917,
+    "bookValue": 372.246,
+    "marketCap": 255002083328,
+    "currentPrice": 875.78,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 122742000000.0,
+    "Common Stock Equity": 109714000000.0,
+    "Total Equity Gross Minority Interest": 122742000000.0,
+    "Tangible Book Value": 100443000000.0,
+    "Ordinary Shares Number": 291442355.0,
+    "Total Assets": 2127711000000.0
+   }
+  },
+  "HBAN": {
+   "info": {
+    "priceToBook": 1.0345764,
+    "bookValue": 14.721,
+    "marketCap": 30770917376,
+    "currentPrice": 15.23,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 32624000000.0,
+    "Common Stock Equity": 29743000000.0,
+    "Total Equity Gross Minority Interest": 32665000000.0,
+    "Tangible Book Value": 18525000000.0,
+    "Ordinary Shares Number": 2020414826.0,
+    "Total Assets": 283984000000.0
+   }
+  },
+  "HIG": {
+   "info": {
+    "priceToBook": 1.8906138,
+    "bookValue": 71.051,
+    "marketCap": 36386234368,
+    "currentPrice": 134.33,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 19633000000.0,
+    "Common Stock Equity": 19299000000.0,
+    "Total Equity Gross Minority Interest": 19633000000.0,
+    "Tangible Book Value": 17139000000.0,
+    "Ordinary Shares Number": 271623634.0,
+    "Total Assets": 87983000000.0
+   }
+  },
+  "HOOD": {
+   "info": {
+    "priceToBook": 9.153152,
+    "bookValue": 10.545,
+    "marketCap": 86779420672,
+    "currentPrice": 96.52,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 9480000000.0,
+    "Common Stock Equity": 9480000000.0,
+    "Total Equity Gross Minority Interest": 9541000000.0,
+    "Tangible Book Value": 8718000000.0,
+    "Ordinary Shares Number": 899000000.0,
+    "Total Assets": 56550000000.0
+   }
+  },
+  "IBKR": {
+   "info": {
+    "priceToBook": 5.919808,
+    "bookValue": 13.742,
+    "marketCap": 138605395968,
+    "currentPrice": 81.35,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 5904000000.0,
+    "Common Stock Equity": 5904000000.0,
+    "Total Equity Gross Minority Interest": 22250000000.0,
+    "Tangible Book Value": 5904000000.0,
+    "Ordinary Shares Number": 450572183.0,
+    "Total Assets": 247309000000.0
+   }
+  },
+  "JPM": {
+   "info": {
+    "priceToBook": 2.52107,
+    "bookValue": 132.297,
+    "marketCap": 885722316800,
+    "currentPrice": 333.53,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 374598000000.0,
+    "Common Stock Equity": 353558000000.0,
+    "Total Equity Gross Minority Interest": 374598000000.0,
+    "Tangible Book Value": 289254000000.0,
+    "Ordinary Shares Number": 2658186195.0,
+    "Total Assets": 5015069000000.0
+   }
+  },
+  "KEY": {
+   "info": {
+    "priceToBook": 1.2345067,
+    "bookValue": 16.136,
+    "marketCap": 21257201664,
+    "currentPrice": 19.92,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 19798000000.0,
+    "Common Stock Equity": 17298000000.0,
+    "Total Equity Gross Minority Interest": 19798000000.0,
+    "Tangible Book Value": 14543000000.0,
+    "Ordinary Shares Number": 1072034551.0,
+    "Total Assets": 191317000000.0
+   }
+  },
+  "KKR": {
+   "info": {
+    "priceToBook": 2.7401574,
+    "bookValue": 31.75,
+    "marketCap": 80352378880,
+    "currentPrice": 87.0,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 31047399000.0,
+    "Common Stock Equity": 28503995000.0,
+    "Total Equity Gross Minority Interest": 80450254000.0,
+    "Tangible Book Value": 18980759000.0,
+    "Ordinary Shares Number": 897776609.0,
+    "Total Assets": 414463237000.0
+   }
+  },
+  "L": {
+   "info": {
+    "priceToBook": 1.1787037,
+    "bookValue": 93.518,
+    "marketCap": 22534068224,
+    "currentPrice": 110.23,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 19115000000.0,
+    "Common Stock Equity": 19115000000.0,
+    "Total Equity Gross Minority Interest": 20032000000.0,
+    "Tangible Book Value": 18632000000.0,
+    "Ordinary Shares Number": 206003999.0,
+    "Total Assets": 87228000000.0
+   }
+  },
+  "MET": {
+   "info": {
+    "priceToBook": 2.314307,
+    "bookValue": 43.028,
+    "marketCap": 63280795648,
+    "currentPrice": 99.58,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 27441000000.0,
+    "Common Stock Equity": 27441000000.0,
+    "Total Equity Gross Minority Interest": 27961000000.0,
+    "Tangible Book Value": 17905000000.0,
+    "Ordinary Shares Number": 637752080.0,
+    "Total Assets": 759372000000.0
+   }
+  },
+  "MS": {
+   "info": {
+    "priceToBook": 2.632262,
+    "bookValue": 67.801,
+    "marketCap": 280298979328,
+    "currentPrice": 178.47,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 116329000000.0,
+    "Common Stock Equity": 106579000000.0,
+    "Total Equity Gross Minority Interest": 117440000000.0,
+    "Tangible Book Value": 83601000000.0,
+    "Ordinary Shares Number": 1571931108.0,
+    "Total Assets": 1675057000000.0
+   }
+  },
+  "MTB": {
+   "info": {
+    "priceToBook": 1.2217066,
+    "bookValue": 174.952,
+    "marketCap": 30867531776,
+    "currentPrice": 213.74,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 27946000000.0,
+    "Common Stock Equity": 25512000000.0,
+    "Total Equity Gross Minority Interest": 27946000000.0,
+    "Tangible Book Value": 16999000000.0,
+    "Ordinary Shares Number": 144929519.0,
+    "Total Assets": 219261000000.0
+   }
+  },
+  "NTRS": {
+   "info": {
+    "priceToBook": 2.403894,
+    "bookValue": 68.414,
+    "marketCap": 30088886272,
+    "currentPrice": 164.46,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 13401600000.0,
+    "Common Stock Equity": 12516700000.0,
+    "Total Equity Gross Minority Interest": 13401600000.0,
+    "Tangible Book Value": 11807100000.0,
+    "Ordinary Shares Number": 182955653.0,
+    "Total Assets": 179297200000.0
+   }
+  },
+  "PFG": {
+   "info": {
+    "priceToBook": 1.8888535,
+    "bookValue": 56.574,
+    "marketCap": 22879221760,
+    "currentPrice": 106.86,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 12142800000.0,
+    "Common Stock Equity": 12142800000.0,
+    "Total Equity Gross Minority Interest": 12889500000.0,
+    "Tangible Book Value": 9284300000.0,
+    "Ordinary Shares Number": 214635434.0,
+    "Total Assets": 352752300000.0
+   }
+  },
+  "PGR": {
+   "info": {
+    "priceToBook": 3.682026,
+    "bookValue": 59.508,
+    "marketCap": 127171444736,
+    "currentPrice": 219.11,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 34333000000.0,
+    "Common Stock Equity": 34333000000.0,
+    "Total Equity Gross Minority Interest": 34333000000.0,
+    "Tangible Book Value": 34333000000.0,
+    "Ordinary Shares Number": 581400000.0,
+    "Total Assets": 124925000000.0
+   }
+  },
+  "PNC": {
+   "info": {
+    "priceToBook": 1.3774409,
+    "bookValue": 156.965,
+    "marketCap": 86255616000,
+    "currentPrice": 216.21,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 64008000000.0,
+    "Common Stock Equity": 64008000000.0,
+    "Total Equity Gross Minority Interest": 64061000000.0,
+    "Tangible Book Value": 46890000000.0,
+    "Ordinary Shares Number": 399465725.0,
+    "Total Assets": 616034000000.0
+   }
+  },
+  "PRU": {
+   "info": {
+    "priceToBook": 1.2426889,
+    "bookValue": 91.471,
+    "marketCap": 39216148480,
+    "currentPrice": 113.67,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 31577000000.0,
+    "Common Stock Equity": 31577000000.0,
+    "Total Equity Gross Minority Interest": 34587000000.0,
+    "Tangible Book Value": 31211000000.0,
+    "Ordinary Shares Number": 345212683.0,
+    "Total Assets": 783554000000.0
+   }
+  },
+  "RF": {
+   "info": {
+    "priceToBook": 1.4030745,
+    "bookValue": 19.386,
+    "marketCap": 23172483072,
+    "currentPrice": 27.2,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 18840000000.0,
+    "Common Stock Equity": 17471000000.0,
+    "Total Equity Gross Minority Interest": 18911000000.0,
+    "Tangible Book Value": 10654000000.0,
+    "Ordinary Shares Number": 852724718.0,
+    "Total Assets": 161299000000.0
+   }
+  },
+  "RJF": {
+   "info": {
+    "priceToBook": 2.3214016,
+    "bookValue": 66.098,
+    "marketCap": 29475823616,
+    "currentPrice": 153.44,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 12699000000.0,
+    "Common Stock Equity": 12699000000.0,
+    "Total Equity Gross Minority Interest": 12783000000.0,
+    "Tangible Book Value": 10091000000.0,
+    "Ordinary Shares Number": 192124666.0,
+    "Total Assets": 94237000000.0
+   }
+  },
+  "SCHW": {
+   "info": {
+    "priceToBook": 3.0115986,
+    "bookValue": 29.745,
+    "marketCap": 154913898496,
+    "currentPrice": 89.58,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 50147000000.0,
+    "Common Stock Equity": 43934000000.0,
+    "Total Equity Gross Minority Interest": 50147000000.0,
+    "Tangible Book Value": 24361000000.0,
+    "Ordinary Shares Number": 1728119192.0,
+    "Total Assets": 517266000000.0
+   }
+  },
+  "STT": {
+   "info": {
+    "priceToBook": 1.8306259,
+    "bookValue": 90.368,
+    "marketCap": 45443911680,
+    "currentPrice": 165.43,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 28268000000.0,
+    "Common Stock Equity": 24709000000.0,
+    "Total Equity Gross Minority Interest": 28268000000.0,
+    "Tangible Book Value": 15787000000.0,
+    "Ordinary Shares Number": 274702550.0,
+    "Total Assets": 418381000000.0
+   }
+  },
+  "SYF": {
+   "info": {
+    "priceToBook": 1.5892792,
+    "bookValue": 46.713,
+    "marketCap": 24155531264,
+    "currentPrice": 74.24,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 16897000000.0,
+    "Common Stock Equity": 15181000000.0,
+    "Total Equity Gross Minority Interest": 16897000000.0,
+    "Tangible Book Value": 13666000000.0,
+    "Ordinary Shares Number": 325000000.0,
+    "Total Assets": 121930000000.0
+   }
+  },
+  "TFC": {
+   "info": {
+    "priceToBook": 0.99025136,
+    "bookValue": 46.776,
+    "marketCap": 56585728000,
+    "currentPrice": 46.32,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-03-31",
+   "bs_cols": [
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30",
+    "2025-03-31"
+   ],
+   "rows": {
+    "Stockholders Equity": 64214000000.0,
+    "Common Stock Equity": 59298000000.0,
+    "Total Equity Gross Minority Interest": 64214000000.0,
+    "Tangible Book Value": 36869000000.0,
+    "Ordinary Shares Number": 1245879275.0,
+    "Total Assets": 548975000000.0
+   }
+  },
+  "TRV": {
+   "info": {
+    "priceToBook": 2.7238743,
+    "bookValue": 141.508,
+    "marketCap": 80395247616,
+    "currentPrice": 385.45,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 33121000000.0,
+    "Common Stock Equity": 33121000000.0,
+    "Total Equity Gross Minority Interest": 33121000000.0,
+    "Tangible Book Value": 28736000000.0,
+    "Ordinary Shares Number": 208600000.0,
+    "Total Assets": 143580000000.0
+   }
+  },
+  "USB": {
+   "info": {
+    "priceToBook": 1.5118254,
+    "bookValue": 38.265,
+    "marketCap": 90133274624,
+    "currentPrice": 57.85,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 67432000000.0,
+    "Common Stock Equity": 60624000000.0,
+    "Total Equity Gross Minority Interest": 67895000000.0,
+    "Tangible Book Value": 42391000000.0,
+    "Ordinary Shares Number": 1557809551.0,
+    "Total Assets": 725918000000.0
+   }
+  },
+  "WFC": {
+   "info": {
+    "priceToBook": 1.5475425,
+    "bookValue": 52.858,
+    "marketCap": 245534064640,
+    "currentPrice": 81.8,
+    "mostRecentQuarter": 1790726400
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 180190000000.0,
+    "Common Stock Equity": 164842000000.0,
+    "Total Equity Gross Minority Interest": 182323000000.0,
+    "Tangible Book Value": 133938000000.0,
+    "Ordinary Shares Number": 3028515336.0,
+    "Total Assets": 2282201000000.0
+   }
+  },
+  "WRB": {
+   "info": {
+    "priceToBook": 2.9263282,
+    "bookValue": 25.315,
+    "marketCap": 27500535808,
+    "currentPrice": 74.08,
+    "mostRecentQuarter": 1782777600
+   },
+   "bs_date": "2026-06-30",
+   "bs_cols": [
+    "2026-06-30",
+    "2026-03-31",
+    "2025-12-31",
+    "2025-09-30",
+    "2025-06-30"
+   ],
+   "rows": {
+    "Stockholders Equity": 9833239000.0,
+    "Common Stock Equity": 9833239000.0,
+    "Total Equity Gross Minority Interest": 9843081000.0,
+    "Tangible Book Value": 9648907000.0,
+    "Ordinary Shares Number": 371057782.0,
+    "Total Assets": 45677113000.0
+   }
+  }
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "run": "b2dec67a410e",
+ "run_started": "2026-10-20T02:00:03.858333",
+ "probe": {
+  "probed_at": "2026-10-20 06:04",
+  "run": "b2dec67a410e"
+ },
+ "bank_like": 46,
+ "A_availability": {
+  "probe_errors": [],
+  "common_equity_present_and_positive": "46 of 46",
+  "missing": [],
+  "probe_bs_date_equals_run_bs_date": "46 of 46",
+  "dates_differing": {},
+  "run_totalEquity_vs_probe_stockholders_equity_within_0.5pct": "46 of 46",
+  "common_over_stockholders_equity": {
+   "median": 0.9743,
+   "under_0.95 (preferred-heavy)": [
+    "ALL",
+    "APO",
+    "BAC",
+    "BNY",
+    "C",
+    "CFG",
+    "FITB",
+    "GS",
+    "HBAN",
+    "JPM",
+    "KEY",
+    "KKR",
+    "MS",
+    "MTB",
+    "NTRS",
+    "RF",
+    "SCHW",
+    "STT",
+    "SYF",
+    "TFC",
+    "USB",
+    "WFC"
+   ]
+  },
+  "mc_over_ce_vs_yahoo_pb_within_2pct (excl. BRK-B)": "32 of 45"
+ },
+ "baseline_reproduces_published_ranks": "501 of 501",
+ "B_stakes_mc_over_common_equity": {
+  "replaced": 46,
+  "universe_composite_spearman": 0.9996,
+  "bank_like_median_abs_rank_move": 1.5,
+  "bank_like_moved_10_or_more": 7,
+  "top_25_in_only_baseline": [],
+  "top_25_in_only_proposed": [],
+  "largest_moves": {
+   "BRK-B": [
+    65,
+    139
+   ],
+   "FITB": [
+    382,
+    347
+   ],
+   "COF": [
+    178,
+    159
+   ],
+   "TFC": [
+    245,
+    230
+   ],
+   "RF": [
+    104,
+    90
+   ],
+   "IBKR": [
+    379,
+    392
+   ],
+   "WRB": [
+    212,
+    202
+   ],
+   "HBAN": [
+    346,
+    338
+   ]
+  },
+  "BRK-B": {
+   "rank": [
+    65,
+    139
+   ],
+   "pb_ratio": [
+    0.001,
+    1.5234
+   ],
+   "pb_percentile": [
+    98.9,
+    59.8
+   ],
+   "valuation": [
+    81.7,
+    58.2
+   ],
+   "composite": [
+    59.93,
+    54.77
+   ]
+  },
+  "non_bank_composite_changed": 0
+ },
+ "C_berkshire_from_filings": {
+  "bs_date": "2026-06-30",
+  "filed_stockholders_equity": 747910000000.0,
+  "filed_common_shares": null,
+  "probe_common_equity": 747910000000.0,
+  "run_totalEquity": 747910000000.0,
+  "marketCap": 1139349913600.0,
+  "pb_from_filed_equity": 1.5234,
+  "pb_from_probe_common_equity": 1.5234,
+  "yahoo_pb_published": 0.001019,
+  "yahoo_bookValue_per_share": 522225.9,
+  "run_sharesBS": 1431693.0,
+  "price": null
+ }
+}

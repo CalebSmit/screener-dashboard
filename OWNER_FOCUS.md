@@ -471,6 +471,35 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-20 - the bank price-to-book proposal: REVIEWED and ACCEPTED, and it fixes a number the
+  site had published wrong since March.** Raised 2026-10-19 and decided by the next scheduled
+  session, as the routine requires. Price-to-book is the heaviest thing in a bank's or insurer's
+  valuation - 60 of that table's 100 points, about 13 composite points for each of 46 companies -
+  and it was read from the data provider's ready-made ratio, which is a **per-share** figure.
+  **Berkshire Hathaway's book value is quoted per Class A share ($522,226) against a Class B share
+  price (about $532)**, so the screener published its price-to-book as **0.0010** where the company's
+  own filed equity over its market value is **1.52** - wrong by a factor of 1,495, which is exactly
+  the 1,500-to-1 ratio between the two share classes. That made Berkshire the cheapest bank-like
+  stock on the page by a factor of a thousand, in **all 52 snapshots since March**, and it was
+  ranked 65th this morning on the strength of it.
+  It is now market value divided by common shareholders' equity from the same balance sheet as
+  everything else that company is scored on - the construction MSCI, S&P DJI and the banks' own
+  filings use, and one with no per-share unit to get wrong. **Berkshire is 139th.** Nothing else
+  of consequence moved: the top 25 is unchanged, no company outside the 46 changed at all, and the
+  bank-like set moved a median of 1.5 places.
+  **What the review added to the proposal**, which is the reason a second session decides these:
+  the note's evidence for the one thing that could have sunk it - is the figure actually there for
+  every company? - was a single morning's probe. It was re-measured on a fresh probe and a second
+  day's run: present and positive for **46 of 46**, at the same balance-sheet date as the run for
+  46 of 46. That is precisely the test the earnings-definition proposal **failed** on 2026-10-16
+  (23 companies had no figure at all), and it is why that one was refused and this one was not.
+  Berkshire's corrected figure was also checked against its own SEC filing rather than against
+  another of the provider's rows. A full screener run was made in the session so the fix is live
+  now rather than at 02:00. `METHODOLOGY_CHANGELOG.md` 2026-10-20;
+  `research/2026-10-19-bank-price-to-book.md`.
+  **Two proposals from the same day are still waiting for a decision:** bank ROE/ROA, and scoring
+  each company once where it has several share classes.
+
 - **2026-10-16 - The investor pass: done (owner-run, overnight 2026-10-15/16).** Owner, in chat: *"a deep
   ui/ux pass to make it look really nice and expensive, and premium for investors ... guide the users eyes,
   and show things first that makes sense."* Fifteen presentation-only phases, each merged and tagged

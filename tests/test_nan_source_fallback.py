@@ -302,12 +302,31 @@ class TestPriceFallsBackToLatestClose:
         row = _metrics(market_returns, **self.NO_INFO_PRICE)
         assert _val(row, "_current_price") == pytest.approx(100.0)
 
-    def test_bank_pb_ratio_computes(self, market_returns):
+    def test_bank_pb_ratio_needs_no_price_at_all(self, market_returns):
+        """Rewritten 2026-10-20, and the rewrite is the point.
+
+        This used to assert the fallback it was built to protect: with the source's
+        `priceToBook` NaN, bank P/B was `currentPrice / bookValue`, so it needed the
+        latest-close fallback like `peg_ratio` does. The metric is now market value over
+        common shareholders' equity at the balance-sheet date, so **no price enters it** and
+        the whole fallback question is moot for it - which is a stronger guarantee than the
+        one this test used to make. See `METHODOLOGY_CHANGELOG.md` 2026-10-20 and
+        `tests/test_bank_price_to_book.py`; the construction it pinned published Berkshire's
+        P/B as 0.0010 (its book is per Class A share, its price per Class B).
+
+        A test that asserts a defect is how the composite-is-a-percentile sentence survived
+        for months (CLAUDE.md T0a), so this is updated rather than deleted.
+        """
+        row = _metrics(market_returns, currentPrice=np.nan, price_latest=np.nan,
+                       sector="Financial Services", industry="Banks - Diversified",
+                       marketCap=2.0e11, commonEquity=1.0e11,
+                       priceToBook=np.nan, bookValue=20.0)
+        assert _val(row, "pb_ratio") == pytest.approx(2.0)      # no price anywhere, still scored
+        # and the old inputs cannot reach it, with or without a price
         row = _metrics(market_returns, currentPrice=np.nan, price_latest=100.0,
-                       sector="Financial Services",
-                       industry="Banks - Diversified", priceToBook=np.nan,
-                       bookValue=20.0)
-        assert _val(row, "pb_ratio") == pytest.approx(5.0)
+                       sector="Financial Services", industry="Banks - Diversified",
+                       priceToBook=np.nan, bookValue=20.0)
+        assert _val(row, "pb_ratio") is None
 
     def test_info_price_takes_precedence_over_latest_close(self, market_returns):
         row = _metrics(market_returns, currentPrice=110.0, price_latest=100.0)

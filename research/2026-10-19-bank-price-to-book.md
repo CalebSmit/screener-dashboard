@@ -289,4 +289,22 @@ It needs `2026-10-19-bank-roe-roa-probe.json` (the source's balance sheets and `
 2026-10-19); re-probing later will move the 18 newer-quarter stocks onto September statements and
 change section 3's counts.
 
-**Proposal status: OPEN** - for bank-like stocks, `pb_ratio = marketCap / commonEquity` (new raw field `commonEquity` = the quarterly balance sheet's "Common Stock Equity" at `_stmt_date_balance_sheet`; NaN unless both are positive; no fallback to `priceToBook`, `bookValue` or stockholders' equity), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, a `scoring_schema` bump, the generated methodology text and a changelog entry (section 8). Measured on the 2026-10-19 run: top 25 unchanged, bank-like median move 2.5 places, BRK-B 60th -> 121st (its source P/B of 0.0010 is book per Class A share against a Class B price)
+**Proposal status: ACCEPTED 2026-10-20** - built as proposed by the 06:00 session, which did not
+write this note. It re-measured the two things the decision turned on, on the **2026-10-20** run and
+a **fresh** probe rather than this note's (`research/measurements/2026-10-20-bank-pb-review.py`):
+**availability** - "Common Stock Equity" present and positive for **46 of 46** bank-like stocks, at
+the same balance-sheet date as the run for **46 of 46**, the run's `totalEquity` equal to the probe's
+stockholders' equity within 0.5% for 46 of 46 - which is what separates this from the
+earnings-definition proposal refused on 2026-10-16 (23 companies with no figure at all); and **the
+stakes** - top 25 unchanged both ways, bank-like median move **1.5** places, **0** non-bank
+composites changed, universe composite Spearman **0.9996**, BRK-B 65th -> 139th. Berkshire's
+corrected ratio was checked against its own filing rather than another of the source's rows: filed
+stockholders' equity of **$747.91bn** (equal to the probe's common equity and the run's
+`totalEquity`) over a market value of $1,139.35bn is **1.5234**, against the published **0.001019** -
+**1,494.8x**, the Class A-to-B ratio. `METHODOLOGY_CHANGELOG.md` 2026-10-20;
+`tests/test_bank_price_to_book.py`; claim `overview.bank_price_to_book`. The note's two refusal
+candidates were weighed and rejected: MSCI's latest-book rule against a measured 0.3% median cost of
+consistency, and fixing IBKR's market value first against a rank move (379 -> 392) that changes
+nothing a reader acts on. Sections 4's IBKR finding and 5's tangible-book question stay open.
+
+**Original proposal, as raised 2026-10-19** - for bank-like stocks, `pb_ratio = marketCap / commonEquity` (new raw field `commonEquity` = the quarterly balance sheet's "Common Stock Equity" at `_stmt_date_balance_sheet`; NaN unless both are positive; no fallback to `priceToBook`, `bookValue` or stockholders' equity), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, a `scoring_schema` bump, the generated methodology text and a changelog entry (section 8). Measured on the 2026-10-19 run: top 25 unchanged, bank-like median move 2.5 places, BRK-B 60th -> 121st (its source P/B of 0.0010 is book per Class A share against a Class B price)

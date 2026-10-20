@@ -114,7 +114,7 @@ FIELD_CLASSES = {
         "_rev_q0", "_rev_q4", "totalRevenue_3yr_ago", "totalRevenue_annual",
         "totalRevenue_annual_prior", "ebit_annual", "ebit_prior", "_ni_a0", "_ni_a1", "_gp_a0",
         "_gp_a1", "_ta_a1", "_ta_a2", "totalAssets", "totalAssets_prior", "totalEquity",
-        "totalEquity_prior", "totalDebt_bs", "longTermDebt", "longTermDebt_prior",
+        "totalEquity_prior", "commonEquity", "totalDebt_bs", "longTermDebt", "longTermDebt_prior",
         "currentAssets", "currentAssets_prior", "currentLiabilities", "currentLiabilities_prior",
         "cash_bs", "cash_sti_bs", "sharesBS", "sharesBS_prior", "operatingCashFlow", "capex",
         "dividendsPaid", "da_cf", "_data_source", "_ltm_annualized", "_stmt_date_financials",
@@ -450,6 +450,13 @@ def statement_fields(facts: pd.DataFrame, ticker: str, as_of, filed: Filed | Non
     for field, end in (("sharesBS", q0), ("sharesBS_prior", q4)):
         if not np.isfinite(r[field]):
             r[field] = F.cover_shares_after(end)
+    # Common shareholders' equity, which the bank P/B divides market value by (2026-10-20). The
+    # facts cache carries ``StockholdersEquity`` and no common-equity concept, and not the
+    # preferred-stock items the deduction would need either, so v2's bank P/B is market value over
+    # *stockholders'* equity and this line is where that is stated. It is the same number
+    # ``market_fields`` already built as ``priceToBook`` (price x shares / equity = market value /
+    # equity), so the scored construction changing left every v2 figure unmoved.
+    r["commonEquity"] = r["totalEquity"]
     r["cash_bs"] = F.instant("cash", q0)
     cs = F.instant("cash_sti", q0)
     r["cash_sti_bs"] = cs if np.isfinite(cs) else _nan_sum(r["cash_bs"], F.instant("sti", q0))

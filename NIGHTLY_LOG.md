@@ -13133,3 +13133,139 @@ Beneish). 176 months rebuilt, all 30 runs redone: **no verdict changed** (larges
   `.claude/worktrees/agent-a4157336e84f3e5c2`, stays held by a process and is gitignored); the merged remote
   `nightly/2026-10-19` deleted. In screener-bot, the three leftover worktrees and two merged branches removed. Both
   repos: one worktree, one branch, clean, level with origin. The owner marker is removed.
+
+
+## 2026-10-20 (06:00 session) - QUEUE. The bank price-to-book proposal reviewed and ACCEPTED: Berkshire's P/B was 0.0010, not 1.52, and had been since March
+
+**Health (rule 8, all five):** last code session ran? **the 06:00 one ran and shipped**
+(`logs/nightly-2026-10-19_060001.log` - its gates failed at the time and an owner-run session
+finished and merged its work the same day); the 13:00 slot **stood down** for the owner marker, as
+designed. Data loop published? **yes** - `logs/datarun-2026-10-20_020001.log` ends "Data loop
+complete", HEALTH: PASS, 501 scored. Evidence base at `1m` = **33 rows, newest 2026-09-18 (32 days
+ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8 observations. Top
+open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 12 days**) - deferred
+today, see below.
+**Tests:** before **2,817 passed, 1 skipped**; after **2,830 passed, 1 skipped** (13 new).
+**Owner queue / rotation:** `MORNING_BRIEF.md` listed **three** proposals waiting for a decision,
+all opened 2026-10-19, so deciding one was the day's first job ahead of the Tuesday focus
+(`prompts/nightly.md` section 1). Took the bank price-to-book one, because it was the only one of
+the three carrying a **demonstrably false number on the live site**. The context-layer item
+(0.11) and the other two proposals were not started; nothing there is half-done.
+
+### Did
+
+**Reviewed, re-measured and ACCEPTED the bank price-to-book proposal**
+(`research/2026-10-19-bank-price-to-book.md` section 8, raised by the 2026-10-19 session). Bank P/B
+is 60 of the bank Valuation table's 100 points - about **13.2 composite points for each of the 46
+bank-like stocks** - and it read the data source's `.info` `priceToBook`, which is
+`currentPrice / bookValue` with `bookValue` a **per-share** figure.
+
+- **The live defect, confirmed on this morning's published payload before anything was changed:**
+  BRK-B's `pb_ratio` was **0.0010191567** at the **98.9th** percentile of the bank P/B ranking -
+  the cheapest bank-like stock by a factor of nearly a thousand - and it was ranked **65th** on the
+  strength of it. Its book value is per **Class A** share ($522,226) against a **Class B** price
+  (about $532). Checked against the company's own filing rather than another of the source's rows:
+  filed stockholders' equity of **$747,910,000,000** (equal to the probe's common equity *and* to
+  the run's own `totalEquity`) over a market value of $1,139,349,913,600 is **1.5234**. The
+  published figure was **1,494.8x** too low, which is the 1,500:1 A-to-B ratio. It had been
+  published every weekday since March: at least the 91.4th percentile in **all 52** improvement
+  snapshots carrying it, median 98.3.
+- **Now:** `pb_ratio = marketCap / commonEquity`, both > 0 required, where `commonEquity` is a new
+  raw field - the quarterly balance sheet's "Common Stock Equity" at the same column `totalEquity`
+  is read from. **No fallback** to `priceToBook` or `bookValue` (the Phase 13 F19 rule). A
+  company-level ratio has no per-share unit to get wrong, and it puts the metric on the same
+  balance sheet as the rest of the record - the source's book was a quarter newer than everything
+  else scored for **18 of the 46**.
+- **Shipped with its frontend, same commit** (CLAUDE.md 0.8c): `metric_lineage` LINEAGE /
+  RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, `scoring_schema` 12 -> 13, the generated
+  methodology paragraph, claim `overview.bank_price_to_book`, `METHODOLOGY_CHANGELOG.md`.
+- **A full screener run was made in the session** so the new field is in the live payload rather
+  than waiting for 02:00: 501 scored, all **46 of 46** bank-like stocks keep a P/B, every one
+  rebuilds from its two published inputs, `check_run_health` **PASS**,
+  `scripts/check_published_claims.py` **PASS (1,130 tests)**, `scripts/rehearse_publish.py`
+  **PASSED**.
+
+**What the review added, which is the reason a second session decides these.** The note's evidence
+for the one thing that could sink it - availability - was a single morning's probe. Re-measured
+today on a **fresh** probe read through the engine's own extraction path and on the **2026-10-20**
+run (`research/measurements/2026-10-20-bank-pb-review.py`): "Common Stock Equity" present and
+positive for **46 of 46**, probe balance-sheet date equal to the run's for **46 of 46**, the run's
+`totalEquity` within 0.5% of the probe's stockholders' equity for 46 of 46. That is exactly the
+test the earnings-definition proposal **failed** on 2026-10-16 - 23 companies with no adjusted
+figure at all, re-creating the fallback-cohort defect - and it is the difference between the two
+decisions. The stakes were re-measured on this run too (the baseline reproduces **501 of 501**
+published ranks): top 25 **unchanged both ways**, bank-like median move **1.5** places, 7 moved 10
+or more, **0** non-bank composites changed, universe composite Spearman **0.9996**, **BRK-B 65th ->
+139th** (P/B percentile 98.9 -> 59.8, Valuation 81.7 -> 58.2, composite 59.93 -> 54.77).
+
+**Looked at the page** (Tuesday's standing rule). BRK-B's and JPM's P/B rows opened at 1440 and
+375px: *"$1.14T market value ÷ $747.9B common equity = 1.52"*, *"Ranked 19th of 46 in Financials,
+lower being better; sector median 1.86"*, *"59.78 percentile × 60% weight = 35.87 points"*, and
+*"✓ Rebuilt from the inputs above: the same 1.52 that was scored."* The definition block names the
+construction and says what it replaced. Two-line card on the phone, nothing clipped.
+`logs/design/bankpb-*.png`.
+
+**The research engine was rerun complete, and the prediction about it was written first.**
+`factor_engine.py` and `pit_record.py` are both in `v2_experiments.RESULT_PATHS`, so all 30 rows
+went stale. Predicted in the changelog before running: nothing moves, because
+`pit_record.statement_fields` sets `commonEquity` to the filed stockholders' equity and
+`market_fields` already built `priceToBook` as price x shares / equity - the same ratio. Rerun in
+eight foreground chunks with `scripts/rerun_experiments.py`, committing after each; `--status` now
+reports **0 stale**. Checked rather than assumed
+(`research/measurements/2026-10-20-engine-rerun-diff.py`): each experiment's newest row against the
+one before it, every numeric statistic at full precision - **30 of 30 identical, largest difference
+0.0** - and `research.html` and `summary.json` came out byte-unchanged.
+
+### Evidence / research
+
+- **MSCI, *Fundamental Data Methodology* (March 2021)**, section 1.2.5 (p. 16): book value excludes
+  "minority interest, treasury shares and preferred shares"; section 1.1.1 (p. 10): per-share
+  figures use "the total number of shares at the company level", all classes aggregated - i.e.
+  market value over common equity.
+  https://www.msci.com/eqb/methodology/meth_docs/MSCI_Fundamental_Data_Methodology_Mar2021.pdf
+- **S&P DJI, *S&P U.S. Style Indices Methodology* (June 2022)**, p. 6: "Book Value to Price Ratio"
+  computed "for each company".
+- **JPMorgan Chase, 2022 Form 10-K**, MD&A p. 59: "TCE represents the Firm's common stockholders'
+  equity (i.e., total stockholders' equity less preferred stock)".
+  https://www.sec.gov/Archives/edgar/data/19617/000001961723000231/jpm-20221231.htm
+- **Damodaran (2009), "Valuing Financial Service Firms"**, pp. 30-31: P/B with ROE as its
+  "companion variable" - the pairing `bank_metric_weights` rests on.
+  https://pages.stern.nyu.edu/~adamodar/pdfiles/papers/finfirm09.pdf
+- **Fama & French (1992), p. 429** excludes financial firms from the book-to-market tests, so the
+  published value premium is **not** evidence about bank P/B. This change is justified by practice,
+  not by a premium.
+
+### Methodology changed
+
+- `METHODOLOGY_CHANGELOG.md` **2026-10-20 - Proposal ACCEPTED: bank P/B is market value over common
+  equity, not the source's per-share ratio.** `scoring_schema` 12 -> 13. Rollback: revert the
+  commit, schema back to 12.
+
+### Tried and rejected
+
+- **Market value / stockholders' equity (including preferred)** - needs no new field, so no
+  refetch, and it was tempting for that reason alone. Rejected: it agrees with the source for only
+  16 of 45, it makes preferred-heavy banks look cheaper by the amount of preferred they have issued
+  (KEY, STT, WFC, GS, USB, BNY each 11-13%), **and it changes the top 25** (ACGL out, DECK in).
+  Every source read today - MSCI, S&P DJI, JPMorgan's own 10-K - starts from **common** equity,
+  because preferred stock is a senior claim the common price does not buy.
+- **Market value / tangible book**, the bank analysts' own measure. Rejected on measurement, not on
+  principle: the source's tangible-book row agrees with the filings for only 22 of 41 (filers tag
+  intangibles inconsistently, and JPMorgan-style deferred-tax add-backs are not tagged at all), and
+  it reorders the bank set by a median 20.5 places. 17 of the 46 are insurers, conventionally
+  valued on book. A tangible-book metric for banks proper stays a research question.
+- **Patching Berkshire alone** (the note's minimum option). Rejected: a ticker-specific correction
+  on a figure the run cannot check is how the error survived seven months in the first place.
+- **Deferring the full run to 02:00.** Rejected: without it the payload cannot carry the new input,
+  three `test_metric_lineage` tests fail against the committed payload, and the false figure stays
+  on the public site another day. The run's own gates were run by hand instead.
+
+### Next
+
+- **Decide the second of the three open proposals: bank ROE and ROA**
+  (`research/2026-10-19-bank-roe-roa.md`). It is the natural pair to today's - the same 46 stocks,
+  the same 18 with a newer source quarter, and section 7 of today's note explains how the two
+  constructions sit together (P/B on common equity, ROE on total equity, the identity inexact by
+  the preferred share of equity, which is under 5% for 24 of the 46 and at most 12.6%). Re-measure
+  availability on a fresh probe first, as this session did; that is what separated this decision
+  from the 2026-10-16 refusal. The share-class proposal is the third and the largest in scope.

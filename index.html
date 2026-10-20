@@ -26,7 +26,7 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
-    <link rel="preload" href="./dashboard_data.js?v=88848b173de3" as="script">
+    <link rel="preload" href="./dashboard_data.js?v=aa9b7569cf18" as="script">
     <script id="guide-early">try { if (localStorage.getItem('screener_ux_guide_done')) document.documentElement.classList.add('guide-done'); } catch (e) {}</script>
     <style>
 
@@ -4201,11 +4201,12 @@
 <tr>
 <td><strong>Price-to-Book (P/B)</strong></td>
 <td>60%</td>
-<td>Share price divided by book value per share. THE key bank valuation metric – banks' assets are mostly financial instruments carried near fair value. Lower = cheaper.</td>
+<td>Market value divided by common shareholders' equity at the balance-sheet date. THE key bank valuation metric – banks' assets are mostly financial instruments carried near fair value. Lower = cheaper.</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Rationale.</strong> Traditional P/E ratios are distorted by capital structure, one-time charges, and accounting choices. Enterprise value-based metrics strip away those distortions. FCF Yield gets the heaviest weight because cash flow is the hardest number for management to manipulate – it's cash in the door. For banks, EV-based metrics are meaningless (deposits are both liabilities and the core business), so P/B replaces them.</p>
+<p><strong>How bank P/B is computed.</strong> Market value divided by common shareholders' equity – stockholders' equity less preferred stock – taken from the same balance sheet as the rest of that company's record. Common equity is the basis MSCI's <em>Fundamental Data Methodology</em> (section 1.2.5) and S&amp;P DJI's style indices use, because preferred stock is a senior claim the common share price does not buy. It is deliberately a company-level ratio rather than price over book value per share: a per-share ratio needs the price and the book on the same share class's unit, and until 2026-10-20 this metric read the data source's per-share price-to-book, which put Berkshire Hathaway's book value per Class A share ($522,226) against a Class B price (about $532) and published a P/B of 0.0010 instead of 1.52 – the cheapest bank-like stock on the page by a factor of a thousand, in every run from March to that date. The source's figure was also a quarter newer than everything else scored for 18 of the 46 bank-like stocks. There is no fallback: a bank-like stock whose balance sheet does not carry common equity scores no P/B rather than one on a second definition.</p>
 <p><strong>Among large companies.</strong> The value premium of the textbooks is mostly a small-company result. Sorted on book value against price, the largest fifth of US stocks earned 3.7% a year more at the high end than at the low end over 1926-2011 and 2.2% after adjusting for market risk, neither reliably different from zero (Israel &amp; Moskowitz 2013); of a large-company premium on that measure, Asness, Frazzini, Israel &amp; Moskowitz (2015) write "Perhaps there never was." Two findings in the same papers bear on this category. Measures built on earnings and cash flow produced larger premia among the largest stocks than book value did, and those are the measures weighted here; book value carries no weight outside banks. And among the largest stocks nearly all of the premium came from the high-value group running ahead of the market rather than the low-value group falling behind it, which is the part a holder who shorts nothing keeps. The <a href="https://calebsmit.github.io/screener-dashboard/lab.html#big-and-small">Factor Lab</a> reruns the split between small and large companies; <code>research/2026-10-12-value-and-momentum-among-large-companies.md</code> has the review.</p>
 <hr />
 <h3>2. Quality (22% of final score)</h3>
@@ -4892,7 +4893,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>
                 <div>
                     <div class="footer-name">Multi-Factor Screener</div>
-                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-20 02:00 UTC</span> &middot; prices and filings from Yahoo Finance</div>
+                    <div class="footer-meta">Data as of <span id="gen-time">2026-10-20 06:16 UTC</span> &middot; prices and filings from Yahoo Finance</div>
                 </div>
             </div>
             <nav class="footer-links" aria-label="Footer">
@@ -4906,7 +4907,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         </footer>
     </div>
 
-    <script src="./dashboard_data.js?v=88848b173de3"></script>
+    <script src="./dashboard_data.js?v=aa9b7569cf18"></script>
     <script>
     // =====================================================================
     // DATA — loaded from companion dashboard_data.js (see generate_dashboard.py)
@@ -9644,7 +9645,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         applyFilters();
         renderDefensibility();
         initUX();
-        loadContext("./dashboard_context.js?v=634d9d9897d6");
+        loadContext("./dashboard_context.js?v=df56dec234f6");
     }
 
     </script>

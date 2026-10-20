@@ -4376,3 +4376,123 @@ and recompute tests pass unchanged - the fields keep their names and meaning.
 
 **Applied by:** subagent session, 2026-10-19.
 **Rollback:** revert the commit; `scoring_schema` back to 11.
+
+---
+
+## 2026-10-20 - Proposal ACCEPTED: bank P/B is market value over common equity, not the source's per-share ratio
+
+**Area:** metric definition (`pb_ratio`, bank-like stocks only - 60 of the bank Valuation table's
+100 points, about 13.2 composite points for each of the 46 bank-like stocks)
+
+**Changed:** for bank-like stocks (`_is_bank_like`), in `factor_engine.compute_metrics`,
+
+```
+pb_ratio = marketCap / commonEquity        # both > 0 required, else NaN
+```
+
+where `commonEquity` is a new raw field - the quarterly balance sheet's "Common Stock Equity" row at
+the same column `totalEquity` is read from (`_stmt_date_balance_sheet`). It previously read the data
+source's `.info` `priceToBook`, falling back to `currentPrice / bookValue`. **There is no fallback
+now:** a bank-like stock whose balance sheet omits the row scores no P/B rather than one on a second
+definition (the Phase 13 F19 rule). `scoring_schema` 12 -> 13, so a same-day warm start cannot serve
+a table fetched before the field existed.
+
+**Why - a false number on the live site.** `bookValue` is a **per-share** figure, and a per-share
+ratio needs the price and the book on the same share class's unit. Berkshire Hathaway's book value is
+per **Class A** share ($522,226) against a **Class B** price (about $532), so its published P/B was
+**0.0010** where its own filed equity over its market value is **1.5234** - wrong by a factor of
+**1,495**, which is the 1,500:1 A-to-B ratio. That made Berkshire the cheapest bank-like stock on the
+page by a factor of a thousand: the **98.9th** percentile of the bank P/B ranking on the 2026-10-20
+run, and **at least 91.4 in all 52 improvement snapshots** that carry it (2026-03-09 to 2026-10-19,
+median 98.3). The error had been published every weekday since March. A company-level ratio has no
+per-share unit to get wrong, and `sec_crosscheck.market_value_check` already verifies market value as
+the company's for **45 of the 46** bank-like stocks within 5%, where a per-share figure has no check
+in the run at all.
+
+The same change puts the metric on one period. For **18 of the 46** bank-like stocks the source's
+`bookValue` was a quarter newer (September) than every other figure scored (June or March) - the same
+18 the bank ROE/ROA note found - while the earnings yield that is the other 40% of bank Valuation was
+on June earnings. The cost of consistency here is small (the source's book is a median 0.3% from the
+statement-date book), and the benefit is that every bank input is on one balance sheet and checkable
+against the filings.
+
+**Evidence - documented professional practice.** The construction is the index providers' and the
+banks' own.
+
+- **MSCI, *Fundamental Data Methodology* (March 2021)**, section 1.2.5 (p. 16): book value is
+  "shareholders' equity available to shareholders at the latest period end date excluding minority
+  interest, treasury shares and preferred shares that do not exhibit equity like characteristics",
+  and "Price/Book Value ... is calculated using the latest book value per share"; section 1.1.1
+  (p. 10): per-share figures use "the total number of shares at the company level at the date of the
+  results", all classes aggregated - i.e. market value over **common** equity whenever market value
+  is price x company shares.
+  https://www.msci.com/eqb/methodology/meth_docs/MSCI_Fundamental_Data_Methodology_Mar2021.pdf
+- **S&P DJI, *S&P U.S. Style Indices Methodology* (June 2022)**, p. 6: "Book Value to Price Ratio"
+  is one of three value factors, computed "for each company" - at the company level, as here.
+- **JPMorgan Chase, Form 10-K for 2022**, MD&A p. 59: "TCE represents the Firm's common
+  stockholders' equity (i.e., total stockholders' equity less preferred stock) ..." - bank reporting
+  starts from **common** equity.
+  https://www.sec.gov/Archives/edgar/data/19617/000001961723000231/jpm-20221231.htm
+- **Damodaran (2009), "Valuing Financial Service Firms"** (NYU Stern working paper), pp. 30-31: P/B
+  for a financial firm is price per share over book value of equity per share, with ROE its
+  "companion variable" - the pairing `bank_metric_weights` is built on.
+  https://pages.stern.nyu.edu/~adamodar/pdfiles/papers/finfirm09.pdf
+
+Where practice divides, this follows the majority: **common** equity rather than total (preferred
+stock is a senior claim the common price does not buy), and **book** rather than tangible book
+(index providers and Damodaran use book; 17 of the 46 bank-like stocks are insurers, conventionally
+valued on book). The research note measured both alternatives and set them aside - market value over
+*stockholders'* equity agrees with the source for only 16 of 45 and changes the top 25 (ACGL out,
+DECK in), and the source's tangible-book row agrees with the filings for only 22 of 41 and reorders
+the bank set by a median 20.5 places. Note also that the published value premium is **not** evidence
+here: Fama & French (1992, p. 429) exclude financial firms from their book-to-market tests because
+their leverage "probably does not have the same meaning". Bank P/B rests on the valuation practice
+above.
+
+**Expected effect** - measured on the published 2026-10-20 run by rescoring its own metric table
+with its own config and effective weights (the baseline reproduces **501 of 501** published ranks),
+replacing only the bank-like stocks' `pb_ratio`
+(`research/measurements/2026-10-20-bank-pb-review.py`):
+
+| | |
+|---|---|
+| Common equity present and positive, at the run's own balance-sheet date | **46 of 46** |
+| Probe's balance-sheet date = the run's | **46 of 46** |
+| Agrees with the source's P/B within 2% (excluding BRK-B) | 32 of 45 |
+| Universe composite rank correlation | **0.9996** |
+| Top 25 | **unchanged**, both directions |
+| Bank-like median absolute rank move | **1.5 places**; 7 moved 10 or more |
+| Non-bank composites changed | **0** |
+| BRK-B | rank 65 -> 139, P/B 0.0010 -> 1.5234, P/B percentile 98.9 -> 59.8, Valuation 81.7 -> 58.2, composite 59.93 -> 54.77 |
+
+Other movers: FITB 382 -> 347, COF 178 -> 159, TFC 245 -> 230, RF 104 -> 90, WRB 212 -> 202,
+HBAN 346 -> 338, IBKR 379 -> 392.
+
+**One exception recorded, not fixed.** Interactive Brokers' market value counts its founders'
+operating-company units (market value / (price x balance-sheet shares) = 3.78), so any market-value
+ratio overstates its P/B about fourfold - the same error its scored earnings yield (0.8%) already
+carries. That is a market-value question for Up-C companies, not a P/B one, and the change does not
+make IBKR worse in any rank that matters (379 -> 392, among the most expensive either way).
+`research/2026-10-19-bank-price-to-book.md` section 4.
+
+**Validated by:** `tests/test_bank_price_to_book.py` (13 tests: the construction; no fallback in
+either direction; a non-positive or missing input gives no ratio; Berkshire's own figures, including
+that the published ratio was 1,494.8x too low; a non-bank still unscored; the fetch reads the row at
+the statement-date column; the lineage rebuilds it and names only the two new inputs; the generated
+methodology paragraph; `pit_record` carries the field). The existing equation bar is met, not
+loosened: `tests/test_metric_lineage.py` rebuilds `pb_ratio` from the published inputs for every
+bank-like stock. Claim `overview.bank_price_to_book` registered, so the page sentence is in the data
+loop's publish gate. A full run was made in the same session to publish the new field, and the
+drilldown checked at 1440 and 375px.
+
+**Point-in-time record.** `pit_record.FIELD_CLASSES` gains `commonEquity` as a statement field and
+`statement_fields` sets it to the filed stockholders' equity, with the reason written on the line:
+the facts cache carries no common-equity concept and not the preferred-stock items the deduction
+needs either, so backtest v2's bank P/B is market value over *stockholders'* equity and says so.
+That is numerically the ratio `market_fields` already built as `priceToBook`
+(price x shares / equity), so **no v2 or research-engine figure moves.**
+
+**Applied by:** scheduled 06:00 session, 2026-10-20, reviewing the open proposal in
+`research/2026-10-19-bank-price-to-book.md` section 8 (raised by the 2026-10-19 session; decided by
+a session that did not write it, as the routine requires).
+**Rollback:** revert the commit; `scoring_schema` back to 12. The tag is `good/2026-10-20`.
