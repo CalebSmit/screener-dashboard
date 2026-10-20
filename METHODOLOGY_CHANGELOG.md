@@ -4379,6 +4379,120 @@ and recompute tests pass unchanged - the fields keep their names and meaning.
 
 ---
 
+## 2026-10-20 (13:00 session) - Proposal ACCEPTED: bank ROE and ROA are net income over AVERAGE balances, not the source's undocumented ratios
+
+**Area:** metric definition (`roe`, `roa`, bank-like stocks only - 35 and 25 of the bank Quality
+table's 100 points, about 13.2 composite points for each of the 46 bank-like stocks)
+
+**Changed:** for `_is_bank_like` stocks, in `factor_engine.compute_metrics`:
+
+```
+roe = netIncome / ((totalEquity + totalEquity_prior) / 2)     # both balances > 0, else NaN
+roa = netIncome / ((totalAssets + totalAssets_prior) / 2)     # both balances > 0, else NaN
+```
+
+from the data source's `.info` `returnOnEquity` / `returnOnAssets`, with a fallback to net income
+over the *ending* balance where the source served none. **There is now no fallback of either
+kind** - one construction for every bank-like stock (the Phase 13 F19 rule). The prior balances
+are the ones `_year_ago_position` matches by **date** (330-400 days), never column four.
+`scoring_schema` 13 -> 14.
+
+**Evidence.** The proposal is `research/2026-10-19-bank-roe-roa.md` section 7, raised by the
+2026-10-19 session; this session reviewed it and re-measured it independently
+(`research/measurements/2026-10-20-bank-roe-roa-review.py`, offline, with a fresh network probe).
+
+1. **The old inputs have no definition.** Neither the provider nor `yfinance` documents the two
+   `.info` fields. The engine removed `earningsGrowth` for exactly this - "a black-box input with
+   no verifiable definition" (`factor_engine.py` near line 2427) - and these two carried 60% of
+   bank Quality. Reverse-engineered against every candidate construction, the source's ROE is
+   *consolidated* net income over the average of *total* equity **including minority interests**.
+2. **Measured against the companies' own SEC filings** (trailing-twelve-month `NetIncomeLoss` over
+   averaged `StockholdersEquity` / `Assets` from the weekly `companyfacts` cache), the new
+   construction agrees **within 0.5% for 37 of 37** comparable bank-like stocks - ROA 36 of 37,
+   worst 0.79% - where the source's ratios agree **within 2% for 21 (ROE) and 12 (ROA) of 35**.
+   This is the decisive number: the change makes the metric agree with the primary source.
+3. **Documented practice is unanimous on averaging.** FDIC, *Quarterly Banking Profile*, Notes to
+   Users (Q2 2026), pp. 2 and 6: return on assets is net income "as a percentage of average total
+   (consolidated) assets", return on equity "as a percentage of average total equity capital".
+   FFIEC, *UBPR User's Guide*, Summary Ratios page 1 (2026-08-20), item 16: "divided by average
+   assets". JPMorgan Chase, 2022 Form 10-K, MD&A p. 59: "ROA: Reported net income / Total average
+   assets". A bank earns its income on the balance sheet it carried *through* the year.
+4. **It removes a mixed basis rather than creating one.** The source serves no ratio for **MS and
+   WRB**, so those two were scored on *ending* balances inside the same percentile ranking as 44
+   stocks on the source's construction - the defect Phase 13 (F19) removed from earnings yield.
+   The note found one such stock; there were two by today.
+5. **One ROE instead of two.** `sustainable_growth` already used net income over average equity,
+   so the lineage had to warn readers that "this ROE is not the Yahoo ROE shown for banks". The two
+   now agree for **46 of 46** bank-like stocks and the caveat is gone.
+6. **Where the sources disagree, and the call made.** Index providers (MSCI, *Quality Indexes
+   Methodology* May 2025, Appendix I; *Fundamental Data Methodology* March 2021 §1.2.5) use
+   **latest** book equity excluding minority interests and preferred, because they compute ROE
+   per share at one date for thousands of stocks and pair it with P/B on the same book. Both are
+   coherent; averaging was chosen because it is the banks' and regulators' own convention, it is
+   what a club would see in JPMorgan's earnings release, and it is already this screener's ROE.
+   The **common-equity** basis (net income to common over average common equity) was measured and
+   not taken: it ranks the bank set almost identically (rank correlation 0.987, median ratio
+   1.008), it needs a fetch field whose rows are unreliable (Apollo's "Net Income Common
+   Stockholders" is 23% of its net income, a data artefact), and the preferred share of equity is
+   under 5% for 24 of the 46.
+
+**The availability test, which is what decided it.** Re-measured on a *second* day's run through
+the engine's own extraction path and a fresh probe: `netIncome`, `totalEquity_prior` and
+`totalAssets_prior` present and **positive for 46 of 46**, with the two balance sheets exactly
+**365 days apart for all 46**. So the no-fallback rule leaves nobody unscored. This is the test
+the earnings-definition proposal **failed** on 2026-10-16 (23 companies with no figure at all,
+re-creating a fallback cohort) and the one the price-to-book proposal passed this morning. The
+note itself predicted Berkshire would "lose both ratios under any averaged construction"; it does
+not, because `_year_ago_position` (made late on 2026-10-19) finds its year-ago balance sheet at
+column **3**, not four.
+
+**The one judgement call the note left to the reviewer, and how it was settled.** ROE compares the
+shareholders' income with the shareholders' equity, but ROA divides that same income by the
+*whole consolidated* balance sheet. Measured two independent ways that agree exactly (the
+`Minority Interest` row, and gross equity less stockholders' equity), minority interests exceed 5%
+of equity for **6 of 46** and 1% for 11, and are large only for the three structurally unusual
+names: **IBKR 2.77x, KKR 1.59x, APO 0.97x**. The alternative - net income *including* minority
+interests over consolidated assets - was **refused**, on three grounds: the FDIC and the UBPR put
+income attributable to minority interests on a **separate line** (UBPR item 14), so the headline
+ratio's numerator is the company's own net income; JPMorgan's 10-K does the same; and including
+the minority holders' profit would flatter exactly the three companies whose shareholders own
+least of the balance sheet being divided by (IBKR's ROA reads 2.28% on group profit against
+0.53% on its shareholders'), which is the wrong direction of error for a long-only screener. It
+also needs a new fetch field. The asymmetry is real, so it is **stated on the page** rather than
+hidden - in `LINEAGE["roa"]`'s caveat and in the methodology paragraph.
+
+**Expected effect:** small and concentrated in the names where the source's definition was odd.
+Predicted before the run from the review's rescore: composite Spearman ~0.9997, top 25 unchanged,
+no non-bank stock affected, bank-like median move ~5 places, IBKR the largest faller.
+
+**Validated by:** `tests/test_bank_roe_roa.py`, **22 tests** (construction, no fallback of either
+kind, non-positive and missing balances, a loss-making bank, the date-matched prior column, the
+drilldown equation, the shared ROE, the page sentence, and the point-in-time record). A full
+screener run was made in the session so the fix is live now rather than at 02:00: **501 scored**,
+`check_run_health` **PASS**, and measured on the published run
+(`research/measurements/2026-10-20-bank-roe-roa-shipped.py`) with the change **isolated** by
+scoring that run's own table both ways:
+
+- ROE and ROA scored for **46 of 46**, none lost;
+- each stock's published figure rebuilds from its two published inputs for **46 of 46**, worst
+  relative error **0.0**;
+- composite Spearman **0.99973**, **top 25 unchanged**, **0 of 455 non-bank composites changed**,
+  bank-like median move **5 places**, 13 moved 10+, 2 moved 25+;
+- largest: **IBKR 419 -> 449** (ROA 2.28% -> 0.53%, composite -3.2), PRU 150 -> 120, C 198 -> 219,
+  PNC 162 -> 181, STT 176 -> 195; **MS 447 -> 435** onto the same definition as everyone else;
+- `sustainable_growth`'s ROE equals the bank ROE for **46 of 46**.
+
+*A caution recorded for whoever reads this next:* comparing the 06:00 and 13:40 **published** runs
+instead shows 434 non-bank composites moving and two top-25 changes. That is 7.5 hours of market
+and a full refetch, **not** this change; the first draft of the measurement script implied
+otherwise and now carries the warning. Attribute a scoring change by rescoring one table, never by
+differencing two runs.
+
+**Applied by:** 13:00 code session, 2026-10-20.
+**Rollback:** revert the commit; `scoring_schema` back to 13.
+
+---
+
 ## 2026-10-20 - Proposal ACCEPTED: bank P/B is market value over common equity, not the source's per-share ratio
 
 **Area:** metric definition (`pb_ratio`, bank-like stocks only - 60 of the bank Valuation table's

@@ -209,19 +209,13 @@ def _equity_ratio(i):
 
 
 def _roe(i):
-    y = i.get("returnOnEquity")
-    if _ok(y):
-        return y
-    ni, e = i.get("netIncome"), i.get("totalEquity")
-    return ni / e if _ok(ni, e) and e > 0 else None
+    ni, e, p = i.get("netIncome"), i.get("totalEquity"), i.get("totalEquity_prior")
+    return ni / ((e + p) / 2) if _ok(ni, e, p) and e > 0 and p > 0 else None
 
 
 def _roa(i):
-    y = i.get("returnOnAssets")
-    if _ok(y):
-        return y
-    ni, a = i.get("netIncome"), i.get("totalAssets")
-    return ni / a if _ok(ni, a) and a > 0 else None
+    ni, a, p = i.get("netIncome"), i.get("totalAssets"), i.get("totalAssets_prior")
+    return ni / ((a + p) / 2) if _ok(ni, a, p) and a > 0 and p > 0 else None
 
 
 def _ret_12_1(i):
@@ -358,13 +352,17 @@ LINEAGE = {
                           caveat="TATA uses the cash-flow form of accruals, not Beneish's original balance-sheet form. Not computed for any Financials stock: Beneish's sample excluded financial firms, whose sales and receivables mean something else (since 2026-10-09 this covers insurance brokers, asset managers, exchanges and payment processors too).",
                           kind="components"),
     "roe": _L("Return on equity (banks and insurers)",
-              [("Return on equity (Yahoo)", "returnOnEquity", PCT), ("Net income (TTM)", "netIncome", USD),
-               ("Equity", "totalEquity", USD)],
-              how="Yahoo's ratio when it reports one, otherwise net income / ending equity."),
+              [("Net income (TTM)", "netIncome", USD),
+               ("Equity", "totalEquity", USD),
+               ("Equity a year earlier", "totalEquity_prior", USD)],
+              how="Net income over the last four quarters, divided by the average of shareholders' equity at the latest balance-sheet date and a year earlier. Average balances are the FDIC's, the FFIEC's and the banks' own convention: the income was earned on the balance sheet the company carried through the year. Both balances must be positive, and the year-ago one is matched by date (330-400 days), never by column position.",
+              caveat="Until 2026-10-20 this read the data provider's own return-on-equity figure, which has no published definition and is built on consolidated income and equity including the minority holders' share of partly-owned subsidiaries. Against the companies' own SEC filings it agreed within 2% for 21 of 35 bank-like stocks; the figure above agrees within 0.5% for 37 of 37."),
     "roa": _L("Return on assets (banks and insurers)",
-              [("Return on assets (Yahoo)", "returnOnAssets", PCT), ("Net income (TTM)", "netIncome", USD),
-               ("Total assets", "totalAssets", USD)],
-              how="Yahoo's ratio when it reports one, otherwise net income / ending assets."),
+              [("Net income (TTM)", "netIncome", USD),
+               ("Total assets", "totalAssets", USD),
+               ("Total assets a year earlier", "totalAssets_prior", USD)],
+              how="Net income over the last four quarters, divided by the average of total assets at the latest balance-sheet date and a year earlier. The same averaging as ROE, and the FDIC's \"average total (consolidated) assets\".",
+              caveat="The numerator is the income belonging to this company's shareholders; the denominator is the whole consolidated balance sheet, which is the FDIC's and JPMorgan's construction. Where a company consolidates entities it only partly owns - Interactive Brokers, KKR and Apollo here - the ratio states what the shareholder earns per dollar of consolidated assets, not how productively the group uses them."),
     "equity_ratio": _L("Equity / total assets (banks and insurers)",
                        [("Equity", "totalEquity", USD), ("Total assets", "totalAssets", USD)]),
     # ---- growth
@@ -395,7 +393,7 @@ LINEAGE = {
                               ("Equity (year earlier)", "totalEquity_prior", USD),
                               ("Dividends paid", "dividendsPaid", USD), ("Payout ratio", "payoutRatio", PCT)],
                              how="ROE uses average equity; retention = 1 - dividends / net income. Clipped to 0..100%. Needs positive net income and equity.",
-                             caveat="This ROE is not the Yahoo ROE shown for banks."),
+                             caveat="This ROE is computed on the same basis as the ROE shown for banks and insurers - net income over average equity (one construction since 2026-10-20; it used to differ, because the bank metric read the data source's own ratio)."),
     # ---- momentum
     "return_12_1": _L("(Price 1 month ago - price 12 months ago) / price 12 months ago",
                       [("Price ~12 months ago", "price_12m_ago", PRICE), ("Price ~1 month ago", "price_1m_ago", PRICE)],
@@ -509,10 +507,8 @@ EQUATIONS = {
     "size_log_mcap": (True, ["−ln({marketCap|market cap})"]),
     "asset_growth": (True, ["({totalAssets|total assets} − {totalAssets_prior|a year earlier}) ÷ {totalAssets_prior|a year earlier}"]),
     "equity_ratio": (True, ["{totalEquity|equity} ÷ {totalAssets|total assets}"]),
-    "roe": (True, ["{returnOnEquity|return on equity, as reported}",
-                   "{netIncome|net income} ÷ {totalEquity|equity}"]),
-    "roa": (True, ["{returnOnAssets|return on assets, as reported}",
-                   "{netIncome|net income} ÷ {totalAssets|total assets}"]),
+    "roe": (True, ["{netIncome|net income} ÷ (({totalEquity|equity} + {totalEquity_prior|equity a year earlier}) ÷ 2)"]),
+    "roa": (True, ["{netIncome|net income} ÷ (({totalAssets|total assets} + {totalAssets_prior|total assets a year earlier}) ÷ 2)"]),
     "return_12_1": (True, ["({price_1m_ago|price 1 month ago} − {price_12m_ago|12 months ago}) ÷ {price_12m_ago|12 months ago}"]),
     "return_6m": (True, ["({price_1m_ago|price 1 month ago} − {price_6m_ago|6 months ago}) ÷ {price_6m_ago|6 months ago}"]),
     "fy1_revision_3m": (True, ["({_fy1_eps_current|EPS estimate now} − {_fy1_eps_90d_ago|90 days ago}) ÷ {currentPrice|price}",

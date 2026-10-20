@@ -123,8 +123,7 @@ FIELD_CLASSES = {
         "_beneish_net_income", "_beneish_ocf"),
     # fundamentals over a price: market_fields() at the caller's price
     "market": ("marketCap", "enterpriseValue", "totalDebt", "totalCash", "sharesOutstanding",
-               "bookValue", "priceToBook", "trailingEps", "returnOnEquity", "returnOnAssets",
-               "payoutRatio"),
+               "bookValue", "priceToBook", "trailingEps", "payoutRatio"),
     # a price history the backtest already holds, restated per month
     "price_history": ("currentPrice", "price_latest", "price_1m_ago", "price_6m_ago", "price_12m_ago",
                       "volatility_1y", "_vol_daily_sd", "_daily_returns", "_price_series_rejected",
@@ -516,10 +515,11 @@ def market_fields(stmt: dict, facts: pd.DataFrame, ticker: str, as_of, price: fl
         dil = F._pick("diluted_shares", lambda c, e: F._one(F._duration1(c, e, 80, 380)), q0)
         if np.isfinite(ni) and np.isfinite(dil) and dil > 0:
             out["trailingEps"] = ni / (dil * split)
-    if np.isfinite(ni) and np.isfinite(eq) and eq != 0:
-        out["returnOnEquity"] = ni / eq
-    if np.isfinite(ni) and np.isfinite(ta) and ta > 0:
-        out["returnOnAssets"] = ni / ta
+    # No returnOnEquity / returnOnAssets since 2026-10-20: compute_metrics no longer reads
+    # them. The bank ROE and ROA are now built from netIncome and the two balance sheets,
+    # which are statement fields and so are restated by statement_fields() as of the month
+    # being scored - a stronger point-in-time basis than this function could give them, and
+    # one fewer construction (this built them on ENDING balances, a third definition).
     div = stmt.get("dividendsPaid", np.nan)
     if np.isfinite(ni) and ni > 0 and np.isfinite(div):
         out["payoutRatio"] = abs(div) / ni

@@ -1195,6 +1195,37 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="overview.bank_roe_roa",
+        surface=OVERVIEW,
+        asserts=(
+            "Bank ROE and ROA are the company's trailing-twelve-month net income over the AVERAGE "
+            "of shareholders' equity / total assets at the latest balance-sheet date and a year "
+            "earlier, with no fallback to the data source's `returnOnEquity` / `returnOnAssets` "
+            "and none to an ending balance - which is what compute_metrics computes, and what the "
+            "drilldown's equation shows. The same ROE as the one inside sustainable_growth."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_bank_roe_roa.py::test_roe_is_net_income_over_average_equity",
+            "tests/test_bank_roe_roa.py::test_roa_is_net_income_over_average_assets",
+            "tests/test_bank_roe_roa.py::test_there_is_no_fallback_to_the_sources_ratios",
+            "tests/test_bank_roe_roa.py::test_the_page_states_the_construction_the_engine_uses",
+            "tests/test_bank_roe_roa.py::test_sustainable_growth_uses_the_same_roe",
+        ),
+        # the page's typography pass turns " - " into a spaced en dash, so match either
+        detect=r"divided by the average of shareholders' equity [–—] or of total assets [–—] at "
+               r"the latest balance-sheet date and a year earlier",
+        caveat=(
+            "Fixed 2026-10-20 (research/2026-10-19-bank-roe-roa.md section 7, reviewed in "
+            "research/measurements/2026-10-20-bank-roe-roa-review.py). The metrics read the "
+            "source's undocumented `.info` ratios, which are built on consolidated income and "
+            "equity including minority interests: against the companies' own SEC filings they "
+            "agreed within 2% for 21 (ROE) and 12 (ROA) of 35, where the construction above "
+            "agrees within 0.5% for 37 of 37. Two stocks (MS, WRB) were being scored on an "
+            "ending-balance fallback inside the same percentile ranking."
+        ),
+    ),
+    Claim(
         id="overview.roic_invested_capital",
         surface=OVERVIEW,
         asserts=(

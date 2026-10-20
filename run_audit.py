@@ -774,15 +774,17 @@ def _get_metric_definitions() -> dict:
             "normalization": "Sector percentile rank (inverted: lower=better)",
         },
         "roe": {
-            "definition": "Return on Equity (bank-only)",
-            "source": "yfinance: returnOnEquity or netIncome/equity",
-            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
+            "definition": "Return on Equity (bank-only) — net income / average equity",
+            "source": "yfinance statements: netIncome / ((totalEquity + totalEquity_prior) / 2)",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks and unless both "
+                        "balances are positive (no fallback to the source's ratio)",
             "normalization": "Sector percentile rank",
         },
         "roa": {
-            "definition": "Return on Assets (bank-only)",
-            "source": "yfinance: returnOnAssets or netIncome/totalAssets",
-            "cleaning": "Outliers flagged, not clipped; NaN for non-banks",
+            "definition": "Return on Assets (bank-only) — net income / average total assets",
+            "source": "yfinance statements: netIncome / ((totalAssets + totalAssets_prior) / 2)",
+            "cleaning": "Outliers flagged, not clipped; NaN for non-banks and unless both "
+                        "balances are positive (no fallback to the source's ratio)",
             "normalization": "Sector percentile rank",
         },
         "equity_ratio": {

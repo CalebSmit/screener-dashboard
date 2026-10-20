@@ -1,0 +1,888 @@
+{
+ "run": "a35b687ccf19",
+ "run_started": "2026-10-20T06:16:57.643100",
+ "probe": {
+  "probed_at": "2026-10-20 13:13",
+  "run": "a35b687ccf19"
+ },
+ "bank_like": 46,
+ "A_availability": {
+  "note": "the refusal test: inputs read through the engine's own extraction, on a second day's run (2026-10-20), which is the first carrying _year_ago_position",
+  "netIncome present and positive": "46 of 46",
+  "totalEquity_prior present and positive": "46 of 46",
+  "totalAssets_prior present and positive": "46 of 46",
+  "roe_proposed computable": "46 of 46",
+  "roa_proposed computable": "46 of 46",
+  "roe_proposed missing": [],
+  "roa_proposed missing": [],
+  "today: scored on yahoo .info": "44 of 46 roe, 44 of 46 roa",
+  "today: scored on the ENDING-balance fallback (a second definition inside one ranking)": [
+   "MS",
+   "WRB"
+  ]
+ },
+ "B_averaging_is_a_year_apart": {
+  "note": "the average is only an average over a year if the second sheet is a year earlier; _year_ago_position picks it by date within 330-400 days",
+  "probe_errors": [],
+  "probe found a year-ago column": "46 of 46",
+  "gap_days": {
+   "min": 365,
+   "max": 365,
+   "median": 365.0
+  },
+  "outside 350-380 days": {},
+  "prior NOT in column four (where taking it by position would have been wrong)": {
+   "BRK-B": 3
+  },
+  "probe_bs_date equals the run's": "46 of 46"
+ },
+ "C_against_the_filings": {
+  "note": "trailing-twelve-month NetIncomeLoss over the average of StockholdersEquity / Assets at the run's balance-sheet date and a year earlier, from the weekly companyfacts cache - the same comparison the note made (38 of 39 within 2%)",
+  "comparable_stocks": 37,
+  "proposed ROE within 2% of the filings": "37 of 37",
+  "proposed ROA within 2% of the filings": "37 of 37",
+  "yahoo ROE within 2% of the filings": "21 of 35",
+  "yahoo ROA within 2% of the filings": "12 of 35",
+  "proposed ROE within 0.5%": "37 of 37",
+  "proposed ROA within 0.5%": "36 of 37",
+  "worst proposed ROE": {
+   "BAC": 0.0017,
+   "EG": 0.0009,
+   "BRK-B": 0.0004,
+   "KEY": 0.0004,
+   "MET": 0.0004,
+   "CINF": 0.0003
+  },
+  "worst proposed ROA": {
+   "MET": 0.0079,
+   "BAC": 0.0043,
+   "PRU": 0.0039,
+   "KKR": 0.0033,
+   "USB": 0.0028,
+   "NTRS": 0.0027
+  },
+  "per_stock": {
+   "ACGL": {
+    "sec_roe": 0.1994,
+    "sec_roa": 0.0572,
+    "proposed_roe": 0.1994,
+    "proposed_roa": 0.0572,
+    "yahoo_roe": 0.1994,
+    "yahoo_roa": 0.0412,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0005,
+    "roe_yahoo_err": 0.0002,
+    "roa_yahoo_err": 0.2801
+   },
+   "AFL": {
+    "sec_roe": 0.1691,
+    "sec_roa": 0.0404,
+    "proposed_roe": 0.1691,
+    "proposed_roa": 0.0404,
+    "yahoo_roe": 0.1691,
+    "yahoo_roa": 0.0313,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0,
+    "roe_yahoo_err": 0.0001,
+    "roa_yahoo_err": 0.2252
+   },
+   "AIZ": {
+    "sec_roe": 0.1834,
+    "sec_roa": 0.0297,
+    "proposed_roe": 0.1834,
+    "proposed_roa": 0.0297,
+    "yahoo_roe": 0.1834,
+    "yahoo_roa": 0.0256,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0001,
+    "roa_yahoo_err": 0.1382
+   },
+   "ALL": {
+    "sec_roe": 0.4611,
+    "sec_roa": 0.1106,
+    "proposed_roe": 0.4611,
+    "proposed_roa": 0.1106,
+    "yahoo_roe": 0.4611,
+    "yahoo_roa": 0.0868,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0,
+    "roa_yahoo_err": 0.2151
+   },
+   "AMP": {
+    "sec_roe": 0.6343,
+    "sec_roa": 0.0206,
+    "proposed_roe": 0.6343,
+    "proposed_roa": 0.0206,
+    "yahoo_roe": 0.6343,
+    "yahoo_roa": 0.0228,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0014,
+    "roe_yahoo_err": 0.0,
+    "roa_yahoo_err": 0.1053
+   },
+   "APO": {
+    "sec_roe": 0.093,
+    "sec_roa": 0.0041,
+    "proposed_roe": 0.093,
+    "proposed_roa": 0.0041,
+    "yahoo_roe": 0.1141,
+    "yahoo_roa": 0.0094,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0011,
+    "roe_yahoo_err": 0.227,
+    "roa_yahoo_err": 1.2901
+   },
+   "AXP": {
+    "sec_roe": 0.3438,
+    "sec_roa": 0.0379,
+    "proposed_roe": 0.3437,
+    "proposed_roa": 0.0379,
+    "yahoo_roe": 0.3438,
+    "yahoo_roa": 0.0379,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0004,
+    "roe_yahoo_err": 0.0001,
+    "roa_yahoo_err": 0.0004
+   },
+   "BAC": {
+    "sec_roe": 0.1063,
+    "sec_roa": 0.0093,
+    "proposed_roe": 0.1065,
+    "proposed_roa": 0.0093,
+    "yahoo_roe": 0.1073,
+    "yahoo_roa": 0.0094,
+    "roe_proposed_err": 0.0017,
+    "roa_proposed_err": 0.0043,
+    "roe_yahoo_err": 0.0092,
+    "roa_yahoo_err": 0.0151
+   },
+   "BNY": {
+    "sec_roe": 0.1356,
+    "sec_roa": 0.0119,
+    "proposed_roe": 0.1356,
+    "proposed_roa": 0.0119,
+    "yahoo_roe": 0.1487,
+    "yahoo_roa": 0.0139,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0004,
+    "roe_yahoo_err": 0.0964,
+    "roa_yahoo_err": 0.1685
+   },
+   "BRK-B": {
+    "sec_roe": 0.1211,
+    "sec_roa": 0.0707,
+    "proposed_roe": 0.1211,
+    "proposed_roa": 0.0707,
+    "yahoo_roe": 0.1212,
+    "yahoo_roa": 0.0601,
+    "roe_proposed_err": 0.0004,
+    "roa_proposed_err": 0.0003,
+    "roe_yahoo_err": 0.0004,
+    "roa_yahoo_err": 0.1497
+   },
+   "CFG": {
+    "sec_roe": 0.0827,
+    "sec_roa": 0.0094,
+    "proposed_roe": 0.0827,
+    "proposed_roa": 0.0094,
+    "yahoo_roe": 0.0827,
+    "yahoo_roa": 0.0094,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0004,
+    "roe_yahoo_err": 0.0,
+    "roa_yahoo_err": 0.0004
+   },
+   "CINF": {
+    "sec_roe": 0.1873,
+    "sec_roa": 0.0703,
+    "proposed_roe": 0.1873,
+    "proposed_roa": 0.0703,
+    "yahoo_roe": 0.2148,
+    "yahoo_roa": 0.0641,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0007,
+    "roe_yahoo_err": 0.1465,
+    "roa_yahoo_err": 0.0876
+   },
+   "COF": {
+    "sec_roe": 0.0936,
+    "sec_roa": 0.0158,
+    "proposed_roe": 0.0936,
+    "proposed_roa": 0.0158,
+    "yahoo_roe": 0.0903,
+    "yahoo_roa": 0.0152,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0009,
+    "roe_yahoo_err": 0.0354,
+    "roa_yahoo_err": 0.0371
+   },
+   "EG": {
+    "sec_roe": 0.1257,
+    "sec_roa": 0.0312,
+    "proposed_roe": 0.1256,
+    "proposed_roa": 0.0312,
+    "yahoo_roe": 0.1257,
+    "yahoo_roa": 0.0249,
+    "roe_proposed_err": 0.0009,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0001,
+    "roa_yahoo_err": 0.202
+   },
+   "FITB": {
+    "sec_roe": 0.0844,
+    "sec_roa": 0.0092,
+    "proposed_roe": 0.0844,
+    "proposed_roa": 0.0092,
+    "yahoo_roe": 0.0844,
+    "yahoo_roa": 0.0092,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0003,
+    "roe_yahoo_err": 0.0002,
+    "roa_yahoo_err": 0.0003
+   },
+   "GL": {
+    "sec_roe": 0.2095,
+    "sec_roa": 0.0395,
+    "proposed_roe": 0.2095,
+    "proposed_roa": 0.0395,
+    "yahoo_roe": 0.2094,
+    "yahoo_roa": 0.0336,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0003,
+    "roa_yahoo_err": 0.1494
+   },
+   "GS": {
+    "sec_roe": 0.1699,
+    "sec_roa": 0.0107,
+    "proposed_roe": 0.1699,
+    "proposed_roa": 0.0107,
+    "yahoo_roe": 0.1775,
+    "yahoo_roa": 0.0111,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0019,
+    "roe_yahoo_err": 0.0445,
+    "roa_yahoo_err": 0.0354
+   },
+   "HIG": {
+    "sec_roe": 0.235,
+    "sec_roa": 0.0509,
+    "proposed_roe": 0.235,
+    "proposed_roa": 0.0509,
+    "yahoo_roe": 0.2206,
+    "yahoo_roa": 0.0385,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0006,
+    "roe_yahoo_err": 0.0612,
+    "roa_yahoo_err": 0.2431
+   },
+   "JPM": {
+    "sec_roe": 0.1779,
+    "sec_roa": 0.0136,
+    "proposed_roe": 0.1779,
+    "proposed_roa": 0.0136,
+    "yahoo_roe": 0.1801,
+    "yahoo_roa": 0.0137,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0124,
+    "roa_yahoo_err": 0.0072
+   },
+   "KEY": {
+    "sec_roe": 0.1034,
+    "sec_roa": 0.0108,
+    "proposed_roe": 0.1034,
+    "proposed_roa": 0.0108,
+    "yahoo_roe": 0.1033,
+    "yahoo_roa": 0.0108,
+    "roe_proposed_err": 0.0004,
+    "roa_proposed_err": 0.0024,
+    "roe_yahoo_err": 0.0005,
+    "roa_yahoo_err": 0.0024
+   },
+   "KKR": {
+    "sec_roe": 0.1064,
+    "sec_roa": 0.0079,
+    "proposed_roe": 0.1064,
+    "proposed_roa": 0.0079,
+    "yahoo_roe": 0.0728,
+    "yahoo_roa": 0.0139,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0033,
+    "roe_yahoo_err": 0.3156,
+    "roa_yahoo_err": 0.7537
+   },
+   "L": {
+    "sec_roe": 0.0921,
+    "sec_roa": 0.0196,
+    "proposed_roe": 0.0921,
+    "proposed_roa": 0.0196,
+    "yahoo_roe": 0.0931,
+    "yahoo_roa": 0.0191,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0014,
+    "roe_yahoo_err": 0.0107,
+    "roa_yahoo_err": 0.0269
+   },
+   "MET": {
+    "sec_roe": 0.1316,
+    "sec_roa": 0.005,
+    "proposed_roe": 0.1316,
+    "proposed_roa": 0.005,
+    "yahoo_roe": 0.1309,
+    "yahoo_roa": 0.0045,
+    "roe_proposed_err": 0.0004,
+    "roa_proposed_err": 0.0079,
+    "roe_yahoo_err": 0.005,
+    "roa_yahoo_err": 0.0929
+   },
+   "MS": {
+    "sec_roe": 0.1795,
+    "sec_roa": 0.0133,
+    "proposed_roe": 0.1795,
+    "proposed_roa": 0.0133,
+    "yahoo_roe": null,
+    "yahoo_roa": null,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0006,
+    "roe_yahoo_err": null,
+    "roa_yahoo_err": null
+   },
+   "MTB": {
+    "sec_roe": 0.1074,
+    "sec_roa": 0.0141,
+    "proposed_roe": 0.1074,
+    "proposed_roa": 0.0141,
+    "yahoo_roe": 0.106,
+    "yahoo_roa": 0.014,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0015,
+    "roe_yahoo_err": 0.0132,
+    "roa_yahoo_err": 0.0056
+   },
+   "NTRS": {
+    "sec_roe": 0.1707,
+    "sec_roa": 0.0128,
+    "proposed_roe": 0.1706,
+    "proposed_roa": 0.0128,
+    "yahoo_roe": 0.1707,
+    "yahoo_roa": 0.0128,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0027,
+    "roe_yahoo_err": 0.0003,
+    "roa_yahoo_err": 0.0027
+   },
+   "PGR": {
+    "sec_roe": 0.3494,
+    "sec_roa": 0.0973,
+    "proposed_roe": 0.3494,
+    "proposed_roa": 0.0973,
+    "yahoo_roe": 0.3324,
+    "yahoo_roa": 0.0752,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0487,
+    "roa_yahoo_err": 0.2271
+   },
+   "PRU": {
+    "sec_roe": 0.1261,
+    "sec_roa": 0.0051,
+    "proposed_roe": 0.1261,
+    "proposed_roa": 0.0051,
+    "yahoo_roe": 0.1201,
+    "yahoo_roa": 0.0043,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0039,
+    "roe_yahoo_err": 0.0473,
+    "roa_yahoo_err": 0.1536
+   },
+   "RF": {
+    "sec_roe": 0.119,
+    "sec_roa": 0.0139,
+    "proposed_roe": 0.119,
+    "proposed_roa": 0.0139,
+    "yahoo_roe": 0.1238,
+    "yahoo_roa": 0.0142,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.002,
+    "roe_yahoo_err": 0.0402,
+    "roa_yahoo_err": 0.0195
+   },
+   "RJF": {
+    "sec_roe": 0.1848,
+    "sec_roa": 0.0258,
+    "proposed_roe": 0.1848,
+    "proposed_roa": 0.0258,
+    "yahoo_roe": 0.1842,
+    "yahoo_roa": 0.0258,
+    "roe_proposed_err": 0.0001,
+    "roa_proposed_err": 0.0016,
+    "roe_yahoo_err": 0.0032,
+    "roa_yahoo_err": 0.0016
+   },
+   "SCHW": {
+    "sec_roe": 0.2027,
+    "sec_roa": 0.0207,
+    "proposed_roe": 0.2027,
+    "proposed_roa": 0.0207,
+    "yahoo_roe": 0.2112,
+    "yahoo_roa": 0.0216,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0008,
+    "roe_yahoo_err": 0.0418,
+    "roa_yahoo_err": 0.0443
+   },
+   "STT": {
+    "sec_roe": 0.1244,
+    "sec_roa": 0.0087,
+    "proposed_roe": 0.1244,
+    "proposed_roa": 0.0087,
+    "yahoo_roe": 0.1308,
+    "yahoo_roa": 0.0095,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0008,
+    "roe_yahoo_err": 0.0517,
+    "roa_yahoo_err": 0.0928
+   },
+   "SYF": {
+    "sec_roe": 0.2079,
+    "sec_roa": 0.029,
+    "proposed_roe": 0.2079,
+    "proposed_roa": 0.029,
+    "yahoo_roe": 0.2079,
+    "yahoo_roa": 0.029,
+    "roe_proposed_err": 0.0002,
+    "roa_proposed_err": 0.0008,
+    "roe_yahoo_err": 0.0002,
+    "roa_yahoo_err": 0.0008
+   },
+   "TRV": {
+    "sec_roe": 0.2651,
+    "sec_roa": 0.0588,
+    "proposed_roe": 0.2651,
+    "proposed_roa": 0.0588,
+    "yahoo_roe": 0.275,
+    "yahoo_roa": 0.0473,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0001,
+    "roe_yahoo_err": 0.0373,
+    "roa_yahoo_err": 0.1955
+   },
+   "USB": {
+    "sec_roe": 0.1268,
+    "sec_roa": 0.0116,
+    "proposed_roe": 0.1268,
+    "proposed_roa": 0.0116,
+    "yahoo_roe": 0.1284,
+    "yahoo_roa": 0.012,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0028,
+    "roe_yahoo_err": 0.0129,
+    "roa_yahoo_err": 0.0374
+   },
+   "WFC": {
+    "sec_roe": 0.1252,
+    "sec_roa": 0.0106,
+    "proposed_roe": 0.1252,
+    "proposed_roa": 0.0106,
+    "yahoo_roe": 0.1291,
+    "yahoo_roa": 0.0108,
+    "roe_proposed_err": 0.0003,
+    "roa_proposed_err": 0.0006,
+    "roe_yahoo_err": 0.0315,
+    "roa_yahoo_err": 0.0183
+   },
+   "WRB": {
+    "sec_roe": 0.2016,
+    "sec_roa": 0.0437,
+    "proposed_roe": 0.2016,
+    "proposed_roa": 0.0437,
+    "yahoo_roe": null,
+    "yahoo_roa": null,
+    "roe_proposed_err": 0.0,
+    "roa_proposed_err": 0.0011,
+    "roe_yahoo_err": null,
+    "roa_yahoo_err": null
+   }
+  }
+ },
+ "baseline_reproduces_published_ranks": "501 of 501",
+ "D_stakes": {
+  "proposed (average balances)": {
+   "label": "average",
+   "universe_composite_spearman": 0.99971,
+   "bank_like_median_abs_rank_move": 5.0,
+   "moved_10_or_more": 11,
+   "moved_25_or_more": 3,
+   "top_25_in_only_baseline": [],
+   "top_25_in_only_proposed": [],
+   "non_bank_composite_changed": 0,
+   "largest_rank_moves": {
+    "IBKR": [
+     392,
+     428
+    ],
+    "PRU": [
+     172,
+     140
+    ],
+    "STT": [
+     149,
+     176
+    ],
+    "C": [
+     192,
+     214
+    ],
+    "TFC": [
+     232,
+     213
+    ],
+    "PFG": [
+     291,
+     276
+    ],
+    "PNC": [
+     157,
+     172
+    ],
+    "COF": [
+     159,
+     145
+    ],
+    "MS": [
+     447,
+     434
+    ],
+    "BNY": [
+     276,
+     289
+    ]
+   },
+   "largest_composite_moves": {
+    "IBKR": [
+     43.79,
+     40.59
+    ],
+    "APO": [
+     29.78,
+     28.22
+    ],
+    "PRU": [
+     53.53,
+     54.77
+    ],
+    "STT": [
+     54.38,
+     53.31
+    ],
+    "CINF": [
+     61.98,
+     61.02
+    ],
+    "MS": [
+     38.8,
+     39.74
+    ]
+   }
+  },
+  "ending balances, for contrast": {
+   "label": "ending",
+   "universe_composite_spearman": 0.99964,
+   "bank_like_median_abs_rank_move": 6.0,
+   "moved_10_or_more": 17,
+   "moved_25_or_more": 3,
+   "top_25_in_only_baseline": [],
+   "top_25_in_only_proposed": [],
+   "non_bank_composite_changed": 0,
+   "largest_rank_moves": {
+    "IBKR": [
+     392,
+     434
+    ],
+    "PRU": [
+     172,
+     138
+    ],
+    "TFC": [
+     232,
+     202
+    ],
+    "PNC": [
+     157,
+     180
+    ],
+    "HBAN": [
+     338,
+     356
+    ],
+    "STT": [
+     149,
+     167
+    ],
+    "BNY": [
+     276,
+     291
+    ],
+    "COF": [
+     159,
+     145
+    ],
+    "CFG": [
+     146,
+     132
+    ],
+    "PFG": [
+     291,
+     279
+    ]
+   },
+   "largest_composite_moves": {
+    "IBKR": [
+     43.79,
+     39.51
+    ],
+    "APO": [
+     29.78,
+     28.22
+    ],
+    "PRU": [
+     53.53,
+     54.89
+    ],
+    "TFC": [
+     50.94,
+     52.16
+    ],
+    "CINF": [
+     61.98,
+     60.86
+    ],
+    "PNC": [
+     54.09,
+     53.15
+    ]
+   }
+  },
+  "ROE only (ROA left on the source)": {
+   "label": "roe only",
+   "universe_composite_spearman": 0.99982,
+   "bank_like_median_abs_rank_move": 3.0,
+   "moved_10_or_more": 7,
+   "moved_25_or_more": 2,
+   "top_25_in_only_baseline": [],
+   "top_25_in_only_proposed": [],
+   "non_bank_composite_changed": 0,
+   "largest_rank_moves": {
+    "PRU": [
+     172,
+     143
+    ],
+    "C": [
+     192,
+     220
+    ],
+    "PNC": [
+     157,
+     179
+    ],
+    "STT": [
+     149,
+     171
+    ],
+    "PFG": [
+     291,
+     278
+    ],
+    "CFG": [
+     146,
+     157
+    ],
+    "COF": [
+     159,
+     148
+    ],
+    "USB": [
+     98,
+     89
+    ],
+    "TFC": [
+     232,
+     223
+    ],
+    "WFC": [
+     356,
+     365
+    ]
+   },
+   "largest_composite_moves": {
+    "KKR": [
+     33.86,
+     35.37
+    ],
+    "C": [
+     52.49,
+     51.49
+    ],
+    "PRU": [
+     53.53,
+     54.53
+    ],
+    "PNC": [
+     54.09,
+     53.25
+    ],
+    "STT": [
+     54.38,
+     53.54
+    ],
+    "APO": [
+     29.78,
+     28.94
+    ]
+   }
+  },
+  "ROA only (ROE left on the source)": {
+   "label": "roa only",
+   "universe_composite_spearman": 0.99986,
+   "bank_like_median_abs_rank_move": 4.0,
+   "moved_10_or_more": 4,
+   "moved_25_or_more": 1,
+   "top_25_in_only_baseline": [],
+   "top_25_in_only_proposed": [],
+   "non_bank_composite_changed": 0,
+   "largest_rank_moves": {
+    "IBKR": [
+     392,
+     427
+    ],
+    "FITB": [
+     347,
+     332
+    ],
+    "CFG": [
+     146,
+     133
+    ],
+    "TFC": [
+     232,
+     221
+    ],
+    "MS": [
+     447,
+     438
+    ],
+    "BNY": [
+     276,
+     285
+    ],
+    "STT": [
+     149,
+     158
+    ],
+    "RJF": [
+     204,
+     213
+    ],
+    "PNC": [
+     157,
+     149
+    ],
+    "KKR": [
+     479,
+     485
+    ]
+   },
+   "largest_composite_moves": {
+    "IBKR": [
+     43.79,
+     40.92
+    ],
+    "KKR": [
+     33.86,
+     32.25
+    ],
+    "APO": [
+     29.78,
+     29.06
+    ],
+    "MS": [
+     38.8,
+     39.4
+    ],
+    "CFG": [
+     54.46,
+     55.05
+    ],
+    "KEY": [
+     57.72,
+     58.2
+    ]
+   }
+  }
+ },
+ "E_minority_interest_for_roa": {
+  "note": "netIncome is attributable to the company; totalAssets is consolidated. Minority interest as a share of total equity measures how far apart the two claims are.",
+  "stocks carrying an exact 'Minority Interest' row": 22,
+  "minority interest / stockholders equity (from the row)": {
+   "median": 0.0106,
+   "over 5%": {
+    "IBKR": 2.7686,
+    "KKR": 1.5912,
+    "APO": 0.9748,
+    "PRU": 0.0953,
+    "CB": 0.0726,
+    "PFG": 0.0615
+   },
+   "over 1%": 11,
+   "all": {
+    "IBKR": 2.7686,
+    "KKR": 1.5912,
+    "APO": 0.9748,
+    "PRU": 0.0953,
+    "CB": 0.0726,
+    "PFG": 0.0615,
+    "L": 0.048,
+    "MET": 0.0189,
+    "BNY": 0.012,
+    "WFC": 0.0118,
+    "C": 0.0115,
+    "MS": 0.0096,
+    "USB": 0.0069,
+    "RJF": 0.0066,
+    "HOOD": 0.0064,
+    "RF": 0.0038,
+    "BRK-B": 0.003,
+    "HBAN": 0.0013,
+    "WRB": 0.001,
+    "PNC": 0.0008,
+    "AIG": 0.0005,
+    "ALL": -0.0006
+   }
+  },
+  "(gross equity - stockholders equity) / stockholders equity, as a cross-check": {
+   "stocks": 46,
+   "over 5%": {
+    "IBKR": 2.7686,
+    "KKR": 1.5912,
+    "APO": 0.9748,
+    "PRU": 0.0953,
+    "CB": 0.0726,
+    "PFG": 0.0615
+   },
+   "over 1%": 11,
+   "disagrees with the row by more than 0.001": {}
+  },
+  "IBKR": {
+   "netIncome": 1126000000.0,
+   "totalAssets": 247309000000.0,
+   "totalAssets_prior": 181475000000.0,
+   "totalEquity": 5904000000.0,
+   "roa_proposed": 0.0053,
+   "yahoo_roa": 0.0228,
+   "probe_minority_now": 16346000000.0
+  }
+ }
+}
