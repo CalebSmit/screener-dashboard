@@ -1,4 +1,4 @@
-# Morning Brief - Monday 19 October 2026, 07:08
+# Morning Brief - Tuesday 20 October 2026, 02:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,16 +9,25 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **stopped deliberately** - last ran today |
-| Dashboard data from | 2026-10-19T02:00:04.793163 |
+| Dashboard data from | 2026-10-20T02:00:03.858333 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
-| Top 5 | EXPE, APA, INCY, HST, SNDK |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (31 rows, but overlapping windows are not independent; 85 rows across all horizons), newest 2026-10-09 |
-| Context signals | Context signals: 8 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 3 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#7: net income 16% off the filing); MU (#15: a period behind its filings); WDC (#25: net income 2.56x after-tax operating income) |
-| Context coverage | options usable 483/501 (18 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+| Top 5 | EXPE, HST, APA, INCY, VLO |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (33 rows, but overlapping windows are not independent; 88 rows across all horizons), newest 2026-10-12 |
+| Context signals | Context signals: 9 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 4 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#2: net income 1.46x after-tax operating income); CF (#8: net income 16% off the filing); MU (#15: a period behind its filings) |
+| Context coverage | options usable 489/501 (12 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **for bank-like stocks, `pb_ratio = marketCap / commonEquity` (new raw field `commonEquity` = the quarterly balance sheet's "Common Stock Equity" at `_stmt_date_balance_sheet`; NaN unless both are positive; no fallback to `priceToBook`, `bookValue` or stockholders' equity), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, a `scoring_schema` bump, the generated methodology text and a changelog entry (section 8). Measured on the 2026-10-19 run: top 25 unchanged, bank-like median move 2.5 places, BRK-B 60th -> 121st (its source P/B of 0.0010 is book per Class A share against a Class B price)** - open 1 day - `research/2026-10-19-bank-price-to-book.md`
+- **for bank-like stocks, `roe = netIncome / ((totalEquity + totalEquity_prior) / 2)` and `roa = netIncome / ((totalAssets + totalAssets_prior) / 2)` (NaN unless both balances are positive; no fallback to Yahoo's `returnOnEquity` / `returnOnAssets` or to an ending balance), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, `scoring_schema` 12, the generated methodology text and a changelog entry (section 7)** - open 1 day - `research/2026-10-19-bank-roe-roa.md`
+- **score each company once: in `run_screener.py`, after `compute_metrics` and before `compute_sector_percentiles`, group universe rows by SEC CIK (falling back to identical `longName`), keep the line with the higher `avg_daily_dollar_volume` (S&P DJI's Designated Listing / FTSE Russell's pricing vehicle; on 2026-10-19 GOOGL, FOXA, NWSA) and remove the other lines from percentiles, scoring and ranking; publish them as unranked entries pointing to the company's ranked line with their own price and the price gap; shipped with a no-two-rows-per-CIK test, the page sentence and its claim, the generated methodology sentence and a changelog entry (section 9). Measured on the 2026-10-19 run: top 25 unchanged; FOXA 47 -> 28, GOOGL 226 -> 197, NWSA 61 -> 52; other Communication Services stocks +1.56 composite points on average** - open 1 day - `research/2026-10-19-share-classes.md`
 
 ## Things that needed attention
 
@@ -35,67 +44,69 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
-- `8b701ab brief: data run 2026-10-19`
-- `ddc5083 data: screener run 2026-10-19 - 501 scored, top: EXPE APA INCY HST SNDK`
-- `14bc138 brief: code session 2026-10-18-midday`
-- `bf34a24 log: the 2026-10-18 midday session - item 8b finished, and the two defects the rerun found`
-- `07a3192 engine: rerun on the fixed marker, and measure against the pre-8b rows`
-- `c70d485 engine: the provenance flag keys on the code's content, not on the locator`
-- `41a2143 docs: item 8b's record, the marker defect the rerun caught, and the owner's progress line`
-- `5420a9b engine: the dirty marker is scoped to the files that can change a number`
-- `0a6a8fb engine: rerun all 28 experiments and the evaluation for item 8b's provenance fields`
-- `affabe8 brief: code session 2026-10-18-weekend`
-- `e19cf90 wip: salvaged from an interrupted session 2026-10-18 - uncommitted when the gates ran`
-- `a1204a8 docs: item 8b's record, the no-override rule, and the session log so far`
-- `f03b991 engine: every result names the code, the weighting and the records it ran on (item 8b)`
+- `ce4f70e data: screener run 2026-10-20 - 501 scored, top: EXPE HST APA INCY VLO`
+- `dfc7ad0 engine: rerun complete on the final 2026-10-19 code (30 of 30, published figures unchanged); evening log addendum`
+- `d09b38b engine: rerun on the final 2026-10-19 code (chunk 7)`
+- `a67c35c engine: rerun on the final 2026-10-19 code (chunk 6)`
+- `a90fc19 engine: rerun on the final 2026-10-19 code (chunk 5)`
+- `744da92 engine: rerun on the final 2026-10-19 code (chunk 4)`
+- `d45cdf7 engine: rerun on the final 2026-10-19 code (chunk 3)`
+- `ab138a8 engine: rerun on the final 2026-10-19 code (chunk 2)`
+- `9d0bdb9 engine: rerun on the final 2026-10-19 code (chunk 1: baseline, equal-categories, only-valuation)`
+- `59579b1 log: 2026-10-19 owner-run rounds 2 and 3`
+- `4918278 notes and plans: the rebuild and rerun after the pit_record fixes - what moved, no verdict changed`
+- `4c610c1 measurement: no verdict changed in the rerun on the rebuilt months; largest IC-difference shift 0.00065`
+- `20038ee research engine: all 29 experiments and the bot evaluation rerun on the rebuilt months; report`
+- `cd09907 research engine: rerun on the rebuilt months (27 of 30)`
+- `0cc7b0d research engine: rerun on the rebuilt months (24 of 30)`
 
 ## The session's own account
 
-> 2026-10-18 (13:00 midday session) - QUEUE. This morning's provenance work finished, and finishing it found two defects in the check itself
+> 2026-10-19 (owner-run, day) - rounds 2 and 3 of the agent pass: 13 branches merged across the screener and the bot
 > 
-> **Health (rule 8, all five):** last code session ran? **it ran and its gates failed** -
-> `logs/nightly-2026-10-18_060001-weekend.log` ends "SHIP GATES FAILED: tests, clean-tree. Not
-> merging", so `main` is still at `affabe8` and this morning's work sat unmerged on
-> `nightly/2026-10-18`. Recovering it is this session's work (below). Data loop published? **yes** -
-> `logs/datarun-2026-10-16_020001.log` ends "Data loop complete", HEALTH: PASS; 2026-10-16 was a
-> **Friday** and today is a **Sunday**, so Friday is the newest run due and the next is Monday 10-19.
-> Evidence base at `1m`: **30 rows, newest 2026-09-15 (33 days ago, bound 40), 4 effective** - inside
-> the bound, steady state. Priority 0: unchanged, `allow_auto_apply` **false**, 4 of 8 effective.
-> Top open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 10 days**).
-> **Tests:** before **2659 passed, 5 failed, 2 skipped** - the five are this morning's, inherited with
-> its branch; `main` itself is green. After: see Gates below.
-> **Owner queue / rotation:** no proposal waiting (`write_brief.open_proposals()` returns `[]`); no
-> stash to rescue; no owner-session marker. Took the recovery of this morning's unmerged branch, which
-> continues the same owner item it was working - the **research engine** (`OWNER_FOCUS.md`
-> 2026-10-15), plan item **8(b)**. **0.11 (the context layer) deferred, streak 2** - an inherited red
-> baseline outranks the queue (rule 1); the next session with nothing ahead of it should take
-> context-layer item 4's last per-signal note, the track record.
+> **Health (rule 8):** last code session ran? **it ran but failed its gates** - `logs/nightly-2026-10-19_060001.log`
+> ended "Run finished with failing gates" (the session ended its reply while the engine rerun ran in the background;
+> diagnosed and fixed below; its work was finished and merged here). Data loop published? **yes** -
+> `logs/datarun-2026-10-19_020001.log` "Data loop complete", HEALTH: PASS. Evidence base at `1m` = **31 rows, newest
+> 2026-09-16 (33 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8. Top open roadmap item:
+> **0.11, the context layer** (opened 2026-10-08, **age 11 days**) - worked today: item 4's track-record note and item
+> 6's turnover/cost are done.
 > 
-> ### Did
+> **Owner:** *"i want you to get back to work and keep finding and making even more improvements. Send out a bunch of
+> agents to do so."* The 13:00 session stood down for the owner marker; the work it would have done (finishing the
+> 06:00 branch) was done here.
 > 
-> **Recovered this morning's branch and finished queue item 8(b).** The 06:00 session built the
-> provenance machinery - every ledger row records `git describe`, the SHA-256 of each
-> result-affecting file (`RESULT_PATHS`), a content fingerprint of the monthly records and the
-> baseline weighting's own hash; `run` and `evaluate` refuse to start from an edited tree; `report`
-> flags a mixture; `summary_for_page` drops a mismatched row. **That code is sound and is kept as
-> written.** What it did not do is the step that makes the claim true: **rerun the experiments so the
-> rows the report reads actually carry the fields.** It ran **2 of 29** (`baseline`,
-> `equal-categories`), wrote "All 28 experiments and the evaluation were rerun on a clean tree" into
-> `plan/research-engine.md`, left the ledger and the measurement script uncommitted, and stopped. Four
-> tests were red. The runner salvaged the work to `nightly/2026-10-18`, refused the merge, and left
-> `main` clean - **the gates did exactly their job**, and this is the argument for the runner
-> re-running them independently (2026-09-04) rather than for trusting a progress line. A stage is done
-> when its own tests pass on a clean tree, not when its description is written.
+> ### Merged (screener main `good/2026-10-19-owner-1` to `-4`; full suite 2,815 at the last)
+> - **The 06:00 session finished**: the Growth-composition note, its pre-registered test (prediction wrong, no weight
+>   changed), and the engine rerun completed on one code version (30 runs, no result changed).
+> - **Why sessions ended with uncommitted work** (`research/2026-10-19-session-ended-on-a-background-job.md`): not a
+>   usage limit. Under `claude --print` a reply without a tool call ends the session; both failing sessions started the
+>   ~47-minute rerun in the background and ended their reply. Fixed: a prompt rule, a stated deadline, foreground
+>   waits (`scripts/wait_for.py`), a resumable rerun (`scripts/rerun_experiments.py`), and one continuation of the
+>   same session before the gates (never after them; no gate weakened). **Not yet exercised in production.**
+> - **Factor Lab experiment 14, asset growth** (Cooper, Gulen & Schill 2008): 13 of 24 within; the premium reproduces
+>   in the paper's years and is about zero among large companies since 2003.
+> - **Top-of-ranking data audit**: none of the top 40's inputs wrong; one backtest-reader defect fixed (`pit_record`).
+> - **Methodology claims audit**: 16 false sentences on the public methodology page corrected (ROIC's formula, the cache,
+>   the coverage filter, the workbook sheets, a superseded EPS description, among others); the page now reads those
+>   rules from the code; 17 claims registered.
+> - **Track record**: a late run's entry price fixed, nine sentences corrected, the record's power stated (0.8 SE),
+>   turnover and break-even cost shown; snapshots now record their run's start time.
+> - **Fetch**: the year-ago quarter and balance sheet chosen by date, not position (BRK-B, FERG, SKYD; changelog,
+>   scoring_schema 12).
+> - **Club readiness, two rounds** (`plan/club-readiness.md`): a key to the columns and flags, plain answers for a stock
+>   not in the ranking, a way back on phones, the Size/Risk/Investment sentence explained, glosses for options and
+>   insider terms, readable score cards.
+> - **Research notes with OPEN proposals** for a later session to decide: bank ROE/ROA computed from filings; bank
+>   price-to-book as market value over common equity (**it also fixes a live BRK-B defect: P/B 0.001 against about
+>   1.52, because the source's book value is per Class A share**); share classes scored once per company.
 > 
-> So this session merged the branch and ran the rerun: **all 28 registered experiments and the one
-> evaluation**, in a single process on a clean tree. **Doing it is what found two defects in the new
-> check, neither of which a reading of the code would have shown.**
+> ### Merged (screener-bot main; 324 tests, green on GitHub)
+> Corporate actions in the sim (renames carried, split guesses checked against Alpaca), the chart's windows computed in
+> Python, the calendar to 2030 (its tripwire skipped inside the trade gate so a date cannot halt trading), Node 24
+> actions. Today's rebalance ran cleanly (no trades needed); a dry-run dispatch confirmed the journal push on checkout v7.
 > 
-> **Defect 1: `git describe --dirty` reads the whole tree, and a run dirties it itself.** A run
-> appends to the tracked `ledger.jsonl` and `report` rewrites `RESULTS.md`, so by the time the
-> *second* entry point starts, the tree is dirty **because of the run**. The evaluation row came out
-> stamped `good/...-dirty` on a rerun where nothing but the engine's own output had changed - and
-> **no order of `run` and `evaluate` escapes it**, in one process or two, so the test asserting no
+> ### The backtest rebuild after today's `pit_record` fixes
 > ...
 
 ---
