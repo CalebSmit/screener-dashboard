@@ -185,7 +185,11 @@ class RunContext:
             # (2026-10-20), which needs the new raw field `commonEquity`: without the bump a warm
             # start would serve a table fetched before it existed and every bank-like stock would
             # lose 60% of its Valuation weight.
-            "scoring_schema": 13,
+            # 14 = bank ROE and ROA are net income over the AVERAGE of the balance sheet now
+            # and a year earlier (2026-10-20), no longer the source's `.info` ratios. The inputs
+            # already exist, so a warm start would not fail - it would quietly serve 46 stocks'
+            # ROE and ROA on the old construction, which is worse.
+            "scoring_schema": 14,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

@@ -2997,23 +2997,46 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                 rec["pb_ratio"] = (mc / ce) if (pd.notna(mc) and pd.notna(ce)
                                                 and mc > 0 and ce > 0) else np.nan
 
-                # Bank Quality: ROE
-                roe_info = d.get("returnOnEquity", np.nan)
-                if pd.notna(roe_info):
-                    rec["roe"] = roe_info
-                elif pd.notna(ni) and pd.notna(eq_v) and eq_v > 0:
-                    rec["roe"] = ni / eq_v
-                else:
-                    rec["roe"] = np.nan
-
-                # Bank Quality: ROA
-                roa_info = d.get("returnOnAssets", np.nan)
-                if pd.notna(roa_info):
-                    rec["roa"] = roa_info
-                elif pd.notna(ni) and pd.notna(ta) and ta > 0:
-                    rec["roa"] = ni / ta
-                else:
-                    rec["roa"] = np.nan
+                # Bank Quality: ROE and ROA - the company's own trailing-twelve-month net income
+                # over the AVERAGE of the balance sheet now and a year earlier (2026-10-20; the
+                # proposal in research/2026-10-19-bank-roe-roa.md section 7, reviewed and measured
+                # again in research/measurements/2026-10-20-bank-roe-roa-review.py).
+                #
+                # They used to read the source's `.info` `returnOnEquity` / `returnOnAssets`, two
+                # ratios with no published definition - the same objection that removed
+                # `earningsGrowth` as "a black-box input with no verifiable definition". Measured
+                # against the companies' own SEC filings, the construction below agrees within
+                # 0.5% for 37 of 37 comparable stocks (ROA 36 of 37); the source's ratios agree
+                # within 2% for 21 and 12 of 35, because they are built on *consolidated* income
+                # including the minority holders' share.
+                #
+                # Average balances are the convention of every source that publishes a definition:
+                # the FDIC's Quarterly Banking Profile and the FFIEC's UBPR ("average total
+                # consolidated assets", "average total equity capital") and JPMorgan's own 10-K.
+                # A bank earns its income on the balance sheet it carried *through* the year.
+                # It is also already the screener's own ROE in sustainable_growth, so there is now
+                # one ROE rather than two.
+                #
+                # ROE's numerator and denominator are both the shareholders' claim. ROA's
+                # denominator is consolidated assets, as the FDIC's and JPMorgan's are - the UBPR
+                # puts income attributable to minority interests on a separate line, so the
+                # headline ratio's numerator is the company's own net income. For the three
+                # fund-consolidating or Up-C names (IBKR, KKR, APO) that understates how
+                # productively the consolidated balance sheet is used, and states correctly what
+                # the shareholder earns on it; see LINEAGE["roa"]'s caveat.
+                #
+                # No fallback to the source's ratio and none to an ending balance: one
+                # construction for every bank-like stock (the Phase 13 F19 rule). The prior
+                # balances are picked by DATE (_year_ago_position, 330-400 days), so a missing
+                # quarter costs the metric rather than averaging over the wrong span.
+                eq_p = d.get("totalEquity_prior", np.nan)
+                ta_p = d.get("totalAssets_prior", np.nan)
+                avg_eq = (eq_v + eq_p) / 2 if (pd.notna(eq_v) and pd.notna(eq_p)) else np.nan
+                avg_ta = (ta + ta_p) / 2 if (pd.notna(ta) and pd.notna(ta_p)) else np.nan
+                rec["roe"] = (ni / avg_eq) if (pd.notna(ni) and pd.notna(avg_eq)
+                                               and eq_v > 0 and eq_p > 0) else np.nan
+                rec["roa"] = (ni / avg_ta) if (pd.notna(ni) and pd.notna(avg_ta)
+                                               and ta > 0 and ta_p > 0) else np.nan
 
                 # Bank Quality: Equity Ratio
                 if pd.notna(eq_v) and pd.notna(ta) and ta > 0:

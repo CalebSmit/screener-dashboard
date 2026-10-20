@@ -160,7 +160,11 @@ def test_market_fields_divide_the_filed_figures_by_the_given_price():
     assert rec["marketCap"] == 2500.0
     assert rec["enterpriseValue"] == 2500.0 + 300.0 - 50.0
     assert rec["bookValue"] == 20.0 and rec["priceToBook"] == pytest.approx(1.25)
-    assert rec["returnOnEquity"] == pytest.approx(465.0 / 2000.0)
+    # No returnOnEquity / returnOnAssets since 2026-10-20: compute_metrics stopped reading the
+    # source's ratios, so market_fields no longer builds a third construction of them on ENDING
+    # balances. The bank ROE and ROA are statement fields now (tests/test_bank_roe_roa.py), which
+    # statement_fields restates as of the month being scored.
+    assert "returnOnEquity" not in rec and "returnOnAssets" not in rec
 
 
 # --------------------------------------------------------------------------- every field classified
