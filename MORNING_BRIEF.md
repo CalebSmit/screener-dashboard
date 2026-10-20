@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 20 October 2026, 02:25
+# Morning Brief - Tuesday 20 October 2026, 08:06
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -8,8 +8,8 @@ history is in `NIGHTLY_LOG.md`.
 | | |
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
-| Code session (latest) | **stopped deliberately** - last ran today |
-| Dashboard data from | 2026-10-20T02:00:03.858333 |
+| Code session (latest) | **completed** - last ran today |
+| Dashboard data from | 2026-10-20T06:16:57.643100 |
 | Stocks scored | 501 |
 | With a price | 501/501 |
 | With an analyst target | 497/501 |
@@ -25,88 +25,74 @@ history is in `NIGHTLY_LOG.md`.
 A session researched these, proposed a change and left it for review. The next
 session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 
-- **for bank-like stocks, `pb_ratio = marketCap / commonEquity` (new raw field `commonEquity` = the quarterly balance sheet's "Common Stock Equity" at `_stmt_date_balance_sheet`; NaN unless both are positive; no fallback to `priceToBook`, `bookValue` or stockholders' equity), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, a `scoring_schema` bump, the generated methodology text and a changelog entry (section 8). Measured on the 2026-10-19 run: top 25 unchanged, bank-like median move 2.5 places, BRK-B 60th -> 121st (its source P/B of 0.0010 is book per Class A share against a Class B price)** - open 1 day - `research/2026-10-19-bank-price-to-book.md`
 - **for bank-like stocks, `roe = netIncome / ((totalEquity + totalEquity_prior) / 2)` and `roa = netIncome / ((totalAssets + totalAssets_prior) / 2)` (NaN unless both balances are positive; no fallback to Yahoo's `returnOnEquity` / `returnOnAssets` or to an ending balance), shipped with `metric_lineage` LINEAGE / RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, `scoring_schema` 12, the generated methodology text and a changelog entry (section 7)** - open 1 day - `research/2026-10-19-bank-roe-roa.md`
 - **score each company once: in `run_screener.py`, after `compute_metrics` and before `compute_sector_percentiles`, group universe rows by SEC CIK (falling back to identical `longName`), keep the line with the higher `avg_daily_dollar_volume` (S&P DJI's Designated Listing / FTSE Russell's pricing vehicle; on 2026-10-19 GOOGL, FOXA, NWSA) and remove the other lines from percentiles, scoring and ranking; publish them as unranked entries pointing to the company's ranked line with their own price and the price gap; shipped with a no-two-rows-per-CIK test, the page sentence and its claim, the generated methodology sentence and a changelog entry (section 9). Measured on the 2026-10-19 run: top 25 unchanged; FOXA 47 -> 28, GOOGL 226 -> 197, NWSA 61 -> 52; other Communication Services stocks +1.56 composite points on average** - open 1 day - `research/2026-10-19-share-classes.md`
 
-## Things that needed attention
-
-- GATE 1 tests: FAIL (FAILED tests/test_v2_experiments.py::test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline FAILED tests/test_v2_experiments.py::test_the_report_says_what_its_rows_ran_on_and_flags_a_mixture 4 failed, 2662 passed, 1 skipped, 316 warnings in 279.04s (0:04:39))
-- GATE 4 clean tree: FAIL - uncommitted changes remain
-- M research.html
-- M research/experiments/RESULTS.md
-- M research/experiments/ledger.jsonl
-- M research/experiments/summary.json
-- SHIP GATES FAILED: tests, clean-tree. Not merging.
-- Committed the uncommitted work onto nightly/2026-10-19 so it is not lost. Recover it from there.
-- Work pushed to nightly/2026-10-19 for inspection. origin/main verified clean (reverted if the earlier push had reached it).
-- Run finished with failing gates - see above.
-
 ## What changed in the repo
 
+- `688260b log: 2026-10-20 session - bank P/B proposal reviewed and accepted`
+- `2e74078 engine: rerun complete on the 2026-10-20 code (30 of 30), and no number moved`
+- `742d5e2 engine: rerun on the 2026-10-20 code (chunk 7 of 8)`
+- `760b429 engine: rerun on the 2026-10-20 code (chunk 6 of 8)`
+- `5ec38de engine: rerun on the 2026-10-20 code (chunk 5 of 8)`
+- `698afc2 engine: rerun on the 2026-10-20 code (chunk 4 of 8)`
+- `a2770e2 engine: rerun on the 2026-10-20 code (chunk 3 of 8)`
+- `81f978e engine: rerun on the 2026-10-20 code (chunk 2 of 8)`
+- `16a6413 engine: rerun on the 2026-10-20 code (chunk 1 of 8)`
+- `9c1a8d6 methodology: bank P/B scored as market value over common equity, published`
+- `a23efa2 wip: bank P/B is market value over common equity at the balance-sheet date`
+- `2cb2060 review: the bank price-to-book proposal re-measured on a second run and a fresh probe`
+- `4dd1e9a brief: data run 2026-10-20`
 - `ce4f70e data: screener run 2026-10-20 - 501 scored, top: EXPE HST APA INCY VLO`
 - `dfc7ad0 engine: rerun complete on the final 2026-10-19 code (30 of 30, published figures unchanged); evening log addendum`
-- `d09b38b engine: rerun on the final 2026-10-19 code (chunk 7)`
-- `a67c35c engine: rerun on the final 2026-10-19 code (chunk 6)`
-- `a90fc19 engine: rerun on the final 2026-10-19 code (chunk 5)`
-- `744da92 engine: rerun on the final 2026-10-19 code (chunk 4)`
-- `d45cdf7 engine: rerun on the final 2026-10-19 code (chunk 3)`
-- `ab138a8 engine: rerun on the final 2026-10-19 code (chunk 2)`
-- `9d0bdb9 engine: rerun on the final 2026-10-19 code (chunk 1: baseline, equal-categories, only-valuation)`
-- `59579b1 log: 2026-10-19 owner-run rounds 2 and 3`
-- `4918278 notes and plans: the rebuild and rerun after the pit_record fixes - what moved, no verdict changed`
-- `4c610c1 measurement: no verdict changed in the rerun on the rebuilt months; largest IC-difference shift 0.00065`
-- `20038ee research engine: all 29 experiments and the bot evaluation rerun on the rebuilt months; report`
-- `cd09907 research engine: rerun on the rebuilt months (27 of 30)`
-- `0cc7b0d research engine: rerun on the rebuilt months (24 of 30)`
 
 ## The session's own account
 
-> 2026-10-19 (owner-run, day) - rounds 2 and 3 of the agent pass: 13 branches merged across the screener and the bot
+> 2026-10-20 (06:00 session) - QUEUE. The bank price-to-book proposal reviewed and ACCEPTED: Berkshire's P/B was 0.0010, not 1.52, and had been since March
 > 
-> **Health (rule 8):** last code session ran? **it ran but failed its gates** - `logs/nightly-2026-10-19_060001.log`
-> ended "Run finished with failing gates" (the session ended its reply while the engine rerun ran in the background;
-> diagnosed and fixed below; its work was finished and merged here). Data loop published? **yes** -
-> `logs/datarun-2026-10-19_020001.log` "Data loop complete", HEALTH: PASS. Evidence base at `1m` = **31 rows, newest
-> 2026-09-16 (33 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8. Top open roadmap item:
-> **0.11, the context layer** (opened 2026-10-08, **age 11 days**) - worked today: item 4's track-record note and item
-> 6's turnover/cost are done.
+> **Health (rule 8, all five):** last code session ran? **the 06:00 one ran and shipped**
+> (`logs/nightly-2026-10-19_060001.log` - its gates failed at the time and an owner-run session
+> finished and merged its work the same day); the 13:00 slot **stood down** for the owner marker, as
+> designed. Data loop published? **yes** - `logs/datarun-2026-10-20_020001.log` ends "Data loop
+> complete", HEALTH: PASS, 501 scored. Evidence base at `1m` = **33 rows, newest 2026-09-18 (32 days
+> ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8 observations. Top
+> open roadmap item: **0.11, the context layer** (opened 2026-10-08, **age 12 days**) - deferred
+> today, see below.
+> **Tests:** before **2,817 passed, 1 skipped**; after **2,830 passed, 1 skipped** (13 new).
+> **Owner queue / rotation:** `MORNING_BRIEF.md` listed **three** proposals waiting for a decision,
+> all opened 2026-10-19, so deciding one was the day's first job ahead of the Tuesday focus
+> (`prompts/nightly.md` section 1). Took the bank price-to-book one, because it was the only one of
+> the three carrying a **demonstrably false number on the live site**. The context-layer item
+> (0.11) and the other two proposals were not started; nothing there is half-done.
 > 
-> **Owner:** *"i want you to get back to work and keep finding and making even more improvements. Send out a bunch of
-> agents to do so."* The 13:00 session stood down for the owner marker; the work it would have done (finishing the
-> 06:00 branch) was done here.
+> ### Did
 > 
-> ### Merged (screener main `good/2026-10-19-owner-1` to `-4`; full suite 2,815 at the last)
-> - **The 06:00 session finished**: the Growth-composition note, its pre-registered test (prediction wrong, no weight
->   changed), and the engine rerun completed on one code version (30 runs, no result changed).
-> - **Why sessions ended with uncommitted work** (`research/2026-10-19-session-ended-on-a-background-job.md`): not a
->   usage limit. Under `claude --print` a reply without a tool call ends the session; both failing sessions started the
->   ~47-minute rerun in the background and ended their reply. Fixed: a prompt rule, a stated deadline, foreground
->   waits (`scripts/wait_for.py`), a resumable rerun (`scripts/rerun_experiments.py`), and one continuation of the
->   same session before the gates (never after them; no gate weakened). **Not yet exercised in production.**
-> - **Factor Lab experiment 14, asset growth** (Cooper, Gulen & Schill 2008): 13 of 24 within; the premium reproduces
->   in the paper's years and is about zero among large companies since 2003.
-> - **Top-of-ranking data audit**: none of the top 40's inputs wrong; one backtest-reader defect fixed (`pit_record`).
-> - **Methodology claims audit**: 16 false sentences on the public methodology page corrected (ROIC's formula, the cache,
->   the coverage filter, the workbook sheets, a superseded EPS description, among others); the page now reads those
->   rules from the code; 17 claims registered.
-> - **Track record**: a late run's entry price fixed, nine sentences corrected, the record's power stated (0.8 SE),
->   turnover and break-even cost shown; snapshots now record their run's start time.
-> - **Fetch**: the year-ago quarter and balance sheet chosen by date, not position (BRK-B, FERG, SKYD; changelog,
->   scoring_schema 12).
-> - **Club readiness, two rounds** (`plan/club-readiness.md`): a key to the columns and flags, plain answers for a stock
->   not in the ranking, a way back on phones, the Size/Risk/Investment sentence explained, glosses for options and
->   insider terms, readable score cards.
-> - **Research notes with OPEN proposals** for a later session to decide: bank ROE/ROA computed from filings; bank
->   price-to-book as market value over common equity (**it also fixes a live BRK-B defect: P/B 0.001 against about
->   1.52, because the source's book value is per Class A share**); share classes scored once per company.
+> **Reviewed, re-measured and ACCEPTED the bank price-to-book proposal**
+> (`research/2026-10-19-bank-price-to-book.md` section 8, raised by the 2026-10-19 session). Bank P/B
+> is 60 of the bank Valuation table's 100 points - about **13.2 composite points for each of the 46
+> bank-like stocks** - and it read the data source's `.info` `priceToBook`, which is
+> `currentPrice / bookValue` with `bookValue` a **per-share** figure.
 > 
-> ### Merged (screener-bot main; 324 tests, green on GitHub)
-> Corporate actions in the sim (renames carried, split guesses checked against Alpaca), the chart's windows computed in
-> Python, the calendar to 2030 (its tripwire skipped inside the trade gate so a date cannot halt trading), Node 24
-> actions. Today's rebalance ran cleanly (no trades needed); a dry-run dispatch confirmed the journal push on checkout v7.
-> 
-> ### The backtest rebuild after today's `pit_record` fixes
+> - **The live defect, confirmed on this morning's published payload before anything was changed:**
+>   BRK-B's `pb_ratio` was **0.0010191567** at the **98.9th** percentile of the bank P/B ranking -
+>   the cheapest bank-like stock by a factor of nearly a thousand - and it was ranked **65th** on the
+>   strength of it. Its book value is per **Class A** share ($522,226) against a **Class B** price
+>   (about $532). Checked against the company's own filing rather than another of the source's rows:
+>   filed stockholders' equity of **$747,910,000,000** (equal to the probe's common equity *and* to
+>   the run's own `totalEquity`) over a market value of $1,139,349,913,600 is **1.5234**. The
+>   published figure was **1,494.8x** too low, which is the 1,500:1 A-to-B ratio. It had been
+>   published every weekday since March: at least the 91.4th percentile in **all 52** improvement
+>   snapshots carrying it, median 98.3.
+> - **Now:** `pb_ratio = marketCap / commonEquity`, both > 0 required, where `commonEquity` is a new
+>   raw field - the quarterly balance sheet's "Common Stock Equity" at the same column `totalEquity`
+>   is read from. **No fallback** to `priceToBook` or `bookValue` (the Phase 13 F19 rule). A
+>   company-level ratio has no per-share unit to get wrong, and it puts the metric on the same
+>   balance sheet as the rest of the record - the source's book was a quarter newer than everything
+>   else scored for **18 of the 46**.
+> - **Shipped with its frontend, same commit** (CLAUDE.md 0.8c): `metric_lineage` LINEAGE /
+>   RECOMPUTE / EQUATIONS, `pit_record.FIELD_CLASSES`, `scoring_schema` 12 -> 13, the generated
+>   methodology paragraph, claim `overview.bank_price_to_book`, `METHODOLOGY_CHANGELOG.md`.
+> - **A full screener run was made in the session** so the new field is in the live payload rather
 > ...
 
 ---
