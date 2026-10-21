@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 21 October 2026, 08:48
+# Morning Brief - Wednesday 21 October 2026, 14:30
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,15 +20,13 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#11: net income 16% off the filing); MU (#14: a period behind its filings) |
 | Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **no weight or metric change; state the bank P/B-ROE pairing as the design and guard it: (1) a paragraph in `run_screener.build_screener_overview()`'s "Bank-specific scoring" section saying a bank's ROE is its earnings yield times its P/B, so its Valuation and Quality scores are read together - the 44 points rank it on ROE relative to P/B (to first order, its earnings yield) and on equity per dollar of assets, with no net weight on P/B by itself - registered in `claims.py` as `overview.bank_pb_roe_identity`; (2) the two table cells calling P/B and ROE "THE key" bank metrics reworded to say each is read against the other; (3) `tests/test_bank_pb_roe_identity.py`, in that claim's `checked_by`, failing if the first-order net loading on log P/B computed from `config.yaml` (factor weights x bank weights: -P/B + ROE + ROA, in composite points; 0.0 today) leaves +-1.5 points, or if on the published payload log ROE regressed on log earnings yield and log P/B has R-squared below 0.90 across the bank-like stocks (0.978 today); (4) a `config.yaml` comment above `bank_metric_weights` naming that constraint and this note.** - open 1 day - `research/2026-10-20-bank-quality-valuation-overlap.md`
-
 ## What changed in the repo
 
+- `0055951 log: the 2026-10-21 13:00 session - the bank P/B-ROE decision and the guard it replaced`
+- `732ad0a research engine: rerun all 30 after the config.yaml comment (0 of 25,460 values moved)`
+- `55b9291 record: the bank P/B-ROE decision - changelog, owner queue, section order`
+- `859a7dd bank P/B-ROE proposal ACCEPTED: state the pairing on the page, guard the measured loading`
+- `ba9b400 brief: code session 2026-10-21`
 - `5e4ccd0 gitignore: a session's .scratch/ folder`
 - `0e5c04a log: the end-to-end verification, the shape bug it caught, and the gate results`
 - `1fd3cb4 page: do not print 'Alphabet Inc..' - strip a trailing stop from the company name`
@@ -39,59 +37,54 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `9590f13 research engine: rerun after the config change (22 of 30)`
 - `f9f738d research engine: rerun after the config change (17 of 30)`
 - `9eb07be research engine: rerun after the config change (12 of 30)`
-- `246a2af research engine: rerun after the config change (7 of 30)`
-- `2b7f1cf research engine: rerun after the config change (3 of 30)`
-- `fbafe2d cache: bump scoring_schema to 15 and key the cache by share_classes`
-- `ff2838d methodology: one company, one ranked line - changelog and the proposal's decision`
-- `b5c7f97 wip: the review's measurements, committed and reproducible`
 
 ## The session's own account
 
-> 2026-10-21 (06:00 session) - QUEUE. The share-class proposal reviewed and ACCEPTED - but the designated line is declared, not re-picked: Alphabet is 179 on GOOGL and 101 on GOOG
+> 2026-10-21 (13:00 session) - QUEUE. The bank P/B-ROE proposal reviewed and ACCEPTED - and the guard it asked for could not see the one change the note itself calls the mildest route to a P/B tilt
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-20 13:00 ended "shipped to
-> main" (`logs/nightly-2026-10-20_130002-midday.log`), and two owner-run sessions followed it.
-> Data loop published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data loop complete",
-> 02:26. Evidence base at `1m` = **33 rows, newest 2026-09-18 (33 days ago, bound 40), 4 effective**
-> - inside the bound, no action. Priority 0: `allow_auto_apply` **false**, 4 of 8 effective
-> observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 9 days**) -
-> not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
-> **Tests:** before **2922 passed / 1 skipped**, after **2969 passed / 1 skipped** - +47, which is
-> exactly the two new modules, no failures and nothing removed. Gates 2 and 3 pass (dry-run exit 0;
-> `index.html` 642,631 bytes; both payloads `node --check` clean with their opening assignments).
-> **Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, the first OPEN proposal.
-> Wednesday's nominal SYNTHESIS focus was displaced by it, which the prompt requires - and the work
-> was a synthesis question anyway: what the *population* of a sector percentile should be. **Deferred:**
-> the second open proposal (the bank P/B-ROE guard, opened 2026-10-20) and the Factor Lab.
+> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 session ends
+> "Run complete: shipped to main" at 08:48 (`logs/nightly-2026-10-21_060000.log`). Data loop
+> published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data loop complete" at 02:26,
+> PUBLISHED CLAIMS PASS (1214 tests). Evidence base at `1m` = **33 rows, newest 2026-09-18 (33 days
+> ago, bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply`
+> **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened
+> 2026-10-12, **age 9 days**) - not worked; its day is Friday 2026-10-23, and the owner queue
+> outranks it today.
+> **Tests:** before **2969 passed / 1 skipped**, after ****2980 passed / 1 skipped**** - the delta is exactly the one new
+> module, no failures and nothing removed. Gates 2 and 3 pass (dry-run exit 0; `index.html` 642,631
+> bytes; both payloads `node --check` clean with their opening assignments).
+> **Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, which named this as "the
+> next session's first job", and it was the only OPEN proposal in the morning brief. **Deferred:**
+> item 2 (second-read lab experiments 16 and 17), item 3 (the next 12 claim mutations) and the
+> Factor Lab.
 > 
 > ### Did
 > 
-> **Reviewed `research/2026-10-19-share-classes.md` and accepted it, with one change the review
-> measured and the note did not have.** The note is good: it inventoried every multi-class company,
-> established from MSCI, S&P DJI and FTSE Russell that fundamentals are company facts and prices are
-> line facts, rescored six candidate rules, and ruled out the cheap one (filling a line's *missing*
-> analyst fields puts FOX at **#6**, into the top 25, on a fallback growth figure of +49.6%). What it
-> proposed was S&P DJI's approach B - score the company once on its **Designated Listing** - with the
-> line picked from **each run's own `avg_daily_dollar_volume`**.
+> **Reviewed `research/2026-10-20-bank-quality-valuation-overlap.md` section 8 and accepted it -
+> with the guard replaced, which is the part only a second reader produces.**
 > 
-> **That last part is not S&P DJI's rule and is not stable, which is what a second reader is for.**
-> S&P changes a Designated Listing only when the other line leads on *both* criteria by more than
-> 20%. Measured over 89 month-ends (2019-06 to 2026-10, 63-day average daily dollar volume):
+> The note's question was whether 35 points of a bank's Quality score double-count two of its
+> Valuation inputs. Since the two changes that shipped on 2026-10-20 put ROE and P/B on nearly one
+> book, a bank's ROE **is** its earnings yield times its P/B. The note's answer - no, because ROE
+> duplicates earnings yield but *cancels* price-to-book, so the four weights net to "high ROE at a
+> low P/B", the construction bank analysts and index builders use on purpose - holds up. I
+> re-measured it on a different run and it reproduces. **No weight, metric or threshold changed.**
 > 
-> | | Alphabet | Fox | News Corp |
-> |---|---|---|---|
-> | Months the two lines are within S&P's 20% margin | **31 of 89 (34.8%)** | 0 | 0 |
-> | Closest the two ever came (volume ratio) | **1.003** | 2.077 | 2.193 |
-> | Times the busier line actually changed | **4** (2020-09, 11, 12; 2021-01) | 0 | 0 |
+> **Re-measured on run `4dc4acf1d780` (today 02:00) against the note's `7c12b43a07b6` (yesterday
+> 13:21).** Both measurement scripts rerun; the rescoring baseline reproduces **501 of 501**
+> published ranks either way:
 > 
-> And it matters: rescoring the 2026-10-21 run both ways, **Alphabet ranks 179 scored on GOOGL and
-> 101 scored on GOOG** - 78 places, with a different ticker in the published ranking - because the
-> two lines carry different analyst records (the note's own section 7: the source serves GOOGL's
-> quarterly "actual EPS" on a GAAP basis and GOOG's on the analysts' basis). A per-run recomputation
-> would have moved a company 78 places on a liquidity tiebreak that is a coin flip a third of the
-> time, with nothing in the changelog to explain it.
+> | | Note's run | My run |
+> |---|---|---|
+> | **(a)** R-squared, log ROE on log E/P and log P/B (bar 0.90) | 0.978 | **0.978** |
+> | **(b)** measured loading on P/B's rank | -0.067 | **-0.069** |
+> | loading on E/P's rank - criterion (b)'s bar is half of it | +0.284 | **+0.283** |
+> | status quo against the P/B-ROE (Wilcox) residual | -0.890 | **-0.892** |
+> | the six alternatives against it | -0.85 / -0.72 / -0.84 / -0.79 / -0.84 / -0.88 | **-0.848 / -0.724 / -0.839 / -0.796 / -0.838 / -0.882** |
 > 
-> **So the choice of line is declared in `config.yaml` (`share_classes.designated: GOOGL, FOXA,
+> Every figure to the third decimal, and the status quo is still the closest of the seven
+> constructions to the combined signal. Both refutation criteria hold.
+> 
 > ...
 
 ---
