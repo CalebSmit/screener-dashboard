@@ -63,6 +63,11 @@ Two things still outrank this file, and neither is negotiable:
      the extended universe - **register `only-size-extended` first, with its one-sided reading**
      (free data adds the members that shrank out but almost none that were acquired, so the Size
      test can falsify the survivorship explanation and cannot confirm it).
+     **Late the same night:** Tiingo's public ticker list carries 84 of the 152 acquired names (65% of
+     acquired member-months) - the hole free sources could not fill. If the owner opens a free Tiingo
+     account, he saves the key himself in the gitignored `data/survivorship/tiingo_key.txt` (never in
+     chat, never in a tracked file); then spot-check a few series, read Tiingo's terms on derived results,
+     and rebuild with it - the Size test would then be able to confirm as well as falsify. Addendum in the note.
   7. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
      against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
      `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file

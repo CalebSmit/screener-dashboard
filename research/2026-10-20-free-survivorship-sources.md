@@ -353,3 +353,29 @@ question.
   high/low price table.
 - SEC, Form 13F data sets (`sec.gov/data-research/sec-markets-data/form-13f-data-sets`), 2013 Q3
   onward; SEC EDGAR submissions and XBRL `companyconcept` APIs.
+
+## Addendum, 2026-10-20 late (owner-run): Tiingo's public ticker list carries most of the acquisitions
+
+The owner offered to open free accounts (Alpha Vantage, Nasdaq Data Link, Tiingo). Before asking him to,
+the one check possible without an account: Tiingo publishes every ticker it carries, with the first and
+last date of its price history, as a public file
+(`research/measurements/2026-10-20-tiingo-list-coverage.py`, JSON beside it). A name counts only if its
+history starts by its first month in the index and ends within 40 days before to 270 days after its
+exit, so a reused symbol does not count.
+
+| Cause | Names listed | Member-months listed |
+|---|---|---|
+| Acquired / merged / taken private | **84 of 152** | **5,215 of 8,034 (65%)** |
+| Bankrupt | 1 of 13 | 56 of 438 |
+
+Still-trading names fail the end-date test by design (their history runs to today); route (a) already
+covers them. **If the listed histories are real and complete, Yahoo plus Tiingo would cover about 71% of
+the gap's member-months (5,776 + 5,271 of 15,590), against 37% today, and most of the acquisitions** -
+which would turn the Size test from one-sided into one that can confirm as well as falsify. A list entry
+is not data: verifying needs a free Tiingo key (the free plan's monthly symbol allowance covers ~150
+names), a spot check of a few series against the 13F and deal-price routes above, and a reading of
+Tiingo's terms for what derived results may be published (raw prices may not be).
+
+Alpha Vantage is not worth an account for this: 25 requests a day on the free plan, and no evidence
+it serves delisted symbols. Nasdaq Data Link's WIKI table is frozen at March 2018 and its delisted
+coverage is undocumented; at most a cross-check after Tiingo.
