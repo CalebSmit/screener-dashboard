@@ -1856,9 +1856,10 @@ def run_factor_engine(cfg, args, ctx=None):
     secondary_lines, share_class_notes = {}, []
     if cfg.get("share_classes", {}).get("score_once_per_company", True):
         import share_classes as _sc
-        _src = raw.set_index("Ticker") if "Ticker" in getattr(raw, "columns", []) else raw
-        _names = (_src["longName"].to_dict() if "longName" in _src.columns else {})
-        _prices = (_src["currentPrice"].to_dict() if "currentPrice" in _src.columns else {})
+        # `raw` is the fetch's list of per-ticker dicts here and a DataFrame in the run
+        # artifact; `fetch_maps` reads both. The first end-to-end run of this rule failed on
+        # the assumption (2026-10-21), after every unit test had passed.
+        _names, _prices = _sc.fetch_maps(raw)
         _groups, _basis = _sc.group_companies(df["Ticker"].tolist(), names=_names)
         if _groups:
             _vols = (df.set_index("Ticker")["avg_daily_dollar_volume"].to_dict()

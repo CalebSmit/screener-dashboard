@@ -79,6 +79,37 @@ def cik_map(path: pathlib.Path | None = None) -> dict[str, int]:
     return out
 
 
+def fetch_maps(raw) -> tuple[dict[str, str], dict[str, float]]:
+    """``({TICKER: longName}, {TICKER: currentPrice})`` from the fetch, whichever shape it is in.
+
+    The fetch is a **list of per-ticker dicts** inside the pipeline and a DataFrame in the run's
+    ``00_raw_fetch`` artifact. Assuming one shape is how the first end-to-end run of this rule
+    failed on 2026-10-21 (``AttributeError: 'list' object has no attribute 'columns'``), after
+    every unit test passed - a list has no ``.columns``, and ``getattr(raw, "columns", [])``
+    turns that into a silent wrong branch rather than an error at the point of the mistake.
+    """
+    names: dict[str, str] = {}
+    prices: dict[str, float] = {}
+    if raw is None:
+        return names, prices
+    if hasattr(raw, "columns"):                       # a DataFrame
+        src = raw.set_index("Ticker") if "Ticker" in raw.columns else raw
+        if "longName" in src.columns:
+            names = {_norm(k): v for k, v in src["longName"].to_dict().items()}
+        if "currentPrice" in src.columns:
+            prices = {_norm(k): v for k, v in src["currentPrice"].to_dict().items()}
+        return names, prices
+    for rec in raw:                                   # the fetch's list of dicts
+        if not isinstance(rec, dict) or not rec.get("Ticker"):
+            continue
+        t = _norm(rec["Ticker"])
+        if rec.get("longName") is not None:
+            names[t] = rec["longName"]
+        if rec.get("currentPrice") is not None:
+            prices[t] = rec["currentPrice"]
+    return names, prices
+
+
 def group_companies(
     tickers: Iterable[str],
     names: dict[str, str] | None = None,

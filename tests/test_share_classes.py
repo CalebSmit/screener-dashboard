@@ -48,6 +48,37 @@ class TestDeclaration:
         assert "switching margin" in block
 
 
+# ------------------------------------------------------- the fetch, in both of its shapes
+class TestFetchMaps:
+    """The pipeline hands over a list of dicts; the run artifact is a DataFrame. Assuming one
+    is how the first end-to-end run failed (2026-10-21) with every unit test green."""
+
+    RECORDS = [{"Ticker": "FOXA", "longName": "Fox Corporation", "currentPrice": 64.15},
+               {"Ticker": "FOX", "longName": "Fox Corporation", "currentPrice": 57.22}]
+
+    def test_the_fetchs_list_of_dicts(self):
+        names, prices = sc.fetch_maps(self.RECORDS)
+        assert names == {"FOXA": "Fox Corporation", "FOX": "Fox Corporation"}
+        assert prices == {"FOXA": 64.15, "FOX": 57.22}
+
+    def test_the_run_artifacts_dataframe_gives_the_same_answer(self):
+        import pandas as pd
+        df = pd.DataFrame(self.RECORDS)
+        assert sc.fetch_maps(df) == sc.fetch_maps(self.RECORDS)
+
+    def test_a_dataframe_already_indexed_by_ticker(self):
+        import pandas as pd
+        df = pd.DataFrame(self.RECORDS).set_index("Ticker")
+        assert sc.fetch_maps(df)[1]["FOX"] == pytest.approx(57.22)
+
+    def test_missing_columns_fields_and_none_are_empty_not_a_crash(self):
+        import pandas as pd
+        assert sc.fetch_maps(None) == ({}, {})
+        assert sc.fetch_maps([]) == ({}, {})
+        assert sc.fetch_maps([{"Ticker": "AAA"}, {"no_ticker": 1}, "junk"]) == ({}, {})
+        assert sc.fetch_maps(pd.DataFrame({"Ticker": ["AAA"]})) == ({}, {})
+
+
 # ------------------------------------------------------------------------ the grouping
 class TestGrouping:
     def test_groups_the_three_known_pairs_by_cik(self):
