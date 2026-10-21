@@ -93,7 +93,8 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    delisting announcement states in an 8-K, or a deal price), and measure how much of the gap a
    free source closes before building anything on it. *Tried 2026-10-15:* Stooq's CSV download now
    answers every request (delisted or not) with a browser challenge page - not usable, and getting
-   around a bot check is off-limits.
+   around a bot check is off-limits. *Measured 2026-10-20 for 2012-2019:* item 8(d) below - free
+   routes give monthly returns for 37% of the departed member-months and ~1% of the acquired ones.
 6. **New ideas come from Monday notes.** Each Monday research note that ends with a testable claim
    registers one experiment for it. That is the route by which the engine grows - one sourced idea
    at a time - and the multiple-testing bar tightens as it does, which is correct.
@@ -212,6 +213,27 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    more**. Sources: Linnainmaa & Roberts (2018), RFS 31(7), on testing anomalies in the history
    before their samples; Shumway (1997), J. Finance 52(1), on the delisting-return bias in
    survivor-only data. No paid data (owner, 2026-10-15).
+
+   **First half MEASURED 2026-10-20 (night) - `research/2026-10-20-free-survivorship-sources.md`.**
+   Of the 15,590 departed member-months of 2012-2019 (32.3% of the panel), free sources give an
+   identity-checked monthly return for **5,776 (37.0%)**, 5,737 with the 13 months of daily history
+   v2 also needs - all of it from Yahoo, and all but one name from members that **left the index and
+   kept trading** (85.5% of those months covered). **Acquisitions are 51.5% of the departed months
+   and free data covers 1.2% of them**; bankruptcies 0%. Deal filings give an exit value for ~54% of
+   acquired names (extraction ~10% wrong, so unusable unreviewed) and never a monthly return; 10-K
+   Item 5 tables are quarterly ranges and stop with filings made in 2019; SEC 13F data sets give an
+   as-traded quarter-end price (29 of 39 within 1% of Yahoo) from 2013 Q3 - quarterly only. Coverage
+   would rise from 56.7% to 69.1% of 2012's members and from 76.9% to 87.6% of 2019's.
+   **The Size test is runnable one-sidedly:** the rebuild adds the shrinking leavers and still omits
+   the acquired ones, and both lean against Size, so a lead that stays at **+0.020 or more still
+   falsifies** the survivorship explanation, while a fall **below +0.014 would not confirm it**.
+   **Next step (not done): register `only-size-extended` with that one-sided reading and the paired
+   month-by-month statistic, committed before any extended month exists** - it stales every ledger
+   row, so budget the ~47-minute rerun - then follow the note's section 8 build plan. Two
+   non-survivorship v2 data fixes it found (167 member-months of renames not carried before 2014-05;
+   773 `no_filings` months under predecessor CIKs - Exxon, BlackRock, Disney, Alphabet ...) are in
+   its section 6. Yahoo deletes a delisted symbol's history, so this route shrinks every year: the
+   accepted series are cached in the main checkout's `data/survivorship/`.
 
    **(e) Measure today's sector and industry taxonomy on historical months before changing it.**
    v2 assigns each historical member today's sector (the engine ranks within sector, so this sets
