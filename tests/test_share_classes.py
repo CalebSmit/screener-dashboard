@@ -19,7 +19,8 @@ import yaml
 
 import share_classes as sc
 
-CFG = yaml.safe_load(open("config.yaml", encoding="utf-8"))
+with open("config.yaml", encoding="utf-8") as _fh:
+    CFG = yaml.safe_load(_fh)
 PAIRS = [["GOOGL", "GOOG"], ["FOXA", "FOX"], ["NWSA", "NWS"]]
 
 

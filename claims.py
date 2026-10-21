@@ -1385,16 +1385,16 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="share_classes:designate",
         checked_by=(
-            "tests/test_share_classes.py::TestDeclaration::test_config_declares_one_line_per_known_pair",
-            "tests/test_share_classes.py::TestDesignation::test_the_declaration_beats_this_run_s_volume",
-            "tests/test_share_classes.py::TestPipelineWiring::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
+            "tests/test_share_classes.py::test_config_declares_one_line_per_known_pair",
+            "tests/test_share_classes.py::test_the_declaration_beats_this_run_s_volume",
+            "tests/test_share_classes.py::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
             "tests/test_share_classes_page.py::test_the_page_names_the_declared_lines_and_only_those",
             "tests/test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config",
         ),
         # the page's typography pass turns " - " into a spaced en dash, so match either
         detect=r"Each company is therefore scored \*\*once\*\*, on its more-traded class",
         caveat=(
-            "Shipped 2026-10-21 (research/2026-10-19-share-classes.md, reviewed with "
+            "Fixed 2026-10-21 (research/2026-10-19-share-classes.md, reviewed with "
             "research/measurements/2026-10-21-share-class-stability.py). Until then Alphabet, "
             "Fox and News Corp each held two ranked lines, and the three second lines held the "
             "other 16 Communication Services stocks' composites down by 1.565 points."
