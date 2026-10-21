@@ -433,8 +433,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
 # 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
 # 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
-# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution.
-ASSET_VERSION = 24
+# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution;
+# 25 = size inside each profitability fifth (queue row 4b; a new kind, double) and the note's pre-registered rule.
+ASSET_VERSION = 25
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -2602,7 +2603,7 @@ SIZE_GIVEN_PROFITABILITY = {
         "unconditional": 0.136, "min_t": 1.5,
         "unconditional_source": ("The library's size quintile 4 minus quintile 5, value-weighted, July 1963 "
                                  "to August 2026 (research/measurements/2026-10-20-size-lab.json)."),
-        "weight": "Size, 5% of the screener's score",
+        "weight": "Size weight (5% of the score)",
     },
     "double": {
         "rows": ["Weakest profitability", "Second fifth", "Middle fifth", "Fourth fifth", "Most profitable"],
@@ -2612,7 +2613,10 @@ SIZE_GIVEN_PROFITABILITY = {
                     ["Since 1981", "198101", "LAST"], ["Since 2000", "200001", "LAST"],
                     ["Everything", "FIRST", "LAST"]],
     },
-    "verdict_note": "",
+    "verdict_note": ("The averages across the five profitability fifths match, including the fourth size group's. "
+                     "The misses are two of the five rows and the gaps between profitable and weak companies, "
+                     "which here are about half the paper's: operating profitability is one part of the paper's "
+                     "quality score, not the whole of it."),
     "conditions": [
         ["Portfolios", "Each June, every US-listed stock is put in one of five size groups and, separately, one "
                        "of five groups by operating profitability, both on New York Stock Exchange breakpoints. "
@@ -2701,6 +2705,10 @@ TAKEAWAYS = {
                            "above zero on the public library to 2020, and 76% inside the mega caps alone - "
                            "close to the paper's 77%. Since 2014 only 9 of them clear that bar among mega caps, "
                            "over a period too short to settle it."),
+    "size-given-profitability": ("Holding profitability fixed, the fourth size group beat the largest by about 0.24% a "
+                                 "month in the paper's years, close to the paper's 0.25%, and by 0.17% over 1963-2026 - "
+                                 "enough to pass the test the screener's research note set in advance. Since 2013 it "
+                                 "has been below zero, over a period too short to settle it."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2747,7 +2755,7 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
             "surprises. They need a history of analysts' estimates as they stood at the time, which is "
             "sold, not published."},
-    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors", "replication-crisis"],
+    {"category": "Size", "key": "size", "experiments": ["size-effect", "size-given-profitability", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
     {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small", "replication-crisis"],
@@ -2786,8 +2794,10 @@ SCORECARD_OPEN = {
              "the methodology now says so."),
     "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
                   "only measurement it will get."),
-    "size": ("A small effect for its weight, and the screener's companies sit almost entirely in the "
-             "two largest groups."),
+    "size": ("Researched 2026-10-20: no size premium among large companies on its own; the weight rests on "
+             "the case that size pays once quality is held fixed. Holding profitability fixed passed the test "
+             "written for it in advance, by a margin over the plain spread too small to tell from zero. Since "
+             "2013 the spread with profitability held fixed has been below zero."),
     "investment": "How much of this category is Valuation counted a second time.",
 }
 
@@ -2863,7 +2873,8 @@ def next_month(m: str) -> str:
 
 
 def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
-                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None) -> list[dict]:
+                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None,
+                    double: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -2952,6 +2963,13 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
             b = jkp_run(jkp, next_month(JKP_END), end, u, "capm", "sig")
             add("replication-crisis", f"The 119 published factors among {name}: average CAPM alpha, a month",
                 "pct", 1, cell(a["alpha"], span("000000", JKP_END)), cell(b["alpha"], span(next_month(JKP_END), end)))
+
+    if double is not None and "size-given-profitability" in exps:
+        ref = exps["size-given-profitability"]["reference"]
+        a, b = double_run(double, ref["start"], ref["end"]), double_run(double, next_month(ref["end"]), end)
+        add("size-given-profitability", "Fourth size group minus largest, profitability held fixed, a month", "pct", 1,
+            cell(a["fourq"]["mean"], len(a["months"]), a["fourq"]["t"]),
+            cell(b["fourq"]["mean"], len(b["months"]), b["fourq"]["t"]))
     return rows
 
 
@@ -3170,6 +3188,23 @@ def reproduce_combo(split: dict, factors: dict, exp: dict) -> dict:
             "corr_resid": r["corr_resid"]}
 
 
+def reproduce_double(data: dict, exp: dict) -> dict:
+    """A size-by-trait experiment at the paper's sample, against its table, and - separately, never
+    counted in the comparison - the screener's own pre-registered rule read on the same data."""
+    ref = exp["reference"]
+    got = double_figures(data, ref["start"], ref["end"])
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    r = double_run(data, ref["start"], ref["end"])
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "means": [c["mean"] for c in r["cells"]],
+            "smbq": r["smbq"], "fourq": r["fourq"],
+            "criterion": criterion_result(data, exp["criterion"])}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -3190,6 +3225,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
     sorts = {name: sort_data(name, raw_dir) for name in SORTS}
     split = split_data(raw_dir)
     quintiles = quintile_data(raw_dir)
+    double = double_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_split(quintiles if exp.get("split", {}).get("data") == "quintiles" else split, exp)
@@ -3200,6 +3236,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
                   else reproduce_replication(jkp, exp) if exp["kind"] == "replication"
+                  else reproduce_double(double, exp) if exp["kind"] == "double"
                   else reproduce(data, exp))
         for row, n in zip(result["rows"], null_rows(exp)):            # what no effect at all would show
             row["null"] = n["null"]
@@ -3227,7 +3264,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "turned the way each factor's paper found it paid, and nothing after the files' own months "
                      "is added. Non-commercial use only, under the licence."),
         },
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp),
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
         "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
@@ -3235,6 +3272,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
         "size": {k: size[k] for k in ("months", "ew", "vw")},
         "sorts": sorts,
         "quintiles": quintiles,
+        "double": {k: double[k] for k in ("months", "vw")},
         "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "jkp": jkp,

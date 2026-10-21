@@ -530,7 +530,8 @@ the steps in section 5.6 is recommended.
 
 What would reopen it - any one of these, written now so the reading cannot be bent later:
 
-1. **The conditional test among large companies fails on public data.** Ken French's 25
+1. **The conditional test among large companies fails on public data.** *(Run the same night - not
+   refuted, 0.166% a month, t 2.36; section 11.)* Ken French's 25
    size-by-operating-profitability portfolios (`25_Portfolios_ME_OP_5x5`, not yet in
    `data/lab/french/`) allow Asness et al.'s Table 3 double sort with profitability: size quintile
    4 minus 5 inside each profitability quintile. Queued as a lab experiment (`plan/factor-lab.md`,
@@ -590,3 +591,60 @@ Measurements: `research/measurements/2026-10-20-size-composite.py`,
 `research/measurements/2026-10-20-size-exposure-over-time.py`,
 `research/measurements/2026-10-20-size-lab.py`, each with its JSON output. No backtest number and
 no figure from `live_ic_history.csv` or `performance_history.csv` is used as evidence.
+
+## 11. Addendum, 2026-10-20 (later the same night): the conditional test among large companies
+
+Section 9, item 1 queued this test with its refutation rule written down. It has now run, as Factor
+Lab experiment `size-given-profitability` (`factor_lab.py`, kind `double`; `lab.html#size-given-profitability`).
+Order of work, so the reading can be checked: the paper's figures, the lab tolerances and this
+rule were committed together (`39a6727`) after `25_Portfolios_ME_OP_5x5` was downloaded but before
+any return in it had been computed on - only its table titles were read, to find the value-weighted
+table.
+
+**What the rule said** (verbatim, and carried on the lab record as `criterion.rule`): refutes the
+case for the weight if, over 1963-2026, the average of the five is no larger than the unconditional
+Q4 - Q5 spread (0.136% a month, value-weighted, section 2.1), or its t-statistic is below 1.5.
+
+**What came out.** Size quintile 4 minus quintile 5 inside each operating-profitability quintile,
+value-weighted, averaged across the five month by month, July 1963 to August 2026 (758 months):
+**0.166% a month, t-statistic 2.36.** Row by row, weakest profitability to most: 0.216, 0.189,
+0.122, 0.150, 0.153 (t 1.93, 2.10, 1.37, 1.66, 1.48) - positive in every row.
+
+Therefore: **Not refuted**. Under the note's own rule the conditional case for Size's 5% survives
+among large companies on public data: 0.166 is larger than 0.136 and 2.36 is above 1.5. The weight
+stays at 5%, as section 9 decided; no proposal is opened.
+
+What the rule did not ask, recorded so nobody reads more into the pass than it holds:
+
+| Window | Q4 - Q5, profitability held fixed | Q4 - Q5, unconditional (section 2.1) |
+|---|---|---|
+| 1963-2026 | 0.166 (t 2.36) | 0.136 (t 1.80) |
+| 1963-2012 (the paper's years in the library) | 0.241 (t 3.05) | 0.208 (t 2.43) |
+| 1981-2026 | 0.109 (t 1.33) | 0.076 (t 0.85) |
+| 2000-2026 | 0.252 (t 2.19) | 0.172 (t 1.38) |
+| 2013-2026 | -0.107 (t -0.70) | -0.123 (t -0.76) |
+
+- **The strengthening is small and not itself distinguishable from zero.** Month by month over the
+  same 758 months, the conditional spread minus the unconditional one averages 0.030% a month,
+  t 1.24. Holding profitability fixed raised the large-company spread in every window above by
+  0.02-0.08 points, which is the direction Asness et al. predict, but the rule's bar ("no larger
+  than") is a direction test, not a significance test. It was written that way, and it is read as
+  written.
+- **Since 1981 it is "not confirmed"** (t 1.33 over 45 years) and since 2013 it is below zero. By the
+  reading rules in `plan/factor-lab.md` the post-2013 figure is the under-twenty-years case and cuts
+  nothing on its own.
+- **January carries a share of it**: 0.490 (t 1.70) in 63 Januaries against 0.137 (t 1.90) in the
+  other months - the same seasonal shape as the unconditional spread (section 2.1).
+- **Operating profitability is one of QMJ's four parts.** Against the paper's Table 3 the lab lands
+  10 of 17 within tolerances written first: the averages across the five rows match (SMBQ 0.39
+  against 0.42; the fourth-minus-biggest average 0.241 against the 0.254 derived from the paper's
+  columns), while the profitable-minus-weak spreads inside a size group come out about half the
+  paper's quality spreads (0.23 against 0.42 among the biggest), and two of the five rows miss. A
+  rerun on QMJ itself would sharpen this test; AQR publishes QMJ as a factor, not as a
+  size-by-quality grid, so that needs the stock-level data the lab does not have.
+
+**What this changes in section 9.** Item 1 is answered: it does not reopen the weight. Items 2-4
+(a cut to Quality, the survivorship rebuild, Hou & van Dijk or Israel & Moskowitz once read) stand
+as written. The test also adds one reason to keep reading item 2 closely: the only measured support
+for the 5 points is now a quality-conditional spread among large companies, so a cut to Quality
+would remove the condition this result depends on.
