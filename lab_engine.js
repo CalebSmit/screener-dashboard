@@ -274,6 +274,89 @@
         return out;
     }
 
+    // ---------------------------------------------------------------- experiment 15: 153 factors
+    // Jensen, Kelly & Pedersen (2023) on their own library (factor_lab.jkp_*). Series are whole
+    // basis points, [first month index, value, ...]; every calculation divides by 100 first.
+    const JKP_MIN = 60, JKP_T = 1.96, JKP_IDIO = 10 / Math.sqrt(12);
+    function jkpWindow(jkp, universe, k, start, end) {
+        const ser = jkp.series[universe][k], first = ser[0], y = [], x = [];
+        for (let j = 1; j < ser.length; j++) {
+            const i = first + j - 1, m = jkp.months[i];
+            if (m < start || m > end || ser[j] === null || jkp.mkt[i] === null) continue;
+            y.push(ser[j] / 100); x.push(jkp.mkt[i] / 100);
+        }
+        return [y, x];
+    }
+    function jkpLine(y, x) {
+        const n = y.length;
+        let sy = 0, sx = 0;
+        for (let i = 0; i < n; i++) { sy += y[i]; sx += x[i]; }
+        const my = sy / n, mx = sx / n;
+        let syy = 0, sxx = 0, sxy = 0;
+        for (let i = 0; i < n; i++) { syy += (y[i] - my) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx); sxy += (x[i] - mx) * (y[i] - my); }
+        return { n: n, my: my, mx: mx, syy: syy, sxx: sxx, beta: sxy / sxx, alpha: my - (sxy / sxx) * mx };
+    }
+    // Average and its t-statistic; CAPM alpha, beta, the alpha's t-statistic (plain OLS standard
+    // error) and the residual volatility. Null below the paper's minimum of 60 months.
+    function jkpCapm(y, x) {
+        const n = y.length;
+        if (n < JKP_MIN) return null;
+        const L = jkpLine(y, x), sd = Math.sqrt(L.syy / (n - 1));
+        let ss = 0;
+        for (let i = 0; i < n; i++) { const e = y[i] - L.alpha - L.beta * x[i]; ss += e * e; }
+        const s = Math.sqrt(ss / (n - 2)), se = Math.sqrt(s * s * (1 / n + L.mx * L.mx / L.sxx));
+        return { n: n, mean: L.my, t_mean: sd ? L.my / (sd / Math.sqrt(n)) : 0, alpha: L.alpha, beta: L.beta,
+                 t_alpha: se ? L.alpha / se : 0, resid: s };
+    }
+    // The replication rate over a period: of the factors in the set ('sig': significant in their own
+    // papers; 'all': 153) with 60 months in it, the share whose average return ('raw') or CAPM alpha
+    // ('capm') has a t-statistic above 1.96 in the paper's direction - and the same by theme.
+    function jkpRun(jkp, o) {
+        const factors = [], themes = {};
+        jkp.themes.forEach(t => { themes[t] = { theme: t, n: 0, hits: 0, alpha_sum: 0 }; });
+        let hits = 0, counted = 0;
+        jkp.factors.forEach((f, k) => {
+            if (o.which === 'sig' && !f.sig) { factors.push(null); return; }
+            const w = jkpWindow(jkp, o.universe, k, o.start, o.end), r = jkpCapm(w[0], w[1]);
+            factors.push(r);
+            if (r === null) return;
+            const ok = (o.test === 'capm' ? r.t_alpha : r.t_mean) > JKP_T;
+            counted += 1; hits += ok ? 1 : 0;
+            const th = themes[f.theme]; th.n += 1; th.hits += ok ? 1 : 0; th.alpha_sum += r.alpha;
+        });
+        const rows = jkp.themes.map(t => { const th = themes[t];
+            return { theme: t, n: th.n, hits: th.hits, rate: th.n ? 100 * th.hits / th.n : null, alpha: th.n ? th.alpha_sum / th.n : null }; });
+        let total = 0; jkp.themes.forEach(t => { total += themes[t].alpha_sum; });
+        return { n: counted, hits: hits, rate: counted ? 100 * hits / counted : null, alpha: counted ? total / counted : null,
+                 themes: rows, factors: factors };
+    }
+    const nextMonth = m => { const y = +m.slice(0, 4), mo = +m.slice(4); return (y + (mo === 12 ? 1 : 0)) + String(mo % 12 + 1).padStart(2, '0'); };
+    const prevMonth = m => { const y = +m.slice(0, 4), mo = +m.slice(4); return (y - (mo === 1 ? 1 : 0)) + String(mo === 1 ? 12 : mo - 1).padStart(2, '0'); };
+    // The paper's out-of-sample test (factor_lab.jkp_outside): alphas before, inside and after each
+    // factor's original sample, each factor scaled to 10% a year of idiosyncratic volatility.
+    function jkpOutside(jkp, end) {
+        const pre = [], post = [], both = [], aIn = [], aPost = [];
+        jkp.factors.forEach((f, k) => {
+            if (!f.sig) return;
+            const fw = jkpWindow(jkp, 'all', k, '000000', end), full = jkpCapm(fw[0], fw[1]);
+            if (full === null) return;
+            const scale = JKP_IDIO / full.resid;
+            const p = jkpWindow(jkp, 'all', k, '000000', prevMonth(f.in_start)), q = jkpWindow(jkp, 'all', k, nextMonth(f.in_end), end);
+            const rPre = jkpCapm(p[0], p[1]), rPost = jkpCapm(q[0], q[1]), rBoth = jkpCapm(p[0].concat(q[0]), p[1].concat(q[1]));
+            if (rPre !== null) pre.push(rPre.alpha > 0);
+            if (rBoth !== null) both.push(rBoth.alpha > 0);
+            if (rPost !== null) {
+                post.push(rPost.alpha > 0);
+                const w = jkpWindow(jkp, 'all', k, f.in_start, f.in_end);
+                if (w[0].length >= 3) { aIn.push(jkpLine(w[0], w[1]).alpha * scale); aPost.push(rPost.alpha * scale); }
+            }
+        });
+        const mean = v => { if (!v.length) return null; let s = 0; for (const a of v) s += a; return s / v.length; };
+        const share = v => v.length ? 100 * v.filter(Boolean).length / v.length : null;
+        return { alpha_in: mean(aIn), alpha_post: mean(aPost), pos_pre: share(pre), pos_post: share(post), pos_both: share(both),
+                 n_pre: pre.length, n_post: post.length, n_both: both.length, n_pair: aIn.length };
+    }
+
     // ---------------------------------------------------------------- "Against the paper"
     // Each experiment's comparison with its paper, computed here the way factor_lab.py's
     // reproduce_* functions compute it, so the page fills the "Here" column from its own
@@ -372,9 +455,21 @@
         return compareFigures(ref.figures, got);
     }
 
+    // Experiment 15 (reproduce_replication / jkp_figures): five replication rates and the paper's
+    // out-of-sample test, at its sample (each factor's first month to 2020).
+    function compareReplication(jkp, ref) {
+        const start = ref.start === 'FIRST' ? jkp.months[0] : ref.start, end = ref.end;
+        const rate = (u, t, w) => jkpRun(jkp, { start: start, end: end, universe: u, test: t, which: w }).rate;
+        const got = Object.assign({ rate_raw_all: rate('all', 'raw', 'all'), rate_raw_sig: rate('all', 'raw', 'sig'),
+            rate_capm: rate('all', 'capm', 'sig'), rate_capm_mega: rate('mega', 'capm', 'sig'),
+            rate_capm_large: rate('large', 'capm', 'sig') }, jkpOutside(jkp, end));
+        return compareFigures(ref.figures, got);
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
              crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun,
-             splitRun: splitRun, comboRun: comboRun, compareCrashes: compareCrashes,
+             splitRun: splitRun, comboRun: comboRun, jkpRun: jkpRun, jkpOutside: jkpOutside,
+             compareCrashes: compareCrashes,
              compareFactors: compareFactors, compareSize: compareSize, compareSort: compareSort,
-             compareSplit: compareSplit, compareCombo: compareCombo };
+             compareSplit: compareSplit, compareCombo: compareCombo, compareReplication: compareReplication };
 });

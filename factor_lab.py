@@ -242,6 +242,177 @@ def jkp_data(raw_dir: Path = JKP_DIR) -> dict:
     }
 
 
+JKP_MIN_MONTHS = 60          # the paper's own minimum for a factor to count (p. 2487)
+JKP_T = 1.96                 # "significant": the t-statistic clears 1.96 in the paper's direction
+JKP_IDIO = 10 / math.sqrt(12)    # every factor scaled to 10% a year of idiosyncratic volatility (p. 2487)
+
+
+def jkp_window(jkp: dict, universe: str, k: int, start: str, end: str) -> tuple[list[float], list[float]]:
+    """Factor k's returns and the market's, in percent, over the months between start and end
+    (inclusive) where both exist. Plain loops, in the same order as the browser's."""
+    ser, months, mkt = jkp["series"][universe][k], jkp["months"], jkp["mkt"]
+    first = ser[0]
+    y, x = [], []
+    for j in range(1, len(ser)):
+        i = first + j - 1
+        m = months[i]
+        if m < start or m > end or ser[j] is None or mkt[i] is None:
+            continue
+        y.append(ser[j] / 100)
+        x.append(mkt[i] / 100)
+    return y, x
+
+
+def jkp_capm(y: list[float], x: list[float]) -> dict | None:
+    """Average and its t-statistic; CAPM alpha, beta, the alpha's t-statistic (plain OLS standard
+    error) and the residual volatility. None below the paper's minimum of months."""
+    n = len(y)
+    if n < JKP_MIN_MONTHS:
+        return None
+    sy = sx = 0.0
+    for a, b in zip(y, x):
+        sy += a
+        sx += b
+    my, mx = sy / n, sx / n
+    syy = sxx = sxy = 0.0
+    for a, b in zip(y, x):
+        syy += (a - my) * (a - my)
+        sxx += (b - mx) * (b - mx)
+        sxy += (b - mx) * (a - my)
+    sd = math.sqrt(syy / (n - 1))
+    beta = sxy / sxx
+    alpha = my - beta * mx
+    ss = 0.0
+    for a, b in zip(y, x):
+        e = a - alpha - beta * b
+        ss += e * e
+    s = math.sqrt(ss / (n - 2))
+    se = math.sqrt(s * s * (1 / n + mx * mx / sxx))
+    return {"n": n, "mean": my, "t_mean": my / (sd / math.sqrt(n)) if sd else 0.0,
+            "alpha": alpha, "beta": beta, "t_alpha": alpha / se if se else 0.0, "resid": s}
+
+
+def jkp_run(jkp: dict, start: str, end: str, universe: str = "all", test: str = "capm",
+            which: str = "sig") -> dict:
+    """The replication rate over a period: of the factors in the set ("sig", the ones significant in
+    their own papers, or "all" 153) with at least 60 months in it, the share whose average return
+    ("raw") or CAPM alpha ("capm") has a t-statistic above 1.96 in the paper's direction. And the
+    same by theme, with each theme's average alpha (percent a month, unscaled)."""
+    stats_by, hits, counted = [], 0, 0
+    themes = {t: {"theme": t, "n": 0, "hits": 0, "alpha_sum": 0.0} for t in jkp["themes"]}
+    for k, f in enumerate(jkp["factors"]):
+        if which == "sig" and not f["sig"]:
+            stats_by.append(None)
+            continue
+        y, x = jkp_window(jkp, universe, k, start, end)
+        r = jkp_capm(y, x)
+        stats_by.append(r)
+        if r is None:
+            continue
+        ok = (r["t_alpha"] if test == "capm" else r["t_mean"]) > JKP_T
+        counted += 1
+        hits += ok
+        th = themes[f["theme"]]
+        th["n"] += 1
+        th["hits"] += ok
+        th["alpha_sum"] += r["alpha"]
+    rows = [{"theme": t["theme"], "n": t["n"], "hits": t["hits"],
+             "rate": 100 * t["hits"] / t["n"] if t["n"] else None,
+             "alpha": t["alpha_sum"] / t["n"] if t["n"] else None} for t in themes.values()]
+    total = 0.0
+    for t in themes.values():
+        total += t["alpha_sum"]
+    return {"n": counted, "hits": hits, "rate": 100 * hits / counted if counted else None,
+            "alpha": total / counted if counted else None, "themes": rows, "factors": stats_by}
+
+
+def _prev_month(m: str) -> str:
+    y, mo = int(m[:4]), int(m[4:])
+    return f"{y - (mo == 1)}{12 if mo == 1 else mo - 1:02d}"
+
+
+def jkp_outside(jkp: dict, end: str = JKP_END) -> dict:
+    """The paper's out-of-sample test (Section III.B.2) on the factors significant in their own
+    papers, among all stocks: each factor scaled to 10% a year of idiosyncratic volatility over its
+    whole record to ``end``, then its CAPM alpha inside its paper's sample, before it and after it
+    (each window needs 60 months, as in the paper's Figure 8)."""
+    pre, post, both, a_in, a_post = [], [], [], [], []
+    for k, f in enumerate(jkp["factors"]):
+        if not f["sig"]:
+            continue
+        full = jkp_capm(*jkp_window(jkp, "all", k, "000000", end))
+        if full is None:
+            continue
+        scale = JKP_IDIO / full["resid"]
+        r_pre = jkp_capm(*jkp_window(jkp, "all", k, "000000", _prev_month(f["in_start"])))
+        r_post = jkp_capm(*jkp_window(jkp, "all", k, next_month(f["in_end"]), end))
+        yp, xp = jkp_window(jkp, "all", k, "000000", _prev_month(f["in_start"]))
+        yq, xq = jkp_window(jkp, "all", k, next_month(f["in_end"]), end)
+        r_both = jkp_capm(yp + yq, xp + xq)
+        if r_pre is not None:
+            pre.append(r_pre["alpha"] > 0)
+        if r_both is not None:
+            both.append(r_both["alpha"] > 0)
+        if r_post is not None:
+            post.append(r_post["alpha"] > 0)
+            y, x = jkp_window(jkp, "all", k, f["in_start"], f["in_end"])
+            n = len(y)
+            if n >= 3:   # the paper's own sample, clipped to the data; alpha needs only a line
+                r_in = jkp_capm_any(y, x)
+                a_in.append(r_in * scale)
+                a_post.append(r_post["alpha"] * scale)
+    mean = lambda v: sum(v) / len(v) if v else None                      # noqa: E731
+    share = lambda v: 100 * sum(v) / len(v) if v else None                # noqa: E731
+    return {"alpha_in": mean(a_in), "alpha_post": mean(a_post), "pos_pre": share(pre),
+            "pos_post": share(post), "pos_both": share(both),
+            "n_pre": len(pre), "n_post": len(post), "n_both": len(both), "n_pair": len(a_in)}
+
+
+def jkp_capm_any(y: list[float], x: list[float]) -> float:
+    """CAPM alpha with no minimum of months (a paper's own sample can be short)."""
+    n = len(y)
+    sy = sx = 0.0
+    for a, b in zip(y, x):
+        sy += a
+        sx += b
+    my, mx = sy / n, sx / n
+    sxx = sxy = 0.0
+    for a, b in zip(y, x):
+        sxx += (b - mx) * (b - mx)
+        sxy += (b - mx) * (a - my)
+    return my - (sxy / sxx) * mx
+
+
+def jkp_figures(jkp: dict, ref: dict) -> dict:
+    """Every figure experiment 15 compares, at the paper's settings."""
+    start = jkp["months"][0] if ref["start"] == "FIRST" else ref["start"]
+    end = ref["end"]
+    got = {"rate_raw_all": jkp_run(jkp, start, end, "all", "raw", "all")["rate"],
+           "rate_raw_sig": jkp_run(jkp, start, end, "all", "raw", "sig")["rate"],
+           "rate_capm": jkp_run(jkp, start, end, "all", "capm", "sig")["rate"],
+           "rate_capm_mega": jkp_run(jkp, start, end, "mega", "capm", "sig")["rate"],
+           "rate_capm_large": jkp_run(jkp, start, end, "large", "capm", "sig")["rate"]}
+    got.update(jkp_outside(jkp, end))
+    return got
+
+
+def reproduce_replication(jkp: dict, exp: dict) -> dict:
+    """Experiment 15 at the paper's settings, against its figures."""
+    ref = exp["reference"]
+    got = jkp_figures(jkp, ref)
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    start = jkp["months"][0] if ref["start"] == "FIRST" else ref["start"]
+    r = jkp_run(jkp, start, ref["end"], ref["universe"], ref["test"], ref["set"])
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": sum(1 for m in jkp["months"] if start <= m <= ref["end"]),
+            "rate": r["rate"], "n": r["n"], "hits": r["hits"],
+            "counts": {k: got[k] for k in ("n_pre", "n_post", "n_both", "n_pair")}}
+
+
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
 
@@ -256,8 +427,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
 # 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
-# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group.
-ASSET_VERSION = 23
+# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
+# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution.
+ASSET_VERSION = 24
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -2213,7 +2385,67 @@ JKP_REPLICATION = {
             {"key": "pos_both", "label": "Share with a positive alpha before and after, together (%)", "paper": 87.4, "tolerance": 5.0, "where": "p. 2495; Figure 8 Panel C, 119 factors (p. 2496)"},
         ],
     },
+    "verdict_note": "",
+    "replication": {
+        "presets": [["The paper · to 2020", "FIRST", JKP_END], ["After the paper · 2021–now", "202101", "LAST"],
+                    ["Since 2000", "200001", "LAST"], ["Since 2014", "201401", "LAST"], ["Everything", "FIRST", "LAST"]],
+        "universes": [["all", "All stocks · paper"], ["mega", "Mega caps"], ["large", "Large caps"]],
+        "tests": [["capm", "CAPM alpha · paper"], ["raw", "Average return"]],
+        "sets": [["sig", "The 119 · paper"], ["all", "All 153"]],
+        # the screener category each of the paper's themes stands behind, where there is one
+        "theme_category": {"Value": "Valuation", "Profitability": "Quality", "Quality": "Quality",
+                           "Accruals": "Quality", "Momentum": "Momentum", "Investment": "Investment",
+                           "Low Risk": "Risk", "Size": "Size"},
+        "universe_names": {"all": "all US stocks", "mega": "mega caps (larger than 80% of NYSE companies)",
+                           "large": "large caps (between the NYSE median and its 80th percentile)"},
+    },
+    "conditions": [
+        ["Factors", "The 153 characteristics of the paper, each built the library's one way: every month, stocks "
+                    "above the NYSE 20th percentile by size are split into thirds by the characteristic (smaller "
+                    "stocks are placed by the same lines), each third is weighted by market value capped at the "
+                    "NYSE 80th percentile, and the factor is the third the original paper found paid most minus "
+                    "the third it found paid least."],
+        ["Among the largest companies", "The library's size-group files: the same characteristics inside mega "
+                                        "caps (above the NYSE 80th percentile) and inside large caps (50th to "
+                                        "80th), each stock weighted by its rank on the characteristic. The "
+                                        "files are not signed; each is turned the way its paper found it paid."],
+        ["The test", "A factor 'replicates' when its t-statistic is above 1.96 in that direction - on its CAPM "
+                     "alpha (its return after the part that moves with the market) as the paper's headline does, "
+                     "or on its plain average return. A factor counts once it has 60 months in the period, the "
+                     "paper's own minimum."],
+        ["Before and after", "Each factor's original paper sample comes from the authors' factor-details file. "
+                             "The alphas before and after it are re-estimated in each window, with each factor "
+                             "scaled to 10% a year of idiosyncratic volatility over its whole record to 2020, as "
+                             "the paper scales them."],
+        ["Data", "Jensen, Kelly and Pedersen's Global Factor Data (jkpfactors.com), United States, monthly, "
+                 "and its value-weighted US market return. Licensed CC BY-NC 4.0 by its authors: the series "
+                 "here are derived from it (rounded to a basis point and re-signed), for non-commercial use."],
+        ["Costs", "None. These are paper portfolios that hold some stocks and short others."],
+    ],
+    "open_details": [
+        "The library has been rebuilt since the paper (2021 SAS code; 2025 Python code) and now runs to 2025. "
+        "Only months to December 2020 are compared, but the rebuild itself can move a factor across the line.",
+        "The paper's standard errors come from a bootstrap of all factors together (Appendix B); here each "
+        "factor's own OLS standard error is used.",
+        "The paper's size-group rates are empirical-Bayes posteriors, which shrink every alpha toward zero "
+        "and then borrow strength across factors; here they are plain OLS counts. The paper's text does not "
+        "say how its size-group factors are weighted; the public files weight by rank.",
+        "The paper does not say which factors its two average alphas (0.49%, 0.26%) are taken over; here, "
+        "the 115 that were significant originally and have five years after their sample, the set of its "
+        "Figure 8 Panel B.",
+        "Not reproduced: the multiple-testing rate (75.6%, which needs the paper's bootstrap critical value), "
+        "the empirical-Bayes posteriors themselves, the regression slopes of Figure 8 (estimated by GLS on "
+        "the bootstrapped covariance) and the rates for small, micro and nano caps.",
+    ],
+    "in_the_screener": (
+        "Six of the screener's categories lean on themes this paper tests: Valuation (value), Quality "
+        "(profitability and quality), Momentum, Investment, Risk (low risk) and Size. This experiment is the "
+        "widest check the lab has on whether that literature holds up at all, and the only one that repeats "
+        "every test inside the mega caps, which is where the screener's companies sit. It tests long-short "
+        "factors one characteristic at a time across the whole market; the screener combines them, within "
+        "sectors, and holds only the top of its ranking."),
 }
+EXPERIMENTS.append(JKP_REPLICATION)
 
 
 # One sentence per experiment for the lab's front page. Each is a statement about what the
@@ -2260,6 +2492,10 @@ TAKEAWAYS = {
     "asset-growth": ("Companies that grew their assets slowest beat the fastest growers in the paper's years on "
                      "the public sort too, by less than the paper found. Since the paper, equally weighted the "
                      "gap is a quarter of its old size, and weighted by market value it has been about zero."),
+    "replication-crisis": ("Of the 119 factors their own papers found significant, 83% have a CAPM alpha clearly "
+                           "above zero on the public library to 2020, and 76% inside the mega caps alone - "
+                           "close to the paper's 77%. Since 2014 only 9 of them clear that bar among mega caps, "
+                           "over a period too short to settle it."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2271,13 +2507,14 @@ TAKEAWAYS = {
 # exists, and every category of the screener's config appears exactly once.
 CATEGORY_MAP = [
     {"category": "Valuation", "key": "valuation",
-     "experiments": ["earnings-yield", "cash-flow-yield", "value-and-momentum", "five-factors", "big-and-small", "largest-fifth"],
+     "experiments": ["earnings-yield", "cash-flow-yield", "value-and-momentum", "five-factors", "big-and-small", "largest-fifth",
+                     "replication-crisis"],
      "has": "Stocks sorted by earnings yield and by cash-flow yield, and the value factor (book value "
             "against price).",
      "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
             "the value of the whole business, compared within sectors. The public sorts use cash flow "
             "before capital spending against the shares alone, across the whole market."},
-    {"category": "Quality", "key": "quality", "experiments": ["profitability", "accruals", "five-factors", "big-and-small"],
+    {"category": "Quality", "key": "quality", "experiments": ["profitability", "accruals", "five-factors", "big-and-small", "replication-crisis"],
      "has": "Stocks sorted by profitability and by accruals, and the profitability factor - robustly "
             "profitable companies minus weakly profitable ones.",
      "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
@@ -2291,11 +2528,12 @@ CATEGORY_MAP = [
             "published return premium, so there is no headline result to rerun. Mohanram (2005), which it "
             "cites, needs company accounts, and the library has no sort on sales or earnings growth."},
     {"category": "Momentum", "key": "momentum",
-     "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth"],
+     "experiments": ["risk-managed-momentum", "momentum-crashes", "value-and-momentum", "big-and-small", "largest-fifth",
+                     "replication-crisis"],
      "has": "Momentum's risk, when it crashes, its size among big companies, and how it offsets value.",
      "gap": "Jegadeesh and Titman (1993), the study the methodology cites for momentum itself, builds its "
             "portfolios differently from the public file. A direct rerun is still to do."},
-    {"category": "Risk", "key": "risk", "experiments": ["low-volatility", "market-beta"],
+    {"category": "Risk", "key": "risk", "experiments": ["low-volatility", "market-beta", "replication-crisis"],
      "has": "Stocks sorted by how volatile they have been, and by how much they move with the market "
             "(beta): two of the category's three measures.",
      "gap": "The depth of a stock's worst fall, the third measure. No public sort exists for it."},
@@ -2304,10 +2542,10 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
             "surprises. They need a history of analysts' estimates as they stood at the time, which is "
             "sold, not published."},
-    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors"],
+    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
-    {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small"],
+    {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small", "replication-crisis"],
      "has": "Stocks sorted by asset growth - the category's one measure - and the investment factor: "
             "companies that grow their assets slowly, minus those that grow them fast.",
      "gap": "It overlaps heavily with value; the five-factor experiment shows by how much."},
@@ -2420,7 +2658,7 @@ def next_month(m: str) -> str:
 
 
 def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
-                    split: dict | None = None, quintiles: dict | None = None) -> list[dict]:
+                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -2500,6 +2738,15 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
             add("largest-fifth", f"{SPLIT_NAMES[k]} in the largest fifth: average month", "pct", 1,
                 cell(a["factors"][k]["big"]["mean"], len(a["months"]), a["factors"][k]["big"]["t"]),
                 cell(b["factors"][k]["big"]["mean"], len(b["months"]), b["factors"][k]["big"]["t"]))
+
+    if jkp is not None and "replication-crisis" in exps:
+        # the replication paper's own sample ends with 2020; "since" is the five years after it
+        span = lambda a, b: sum(1 for m in jkp["months"] if a <= m <= b)            # noqa: E731
+        for u, name in (("all", "all stocks"), ("mega", "mega caps")):
+            a = jkp_run(jkp, "000000", JKP_END, u, "capm", "sig")
+            b = jkp_run(jkp, next_month(JKP_END), end, u, "capm", "sig")
+            add("replication-crisis", f"The 119 published factors among {name}: average CAPM alpha, a month",
+                "pct", 1, cell(a["alpha"], span("000000", JKP_END)), cell(b["alpha"], span(next_month(JKP_END), end)))
     return rows
 
 
@@ -2729,8 +2976,9 @@ def reproduce(data: dict, exp: dict) -> dict:
 
 
 # --------------------------------------------------------------------------- the build
-def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
+def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir: Path = JKP_DIR) -> dict:
     data = momentum_data(raw_dir)
+    jkp = jkp_data(jkp_dir)
     market = market_data(data["months"], raw_dir)
     factors = factor_data(raw_dir)
     size = size_data(raw_dir)
@@ -2746,6 +2994,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                   else reproduce_size(size, exp) if exp["kind"] == "size"
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
+                  else reproduce_replication(jkp, exp) if exp["kind"] == "replication"
                   else reproduce(data, exp))
         for row, n in zip(result["rows"], null_rows(exp)):            # what no effect at all would show
             row["null"] = n["null"]
@@ -2765,7 +3014,15 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
         "market_vol_windows": list(MARKET_VOL_WINDOWS), "bear_lookbacks": list(BEAR_LOOKBACKS),
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles),
+        "attribution_jkp": {
+            "text": ("Data: Global Factor Data, Jensen, Kelly and Pedersen (2023), \"Is there a replication crisis "
+                     "in finance?\", Journal of Finance 78(5). Licensed CC BY-NC 4.0."),
+            "url": JKP_HOME, "licence": JKP_LICENCE,
+            "note": ("Changed here: the factor returns are rounded to a basis point, the size-group series are "
+                     "turned the way each factor's paper found it paid, and nothing after the files' own months "
+                     "is added. Non-commercial use only, under the licence."),
+        },
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp),
         "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
@@ -2775,6 +3032,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
         "quintiles": quintiles,
         "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
+        "jkp": jkp,
         "market": market,
         "experiments": exps,
     }

@@ -143,13 +143,15 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
                  else fl.reproduce_split(published[exp.get("split", {}).get("data", "split")], exp)
                  if exp["kind"] == "split"
                  else fl.reproduce_combo(published["split"], published["factors"], exp)
-                 if exp["kind"] == "combo" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "combo"
+                 else fl.reproduce_replication(published["jkp"], exp)
+                 if exp["kind"] == "replication" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24]
+    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -161,7 +163,7 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and (exp["paper"].get("doi") or exp["paper"].get("url", "").startswith("https://")) and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo"):
+        if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo", "replication"):
             figs = exp["reference"]["figures"]
             # at least one figure per group a sort reports, plus the spread between its ends (a
             # decile sort gives 11, a quintile sort 6); every other kind reports ten or more
@@ -170,7 +172,7 @@ def test_every_experiment_shows_its_four_parts():
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split", "combo")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split", "combo", "replication")
         if exp["kind"] == "sort":                                       # what the generic layout needs
             g = exp["sort"]
             assert g["data"] in fl.SORTS and len(g["groups"]) == len(fl.SORTS[g["data"]]["columns"])
@@ -604,10 +606,10 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     assert re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js" + v, "lab_engine.js" + v]
     assert 'name="viewport"' in html and "E.run(M, S)" in html and "E.crashRun(M, MK, S)" in html
     assert "E.factorRun(F, KEYS, S)" in html and "E.sizeRun(Z, S)" in html and "E.sortRun(Z, S)" in html
-    assert "E.splitRun(Z, S)" in html and "E.comboRun(Z, F, S)" in html
+    assert "E.splitRun(Z, S)" in html and "E.comboRun(Z, F, S)" in html and "E.jkpRun(J, " in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 7             # each kind of experiment checks itself
+    assert html.count("disagrees with the build") == 8             # each kind of experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -709,6 +711,16 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 0.15 < after / inside < 0.35
     late = fl.sort_run(ag, "200307", "209912", "vw")["spread"]
     assert abs(late["mean"]) < 0.15 and abs(late["t"]) < 1
+
+    # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
+    #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
+    jk = published["jkp"]
+    whole = fl.jkp_run(jk, "000000", "202012", "all", "capm", "sig")
+    mega = fl.jkp_run(jk, "000000", "202012", "mega", "capm", "sig")
+    late = fl.jkp_run(jk, "201401", "209912", "mega", "capm", "sig")
+    assert whole["n"] == mega["n"] == 119 and round(whole["rate"]) == 83 and round(mega["rate"]) == 76
+    assert late["hits"] == 9 and late["n"] == 119
+    assert sum(1 for m in jk["months"] if m >= "201401") < 240
 
 
 def test_the_factors_are_measured_within_each_half_of_the_market():
@@ -856,7 +868,7 @@ def test_the_table_of_results_after_their_papers_is_computed(published):
     built = published["after_the_paper"]
     again = fl.after_the_paper(published["momentum"], published["market"], published["factors"],
                                published["size"], published["sorts"], published["split"],
-                               published["quintiles"])
+                               published["quintiles"], published["jkp"])
     assert [r["label"] for r in again] == [r["label"] for r in built] and len(built) >= 10
     assert {r["experiment"] for r in built} == {x["id"] for x in fl.EXPERIMENTS}
     for a, b in zip(again, built):
@@ -1348,7 +1360,7 @@ def test_each_experiment_says_when_its_tolerances_were_written(published):
     assert "These tolerances were written before the comparison was first run" not in html
     assert "They were set after the first comparison was seen" not in html
     kinds = {x["kind"] for x in fl.EXPERIMENTS}
-    assert html.count("${tolNote(X)}</p>") == len(kinds) == 7                  # every layout, one function
+    assert html.count("${tolNote(X)}</p>") == len(kinds) == 8                  # every layout, one function
     sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
     with sync_api.sync_playwright() as pw:
         browser, page, errors = _open(pw)
@@ -1390,7 +1402,8 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
     assert {x["id"]: fl.null_within(x) for x in fl.EXPERIMENTS} == {
         "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
-        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6}
+        "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6,
+        "replication-crisis": 0}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
@@ -1565,6 +1578,7 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
         "  if (X.kind === 'sort') return E.compareSort(D.sorts[X.sort.data], R);\n"
         "  if (X.kind === 'split') return E.compareSplit(D[(X.split || {}).data || 'split'], R);\n"
         "  if (X.kind === 'combo') return E.compareCombo(D.split, D.factors, R);\n"
+        "  if (X.kind === 'replication') return E.compareReplication(D.jkp, R);\n"
         "  throw new Error('no comparison for ' + X.kind); };\n"
         "console.log(JSON.stringify(D.experiments.map(X => rows(X).map(r => [r.here, r.within]))));\n",
         encoding="utf-8")
@@ -1579,7 +1593,8 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
             assert here == pytest.approx(row["here"], rel=0, abs=1e-9), (built["id"], row["label"])
             assert within == row["within"], (built["id"], row["label"])
     html = PAGE.read_text(encoding="utf-8")
-    for fn in ("E.compareCrashes(", "E.compareFactors(", "E.compareSize(", "E.compareSort(", "E.compareSplit(", "E.compareCombo("):
+    for fn in ("E.compareCrashes(", "E.compareFactors(", "E.compareSize(", "E.compareSort(", "E.compareSplit(", "E.compareCombo(",
+               "E.compareReplication("):
         assert fn in html, fn                                                       # the page fills its table from them
     sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
     with sync_api.sync_playwright() as pw:
@@ -1590,11 +1605,11 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
                 assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, built["id"]
             # a build whose one published row has drifted from the page's arithmetic is called out
             tamper = ("Object.defineProperty(window, 'LAB_DATA', { configurable: true, get() { return this.__d; },"
-                      " set(v) { v.experiments.forEach(x => { if (x.kind === 'sort' || x.kind === 'split' || x.kind === 'combo')"
+                      " set(v) { v.experiments.forEach(x => { if (['sort', 'split', 'combo', 'replication'].indexOf(x.kind) >= 0)"
                       " x.result.rows[0].here += 0.5; }); this.__d = v; } });")
             page2 = browser.new_page(viewport={"width": 1200, "height": 900})
             page2.add_init_script(tamper)
-            for exp_id in ("profitability", "largest-fifth", "value-and-momentum"):
+            for exp_id in ("profitability", "largest-fifth", "value-and-momentum", "replication-crisis"):
                 _goto(page2, exp_id)
                 assert page2.evaluate("document.getElementById('x-mismatch').hidden") is False, exp_id
                 assert "disagrees with the build" in page2.inner_text("#x-mismatch")
@@ -1613,4 +1628,105 @@ def test_a_verdict_note_does_not_repeat_the_count_the_verdict_prints():
     src = (ROOT / "factor_lab.py").read_text(encoding="utf-8")
     assert "a quarter of a tenth on a ratio" not in src and "0.05 on the Sharpe ratio" in src
     assert fl.TOLERANCES["sharpe"] == 0.05
+
+
+# --------------------------------------------------------------------------- experiment 15: 153 factors
+JKP_SETTINGS = [
+    {"start": "192601", "end": "202012", "universe": "all", "test": "capm", "which": "sig"},    # the paper's
+    {"start": "192601", "end": "202012", "universe": "mega", "test": "raw", "which": "all"},
+    {"start": "202101", "end": "209912", "universe": "large", "test": "capm", "which": "sig"},  # after it
+    {"start": "200001", "end": "209912", "universe": "mega", "test": "capm", "which": "all"},
+    {"start": "201901", "end": "202012", "universe": "all", "test": "capm", "which": "sig"},   # too short: none
+]
+
+
+def test_a_factor_alpha_is_the_intercept_of_a_known_line():
+    """jkp_capm on a series built from a known line: return = 0.3 + 0.8 x market, plus a wobble
+    that is uncorrelated with the market. 60 months is the paper's minimum; 59 measures nothing."""
+    x = [math.sin(i) * 4 for i in range(60)]
+    wobble = [(-1) ** i * 0.5 for i in range(60)]
+    y = [0.3 + 0.8 * a + w for a, w in zip(x, wobble)]
+    r = fl.jkp_capm(y, x)
+    assert r["n"] == 60 and r["beta"] == pytest.approx(0.8, abs=0.02) and r["alpha"] == pytest.approx(0.3, abs=0.02)
+    assert r["mean"] == pytest.approx(sum(y) / 60) and r["t_alpha"] > 1.96
+    assert fl.jkp_capm(y[:59], x[:59]) is None
+    assert fl.jkp_capm_any(y, x) == pytest.approx(r["alpha"])           # the in-sample alpha has no minimum
+
+
+def test_the_jkp_data_is_published_whole_and_attributed(published):
+    jk = published["jkp"]
+    assert len(jk["factors"]) == 153 and sum(f["sig"] for f in jk["factors"]) == 119
+    assert len(jk["themes"]) == 13 and {f["theme"] for f in jk["factors"]} == set(jk["themes"])
+    assert set(jk["series"]) == {"all", *fl.JKP_SIZES} and all(len(v) == 153 for v in jk["series"].values())
+    assert len(jk["mkt"]) == len(jk["months"]) and jk["months"][-1] >= "202512"
+    for ser in jk["series"]["all"]:
+        assert isinstance(ser[0], int) and all(v is None or isinstance(v, int) for v in ser[1:])   # basis points
+    for f in jk["factors"]:
+        assert f["sign"] in (1, -1) and f["in_start"] <= f["in_end"] and len(f["in_start"]) == 6
+    att = published["attribution_jkp"]
+    assert "CC BY-NC 4.0" in att["text"] and att["licence"] == "https://creativecommons.org/licenses/by-nc/4.0/"
+    assert "Jensen, Kelly and Pedersen" in att["text"] and "Changed here" in att["note"]
+    assert "D.attribution_jkp.licence" in PAGE.read_text(encoding="utf-8")
+    # the paper's own counts: 102 factors with five years before their sample, 115 after, 119 either
+    counts = next(x for x in published["experiments"] if x["id"] == "replication-crisis")["result"]["counts"]
+    assert (counts["n_pre"], counts["n_post"], counts["n_both"]) == (102, 115, 119)
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_counts_the_factors_as_the_reference_does(published, tmp_path):
+    script = tmp_path / "jkp.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "const out = JSON.parse(process.argv[4]).map(o => E.jkpRun(D.jkp, o));\n"
+        "console.log(JSON.stringify({ out: out, outside: E.jkpOutside(D.jkp, '202012') }));\n", encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(JKP_SETTINGS)],
+                         capture_output=True, text=True, timeout=120)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    for o, js in zip(JKP_SETTINGS, got["out"]):
+        py = fl.jkp_run(published["jkp"], o["start"], o["end"], o["universe"], o["test"], o["which"])
+        assert (js["n"], js["hits"]) == (py["n"], py["hits"]), o
+        if py["n"]:
+            assert js["rate"] == pytest.approx(py["rate"], abs=1e-9) and js["alpha"] == pytest.approx(py["alpha"], abs=1e-9)
+        for a, b in zip(js["themes"], py["themes"]):
+            assert (a["theme"], a["n"], a["hits"]) == (b["theme"], b["n"], b["hits"])
+        for a, b in zip(js["factors"], py["factors"]):
+            assert (a is None) == (b is None)
+            if b is not None:
+                for k in ("alpha", "beta", "t_alpha", "t_mean", "resid"):
+                    assert a[k] == pytest.approx(b[k], rel=1e-9, abs=1e-9), (o, k)
+    assert got["out"][-1]["n"] == 0                                        # 24 months: no factor counts
+    py = fl.jkp_outside(published["jkp"])
+    for k, v in py.items():
+        assert got["outside"][k] == pytest.approx(v, abs=1e-9), k
+
+
+def test_the_153_factors_can_be_rerun_among_the_largest_companies():
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        for width in (1440, 375):
+            browser, page, errors = _open(pw, width=width)
+            try:
+                _goto(page, "replication-crisis")
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 14   # 13 themes and all
+                assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 10
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 26
+                assert "99 of 119" in page.inner_text("#x-read")
+                paper = page.evaluate("window.LAB_STATE().result.rate")
+                page.click("#c-universe button[data-v='mega']")
+                assert page.evaluate("location.hash") == "#replication-crisis?universe=mega"
+                assert page.evaluate("window.LAB_STATE().result.rate") < paper
+                assert "among mega caps" in page.inner_text("#x-read")
+                page.click("#c-preset button[data-i='3']")                         # since 2014
+                assert "9 of 119" in page.inner_text("#x-read")
+                page.click("#c-reset")
+                assert page.evaluate("window.LAB_STATE().result.rate") == pytest.approx(paper)
+                assert "CC BY-NC 4.0" in page.inner_text("#foot")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+            finally:
+                browser.close()
 
