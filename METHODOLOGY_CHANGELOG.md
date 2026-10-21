@@ -4653,3 +4653,118 @@ market-card arithmetic, the log guard and the harness). Five claims registered
 `scripts/rehearse_publish.py` passed on run 7c12b43a07b6.
 **Applied by:** an owner-run session's agent, 2026-10-20 evening (the CLAUDE.md priority 0.11 audit).
 **Rollback:** revert the commit; nothing downstream reads the new fields.
+
+---
+
+## 2026-10-21 - Proposal ACCEPTED, with the designated listing declared rather than re-picked: one company, one ranked line
+
+**Area:** universe construction / sector percentile population (`run_screener.run_factor_engine`,
+new `share_classes.py`, new `config.yaml -> share_classes`). No metric formula, metric weight or
+factor weight changed.
+
+**Changed:** a company with more than one listed class of common stock is now scored **once**, on
+the class declared in `config.yaml` (`share_classes.designated: GOOGL, FOXA, NWSA`). The other
+line is removed after the outlier flagging and **before** `compute_sector_percentiles`, so it is
+absent from the percentile population, the category scores, the composite and the ranking. Scored
+rows fall from 501 to 498. The dropped lines stay in the run's `02_outliers_flagged` artifact and
+are recorded in `runs/<id>/share_classes.json`; the payload carries them as
+`share_classes[ticker] = {scored_as, company, rank, price, price_gap_pct}` so the search palette,
+the table's empty state and My Holdings name the line that carries the company instead of saying
+the stock has left the index.
+
+**What the review changed about the proposal.** `research/2026-10-19-share-classes.md` proposed
+picking the designated line from **each run's own** `avg_daily_dollar_volume`. That is not S&P
+DJI's rule and it is not stable. S&P DJI changes a Designated Listing only when the other line
+leads on both criteria by more than 20%; measured here over 89 month-ends (2019-06 to 2026-10,
+63-day average daily dollar volume), **Alphabet's two classes sat inside that margin in 31 of them
+(34.8%)**, ratio median 1.276 and minimum 1.003, and the higher-volume line actually changed
+**four times** (2020-09, 2020-11, 2020-12, 2021-01). Fox and News Corp never came close (minimum
+ratios 2.077 and 2.193). Rescoring the 2026-10-21 run both ways, **Alphabet ranks 179 on GOOGL and
+101 on GOOG** - 78 places, and a different ticker in the ranking - because the two lines carry
+different analyst records (the source serves GOOGL's quarterly "actual EPS" on a GAAP basis and
+GOOG's on the analysts' basis; see the note's section 7, still open). A per-run recomputation would
+therefore have moved a company 78 places on a liquidity tiebreak that is a coin flip a third of the
+time. So the choice is **declared**, changed only with an entry here, and a run **reports** a
+crossing of the margin without acting on it (`share_classes.designate` emits `ATTENTION -`; an
+undeclared multi-class company falls back to volume and says so loudly).
+
+**Evidence:**
+- **MSCI, *Fundamental Data Methodology* (March 2021), section 1, p. 10** - MSCI "calculates the
+  data on a company level in which all classes (listed and unlisted) of equity are aggregated",
+  and uses "the total number of shares at the company level" for per-share figures; section 2.1,
+  p. 19, divides those company figures by the **security's** price.
+  https://www.msci.com/eqb/methodology/meth_docs/MSCI_Fundamental_Data_Methodology_Mar2021.pdf
+- **S&P DJI, *Equity Indices Policies & Practices* (August 2026), "Multiple Share Classes" and
+  "Designated Listings", pp. 17-18** - "Index membership eligibility for a company with multiple
+  share class lines is based on the total market capitalization of the company"; the Designated
+  Listing is "the share class with both the highest one-year trading liquidity ... and largest
+  float-adjusted market capitalization", changed only when the other line leads on both by more
+  than 20%; approach **B** is "Each company is represented once by the Designated Listing".
+  (Read from the Internet Archive's copy; spglobal.com refuses automated requests.)
+- **FTSE Russell, *Russell US Equity Indexes: Construction and Methodology* v7.2 (August 2026),
+  rules 6.5.1-6.5.4, p. 18** - classes are aggregated and priced at "the primary exchange close
+  price of the pricing vehicle" (the class with the highest two-year volume), and "Growth, value,
+  defensive and dynamic probabilities will be based on that of the pricing vehicle and assigned
+  consistently across all additional share classes."
+  https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/russell-us-indexes-construction-and-methodology.pdf
+- **S&P DJI, *S&P U.S. Style Indices Methodology* (June 2022), pp. 5-6** - "Evaluating Growth and
+  Value at the Company Level": "Raw values for each of the above factors are calculated for each
+  company", then standardised over the set. The screener's sector percentiles counted **rows**.
+- **A measured, user-facing defect.** The three duplicated companies were 6 of the 22 rows in the
+  Communication Services peer group, so the second lines held the other 16 stocks' composites down
+  by **1.565 points on average** (minimum +0.69, maximum +2.52, none negative) - re-measured
+  independently on the 2026-10-21 run, matching the note's 1.56 on the 2026-10-19 run. And the
+  ranking said Fox was two ideas at two different ranks: a reader saw FOXA at #61 and FOX at #65
+  for one company whose every accounting figure is identical on both rows.
+
+**Measured before shipping** (`research/measurements/2026-10-21-share-class-stability.py`, which
+reproduces all of it; the rescoring baseline reproduces **501 of 501** published ranks):
+
+| | |
+|---|---|
+| Lines resolving to an SEC CIK | **503 of 503**, no format change needed |
+| CIKs with more than one universe line | exactly Alphabet, Fox, News Corp - no false merge |
+| CIK grouping vs the `longName` fallback | **identical** groups and membership (the fallback is what a fresh checkout uses, since `data/sec/` is gitignored) |
+| Top 25 | **unchanged** |
+| Rows ranked | 501 -> 498 |
+| Kept lines | FOXA 61 -> 35, GOOGL 199 -> 179, NWSA 65 -> 54 |
+| Other rows moved | 395, largest 55 places (the middle of the ranking is dense: ~0.05 composite points per place between ranks 100 and 200) |
+| Largest composite change outside Communication Services | **0.0** |
+| Earnings-yield ratio / price ratio, per pair | **1.000000** for all three - which is why the page can state the whole valuation difference between two lines as one price gap |
+
+**Expected effect:** three fewer rows; the Communication Services peer group corrected; no change
+to any metric, weight or formula, and nothing outside that sector affected. The bot
+(`CalebSmit/screener-bot`) needs no change and cannot now hold one company twice: `table_data`
+never contains two lines of one company, and `tests/test_bot_payload_contract.py` is untouched.
+Across 59 snapshots FOX and FOXA were both in the top 25 on 4 runs (2026-02-20 to 02-23).
+
+**Rejected alternatives**, all rescored (the note's section 5):
+- **FILL** - a line takes its sibling's *missing* analyst fields only. Ruled out: FOX keeps its
+  inflated +49.6% fallback forward-EPS growth **and** gains FOXA's revisions record, and enters the
+  **top 25** at #6. Any rule must replace a line's analyst record wholesale.
+- **CONSENSUS** - both lines take the designated line's analyst fields. Fixes the data artefact
+  only; two lines of one company still rank ~20 places apart and both still count in the peers'
+  distribution.
+- **ONCE** (copy every metric, keep both rows) - honest but leaves a tie in a ranked list, both
+  rows in the peer group, and the bot buying both.
+- **MSCI's route** (rank every line, cap exposure by issuer) - needs an issuer cap the bot does not
+  have, and leaves the peer-group double count.
+
+**Validated by:** `tests/test_share_classes.py` (26) and `tests/test_share_classes_page.py` (16) -
+the declaration, the grouping on both bases, that a run's own volume **cannot** re-pick the line,
+the margin reporting, the price-gap arithmetic, the drop happening before the percentiles, that no
+scoring module imports the module, and the page's sentences read out of a browser render of the
+generator's own page rather than grepped for a string. Claims `overview.share_classes` and
+`drilldown.share_class_second_line` registered in `claims.py`, so both are in the data loop's
+publish gate.
+
+**Not changed, and still open:** the note's section 7 - the source's quarterly "actual EPS" mixes
+accounting bases (GOOGL's are GAAP, GOOG's are on the analysts' basis; Amazon shows the same
+signature on a single line, and 67 stocks have at least one quarter with a surprise above 50%).
+That is a source-wide problem, not a share-class one, and designating a line picks *which* record
+represents the company without certifying it. It needs its own note.
+
+**Applied by:** 06:00 session, 2026-10-21 (reviewing a proposal raised 2026-10-19 by another
+session, as the routine requires).
+**Rollback:** set `share_classes.score_once_per_company: false` in `config.yaml` - the page's
+paragraph changes with it - or revert the commit; tag `good/2026-10-20`.
