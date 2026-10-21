@@ -24,6 +24,37 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
+  you can tonight before the 2 am session please! Then have the sessions fine tune things and test
+  things."* The night shipped (owner-run, tags `good/2026-10-20-owner-1..`): the overfitting check on
+  the research page, the engine calibration test, Factor Lab experiment 15 (Jensen, Kelly & Pedersen
+  2023), the Size and bank-overlap research notes, the context layer's close-out (0.11), and the
+  measurements listed in `NIGHTLY_LOG.md` 2026-10-20 (owner-run, night). **The sessions' job now is
+  to check that work as a second reader and harden it, not to add surfaces.** In order:
+  1. **Decide the OPEN proposals** (the morning brief lists them with their ages): share classes
+     (`research/2026-10-19-share-classes.md`), and the bank P/B-ROE pairing - state it on the page
+     and guard it with a test (`research/2026-10-20-bank-quality-valuation-overlap.md` section 8).
+     The deciding session must not be the one that wrote the note.
+  2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
+     open the paper, re-read each reference figure against `factor_lab.py`, and check in
+     `git log` that the tolerances were committed before the comparison ran. A transcription error
+     found here is a defect to fix and record; a miss that is real stays a miss.
+  3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
+     one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
+     passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
+     running table in `plan/claims-mutation-audit.md`.
+  4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
+     look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
+     tonight (`tests/test_engine_calibration.py`).
+  5. **Lab experiment 4b** - size inside each profitability quintile (French
+     `25_Portfolios_ME_OP_5x5`), with the refutation criterion already written in
+     `research/2026-10-20-size-weight.md` section 9. It is the one result that would reopen Size.
+  6. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
+     against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
+     `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file
+     if it is slow).
+  Close this item when 1-5 are done or argued down in the log.
+
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
   can be shown to people and trusted.** Owner: *"we're trying to come up with the best methodology
   to screen stocks by, and it has to be backed up, it has to be proven, so ... I can show this to
