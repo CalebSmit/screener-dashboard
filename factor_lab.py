@@ -107,6 +107,26 @@ SORTS = {
     # Investment category favours, and the spread (last minus first) is the paper's 1 minus 10
     "asset-growth": {"file": "investment_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
                      "columns": [17, 16, 15, 14, 13, 12, 11, 10, 9, 8]},
+    # Not the French library: Chen & Zimmermann's Open Source Asset Pricing portfolios
+    # (``source: "osap"``), built by its authors from CRSP and Compustat. Their Piotroski score
+    # (signal "PS") is sorted into deciles among the highest fifth of companies by book-to-market;
+    # the columns are the port labels of the lowest and highest decile, lowest score first. With a
+    # 0-9 score the middle deciles are often empty (the cut points tie), so only the ends are read.
+    # "vw" is the authors' own cut (Original_Cuts, value-weighted, as their documentation records
+    # for PS); "ew" is the same deciles equally weighted, from their alternative-portfolio set.
+    "piotroski": {"source": "osap", "signal": "PS", "columns": ["01", "10"],
+                  "vw": "PS_OriginalCuts_VW.csv", "ew": "PredictorAltPorts_DecilesEW.zip"},
+}
+# Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", Critical Finance Review
+# 11(2), 207-264. Portfolio returns are a free download (Google Drive, linked from the data page);
+# the code is GPL-2.0 and the authors ask that users of the data cite the paper. Files are kept in
+# data/lab/osap/ (gitignored) and never committed. plan/factor-lab.md, "Free data to evaluate".
+OSAP_DIR = ROOT / "data" / "lab" / "osap"
+OSAP_HOME = "https://www.openassetpricing.com/data/"
+OSAP_RELEASE = "October 2025 release (v2.0.0)"
+OSAP_DRIVE_IDS = {                    # the release's own files, as its Google Drive folder lists them
+    "PS_OriginalCuts_VW.csv": "1fkoDBda7SKboz8NSJbElG5F-pu1oaPdb",
+    "PredictorAltPorts_DecilesEW.zip": "1pFBX0LTyoSwH7i8mT4kPCS_3QghlbODD",
 }
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
@@ -149,6 +169,81 @@ def fetch(raw_dir: Path = RAW_DIR, timeout: float = 120.0) -> list[Path]:
         (raw_dir / name).write_bytes(data)
         out.append(raw_dir / name)
     return out
+
+
+def fetch_osap(osap_dir: Path = OSAP_DIR, timeout: float = 600.0) -> list[Path]:
+    """Download the Open Source Asset Pricing files from the release's public Google Drive folder.
+    Network; ``--fetch`` only. Drive answers a much-downloaded shared file with a "Quota exceeded"
+    page for up to a day (seen 2026-10-20); that is reported, not worked around - try again later."""
+    import urllib.request
+    osap_dir.mkdir(parents=True, exist_ok=True)
+    out = []
+    for name, file_id in OSAP_DRIVE_IDS.items():
+        url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "screener-factor-lab"}),
+                                    timeout=timeout) as r:
+            data = r.read()
+        if data[:200].lstrip().lower().startswith(b"<!doctype html"):
+            raise RuntimeError(f"{name}: Google Drive returned a page, not the file (quota exceeded?) - retry later")
+        (osap_dir / name).write_bytes(data)
+        out.append(osap_dir / name)
+    return out
+
+
+def _osap_month(date: str) -> str:
+    """'1976-01-31', '1976m1' or '197601' as '197601'."""
+    d = date.strip().strip('"')
+    if "m" in d:
+        y, m = d.split("m")
+        return f"{int(y)}{int(m):02d}"
+    if "-" in d:
+        return d[:4] + d[5:7]
+    return d[:6]
+
+
+def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
+    """{port: {yyyymm: monthly return in percent}} for one signal from an OSAP portfolio file - a
+    single signal's csv, or a zip of the full set (one csv, a ``signalname`` column per row).
+    Read as text, row by row: the full-set file is large and only one signal is wanted."""
+    import csv
+    import io
+
+    def rows():
+        if path.suffix == ".zip":
+            with zipfile.ZipFile(path) as z:
+                member = next(n for n in z.namelist() if n.lower().endswith(".csv"))
+                with z.open(member) as f:
+                    yield from csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", newline=""))
+        else:
+            with path.open(encoding="utf-8", newline="") as f:
+                yield from csv.DictReader(f)
+
+    out: dict[str, dict[str, float]] = {}
+    for row in rows():
+        if "signalname" in row and row["signalname"] != signal:
+            continue
+        ret = row.get("ret")
+        if ret in (None, "", "NA"):
+            continue
+        port = row["port"].strip().strip('"')
+        port = port if not port.isdigit() else f"{int(port):02d}"
+        out.setdefault(port, {})[_osap_month(row["date"])] = float(ret)
+    if not out:
+        raise ValueError(f"{path.name}: no portfolio returns for signal {signal!r}")
+    return out
+
+
+def osap_sort_data(name: str, osap_dir: Path = OSAP_DIR) -> dict:
+    """A sort read from Open Source Asset Pricing files, in the shape ``sort_data`` gives: each
+    group's monthly return (percent), lowest first, value- and equal-weighted, over the months in
+    which every group has a return under both weightings."""
+    spec = SORTS[name]
+    by_w = {w: read_osap(osap_dir / spec[w], spec["signal"]) for w in ("vw", "ew")}
+    cols = spec["columns"]
+    months = sorted(set.intersection(*(set(by_w[w][c]) for w in ("vw", "ew") for c in cols)))
+    return {"months": months, "source": "osap",
+            "vw": [[round(by_w["vw"][c][m], 4) for m in months] for c in cols],
+            "ew": [[round(by_w["ew"][c][m], 4) for m in months] for c in cols]}
 
 
 def read_table(zip_path: Path, marker: str) -> tuple[list[str], list[list[float]], str]:
@@ -377,6 +472,8 @@ def sort_data(name: str, raw_dir: Path = RAW_DIR) -> dict:
     """Monthly returns (percent) of a sorted-portfolio file's groups, lowest first, value- and
     equal-weighted."""
     spec = SORTS[name]
+    if spec.get("source") == "osap":
+        return osap_sort_data(name, raw_dir.parent / "osap")       # data/lab/osap beside data/lab/french
     fname, vw_mark = FRENCH_FILES[spec["file"]]
     dates, vw, _ = read_table(raw_dir / fname, vw_mark)
     dates_ew, ew, _ = read_table(raw_dir / fname, spec["ew"])
@@ -2002,6 +2099,122 @@ EXPERIMENTS = [
             "opposite directions. This sort is across the whole market and does not compare within "
             "sectors, as the screener does."),
     },
+    {
+        "id": "piotroski",
+        "group": "Quality",
+        "kind": "sort",
+        "topic": "Quality",
+        "title": "Among high book-to-market companies, do the financially strong earn more?",
+        "tab": "Piotroski score",
+        "paper": {
+            "authors": "Joseph D. Piotroski",
+            "year": 2000,
+            "title": ("Value investing: the use of historical financial statement information to separate "
+                      "winners from losers"),
+            "journal": "Journal of Accounting Research 38 (Supplement), 1-41",
+            "doi": "10.2307/2672906",
+        },
+        "claim": ("Among the fifth of companies with the highest book-to-market ratios, a score counting nine "
+                  "signs of financial health - profits, cash flow, improving returns on assets, cash flow "
+                  "above profits, falling leverage, rising liquidity, no new shares, rising margins and "
+                  "asset turnover - separated later winners from losers: companies scoring 8 or 9 returned "
+                  "31.3% in the following year and those scoring 0 or 1 returned 7.8%, a difference of 23.5% "
+                  "(t-statistic 5.59), 1976-1996."),
+        "reference": {
+            "source": ("Table 3, Panel B (one-year raw returns, each firm held for twelve months), the High F_SCORE (8-9), Low "
+                       "F_SCORE (0-1) and High-Low rows, 14,043 high book-to-market firm-years, read from the "
+                       "University of Chicago GSB Selected Paper 84 reprint (January 2002) of the published "
+                       "article, printed page 17 (PDF page 19). The paper's figures are means of equally "
+                       "weighted firm returns over a year; here they are compared with the average month of "
+                       "the authors' end deciles times twelve, in percent a year."),
+            "start": "197601", "end": "199612", "weighting": "ew", "scale": 12,
+            # Written 2026-10-20 BEFORE any Open Source Asset Pricing return had been read: at the time of
+            # writing Google Drive was refusing every file in the release with a "Quota exceeded" page, so
+            # nothing - not even a header - had been seen. The period is the years the paper names and the
+            # window the OSAP documentation uses as the paper's sample (1976-1996).
+            # The comparison is NOT like for like, in four ways known beforehand, all recorded on the page:
+            # (1) the paper's groups are scores 0-1 (396 firm-years, 2.8%) and 8-9 (1,448, 10.3%); OSAP's are
+            #     deciles cut at the 10th and 90th percentiles of a 0-9 score, and with ties each end holds
+            #     a wider band of scores - expected to narrow the spread, lifting the low end most;
+            # (2) the paper holds each firm a year from the fifth month after its fiscal year end; OSAP
+            #     re-forms monthly on the latest annual score - a twelve-times monthly average is not a
+            #     buy-and-hold year, and compounding puts the paper's levels a point or two higher;
+            # (3) OSAP's score uses EBIT over sales where the paper uses gross margin, and a fall in shares
+            #     outstanding where it uses "no equity issued";
+            # (4) CRSP and Compustat have been revised in the 25 years since.
+            # Expected beforehand: the direction reproduces; the spread lands below 23.5 and may well be
+            # outside; the high end below 31.3. Tolerance for every percent-a-year figure: 4.2, one standard
+            # error of the paper's own spread (23.5 / 5.594 = 4.20); for the t-statistic 1.5, experiment 14's
+            # (one unit of t plus half for a different volatility). The paper gives no standard error for
+            # either end group, so the ends take the spread's.
+            # Plan rule 8, checked from the record before committing: a result of no effect matches 0 of
+            # these 4 - each end sits 11.75 from the null's common level (19.55), and the spread and t miss.
+            "tolerances_written": "before",
+            "figures": [
+                {"key": "mean1", "label": "Lowest score decile: average a year (%)", "paper": 7.8, "tolerance": 4.2, "where": "Table 3, Panel B, Low F_Score (0-1), mean one-year raw return 0.078 (p. 17)"},
+                {"key": "mean2", "label": "Highest score decile: average a year (%)", "paper": 31.3, "tolerance": 4.2, "where": "Table 3, Panel B, High F_Score (8-9), mean one-year raw return 0.313 (p. 17)"},
+                {"key": "spread", "label": "Highest score minus lowest, a year (%)", "paper": 23.5, "tolerance": 4.2, "where": "Table 3, Panel B, High-Low, mean 0.235 (p. 17); the abstract's \"23% annual return\""},
+                {"key": "t_spread", "label": "Its t-statistic", "paper": 5.594, "tolerance": 1.5, "where": "Table 3, Panel B, High-Low, t-statistic 5.594 (p. 17)"},
+            ],
+        },
+        "verdict_note": "",
+        "sort": {
+            "data": "piotroski",
+            "groups": ["Lowest score decile", "Highest score decile"],
+            "ends": ["lowest score", "highest"],
+            "low": "decile with the lowest scores", "high": "decile with the highest",
+            "spread": "Highest score minus lowest",
+            "accent": [1],
+            "key_accent": "The highest scores - the end the screener's Quality category favours",
+            "key_rest": "The lowest scores",
+            "chart": "by Piotroski score, lowest first",
+            "presets": [["The paper · 1976–1996", "197601", "199612"],
+                        ["After the paper · 1997–now", "199701", "LAST"],
+                        ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+            "weightings": [["ew", "Equally · paper"], ["vw", "By market value · OSAP's cut"]],
+        },
+        "conditions": [
+            ["Portfolios", "Each month, companies in the highest fifth by book-to-market are scored 0 to 9 on "
+                           "Piotroski's nine signals from their latest annual accounts, and the lowest and highest "
+                           "tenths by score are held for the month. Only the two end groups are read: with a "
+                           "score that takes ten values the middle deciles are often empty."],
+            ["Data", "Chen and Zimmermann's Open Source Asset Pricing, " + OSAP_RELEASE + ": the published "
+                     "portfolio returns for their signal \"PS\", which the authors built from CRSP and "
+                     "Compustat. Cite: Chen, A. Y. and T. Zimmermann (2022), \"Open source cross-sectional "
+                     "asset pricing\", Critical Finance Review 11(2), 207-264."],
+            ["What this checks", "A rerun of the authors' published portfolio returns, not of the score: this "
+                                 "lab cannot see a single company's accounts. It checks that a careful public "
+                                 "construction of the signal earns what the paper reports, and what it has "
+                                 "earned since; it does not check the paper's own firm-by-firm numbers."],
+            ["Weighting", "Equally weighted, as the paper's averages of firm returns are, from the authors' "
+                          "equal-weighted deciles. Their own cut weights by market value; it is one click away."],
+            ["Returns", "Raw monthly returns. The comparison sets twelve times the average month against the "
+                        "paper's average one-year return."],
+            ["Costs", "None. These are paper portfolios."],
+        ],
+        "open_details": [
+            "The paper's end groups are scores 0-1 and 8-9; the public portfolios are deciles of the score, "
+            "and because the score takes only ten values, each end decile holds a wider band of scores.",
+            "The paper holds each company for a year from the fifth month after its fiscal year end; the "
+            "public portfolios are re-formed every month on the latest annual score.",
+            "The public construction measures margin as EBIT over sales (the paper: gross margin) and equity "
+            "issuance as a rise in shares outstanding (the paper: any common equity issued), and requires "
+            "every input to be present.",
+            "The paper finds the effect concentrated in small and medium-sized companies (Table 4: among the "
+            "largest third, high minus low 15.2%, t 1.88). The public files have no size split for this "
+            "signal, so that is not reproduced here; the market-value weighting is the nearest view of the "
+            "large companies.",
+            "The paper's period: its text says firms are identified each year 1976-1996, and Table 1 counts "
+            "firm-years 1975-1995; returns run from the fifth month after each fiscal year end. The window "
+            "here, January 1976 to December 1996, is the one the public library's documentation uses.",
+        ],
+        "in_the_screener": (
+            "The Piotroski score is 16% of the Quality category (Quality is 22% of the composite, so about "
+            "3.5 points), halved for companies whose valuation score is below the middle, because the paper "
+            "defines the effect among high book-to-market companies. The screener ranks S&P 500 companies "
+            "within their sectors on its own version of the nine signals; the paper, and this rerun, sort the "
+            "highest book-to-market fifth of all listed companies, most of them small."),
+    },
 ]
 
 
@@ -2597,6 +2810,8 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     if args.fetch:
         for p in fetch():
+            print("fetched", p.name)
+        for p in fetch_osap():
             print("fetched", p.name)
     if args.build:
         payload = build_payload()

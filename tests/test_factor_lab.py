@@ -228,6 +228,43 @@ def test_the_asset_growth_tolerances_are_the_ones_committed_before_the_compariso
         assert abs(nulls[k]["null"] - nulls[k]["paper"]) > nulls[k]["tolerance"], k
 
 
+def test_the_piotroski_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 15 (2026-10-20): Piotroski (2000), Table 3 Panel B, on Chen & Zimmermann's Open
+    Source Asset Pricing portfolios. Written and committed before a single OSAP return had been read
+    (Google Drive was refusing the files at the time). Neither the paper's figures nor the
+    tolerances move to turn a miss into a match; by rule 8 a result of no effect matches none."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "piotroski")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["scale"], ref["tolerances_written"]) == (
+        "197601", "199612", "ew", 12, "before")
+    assert "also" not in ref and "relative" not in ref and "excess" not in ref
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "mean1": (7.8, 4.2), "mean2": (31.3, 4.2), "spread": (23.5, 4.2), "t_spread": (5.594, 1.5)}
+    assert 23.5 / 5.594 == pytest.approx(4.2, abs=0.005)            # one standard error of the paper's spread
+    assert fl.null_within(exp) == 0
+    assert fl.SORTS["piotroski"]["source"] == "osap" and fl.SORTS["piotroski"]["columns"] == ["01", "10"]
+
+
+def test_an_open_source_asset_pricing_file_is_read_for_one_signal(tmp_path):
+    """The full-set file holds every signal; only the asked-for one is read, its ports keep their
+    labels, its dates become months, and a missing return is a missing month, not a zero."""
+    body = ("signalname,port,date,ret,signallag,Nlong,Nshort\n"
+            "PS,01,1976-01-31,1.5,2,10,0\nPS,10,1976-01-31,3.25,8,12,0\n"
+            "BM,01,1976-01-31,9.9,1,10,0\nPS,01,1976-02-29,NA,2,10,0\nPS,10,1976-02-29,-0.5,8,12,0\n"
+            "PS,LS,1976-01-31,1.75,,12,10\n")
+    z = tmp_path / "full.zip"
+    with zipfile.ZipFile(z, "w") as f:
+        f.writestr("PredictorAltPorts_DecilesEW.csv", body)
+    got = fl.read_osap(z, "PS")
+    assert got["01"] == {"197601": 1.5} and got["10"] == {"197601": 3.25, "197602": -0.5}
+    assert got["LS"] == {"197601": 1.75} and fl._osap_month("1986m1") == "198601"
+    one = tmp_path / "PS.csv"                                         # a single signal's file has no signalname
+    one.write_text("port,date,ret\n1,1976-01-31,2.0\n10,1976-01-31,4.0\n", encoding="utf-8")
+    assert fl.read_osap(one, "PS") == {"01": {"197601": 2.0}, "10": {"197601": 4.0}}
+    with pytest.raises(ValueError):
+        fl.read_osap(z, "NoSuchSignal")
+
+
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
     """Experiment 4 reruns a 1992 table on a different set of companies from the paper's and
     most figures miss. The tolerances were written first and stay; the page says how many
