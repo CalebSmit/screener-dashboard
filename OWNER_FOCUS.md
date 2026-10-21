@@ -45,7 +45,9 @@ Two things still outrank this file, and neither is negotiable:
   3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
      one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
      passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
-     running table in `plan/claims-mutation-audit.md`.
+     running table in `plan/claims-mutation-audit.md`. **Started the same night:** 38 mutations on
+     22 claims; **15 got through** (8 were untested boundaries, 3 checked the committed payload
+     instead of the code), all 15 now caught by registered tests. The plan file lists the next 12.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).
