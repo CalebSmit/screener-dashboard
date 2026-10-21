@@ -228,8 +228,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=23"></script>
-<script src="lab_engine.js?v=23"></script>
+<script src="lab_data.js?v=24"></script>
+<script src="lab_engine.js?v=24"></script>
 <script>
 (function () {
     'use strict';
@@ -894,21 +894,27 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     }
 
     // ------------------------------------------------------------------ factors among small and big companies
-    function drawPairs(el, rows) {
-        const W = Math.max(280, el.clientWidth || 600), H = 260, L = 40, R = 8, T = 22, B = 34;
+    // opt.many (experiment 15's thirteen themes): names tilted so they do not run into each other, values
+    // printed only where a bar has room for them, to opt.places decimals.
+    function drawPairs(el, rows, opt) {
+        const many = !!(opt && opt.many), places = opt && opt.places !== undefined ? opt.places : 2;
+        const W = Math.max(280, el.clientWidth || 600), H = many ? 320 : 260, L = 40, R = 8, T = 22, B = many ? 96 : 34;
         const all = rows.reduce((a, r) => a.concat([r.small, r.big]), []);
-        const hi = Math.max(0, Math.max.apply(null, all)) * 1.08 || 1, lo = Math.min(0, Math.min.apply(null, all)) * 1.08;
+        // shares (opt.many) run on a fixed 0-100 scale, so two settings read against the same axis
+        const hi = many ? 108 : Math.max(0, Math.max.apply(null, all)) * 1.08 || 1, lo = many ? 0 : Math.min(0, Math.min.apply(null, all)) * 1.08;
         const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B), slot = (W - L - R) / rows.length, bw = Math.min(46, slot * .3);
         let s = `<svg xmlns="${NS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
-        linTicks(lo, hi).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
+        (many ? [0, 25, 50, 75, 100].map(v => [v, String(v)]) : linTicks(lo, hi)).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t[0]).toFixed(1)}" y2="${y(t[0]).toFixed(1)}"/><text x="${L - 8}" y="${(y(t[0]) + 4).toFixed(1)}" text-anchor="end">${t[1]}</text>`; });
         rows.forEach((r, i) => {
             const mid = L + slot * (i + .5);
             [[r.small, 'col', mid - bw * .56], [r.big, 'col-a', mid + bw * .56]].forEach(b => {
                 const top = Math.min(y(b[0]), y(0)), h = Math.max(1, Math.abs(y(b[0]) - y(0)));
                 s += `<rect class="${b[1]}" x="${(b[2] - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
-                if (W >= 520 || b[1] === 'col-a') s += `<text class="val" x="${b[2].toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${b[0].toFixed(2)}</text>`;
+                const room = many ? (slot >= 64 || (b[1] === 'col-a' && slot >= 34)) : (W >= 520 || b[1] === 'col-a');
+                if (room) s += `<text class="val" x="${b[2].toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${b[0].toFixed(places)}</text>`;
             });
-            s += `<text x="${mid.toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(W < 520 && r.name.length > 9 ? r.name.slice(0, 6) + '.' : r.name)}</text>`;
+            if (many) s += `<text x="${(mid + 4).toFixed(1)}" y="${(H - B + 14).toFixed(1)}" text-anchor="end" transform="rotate(-40 ${(mid + 4).toFixed(1)} ${(H - B + 14).toFixed(1)})">${esc(r.name)}</text>`;
+            else s += `<text x="${mid.toFixed(1)}" y="${H - 12}" text-anchor="middle">${esc(W < 520 && r.name.length > 9 ? r.name.slice(0, 6) + '.' : r.name)}</text>`;
         });
         el.innerHTML = s + '</svg>';
     }
@@ -1134,8 +1140,92 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
         return { id: 'overview', settings: () => ({}), result: () => null, redraw: () => {} };
     }
 
+    // ------------------------------------------------------------------ experiment 15: 153 factors at once
+    function replication(X, n, mount, init) {
+        const REF = X.reference, res0 = X.result, G = X.replication, J = D.jkp, J0 = J.months[0], J1 = J.months[J.months.length - 1];
+        const zyears = []; for (let y = +J0.slice(0, 4); y <= +J1.slice(0, 4); y++) zyears.push(y);
+        const refStart = REF.start === 'FIRST' ? J0 : REF.start;
+        const refState = () => ({ start: refStart, end: REF.end, universe: REF.universe, test: REF.test, set: REF.set });
+        let S = applyScene(refState(), init, { start: 'month', end: 'month', universe: G.universes.map(u => u[0]),
+            test: G.tests.map(t => t[0]), set: G.sets.map(t => t[0]) }), last = null;
+        const atRef = () => S.start === refStart && S.end === REF.end && S.universe === REF.universe && S.test === REF.test && S.set === REF.set;
+        const PRESETS = G.presets.map(p => [p[0], p[1] === 'FIRST' ? J0 : p[1], p[2] === 'LAST' ? J1 : p[2]]);
+        const opts = o => E.jkpRun(J, { start: o.start, end: o.end, universe: o.universe, test: o.test, which: o.set });
+        const buttons = list => list.map(u => `<button type="button" data-v="${u[0]}">${esc(u[1])}</button>`).join('');
+        const outside = res0.rows.filter(r => !r.within).length;
+        mount.innerHTML = head(X, n, outside ? X.verdict_note : '') + `
+        <section aria-labelledby="x-run">
+            <h3 id="x-run">Run it yourself</h3>
+            <div class="warn" id="x-mismatch" hidden></div>
+            <div class="controls">
+                ${periodControl(PRESETS, zyears)}
+                <div class="row2">
+                    ${seg('universe', 'Which companies', buttons(G.universes))}
+                    ${seg('test', 'Tested on', buttons(G.tests))}
+                </div>
+                <div class="row2">
+                    ${seg('set', 'Which factors', buttons(G.sets))}
+                    <div style="align-self:end"><button type="button" class="reset" id="c-reset" hidden>Reset to the paper's settings</button></div>
+                </div>
+            </div>
+            <p class="read" id="x-read" aria-live="polite"></p>
+            <div class="key" aria-hidden="true"><span class="a"><i></i><span id="x-key-a"></span></span><span class="b"><i></i>All stocks</span></div>
+            <p class="chart-title"><strong>Share of each theme's factors that clear the bar</strong>, among all stocks and in one size group (%)</p>
+            <div class="chart" id="ch-bars" role="img" aria-label="Share of each theme's factors with a t-statistic above 1.96, among all stocks and in a size group. The chosen companies' shares are listed under Measured on these settings."></div>
+            <h3 style="margin-top:26px">Measured on these settings</h3>
+            <div class="tablewrap"><table id="t-live"><thead><tr><th scope="col">Theme</th><th scope="col">Clear the bar</th><th scope="col">Share</th><th scope="col">Average CAPM alpha, a month</th></tr></thead><tbody></tbody></table></div>
+            <p class="note" id="x-live-note"></p>
+        </section>
+        <section aria-labelledby="x-against">
+            <h3 id="x-against">Against the paper</h3>
+            <p style="margin:0 0 12px;max-width:76ch">Over the paper's sample (each factor's first month to ${mon(REF.end)}), each figure it reports beside what the public library gives today.</p>
+            <div class="tablewrap"><table id="t-ref"><thead><tr><th scope="col">Figure</th><th scope="col">Paper</th><th scope="col">Here</th><th scope="col">Diff.</th><th scope="col" class="tol">Tolerance</th><th scope="col">Result</th></tr></thead><tbody></tbody></table></div>
+            <p class="note">${tolNote(X)}</p>
+        </section>` + tail(X, `
+            <div class="eq">CAPM alpha &nbsp;=&nbsp; the intercept of ( factor's monthly return ) on ( the market's excess return ), over the period<small>Its t-statistic is that intercept ÷ its ordinary least-squares standard error.</small></div>
+            <div class="eq">a factor clears the bar &nbsp;=&nbsp; its t-statistic is above 1.96, in the direction its own paper found<small>A factor counts only once it has 60 months in the period, the paper's own minimum.</small></div>
+            <div class="eq">replication rate &nbsp;=&nbsp; factors that clear the bar ÷ factors counted<small>With no effect anywhere, about 2.5% would clear it by chance.</small></div>`);
+        document.getElementById('x-code').textContent = E.jkpRun.toString();
+
+        const now = opts(refState()), rowsNow = E.compareReplication(J, REF);
+        const drift = (Math.abs(now.rate - res0.rate) > 1e-9 ? 1 : 0) + rowDrift(rowsNow, res0);
+        if (drift) { const w = document.getElementById('x-mismatch'); w.hidden = false;
+            w.textContent = 'This page\'s own calculation disagrees with the build on ' + drift + ' figure(s). Treat the numbers below as unverified.'; }
+        document.querySelector('#t-ref tbody').innerHTML = rowsNow.map(refRow).join('');
+
+        function render() {
+            const r = last = opts(S), read = document.getElementById('x-read'), body = document.querySelector('#t-live tbody');
+            syncPeriod();
+            press('universe', v => v === S.universe); press('test', v => v === S.test); press('set', v => v === S.set);
+            document.getElementById('c-reset').hidden = atRef();
+            if (!r.n) {
+                read.textContent = 'No factor has 60 months in this period, the paper\'s minimum. Widen the period.';
+                body.innerHTML = ''; document.getElementById('ch-bars').innerHTML = ''; document.getElementById('x-live-note').textContent = ''; return;
+            }
+            const group = S.universe === 'all' ? 'mega' : S.universe, other = opts(Object.assign({}, S, { universe: 'all' }));
+            const sized = S.universe === 'all' ? opts(Object.assign({}, S, { universe: 'mega' })) : r;
+            const span = J.months.filter(m => m >= S.start && m <= S.end);
+            read.innerHTML = `Over ${span.length} months, ${mon(span[0])} to ${mon(span[span.length - 1])}, among ${esc(G.universe_names[S.universe])}, <strong>${r.hits} of ${r.n}</strong> factors (<strong>${f2(r.rate)}%</strong>) have ${S.test === 'capm' ? 'a CAPM alpha' : 'an average return'} with a t-statistic above 1.96 in the direction their papers found. Their average CAPM alpha is ${sf2(r.alpha)}% a month. With no effect anywhere, about 2.5% would clear the bar by chance; over a short period, a real effect often will not.`;
+            body.innerHTML = r.themes.map(t => `<tr><td>${esc(t.theme)}${G.theme_category[t.theme] ? ` <span class="where">${esc(G.theme_category[t.theme])}</span>` : ''}</td><td>${t.n ? t.hits + ' of ' + t.n : '–'}</td><td>${t.n ? f2(t.rate) + '%' : '–'}</td><td>${t.n ? sf2(t.alpha) + '%' : '–'}</td></tr>`).join('') +
+                `<tr><td>All themes</td><td>${r.hits} of ${r.n}</td><td>${f2(r.rate)}%</td><td>${sf2(r.alpha)}%</td></tr>`;
+            document.getElementById('x-live-note').textContent = 'Under a theme is the screener category it stands behind, where there is one. The size groups weight each stock by its rank on the characteristic; all stocks, by capped market value - so read the two side by side as two constructions, not one. ' + (atRef()
+                ? 'These are the paper\'s settings; the comparison with its figures is in the next section.'
+                : 'These settings are yours, so there is no published figure to compare them with.');
+            document.getElementById('x-key-a').textContent = G.universe_names[group].replace(/ \(.*\)$/, '').replace(/^./, c => c.toUpperCase());
+            drawPairs(document.getElementById('ch-bars'), r.themes.map((t, i) => ({ name: t.theme, small: other.themes[i].rate || 0, big: sized.themes[i].rate || 0 })), { many: true, places: 0 });
+            writeScene(X.id, S, refState());
+        }
+        function set(patch) { S = Object.assign({}, S, patch); render(); }
+        const syncPeriod = bindPeriod(PRESETS, J0, J1, () => S, set);
+        ['universe', 'test', 'set'].forEach(id => document.getElementById('c-' + id).addEventListener('click', e => {
+            const b = e.target.closest('button'); if (b) { const p = {}; p[id] = b.dataset.v; set(p); } }));
+        document.getElementById('c-reset').addEventListener('click', () => { S = refState(); render(); });
+        render();
+        return { id: X.id, settings: () => Object.assign({}, S), result: () => last, redraw: render };
+    }
+
     // ------------------------------------------------------------------ the page
-    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall, 'combo': together };
+    const KINDS = { 'risk-managed': riskManaged, 'crashes': crashes, 'factors': factors, 'size': sizeEffect, 'sort': sorted, 'split': bigAndSmall, 'combo': together, 'replication': replication };
     const tabs = document.getElementById('tabs');
     // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
     // fourteen chips (investor pass, 2026-10-15). The number of each is on its own page.
@@ -1197,6 +1287,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
+        `<p>${esc(D.attribution_jkp.text)} <a href="${esc(D.attribution_jkp.url)}" rel="noopener">Open the library</a> · <a href="${esc(D.attribution_jkp.licence)}" rel="noopener license">the licence</a>. ${esc(D.attribution_jkp.note)}</p>` +
         `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
         `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>`;
     // One typographic pass over what the lab draws (2026-10-16), as the methodology page has: the experiment
