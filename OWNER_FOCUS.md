@@ -38,7 +38,10 @@ Two things still outrank this file, and neither is negotiable:
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error
-     found here is a defect to fix and record; a miss that is real stays a miss.
+     found here is a defect to fix and record; a miss that is real stays a miss. **Experiment 15:
+     DONE the same night** - all ten figures re-read in the paper and recomputed independently;
+     the licence's copyright notice added (`research/2026-10-20-lab-jkp.md`, "Second reading").
+     Any experiment merged after it still needs its second reader.
   3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
      one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
      passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
