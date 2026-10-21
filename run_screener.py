@@ -322,6 +322,42 @@ def build_screener_overview(cfg: dict) -> str:
     clamps = cfg.get("metric_clamps", {})
     cov_disc = dq.get("coverage_discount", {})
 
+    # Step 3's opening paragraph: one company, one ranked line. Generated from
+    # config.yaml's declaration so the page cannot name a line the run did not keep.
+    _sc_cfg = cfg.get("share_classes", {}) or {}
+    _sc_designated = list(_sc_cfg.get("designated", []) or [])
+    if _sc_cfg.get("score_once_per_company", True) and _sc_designated:
+        _sc_margin = float(_sc_cfg.get("challenge_margin", 0.20))
+        share_class_text = (
+            "**One company, one line.** The S&P 500 holds about 503 listed lines for about "
+            "500 companies, because a few list two classes of common stock. Every figure "
+            "taken from the company's accounts is identical across a pair - it must be - so "
+            "ranking both lines would tell you a company is two ideas and would count it "
+            "twice in its sector's distribution. Each company is therefore scored **once**, "
+            "on its more-traded class: "
+            + ", ".join(f"**{t}**" for t in _sc_designated)
+            + " on this run's configuration. That is S&P DJI's Designated Listing rule "
+              "(*Equity Indices Policies & Practices*, approach B - \"Each company is "
+              "represented once by the Designated Listing\") and FTSE Russell's pricing "
+              "vehicle (*Russell US Equity Indexes* v7.2, rules 6.5.1-6.5.4), and MSCI "
+              "computes company fundamentals \"on a company level in which all classes "
+              "(listed and unlisted) of equity are aggregated\". The choice of line is "
+              "declared in `config.yaml` rather than re-picked from each run's trading "
+              f"volume, and a run only reports when the other line leads by more than "
+              f"{_sc_margin:.0%} (S&P DJI's own switching margin): measured over 89 "
+              "month-ends, Alphabet's two classes were within that margin a third of the "
+              "time, and the company's rank differs by 78 places depending on which line "
+              "is used, because the two lines carry different analyst records. The second "
+              "line is not ranked; search for it and the page names the line that carries "
+              "the company and the price gap between the two. "
+              "See `METHODOLOGY_CHANGELOG.md` 2026-10-21."
+        )
+    else:
+        share_class_text = (
+            "**One company, one line** is switched off in this run's configuration, so a "
+            "company with two listed share classes appears twice in the ranking."
+        )
+
     # Step 5's description of what happens *after* the weighted average.
     # Read from config rather than written out, so the page cannot drift from
     # the rule the engine applies (rule 10's lesson). Until 2026-10-07 Step 5
@@ -780,6 +816,8 @@ Every metric below is scored by its **rank** within its sector, and a rank does 
 Until 2026-09-01 it did clip them, and that was a mistake in two directions. Clipping could not improve a single ranking, because ranking is unaffected by it. What it could do — and did — was flatten several companies onto one identical number, which then made them tie in the ranking, and publish that clipped number as the company's real figure. On the last run before the fix, six companies were all shown with a market capitalisation of $2,802B; Nvidia's true figure was $5,331B.
 
 ### Step 3: Rank within sectors
+{share_class_text}
+
 Each metric is converted to a **sector-relative percentile** (0-100). A stock's EV/EBITDA isn't compared to all 500 companies — it's compared only to other companies in the same GICS sector (Technology vs. Technology, Energy vs. Energy, etc.). This is critical because a "cheap" utility trades at a very different multiple than a "cheap" tech company. Sector-relative ranking makes apples-to-apples comparisons possible.
 
 For metrics where lower is better (like EV/EBITDA, Debt/Equity, Volatility, P/B, PEG Ratio, Asset Growth), the percentile is flipped so that a higher percentile always means "better." The percentile uses the midpoint rule - the k-th lowest of n stocks scores (k - 0.5) / n x 100 - so a metric averages exactly 50 whichever way it points. (Until 2026-10-09 it was k / n, which averaged 50 + 50/n for higher-is-better metrics and 50 - 50/n once flipped, a tilt that grew in small sectors.)

@@ -251,6 +251,18 @@ def load_run_data(run_dir: Path) -> dict:
         with open(cfg_path) as f:
             run_cfg = yaml.safe_load(f) or {}
 
+    # Share classes: the lines this run did not rank because they are a second listed class
+    # of a company it did rank (share_classes.py, S&P DJI's Designated Listing). Without it
+    # the page tells a holder of FOX that the company left the index, which is false.
+    sc_path = run_dir / "share_classes.json"
+    share_classes = {}
+    if sc_path.exists():
+        try:
+            with open(sc_path) as f:
+                share_classes = json.load(f) or {}
+        except (OSError, ValueError):
+            share_classes = {}
+
     return {
         "df": df,
         "meta": meta,
@@ -258,6 +270,7 @@ def load_run_data(run_dir: Path) -> dict:
         "sens_df": sens_df,
         "corr_df": corr_df,
         "cfg": run_cfg,
+        "share_classes": share_classes,
     }
 
 
@@ -366,6 +379,38 @@ CADENCE_TURNOVER = {
 }
 # Novy-Marx & Velikov's survivability boundary, in monthly one-sided turnover %.
 NMV_TURNOVER_CEILING = 50.0
+
+
+def _share_classes_block(run_data: dict, table_data: list) -> dict:
+    """The second listed classes this run did not rank, so the page can say why.
+
+    Alphabet, Fox and News Corp each list two classes in the index. The company is scored
+    once, on its designated listing (`share_classes.py`), so the other line is absent from
+    the ranking - and a reader who searches FOX, or holds it, would otherwise be told the
+    company has left the S&P 500, which is false.
+
+    Every valuation ratio differs between two lines of one company **only through the
+    price** (`research/2026-10-19-share-classes.md` section 3: earnings yield differs by
+    exactly the ratio of the two prices, to four decimals), so one price gap states the whole
+    valuation difference between the tickets. Kept in the first payload, not the context
+    file, because the search palette and My Holdings need it before context loads.
+    """
+    rec = (run_data or {}).get("share_classes") or {}
+    ranked = {str(r.get("Ticker")): r for r in (table_data or [])}
+    out = {}
+    for ticker, info in (rec.get("secondary") or {}).items():
+        kept = str(info.get("scored_as") or "")
+        row = ranked.get(kept)
+        if not row:
+            continue          # the designated line is not in this ranking: say nothing
+        out[str(ticker)] = {
+            "scored_as": kept,
+            "company": info.get("company") or row.get("Company"),
+            "rank": row.get("Rank"),
+            "price": info.get("price"),
+            "price_gap_pct": info.get("price_gap_pct"),
+        }
+    return out
 
 
 def _cadence_block(cfg: dict) -> dict:
@@ -1538,6 +1583,7 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "profiles": _profiles_block(df, weights, run_data.get("cfg") or {}),
         "table_data": table_data,
         "stock_detail": stock_detail,
+        "share_classes": _share_classes_block(run_data, table_data),
         "weights": weights,
         "ctx_weeks": _shared_weeks(stock_detail),
         "market": _market_block(stock_detail),
@@ -3150,6 +3196,21 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     // A saved name this run did not rank: stated as a fact, with its last rank on this
     // page when the history still carries it, and the same remove button as any row.
     function unscoredHoldingCard(t) {{
+        // A second listed class of a company this run did rank is not a departed stock:
+        // say which line carries the company and leave the saved name in place (row 5).
+        const sc = (typeof shareClassOf === 'function') ? shareClassOf(t) : null;
+        if (sc) {{
+            return '<div class="holding-card holding-unscored">'
+              + '<div class="holding-head">'
+              +   '<span class="holding-rank">#' + (sc.rank === null || sc.rank === undefined ? '--' : sc.rank) + '</span>'
+              +   '<span class="holding-ticker holding-ticker-static">' + escapeHtml(t) + '</span>'
+              +   '<span class="holding-spacer"></span>'
+              +   '<button class="holding-remove" onclick="removeHolding(&quot;' + escapeHtml(t) + '&quot;)" title="Remove from list">&times;</button>'
+              + '</div>'
+              + '<div class="holding-notes"><p class="holding-note holding-note-unscored">'
+              +   shareClassText(t, sc) + '</p></div>'
+              + '</div>';
+        }}
         let last = '';
         const ser = H.series && H.series[t] && H.series[t].r;
         if (ser && H.dates) {{
@@ -5392,10 +5453,36 @@ def _js_table() -> str:
         const t = String(q || '').trim().toUpperCase();
         if (!/^[A-Z]{1,5}([.\-][A-Z]{1,2})?$/.test(t)) return '';
         if (D.stock_detail && (D.stock_detail[t] || D.stock_detail[t.replace(/\./g, '-')])) return '';
+        // A second listed class of a company this run *did* rank has its own true reason.
+        const sc = shareClassOf(t);
+        if (sc) return shareClassText(t, sc);
         const rows = D.table_data || [], ql = t.toLowerCase();
         if (rows.some(r => r.Ticker.toLowerCase().startsWith(ql) || (r.Company || '').toLowerCase().includes(ql))) return '';
         const n = (D.kpis && D.kpis.universe_size) || rows.length;
         return 'The ranking covers the ' + n + ' S&amp;P 500 companies this run scored. A company that has left the index, or whose data could not be fetched, is not in it.';
+    }
+
+    // One company, one ranked line (share_classes.py). D.share_classes maps each second
+    // listed class to the line that represents its company.
+    function shareClassOf(t) {
+        const m = D.share_classes || {};
+        const k = String(t || '').trim().toUpperCase();
+        return m[k] || m[k.replace(/\./g, '-')] || null;
+    }
+
+    // Every valuation ratio differs between two lines of one company only through the
+    // price, so the price gap states the whole difference between the two tickets.
+    function shareClassText(t, sc) {
+        const gap = (sc.price_gap_pct === null || sc.price_gap_pct === undefined)
+            ? '' : ' It trades ' + Math.abs(sc.price_gap_pct).toFixed(1) + '% ' +
+                   (sc.price_gap_pct < 0 ? 'below ' : 'above ') + escapeHtml(sc.scored_as) +
+                   ' for the same claim on the same earnings.';
+        const rank = (sc.rank === null || sc.rank === undefined)
+            ? '' : ', ranked #' + sc.rank + ' here';
+        return escapeHtml(String(t).toUpperCase()) + ' is a second listed share class of ' +
+            escapeHtml(sc.company || sc.scored_as) + '. The company is scored once, on its ' +
+            'more-traded class ' + escapeHtml(sc.scored_as) + rank + ' - the way S&amp;P DJI ' +
+            'and FTSE Russell treat multiple share classes.' + gap;
     }
 
     function emptyRowsHtml(cols) {
