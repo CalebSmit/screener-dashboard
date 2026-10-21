@@ -4656,6 +4656,84 @@ market-card arithmetic, the log guard and the harness). Five claims registered
 
 ---
 
+## 2026-10-21 (13:00 session) - Proposal ACCEPTED: a bank's Valuation and Quality scores are one reading, stated on the page and guarded by what it claims
+
+**Area:** methodology documentation and a scoring-position guard
+(`run_screener.build_screener_overview`, `config.yaml -> bank_metric_weights` comments,
+`claims.py -> overview.bank_pb_roe_identity`, new `tests/test_bank_pb_roe_identity.py`).
+**No weight, metric, threshold or input changed - 0 of 501 composites move and the payload's
+numbers are byte-identical.** The entry is here rather than in a plain commit because it fixes the
+*explanation* of a scoring position and pins that position against future drift, which is what this
+file exists to make findable.
+
+**Changed:**
+1. The methodology page's "Bank-specific scoring" gains **"A bank's Valuation and Quality scores
+   are one reading, not two"**: the identity (ROE = earnings yield x P/B), the three independent
+   log coordinates the four bank metrics live on, a generated table of the net composite points on
+   each (**+22.0** earnings yield, **0.0** price-to-book, **+8.8** equity per dollar of assets),
+   and the practice it follows. **Every figure is computed from `config.yaml`**, so it cannot go
+   stale - and if a reweight ever moves the block off neutral the generated sentence states the
+   measured tilt instead of claiming neutrality.
+2. The two metric cells that called P/B "THE key bank valuation metric" and ROE "The key bank
+   profitability metric" now say each is read against the other, and why.
+3. A `CONSTRAINT` comment above `bank_metric_weights` naming the three coordinates, the net
+   position, the note and the test - for whoever edits one of the four weights.
+4. `tests/test_bank_pb_roe_identity.py` (11 tests), in the data loop's publish gate via the claim.
+
+**Evidence:** `research/2026-10-20-bank-quality-valuation-overlap.md` (written 2026-10-20,
+**reviewed and decided by this session, which did not write it**, per the lab-to-weights route).
+The question was whether 35 points of bank Quality on ROE double-count two Valuation inputs. They
+do not: ROE duplicates earnings yield and **cancels** price-to-book, because a high ROE comes with
+a dear book and P/B is scored lower-is-better. Documented practice builds exactly that combination
+on purpose - Damodaran derives P/BV = (ROE - g) / (r - g) and values a bank by regressing P/B on
+ROE across peers (*Valuing Financial Service Firms*, 2009, pp. 30-33); Wilcox's P/B-ROE model
+(*Financial Analysts Journal* 40(1), 1984); Nissim finds conditioning P/B on ROE is the standard in
+banking and insurance and improves valuation accuracy (*Review of Accounting Studies* 18, 2013,
+pp. 326, 338); Mercer Capital's bank-valuation deck reads a persistently low price-to-tangible-book
+as depressed profitability rather than cheapness; MSCI's *Diversified Multiple-Factor Indexes
+Methodology* (May 2022, pp. 4, 11) adds book-to-price, earnings yield and profitability into one
+score with no carve-out for financials. Six ways of "removing the overlap" were rescored with the
+engine's own functions and **none came closer to the P/B-against-ROE reading than the status quo**;
+dropping ROE or both profitability ratios removes the *conditioning* and leaves an unconditional
+cheap-book bet, and dropping P/B flips the block long expensive book. **No return,
+information-coefficient or backtest figure is used anywhere in this entry or the note** (rules 4
+and 5): it establishes what the weights are and that what they are matches documented practice -
+not that the combination earns anything.
+
+**What the review added, which is why a second session decides these.** The note's two pre-registered
+refutation criteria were re-measured on a *different* run - `4dc4acf1d780` (2026-10-21 02:00) against
+the note's `7c12b43a07b6` - whose baseline also reproduces **501 of 501** published ranks: criterion
+(a) R-squared **0.978** (bar 0.90), criterion (b) measured price-to-book loading **-0.069** against
+earnings yield's **+0.283** (bar: under half). All six candidates reproduce to the third decimal.
+**But the guard the proposal specified was measured too, and it was blind where it mattered**
+(`research/measurements/2026-10-21-bank-pb-roe-guard-review.py`): it computed only the first-order
+net loading from the weights, and **ROE and ROA both enter log P/B with coefficient +1**, so moving
+weight between them cannot move that figure at all. The note's own "mildest route" to a deliberate
+price-to-book tilt - ROE's 35 points to ROA - reads **0.00, identical to the status quo**, while its
+loading measured on the engine's scores is **-0.156: 2.3x the status quo's, and past criterion (b)'s
+own bar of 0.141**. The same guard fired on a reweight that left the claim true (-2.2 points,
+measured -0.119). **So the failing condition is now the measured loading at criterion (b)'s bar**;
+the first-order check is kept at a quarter of the earnings-yield net, as the arithmetic the page
+prints. A claim whose check tests a proxy instead of the assertion is an unchecked claim
+(CLAUDE.md 0.11).
+
+**Expected effect:** none on any score. On the page: one new subsection in the methodology dialog
+and two reworded metric descriptions. On future sessions: a reweight of `pb_ratio`, `roe`, `roa`,
+`equity_ratio` or the Valuation / Quality factor weights now either keeps the stated position or
+fails the suite until the page is rewritten.
+
+**Validated by:** `tests/test_bank_pb_roe_identity.py` 11 passed; the full suite 2980 passed, 1
+skipped (baseline 2969/1, +11 and no failures); `python scripts/rehearse_publish.py` PASSED, with
+the published files restored byte-for-byte; the regenerated methodology dialog read in Chromium at
+1440 and 375 - no console errors, the net-points table sits exactly inside its container at 375
+(354px of 354px) and wraps rather than clips.
+
+**Applied by:** the 13:00 code session, 2026-10-21 (reviewing a proposal it did not write).
+**Rollback:** revert the commit. Nothing downstream reads the new text, and no score depends on it;
+the four weights are untouched either way.
+
+---
+
 ## 2026-10-21 - Proposal ACCEPTED, with the designated listing declared rather than re-picked: one company, one ranked line
 
 **Area:** universe construction / sector percentile population (`run_screener.run_factor_engine`,

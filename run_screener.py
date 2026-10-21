@@ -878,11 +878,11 @@ A Financials stock in a sub-industry on neither list defaults to the bank set â€
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
+All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
+
 ### A bank's Valuation and Quality scores are one reading, not two
 
 {bank_pb_roe_text}
-
-All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
 
 ---
 

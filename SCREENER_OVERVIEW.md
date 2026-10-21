@@ -217,6 +217,8 @@ A Financials stock in a sub-industry on neither list defaults to the bank set �
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
+All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
+
 ### A bank's Valuation and Quality scores are one reading, not two
 
 A bank's return on equity is its earnings yield multiplied by its price-to-book: net income / equity = (net income / market value) x (market value / equity). All three numbers come from the same two statements, so the identity is accounting, not a correlation – it is inexact only because ROE divides by the *average* of total equity now and a year ago while P/B divides by *ending common* equity (preferred stock is a median 2.6% of equity across the 46 bank-like stocks on the run this page was built from).
@@ -234,8 +236,6 @@ So the 38.5 points those five metrics carry rank a bank on **its ROE relative to
 **This is the design, and it is deliberate.** Read alone, each category would mislead: the cheapest big-bank book on this run belongs to the bank earning least on it, which scores high on Valuation and low on Quality *for the same reason*. Read together they say what the people who value banks for a living say. Damodaran derives the justified multiple as P/BV = (ROE − g) / (r − g) and values a bank by regressing P/B on ROE across its peers (*Valuing Financial Service Firms*, 2009, pp. 30-33); Wilcox's P/B-ROE model (*Financial Analysts Journal*, 1984) is the same line; Nissim finds conditioning P/B on ROE is the standard in banking and insurance and improves valuation accuracy (*Review of Accounting Studies* 18, 2013, pp. 326, 338); Mercer Capital's bank-valuation deck reads a persistently low price-to-tangible-book as depressed profitability rather than as cheapness; and MSCI's Diversified Multiple-Factor indexes add book-to-price, earnings yield and profitability into one score with no carve-out for financials. Removing the "overlap" does not remove a double count – it removes the conditioning, and turns the bank set into an unconditional bet on cheap book (or, if P/B goes instead, on expensive book). Six such alternatives were rescored on a published run and none came closer to the P/B-against-ROE reading than the weights above.
 
 The figures in this section are computed from `config.yaml`, and `tests/test_bank_pb_roe_identity.py` fails if a reweight moves the block onto a net price-to-book position, or if the identity stops holding on the published payload. Detail: `research/2026-10-20-bank-quality-valuation-overlap.md`, reviewed and accepted 2026-10-21 (`METHODOLOGY_CHANGELOG.md`). No return, information-coefficient or backtest figure stands behind any of it: it describes what the weights *are*, and that what they are matches documented practice.
-
-All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
 
 ---
 
