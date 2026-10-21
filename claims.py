@@ -667,7 +667,11 @@ CLAIMS: tuple[Claim, ...] = (
             "put (mid quotes) divided by the price, on the first expiry after a report due "
             "within 60 days, else the expiry nearest 30 days; quotes that are missing or too "
             "wide give no number. Where the quotes come from a session before the run, the "
-            "panel names that session's date and the days to expiry are counted from today."
+            "panel names that session's date and the days to expiry are counted from today. "
+            "Where they were fetched live (2026-10-20), it says when: taken while the market was "
+            "open is named as a mid-session reading with its Eastern clock time, never as a close; "
+            "taken after the close is that session's close; a reading with no recorded time says so "
+            "rather than calling it the previous close."
         ),
         made_true_by="context_signals:options_context",
         checked_by=(
@@ -677,6 +681,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_option_quote_hours.py::test_a_served_reading_carries_its_quote_date",
             "tests/test_option_quote_hours.py::test_days_to_expiry_are_recounted_from_today",
             "tests/test_option_quote_hours.py::test_the_page_names_the_quote_date_when_it_is_not_todays",
+            "tests/test_context_layer_claims.py::test_a_live_reading_names_its_session_and_clock_time",
+            "tests/test_context_layer_claims.py::test_the_context_pass_stamps_a_live_reading",
+            "tests/test_context_layer_claims.py::test_a_refresh_run_during_the_session_is_marked_mid_session",
+            "tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken",
         ),
         caveat=(
             "Fixed 2026-10-09. Measured that day: the 02:00 run produced a usable reading for "
@@ -684,7 +692,10 @@ CLAIMS: tuple[Claim, ...] = (
             "chain overnight with every bid, ask and implied volatility at zero, and the panel "
             "blamed the quotes rather than the hour. Quotes are now collected after the close "
             "(options_cache) and the run reads them, so the session they belong to is named on "
-            "the page and the days to expiry are recounted from today."
+            "the page and the days to expiry are recounted from today. Fixed again 2026-10-20: a "
+            "reading fetched live carried no stamp and the panel's fallback said 'Quotes are the "
+            "previous close' - the 13:00 session's live run (13:21 CT) published that for 485 of 501 "
+            "stocks whose quotes were taken in the middle of that day's session."
         ),
     ),
     Claim(
@@ -743,10 +754,16 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "A stock's sensitivity to interest rates is the slope of its daily return on the "
             "daily change in the 10-year Treasury yield over the past ~13 months, per +1 "
-            "percentage point (shown per +0.10 point), with the share of daily swings it explains."
+            "percentage point (shown per +0.10 point), with the share of daily swings it explains "
+            "(the squared correlation). The Market panel's sector bars are the median of those "
+            "slopes across each sector's stocks in the run, for sectors with at least five."
         ),
         made_true_by="context_signals:rate_sensitivity",
-        checked_by=("tests/test_context_layer.py::test_rate_beta_recovers_a_known_slope",),
+        checked_by=(
+            "tests/test_context_layer.py::test_rate_beta_recovers_a_known_slope",
+            "tests/test_context_layer_claims.py::test_the_share_of_swings_explained_is_the_squared_correlation",
+            "tests/test_context_layer_claims.py::test_sector_rate_bars_are_medians_of_five_or_more_stocks",
+        ),
     ),
     Claim(
         id="context.insider_trades",
@@ -996,6 +1013,126 @@ CLAIMS: tuple[Claim, ...] = (
                 "default-risk indicators' their index outperforms (research/2026-10-17-macro-backdrop.md "
                 "section 4). That is not a reason to drop the series - it is free, daily and long, and "
                 "the page reports a percentile rather than a forecast."),
+    ),
+    # --- the context layer's remaining computational sentences (2026-10-20, the 0.11 close-out) ---
+    Claim(
+        id="context.price_trend",
+        surface=DRILLDOWN,
+        asserts=(
+            "'Before you decide' Trend and Recent move: the distance from the 200-day and 50-day "
+            "averages is the last close over the daily simple average of the last 200 (50) closes, "
+            "minus 1; the 200-day average is 'rising' or 'falling over the last month' against its "
+            "value 20 trading days earlier; the 52-week high and low are over the last 252 closes. "
+            "Uptrend means the close is at or above the 200-day average and the 50-day is at or "
+            "above it too; Downtrend means both are below; anything else is Mixed - one rule for the "
+            "chip, the teaser and the rankings' Context filter. The 5-day, 1-month and 3-month moves "
+            "are the close against the last close on or before 7, 30 and 91 calendar days earlier; "
+            "volume is the 20-day over the 63-day average; the sector median is the median one-month "
+            "move of the sector's stocks published in this run."
+        ),
+        made_true_by="context_signals:price_context",
+        checked_by=(
+            "tests/test_context_layer.py::test_moving_averages_and_range_are_exact",
+            "tests/test_context_layer.py::test_recent_returns_use_calendar_lookbacks",
+            "tests/test_context_layer.py::test_trend_state_reads_both_averages",
+            "tests/test_context_layer_claims.py::test_the_page_trend_word_is_the_engines",
+            "tests/test_context_layer_claims.py::test_the_sector_median_on_the_page_is_the_median_of_the_published_moves",
+            "tests/test_context_layer_claims.py::test_the_windows_on_the_page_are_the_windows_in_the_code",
+        ),
+    ),
+    Claim(
+        id="context.momentum_skip",
+        surface=DRILLDOWN,
+        asserts=(
+            "The Recent move card's note says the screener's 12-1 and 6-1 month returns - three "
+            "quarters of the Momentum category's weight - skip the latest month, and that Jensen's "
+            "alpha, the remaining quarter, uses the full twelve months."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_context_layer_claims.py::test_the_skip_month_returns_ignore_the_latest_month",
+            "tests/test_context_layer_claims.py::test_the_momentum_sentence_matches_the_configured_weights",
+        ),
+        caveat=(
+            "Fixed 2026-10-20: until then the note said 'The screener's own momentum signal skips the "
+            "latest month', while a quarter of the category (Jensen's alpha, weight 25 of 100) is "
+            "built on the full twelve-month return."
+        ),
+    ),
+    Claim(
+        id="context.macro_momentum_rule",
+        surface=DRILLDOWN,
+        asserts=(
+            "The Market panel's volatility reading and its 'Momentum and rebounds' note say the "
+            "screener cuts momentum's weight in the panic state - the index down over two years and "
+            "volatile - and never raises it, and that the stat strip says so when the cut is in force. "
+            "The 'Quality in downturns' note says Quality is one of the two heaviest categories."
+        ),
+        made_true_by="factor_engine:market_panic_state",
+        checked_by=(
+            "tests/test_momentum_panic_rule.py::test_panic_needs_both_conditions",
+            "tests/test_momentum_panic_rule.py::test_the_rule_only_ever_cuts_momentum",
+            "tests/test_context_layer_claims.py::test_the_volatility_reading_describes_the_configured_rule",
+            "tests/test_context_layer_claims.py::test_the_stat_strip_shows_a_momentum_cut",
+            "tests/test_context_layer_claims.py::test_quality_is_one_of_the_two_heaviest_categories",
+        ),
+        caveat=(
+            "Fixed 2026-10-20: until then the note said 'the stat strip shows whether the cut is in force'; the "
+            "strip shows a Momentum weight card only when the cut is in force and the trap-flag card "
+            "otherwise, so it now says exactly that."
+        ),
+    ),
+    Claim(
+        id="context.macro_series",
+        surface=DRILLDOWN,
+        asserts=(
+            "Each Market panel card shows the series' latest value; its 1m and 1y changes against "
+            "the last value on or before 30 and 365 days earlier; its percentile of the last ten "
+            "years as the share of readings below today's plus half of those equal to it; inflation "
+            "as the change in the CPI index over twelve monthly readings; and the VIX against its "
+            "ten-year median."
+        ),
+        made_true_by="market_context:summarise",
+        checked_by=(
+            "tests/test_context_layer.py::test_read_series_and_summarise",
+            "tests/test_context_layer.py::test_cpi_is_shown_year_over_year",
+            "tests/test_context_layer_claims.py::test_the_ten_year_percentile_counts_half_of_ties",
+            "tests/test_context_layer_claims.py::test_changes_are_against_the_last_value_30_and_365_days_back",
+            "tests/test_context_layer_claims.py::test_the_vix_reading_quotes_the_ten_year_median",
+        ),
+    ),
+    Claim(
+        id="context.logged_every_run",
+        surface=DRILLDOWN,
+        asserts=(
+            "'Before you decide' says each reading is logged every run so its predictive value can "
+            "be measured. Every per-stock field the payload publishes for the panel is a column of "
+            "data/context_log/<date>.parquet - insider trades as their 90-day summary and the "
+            "five-year valuation history as today's percentile in its own range - one file per run "
+            "date, written only from "
+            "closes: a run made while the market is open does not replace the date's log. "
+            "context_eval.py evaluates every option reading the panel shows, and a put skew only in "
+            "Xing, Zhang & Zhao's construction - the readings logged before it are excluded, not "
+            "spliced."
+        ),
+        made_true_by="context_signals:write_context_log",
+        checked_by=(
+            "tests/test_context_layer.py::test_context_log_writes_one_file_per_date",
+            "tests/test_context_layer_claims.py::test_every_number_the_panel_shows_is_logged",
+            "tests/test_context_layer_claims.py::test_a_mid_session_run_does_not_replace_the_log",
+            "tests/test_context_layer_claims.py::test_an_evening_run_still_records",
+            "tests/test_context_layer_claims.py::test_the_committed_logs_hold_closes_only",
+            "tests/test_context_layer_claims.py::test_the_harness_excludes_skews_without_legs",
+            "tests/test_context_layer_claims.py::test_the_harness_evaluates_every_option_reading_the_panel_shows",
+        ),
+        caveat=(
+            "Fixed 2026-10-20. The 13:00 session's live run (13:21 CT) had replaced the data loop's "
+            "log for 2026-10-20 with 502 prices dated 2026-10-20 - the day's unfinished bar - and "
+            "mid-session option quotes; the committed log was restored to the 06:16 run's, whose "
+            "prices are 2026-10-19's closes. The harness had also been splicing the superseded skew "
+            "into the new one: six log dates (2026-10-08 to 10-15, not the five the plan said - "
+            "the 10-15 run read a cache refreshed before the fix merged at 21:34 CT on 10-14)."
+        ),
     ),
     Claim(
         id="drilldown.row_equation",
@@ -1564,6 +1701,17 @@ FORBIDDEN: tuple[Forbidden, ...] = (
         pattern=r"e\.g\., \"yfinance\", \"cache\", \"sample\"",
         why="`_data_source` is the statement basis, `quarterly` or `annual`; the fetch writes nothing else.",
         fixed="2026-10-19",
+    ),
+    Forbidden(
+        pattern=r"Quotes are the previous close",
+        why=("The options panel's fallback, shown for a reading with no stamp - which on 2026-10-20 "
+             "was every live reading, taken in the middle of the session (485 of 501 stocks)."),
+        fixed="2026-10-20",
+    ),
+    Forbidden(
+        pattern=r"own momentum signal skips the latest month",
+        why="A quarter of Momentum (Jensen's alpha) uses the full twelve-month return.",
+        fixed="2026-10-20",
     ),
     Forbidden(
         pattern=r"perturbs each factor category weight by ±5%",
