@@ -108,6 +108,140 @@ SORTS = {
     "asset-growth": {"file": "investment_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
                      "columns": [17, 16, 15, 14, 13, 12, 11, 10, 9, 8]},
 }
+# Jensen, Kelly & Pedersen's global factor library (experiment 15). Licensed CC BY-NC 4.0 by its
+# authors (the licence is printed at the foot of jkpfactors.com/data and in DATA_LICENSE of
+# github.com/bkelly-lab/jkp-data): sharing and adapting are allowed for non-commercial use with
+# credit, a link to the licence, and a note of what was changed. The files are downloaded to
+# data/lab/jkp/ (gitignored) and never committed; lab_data.js publishes the derived monthly
+# series with that attribution. File names follow the download page's own script: the S3 keys
+# wrap each part in literal square brackets, URL-encoded.
+JKP_DIR = ROOT / "data" / "lab" / "jkp"
+JKP_HOME = "https://jkpfactors.com/"
+JKP_LICENCE = "https://creativecommons.org/licenses/by-nc/4.0/"
+JKP_BASE = "https://jkpfactors-data.s3.amazonaws.com/public/"
+JKP_REPO = "https://raw.githubusercontent.com/bkelly-lab/jkp-data/main/"
+JKP_ALL = "usa_all_factors_monthly_vw_cap.zip"            # the 153 US factors, capped value weights
+JKP_MARKET = "usa_mkt_monthly_vw.zip"                      # the US market's excess return, value-weighted
+JKP_DETAILS = "factor_details.xlsx"                        # each factor's paper, sample and sign
+JKP_CLUSTERS = "cluster_labels.csv"                        # each factor's theme (the paper's 13)
+# The library's size groups, by NYSE breakpoints: mega is above the 80th percentile, large the
+# 50th to the 80th. Mega is the nearest public group to the companies the screener ranks.
+JKP_SIZES = ("mega", "large")
+JKP_END = "202012"                                         # the paper's sample ends with 2020
+
+
+def jkp_key(*parts: str) -> str:
+    return "_".join(f"%5B{p}%5D" for p in parts) + ".zip"
+
+
+def fetch_jkp(raw_dir: Path = JKP_DIR, timeout: float = 120.0) -> list[Path]:
+    """Download the JKP files the lab reads. Network; called by ``--fetch`` only, never by a
+    test. One request per factor and size group (306 small files), as the download page makes."""
+    import time
+    import urllib.request
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    jobs = [(JKP_BASE + jkp_key("usa", "all_factors", "monthly", "vw_cap"), JKP_ALL),
+            (JKP_BASE + jkp_key("usa", "mkt", "monthly", "vw"), JKP_MARKET),
+            (JKP_REPO + "src/jkp/data/resources/factor_details.xlsx", JKP_DETAILS),
+            (JKP_REPO + "src/jkp/data/resources/cluster_labels.csv", JKP_CLUSTERS)]
+    out = []
+    for url, name in jobs:
+        req = urllib.request.Request(url, headers={"User-Agent": "screener-factor-lab"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            (raw_dir / name).write_bytes(r.read())
+        out.append(raw_dir / name)
+    for name in jkp_names(raw_dir):
+        for size in JKP_SIZES:
+            req = urllib.request.Request(JKP_BASE + "factor/" + jkp_key("usa", name, size),
+                                         headers={"User-Agent": "screener-factor-lab"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read()
+            if not data.startswith(b"PK"):
+                raise RuntimeError(f"{name} {size}: not a zip archive ({len(data)} bytes)")
+            (raw_dir / f"usa_{name}_{size}.zip").write_bytes(data)
+            out.append(raw_dir / f"usa_{name}_{size}.zip")
+            time.sleep(0.1)
+    return out
+
+
+def _zip_csv(path: Path) -> list[dict]:
+    import csv
+    import io
+    with zipfile.ZipFile(path) as z:
+        text = z.read(z.namelist()[0]).decode("utf-8")
+    return list(csv.DictReader(io.StringIO(text)))
+
+
+def jkp_names(raw_dir: Path = JKP_DIR) -> list[str]:
+    return sorted({r["name"] for r in _zip_csv(raw_dir / JKP_ALL)})
+
+
+def _yyyymm(date: str) -> str:
+    return date[:4] + date[5:7]
+
+
+def jkp_data(raw_dir: Path = JKP_DIR) -> dict:
+    """The 153 US factors as the library publishes them, plus the same characteristics within the
+    mega and large size groups, monthly, in basis points (whole numbers, to keep the published
+    file small; every calculation divides by 100 first, in Python and in the browser alike).
+
+    * ``all``: the library's factor - the top third minus the bottom third by the characteristic,
+      capped value weights, already signed the way the original paper found it paid.
+    * ``mega`` / ``large``: the library's size-group portfolios, which weight every stock in the
+      group by its rank on the characteristic (centred, each side summing to one) and are NOT
+      signed; they are multiplied here by the factor's own sign from the first file.
+    Each series is ``[first month index, value, value, ...]`` over ``months``, None for a gap.
+    Every factor's meta: its theme, whether its paper found it significant, and the paper's own
+    sample (the "in-sample period" the paper's out-of-sample tests start from)."""
+    import csv
+    import openpyxl
+    rows = _zip_csv(raw_dir / JKP_ALL)
+    sign = {}
+    by_name: dict[str, dict[str, float]] = {}
+    for r in rows:
+        sign[r["name"]] = int(float(r["direction"]))
+        by_name.setdefault(r["name"], {})[_yyyymm(r["date"])] = float(r["ret"]) * 100
+    market = {_yyyymm(r["date"]): float(r["ret"]) * 100 for r in _zip_csv(raw_dir / JKP_MARKET)}
+    sized = {s: {} for s in JKP_SIZES}
+    for name in by_name:
+        for s in JKP_SIZES:
+            sized[s][name] = {_yyyymm(r["date"]): sign[name] * float(r["ret"]) * 100
+                              for r in _zip_csv(raw_dir / f"usa_{name}_{s}.zip")}
+    months = sorted(set(market) | {m for v in by_name.values() for m in v}
+                    | {m for g in sized.values() for v in g.values() for m in v})
+    months = [m for m in months if m in market]                       # a factor month needs the market's
+    pos = {m: i for i, m in enumerate(months)}
+    with open(raw_dir / JKP_CLUSTERS, newline="", encoding="utf-8") as fh:
+        theme = {r["characteristic"]: r["cluster"] for r in csv.DictReader(fh)}
+    wb = openpyxl.load_workbook(raw_dir / JKP_DETAILS, read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    head, *body = list(ws.iter_rows(values_only=True))
+    col = {h: i for i, h in enumerate(head)}
+    details = {}
+    for r in body:
+        name = r[col["abr_jkp"]]
+        if name in by_name and name not in details:
+            a, b = (int(y) for y in str(r[col["in-sample period"]]).split("-"))
+            details[name] = {"sig": int(r[col["significance"]]), "in_start": f"{a}01", "in_end": f"{b}12",
+                             "label": r[col["name_new"]], "cite": r[col["cite"]]}
+
+    def series(values: dict[str, float]) -> list:
+        ms = sorted(m for m in values if m in pos)
+        first, last = pos[ms[0]], pos[ms[-1]]
+        return [first] + [None if months[i] not in values else round(values[months[i]] * 100)
+                          for i in range(first, last + 1)]
+
+    names = sorted(by_name)
+    return {
+        "months": months,
+        "mkt": [round(market[m] * 100) for m in months],
+        "factors": [{"name": n, "theme": theme[n], "sign": sign[n], **details[n]} for n in names],
+        "themes": sorted(set(theme[n] for n in names)),
+        "series": {"all": [series(by_name[n]) for n in names],
+                   **{s: [series(sized[s][n]) for n in names] for s in JKP_SIZES}},
+    }
+
+
 SIZE_EQUAL_MARKER = "Average Equal Weighted Returns -- Monthly"
 MISSING = -99.0                      # the library marks missing data -99.99 or -999
 
@@ -2005,6 +2139,83 @@ EXPERIMENTS = [
 ]
 
 
+# Experiment 15 (2026-10-20): Jensen, Kelly & Pedersen (2023) on their own public library. Kept as
+# its own block and appended to EXPERIMENTS below it, so another experiment added the same night
+# does not collide with it line for line.
+JKP_REPLICATION = {
+    "id": "replication-crisis",
+    "group": "Across the factors",
+    "kind": "replication",
+    "topic": "Every category at once",
+    "title": "How many published factors hold up - and among the largest companies?",
+    "tab": "153 factors",
+    "paper": {
+        "authors": "Theis Ingerslev Jensen, Bryan Kelly and Lasse Heje Pedersen",
+        "year": 2023,
+        "title": "Is there a replication crisis in finance?",
+        "journal": "Journal of Finance 78(5), 2465-2518",
+        "doi": "10.1111/jofi.13249",
+    },
+    "claim": ("Of 153 US factors from the published literature, built one uniform way, most hold up: of the "
+              "119 whose own papers found them significant, 82.4% have a CAPM alpha distinguishable from "
+              "zero over the full US sample to 2020, and the rate is nearly as high among the largest "
+              "companies (77.3% for mega caps, 79.8% for large caps). After their papers' samples ended "
+              "the factors earned about half as much (an average alpha of 0.26% a month against 0.49%), "
+              "but 83% of them stayed positive."),
+    "reference": {
+        "source": ("The published article (Journal of Finance 78(5), 2023), read from the copy its authors "
+                   "keep in their public code repository: Figure 1 and its text (pp. 2467-2468), the "
+                   "internal-validity section (pp. 2489-2491, the size groups on p. 2491) and the "
+                   "out-of-sample section (pp. 2494-2495, with Figure 8's caption on p. 2496). The "
+                   "'replication rate' is the share of factors whose t-statistic clears 1.96 in the "
+                   "direction the original paper found. Which 119 factors were significant in their "
+                   "original papers, and each paper's own sample, are read from the authors' "
+                   "factor-details file, which marks 119 significant and 34 not, as the paper counts."),
+        "start": "FIRST", "end": JKP_END, "universe": "all", "test": "capm", "set": "sig",
+        # Written 2026-10-20 BEFORE any comparison was run: the library's files had been downloaded
+        # and parsed for their shape (columns, months, gaps, the 119/34 split of the factor-details
+        # file) and nothing had been computed on a return. Four differences are known beforehand:
+        #  * Vintage. The paper used the library as built in 2021 (SAS); today's files are the 2025
+        #    Python rebuild, extended to 2025, whose release notes compare the two closely but not
+        #    exactly. Months to 2020 only are compared.
+        #  * Standard errors. The paper's are the diagonal of a bootstrapped covariance of alphas
+        #    with a block structure across factors (Appendix B); here, each factor's own OLS standard
+        #    error. Close for one factor; enough to move a factor sitting at t = 1.96 either side.
+        #  * The size groups. The paper's mega- and large-cap rates are empirical-Bayes posteriors
+        #    (Figure 5); here they are plain OLS counts. In the paper's own US numbers the two
+        #    coincided (82.4% each, p. 2490), but shrinkage can move a group either way. And the
+        #    public size-group files weight stocks by their rank on the characteristic, which the
+        #    paper's text does not describe for Figure 5.
+        #  * The out-of-sample windows. Which factors the two averages (0.49%, 0.26%) are taken over
+        #    is not stated; here, Figure 8 Panel B's set (significant originally, five years or more
+        #    after the original sample). Alphas are re-estimated inside each window and scaled, as
+        #    the paper scales every factor, to 10% a year of idiosyncratic volatility measured over
+        #    the whole sample to 2020.
+        # Tolerances: one factor is 0.84 points of 119 and 0.65 of 153. Rates on all stocks, 5.0
+        # points (about six factors crossing 1.96 either way); the size groups, 8.0, for the
+        # different estimator on top; the shares positive, 5.0. The two average alphas, 0.06% a
+        # month - about 12% of the in-sample figure and roughly two standard errors of an average
+        # of a hundred-odd correlated factors at 10% volatility.
+        # Plan rule 8, from the record: a result of no effect - every factor earning nothing - leaves
+        # a replication rate at the 2.5% that clears 1.96 by chance, half the factors positive after
+        # their samples, and both averages at zero. It matches none of the ten.
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "rate_raw_all", "label": "All 153 factors: share with a significant average return (%)", "paper": 55.6, "tolerance": 5.0, "where": "Figure 1, second bar; text p. 2467"},
+            {"key": "rate_raw_sig", "label": "The 119 significant in their papers: share with a significant average return (%)", "paper": 61.3, "tolerance": 5.0, "where": "Figure 1, third bar; text p. 2467"},
+            {"key": "rate_capm", "label": "The 119: share with a significant CAPM alpha (%)", "paper": 82.4, "tolerance": 5.0, "where": "Figure 1, fourth bar (p. 2468); 98 of 119, p. 2489"},
+            {"key": "rate_capm_mega", "label": "Mega caps only: share of the 119 with a significant CAPM alpha (%)", "paper": 77.3, "tolerance": 8.0, "where": "Figure 5 Panel A; text p. 2491 (empirical Bayes)"},
+            {"key": "rate_capm_large", "label": "Large caps only: share of the 119 with a significant CAPM alpha (%)", "paper": 79.8, "tolerance": 8.0, "where": "Figure 5 Panel A; text p. 2491 (empirical Bayes)"},
+            {"key": "alpha_in", "label": "Average alpha inside the original papers' samples, a month (%, at 10% volatility)", "paper": 0.49, "tolerance": 0.06, "where": "Section III.B.2, p. 2494"},
+            {"key": "alpha_post", "label": "Average alpha after the original samples ended, a month (%, at 10% volatility)", "paper": 0.26, "tolerance": 0.06, "where": "Section III.B.2, p. 2494"},
+            {"key": "pos_pre", "label": "Share with a positive alpha before the original sample (%)", "paper": 82.6, "tolerance": 5.0, "where": "p. 2495; Figure 8 Panel A, 102 factors (p. 2496)"},
+            {"key": "pos_post", "label": "Share with a positive alpha after the original sample (%)", "paper": 83.3, "tolerance": 5.0, "where": "p. 2495; Figure 8 Panel B, 115 factors (p. 2496)"},
+            {"key": "pos_both", "label": "Share with a positive alpha before and after, together (%)", "paper": 87.4, "tolerance": 5.0, "where": "p. 2495; Figure 8 Panel C, 119 factors (p. 2496)"},
+        ],
+    },
+}
+
+
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
 # rebuild that makes one untrue fails the suite instead of leaving it on the page.
@@ -2325,7 +2536,13 @@ _NULL_VOL = re.compile(r"(^|_)std\d*($|_)")                # a volatility: std1,
 # whose groups all earn that weighting's own average under the null
 _NULL_LEVEL = re.compile(r"((?:[a-z]+_)?)(mean|dec)\d+$")
 STAT_ORDER = ("max", "min", "mean", "std", "kurt", "skew", "sharpe")
+# Shares of many factors (experiment 15): with no effect anywhere, a factor's t-statistic clears
+# 1.96 in its paper's direction by chance 2.5% of the time, and half the factors land positive.
+NULL_CHANCE = {"rate_": 2.5, "pos_": 50.0}
 NULL_MEANING = {
+    "replication": ("“No effect” here means every factor earning nothing: 2.5% of them would still clear "
+                    "1.96 in their paper's direction by chance, half would land positive after their samples, "
+                    "and every average alpha would be zero."),
     "risk-managed": ("“No effect” here means the risk-managed strategy matching the plain one figure "
                      "for figure."),
     "default": ("“No effect” here means every group earning the same and every spread, t-statistic, "
@@ -2352,6 +2569,8 @@ def null_rows(exp: dict) -> list[dict]:
         k = f["key"]
         if k.startswith(NULL_KEEPS_PREFIX) or k.endswith(NULL_KEEPS_SUFFIX) or _NULL_VOL.search(k):
             null = f["paper"]
+        elif k.startswith(tuple(NULL_CHANCE)):
+            null = next(v for pre, v in NULL_CHANCE.items() if k.startswith(pre))
         elif _NULL_LEVEL.match(k):
             null = centres[_NULL_LEVEL.match(k).group(1)]
         else:

@@ -228,6 +228,22 @@ def test_the_asset_growth_tolerances_are_the_ones_committed_before_the_compariso
         assert abs(nulls[k]["null"] - nulls[k]["paper"]) > nulls[k]["tolerance"], k
 
 
+def test_the_replication_crisis_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 15 (2026-10-20): Jensen, Kelly & Pedersen (2023), pp. 2467-2496. Paper figures and
+    tolerances committed on their own, before the library's factors were first compared with them
+    (plan/factor-lab.md rule 3); by rule 8 a result of no effect - 2.5% clearing 1.96 by chance,
+    half positive, zero alpha - matches none of the ten."""
+    ref = fl.JKP_REPLICATION["reference"]
+    assert (ref["start"], ref["end"], ref["universe"], ref["test"], ref["set"], ref["tolerances_written"]) == (
+        "FIRST", "202012", "all", "capm", "sig", "before")
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "rate_raw_all": (55.6, 5.0), "rate_raw_sig": (61.3, 5.0), "rate_capm": (82.4, 5.0),
+        "rate_capm_mega": (77.3, 8.0), "rate_capm_large": (79.8, 8.0),
+        "alpha_in": (0.49, 0.06), "alpha_post": (0.26, 0.06),
+        "pos_pre": (82.6, 5.0), "pos_post": (83.3, 5.0), "pos_both": (87.4, 5.0)}
+    assert fl.null_within(fl.JKP_REPLICATION) == 0
+
+
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
     """Experiment 4 reruns a 1992 table on a different set of companies from the paper's and
     most figures miss. The tolerances were written first and stay; the page says how many
