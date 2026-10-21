@@ -717,7 +717,7 @@ This category is weighted at only {fw.get('revisions', 0)}% of the composite bec
 
 ### 7. Size ({fw.get('size', 0)}% of final score)
 
-**Question it answers:** *Does this stock benefit from the small-cap premium?*
+**Question it answers:** *Is this company small for its sector, in an index where every company is large?*
 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|

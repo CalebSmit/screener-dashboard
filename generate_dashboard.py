@@ -2017,7 +2017,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                             <th data-sort="momentum_score" title="Momentum - has the price been rising? @W@. The most recent month is skipped deliberately: short-horizon returns tend to reverse. Higher score = stronger trend; 0-100." data-wcat="momentum">Mom</th>
                             <th data-sort="risk_score" title="Risk - how bumpy is the ride? @W@. Higher score = calmer and less drawdown-prone, so a high Risk score means LOW risk; 0-100." data-wcat="risk">Risk</th>
                             <th data-sort="revisions_score" title="Revisions - are analysts turning more positive? @W@. Higher score = improving expectations; 0-100." data-wcat="revisions">Rev</th>
-                            <th data-sort="size_score" title="Size - the small-cap premium. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
+                            <th data-sort="size_score" title="Size - a tilt toward the smaller companies in each sector. Scored from -log(market cap), so within the S&amp;P 500 a higher score means a smaller company; 0-100.">Size</th>
                             <th data-sort="investment_score" title="Investment - is the balance sheet growing conservatively? Asset growth. Higher score = slower asset growth, which historically predicts better returns; 0-100.">Inv</th>
                             <th data-sort="Value_Trap_Flag" title="Value-trap and growth-trap flags (see Methodology). A blank cell means the stock carries no flag.">Trap flags</th>
                         </tr></thead>

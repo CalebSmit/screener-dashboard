@@ -1,0 +1,226 @@
+{
+ "payloads": [
+  {
+   "commit": "410eb00",
+   "date": "2026-08-06",
+   "run_timestamp": "2026-08-06T02:00:01.910029",
+   "stocks": 503,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 0.9969,
+   "composite_vs_size": 0.139,
+   "without_size_vs_size": -0.065,
+   "size_vs_valuation": 0.057,
+   "size_vs_investment": -0.055,
+   "size_vs_growth": 0.005,
+   "size_vs_rest_mean": -0.096,
+   "top25_changed_without_size": 6
+  },
+  {
+   "commit": "0c9aa58",
+   "date": "2026-08-10",
+   "run_timestamp": "2026-08-10T18:51:09.951753",
+   "stocks": 503,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 0.9969,
+   "composite_vs_size": 0.139,
+   "without_size_vs_size": -0.065,
+   "size_vs_valuation": 0.057,
+   "size_vs_investment": -0.055,
+   "size_vs_growth": 0.005,
+   "size_vs_rest_mean": -0.096,
+   "top25_changed_without_size": 6
+  },
+  {
+   "commit": "77805fe",
+   "date": "2026-08-20",
+   "run_timestamp": "2026-08-20T23:12:35.263391",
+   "stocks": 501,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 0.9947,
+   "composite_vs_size": 0.087,
+   "without_size_vs_size": -0.05,
+   "size_vs_valuation": 0.335,
+   "size_vs_investment": 0.276,
+   "size_vs_growth": -0.294,
+   "size_vs_rest_mean": -0.071,
+   "top25_changed_without_size": 3
+  },
+  {
+   "commit": "37ab0c9",
+   "date": "2026-08-24",
+   "run_timestamp": "2026-08-24T02:00:03.959537",
+   "stocks": 501,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.122,
+   "without_size_vs_size": -0.047,
+   "size_vs_valuation": 0.336,
+   "size_vs_investment": 0.275,
+   "size_vs_growth": -0.288,
+   "size_vs_rest_mean": -0.069,
+   "top25_changed_without_size": 3
+  },
+  {
+   "commit": "f4db5cd",
+   "date": "2026-08-31",
+   "run_timestamp": "2026-08-31T02:00:03.976670",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.099,
+   "without_size_vs_size": -0.066,
+   "size_vs_valuation": 0.332,
+   "size_vs_investment": 0.281,
+   "size_vs_growth": -0.29,
+   "size_vs_rest_mean": -0.056,
+   "top25_changed_without_size": 3
+  },
+  {
+   "commit": "e2afbe4",
+   "date": "2026-09-07",
+   "run_timestamp": "2026-09-07T02:00:03.446087",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.138,
+   "without_size_vs_size": -0.031,
+   "size_vs_valuation": 0.331,
+   "size_vs_investment": 0.284,
+   "size_vs_growth": -0.29,
+   "size_vs_rest_mean": -0.047,
+   "top25_changed_without_size": 3
+  },
+  {
+   "commit": "6b8d071",
+   "date": "2026-09-14",
+   "run_timestamp": "2026-09-14T02:00:05.118731",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.104,
+   "without_size_vs_size": -0.066,
+   "size_vs_valuation": 0.338,
+   "size_vs_investment": 0.283,
+   "size_vs_growth": -0.284,
+   "size_vs_rest_mean": -0.057,
+   "top25_changed_without_size": 4
+  },
+  {
+   "commit": "120daba",
+   "date": "2026-09-21",
+   "run_timestamp": "2026-09-21T02:00:03.202880",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.1,
+   "without_size_vs_size": -0.069,
+   "size_vs_valuation": 0.326,
+   "size_vs_investment": 0.273,
+   "size_vs_growth": -0.277,
+   "size_vs_rest_mean": -0.058,
+   "top25_changed_without_size": 2
+  },
+  {
+   "commit": "2e08f62",
+   "date": "2026-09-28",
+   "run_timestamp": "2026-09-28T02:00:04.753730",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.109,
+   "without_size_vs_size": -0.06,
+   "size_vs_valuation": 0.335,
+   "size_vs_investment": 0.275,
+   "size_vs_growth": -0.281,
+   "size_vs_rest_mean": -0.049,
+   "top25_changed_without_size": 4
+  },
+  {
+   "commit": "5a4bb9e",
+   "date": "2026-10-05",
+   "run_timestamp": "2026-10-05T02:00:06.261856",
+   "stocks": 502,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.099,
+   "without_size_vs_size": -0.067,
+   "size_vs_valuation": 0.338,
+   "size_vs_investment": 0.281,
+   "size_vs_growth": -0.292,
+   "size_vs_rest_mean": -0.055,
+   "top25_changed_without_size": 3
+  },
+  {
+   "commit": "c620c4b",
+   "date": "2026-10-12",
+   "run_timestamp": "2026-10-12T02:00:03.296811",
+   "stocks": 501,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.13,
+   "without_size_vs_size": -0.035,
+   "size_vs_valuation": 0.372,
+   "size_vs_investment": 0.277,
+   "size_vs_growth": -0.345,
+   "size_vs_rest_mean": -0.052,
+   "top25_changed_without_size": 4
+  },
+  {
+   "commit": "ddc5083",
+   "date": "2026-10-19",
+   "run_timestamp": "2026-10-19T02:00:04.793163",
+   "stocks": 501,
+   "size_weight": 5,
+   "approx_vs_published_spearman": 1.0,
+   "composite_vs_size": 0.129,
+   "without_size_vs_size": -0.034,
+   "size_vs_valuation": 0.361,
+   "size_vs_investment": 0.265,
+   "size_vs_growth": -0.321,
+   "size_vs_rest_mean": -0.053,
+   "top25_changed_without_size": 4
+  }
+ ],
+ "summary": {
+  "composite_vs_size": {
+   "min": 0.087,
+   "median": 0.11549999999999999,
+   "max": 0.139
+  },
+  "without_size_vs_size": {
+   "min": -0.069,
+   "median": -0.0625,
+   "max": -0.031
+  },
+  "size_vs_valuation": {
+   "min": 0.057,
+   "median": 0.335,
+   "max": 0.372
+  },
+  "size_vs_investment": {
+   "min": -0.055,
+   "median": 0.2755,
+   "max": 0.284
+  },
+  "size_vs_growth": {
+   "min": -0.345,
+   "median": -0.289,
+   "max": 0.005
+  },
+  "size_vs_rest_mean": {
+   "min": -0.096,
+   "median": -0.0565,
+   "max": -0.047
+  },
+  "top25_changed_without_size": {
+   "min": 2.0,
+   "median": 3.5,
+   "max": 6.0
+  },
+  "approx_vs_published_spearman": {
+   "min": 0.9947,
+   "median": 1.0,
+   "max": 1.0
+  }
+ }
+}

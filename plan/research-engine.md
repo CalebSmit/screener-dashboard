@@ -197,7 +197,7 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    **(c) The positive control, in the ledger.** The look-ahead arm (today's filings for every
    month, IC +0.050, t 4.71 on 2020-2026) is the page's evidence that the test can see a signal, but
    it lives in a measurement file. Record it as a ledger row of `kind: control` on the current data
-   version, rerun with everything else. Add a synthetic calibration test: inject a known signal
+   version, rerun with everything else. **The synthetic calibration test is DONE 2026-10-20 (owner-run, `tests/test_engine_calibration.py`, 7 tests):** planted differences of 0.03, 0.05 and 0.10 come back within four standard errors in every period, 0.10 clears the bar on the 38 held-out months, no false alarm across ten null pairs, twice `detectable` is always caught, and a 70%-coverage screen is measured on the shared stocks. The ledger row of `kind: control` is still open. As specified: inject a known signal
    (a score equal to next month's return plus noise scaled to a target IC of 0.03, 0.05 and 0.10)
    into a copy of one era's months, and assert the engine's paired comparison reports a difference
    within its interval of the injected one and detects 0.10 at the bar.

@@ -1,0 +1,953 @@
+{
+ "reproduction": {
+  "run_dir": "7c12b43a07b6",
+  "run_timestamp": "2026-10-20T13:21:50.724316",
+  "stocks": 501,
+  "max_abs_diff_vs_published": 0.0,
+  "top25_identical": true
+ },
+ "weights": {
+  "valuation": 22,
+  "quality": 22,
+  "growth": 13,
+  "momentum": 13,
+  "risk": 10,
+  "revisions": 10,
+  "size": 5,
+  "investment": 5
+ },
+ "size_build": {
+  "coverage": 501,
+  "spearman_with_minus_ln_mcap_universe": 0.946,
+  "mcap_bn_quantiles": {
+   "0": 5.7,
+   "0.1": 14.0,
+   "0.25": 22.5,
+   "0.5": 45.0,
+   "0.75": 94.5,
+   "0.9": 228.9,
+   "1": 5235.6
+  },
+  "size_score_by_mcap_bucket": {
+   "<25bn": 83.6,
+   "25-50bn": 58.2,
+   "50-100bn": 35.3,
+   "100-500bn": 16.6,
+   ">=500bn": 3.5
+  }
+ },
+ "size_vs_other_categories": {
+  "spearman": {
+   "valuation": 0.362,
+   "quality": -0.117,
+   "growth": -0.325,
+   "momentum": -0.199,
+   "risk": -0.171,
+   "revisions": -0.128,
+   "investment": 0.26
+  },
+  "pearson": {
+   "valuation": 0.362,
+   "quality": -0.116,
+   "growth": -0.328,
+   "momentum": -0.204,
+   "risk": -0.171,
+   "revisions": -0.135,
+   "investment": 0.26
+  },
+  "r2_on_other_seven": 0.274,
+  "r2_on_valuation_and_investment": 0.161,
+  "r2_on_valuation_alone": 0.131,
+  "valuation_vs_investment_spearman": 0.262,
+  "rest_mean_vs_size_spearman": -0.058,
+  "spearman_within_sector_avg": {
+   "valuation": 0.358,
+   "quality": -0.127,
+   "growth": -0.31,
+   "momentum": -0.207,
+   "risk": -0.178,
+   "revisions": -0.138,
+   "investment": 0.26
+  }
+ },
+ "size_weight_sweep": [
+  {
+   "size_weight": 0,
+   "spearman_with_size_score": -0.039,
+   "spearman_with_minus_ln_mcap": -0.035,
+   "top25_kept_vs_published": 22,
+   "top25_median_mcap_bn": 41.3
+  },
+  {
+   "size_weight": 1,
+   "spearman_with_size_score": -0.008,
+   "spearman_with_minus_ln_mcap": -0.005,
+   "top25_kept_vs_published": 23,
+   "top25_median_mcap_bn": 41.3
+  },
+  {
+   "size_weight": 2,
+   "spearman_with_size_score": 0.024,
+   "spearman_with_minus_ln_mcap": 0.025,
+   "top25_kept_vs_published": 23,
+   "top25_median_mcap_bn": 41.3
+  },
+  {
+   "size_weight": 3,
+   "spearman_with_size_score": 0.058,
+   "spearman_with_minus_ln_mcap": 0.057,
+   "top25_kept_vs_published": 23,
+   "top25_median_mcap_bn": 41.3
+  },
+  {
+   "size_weight": 4,
+   "spearman_with_size_score": 0.092,
+   "spearman_with_minus_ln_mcap": 0.089,
+   "top25_kept_vs_published": 24,
+   "top25_median_mcap_bn": 36.2
+  },
+  {
+   "size_weight": 5,
+   "spearman_with_size_score": 0.126,
+   "spearman_with_minus_ln_mcap": 0.121,
+   "top25_kept_vs_published": 25,
+   "top25_median_mcap_bn": 34.4
+  },
+  {
+   "size_weight": 6,
+   "spearman_with_size_score": 0.16,
+   "spearman_with_minus_ln_mcap": 0.152,
+   "top25_kept_vs_published": 24,
+   "top25_median_mcap_bn": 32.4
+  },
+  {
+   "size_weight": 7,
+   "spearman_with_size_score": 0.194,
+   "spearman_with_minus_ln_mcap": 0.185,
+   "top25_kept_vs_published": 23,
+   "top25_median_mcap_bn": 32.4
+  },
+  {
+   "size_weight": 8,
+   "spearman_with_size_score": 0.227,
+   "spearman_with_minus_ln_mcap": 0.217,
+   "top25_kept_vs_published": 23,
+   "top25_median_mcap_bn": 25.8
+  },
+  {
+   "size_weight": 9,
+   "spearman_with_size_score": 0.261,
+   "spearman_with_minus_ln_mcap": 0.249,
+   "top25_kept_vs_published": 22,
+   "top25_median_mcap_bn": 24.7
+  },
+  {
+   "size_weight": 10,
+   "spearman_with_size_score": 0.294,
+   "spearman_with_minus_ln_mcap": 0.281,
+   "top25_kept_vs_published": 21,
+   "top25_median_mcap_bn": 23.6
+  },
+  {
+   "size_weight": 11,
+   "spearman_with_size_score": 0.329,
+   "spearman_with_minus_ln_mcap": 0.313,
+   "top25_kept_vs_published": 19,
+   "top25_median_mcap_bn": 23.1
+  },
+  {
+   "size_weight": 12,
+   "spearman_with_size_score": 0.362,
+   "spearman_with_minus_ln_mcap": 0.344,
+   "top25_kept_vs_published": 18,
+   "top25_median_mcap_bn": 19.5
+  },
+  {
+   "size_weight": 13,
+   "spearman_with_size_score": 0.394,
+   "spearman_with_minus_ln_mcap": 0.375,
+   "top25_kept_vs_published": 18,
+   "top25_median_mcap_bn": 19.5
+  },
+  {
+   "size_weight": 14,
+   "spearman_with_size_score": 0.427,
+   "spearman_with_minus_ln_mcap": 0.406,
+   "top25_kept_vs_published": 15,
+   "top25_median_mcap_bn": 17.8
+  },
+  {
+   "size_weight": 15,
+   "spearman_with_size_score": 0.46,
+   "spearman_with_minus_ln_mcap": 0.437,
+   "top25_kept_vs_published": 15,
+   "top25_median_mcap_bn": 17.8
+  }
+ ],
+ "neutral_weight": {
+  "within_sector_size_score": 1.25,
+  "universe_minus_ln_mcap": 1.17
+ },
+ "exposure_without_size_signal": {
+  "spearman_with_size_score": -0.039,
+  "spearman_with_minus_ln_mcap": -0.035
+ },
+ "exposure_published": {
+  "spearman_with_size_score": 0.126,
+  "spearman_with_minus_ln_mcap": 0.121
+ },
+ "variants": {
+  "published": {
+   "top25": [
+    "EXPE",
+    "APA",
+    "INCY",
+    "HST",
+    "EG",
+    "VLO",
+    "SNDK",
+    "CF",
+    "BBY",
+    "DXCM",
+    "BMY",
+    "ALL",
+    "EXPD",
+    "MPC",
+    "MU",
+    "TPR",
+    "TRV",
+    "AIZ",
+    "CAH",
+    "ED",
+    "NTAP",
+    "ACGL",
+    "SWK",
+    "NEM",
+    "ES"
+   ],
+   "kept_of_25": 25,
+   "kept_of_50": 50,
+   "spearman_vs_published": 1.0,
+   "median_abs_rank_change": 0.0,
+   "p90_abs_rank_change": 0.0,
+   "max_abs_rank_change": 0.0,
+   "profile_top25": {
+    "valuation": 75.0,
+    "quality": 74.8,
+    "growth": 52.4,
+    "momentum": 80.6,
+    "risk": 52.5,
+    "revisions": 65.5,
+    "size": 55.2,
+    "investment": 53.1,
+    "median_mcap_bn": 34.4,
+    "n_below_50bn": 16,
+    "sectors": {
+     "Financials": 5,
+     "Health Care": 4,
+     "Consumer Discretionary": 3,
+     "Energy": 3,
+     "Information Technology": 3,
+     "Industrials": 2,
+     "Materials": 2,
+     "Utilities": 2,
+     "Real Estate": 1
+    }
+   },
+   "composite_exposure": {
+    "valuation": 0.56,
+    "quality": 0.559,
+    "growth": 0.013,
+    "momentum": 0.396,
+    "risk": 0.332,
+    "revisions": 0.286,
+    "size": 0.126,
+    "investment": 0.219
+   }
+  },
+  "size_neutral_50": {
+   "top25": [
+    "EXPE",
+    "HST",
+    "VLO",
+    "INCY",
+    "SNDK",
+    "APA",
+    "BMY",
+    "MU",
+    "MPC",
+    "ALL",
+    "EG",
+    "TRV",
+    "NEM",
+    "DXCM",
+    "BBY",
+    "ED",
+    "EXPD",
+    "CAH",
+    "CF",
+    "TPR",
+    "ACGL",
+    "NTAP",
+    "WDC",
+    "CL",
+    "BKNG"
+   ],
+   "kept_of_25": 22,
+   "kept_of_50": 44,
+   "spearman_vs_published": 0.9831,
+   "median_abs_rank_change": 17.0,
+   "p90_abs_rank_change": 47.0,
+   "max_abs_rank_change": 65.0,
+   "profile_top25": {
+    "valuation": 73.0,
+    "quality": 76.0,
+    "growth": 57.7,
+    "momentum": 78.3,
+    "risk": 51.7,
+    "revisions": 65.9,
+    "size": 48.0,
+    "investment": 53.2,
+    "median_mcap_bn": 41.3,
+    "n_below_50bn": 13,
+    "sectors": {
+     "Consumer Discretionary": 4,
+     "Health Care": 4,
+     "Financials": 4,
+     "Information Technology": 4,
+     "Energy": 3,
+     "Materials": 2,
+     "Real Estate": 1,
+     "Utilities": 1,
+     "Industrials": 1,
+     "Consumer Staples": 1
+    }
+   },
+   "composite_exposure": {
+    "valuation": 0.502,
+    "quality": 0.587,
+    "growth": 0.061,
+    "momentum": 0.432,
+    "risk": 0.363,
+    "revisions": 0.31,
+    "size": -0.039,
+    "investment": 0.182
+   }
+  },
+  "size_dropped_renormalised": {
+   "top25": [
+    "EXPE",
+    "HST",
+    "VLO",
+    "INCY",
+    "SNDK",
+    "APA",
+    "BMY",
+    "MU",
+    "MPC",
+    "ALL",
+    "EG",
+    "TRV",
+    "NEM",
+    "DXCM",
+    "BBY",
+    "ED",
+    "EXPD",
+    "CAH",
+    "CF",
+    "TPR",
+    "ACGL",
+    "NTAP",
+    "WDC",
+    "CL",
+    "BKNG"
+   ],
+   "kept_of_25": 22,
+   "kept_of_50": 44,
+   "spearman_vs_published": 0.9832,
+   "median_abs_rank_change": 17.0,
+   "p90_abs_rank_change": 47.0,
+   "max_abs_rank_change": 65.0,
+   "profile_top25": {
+    "valuation": 73.0,
+    "quality": 76.0,
+    "growth": 57.7,
+    "momentum": 78.3,
+    "risk": 51.7,
+    "revisions": 65.9,
+    "size": 48.0,
+    "investment": 53.2,
+    "median_mcap_bn": 41.3,
+    "n_below_50bn": 13,
+    "sectors": {
+     "Consumer Discretionary": 4,
+     "Health Care": 4,
+     "Financials": 4,
+     "Information Technology": 4,
+     "Energy": 3,
+     "Materials": 2,
+     "Real Estate": 1,
+     "Utilities": 1,
+     "Industrials": 1,
+     "Consumer Staples": 1
+    }
+   },
+   "composite_exposure": {
+    "valuation": 0.502,
+    "quality": 0.587,
+    "growth": 0.061,
+    "momentum": 0.432,
+    "risk": 0.363,
+    "revisions": 0.31,
+    "size": -0.039,
+    "investment": 0.182
+   }
+  },
+  "size_points_to_quality": {
+   "top25": [
+    "EXPE",
+    "HST",
+    "INCY",
+    "VLO",
+    "SNDK",
+    "APA",
+    "MU",
+    "BMY",
+    "MPC",
+    "ALL",
+    "NEM",
+    "DXCM",
+    "TRV",
+    "CF",
+    "EXPD",
+    "BBY",
+    "EG",
+    "TPR",
+    "CAH",
+    "ED",
+    "CL",
+    "NTAP",
+    "ACGL",
+    "BKNG",
+    "WDC"
+   ],
+   "kept_of_25": 22,
+   "kept_of_50": 44,
+   "spearman_vs_published": 0.9762,
+   "median_abs_rank_change": 19.0,
+   "p90_abs_rank_change": 54.0,
+   "max_abs_rank_change": 92.0,
+   "profile_top25": {
+    "valuation": 73.0,
+    "quality": 76.0,
+    "growth": 57.7,
+    "momentum": 78.3,
+    "risk": 51.7,
+    "revisions": 65.9,
+    "size": 48.0,
+    "investment": 53.2,
+    "median_mcap_bn": 41.3,
+    "n_below_50bn": 13,
+    "sectors": {
+     "Consumer Discretionary": 4,
+     "Health Care": 4,
+     "Financials": 4,
+     "Information Technology": 4,
+     "Energy": 3,
+     "Materials": 2,
+     "Real Estate": 1,
+     "Industrials": 1,
+     "Utilities": 1,
+     "Consumer Staples": 1
+    }
+   },
+   "composite_exposure": {
+    "valuation": 0.472,
+    "quality": 0.655,
+    "growth": 0.073,
+    "momentum": 0.401,
+    "risk": 0.348,
+    "revisions": 0.293,
+    "size": -0.05,
+    "investment": 0.165
+   }
+  },
+  "size_points_to_valuation": {
+   "top25": [
+    "EXPE",
+    "HST",
+    "INCY",
+    "VLO",
+    "APA",
+    "SNDK",
+    "BMY",
+    "MPC",
+    "EG",
+    "MU",
+    "BBY",
+    "NEM",
+    "ALL",
+    "CF",
+    "ED",
+    "CAH",
+    "TRV",
+    "TPR",
+    "DXCM",
+    "ACGL",
+    "EXPD",
+    "BKNG",
+    "NTAP",
+    "ES",
+    "DLTR"
+   ],
+   "kept_of_25": 23,
+   "kept_of_50": 46,
+   "spearman_vs_published": 0.9849,
+   "median_abs_rank_change": 14.0,
+   "p90_abs_rank_change": 42.0,
+   "max_abs_rank_change": 85.0,
+   "profile_top25": {
+    "valuation": 76.0,
+    "quality": 76.1,
+    "growth": 55.3,
+    "momentum": 77.5,
+    "risk": 50.1,
+    "revisions": 65.0,
+    "size": 51.1,
+    "investment": 50.9,
+    "median_mcap_bn": 36.2,
+    "n_below_50bn": 15,
+    "sectors": {
+     "Consumer Discretionary": 4,
+     "Health Care": 4,
+     "Financials": 4,
+     "Energy": 3,
+     "Information Technology": 3,
+     "Materials": 2,
+     "Utilities": 2,
+     "Real Estate": 1,
+     "Industrials": 1,
+     "Consumer Staples": 1
+    }
+   },
+   "composite_exposure": {
+    "valuation": 0.601,
+    "quality": 0.548,
+    "growth": -0.001,
+    "momentum": 0.374,
+    "risk": 0.344,
+    "revisions": 0.279,
+    "size": 0.011,
+    "investment": 0.206
+   }
+  }
+ },
+ "top25_changes_size_neutral": {
+  "leave": [
+   {
+    "ticker": "AIZ",
+    "sector": "Financials",
+    "mcap_bn": 14.0,
+    "size_score": 92.8,
+    "rank_published": 18,
+    "rank_size_neutral": 27,
+    "valuation": 46.2,
+    "quality": 66.8,
+    "investment": 84.9,
+    "risk": 80.5
+   },
+   {
+    "ticker": "SWK",
+    "sector": "Industrials",
+    "mcap_bn": 14.2,
+    "size_score": 90.9,
+    "rank_published": 23,
+    "rank_size_neutral": 35,
+    "valuation": 90.1,
+    "quality": 47.8,
+    "investment": 95.7,
+    "risk": 30.2
+   },
+   {
+    "ticker": "ES",
+    "sector": "Utilities",
+    "mcap_bn": 24.7,
+    "size_score": 72.6,
+    "rank_published": 25,
+    "rank_size_neutral": 31,
+    "valuation": 87.0,
+    "quality": 85.0,
+    "investment": 75.8,
+    "risk": 40.3
+   }
+  ],
+  "enter": [
+   {
+    "ticker": "WDC",
+    "sector": "Information Technology",
+    "mcap_bn": 136.6,
+    "size_score": 38.0,
+    "rank_published": 28,
+    "rank_size_neutral": 23,
+    "valuation": 55.8,
+    "quality": 66.0,
+    "investment": 88.7,
+    "risk": 9.4
+   },
+   {
+    "ticker": "CL",
+    "sector": "Consumer Staples",
+    "mcap_bn": 75.0,
+    "size_score": 28.8,
+    "rank_published": 32,
+    "rank_size_neutral": 24,
+    "valuation": 43.3,
+    "quality": 89.6,
+    "investment": 83.3,
+    "risk": 75.5
+   },
+   {
+    "ticker": "BKNG",
+    "sector": "Consumer Discretionary",
+    "mcap_bn": 123.5,
+    "size_score": 11.7,
+    "rank_published": 40,
+    "rank_size_neutral": 25,
+    "valuation": 73.6,
+    "quality": 73.6,
+    "investment": 85.9,
+    "risk": 44.8
+   }
+  ],
+  "top25_size_score_mean_published": 55.2,
+  "universe_size_score_mean": 50.0
+ },
+ "promoted_vs_demoted_50": {
+  "promoted": {
+   "valuation": 64.7,
+   "quality": 47.0,
+   "growth": 39.5,
+   "momentum": 41.9,
+   "risk": 47.5,
+   "revisions": 44.6,
+   "size": 88.8,
+   "investment": 59.2,
+   "median_mcap_bn": 15.1,
+   "volatility": 0.337,
+   "beta": 0.621
+  },
+  "demoted": {
+   "valuation": 39.0,
+   "quality": 56.9,
+   "growth": 54.5,
+   "momentum": 59.4,
+   "risk": 63.6,
+   "revisions": 53.2,
+   "size": 7.5,
+   "investment": 44.3,
+   "median_mcap_bn": 323.2,
+   "volatility": 0.289,
+   "beta": 0.608
+  },
+  "max_places_up": 65,
+  "max_places_down": 63
+ },
+ "candidate_grid": [
+  {
+   "size": 5,
+   "freed_to": "pro_rata",
+   "size_exposure": 0.126,
+   "growth_exposure": 0.013,
+   "valuation_exposure": 0.56,
+   "quality_exposure": 0.559,
+   "top25_kept": 25,
+   "leave": [],
+   "enter": [],
+   "spearman_vs_published": 1.0
+  },
+  {
+   "size": 4,
+   "freed_to": "pro_rata",
+   "size_exposure": 0.092,
+   "growth_exposure": 0.023,
+   "valuation_exposure": 0.549,
+   "quality_exposure": 0.567,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9992
+  },
+  {
+   "size": 4,
+   "freed_to": "quality",
+   "size_exposure": 0.089,
+   "growth_exposure": 0.026,
+   "valuation_exposure": 0.543,
+   "quality_exposure": 0.582,
+   "top25_kept": 25,
+   "leave": [],
+   "enter": [],
+   "spearman_vs_published": 0.9988
+  },
+  {
+   "size": 4,
+   "freed_to": "valuation",
+   "size_exposure": 0.103,
+   "growth_exposure": 0.009,
+   "valuation_exposure": 0.571,
+   "quality_exposure": 0.557,
+   "top25_kept": 25,
+   "leave": [],
+   "enter": [],
+   "spearman_vs_published": 0.9992
+  },
+  {
+   "size": 4,
+   "freed_to": "investment",
+   "size_exposure": 0.1,
+   "growth_exposure": 0.01,
+   "valuation_exposure": 0.554,
+   "quality_exposure": 0.56,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9989
+  },
+  {
+   "size": 4,
+   "freed_to": "risk",
+   "size_exposure": 0.087,
+   "growth_exposure": 0.014,
+   "valuation_exposure": 0.546,
+   "quality_exposure": 0.563,
+   "top25_kept": 25,
+   "leave": [],
+   "enter": [],
+   "spearman_vs_published": 0.9986
+  },
+  {
+   "size": 4,
+   "freed_to": "momentum",
+   "size_exposure": 0.086,
+   "growth_exposure": 0.027,
+   "valuation_exposure": 0.538,
+   "quality_exposure": 0.559,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9985
+  },
+  {
+   "size": 3,
+   "freed_to": "pro_rata",
+   "size_exposure": 0.058,
+   "growth_exposure": 0.032,
+   "valuation_exposure": 0.538,
+   "quality_exposure": 0.573,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "WDC",
+    "CL"
+   ],
+   "spearman_vs_published": 0.997
+  },
+  {
+   "size": 3,
+   "freed_to": "quality",
+   "size_exposure": 0.054,
+   "growth_exposure": 0.038,
+   "valuation_exposure": 0.526,
+   "quality_exposure": 0.602,
+   "top25_kept": 24,
+   "leave": [
+    "SWK"
+   ],
+   "enter": [
+    "CL"
+   ],
+   "spearman_vs_published": 0.9957
+  },
+  {
+   "size": 3,
+   "freed_to": "valuation",
+   "size_exposure": 0.079,
+   "growth_exposure": 0.006,
+   "valuation_exposure": 0.579,
+   "quality_exposure": 0.556,
+   "top25_kept": 25,
+   "leave": [],
+   "enter": [],
+   "spearman_vs_published": 0.9973
+  },
+  {
+   "size": 3,
+   "freed_to": "investment",
+   "size_exposure": 0.075,
+   "growth_exposure": 0.008,
+   "valuation_exposure": 0.548,
+   "quality_exposure": 0.558,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9959
+  },
+  {
+   "size": 3,
+   "freed_to": "risk",
+   "size_exposure": 0.049,
+   "growth_exposure": 0.016,
+   "valuation_exposure": 0.531,
+   "quality_exposure": 0.564,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "CL",
+    "HIG"
+   ],
+   "spearman_vs_published": 0.9946
+  },
+  {
+   "size": 3,
+   "freed_to": "momentum",
+   "size_exposure": 0.047,
+   "growth_exposure": 0.042,
+   "valuation_exposure": 0.514,
+   "quality_exposure": 0.557,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9944
+  },
+  {
+   "size": 2,
+   "freed_to": "pro_rata",
+   "size_exposure": 0.024,
+   "growth_exposure": 0.042,
+   "valuation_exposure": 0.526,
+   "quality_exposure": 0.577,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "WDC",
+    "CL"
+   ],
+   "spearman_vs_published": 0.9934
+  },
+  {
+   "size": 2,
+   "freed_to": "quality",
+   "size_exposure": 0.017,
+   "growth_exposure": 0.05,
+   "valuation_exposure": 0.507,
+   "quality_exposure": 0.622,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "CL",
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9907
+  },
+  {
+   "size": 2,
+   "freed_to": "valuation",
+   "size_exposure": 0.056,
+   "growth_exposure": 0.003,
+   "valuation_exposure": 0.588,
+   "quality_exposure": 0.554,
+   "top25_kept": 24,
+   "leave": [
+    "AIZ"
+   ],
+   "enter": [
+    "DLTR"
+   ],
+   "spearman_vs_published": 0.9941
+  },
+  {
+   "size": 2,
+   "freed_to": "investment",
+   "size_exposure": 0.05,
+   "growth_exposure": 0.005,
+   "valuation_exposure": 0.541,
+   "quality_exposure": 0.555,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "WDC",
+    "CL"
+   ],
+   "spearman_vs_published": 0.991
+  },
+  {
+   "size": 2,
+   "freed_to": "risk",
+   "size_exposure": 0.013,
+   "growth_exposure": 0.018,
+   "valuation_exposure": 0.516,
+   "quality_exposure": 0.565,
+   "top25_kept": 23,
+   "leave": [
+    "SWK",
+    "ES"
+   ],
+   "enter": [
+    "CL",
+    "HIG"
+   ],
+   "spearman_vs_published": 0.9888
+  },
+  {
+   "size": 2,
+   "freed_to": "momentum",
+   "size_exposure": 0.009,
+   "growth_exposure": 0.055,
+   "valuation_exposure": 0.49,
+   "quality_exposure": 0.553,
+   "top25_kept": 24,
+   "leave": [
+    "ES"
+   ],
+   "enter": [
+    "WDC"
+   ],
+   "spearman_vs_published": 0.9882
+  }
+ ]
+}
