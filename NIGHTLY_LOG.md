@@ -13479,3 +13479,67 @@ for any weight.
 
 ### Next
 Unchanged from the 13:00 entry: the share-class proposal, then the context layer (0.11).
+
+## 2026-10-20 (owner-run, night) - nine agents' work merged in four batches: three lab experiments, three research notes, a test-the-tests audit, 0.11 closed
+
+**Health (rule 8):** last code session ran? **yes** - 13:00 shipped to main. Data loop published?
+**yes** - 02:00 2026-10-20, HEALTH: PASS. Evidence base at `1m` = **33 rows, newest 2026-09-18 (32 days,
+bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8. Top open roadmap item:
+**0.11 is CLOSED tonight**, so the oldest open item is **0.13, the Factor Lab** (opened 2026-10-12, **age 8
+days**), worked tonight (experiments 15-17).
+
+**Owner:** *"do as much work as you can tonight before the 2 am session please! Then have the sessions
+fine tune things and test things."* Answered with two waves of agents in isolated worktrees, each
+merged only after its own full suite, then batch-gated here (tags `good/2026-10-20-owner-2` .. `-5`).
+
+### Shipped
+- **Engine calibration test** (`tests/test_engine_calibration.py`, 7): planted IC differences of
+  0.03/0.05/0.10 come back within 4 SE through the engine's own `per_month`/`summarise`; 0.10 clears the
+  bar held out; no false alarm on ten null pairs; twice `detectable` always caught; a 70%-coverage screen
+  is measured on the shared stocks. Test-only - the ledger is untouched.
+- **Size: the weight stays at 5%** (`research/2026-10-20-size-weight.md`): no unconditional size premium
+  among large companies, but a within-sector small tilt beside Quality is documented practice (MSCI,
+  FTSE Russell, Dimensional) and Size is one of the counterweights holding the ranking growth-neutral.
+  **Lab experiment 16 tested the note's pre-registered rule and did not refute it** (0.166% a month, t
+  2.36, against 0.136% and 1.5) - with a thin margin (0.030, t 1.24) and negative since 2013. The page's
+  "small-cap premium" question line and the Size column's tooltip were overstatements; both reworded
+  at their generators.
+- **Bank Quality vs Valuation** (`research/2026-10-20-bank-quality-valuation-overlap.md`): ROE = EY x P/B
+  is not a double count - the 44 points net to earnings yield and equity per dollar of assets with no
+  net P/B weight, the deliberate "high ROE at a low P/B" bank screen. **OPEN proposal**: state the
+  pairing on the page and guard the zero net P/B loading with a test.
+- **Free survivorship sources** (`research/2026-10-20-free-survivorship-sources.md`): free data closes
+  **37%** of v2's 2012-2019 survivorship gap with monthly returns (the members that left but kept
+  trading), **1.2% of acquisitions** (half the gap). The Size test on free data can falsify the
+  survivorship explanation and cannot confirm it. Two free v2 data fixes found (pre-2014 renames, 167
+  member-months; predecessor CIKs, 773) - queued.
+- **Context layer 0.11 CLOSED**: a false live sentence fixed (mid-session quotes labelled "previous
+  close" for 485 of 501 stocks after the 13:00 publish), a mid-session run now refused from the context
+  log (and 10-20's log restored), `context_eval` uses the generator's skew rule, five claims registered.
+  The one remaining item is a date: first one-month readings with the 2026-11-09 run.
+- **Factor Lab 15-17**: Jensen, Kelly & Pedersen 2023 (10 of 10; **CC BY-NC 4.0 - teaching only**;
+  second-read the same night, all ten figures hold, copyright notice added); size inside profitability
+  (10 of 17); Piotroski 2000 on Open Source Asset Pricing (1 of 4, a miss the decile cut explains). 17
+  experiments, **145 of 217** within. Piotroski was moved after 15 and 16 at merge so their published
+  numbers hold.
+- **Claims mutation audit** (`plan/claims-mutation-audit.md`): 38 mutations on 22 claims; **15 got past
+  the registered checks** - 8 untested boundaries, 3 checks reading the committed payload instead of the
+  code, 1 tolerance looser than its claim. All 15 now caught; the next 12 claims are listed.
+- **`OWNER_FOCUS.md`**: the owner's fine-tune-and-test direction as the top open item, with an ordered
+  queue for the scheduled sessions.
+
+### Lessons for the routine
+- **Chain the gates.** A gate-2 failure did not stop a merge because the commands were joined with `;`.
+  The failure was an artifact (`python -P` hides the repo's own modules from a repo script), and gate 2
+  passed on the identical tree minutes later, but the chain must stop on any gate: use `set -e`/`&&`.
+- **The scratchpad is shared with subagents.** One wrote `inspect.py` there, which shadowed the standard
+  library for any script run from that folder. Give agents their own subfolder and run scratch scripts
+  with `-P`; never run repo scripts with `-P`.
+- **A fresh worktree lacks `runs/`**: three tests fail with FileNotFoundError. Every agent copied it in;
+  worth making those tests skip loudly instead (queue it).
+- **The full suite runs 6:07-7:20** against the Bash tool's 600 s. Watch it (OWNER_FOCUS item 7).
+
+### Next
+`OWNER_FOCUS.md`'s 2026-10-20 item, in its order: decide the two OPEN proposals (share classes; the bank
+P/B-ROE guard), second-read experiments 16 and 17, continue the mutation audit, the positive-control
+ledger row, the v2 data fixes and the extended build.
