@@ -67,6 +67,21 @@ def test_top_kept_counts_names_in_both_top_lists():
     assert "2 of today's top 25 were also in the top 25 on Sep 9." in ro.overview(h, FW)["m1"]["text"]
 
 
+def test_rank_25_is_in_the_top_25_on_both_dates_and_26_is_not():
+    """Claim ``history.run_overview``: 'today's top 25 that were also in the top 25'.
+
+    The fixture above has no name at exactly 25 on either date, so excluding rank 25 at
+    the baseline (``<= n`` to ``< n``) passed it (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``). Pin the edge on each date."""
+    h = _history()
+    h["series"] = {"E": {"r": [25, 9, 25]},      # 25 at the baseline and today: kept
+                   "F": {"r": [26, 9, 1]},       # 26 at the baseline: not kept
+                   "G": {"r": [1, 9, 26]},       # 26 today: not kept
+                   "H": {"r": [24, 9, 2]}}       # inside on both: kept
+    assert ro.TOP_N == 25
+    assert ro.top_kept(h, "2026-09-09") == 2
+
+
 def test_a_quiet_run_says_so():
     h = _history()
     h["movers"]["prev"] = {"n_up": 0, "n_down": 0}
