@@ -87,7 +87,7 @@
    "meets_gate": false
   },
   "options_put_skew": {
-   "definition": "90% put IV - at-the-money IV",
+   "definition": "implied volatility of the out-of-the-money put nearest 0.95 moneyness minus the at-the-money call's (Xing, Zhang & Zhao 2010); readings before that construction (logs to 2026-10-15, which carry no legs) are excluded, not spliced",
    "positive_ic_means": "steeper put skew preceded better returns (literature: worse)",
    "daily_observations": 0,
    "effective_observations": 0,
@@ -97,6 +97,14 @@
   "options_put_call_oi": {
    "definition": "put / call open interest",
    "positive_ic_means": "more put open interest preceded better returns",
+   "daily_observations": 0,
+   "effective_observations": 0,
+   "mean_ic_all_days": null,
+   "meets_gate": false
+  },
+  "options_atm_iv": {
+   "definition": "implied volatility of the at-the-money options",
+   "positive_ic_means": "higher implied volatility preceded better returns",
    "daily_observations": 0,
    "effective_observations": 0,
    "mean_ic_all_days": null,
@@ -144,5 +152,6 @@
   }
  },
  "first_forward_window_closes": "2026-11-07",
+ "first_observation_due": "2026-11-09",
  "earliest_gate_date_if_logged_daily": "2027-06-05"
 }

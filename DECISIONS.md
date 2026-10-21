@@ -782,6 +782,47 @@ run is the changelog's "Measured: the day's changes" entry (2026-10-09 evening).
 `_js_ux()` keeps wrapping the open/close functions; read the 2026-10-09 evening changelog entry
 before touching any of those five metrics.
 
+## 0.11, closed - the context layer (2026-10-08 to 2026-10-20)
+
+Moved verbatim from CLAUDE.md "Current priorities" on 2026-10-20, when the close-out audit
+found every queue item done and fixed the three defects it had hidden (`plan/context-layer.md`
+"CLOSED 2026-10-20", `METHODOLOGY_CHANGELOG.md` 2026-10-20 evening).
+
+**0.11. The context layer - first draft shipped 2026-10-08 (owner-run); the nightly sessions own
+it now (opened 2026-10-08).** Technicals, options, insider trades, a market backdrop and
+the ranking's track record, all context-only (settled row "ctx"). `OWNER_FOCUS.md` has the open item
+and `plan/context-layer.md` the ordered queue. Queue items 1 and 3 are done; **item 2 was measured
+and fixed in code 2026-10-09** - the options panel was empty for every stock on every scheduled run
+(`ok` for **0 of 503** at the 02:00 loop's hour against **394 of 503** at 21:27 ET, because the
+source serves the chain overnight with bid, ask and implied volatility all zero), fixed by an
+after-close quote cache plus a probe instead of a guessed hour.
+
+**`Screener Option Quotes` IS REGISTERED** (2026-10-09, owner-run; `Get-ScheduledTask` read back:
+one weekly 20:00 trigger, no logon trigger; the loops still PT3M / PT20M). Smoke-tested live at
+08:46 CT: quotes live, cache written. **Item 5, the evaluation harness, is built**
+(`context_eval.py`, one line in the morning brief; first one-month window closes 2026-11-07).
+Item 4 step one (every research sentence on the panel checked against its source) is done -
+`research/2026-10-09-context-panel-claims.md`.
+
+**Item 2 is CLOSED 2026-10-12.** The first 02:00 run after a 20:00 refresh gave options `ok` for
+**397 of 503** (plus 59 `partial`), against 0 of 503 before the fix. Closing it caught a live false
+statement: the refresh stamped the UTC date at 21:00 ET, so every stamp named the session *after* its
+quotes, and the page told readers of **455 of 501** stocks that the quotes closed on **Saturday
+2026-10-10**. Fixed by `options_cache.market_session_date`, with `is_session_date` as **one predicate
+shared by the cache and the generator**. The standing lesson: `context.expected_move` was a registered
+claim whose checks proved only that *a* date was carried through - **a claim whose check tests the
+plumbing instead of the assertion is an unchecked claim.**
+
+**The options panel's per-signal note is done** (`research/2026-10-12-option-implied-signals.md`) and
+settles a question the plan left open: **the option-implied signals are not candidates for the score,
+as a finding rather than a holding position** - every supported one decays faster than a monthly
+review cadence, which is also why index providers keep option-implied inputs out of factor selection
+while derivatives desks use them daily. Read a future `1m` record from `context_eval.py` with that
+prior. Three page-sentence corrections are left open in `plan/context-layer.md` item 4 (the skew
+effect size is attributed to a construction the page does not compute; the post-publication decay is
+omitted; put/call open interest is a bare *level* where the evidence supports the *change*).
+Next: item 4's remaining per-signal notes (macro backdrop, track record), then item 6.
+
 ## 0.12, closed - the metric audit's four residual judgement calls
 
 Two audit passes over every weighted metric fixed nine defects on 2026-10-09

@@ -343,19 +343,60 @@ def context_log_dir():
     return CONTEXT_LOG_DIR or (Path(__file__).resolve().parent / "data" / "context_log")
 
 
+def mid_session_reason(run_dir, raw: pd.DataFrame, now: datetime | None = None) -> str | None:
+    """Why this run's prices are not closes, or ``None`` if they are.
+
+    A run's last price is a close unless the run fetched while the market was open: then the
+    source returns the day's unfinished bar, dated today. Both conditions are required - prices
+    dated the run's own Eastern date **and** a start (``meta.json``) or finish (``now``) inside
+    the regular session - so an evening run, whose bar for today is complete, still records.
+    """
+    import options_cache
+    from pathlib import Path
+    if "_ctx_last_date" not in raw.columns or raw["_ctx_last_date"].dropna().empty:
+        return None
+    last = raw["_ctx_last_date"].dropna().astype(str).mode().iloc[0]
+    instants = []
+    try:
+        meta = json.loads((Path(run_dir) / "meta.json").read_text(encoding="utf-8"))
+        st = datetime.fromisoformat(str(meta.get("start_time")))
+        instants.append(st if st.tzinfo else st.astimezone())   # naive = this machine's local time
+    except (OSError, ValueError, TypeError):
+        pass
+    instants.append(now or datetime.now(timezone.utc))
+    for t in instants:
+        stamp = options_cache.live_quote_stamp(t)
+        if stamp["_ctx_opt_quote_intraday"] and stamp["_ctx_opt_quote_date"] == last:
+            return (f"the run fetched at {stamp['_ctx_opt_quote_time']} ET on {last}, while the market "
+                    f"was open, so its last prices are the day's unfinished bar rather than closes")
+    return None
+
+
 def write_context_log(run_dir, run_day: str) -> int:
     """Write one file per run date with every scalar context signal per stock.
 
     This is how a context signal earns (or fails to earn) a place in the score later: joined to
     the forward returns the improvement engine already computes, each column becomes an
     out-of-sample test. One file per date - a second run the same day replaces it, the rule
-    every other observation file follows since 2026-10-08. Returns the number of rows written.
+    every other observation file follows since 2026-10-08 - **unless that run fetched while the
+    market was open** (:func:`mid_session_reason`, 2026-10-20): its prices are not closes, so the
+    earlier log for the date stands. Returns the number of rows written.
     """
     from pathlib import Path
     raw_path = Path(run_dir) / "00_raw_fetch.parquet"
     if not raw_path.exists():
         return 0                      # a run that did not fetch has nothing new to record
     raw = pd.read_parquet(raw_path)
+    why = mid_session_reason(run_dir, raw)
+    if why:
+        # A record of closes only (2026-10-20). The log is what context_eval measures forward
+        # returns from - "each stock's last close on that date" - and a run made while the market
+        # is open fetches today's *unfinished* bar as its last price, plus mid-session option
+        # quotes. Measured that day: the 13:00 session's live run (13:21 CT) replaced the 02:00
+        # data loop's log for 2026-10-20 with 502 prices dated 2026-10-20, every other log's
+        # prices being the previous session's close. The earlier same-day log is kept instead.
+        print(f"  Context log: not written for {run_day} - {why}; the earlier log for the date is kept")
+        return 0
     # Sector rides along so the evaluation can form sector-relative signals (2026-10-09). The
     # fetch holds only the provider's lowercase ``sector``; the GICS ``Sector`` the rest of the
     # screener groups by is added by scoring, so it is read from the scored table (review,

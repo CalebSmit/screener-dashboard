@@ -55,6 +55,67 @@ files are written by the generator, copied by `run_screener` step 12 and committ
 monthly periods. The backdrop: 10y-3m curve +0.99pp, credit spreads tight (4th percentile of 10 years),
 VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
 
+## CLOSED 2026-10-20 - what was left, what was done, and the one thing only time delivers
+
+Three sessions running had deferred CLAUDE.md priority 0.11 while this queue was nearly finished
+and nobody had written down what remained. An audit of every item below and of every context panel
+against the code (`context_signals`, `context_fetch`, `options_cache`, `insider_activity`,
+`market_context`, `valuation_history`, `track_record`, `context_eval`, and how `generate_dashboard`
+renders `ctx` / `market` / `track`) gives this list.
+
+**Done but not marked (marked now):** item 1 (the pass ran 177-180 s, 0 rate limits, never stopped,
+on every data run 10-16 to 10-20 - read it from the run's `meta.json` `context_pass`, **not** the
+`datarun` log, which never carried the line this item told sessions to read); item 6's "record each
+run's timestamp in its snapshot" (shipped 2026-10-19 - snapshots carry their start time); item 7's
+macro vintages (closed 10-17); OWNER_FOCUS's "(7) macro data vintages".
+
+**Genuinely open, and done tonight** (`METHODOLOGY_CHANGELOG.md` 2026-10-20 evening,
+`tests/test_context_layer_claims.py`, 31 tests in the publish gate):
+
+1. **A live false sentence.** A live reading carried no stamp and the options panel said "Quotes
+   are the previous close" - for 485 of 501 stocks after the 13:00 session's 13:21 CT publish, whose
+   quotes were mid-session. Live readings now record session, Eastern time and whether the market
+   was open (`options_cache.live_quote_stamp`), and the panel says which.
+2. **Mid-session prices in the evidence record.** The same run replaced the data loop's 2026-10-20
+   log with the day's unfinished bar; `write_context_log` now refuses a mid-session run and the log
+   was restored from git (the 06:16 run's, 2026-10-19 closes).
+3. **The harness spliced two skew constructions** - item 4 said to exclude the old one and the code
+   did not. It now applies the generator's own rule (both legs recorded), which excludes **six** log
+   dates, 2026-10-08 to **10-15** (the 10-15 run read a cache refreshed before the fix merged), not
+   the five item 4 says. ATM implied volatility, shown since 10-08, is now evaluated as well.
+4. **Five computational sentences had no registered claim** - trend/recent move/volume windows and
+   the trend word (one rule for chip, teaser and filter, checked in a browser against
+   `trend_state`), the sector median, the momentum skip-month note, the backdrop's momentum-rule and
+   Quality notes, the market cards' arithmetic, and "each is logged every run". Two of them said
+   more than the code and were corrected: a quarter of Momentum (Jensen's alpha) does **not** skip
+   the latest month; the stat strip shows a card only **when** the cut is in force.
+5. **The harness was dry-run end to end** on the real logs plus synthetic future logs: every one of
+   18 signals produces an IC; the brief line now names the first reading's date.
+
+**A measured finding, not a defect:** 51 stocks lost "Against its own five years" on 2026-10-19
+(449 -> 398). SEC's `companyfacts` API carries **no facts at all** from their Q2 2026 10-Qs (ABT
+filed 2026-07-28, DUK 08-04, SPGI 07-28: present in `submissions`, absent from `companyfacts`),
+so their newest trailing twelve months end 2026-03-31 and crossed `TODAY_MAX_AGE_DAYS = 200` that
+weekend. Withholding is the designed behaviour; the panel returns when the source ingests the
+filings or the Q3 10-Qs arrive. It also thins the two valuation-history signals' record for now.
+
+**What is left: one item, and only time delivers it.** The first one-month observation for every
+signal arrives with the **2026-11-09** run (the window opens 2026-11-07, a Saturday); the put
+skew's, on its new construction only, about **2026-11-16**; and the gate of 8 effective
+observations, about one a month, is roughly **mid-2027**. Read the morning brief's
+`context_eval` line then. Until then this item is waiting, not deferred - **do not count it as
+deferred work.** The research-level questions below (insider-type hierarchy, routine vs
+opportunistic insiders, the three Yahoo-only buyers, an estimated trading cost, EV/EBITDA on the
+valuation spine, the dollar and oil) are optional improvements, each needing a research note
+first; none is a defect.
+
+**What still binds:** settled row "ctx" (never in the score, logged every run, joins only with a
+note *and* a measured `1m` record at the engine's gate); the option-implied signals and the macro
+backdrop are **not** score candidates (findings, items 4 and 7); the track record is never
+methodology evidence; the skew series before 2026-10-16's log is excluded, not spliced; a mid-session
+run never writes the log; every computational sentence on a context panel has a claim in
+`claims.py` checked by behaviour, not by the presence of a string.
+
 ## Known limits of the draft - the nightly queue, in order
 
 1. **Fetch load - DONE 2026-10-08 (owner-run), keep watching.** Inside the core fetch, the three extra
@@ -63,8 +124,9 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    rate-limit backoff and a 900 s budget. **Measured in isolation on the full universe:** 503 of 503
    stocks in **206 s**, **0** rate limits, **0** failures; options `ok` 394, `partial` 56,
    `stale-quotes` 25, `no-atm` 18, `no-chain` 9; insider 503; 471 chosen expiries span the next
-   report. Nightly: read the `Context pass:` line in `logs/datarun-*.log` and record the seconds and
-   whether it stopped. If it ever stops on `rate limited` two nights running, lower `WORKERS` to 1
+   report. Nightly: read `context_pass` in the run's `runs/<id>/meta.json` (seconds, `stopped`,
+   `options_live`) - the `Context pass:` line is printed to the run's console, not to
+   `logs/datarun-*.log` (corrected 2026-10-20). If it ever stops on `rate limited` two nights running, lower `WORKERS` to 1
    before anything else. Core data first, always.
 2. **Option quotes at 2 AM - MEASURED AND FIXED IN CODE 2026-10-09; one machine-level step is
    outstanding.** The share with `os == "ok"` is not "some chains have no bid/ask", it is **none of
@@ -261,8 +323,10 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    skew is still not a score candidate (the shrinkage above, and this layer's own observation gate),
    but **do not read the first `1m` record as confirming something already known to be spent** - the
    paper claims an effect at that horizon, so a flat reading is evidence against *it*. And the
-   `_ctx_opt_skew` series before 2026-10-14 is the old construction: **exclude those five log dates
-   (2026-10-08 to 10-14), do not splice them.**
+   `_ctx_opt_skew` series before 2026-10-14 is the old construction: **exclude those log dates, do
+   not splice them.** *(2026-10-20: it is six dates, 2026-10-08 to 10-15, and the harness had been
+   splicing them; `context_eval.skew_is_the_papers_measure` now excludes them by the generator's
+   both-legs rule.)*
 
    One presentation note, deliberately not acted on: at 375px the skew row's value wraps to two
    lines because the label is long. The label stays long because "out-of-the-money put vs
@@ -295,8 +359,8 @@ VIX 15.1, CPI 3.7% y/y, Sahm 0.00.
    measured, that moves five periods whose runs came before the close and the headline from +12.7% to
    +17.2% (note section 6). **The benchmark question is answered as "keep both"** (note section 8):
    RSP isolates selection, SPY answers "better than the index I could hold"; they disagreed by more
-   than the lead itself this window. Open: record each run's timestamp in its snapshot (needs
-   `improvement_engine.record_run_snapshot`), so section 6's inference is not needed for future runs.
+   than the lead itself this window. ~~Open: record each run's timestamp in its snapshot~~ - done
+   2026-10-19 (snapshots carry their run's start time; claim `context.track_record`).
    History: Prices for names that left the index (some tickers fail to download -
    EQR, EA, AVB, CTRA, HOLX, DAY, SATS, BK, MMC on 2026-10-08; none was in a top 25). *Diagnosed
    2026-10-15 (owner-run):* **four are renames** - the SEC CIK in `data/universe_history/ticker_ciks.json`
