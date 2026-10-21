@@ -154,9 +154,10 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
     totals = {x["id"]: x["result"]["total"] for x in published["experiments"]}
-    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] != "size-given-profitability"] == [
+    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] not in ("size-given-profitability", "piotroski")] == [
         14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
     assert totals["size-given-profitability"] == 17
+    assert totals["piotroski"] == 4
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -279,6 +280,43 @@ def test_the_size_given_profitability_tolerances_and_rule_are_the_ones_committed
     note = (ROOT / "research" / "2026-10-20-size-weight.md").read_text(encoding="utf-8")
     flat = " ".join(note.replace("*", "").split())
     assert " ".join(crit["rule"].split()) in flat
+def test_the_piotroski_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 17 (2026-10-20): Piotroski (2000), Table 3 Panel B, on Chen & Zimmermann's Open
+    Source Asset Pricing portfolios. Written and committed before a single OSAP return had been read
+    (Google Drive was refusing the files at the time). Neither the paper's figures nor the
+    tolerances move to turn a miss into a match; by rule 8 a result of no effect matches none."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "piotroski")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["scale"], ref["tolerances_written"]) == (
+        "197601", "199612", "ew", 12, "before")
+    assert "also" not in ref and "relative" not in ref and "excess" not in ref
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "mean1": (7.8, 4.2), "mean2": (31.3, 4.2), "spread": (23.5, 4.2), "t_spread": (5.594, 1.5)}
+    assert 23.5 / 5.594 == pytest.approx(4.2, abs=0.005)            # one standard error of the paper's spread
+    assert fl.null_within(exp) == 0
+    assert fl.SORTS["piotroski"]["source"] == "osap" and fl.SORTS["piotroski"]["columns"] == ["01", "10"]
+
+
+def test_an_open_source_asset_pricing_file_is_read_for_one_signal(tmp_path):
+    """The full-set file holds every signal; only the asked-for one is read, its ports keep their
+    labels, its dates become months, and a missing return is a missing month, not a zero."""
+    body = ("signalname,port,date,ret,signallag,Nlong,Nshort\n"
+            "PS,01,1976-01-31,1.5,2,10,0\nPS,10,1976-01-31,3.25,8,12,0\n"
+            "BM,01,1976-01-31,9.9,1,10,0\nPS,01,1976-02-29,NA,2,10,0\nPS,10,1976-02-29,-0.5,8,12,0\n"
+            "PS,LS,1976-01-31,1.75,,12,10\n")
+    z = tmp_path / "full.zip"
+    with zipfile.ZipFile(z, "w") as f:
+        f.writestr("PredictorAltPorts_DecilesEW.csv", body)
+    got = fl.read_osap(z, "PS")
+    assert got["01"] == {"197601": 1.5} and got["10"] == {"197601": 3.25, "197602": -0.5}
+    assert got["LS"] == {"197601": 1.75} and fl._osap_month("1986m1") == "198601"
+    one = tmp_path / "PS.csv"                                # a single signal's file is wide, one column a port
+    one.write_text(",date,port01,port02,port10,portLS\n1,1976-01-31,2.0,NA,4.0,2.0\n2,1976-02-29,1.0,,0.5,-0.5\n",
+                   encoding="utf-8")
+    assert fl.read_osap(one, "PS") == {"01": {"197601": 2.0, "197602": 1.0}, "10": {"197601": 4.0, "197602": 0.5},
+                                       "LS": {"197601": 2.0, "197602": -0.5}}
+    with pytest.raises(ValueError):
+        fl.read_osap(z, "NoSuchSignal")
 
 
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
@@ -747,6 +785,15 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 0.15 < after / inside < 0.35
     late = fl.sort_run(ag, "200307", "209912", "vw")["spread"]
     assert abs(late["mean"]) < 0.15 and abs(late["t"]) < 1
+    # 15. "about 4% a year equally weighted in the paper's years - a fifth of the paper's 23.5%, and not
+    #     distinguishable from zero - and by about 13% weighted by market value. Since 1997 neither gap
+    #     can be told from zero"
+    ps = published["sorts"]["piotroski"]
+    ew, vw = (fl.sort_run(ps, "197601", "199612", w)["spread"] for w in ("ew", "vw"))
+    assert 3.5 <= ew["mean"] * 12 < 4.5 and 0.15 < ew["mean"] * 12 / 23.5 < 0.25 and abs(ew["t"]) < 2
+    assert 12.5 <= vw["mean"] * 12 < 13.5 and vw["t"] > 2
+    for w in ("ew", "vw"):
+        assert abs(fl.sort_run(ps, "199701", "209912", w)["spread"]["t"]) < 2, w
 
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
@@ -1299,6 +1346,33 @@ def test_the_asset_growth_sort_is_published_as_it_landed(published):
     assert exp["sort"]["accent"] == [9] and exp["reference"]["also"] == "vw"
 
 
+def test_the_piotroski_sort_is_published_as_the_miss_it_is(published):
+    """Experiment 17 (2026-10-20): Piotroski (2000) Table 3 Panel B against Open Source Asset
+    Pricing's equal-weighted end deciles. 1 of 4 within tolerances committed before any return was
+    read. The highest-score end matches; the lowest does not, so the spread is a fifth of the
+    paper's and outside - and the sentence explaining why is checked against the published data."""
+    exp = next(x for x in published["experiments"] if x["id"] == "piotroski")
+    r = exp["result"]
+    assert (r["within"], r["total"], r["null_within"]) == (1, 4, 0)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert rows["mean2"]["within"] and not rows["mean1"]["within"]
+    assert not rows["spread"]["within"] and not rows["t_spread"]["within"]
+    # "30.4% a year against 31.3% ... 26.1% against 7.8% ... 4.3% a year, t 1.5"
+    assert f"{rows['mean2']['here']:.1f}% a year against 31.3%" in exp["verdict_note"]
+    assert f"({rows['mean1']['here']:.1f}% against 7.8%)" in exp["verdict_note"]
+    assert f"{rows['spread']['here']:.1f}% a year, t {rows['t_spread']['here']:.1f}" in exp["verdict_note"]
+    assert 0.15 < rows["spread"]["here"] / rows["spread"]["paper"] < 0.25                    # "a fifth of the paper's"
+    # "weighted by market value, the authors' own cut, the gap was 12.6% a year, t 3.6"
+    vw = fl.sort_run(published["sorts"]["piotroski"], "197601", "199612", "vw")["spread"]
+    assert f"{vw['mean'] * 12:.1f}% a year, t {vw['t']:.1f}" in exp["verdict_note"]
+    assert published["sorts"]["piotroski"]["source"] == "osap"
+    assert published["sorts"]["piotroski"]["months"][0] == "197201"
+    others = published["attribution"]["others"]
+    assert any("Chen" in o["text"] and "Zimmermann" in o["text"] and "Critical Finance Review" in o["text"]
+               and o["url"].startswith("https://www.openassetpricing.com") for o in others)
+    assert "CRSP and Compustat" in json.dumps(exp["conditions"])                 # says who built the portfolios
+
+
 COMBO_SETTINGS = [{"start": "197201", "end": "201107", "group": "big"}, {"start": "201108", "end": "209912", "group": "big"},
                   {"start": "192701", "end": "209912", "group": "all"}]
 
@@ -1451,7 +1525,7 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
         "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6,
-        "replication-crisis": 0, "size-given-profitability": 0}
+        "replication-crisis": 0, "size-given-profitability": 0, "piotroski": 0}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
