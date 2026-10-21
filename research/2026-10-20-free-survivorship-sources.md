@@ -379,3 +379,8 @@ Tiingo's terms for what derived results may be published (raw prices may not be)
 Alpha Vantage is not worth an account for this: 25 requests a day on the free plan, and no evidence
 it serves delisted symbols. Nasdaq Data Link's WIKI table is frozen at March 2018 and its delisted
 coverage is undocumented; at most a cross-check after Tiingo.
+
+**Licence, checked the same night:** Tiingo's free plan is personal use only (its pricing page:
+the data may not be displayed or shared with another person or organization), and its full terms of service
+could not be read. A result derived from it is therefore not publishable here until Tiingo confirms in
+writing that aggregate statistics may appear on a public, non-commercial research page.

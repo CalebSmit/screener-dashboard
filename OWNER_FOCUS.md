@@ -68,6 +68,13 @@ Two things still outrank this file, and neither is negotiable:
      account, he saves the key himself in the gitignored `data/survivorship/tiingo_key.txt` (never in
      chat, never in a tracked file); then spot-check a few series, read Tiingo's terms on derived results,
      and rebuild with it - the Size test would then be able to confirm as well as falsify. Addendum in the note.
+     **Licence gate (checked 2026-10-20 late):** the free Starter plan ($0; 500 symbols a month, 50 requests an
+     hour, 1,000 a day) is **personal use only** - its pricing page says the data may not be displayed or
+     shared with another person or organization. Whether a statistic computed from it (a monthly IC) may
+     appear on the public research page or in this public repo is **not settled**. Until Tiingo confirms
+     in writing that it may, **nothing derived from Tiingo prices is committed or published**: raw files,
+     rebuilt months and any results stay in gitignored folders and out of the ledger. Do not rebuild v2's
+     published records with them.
   7. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
      against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
      `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file
