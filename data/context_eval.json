@@ -1,7 +1,7 @@
 {
- "as_of": "2026-10-20",
+ "as_of": "2026-10-21",
  "horizon": "1m",
- "log_dates": 9,
+ "log_dates": 10,
  "first_log": "2026-10-08",
  "gate_effective_observations": 8,
  "method": "Spearman IC between each context signal and the price return to the first log 30-40 days later; effective observations are non-overlapping one-month windows. Reporting only - nothing here moves a score.",

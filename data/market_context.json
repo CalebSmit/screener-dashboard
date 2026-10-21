@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-20",
+ "as_of": "2026-10-21",
  "source": "FRED, Federal Reserve Bank of St. Louis (fred.stlouisfed.org)",
  "series": {
   "DGS10": {
@@ -7,11 +7,11 @@
    "label": "10-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 5.09,
-   "date": "2026-10-16",
-   "chg_1m": 0.08,
-   "chg_1y": 1.1,
-   "pct_10y": 99.3,
+   "last": 5.15,
+   "date": "2026-10-19",
+   "chg_1m": 0.14,
+   "chg_1y": 1.13,
+   "pct_10y": 99.4,
    "min_10y": 0.52,
    "max_10y": 5.31,
    "median_10y": 2.86,
@@ -172,7 +172,8 @@
     5.17,
     5.28,
     5.24,
-    5.09
+    5.09,
+    5.15
    ],
    "spark_d": [
     "2023-10-20",
@@ -331,7 +332,8 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-16"
+    "2026-10-16",
+    "2026-10-19"
    ]
   },
   "DGS2": {
@@ -339,11 +341,11 @@
    "label": "2-year Treasury yield",
    "unit": "%",
    "freq": "daily",
-   "last": 4.74,
-   "date": "2026-10-16",
-   "chg_1m": 0.0,
-   "chg_1y": 1.33,
-   "pct_10y": 92.9,
+   "last": 4.77,
+   "date": "2026-10-19",
+   "chg_1m": 0.01,
+   "chg_1y": 1.31,
+   "pct_10y": 93.5,
    "min_10y": 0.09,
    "max_10y": 5.19,
    "median_10y": 2.56,
@@ -504,7 +506,8 @@
     4.81,
     4.83,
     4.8,
-    4.74
+    4.74,
+    4.77
    ],
    "spark_d": [
     "2023-10-20",
@@ -663,7 +666,8 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-16"
+    "2026-10-16",
+    "2026-10-19"
    ]
   },
   "T10Y3M": {
@@ -671,16 +675,15 @@
    "label": "10-year minus 3-month yield",
    "unit": "pp",
    "freq": "daily",
-   "last": 0.88,
-   "date": "2026-10-19",
-   "chg_1m": 0.01,
-   "chg_1y": 0.86,
-   "pct_10y": 65.5,
+   "last": 0.86,
+   "date": "2026-10-20",
+   "chg_1m": -0.01,
+   "chg_1y": 0.83,
+   "pct_10y": 64.3,
    "min_10y": -1.89,
    "max_10y": 2.27,
    "median_10y": 0.52,
    "spark": [
-    -0.65,
     -0.75,
     -0.96,
     -0.92,
@@ -837,10 +840,9 @@
     1.09,
     0.99,
     0.83,
-    0.88
+    0.86
    ],
    "spark_d": [
-    "2023-10-20",
     "2023-10-27",
     "2023-11-03",
     "2023-11-10",
@@ -997,7 +999,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-19"
+    "2026-10-20"
    ]
   },
   "T10Y2Y": {
@@ -1005,16 +1007,15 @@
    "label": "10-year minus 2-year yield",
    "unit": "pp",
    "freq": "daily",
-   "last": 0.38,
-   "date": "2026-10-19",
-   "chg_1m": 0.13,
-   "chg_1y": -0.18,
-   "pct_10y": 49.7,
+   "last": 0.33,
+   "date": "2026-10-20",
+   "chg_1m": 0.08,
+   "chg_1y": -0.21,
+   "pct_10y": 47.1,
    "min_10y": -1.08,
    "max_10y": 1.59,
    "median_10y": 0.39,
    "spark": [
-    -0.14,
     -0.15,
     -0.26,
     -0.43,
@@ -1171,10 +1172,9 @@
     0.45,
     0.44,
     0.35,
-    0.38
+    0.33
    ],
    "spark_d": [
-    "2023-10-20",
     "2023-10-27",
     "2023-11-03",
     "2023-11-10",
@@ -1331,7 +1331,7 @@
     "2026-10-02",
     "2026-10-09",
     "2026-10-16",
-    "2026-10-19"
+    "2026-10-20"
    ]
   },
   "BAA10Y": {
@@ -1340,9 +1340,9 @@
    "unit": "pp",
    "freq": "daily",
    "last": 1.46,
-   "date": "2026-10-16",
-   "chg_1m": 0.03,
-   "chg_1y": -0.25,
+   "date": "2026-10-19",
+   "chg_1m": 0.06,
+   "chg_1y": -0.24,
    "pct_10y": 3.9,
    "min_10y": 1.36,
    "max_10y": 4.31,
@@ -1504,6 +1504,7 @@
     1.46,
     1.47,
     1.45,
+    1.46,
     1.46
    ],
    "spark_d": [
@@ -1663,7 +1664,8 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-16"
+    "2026-10-16",
+    "2026-10-19"
    ]
   },
   "VIXCLS": {
@@ -1671,14 +1673,14 @@
    "label": "VIX (expected S&P 500 volatility)",
    "unit": "",
    "freq": "daily",
-   "last": 19.99,
-   "date": "2026-10-16",
-   "chg_1m": 2.28,
-   "chg_1y": -5.32,
-   "pct_10y": 69.0,
+   "last": 18.44,
+   "date": "2026-10-19",
+   "chg_1m": 3.63,
+   "chg_1y": -2.34,
+   "pct_10y": 60.0,
    "min_10y": 9.14,
    "max_10y": 82.69,
-   "median_10y": 16.93,
+   "median_10y": 16.94,
    "spark": [
     21.71,
     21.27,
@@ -1836,7 +1838,8 @@
     14.87,
     15.31,
     14.84,
-    19.99
+    19.99,
+    18.44
    ],
    "spark_d": [
     "2023-10-20",
@@ -1995,7 +1998,8 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-16"
+    "2026-10-16",
+    "2026-10-19"
    ]
   },
   "DFF": {
@@ -2004,8 +2008,8 @@
    "unit": "%",
    "freq": "daily",
    "last": 3.88,
-   "date": "2026-10-16",
-   "chg_1m": 0.25,
+   "date": "2026-10-19",
+   "chg_1m": 0.0,
    "chg_1y": -0.23,
    "pct_10y": 70.3,
    "min_10y": 0.04,
@@ -2164,6 +2168,7 @@
     3.63,
     3.63,
     3.63,
+    3.88,
     3.88,
     3.88,
     3.88,
@@ -2327,7 +2332,8 @@
     "2026-09-25",
     "2026-10-02",
     "2026-10-09",
-    "2026-10-16"
+    "2026-10-16",
+    "2026-10-19"
    ]
   },
   "UNRATE": {
@@ -2846,7 +2852,7 @@
    "k": "curve",
    "state": "positive",
    "title": "Yield curve",
-   "text": "The 10-year yield is 0.88pp above the 3-month. An inverted curve (10-year below 3-month) has preceded all eight US recessions since 1968, by 6 to 17 months, and the New York Fed reports no false signals on monthly averages over that period (Estrella & Trubin 2006; the one clear false alarm, 1966-67, is just before it). The 2022-24 inversion - the longest on record - is the open case: no recession has been dated since it ended. It describes the cycle rather than timing it."
+   "text": "The 10-year yield is 0.86pp above the 3-month. An inverted curve (10-year below 3-month) has preceded all eight US recessions since 1968, by 6 to 17 months, and the New York Fed reports no false signals on monthly averages over that period (Estrella & Trubin 2006; the one clear false alarm, 1966-67, is just before it). The 2022-24 inversion - the longest on record - is the open case: no recession has been dated since it ended. It describes the cycle rather than timing it."
   },
   {
    "k": "credit",
@@ -2858,7 +2864,7 @@
    "k": "vol",
    "state": "normal",
    "title": "Volatility",
-   "text": "The VIX is 20.0, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016). This screener cuts momentum's weight in their panic state, when the index is down over two years and volatile, and never raises it."
+   "text": "The VIX is 18.4, against a ten-year median of 16.9. It is the S&P 500 options market's price for the next 30 days' swings. Momentum strategies have historically suffered their sharpest losses in rebounds after high-volatility declines (Daniel & Moskowitz 2016). This screener cuts momentum's weight in their panic state, when the index is down over two years and volatile, and never raises it."
   },
   {
    "k": "inflation",
@@ -2880,7 +2886,7 @@
   },
   {
    "title": "Momentum and rebounds",
-   "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). For this reason the screener cuts momentum's weight in that state; the stat strip shows whether the cut is in force."
+   "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). For this reason the screener cuts momentum's weight in that state; when the cut is in force, the stat strip at the top of the page says so."
   },
   {
    "title": "Rates and long-duration stocks",
