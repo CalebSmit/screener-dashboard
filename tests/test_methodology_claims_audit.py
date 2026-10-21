@@ -592,6 +592,29 @@ def test_the_percentile_rule_is_the_midpoint_rank_with_a_small_sector_fallback(p
     assert list(small) == pytest.approx([(v - 0.5) / 30 * 100 for v in vals[:k - 1]])
 
 
+def test_a_sector_with_exactly_the_minimum_is_ranked_within_itself(page):
+    """Claim ``overview.percentile_rule``: the universe fallback is for *fewer than* k.
+
+    The test above checks only the k-1 side, so moving the boundary (``<`` to ``<=``:
+    a sector with exactly k values also falls back) passed (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``). Here a sector with exactly k valued stocks must
+    be ranked against itself - midpoint ranks 1..k over k - and one with k-1 against
+    the universe, side by side in the same frame."""
+    k = int(re.search(r"When a sector has fewer than (\d+) stocks with valid data", page).group(1))
+    n_big = 40
+    vals = list(range(1, k + (k - 1) + n_big + 1))
+    sectors = ["AtMin"] * k + ["Below"] * (k - 1) + ["Big"] * n_big
+    df = pd.DataFrame({"Ticker": [f"T{i}" for i in vals], "Sector": sectors})
+    for c in fe.METRIC_COLS:
+        df[c] = np.nan
+    df["roic"] = [float(v) for v in vals]
+    out = fe.compute_sector_percentiles(df.copy())
+    at_min = out[out["Sector"] == "AtMin"]["roic_pct"]
+    assert list(at_min) == pytest.approx([(j - 0.5) / k * 100 for j in range(1, k + 1)])
+    below = out[out["Sector"] == "Below"]["roic_pct"]
+    assert list(below) == pytest.approx([(v - 0.5) / len(vals) * 100 for v in vals[k:2 * k - 1]])
+
+
 def test_the_trap_rules_on_the_page_are_the_rules_the_engine_applies(page, cfg):
     vt = re.search(r"a Valuation score in the top (\d+)% of the universe – \*\*and\*\* it falls in the "
                    r"bottom (\d+)% of \*\*at least two\*\*", page)
@@ -618,6 +641,67 @@ def test_the_trap_rules_on_the_page_are_the_rules_the_engine_applies(page, cfg):
 # ---------------------------------------------------------------------------
 # Clamps and denominator floors (claim overview.clamps_and_floors)
 # ---------------------------------------------------------------------------
+
+def test_the_fetch_applies_the_surprise_floor_the_page_states(page, monkeypatch):
+    """Claim ``overview.clamps_and_floors``: 'analyst surprise divides by the estimate
+    floored at $0.10' - checked against the code that computes it.
+
+    The test below compares the page with the *committed payload*, which the code under
+    test did not produce: halving the floor inside the fetch passed every check the
+    code loop runs, and would first have failed in the data loop's publish gate, the
+    morning after it merged (mutation audit 2026-10-20, ``plan/claims-mutation-audit.md``).
+    Here the fetch runs on a stub with two quarters whose estimates sit below the floor."""
+    import yfinance
+
+    floor = float(re.search(r"Analyst surprise uses a \$([\d.]+) floor on estimated EPS", page).group(1))
+    now = pd.Timestamp.now().normalize()
+    quarters = [now - pd.Timedelta(days=d) for d in (300, 210, 120, 30)]
+    est = [1.00, 2.00, 0.05, 0.04]
+    act = [1.05, 2.10, 0.06, 0.08]
+
+    class _Stub:
+        info = {"symbol": "SURP", "marketCap": 1.0e10, "currentPrice": 50.0}
+        earnings_history = pd.DataFrame({"epsActual": act, "epsEstimate": est}, index=quarters)
+
+        def __getattr__(self, name):
+            return None
+
+    monkeypatch.setattr(yfinance, "Ticker", lambda *a, **k: _Stub())
+    rec = fe._fetch_single_ticker_inner("SURP")
+    want = [(a - e) / max(abs(e), floor) for a, e in zip(act, est)]
+    published = [q[3] for q in json.loads(rec["_eps_quarters"])]
+    assert published == pytest.approx(want)
+    assert rec["analyst_surprise"] == pytest.approx(float(np.median(want)))
+    assert want[-1] == pytest.approx(0.04 / floor)      # the floor binds on this quarter
+
+
+def test_the_engine_clamps_price_target_upside_where_the_page_says(page, cfg):
+    """Claim ``overview.clamps_and_floors``: price target upside 'is clamped to the
+    configured [-50%, +100%]' - checked on ``compute_metrics`` run with the config.
+
+    The claim's own test reads the committed payload, so it could not see a change to the
+    clamp in the code; ``tests/test_metrics.py`` caught one, but it is not in the register
+    (it is a class method, which ``checked_by`` cannot name) and runs without the config
+    the page quotes (mutation audit 2026-10-20, ``plan/claims-mutation-audit.md``)."""
+    m = re.search(r"^\| \*\*Price Target Upside\*\* \|.*?Clamped to \[(-?\d+)%, \+(\d+)%\]", page, re.M)
+    lo, hi = int(m.group(1)) / 100, int(m.group(2)) / 100
+    base = {"Ticker": "PTU", "sector": "Industrials", "marketCap": 1.0e10,
+            "currentPrice": 100.0, "numberOfAnalystOpinions": 5}
+
+    def ptu(target, c=cfg):
+        rec = dict(base, targetMeanPrice=target)
+        return fe.compute_metrics([rec], pd.Series(dtype=float), cfg=c).iloc[0]["price_target_upside"]
+
+    # "the configured": the clamp follows config, not a constant that happens to agree with it
+    other = json.loads(json.dumps(cfg))
+    other["metric_clamps"]["price_target_upside"] = [-0.4, 0.8]
+    assert ptu(300.0, other) == pytest.approx(0.8) and ptu(10.0, other) == pytest.approx(-0.4)
+
+    assert ptu(100.0 * (1 + hi) * 1.2) == pytest.approx(hi)
+    assert ptu(100.0 * (1 + hi) * 0.95) == pytest.approx((1 + hi) * 0.95 - 1)
+    assert ptu(100.0 * (1 + lo) * 0.8) == pytest.approx(lo)
+    assert ptu(100.0 * (1 + lo) * 1.05) == pytest.approx((1 + lo) * 1.05 - 1)
+
 
 def test_the_clamps_and_floors_on_the_page_are_the_ones_applied(page, cfg, payload):
     """The metric rows hard-code their clamps; the Data quality bullet reads config. Both must
