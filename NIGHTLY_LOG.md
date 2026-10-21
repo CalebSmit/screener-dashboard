@@ -13543,3 +13543,129 @@ merged only after its own full suite, then batch-gated here (tags `good/2026-10-
 `OWNER_FOCUS.md`'s 2026-10-20 item, in its order: decide the two OPEN proposals (share classes; the bank
 P/B-ROE guard), second-read experiments 16 and 17, continue the mutation audit, the positive-control
 ledger row, the v2 data fixes and the extended build.
+
+## 2026-10-21 (06:00 session) - QUEUE. The share-class proposal reviewed and ACCEPTED - but the designated line is declared, not re-picked: Alphabet is 179 on GOOGL and 101 on GOOG
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-20 13:00 ended "shipped to
+main" (`logs/nightly-2026-10-20_130002-midday.log`), and two owner-run sessions followed it.
+Data loop published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data loop complete",
+02:26. Evidence base at `1m` = **33 rows, newest 2026-09-18 (33 days ago, bound 40), 4 effective**
+- inside the bound, no action. Priority 0: `allow_auto_apply` **false**, 4 of 8 effective
+observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 9 days**) -
+not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
+**Tests:** before **2922 passed / 1 skipped**, after **2964 passed / 1 skipped** - +42, which is
+exactly the two new modules (26 + 16), no failures and nothing removed.
+**Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, the first OPEN proposal.
+Wednesday's nominal SYNTHESIS focus was displaced by it, which the prompt requires - and the work
+was a synthesis question anyway: what the *population* of a sector percentile should be. **Deferred:**
+the second open proposal (the bank P/B-ROE guard, opened 2026-10-20) and the Factor Lab.
+
+### Did
+
+**Reviewed `research/2026-10-19-share-classes.md` and accepted it, with one change the review
+measured and the note did not have.** The note is good: it inventoried every multi-class company,
+established from MSCI, S&P DJI and FTSE Russell that fundamentals are company facts and prices are
+line facts, rescored six candidate rules, and ruled out the cheap one (filling a line's *missing*
+analyst fields puts FOX at **#6**, into the top 25, on a fallback growth figure of +49.6%). What it
+proposed was S&P DJI's approach B - score the company once on its **Designated Listing** - with the
+line picked from **each run's own `avg_daily_dollar_volume`**.
+
+**That last part is not S&P DJI's rule and is not stable, which is what a second reader is for.**
+S&P changes a Designated Listing only when the other line leads on *both* criteria by more than
+20%. Measured over 89 month-ends (2019-06 to 2026-10, 63-day average daily dollar volume):
+
+| | Alphabet | Fox | News Corp |
+|---|---|---|---|
+| Months the two lines are within S&P's 20% margin | **31 of 89 (34.8%)** | 0 | 0 |
+| Closest the two ever came (volume ratio) | **1.003** | 2.077 | 2.193 |
+| Times the busier line actually changed | **4** (2020-09, 11, 12; 2021-01) | 0 | 0 |
+
+And it matters: rescoring the 2026-10-21 run both ways, **Alphabet ranks 179 scored on GOOGL and
+101 scored on GOOG** - 78 places, with a different ticker in the published ranking - because the
+two lines carry different analyst records (the note's own section 7: the source serves GOOGL's
+quarterly "actual EPS" on a GAAP basis and GOOG's on the analysts' basis). A per-run recomputation
+would have moved a company 78 places on a liquidity tiebreak that is a coin flip a third of the
+time, with nothing in the changelog to explain it.
+
+**So the choice of line is declared in `config.yaml` (`share_classes.designated: GOOGL, FOXA,
+NWSA`)**, changed only with a changelog entry, and the run *reports* a crossing of the margin
+rather than acting on it (`ATTENTION -` in `run.log` and the health note). An undeclared
+multi-class company - a new one joining the index - falls back to volume and says so loudly, and
+two declared lines of one company raise. Everything else shipped as proposed.
+
+**What shipped:**
+- **`share_classes.py`** - group the universe by SEC CIK (falling back to identical `longName`),
+  keep the declared line, report the margin, and state each dropped line's price gap. `run_screener`
+  drops the secondary lines after the outlier flagging and **before** `compute_sector_percentiles`,
+  and records `runs/<id>/share_classes.json`. The dropped rows stay in `02_outliers_flagged`, so
+  they remain auditable.
+- **`run_context.config_hash`: `share_classes` added and `scoring_schema` 14 -> 15.** Without the
+  bump a warm start would have served the cached 501-row scored table - built when the percentiles
+  counted all three pairs - and the change would have silently not happened. This is the same trap
+  the schema comments record for 2026-10-07, 10-08 and 10-20.
+- **The page answers for a ticker it no longer ranks.** `generate_dashboard._share_classes_block`
+  puts the second lines in the first payload (not the context file - the search palette and My
+  Holdings run before context loads), and the search palette, the table's empty state and the
+  holdings card now say "FOX is a second listed share class of Fox Corporation. The company is
+  scored once, on its more-traded class FOXA, ranked #35 here ... It trades 10.8% below FOXA for the
+  same claim on the same earnings." Before this, all three surfaces told a holder of FOX the company
+  had left the S&P 500 or its data could not be fetched - false.
+- **The methodology page** gained Step 3's opening paragraph, generated from `config.yaml` so it
+  cannot name a line the run dropped, with the three providers' rules and the stability measurement.
+- **Claims `overview.share_classes` and `drilldown.share_class_second_line`**, so both are in the
+  data loop's publish gate. The page claims are checked by **reading the sentences out of a browser
+  render of the generator's own page**, not by grepping the source for a string (CLAUDE.md 0.11).
+
+### Evidence / research
+- **MSCI, *Fundamental Data Methodology* (March 2021), s1 p. 10 / s2.1 p. 19** - company-level
+  aggregation of all classes, listed and unlisted; every ratio is the **security's** price over the
+  company's per-share figure.
+  https://www.msci.com/eqb/methodology/meth_docs/MSCI_Fundamental_Data_Methodology_Mar2021.pdf
+- **S&P DJI, *Equity Indices Policies & Practices* (Aug 2026), pp. 17-18** - Designated Listing
+  (highest one-year liquidity **and** largest float-adjusted cap), the **20%** switching margin, and
+  approach **B**: "Each company is represented once by the Designated Listing."
+- **FTSE Russell, *Russell US Equity Indexes* v7.2 (Aug 2026), rules 6.5.1-6.5.4 p. 18** - style
+  probabilities "based on that of the pricing vehicle and assigned consistently across all
+  additional share classes".
+  https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/russell-us-indexes-construction-and-methodology.pdf
+- **S&P DJI, *S&P U.S. Style Indices Methodology* (June 2022), pp. 5-6** - "Evaluating Growth and
+  Value at the **Company** Level". The screener's sector percentiles counted **rows**.
+- **Measured, re-derived independently on the 2026-10-21 run**
+  (`research/measurements/2026-10-21-share-class-stability.py`; the rescoring baseline reproduces
+  **501 of 501** published ranks): CIK coverage **503 of 503** with the `longName` fallback giving
+  **identical** groups and membership (so the fallback a fresh checkout uses is corroborated, not
+  assumed - `data/sec/` is gitignored); exactly three multi-line CIKs, **no false merge**; top 25
+  **unchanged**; FOXA 61 -> 35, GOOGL 199 -> 179, NWSA 65 -> 54; 395 other rows moved, largest 55
+  places; the 16 other Communication Services stocks **+1.565** composite points on average (min
+  +0.69, max +2.52, none negative - they were being held down by duplicate rows in a 22-row peer
+  group); **0.0** composite change outside that sector; and the earnings-yield ratio over the price
+  ratio is **1.000000** for all three pairs, which is what lets the page state the whole valuation
+  difference between two tickets as one price gap.
+
+### Methodology changed
+- **`METHODOLOGY_CHANGELOG.md` 2026-10-21** - "Proposal ACCEPTED, with the designated listing
+  declared rather than re-picked: one company, one ranked line", with the four provider sources, the
+  stability measurement, the full before/after table, the four rejected alternatives and the
+  rollback (`share_classes.score_once_per_company: false`).
+
+### Tried and rejected
+- **Re-picking the designated line from each run's volume**, as the note proposed - refused on the
+  89-month stability measurement above. It is the one change the review made.
+- **MSCI's route** (rank every line, cap exposure by issuer) - needs an issuer cap the bot does not
+  have, and leaves the peer-group double count. **FILL**, **CONSENSUS** and **ONCE** - all rescored
+  and all worse; FILL would have put FOX in the top 25 at #6.
+- **Narrowing the research engine's `base_config_hash`.** My `config.yaml` change made all 30 ledger
+  rows stale, because `v2_experiments.base_config()` hashes the **whole** config and `config.yaml`
+  is in `RESULT_PATHS` - yet backtest v2 never reads `share_classes`. That is the same over-broad
+  fingerprint the 2026-10-18 session fixed for the dirty-tree marker ("a marker that fires in normal
+  operation is a marker that gets ignored"). I **did not** narrow it: it is another subsystem's
+  provenance guard, the rerun machinery exists for exactly this, and the honest outcome is the
+  evidence. All 30 rerun in committed chunks: **0 of 25,460 numeric values moved**, and
+  `summary.json` is byte-identical, so the public research page says the same thing. Worth a future
+  session's attention as a *narrowing* with a test, not as a loosening.
+
+### Next
+**The second open proposal: the bank P/B-ROE pairing** (`research/2026-10-20-bank-quality-valuation-overlap.md`
+section 8, opened 2026-10-20) - state the identity on the methodology page and guard the zero net
+P/B loading with a test. Then `OWNER_FOCUS.md` item 2 (second-read lab experiments 16 and 17) and
+item 3 (the next 12 claim mutations in `plan/claims-mutation-audit.md`).
