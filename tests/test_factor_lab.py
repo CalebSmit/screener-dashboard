@@ -246,6 +246,36 @@ def test_the_replication_crisis_tolerances_are_the_ones_committed_before_the_com
     assert fl.null_within(fl.JKP_REPLICATION) == 0
 
 
+def test_the_size_given_profitability_tolerances_and_rule_are_the_ones_committed_before_the_comparison():
+    """Queue row 4b (2026-10-20): Asness, Frazzini, Israel, Moskowitz & Pedersen (2018), Table 3 Panel A
+    and the SMBQ figure on p. 495. Paper figures and tolerances committed on their own, before the
+    library's 25 size-by-profitability portfolios were first compared with them (plan/factor-lab.md
+    rule 3); by rule 8 a result of no effect matches none of the seventeen. The screener's own rule
+    (research/2026-10-20-size-weight.md section 9, item 1) is carried verbatim and may not move."""
+    exp = fl.SIZE_GIVEN_PROFITABILITY
+    ref = exp["reference"]
+    assert (exp["kind"], ref["start"], ref["end"], ref["tolerances_written"]) == ("double", "196307", "201212", "before")
+    sb, tsb = [0.23, 0.46, 0.54, 0.42, 0.44], [1.21, 3.02, 3.44, 2.82, 2.87]
+    want = {**{f"sb_{p}": (sb[p - 1], 0.15) for p in range(1, 6)}, **{f"t_sb_{p}": (tsb[p - 1], 1.0) for p in range(1, 6)},
+            "smbq": (0.42, 0.15), "t_smbq": (3.18, 1.0), "fourq": (0.254, 0.15),
+            "qj_big": (0.42, 0.15), "t_qj_big": (2.78, 1.0), "qj_small": (0.62, 0.15), "t_qj_small": (4.78, 1.0)}
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == want
+    # the derived figure is the table's own columns: 4 minus Big in each row, averaged
+    four, big = [0.40, 0.56, 0.59, 0.77, 0.78], [0.12, 0.37, 0.34, 0.47, 0.53]
+    assert abs(sum(a - b for a, b in zip(four, big)) / 5 - 0.254) < 1e-9
+    assert fl.null_within(exp) == 0
+    crit = exp["criterion"]
+    assert (crit["start"], crit["end"], crit["unconditional"], crit["min_t"]) == ("196307", "202612", 0.136, 1.5)
+    assert crit["rule"] == (
+        "Refutes the case for the weight if, over 1963-2026, the average of the five is no larger "
+        "than the unconditional Q4 - Q5 spread (0.136% a month, value-weighted, section 2.1), or "
+        "its t-statistic is below 1.5 - i.e. if holding profitability fixed does not strengthen "
+        "size among large companies the way it does across the market.")
+    note = (ROOT / "research" / "2026-10-20-size-weight.md").read_text(encoding="utf-8")
+    flat = " ".join(note.replace("*", "").split())
+    assert " ".join(crit["rule"].split()) in flat
+
+
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
     """Experiment 4 reruns a 1992 table on a different set of companies from the paper's and
     most figures miss. The tolerances were written first and stay; the page says how many
