@@ -755,11 +755,17 @@ constraints survive it:
 
 **0.13. The Factor Lab (opened 2026-10-12).** Owner item; `OWNER_FOCUS.md` has it and
 `plan/factor-lab.md` the ordered queue and the rules. **Friday is the lab's day**, one finished
-experiment a session; next lab Friday is 2026-10-23. Fourteen experiments as of 2026-10-19,
-**124 of 186 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
+experiment a session; next lab Friday is 2026-10-23. Seventeen experiments as of 2026-10-20,
+**145 of 217 figures within tolerance**; the per-experiment record moved to `DECISIONS.md`
 ("0.13, the lab's first thirteen experiments") on 2026-10-16. Experiment 14 (asset growth,
 Cooper, Gulen & Schill 2008; 13 of 24) is in `plan/factor-lab.md` and
 `research/2026-10-19-lab-asset-growth.md`: by market value it has earned about nothing since 2003.
+Three more on 2026-10-20 (owner-run night), each in `plan/factor-lab.md` with its note: **15**, Jensen, Kelly &
+Pedersen (2023) on their own 153 factors (10 of 10; **its data is CC BY-NC 4.0 - teaching page only, never
+anything that trades**); **16**, size inside each profitability fifth - Size's pre-registered rule **not refuted**
+(10 of 17); **17**, Piotroski (2000) on Open Source Asset Pricing's published portfolios (1 of 4, a miss
+explained by the decile cut of a ten-value score). Every new experiment needs a **second reader** before it
+counts as checked (`OWNER_FOCUS.md`, 2026-10-20 item 2).
 
 **The rules, which do not move:**
 

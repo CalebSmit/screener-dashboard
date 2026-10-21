@@ -67,6 +67,9 @@ Two things still outrank this file, and neither is negotiable:
      against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
      `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file
      if it is slow).
+     Also: three tests (`test_claims_register::test_confidence_metric_count_is_the_discount_coverage`,
+     two in `test_investor_profiles`) fail with FileNotFoundError in a fresh worktree, which has no
+     gitignored `runs/` - every agent tonight had to copy it in. Make them skip loudly when no run exists.
   Close this item when 1-6 are done or argued down in the log.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it

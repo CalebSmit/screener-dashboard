@@ -66,7 +66,12 @@ FRENCH_FILES = {
     "split_momentum": ("6_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "quint_value": ("25_Portfolios_5x5_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "quint_momentum": ("25_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "double_size_op": ("25_Portfolios_ME_OP_5x5_CSV.zip", "Average Value Weighted Returns -- Monthly"),
 }
+# The 25 size-by-profitability portfolios (experiment "size-given-profitability"): column
+# 5 * s + p is size quintile s (0 smallest .. 4 largest) and operating-profitability quintile p
+# (0 weakest .. 4 most profitable), the library's own order (SMALL LoOP, ME1 OP2, ..., BIG HiOP).
+DOUBLE_SIZE, DOUBLE_TRAIT = 5, 5
 # The 25 size-by-trait portfolios: five size groups, five trait groups inside each, in that
 # order. The lowest and highest trait group of the smallest and of the largest size group.
 QUINT_KEYS = ["value", "momentum"]
@@ -107,6 +112,26 @@ SORTS = {
     # Investment category favours, and the spread (last minus first) is the paper's 1 minus 10
     "asset-growth": {"file": "investment_portfolios", "ew": "Average Equal Weighted Returns -- Monthly",
                      "columns": [17, 16, 15, 14, 13, 12, 11, 10, 9, 8]},
+    # Not the French library: Chen & Zimmermann's Open Source Asset Pricing portfolios
+    # (``source: "osap"``), built by its authors from CRSP and Compustat. Their Piotroski score
+    # (signal "PS") is sorted into deciles among the highest fifth of companies by book-to-market;
+    # the columns are the port labels of the lowest and highest decile, lowest score first. With a
+    # 0-9 score the middle deciles are often empty (the cut points tie), so only the ends are read.
+    # "vw" is the authors' own cut (Original_Cuts, value-weighted, as their documentation records
+    # for PS); "ew" is the same deciles equally weighted, from their alternative-portfolio set.
+    "piotroski": {"source": "osap", "signal": "PS", "columns": ["01", "10"],
+                  "vw": "PS_OriginalCuts_VW.csv", "ew": "PredictorAltPorts_DecilesEW.zip"},
+}
+# Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", Critical Finance Review
+# 11(2), 207-264. Portfolio returns are a free download (Google Drive, linked from the data page);
+# the code is GPL-2.0 and the authors ask that users of the data cite the paper. Files are kept in
+# data/lab/osap/ (gitignored) and never committed. plan/factor-lab.md, "Free data to evaluate".
+OSAP_DIR = ROOT / "data" / "lab" / "osap"
+OSAP_HOME = "https://www.openassetpricing.com/data/"
+OSAP_RELEASE = "October 2025 release (v2.0.0)"
+OSAP_DRIVE_IDS = {                    # the release's own files, as its Google Drive folder lists them
+    "PS_OriginalCuts_VW.csv": "1fkoDBda7SKboz8NSJbElG5F-pu1oaPdb",
+    "PredictorAltPorts_DecilesEW.zip": "1pFBX0LTyoSwH7i8mT4kPCS_3QghlbODD",
 }
 # Jensen, Kelly & Pedersen's global factor library (experiment 15). Licensed CC BY-NC 4.0 by its
 # authors (the licence is printed at the foot of jkpfactors.com/data and in DATA_LICENSE of
@@ -428,8 +453,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
 # 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
 # 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
-# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution.
-ASSET_VERSION = 24
+# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution;
+# 25 = size inside each profitability fifth (queue row 4b; a new kind, double) and the note's pre-registered rule;
+# 26 = Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution (merged 2026-10-20 night).
+ASSET_VERSION = 26
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -455,6 +482,89 @@ def fetch(raw_dir: Path = RAW_DIR, timeout: float = 120.0) -> list[Path]:
         (raw_dir / name).write_bytes(data)
         out.append(raw_dir / name)
     return out
+
+
+def fetch_osap(osap_dir: Path = OSAP_DIR, timeout: float = 600.0) -> list[Path]:
+    """Download the Open Source Asset Pricing files from the release's public Google Drive folder.
+    Network; ``--fetch`` only. Drive answers a much-downloaded shared file with a "Quota exceeded"
+    page for up to a day (seen 2026-10-20); that is reported, not worked around - try again later."""
+    import urllib.request
+    osap_dir.mkdir(parents=True, exist_ok=True)
+    out = []
+    for name, file_id in OSAP_DRIVE_IDS.items():
+        url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "screener-factor-lab"}),
+                                    timeout=timeout) as r:
+            data = r.read()
+        if data[:200].lstrip().lower().startswith(b"<!doctype html"):
+            raise RuntimeError(f"{name}: Google Drive returned a page, not the file (quota exceeded?) - retry later")
+        (osap_dir / name).write_bytes(data)
+        out.append(osap_dir / name)
+    return out
+
+
+def _osap_month(date: str) -> str:
+    """'1976-01-31', '1976m1' or '197601' as '197601'."""
+    d = date.strip().strip('"')
+    if "m" in d:
+        y, m = d.split("m")
+        return f"{int(y)}{int(m):02d}"
+    if "-" in d:
+        return d[:4] + d[5:7]
+    return d[:6]
+
+
+def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
+    """{port: {yyyymm: monthly return in percent}} for one signal from an OSAP portfolio file - a
+    single signal's csv, or a zip of the full set (one csv, a ``signalname`` column per row).
+    Read as text, row by row: the full-set file is large and only one signal is wanted."""
+    import csv
+    import io
+
+    def rows():
+        if path.suffix == ".zip":
+            with zipfile.ZipFile(path) as z:
+                member = next(n for n in z.namelist() if n.lower().endswith(".csv"))
+                with z.open(member) as f:
+                    yield from csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", newline=""))
+        else:
+            with path.open(encoding="utf-8", newline="") as f:
+                yield from csv.DictReader(f)
+
+    out: dict[str, dict[str, float]] = {}
+
+    def put(port: str, date: str, ret: str | None) -> None:
+        if ret in (None, "", "NA"):
+            return
+        port = port.strip().strip('"')
+        port = port if not port.isdigit() else f"{int(port):02d}"
+        out.setdefault(port, {})[_osap_month(date)] = float(ret)
+
+    for row in rows():
+        if "signalname" in row and row["signalname"] != signal:
+            continue
+        if "port" in row:                              # long: one row per port and month
+            put(row["port"], row["date"], row.get("ret"))
+        else:                                          # wide (a single signal's file): port01 ... portLS
+            for col, ret in row.items():
+                if col and col.startswith("port"):
+                    put(col[4:], row["date"], ret)
+    if not out:
+        raise ValueError(f"{path.name}: no portfolio returns for signal {signal!r}")
+    return out
+
+
+def osap_sort_data(name: str, osap_dir: Path = OSAP_DIR) -> dict:
+    """A sort read from Open Source Asset Pricing files, in the shape ``sort_data`` gives: each
+    group's monthly return (percent), lowest first, value- and equal-weighted, over the months in
+    which every group has a return under both weightings."""
+    spec = SORTS[name]
+    by_w = {w: read_osap(osap_dir / spec[w], spec["signal"]) for w in ("vw", "ew")}
+    cols = spec["columns"]
+    months = sorted(set.intersection(*(set(by_w[w][c]) for w in ("vw", "ew") for c in cols)))
+    return {"months": months, "source": "osap",
+            "vw": [[round(by_w["vw"][c][m], 4) for m in months] for c in cols],
+            "ew": [[round(by_w["ew"][c][m], 4) for m in months] for c in cols]}
 
 
 def read_table(zip_path: Path, marker: str) -> tuple[list[str], list[list[float]], str]:
@@ -683,6 +793,8 @@ def sort_data(name: str, raw_dir: Path = RAW_DIR) -> dict:
     """Monthly returns (percent) of a sorted-portfolio file's groups, lowest first, value- and
     equal-weighted."""
     spec = SORTS[name]
+    if spec.get("source") == "osap":
+        return osap_sort_data(name, raw_dir.parent / "osap")       # data/lab/osap beside data/lab/french
     fname, vw_mark = FRENCH_FILES[spec["file"]]
     dates, vw, _ = read_table(raw_dir / fname, vw_mark)
     dates_ew, ew, _ = read_table(raw_dir / fname, spec["ew"])
@@ -760,6 +872,70 @@ def quintile_data(raw_dir: Path = RAW_DIR) -> dict:
     for key in QUINT_KEYS:
         out[key] = {part: [round(raw[key][m][i], 4) for m in months] for i, part in enumerate(SPLIT_PARTS)}
     return out
+
+
+def double_data(raw_dir: Path = RAW_DIR) -> dict:
+    """The 25 size-by-profitability portfolios, value-weighted, monthly, in percent: ``vw[c]`` is
+    column c = 5 x size quintile + profitability quintile, both counted from 0 (smallest, weakest).
+    Only months where all 25 are present."""
+    fname, mark = FRENCH_FILES["double_size_op"]
+    dates, rows, vintage = read_table(raw_dir / fname, mark)
+    n = DOUBLE_SIZE * DOUBLE_TRAIT
+    keep = [i for i in range(len(dates)) if all(v > MISSING for v in rows[i][:n])]
+    return {"months": [dates[i] for i in keep], "vintage": vintage,
+            "vw": [[round(rows[i][c], 2) for i in keep] for c in range(n)]}
+
+
+def double_run(data: dict, start: str, end: str) -> dict:
+    """Size inside each profitability quintile, over a period: every portfolio's average month;
+    in each profitability row the smallest size quintile minus the largest (``small_big``) and the
+    fourth minus the largest (``four_big``) - the size effect among large companies - each a
+    monthly difference with its t-statistic; the same two averaged equally across the five rows
+    month by month (``smbq``, Asness et al.'s SMBQ, and ``fourq``); and, inside the largest and the
+    smallest size quintile, the most profitable fifth minus the least (``trait_big``, ``trait_small``)."""
+    idx = [i for i, m in enumerate(data["months"]) if start <= m <= end]
+    col = [[c[i] for i in idx] for c in data["vw"]]
+    top = DOUBLE_SIZE - 1
+
+    def cell(s: int, p: int) -> list[float]:
+        return col[DOUBLE_TRAIT * s + p]
+
+    def diff(a: list[float], b: list[float]) -> list[float]:
+        return [x - y for x, y in zip(a, b)]
+
+    sb = [diff(cell(0, p), cell(top, p)) for p in range(DOUBLE_TRAIT)]
+    fb = [diff(cell(top - 1, p), cell(top, p)) for p in range(DOUBLE_TRAIT)]
+    avg = lambda rows: [sum(v) / len(v) for v in zip(*rows)] if rows and rows[0] else []   # noqa: E731
+    return {"months": [data["months"][i] for i in idx],
+            "cells": [mean_t(c) for c in col],
+            "rows": [{"small_big": mean_t(sb[p]), "four_big": mean_t(fb[p])} for p in range(DOUBLE_TRAIT)],
+            "smbq": mean_t(avg(sb)), "fourq": mean_t(avg(fb)),
+            "trait_big": mean_t(diff(cell(top, DOUBLE_TRAIT - 1), cell(top, 0))),
+            "trait_small": mean_t(diff(cell(0, DOUBLE_TRAIT - 1), cell(0, 0)))}
+
+
+def double_figures(data: dict, start: str, end: str) -> dict:
+    """The figures a size-by-trait experiment compares with its paper, by key."""
+    r = double_run(data, start, end)
+    got = {"smbq": r["smbq"]["mean"], "t_smbq": r["smbq"]["t"], "fourq": r["fourq"]["mean"],
+           "qj_big": r["trait_big"]["mean"], "t_qj_big": r["trait_big"]["t"],
+           "qj_small": r["trait_small"]["mean"], "t_qj_small": r["trait_small"]["t"]}
+    for p, row in enumerate(r["rows"], 1):
+        got[f"sb_{p}"], got[f"t_sb_{p}"] = row["small_big"]["mean"], row["small_big"]["t"]
+    return got
+
+
+def criterion_result(data: dict, crit: dict) -> dict:
+    """A rule written into a research note before its data was fetched, read on that data: the
+    fourth size quintile minus the largest, averaged across the trait's five rows, over the rule's
+    window. Refuted when the average is no larger than ``unconditional`` or its t-statistic is below
+    ``min_t`` - the note's own words, carried on the record as ``rule``."""
+    r = double_run(data, crit["start"], crit["end"])
+    q = r["fourq"]
+    return {"first": r["months"][0], "last": r["months"][-1], "months": len(r["months"]),
+            "mean": q["mean"], "t": q["t"],
+            "by_row": [row["four_big"]["mean"] for row in r["rows"]],
+            "refuted": bool(q["mean"] <= crit["unconditional"] or q["t"] < crit["min_t"])}
 
 
 def split_run(split: dict, start: str, end: str) -> dict:
@@ -2447,6 +2623,272 @@ JKP_REPLICATION = {
 }
 EXPERIMENTS.append(JKP_REPLICATION)
 
+# Queue row 4b (plan/factor-lab.md), set by research/2026-10-20-size-weight.md section 9: the one
+# published case for the Size weight is conditional on quality, and nobody has published it among
+# large companies alone. Kept self-contained (its own kind, "double") so it can be merged beside
+# experiments being added in parallel.
+SIZE_GIVEN_PROFITABILITY = {
+    "id": "size-given-profitability",
+    "group": "Across the factors",
+    "kind": "double",
+    "topic": "Size",
+    "title": "Does size pay once profitability is held fixed?",
+    "tab": "Size, given profitability",
+    "paper": {
+        "authors": "Clifford Asness, Andrea Frazzini, Ronen Israel, Tobias J. Moskowitz and Lasse H. Pedersen",
+        "year": 2018,
+        "title": "Size matters, if you control your junk",
+        "journal": "Journal of Financial Economics 129(3), 479-509",
+        "doi": "10.1016/j.jfineco.2018.05.006",
+    },
+    "claim": ("Once low-quality (\"junk\") companies are held apart, smaller companies earned more in every "
+              "group but the junkiest. Sorting US stocks into fifths by size and, separately, by quality, "
+              "from 1957 to 2012 the smallest fifth beat the largest by 0.42% to 0.54% a month in the four "
+              "higher-quality groups, and by 0.23% among the junk. The question this page adds, because the "
+              "screener ranks only large companies: does the fourth size group still beat the largest once "
+              "profitability is held fixed?"),
+    "reference": {
+        "source": ("The published article (open access), Table 3, Panel A (page 495), and its text on the same "
+                   "page: 25 value-weighted portfolios from independent sorts on size and on quality, average "
+                   "monthly returns over T-bills and their t-statistics, July 1957 to December 2012. The fourth "
+                   "size group minus the biggest is derived from the table's two columns; the paper gives it no "
+                   "t-statistic."),
+        "start": "196307", "end": "201212",
+        # Written 2026-10-20 BEFORE the comparison was run, from the paper alone, and committed on
+        # their own: nothing had been computed on the library's 25 size-by-profitability file, which
+        # was fetched for the first time that night (only its table titles were read, to find the
+        # value-weighted table). The note that queued this experiment had measured related figures on
+        # other files - SMB inside the 2x3 profitability terciles, 0.228 (t 1.75) over 1963-2026 -
+        # which is why these tolerances are written for a stand-in, not for a rerun.
+        #
+        # Why they are wide. The paper sorts on its quality score (QMJ: profitability, growth, safety
+        # and payout, re-ranked every month); the library sorts once a year on operating profitability
+        # alone. Its sample starts in 1957; the library's profitability files start in July 1963, so
+        # the window is 594 months against 666 and every t-statistic is expected about 6% lower for
+        # that alone. So 0.15% a month on an average or a spread (one paper standard error is about
+        # 0.15-0.19 on these rows), and 1.0 on a t-statistic. Expected: the four upper rows and the
+        # averages mostly within, the weakest-profitability row the likeliest miss (operating
+        # profitability's lowest fifth is not the paper's junk), and the quality spreads among the
+        # smallest the other likely one. By plan rule 8 a result of no effect - every spread and
+        # t-statistic zero - matches none of the seventeen (the smallest paper figure is 0.23, the
+        # smallest t-statistic 1.21).
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "sb_1", "label": "Weakest profitability fifth: smallest size group minus largest, a month (%)", "paper": 0.23, "tolerance": 0.15, "where": "Table 3A, Junk row"},
+            {"key": "t_sb_1", "label": "Weakest fifth: t-statistic", "paper": 1.21, "tolerance": 1.0, "where": "Table 3A, Junk row"},
+            {"key": "sb_2", "label": "Second fifth: smallest minus largest, a month (%)", "paper": 0.46, "tolerance": 0.15, "where": "Table 3A, row 2"},
+            {"key": "t_sb_2", "label": "Second fifth: t-statistic", "paper": 3.02, "tolerance": 1.0, "where": "Table 3A, row 2"},
+            {"key": "sb_3", "label": "Middle fifth: smallest minus largest, a month (%)", "paper": 0.54, "tolerance": 0.15, "where": "Table 3A, row 3"},
+            {"key": "t_sb_3", "label": "Middle fifth: t-statistic", "paper": 3.44, "tolerance": 1.0, "where": "Table 3A, row 3"},
+            {"key": "sb_4", "label": "Fourth fifth: smallest minus largest, a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "Table 3A, row 4"},
+            {"key": "t_sb_4", "label": "Fourth fifth: t-statistic", "paper": 2.82, "tolerance": 1.0, "where": "Table 3A, row 4"},
+            {"key": "sb_5", "label": "Most profitable fifth: smallest minus largest, a month (%)", "paper": 0.44, "tolerance": 0.15, "where": "Table 3A, Quality row"},
+            {"key": "t_sb_5", "label": "Most profitable fifth: t-statistic", "paper": 2.87, "tolerance": 1.0, "where": "Table 3A, Quality row"},
+            {"key": "smbq", "label": "Smallest minus largest, averaged across the five (SMBQ), a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "p. 495, text"},
+            {"key": "t_smbq", "label": "That average: t-statistic", "paper": 3.18, "tolerance": 1.0, "where": "p. 495, text"},
+            {"key": "fourq", "label": "Fourth size group minus largest, averaged across the five, a month (%)", "paper": 0.254, "tolerance": 0.15, "where": "Table 3A, derived: columns 4 and Big"},
+            {"key": "qj_big", "label": "Largest size group: most profitable fifth minus least, a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "Table 3A, Big column"},
+            {"key": "t_qj_big", "label": "Largest size group: t-statistic", "paper": 2.78, "tolerance": 1.0, "where": "Table 3A, Big column"},
+            {"key": "qj_small", "label": "Smallest size group: most profitable fifth minus least, a month (%)", "paper": 0.62, "tolerance": 0.15, "where": "Table 3A, Small column"},
+            {"key": "t_qj_small", "label": "Smallest size group: t-statistic", "paper": 4.78, "tolerance": 1.0, "where": "Table 3A, Small column"},
+        ],
+    },
+    # The screener's own test, separate from the comparison with the paper: written into
+    # research/2026-10-20-size-weight.md (section 9, item 1) and committed before the library's file
+    # was fetched. Its words are carried verbatim; its numbers are the ones it names. The page
+    # prints the rule, the figure and the reading, whichever way it falls.
+    "criterion": {
+        "source": "research/2026-10-20-size-weight.md, section 9, item 1",
+        "rule": ("Refutes the case for the weight if, over 1963-2026, the average of the five is no larger "
+                 "than the unconditional Q4 - Q5 spread (0.136% a month, value-weighted, section 2.1), or "
+                 "its t-statistic is below 1.5 - i.e. if holding profitability fixed does not strengthen "
+                 "size among large companies the way it does across the market."),
+        "measure": ("Size quintile 4 minus quintile 5 inside each profitability quintile, value-weighted, "
+                    "averaged across the five, month by month."),
+        "start": "196307", "end": "202612",
+        "unconditional": 0.136, "min_t": 1.5,
+        "unconditional_source": ("The library's size quintile 4 minus quintile 5, value-weighted, July 1963 "
+                                 "to August 2026 (research/measurements/2026-10-20-size-lab.json)."),
+        "weight": "Size weight (5% of the score)",
+    },
+    "double": {
+        "rows": ["Weakest profitability", "Second fifth", "Middle fifth", "Fourth fifth", "Most profitable"],
+        "cols": ["Smallest", "2", "3", "4", "Largest"],
+        "presets": [["The paper's years · 1963–2012", "196307", "201212"],
+                    ["After the paper · 2013–now", "201301", "LAST"],
+                    ["Since 1981", "198101", "LAST"], ["Since 2000", "200001", "LAST"],
+                    ["Everything", "FIRST", "LAST"]],
+    },
+    "verdict_note": ("The averages across the five profitability fifths match, including the fourth size group's. "
+                     "The misses are two of the five rows and the gaps between profitable and weak companies, "
+                     "which here are about half the paper's: operating profitability is one part of the paper's "
+                     "quality score, not the whole of it."),
+    "conditions": [
+        ["Portfolios", "Each June, every US-listed stock is put in one of five size groups and, separately, one "
+                       "of five groups by operating profitability, both on New York Stock Exchange breakpoints. "
+                       "The 25 portfolios are the overlaps."],
+        ["Quality", "Operating profitability (sales minus the cost of goods, selling and administrative costs "
+                    "and interest, over book equity) stands in for the paper's quality score, which also counts "
+                    "growth, safety and payout and is not published in this form."],
+        ["Data", "Kenneth R. French's Data Library, \"25 Portfolios Formed on Size and Operating "
+                 "Profitability\". It includes financial companies and utilities."],
+        ["Sample", "From July 1963, the first month the library sorts on profitability. The paper starts in "
+                   "July 1957, so its window is six years longer."],
+        ["Weighting", "Value-weighted within each portfolio, as in the paper."],
+        ["Large stocks", "The fourth and fifth size groups. In August 2026 the fourth averaged about $15 billion "
+                         "and the fifth about $190 billion; the screener's roughly 500 companies sit across "
+                         "both."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "Operating profitability is one of the paper's four parts of quality. Its quality score is built from "
+        "company accounts and is not public in a size-by-quality grid, so the paper's own sort cannot be "
+        "rebuilt here.",
+        "The paper does not state its size breakpoints; the library's are New York Stock Exchange quintiles. "
+        "If the paper used all stocks, its largest fifth is a larger group than the library's.",
+        "The paper re-ranks every month; the library re-forms its groups once a year, in June.",
+        "The paper reports returns over T-bills. Every figure compared here is a difference between two "
+        "portfolios, which the T-bill does not change, so none needs it.",
+        "The paper's regressions on its quality factor, its main evidence, are not rerun.",
+    ],
+    "in_the_screener": (
+        "The screener's Size category scores a company higher for being smaller, among the large companies "
+        "it ranks, beside a Quality category that carries 22% of the score. The research note behind the "
+        "Size weight found no size premium among large companies on its own and kept the weight on this "
+        "paper's case - that size pays once quality is controlled - and wrote down, before this file was "
+        "fetched, the result that would refute that case among large companies. That rule, and what the "
+        "data says, are printed beside the comparison. A refutation reopens the weight for a research note "
+        "to decide; this page does not set it."),
+}
+EXPERIMENTS.append(SIZE_GIVEN_PROFITABILITY)
+
+
+# Experiment 17 (2026-10-20): appended after experiments 15 and 16 so their published numbers hold.
+PIOTROSKI_OSAP = {
+    "id": "piotroski",
+    "group": "Quality",
+    "kind": "sort",
+    "topic": "Quality",
+    "title": "Among high book-to-market companies, do the financially strong earn more?",
+    "tab": "Piotroski score",
+    "paper": {
+        "authors": "Joseph D. Piotroski",
+        "year": 2000,
+        "title": ("Value investing: the use of historical financial statement information to separate "
+                  "winners from losers"),
+        "journal": "Journal of Accounting Research 38 (Supplement), 1-41",
+        "doi": "10.2307/2672906",
+    },
+    "claim": ("Among the fifth of companies with the highest book-to-market ratios, a score counting nine "
+              "signs of financial health - profits, cash flow, improving returns on assets, cash flow "
+              "above profits, falling leverage, rising liquidity, no new shares, rising margins and "
+              "asset turnover - separated later winners from losers: companies scoring 8 or 9 returned "
+              "31.3% in the following year and those scoring 0 or 1 returned 7.8%, a difference of 23.5% "
+              "(t-statistic 5.59), 1976-1996."),
+    "reference": {
+        "source": ("Table 3, Panel B (one-year raw returns, each firm held for twelve months), the High F_SCORE (8-9), Low "
+                   "F_SCORE (0-1) and High-Low rows, 14,043 high book-to-market firm-years, read from the "
+                   "University of Chicago GSB Selected Paper 84 reprint (January 2002) of the published "
+                   "article, printed page 17 (PDF page 19). The paper's figures are means of equally "
+                   "weighted firm returns over a year; here they are compared with the average month of "
+                   "the authors' end deciles times twelve, in percent a year."),
+        "start": "197601", "end": "199612", "weighting": "ew", "scale": 12,
+        # Written 2026-10-20 BEFORE any Open Source Asset Pricing return had been read: at the time of
+        # writing Google Drive was refusing every file in the release with a "Quota exceeded" page, so
+        # nothing - not even a header - had been seen. The period is the years the paper names and the
+        # window the OSAP documentation uses as the paper's sample (1976-1996).
+        # The comparison is NOT like for like, in four ways known beforehand, all recorded on the page:
+        # (1) the paper's groups are scores 0-1 (396 firm-years, 2.8%) and 8-9 (1,448, 10.3%); OSAP's are
+        #     deciles cut at the 10th and 90th percentiles of a 0-9 score, and with ties each end holds
+        #     a wider band of scores - expected to narrow the spread, lifting the low end most;
+        # (2) the paper holds each firm a year from the fifth month after its fiscal year end; OSAP
+        #     re-forms monthly on the latest annual score - a twelve-times monthly average is not a
+        #     buy-and-hold year, and compounding puts the paper's levels a point or two higher;
+        # (3) OSAP's score uses EBIT over sales where the paper uses gross margin, and a fall in shares
+        #     outstanding where it uses "no equity issued";
+        # (4) CRSP and Compustat have been revised in the 25 years since.
+        # Expected beforehand: the direction reproduces; the spread lands below 23.5 and may well be
+        # outside; the high end below 31.3. Tolerance for every percent-a-year figure: 4.2, one standard
+        # error of the paper's own spread (23.5 / 5.594 = 4.20); for the t-statistic 1.5, experiment 14's
+        # (one unit of t plus half for a different volatility). The paper gives no standard error for
+        # either end group, so the ends take the spread's.
+        # Plan rule 8, checked from the record before committing: a result of no effect matches 0 of
+        # these 4 - each end sits 11.75 from the null's common level (19.55), and the spread and t miss.
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "mean1", "label": "Lowest score decile: average a year (%)", "paper": 7.8, "tolerance": 4.2, "where": "Table 3, Panel B, Low F_Score (0-1), mean one-year raw return 0.078 (p. 17)"},
+            {"key": "mean2", "label": "Highest score decile: average a year (%)", "paper": 31.3, "tolerance": 4.2, "where": "Table 3, Panel B, High F_Score (8-9), mean one-year raw return 0.313 (p. 17)"},
+            {"key": "spread", "label": "Highest score minus lowest, a year (%)", "paper": 23.5, "tolerance": 4.2, "where": "Table 3, Panel B, High-Low, mean 0.235 (p. 17); the abstract's \"23% annual return\""},
+            {"key": "t_spread", "label": "Its t-statistic", "paper": 5.594, "tolerance": 1.5, "where": "Table 3, Panel B, High-Low, t-statistic 5.594 (p. 17)"},
+        ],
+    },
+    "verdict_note": ("The highest-scoring end matches the paper (30.4% a year against 31.3%); the lowest "
+                     "does not (26.1% against 7.8%), so the gap is a fifth of the paper's - 4.3% a year, "
+                     "t 1.5 - and outside. Expected in direction, not in size: the public portfolios' "
+                     "lowest decile averaged a score of 2.7 over these years and its highest 7.5, where the "
+                     "paper's groups are 0-1 and 8-9, and they are re-formed monthly rather than held a "
+                     "year. Weighted by market value, the authors' own cut, the gap was 12.6% a year, "
+                     "t 3.6. Published as a miss; the tolerances stay as written."),
+    "sort": {
+        "data": "piotroski",
+        "groups": ["Lowest score decile", "Highest score decile"],
+        "ends": ["lowest score", "highest"],
+        "low": "decile with the lowest scores", "high": "decile with the highest",
+        "spread": "Highest score minus lowest",
+        "accent": [1],
+        "key_accent": "The highest scores - the end the screener's Quality category favours",
+        "key_rest": "The lowest scores",
+        "chart": "by Piotroski score, lowest first",
+        "presets": [["The paper · 1976–1996", "197601", "199612"],
+                    ["After the paper · 1997–2024", "199701", "LAST"],
+                    ["Since 2007", "200701", "LAST"], ["Everything · 1972–2024", "FIRST", "LAST"]],
+        "weightings": [["ew", "Equally · paper"], ["vw", "By market value · OSAP's cut"]],
+    },
+    "conditions": [
+        ["Portfolios", "Each month, companies in the highest fifth by book-to-market are scored 0 to 9 on "
+                       "Piotroski's nine signals from their latest annual accounts, and the lowest and highest "
+                       "tenths by score are held for the month. Only the two end groups are read: with a "
+                       "score that takes ten values the middle deciles are often empty."],
+        ["Data", "Chen and Zimmermann's Open Source Asset Pricing, " + OSAP_RELEASE + ": the published "
+                 "portfolio returns for their signal \"PS\", which the authors built from CRSP and "
+                 "Compustat. Cite: Chen, A. Y. and T. Zimmermann (2022), \"Open source cross-sectional "
+                 "asset pricing\", Critical Finance Review 11(2), 207-264."],
+        ["What this checks", "A rerun of the authors' published portfolio returns, not of the score: this "
+                             "lab cannot see a single company's accounts. It checks that a careful public "
+                             "construction of the signal earns what the paper reports, and what it has "
+                             "earned since; it does not check the paper's own firm-by-firm numbers."],
+        ["Weighting", "Equally weighted, as the paper's averages of firm returns are, from the authors' "
+                      "equal-weighted deciles. Their own cut weights by market value; it is one click away."],
+        ["Returns", "Raw monthly returns. The comparison sets twelve times the average month against the "
+                    "paper's average one-year return."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "The paper's end groups are scores 0-1 and 8-9; the public portfolios are deciles of the score, "
+        "and because the score takes only ten values, each end decile holds a wider band of scores.",
+        "The paper holds each company for a year from the fifth month after its fiscal year end; the "
+        "public portfolios are re-formed every month on the latest annual score.",
+        "The public construction measures margin as EBIT over sales (the paper: gross margin) and equity "
+        "issuance as a rise in shares outstanding (the paper: any common equity issued), and requires "
+        "every input to be present.",
+        "The paper finds the effect concentrated in small and medium-sized companies (Table 4: among the "
+        "largest third, high minus low 15.2%, t 1.88). The public files have no size split for this "
+        "signal, so that is not reproduced here; the market-value weighting is the nearest view of the "
+        "large companies.",
+        "The paper's period: its text says firms are identified each year 1976-1996, and Table 1 counts "
+        "firm-years 1975-1995; returns run from the fifth month after each fiscal year end. The window "
+        "here, January 1976 to December 1996, is the one the public library's documentation uses.",
+    ],
+    "in_the_screener": (
+        "The Piotroski score is 16% of the Quality category (Quality is 22% of the composite, so about "
+        "3.5 points), halved for companies whose valuation score is below the middle, because the paper "
+        "defines the effect among high book-to-market companies. The screener ranks S&P 500 companies "
+        "within their sectors on its own version of the nine signals; the paper, and this rerun, sort the "
+        "highest book-to-market fifth of all listed companies, most of them small."),
+}
+
+EXPERIMENTS.append(PIOTROSKI_OSAP)
+
 
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
@@ -2496,6 +2938,14 @@ TAKEAWAYS = {
                            "above zero on the public library to 2020, and 76% inside the mega caps alone - "
                            "close to the paper's 77%. Since 2014 only 9 of them clear that bar among mega caps, "
                            "over a period too short to settle it."),
+    "size-given-profitability": ("Holding profitability fixed, the fourth size group beat the largest by about 0.24% a "
+                                 "month in the paper's years, close to the paper's 0.25%, and by 0.17% over 1963-2026 - "
+                                 "enough to pass the test the screener's research note set in advance. Since 2013 it "
+                                 "has been below zero, over a period too short to settle it."),
+    "piotroski": ("On the authors' public portfolios, the highest-scoring tenth of high book-to-market companies "
+                  "beat the lowest by about 4% a year equally weighted in the paper's years - a fifth of the "
+                  "paper's 23.5%, and not distinguishable from zero - and by about 13% weighted by market value. "
+                  "Since 1997 neither gap can be told from zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2514,12 +2964,16 @@ CATEGORY_MAP = [
      "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
             "the value of the whole business, compared within sectors. The public sorts use cash flow "
             "before capital spending against the shares alone, across the whole market."},
-    {"category": "Quality", "key": "quality", "experiments": ["profitability", "accruals", "five-factors", "big-and-small", "replication-crisis"],
-     "has": "Stocks sorted by profitability and by accruals, and the profitability factor - robustly "
-            "profitable companies minus weakly profitable ones.",
-     "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
-            "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
-            "year by year, for decades; the accruals sort covers one of Beneish's eight inputs."},
+    {"category": "Quality", "key": "quality",
+     "experiments": ["profitability", "accruals", "piotroski", "five-factors", "big-and-small", "replication-crisis"],
+     "has": "Stocks sorted by profitability and by accruals, the profitability factor - robustly "
+            "profitable companies minus weakly profitable ones - and Piotroski's financial-strength score "
+            "among high book-to-market companies, on the portfolios Chen and Zimmermann publish.",
+     "gap": "The Piotroski rerun reads published portfolio returns, not company accounts, so it checks a "
+            "careful public construction of the score, not the paper's own numbers, and only among high "
+            "book-to-market companies. Beneish (1999), the methodology's earnings-manipulation score, "
+            "cannot be rerun here: it needs each company's accounts for decades, and the accruals sort "
+            "covers one of its eight inputs."},
     {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
      "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
             "the one Growth's revenue growth moves with, and the two categories score it in opposite "
@@ -2542,7 +2996,7 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
             "surprises. They need a history of analysts' estimates as they stood at the time, which is "
             "sold, not published."},
-    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors", "replication-crisis"],
+    {"category": "Size", "key": "size", "experiments": ["size-effect", "size-given-profitability", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
     {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small", "replication-crisis"],
@@ -2565,7 +3019,9 @@ SCORECARD_OPEN = {
                   "measures, which are the ones the screener weights. Those measures, compared within "
                   "sectors, have still not been rerun here."),
     "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
-                "profitability among large companies. Neither can be rerun on public data."),
+                "profitability among large companies. The financial-strength score now has a rerun on "
+                "published portfolios, among high book-to-market companies of every size; neither score "
+                "can be tested among large companies alone on public data."),
     "growth": ("Researched 2026-10-12 and the weight reviewed 2026-10-13: index providers treat "
                "growth as a style, not a rewarded factor, and the studies of sales growth and "
                "growth forecasts run flat to negative. The 3-point reduction that followed was "
@@ -2581,8 +3037,10 @@ SCORECARD_OPEN = {
              "the methodology now says so."),
     "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
                   "only measurement it will get."),
-    "size": ("A small effect for its weight, and the screener's companies sit almost entirely in the "
-             "two largest groups."),
+    "size": ("Researched 2026-10-20: no size premium among large companies on its own; the weight rests on "
+             "the case that size pays once quality is held fixed. Holding profitability fixed passed the test "
+             "written for it in advance, by a margin over the plain spread too small to tell from zero. Since "
+             "2013 the spread with profitability held fixed has been below zero."),
     "investment": "How much of this category is Valuation counted a second time.",
 }
 
@@ -2658,7 +3116,8 @@ def next_month(m: str) -> str:
 
 
 def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
-                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None) -> list[dict]:
+                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None,
+                    double: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -2705,7 +3164,8 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
+                         ("piotroski", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -2747,6 +3207,13 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
             b = jkp_run(jkp, next_month(JKP_END), end, u, "capm", "sig")
             add("replication-crisis", f"The 119 published factors among {name}: average CAPM alpha, a month",
                 "pct", 1, cell(a["alpha"], span("000000", JKP_END)), cell(b["alpha"], span(next_month(JKP_END), end)))
+
+    if double is not None and "size-given-profitability" in exps:
+        ref = exps["size-given-profitability"]["reference"]
+        a, b = double_run(double, ref["start"], ref["end"]), double_run(double, next_month(ref["end"]), end)
+        add("size-given-profitability", "Fourth size group minus largest, profitability held fixed, a month", "pct", 1,
+            cell(a["fourq"]["mean"], len(a["months"]), a["fourq"]["t"]),
+            cell(b["fourq"]["mean"], len(b["months"]), b["fourq"]["t"]))
     return rows
 
 
@@ -2965,6 +3432,23 @@ def reproduce_combo(split: dict, factors: dict, exp: dict) -> dict:
             "corr_resid": r["corr_resid"]}
 
 
+def reproduce_double(data: dict, exp: dict) -> dict:
+    """A size-by-trait experiment at the paper's sample, against its table, and - separately, never
+    counted in the comparison - the screener's own pre-registered rule read on the same data."""
+    ref = exp["reference"]
+    got = double_figures(data, ref["start"], ref["end"])
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    r = double_run(data, ref["start"], ref["end"])
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "means": [c["mean"] for c in r["cells"]],
+            "smbq": r["smbq"], "fourq": r["fourq"],
+            "criterion": criterion_result(data, exp["criterion"])}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -2985,6 +3469,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
     sorts = {name: sort_data(name, raw_dir) for name in SORTS}
     split = split_data(raw_dir)
     quintiles = quintile_data(raw_dir)
+    double = double_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_split(quintiles if exp.get("split", {}).get("data") == "quintiles" else split, exp)
@@ -2995,6 +3480,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
                   else reproduce_replication(jkp, exp) if exp["kind"] == "replication"
+                  else reproduce_double(double, exp) if exp["kind"] == "double"
                   else reproduce(data, exp))
         for row, n in zip(result["rows"], null_rows(exp)):            # what no effect at all would show
             row["null"] = n["null"]
@@ -3009,6 +3495,16 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "decile minus bottom decile, the market's excess return, and volatility and "
                      "trailing-return readings computed from the daily and monthly files). "
                      "Download the originals from the library; this page does not republish them."),
+            # a second source, for the experiments that read it (SORTS entries with source "osap")
+            "others": [{
+                "text": ("Data: Open Source Asset Pricing, Andrew Y. Chen and Tom Zimmermann, " + OSAP_RELEASE
+                         + ". Cite: Chen and Zimmermann (2022), \"Open source cross-sectional asset pricing\", "
+                         "Critical Finance Review 11(2), 207-264."),
+                "url": OSAP_HOME,
+                "note": ("The Piotroski experiment reads the authors' published monthly returns for the lowest and "
+                         "highest deciles of their Piotroski-score portfolios, equally and value-weighted, which "
+                         "they built from CRSP and Compustat. Download the originals from their data page."),
+            }],
         },
         "tolerances": TOLERANCES, "tolerances_written": TOLERANCES_WRITTEN,
         "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),
@@ -3023,7 +3519,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "turned the way each factor's paper found it paid, and nothing after the files' own months "
                      "is added. Non-commercial use only, under the licence."),
         },
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp),
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
         "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
@@ -3031,6 +3527,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
         "size": {k: size[k] for k in ("months", "ew", "vw")},
         "sorts": sorts,
         "quintiles": quintiles,
+        "double": {k: double[k] for k in ("months", "vw")},
         "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "jkp": jkp,
@@ -3075,6 +3572,8 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     if args.fetch:
         for p in fetch():
+            print("fetched", p.name)
+        for p in fetch_osap():
             print("fetched", p.name)
     if args.build:
         payload = build_payload()

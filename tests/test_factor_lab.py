@@ -145,13 +145,19 @@ def test_the_comparison_with_the_paper_is_computed_not_typed(published):
                  else fl.reproduce_combo(published["split"], published["factors"], exp)
                  if exp["kind"] == "combo"
                  else fl.reproduce_replication(published["jkp"], exp)
-                 if exp["kind"] == "replication" else fl.reproduce(published["momentum"], exp))
+                 if exp["kind"] == "replication"
+                 else fl.reproduce_double(published["double"], exp)
+                 if exp["kind"] == "double" else fl.reproduce(published["momentum"], exp))
         assert (again["within"], again["total"]) == (built["result"]["within"], built["result"]["total"])
         for a, b in zip(again["rows"], built["result"]["rows"]):
             assert a["label"] == b["label"] and a["within"] == b["within"]
             assert a["here"] == pytest.approx(b["here"]) and a["diff"] == pytest.approx(b["here"] - b["paper"])
             assert b["within"] == (abs(b["diff"]) <= b["tolerance"])
-    assert [x["result"]["total"] for x in published["experiments"]] == [14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
+    totals = {x["id"]: x["result"]["total"] for x in published["experiments"]}
+    assert [totals[x["id"]] for x in fl.EXPERIMENTS if x["id"] not in ("size-given-profitability", "piotroski")] == [
+        14, 15, 21, 11, 11, 11, 11, 18, 12, 6, 11, 11, 10, 24, 10]
+    assert totals["size-given-profitability"] == 17
+    assert totals["piotroski"] == 4
     crash = published["experiments"][1]["result"]
     again = fl.reproduce_crashes(published["momentum"], published["market"], fl.EXPERIMENTS[1])
     assert [(c["n"], c["mean"]) for c in again["cells"]] == [(c["n"], pytest.approx(c["mean"])) for c in crash["cells"]]
@@ -163,7 +169,7 @@ def test_every_experiment_shows_its_four_parts():
         assert len(exp["claim"]) > 80 and (exp["paper"].get("doi") or exp["paper"].get("url", "").startswith("https://")) and exp["paper"]["year"]
         assert len(exp["conditions"]) >= 4 and all(len(c) == 2 and c[1] for c in exp["conditions"])
         assert len(exp["open_details"]) >= 1 and exp["reference"]["source"]
-        if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo", "replication"):
+        if exp["kind"] in ("crashes", "factors", "size", "sort", "split", "combo", "replication", "double"):
             figs = exp["reference"]["figures"]
             # at least one figure per group a sort reports, plus the spread between its ends (a
             # decile sort gives 11, a quintile sort 6); every other kind reports ten or more
@@ -172,7 +178,7 @@ def test_every_experiment_shows_its_four_parts():
             assert all(f["tolerance"] > 0 and f["where"] and f["label"] for f in figs)
         else:
             assert set(exp["reference"]["plain"]) == set(exp["reference"]["managed"]) == set(fl.TOLERANCES)
-        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split", "combo", "replication")
+        assert exp["in_the_screener"] and exp["topic"] and exp["kind"] in ("risk-managed", "crashes", "factors", "size", "sort", "split", "combo", "replication", "double")
         if exp["kind"] == "sort":                                       # what the generic layout needs
             g = exp["sort"]
             assert g["data"] in fl.SORTS and len(g["groups"]) == len(fl.SORTS[g["data"]]["columns"])
@@ -244,6 +250,73 @@ def test_the_replication_crisis_tolerances_are_the_ones_committed_before_the_com
         "alpha_in": (0.49, 0.06), "alpha_post": (0.26, 0.06),
         "pos_pre": (82.6, 5.0), "pos_post": (83.3, 5.0), "pos_both": (87.4, 5.0)}
     assert fl.null_within(fl.JKP_REPLICATION) == 0
+
+
+def test_the_size_given_profitability_tolerances_and_rule_are_the_ones_committed_before_the_comparison():
+    """Queue row 4b (2026-10-20): Asness, Frazzini, Israel, Moskowitz & Pedersen (2018), Table 3 Panel A
+    and the SMBQ figure on p. 495. Paper figures and tolerances committed on their own, before the
+    library's 25 size-by-profitability portfolios were first compared with them (plan/factor-lab.md
+    rule 3); by rule 8 a result of no effect matches none of the seventeen. The screener's own rule
+    (research/2026-10-20-size-weight.md section 9, item 1) is carried verbatim and may not move."""
+    exp = fl.SIZE_GIVEN_PROFITABILITY
+    ref = exp["reference"]
+    assert (exp["kind"], ref["start"], ref["end"], ref["tolerances_written"]) == ("double", "196307", "201212", "before")
+    sb, tsb = [0.23, 0.46, 0.54, 0.42, 0.44], [1.21, 3.02, 3.44, 2.82, 2.87]
+    want = {**{f"sb_{p}": (sb[p - 1], 0.15) for p in range(1, 6)}, **{f"t_sb_{p}": (tsb[p - 1], 1.0) for p in range(1, 6)},
+            "smbq": (0.42, 0.15), "t_smbq": (3.18, 1.0), "fourq": (0.254, 0.15),
+            "qj_big": (0.42, 0.15), "t_qj_big": (2.78, 1.0), "qj_small": (0.62, 0.15), "t_qj_small": (4.78, 1.0)}
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == want
+    # the derived figure is the table's own columns: 4 minus Big in each row, averaged
+    four, big = [0.40, 0.56, 0.59, 0.77, 0.78], [0.12, 0.37, 0.34, 0.47, 0.53]
+    assert abs(sum(a - b for a, b in zip(four, big)) / 5 - 0.254) < 1e-9
+    assert fl.null_within(exp) == 0
+    crit = exp["criterion"]
+    assert (crit["start"], crit["end"], crit["unconditional"], crit["min_t"]) == ("196307", "202612", 0.136, 1.5)
+    assert crit["rule"] == (
+        "Refutes the case for the weight if, over 1963-2026, the average of the five is no larger "
+        "than the unconditional Q4 - Q5 spread (0.136% a month, value-weighted, section 2.1), or "
+        "its t-statistic is below 1.5 - i.e. if holding profitability fixed does not strengthen "
+        "size among large companies the way it does across the market.")
+    note = (ROOT / "research" / "2026-10-20-size-weight.md").read_text(encoding="utf-8")
+    flat = " ".join(note.replace("*", "").split())
+    assert " ".join(crit["rule"].split()) in flat
+def test_the_piotroski_tolerances_are_the_ones_committed_before_the_comparison():
+    """Experiment 17 (2026-10-20): Piotroski (2000), Table 3 Panel B, on Chen & Zimmermann's Open
+    Source Asset Pricing portfolios. Written and committed before a single OSAP return had been read
+    (Google Drive was refusing the files at the time). Neither the paper's figures nor the
+    tolerances move to turn a miss into a match; by rule 8 a result of no effect matches none."""
+    exp = next(x for x in fl.EXPERIMENTS if x["id"] == "piotroski")
+    ref = exp["reference"]
+    assert (ref["start"], ref["end"], ref["weighting"], ref["scale"], ref["tolerances_written"]) == (
+        "197601", "199612", "ew", 12, "before")
+    assert "also" not in ref and "relative" not in ref and "excess" not in ref
+    assert {f["key"]: (f["paper"], f["tolerance"]) for f in ref["figures"]} == {
+        "mean1": (7.8, 4.2), "mean2": (31.3, 4.2), "spread": (23.5, 4.2), "t_spread": (5.594, 1.5)}
+    assert 23.5 / 5.594 == pytest.approx(4.2, abs=0.005)            # one standard error of the paper's spread
+    assert fl.null_within(exp) == 0
+    assert fl.SORTS["piotroski"]["source"] == "osap" and fl.SORTS["piotroski"]["columns"] == ["01", "10"]
+
+
+def test_an_open_source_asset_pricing_file_is_read_for_one_signal(tmp_path):
+    """The full-set file holds every signal; only the asked-for one is read, its ports keep their
+    labels, its dates become months, and a missing return is a missing month, not a zero."""
+    body = ("signalname,port,date,ret,signallag,Nlong,Nshort\n"
+            "PS,01,1976-01-31,1.5,2,10,0\nPS,10,1976-01-31,3.25,8,12,0\n"
+            "BM,01,1976-01-31,9.9,1,10,0\nPS,01,1976-02-29,NA,2,10,0\nPS,10,1976-02-29,-0.5,8,12,0\n"
+            "PS,LS,1976-01-31,1.75,,12,10\n")
+    z = tmp_path / "full.zip"
+    with zipfile.ZipFile(z, "w") as f:
+        f.writestr("PredictorAltPorts_DecilesEW.csv", body)
+    got = fl.read_osap(z, "PS")
+    assert got["01"] == {"197601": 1.5} and got["10"] == {"197601": 3.25, "197602": -0.5}
+    assert got["LS"] == {"197601": 1.75} and fl._osap_month("1986m1") == "198601"
+    one = tmp_path / "PS.csv"                                # a single signal's file is wide, one column a port
+    one.write_text(",date,port01,port02,port10,portLS\n1,1976-01-31,2.0,NA,4.0,2.0\n2,1976-02-29,1.0,,0.5,-0.5\n",
+                   encoding="utf-8")
+    assert fl.read_osap(one, "PS") == {"01": {"197601": 2.0, "197602": 1.0}, "10": {"197601": 4.0, "197602": 0.5},
+                                       "LS": {"197601": 2.0, "197602": -0.5}}
+    with pytest.raises(ValueError):
+        fl.read_osap(z, "NoSuchSignal")
 
 
 def test_a_replication_that_mostly_fails_is_published_as_one(published):
@@ -609,7 +682,8 @@ def test_the_page_shows_the_four_parts_and_runs_only_local_code():
     assert "E.splitRun(Z, S)" in html and "E.comboRun(Z, F, S)" in html and "E.jkpRun(J, " in html
     # the page prints the code it ran and warns if its own numbers leave the build's
     assert "E.run.toString()" in html and "E.crashRun.toString()" in html
-    assert html.count("disagrees with the build") == 8             # each kind of experiment checks itself
+    assert "E.doubleRun(Z, S)" in html and "E.criterionResult(Z, C)" in html
+    assert html.count("disagrees with the build") == 9             # each kind of experiment checks itself
     assert "never used to set the screener's own" in html
 
 
@@ -711,6 +785,15 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert 0.15 < after / inside < 0.35
     late = fl.sort_run(ag, "200307", "209912", "vw")["spread"]
     assert abs(late["mean"]) < 0.15 and abs(late["t"]) < 1
+    # 15. "about 4% a year equally weighted in the paper's years - a fifth of the paper's 23.5%, and not
+    #     distinguishable from zero - and by about 13% weighted by market value. Since 1997 neither gap
+    #     can be told from zero"
+    ps = published["sorts"]["piotroski"]
+    ew, vw = (fl.sort_run(ps, "197601", "199612", w)["spread"] for w in ("ew", "vw"))
+    assert 3.5 <= ew["mean"] * 12 < 4.5 and 0.15 < ew["mean"] * 12 / 23.5 < 0.25 and abs(ew["t"]) < 2
+    assert 12.5 <= vw["mean"] * 12 < 13.5 and vw["t"] > 2
+    for w in ("ew", "vw"):
+        assert abs(fl.sort_run(ps, "199701", "209912", w)["spread"]["t"]) < 2, w
 
     # 15. "of the 119 ... 83% ... to 2020, and 76% inside the mega caps alone - close to the paper's 77%.
     #      Since 2014 only 9 of them clear that bar among mega caps, over a period too short to settle it."
@@ -721,6 +804,18 @@ def test_each_takeaway_is_what_the_data_shows(published):
     assert whole["n"] == mega["n"] == 119 and round(whole["rate"]) == 83 and round(mega["rate"]) == 76
     assert late["hits"] == 9 and late["n"] == 119
     assert sum(1 for m in jk["months"] if m >= "201401") < 240
+
+    # 4b. "the fourth size group beat the largest by about 0.24% a month in the paper's years, close to
+    #     the paper's 0.25%, and by 0.17% over 1963-2026 - enough to pass the test set in advance. Since
+    #     2013 below zero, over a period too short to settle it."
+    db = published["double"]
+    x = next(e for e in published["experiments"] if e["id"] == "size-given-profitability")
+    rows = {r["key"]: r for r in x["result"]["rows"]}
+    assert round(rows["fourq"]["here"], 2) == 0.24 and rows["fourq"]["within"] and rows["fourq"]["paper"] == 0.254
+    crit = x["result"]["criterion"]
+    assert round(crit["mean"], 2) == 0.17 and crit["first"] == "196307" and crit["refuted"] is False
+    late = fl.double_run(db, "201301", "209912")
+    assert late["fourq"]["mean"] < 0 and len(late["months"]) < 240
 
 
 def test_the_factors_are_measured_within_each_half_of_the_market():
@@ -868,7 +963,7 @@ def test_the_table_of_results_after_their_papers_is_computed(published):
     built = published["after_the_paper"]
     again = fl.after_the_paper(published["momentum"], published["market"], published["factors"],
                                published["size"], published["sorts"], published["split"],
-                               published["quintiles"], published["jkp"])
+                               published["quintiles"], published["jkp"], published["double"])
     assert [r["label"] for r in again] == [r["label"] for r in built] and len(built) >= 10
     assert {r["experiment"] for r in built} == {x["id"] for x in fl.EXPERIMENTS}
     for a, b in zip(again, built):
@@ -1251,6 +1346,33 @@ def test_the_asset_growth_sort_is_published_as_it_landed(published):
     assert exp["sort"]["accent"] == [9] and exp["reference"]["also"] == "vw"
 
 
+def test_the_piotroski_sort_is_published_as_the_miss_it_is(published):
+    """Experiment 17 (2026-10-20): Piotroski (2000) Table 3 Panel B against Open Source Asset
+    Pricing's equal-weighted end deciles. 1 of 4 within tolerances committed before any return was
+    read. The highest-score end matches; the lowest does not, so the spread is a fifth of the
+    paper's and outside - and the sentence explaining why is checked against the published data."""
+    exp = next(x for x in published["experiments"] if x["id"] == "piotroski")
+    r = exp["result"]
+    assert (r["within"], r["total"], r["null_within"]) == (1, 4, 0)
+    rows = {x["key"]: x for x in r["rows"]}
+    assert rows["mean2"]["within"] and not rows["mean1"]["within"]
+    assert not rows["spread"]["within"] and not rows["t_spread"]["within"]
+    # "30.4% a year against 31.3% ... 26.1% against 7.8% ... 4.3% a year, t 1.5"
+    assert f"{rows['mean2']['here']:.1f}% a year against 31.3%" in exp["verdict_note"]
+    assert f"({rows['mean1']['here']:.1f}% against 7.8%)" in exp["verdict_note"]
+    assert f"{rows['spread']['here']:.1f}% a year, t {rows['t_spread']['here']:.1f}" in exp["verdict_note"]
+    assert 0.15 < rows["spread"]["here"] / rows["spread"]["paper"] < 0.25                    # "a fifth of the paper's"
+    # "weighted by market value, the authors' own cut, the gap was 12.6% a year, t 3.6"
+    vw = fl.sort_run(published["sorts"]["piotroski"], "197601", "199612", "vw")["spread"]
+    assert f"{vw['mean'] * 12:.1f}% a year, t {vw['t']:.1f}" in exp["verdict_note"]
+    assert published["sorts"]["piotroski"]["source"] == "osap"
+    assert published["sorts"]["piotroski"]["months"][0] == "197201"
+    others = published["attribution"]["others"]
+    assert any("Chen" in o["text"] and "Zimmermann" in o["text"] and "Critical Finance Review" in o["text"]
+               and o["url"].startswith("https://www.openassetpricing.com") for o in others)
+    assert "CRSP and Compustat" in json.dumps(exp["conditions"])                 # says who built the portfolios
+
+
 COMBO_SETTINGS = [{"start": "197201", "end": "201107", "group": "big"}, {"start": "201108", "end": "209912", "group": "big"},
                   {"start": "192701", "end": "209912", "group": "all"}]
 
@@ -1360,7 +1482,7 @@ def test_each_experiment_says_when_its_tolerances_were_written(published):
     assert "These tolerances were written before the comparison was first run" not in html
     assert "They were set after the first comparison was seen" not in html
     kinds = {x["kind"] for x in fl.EXPERIMENTS}
-    assert html.count("${tolNote(X)}</p>") == len(kinds) == 8                  # every layout, one function
+    assert html.count("${tolNote(X)}</p>") == len(kinds) == 9                  # every layout, one function
     sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
     with sync_api.sync_playwright() as pw:
         browser, page, errors = _open(pw)
@@ -1403,7 +1525,7 @@ def test_what_a_result_of_no_effect_would_match_is_published_beside_every_verdic
         "risk-managed-momentum": 7, "momentum-crashes": 7, "five-factors": 8, "size-effect": 1,
         "low-volatility": 6, "earnings-yield": 1, "market-beta": 9, "big-and-small": 0, "largest-fifth": 0,
         "profitability": 3, "cash-flow-yield": 6, "accruals": 4, "value-and-momentum": 3, "asset-growth": 6,
-        "replication-crisis": 0}
+        "replication-crisis": 0, "size-given-profitability": 0, "piotroski": 0}
     # every sort whose paper claims an effect: the null misses the spread between the ends
     for exp in fl.EXPERIMENTS:
         if exp["kind"] == "sort" and exp["id"] != "market-beta":                      # beta's claim is "no effect"
@@ -1511,7 +1633,7 @@ def test_a_chart_can_be_read_month_by_month_from_the_keyboard():
             for exp in fl.EXPERIMENTS:
                 _goto(page, exp["id"])
                 labels = page.evaluate("[...document.querySelectorAll('.chart, .chart svg')].map(e => e.getAttribute('aria-label') || '')")
-                if exp["kind"] not in ("sort", "split"):                         # their tables hold the bars' figures
+                if exp["kind"] not in ("sort", "split", "double"):               # their tables hold the bars' figures
                     assert not any("table below" in l for l in labels), (exp["id"], labels)
                 if exp["kind"] not in ("risk-managed", "crashes", "factors", "combo"):
                     continue
@@ -1579,6 +1701,7 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
         "  if (X.kind === 'split') return E.compareSplit(D[(X.split || {}).data || 'split'], R);\n"
         "  if (X.kind === 'combo') return E.compareCombo(D.split, D.factors, R);\n"
         "  if (X.kind === 'replication') return E.compareReplication(D.jkp, R);\n"
+        "  if (X.kind === 'double') return E.compareDouble(D.double, R);\n"
         "  throw new Error('no comparison for ' + X.kind); };\n"
         "console.log(JSON.stringify(D.experiments.map(X => rows(X).map(r => [r.here, r.within]))));\n",
         encoding="utf-8")
@@ -1594,7 +1717,7 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
             assert within == row["within"], (built["id"], row["label"])
     html = PAGE.read_text(encoding="utf-8")
     for fn in ("E.compareCrashes(", "E.compareFactors(", "E.compareSize(", "E.compareSort(", "E.compareSplit(", "E.compareCombo(",
-               "E.compareReplication("):
+               "E.compareReplication(", "E.compareDouble("):
         assert fn in html, fn                                                       # the page fills its table from them
     sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
     with sync_api.sync_playwright() as pw:
@@ -1605,11 +1728,12 @@ def test_the_browser_compares_every_experiment_with_its_paper_as_the_build_does(
                 assert page.evaluate("document.getElementById('x-mismatch').hidden") is True, built["id"]
             # a build whose one published row has drifted from the page's arithmetic is called out
             tamper = ("Object.defineProperty(window, 'LAB_DATA', { configurable: true, get() { return this.__d; },"
-                      " set(v) { v.experiments.forEach(x => { if (['sort', 'split', 'combo', 'replication'].indexOf(x.kind) >= 0)"
+                      " set(v) { v.experiments.forEach(x => { if (['sort', 'split', 'combo', 'replication', 'double'].indexOf(x.kind) >= 0)"
                       " x.result.rows[0].here += 0.5; }); this.__d = v; } });")
             page2 = browser.new_page(viewport={"width": 1200, "height": 900})
             page2.add_init_script(tamper)
-            for exp_id in ("profitability", "largest-fifth", "value-and-momentum", "replication-crisis"):
+            for exp_id in ("profitability", "largest-fifth", "value-and-momentum", "replication-crisis",
+                           "size-given-profitability"):
                 _goto(page2, exp_id)
                 assert page2.evaluate("document.getElementById('x-mismatch').hidden") is False, exp_id
                 assert "disagrees with the build" in page2.inner_text("#x-mismatch")
@@ -1727,6 +1851,107 @@ def test_the_153_factors_can_be_rerun_among_the_largest_companies():
                 page.click("#c-reset")
                 assert page.evaluate("window.LAB_STATE().result.rate") == pytest.approx(paper)
                 assert "CC BY-NC 4.0" in page.inner_text("#foot")
+                assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+                assert errors == []
+            finally:
+                browser.close()
+
+
+# --------------------------------------------------------------------------- queue row 4b: size, given profitability
+def test_size_is_measured_inside_each_profitability_fifth():
+    """Column 5 x size + profitability: the smallest (or fourth) size group minus the largest, inside one
+    profitability fifth, month by month; the five rows averaged equally each month; and inside one size
+    group the most profitable fifth minus the least."""
+    months = [f"2000{m:02d}" for m in range(1, 13)]
+    vw = []
+    for c in range(25):
+        s, p = divmod(c, 5)
+        vw.append([1.0 + 0.1 * (4 - s) + 0.01 * p + (0.5 if (k % 2 and s == 3) else 0.0) for k in range(12)])
+    data = {"months": months, "vw": vw}
+    r = fl.double_run(data, "200001", "200012")
+    assert len(r["months"]) == 12 and len(r["cells"]) == 25
+    for row in r["rows"]:
+        assert row["small_big"]["mean"] == pytest.approx(0.4)                     # 0.1 a size step, four steps
+        assert row["four_big"]["mean"] == pytest.approx(0.1 + 0.25)               # one step, plus the odd months' 0.5
+    assert r["smbq"]["mean"] == pytest.approx(0.4) and r["fourq"]["mean"] == pytest.approx(0.35)
+    assert r["trait_big"]["mean"] == pytest.approx(0.04) and r["trait_small"]["mean"] == pytest.approx(0.04)
+    crit = {"start": "200001", "end": "200012", "unconditional": 0.136, "min_t": 1.5}
+    res = fl.criterion_result(data, crit)
+    assert res["mean"] == pytest.approx(0.35) and res["refuted"] is False and res["months"] == 12
+    assert fl.criterion_result(data, {**crit, "unconditional": 0.5})["refuted"] is True      # "no larger than"
+    assert fl.criterion_result(data, {**crit, "min_t": 99})["refuted"] is True
+
+
+@pytest.mark.skipif(NODE is None, reason="node not installed")
+def test_the_browser_measures_size_inside_profitability_as_the_reference_does(published, tmp_path):
+    settings = [{"start": "196307", "end": "201212"}, {"start": "201301", "end": "209912"}, {"start": "198101", "end": "209912"}]
+    x = next(e for e in published["experiments"] if e["id"] == "size-given-profitability")
+    script = tmp_path / "double.js"
+    script.write_text(
+        "const E = require(process.argv[2]);\n"
+        "const text = require('fs').readFileSync(process.argv[3], 'utf8');\n"
+        "const D = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));\n"
+        "const X = D.experiments.find(e => e.id === 'size-given-profitability');\n"
+        "console.log(JSON.stringify({ runs: JSON.parse(process.argv[4]).map(o => E.doubleRun(D.double, o)),\n"
+        "  criterion: E.criterionResult(D.double, X.criterion) }));\n", encoding="utf-8")
+    res = subprocess.run([NODE, str(script), str(ENGINE), str(fl.OUT), json.dumps(settings)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 0, res.stderr
+    got = json.loads(res.stdout)
+    for o, js in zip(settings, got["runs"]):
+        py = fl.double_run(published["double"], **o)
+        assert js["months"] == py["months"] and len(py["months"]) > 100
+        pairs = list(zip(js["cells"], py["cells"])) + [(js[k], py[k]) for k in ("smbq", "fourq", "trait_big", "trait_small")]
+        pairs += [(a[k], b[k]) for a, b in zip(js["rows"], py["rows"]) for k in ("small_big", "four_big")]
+        for a, b in pairs:
+            for k in ("mean", "std", "t"):
+                assert a[k] == pytest.approx(b[k], rel=1e-9, abs=1e-12), (o, k)
+    built = x["result"]["criterion"]
+    assert built == fl.criterion_result(published["double"], fl.SIZE_GIVEN_PROFITABILITY["criterion"])
+    for k in ("mean", "t"):
+        assert got["criterion"][k] == pytest.approx(built[k], abs=1e-12)
+    assert (got["criterion"]["refuted"], got["criterion"]["months"]) == (built["refuted"], built["months"])
+
+
+def test_the_note_records_what_its_rule_said(published):
+    """The research note that wrote the rule carries a dated addendum with the reading the build
+    publishes - the same two figures and the same verdict - so the note cannot say one thing and the
+    page another."""
+    x = next(e for e in published["experiments"] if e["id"] == "size-given-profitability")
+    crit = x["result"]["criterion"]
+    note = (ROOT / "research" / "2026-10-20-size-weight.md").read_text(encoding="utf-8")
+    add = note[note.index("## 11. Addendum"):]
+    assert f"{crit['mean']:.3f}" in add and f"{crit['t']:.2f}" in add
+    assert ("**Not refuted**" in add) is (crit["refuted"] is False)
+    assert ("**Proposal status: OPEN**" in add) is crit["refuted"]
+
+
+def test_size_given_profitability_can_be_rerun_and_shows_its_rule(published):
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    rule = fl.SIZE_GIVEN_PROFITABILITY["criterion"]["rule"]
+    refuted = next(e for e in published["experiments"] if e["id"] == "size-given-profitability")["result"]["criterion"]["refuted"]
+    reading = "Refuted under the note's rule" if refuted else "Not refuted under the note's rule"
+    with sync_api.sync_playwright() as pw:
+        for width in (1440, 375):
+            browser, page, errors = _open(pw, width=width)
+            try:
+                _goto(page, "size-given-profitability")
+                assert page.evaluate("document.getElementById('x-mismatch').hidden") is True
+                shown = page.inner_text("section[aria-labelledby='x-test']").replace("–", "-").replace("−", "-")
+                assert rule in shown                                               # the page's dashes typeset, the words not
+                assert reading in page.inner_text("#x-test-verdict")
+                assert page.evaluate("document.querySelectorAll('#t-live tbody tr').length") == 6
+                assert page.evaluate("document.querySelectorAll('#t-grid tbody tr').length") == 5
+                assert page.evaluate("document.querySelectorAll('#t-ref tbody tr').length") == 17
+                assert page.evaluate("document.querySelectorAll('#ch-bars rect').length") == 10
+                paper = page.evaluate("window.LAB_STATE().result.fourq.mean")
+                page.click("#c-preset button[data-i='1']")                         # after the paper
+                assert page.evaluate("location.hash").startswith("#size-given-profitability?start=201301")
+                assert page.evaluate("window.LAB_STATE().result.fourq.mean") < 0 < paper
+                assert "trailed the largest" in page.inner_text("#x-read")
+                assert reading in page.inner_text("#x-test-verdict")              # the controls do not move the rule
+                page.click("#c-reset")
+                assert page.evaluate("window.LAB_STATE().result.fourq.mean") == pytest.approx(paper)
                 assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
                 assert errors == []
             finally:
