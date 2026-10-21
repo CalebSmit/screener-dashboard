@@ -433,7 +433,13 @@ documented combined signal than the status quo does.
 What should change is that the design is written down and held in place. The proposal, for a later
 session to decide (do not build it in the session that reads this note first):
 
-**Proposal status: OPEN** - no weight or metric change; state the bank P/B-ROE pairing as the design and guard it: (1) a paragraph in `run_screener.build_screener_overview()`'s "Bank-specific scoring" section saying a bank's ROE is its earnings yield times its P/B, so its Valuation and Quality scores are read together - the 44 points rank it on ROE relative to P/B (to first order, its earnings yield) and on equity per dollar of assets, with no net weight on P/B by itself - registered in `claims.py` as `overview.bank_pb_roe_identity`; (2) the two table cells calling P/B and ROE "THE key" bank metrics reworded to say each is read against the other; (3) `tests/test_bank_pb_roe_identity.py`, in that claim's `checked_by`, failing if the first-order net loading on log P/B computed from `config.yaml` (factor weights x bank weights: -P/B + ROE + ROA, in composite points; 0.0 today) leaves +-1.5 points, or if on the published payload log ROE regressed on log earnings yield and log P/B has R-squared below 0.90 across the bank-like stocks (0.978 today); (4) a `config.yaml` comment above `bank_metric_weights` naming that constraint and this note.
+**Proposal status: ACCEPTED 2026-10-21** (13:00 session, which did not write this note) - built as
+specified in (1), (2) and (4), with **one change to the guard in (3) that the review measured**: the
+failing condition is the *measured* loading at criterion (b)'s bar, not the first-order figure at
++-1.5 points. See section 11 for the decision and what it added. Original proposal, as written:
+
+*As proposed (status line rewritten above; the brief's detector is anchored to the line start, so
+this copy is prose):* no weight or metric change; state the bank P/B-ROE pairing as the design and guard it: (1) a paragraph in `run_screener.build_screener_overview()`'s "Bank-specific scoring" section saying a bank's ROE is its earnings yield times its P/B, so its Valuation and Quality scores are read together - the 44 points rank it on ROE relative to P/B (to first order, its earnings yield) and on equity per dollar of assets, with no net weight on P/B by itself - registered in `claims.py` as `overview.bank_pb_roe_identity`; (2) the two table cells calling P/B and ROE "THE key" bank metrics reworded to say each is read against the other; (3) `tests/test_bank_pb_roe_identity.py`, in that claim's `checked_by`, failing if the first-order net loading on log P/B computed from `config.yaml` (factor weights x bank weights: -P/B + ROE + ROA, in composite points; 0.0 today) leaves +-1.5 points, or if on the published payload log ROE regressed on log earnings yield and log P/B has R-squared below 0.90 across the bank-like stocks (0.978 today); (4) a `config.yaml` comment above `bank_metric_weights` naming that constraint and this note.
 
 **Pre-flight** (measured on run `7c12b43a07b6`; the deciding session should re-measure on its own run):
 
@@ -502,3 +508,98 @@ python research/measurements/2026-10-20-bank-overlap-rescore.py
 Both read the newest full run under the main checkout's `runs/` (gitignored, so a worktree reads the
 main checkout's) with `run_context.latest_run_dir`, and write the JSON beside themselves. The rescore
 script stops unless its baseline reproduces every published rank.
+
+---
+
+## 11. The decision (2026-10-21, 13:00 session - not this note's author)
+
+**ACCEPTED.** The no-change conclusion is confirmed, the two refutation criteria hold on a
+different run, and items (1), (2) and (4) shipped as specified. **The guard in item (3) was
+changed**, because the review measured it and found it could not see the thing it was for.
+
+### 11.1 Re-measured on a different run
+
+Everything above was measured on run `7c12b43a07b6` (2026-10-20 13:21). The deciding session
+re-ran both scripts on run **`4dc4acf1d780`** (2026-10-21 02:00 - the one the live site was
+serving), whose baseline also reproduces **501 of 501** published ranks:
+
+| | Note's run | This run |
+|---|---|---|
+| **(a)** R-squared, log ROE on log E/P and log P/B | 0.978 | **0.978** |
+| **(b)** measured loading on P/B's rank | -0.067 | **-0.069** |
+| measured loading on E/P's rank (criterion (b)'s bar is half of it) | +0.284 | **+0.283** |
+| S0 against the P/B-ROE (Wilcox) residual | -0.890 | **-0.892** |
+| C1 / C2 / C3 / C4 / C5 / C6 against it | -0.85 / -0.72 / -0.84 / -0.79 / -0.84 / -0.88 | **-0.848 / -0.724 / -0.839 / -0.796 / -0.838 / -0.882** |
+
+Every figure reproduces to the third decimal, and the status quo is still the closest of the seven
+constructions to the combined signal the literature documents. Nothing in sections 1-10 needed
+correcting; the committed JSONs are refreshed to this run.
+
+### 11.2 What the review added: the proposed guard was blind to C3
+
+The proposal specified **one** failing condition - the first-order net loading on log P/B computed
+from `config.yaml` (`-pb_ratio + roe + roa`, in composite points; 0.0 today), outside +-1.5 points.
+That is exact algebra on the three log coordinates, but **the engine ranks percentiles**, so the
+review measured both quantities for every candidate
+(`research/measurements/2026-10-21-bank-pb-roe-guard-review.py`, on run `4dc4acf1d780`):
+
+| Candidate | First-order net on log P/B | Proposal's guard | Measured loading on P/B's rank | Criterion (b) |
+|---|---|---|---|---|
+| **S0 status quo** | 0.0 | passes | **-0.069** | holds |
+| C1 drop ROE | -4.7 | FAILS | -0.211 | REFUTED |
+| C2 drop P/B | +13.2 | FAILS | +0.216 | holds |
+| **C3 ROE's 35 -> ROA** | **0.0** | **passes** | **-0.156** | **REFUTED** |
+| C4 drop ROE and ROA | -13.2 | FAILS | -0.308 | REFUTED |
+| P1 ROE 35 -> 25, equity ratio 15 -> 25 | -2.2 | FAILS | -0.119 | holds |
+
+**C3 is the hole, and it is not a corner case - it is the change section 8's own refutation
+criterion (c) names as "the mildest route measured" to a deliberate P/B tilt.** It reads exactly
+0.00 first-order, identically to the status quo, and it must: ROE and ROA both enter log P/B with
+coefficient +1, so moving weight between them cannot move the first-order figure *at all*. On the
+scores the engine produces, its loading on P/B's rank is **-0.156 against the status quo's -0.069 -
+2.3 times as large, and past criterion (b)'s own bar of 0.141.** The mechanism is that ROA also
+carries log B/A, which correlates **-0.34** with log P/B across the bank set. So the proposal's
+guard would have let a reweight through while the page went on saying "no net weight on P/B by
+itself" and the measurement in section 4 said otherwise.
+
+**P1 shows the same guard erring the other way:** a reweight nobody proposed trips the +-1.5 band
+at -2.2 points while leaving the page's sentence measurably true. Fitted across the candidates,
++-1.5 points is about **+-0.03** on the measured loading - roughly a fifth of criterion (b)'s bar.
+So the band was both too loose where it mattered and too tight where it did not.
+
+### 11.3 What shipped instead
+
+`tests/test_bank_pb_roe_identity.py` (11 tests, in the data loop's publish gate through
+`claims.py`'s `overview.bank_pb_roe_identity`):
+
+1. **The identity**, criterion (a): R-squared of log ROE on log E/P and log P/B across the
+   bank-like set of the committed payload, floor **0.90**, plus both coefficients within 0.2 of 1.
+2. **No net P/B position, criterion (b) - the failing condition**: the Valuation + Quality block's
+   loading on P/B's percentile rank must stay under **half** of its loading on earnings yield's.
+   This is the test C3 trips.
+3. **The first-order check is kept as well**, at a quarter of the E/P net (5.5 points today)
+   rather than +-1.5 - a band wide enough not to fire on a reweight that leaves the claim true,
+   and narrow enough that the words "no net weight" cannot survive it.
+4. **The page's printed arithmetic is held to `config.yaml`.** The whole section is generated from
+   the weights, so the three net-points figures cannot go stale - and if a reweight ever moves the
+   block off neutral, the generated sentence **states the measured tilt instead** of claiming
+   neutrality. A false page is the failure mode a sentence-with-a-constant has; this one cannot
+   have it.
+5. The two "THE key" cells, the `config.yaml` CONSTRAINT comment, the note's own status line and
+   the review measurement's committed JSON are each held in place by a test.
+
+The general lesson, which is CLAUDE.md 0.11's: **a claim whose check tests a proxy instead of the
+assertion is an unchecked claim.** The first-order figure is the page's *explanation*; the measured
+loading is the page's *claim*. Guard the claim.
+
+### 11.4 What was not done, and why
+
+- **No weight, metric, threshold or input changed**, so **0 of 501** composites move and the
+  payload's numbers are byte-identical. Only the methodology text changes.
+- **The three questions under section 8's "Next" stay open** - the bank-like peer group
+  (9 of the 10 best-ranked bank-like stocks are insurers), "so a bank is compared with banks"
+  being loose for earnings yield, and the one-off-charge note's extra weight on a bank drilldown.
+  None is part of the overlap question and each needs its own session.
+- **Criterion (c) is untouched.** Reopening the weights still requires a note that has read
+  Penman & Reggiani and the bank-specific cross-sections in full. This decision makes the current
+  position explicit; it does not endorse it as the only defensible one.

@@ -358,6 +358,87 @@ def build_screener_overview(cfg: dict) -> str:
             "company with two listed share classes appears twice in the ranking."
         )
 
+    # The bank section's P/B-ROE paragraph. Every figure in it is computed from the
+    # weights below rather than written out, so a reweight cannot leave the page
+    # claiming an exposure the weights no longer produce
+    # (research/2026-10-20-bank-quality-valuation-overlap.md section 8, decided
+    # 2026-10-21). A bank's ROE is its earnings yield times its P/B, so these four
+    # metrics live on three independent coordinates - log E/P, log P/B, log B/A -
+    # and the composite points land on them like this:
+    #   log E/P  <- earnings_yield + roe + roa
+    #   log P/B  <- -pb_ratio      + roe + roa      (P/B is scored lower-is-better)
+    #   log B/A  <-                       roa + equity_ratio
+    _bank_pts = {}
+    for _cat in ("valuation", "quality"):
+        _tot = sum(w for w in (bmw.get(_cat, {}) or {}).values() if w)
+        for _metric, _w in (bmw.get(_cat, {}) or {}).items():
+            _bank_pts[_metric] = (fw.get(_cat, 0) * _w / _tot) if (_w and _tot) else 0.0
+    _bp = lambda k: _bank_pts.get(k, 0.0)  # noqa: E731
+    bank_net_ep = _bp("earnings_yield") + _bp("roe") + _bp("roa")
+    bank_net_pb = -_bp("pb_ratio") + _bp("roe") + _bp("roa")
+    bank_net_ba = _bp("roa") + _bp("equity_ratio")
+
+    # "No net weight on P/B by itself" is a claim about these numbers, so the page states
+    # whichever of the two is true of the weights it was generated from. A quarter of the
+    # earnings-yield loading is the pre-registered line (section 8's criterion (b) measured
+    # on the scores is the other half of the guard, in tests/test_bank_pb_roe_identity.py).
+    _bank_pb_is_neutral = abs(bank_net_pb) <= 0.25 * bank_net_ep if bank_net_ep else False
+    _bank_pb_clause = (
+        "**no net weight on price-to-book by itself**"
+        if _bank_pb_is_neutral else
+        f"a deliberate net **{abs(bank_net_pb):.1f} points {'against' if bank_net_pb < 0 else 'on'} "
+        f"price-to-book**"
+    )
+    bank_pb_roe_text = (
+        "A bank's return on equity is its earnings yield multiplied by its price-to-book: "
+        "net income / equity = (net income / market value) x (market value / equity). All three "
+        "numbers come from the same two statements, so the identity is accounting, not a "
+        "correlation - it is inexact only because ROE divides by the *average* of total equity "
+        "now and a year ago while P/B divides by *ending common* equity (preferred stock is a "
+        "median 2.6% of equity across the 46 bank-like stocks on the run this page was built "
+        "from).\n\n"
+        "That makes the bank Valuation and Quality tables **one reading of the same four "
+        "amounts** - earnings, market value, book equity, assets - and not two independent "
+        "verdicts. Dividing out scale leaves three independent coordinates: earnings yield "
+        "(E/P), price-to-book (P/B) and equity per dollar of assets (B/A). ROE sits on the "
+        "first two (log ROE = log E/P + log P/B) and ROA on all three. Adding up each metric's "
+        "composite points with its direction, the Valuation + Quality block carries:\n\n"
+        f"| Coordinate | Net composite points |\n|---|---|\n"
+        f"| Earnings yield (E/P) | **+{bank_net_ep:.1f}** |\n"
+        f"| Price-to-book (P/B) | **{'0.0' if abs(bank_net_pb) < 0.05 else format(bank_net_pb, '+.1f')}** |\n"
+        f"| Equity per dollar of assets (B/A) | **+{bank_net_ba:.1f}** |\n\n"
+        f"So the {_bp('pb_ratio') + _bp('earnings_yield') + _bp('roe') + _bp('roa') + _bp('equity_ratio'):.1f} "
+        f"points those five metrics carry rank a bank on **its ROE relative to its price-to-book** "
+        f"- which, by the identity above, is its earnings yield - and on how much equity backs each "
+        f"dollar of assets, with {_bank_pb_clause}. P/B's "
+        f"{_bp('pb_ratio'):.1f} points are offset by ROE's {_bp('roe'):.1f} and ROA's "
+        f"{_bp('roa'):.1f}, because a bank that earns well on its book trades at a higher "
+        "multiple of it.\n\n"
+        "**This is the design, and it is deliberate.** Read alone, each category would mislead: "
+        "the cheapest big-bank book on this run belongs to the bank earning least on it, which "
+        "scores high on Valuation and low on Quality *for the same reason*. Read together they "
+        "say what the people who value banks for a living say. Damodaran derives the justified "
+        "multiple as P/BV = (ROE - g) / (r - g) and values a bank by regressing P/B on ROE across "
+        "its peers (*Valuing Financial Service Firms*, 2009, pp. 30-33); Wilcox's P/B-ROE model "
+        "(*Financial Analysts Journal*, 1984) is the same line; Nissim finds conditioning P/B on "
+        "ROE is the standard in banking and insurance and improves valuation accuracy (*Review of "
+        "Accounting Studies* 18, 2013, pp. 326, 338); Mercer Capital's bank-valuation deck reads a "
+        "persistently low price-to-tangible-book as depressed profitability rather than as "
+        "cheapness; and MSCI's Diversified Multiple-Factor indexes add book-to-price, earnings "
+        "yield and profitability into one score with no carve-out for financials. Removing the "
+        "\"overlap\" does not remove a double count - it removes the conditioning, and turns the "
+        "bank set into an unconditional bet on cheap book (or, if P/B goes instead, on expensive "
+        "book). Six such alternatives were rescored on a published run and none came closer to "
+        "the P/B-against-ROE reading than the weights above.\n\n"
+        "The figures in this section are computed from `config.yaml`, and "
+        "`tests/test_bank_pb_roe_identity.py` fails if a reweight moves the block onto a net "
+        "price-to-book position, or if the identity stops holding on the published payload. "
+        "Detail: `research/2026-10-20-bank-quality-valuation-overlap.md`, reviewed and accepted "
+        "2026-10-21 (`METHODOLOGY_CHANGELOG.md`). No return, information-coefficient or backtest "
+        "figure stands behind any of it: it describes what the weights *are*, and that what they "
+        "are matches documented practice."
+    )
+
     # Step 5's description of what happens *after* the weighted average.
     # Read from config rather than written out, so the page cannot drift from
     # the rule the engine applies (rule 10's lesson). Until 2026-10-07 Step 5
@@ -797,6 +878,10 @@ A Financials stock in a sub-industry on neither list defaults to the bank set �
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
+### A bank's Valuation and Quality scores are one reading, not two
+
+{bank_pb_roe_text}
+
 All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
 
 ---
@@ -1220,7 +1305,7 @@ _VAL_DESCRIPTIONS = {
     "fcf_yield": "Free cash flow (operating cash flow minus capital expenditures) divided by enterprise value. How much cash the business generates per dollar of total value. Higher = cheaper.",
     "earnings_yield": "LTM Net Income divided by Market Cap (inverse of P/E). Uses LTM for consistency with other flow metrics. Higher = cheaper.",
     "ev_sales": "Enterprise value divided by revenue. Useful for comparing companies with different margin profiles. Lower = cheaper.",
-    "pb_ratio": "Market value divided by common shareholders' equity at the balance-sheet date. THE key bank valuation metric — banks' assets are mostly financial instruments carried near fair value. Lower = cheaper.",
+    "pb_ratio": "Market value divided by common shareholders' equity at the balance-sheet date. A bank's balance sheet is mostly financial instruments carried near fair value, so book value means something here that it does not elsewhere. Lower = cheaper — but read against ROE in Quality, never on its own: a bank's ROE is its earnings yield times its P/B, so the two tables are one reading (see \"A bank's Valuation and Quality scores are one reading, not two\").",
 }
 
 _QUAL_DESCRIPTIONS = {
@@ -1232,7 +1317,7 @@ _QUAL_DESCRIPTIONS = {
     "accruals": "(Net Income - Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996).",
     "operating_leverage": "Degree of Operating Leverage (%Δ EBIT / %Δ Revenue), one year. Recorded but given no weight since 2026-10-09 - see 'Why not operating leverage?'. Banks skip this metric.",
     "beneish_m_score": "8-variable earnings manipulation detection model (Beneish 1999). More negative = lower manipulation risk. Requires ≥5 of 8 variables. Not computed for Financials stocks (Beneish's sample excluded financial firms).",
-    "roe": "Return on equity — net income over the last four quarters divided by average shareholders' equity (now and a year earlier). The key bank profitability metric. Higher = better.",
+    "roe": "Return on equity — net income over the last four quarters divided by average shareholders' equity (now and a year earlier). Higher = better — but read against P/B in Valuation, never on its own: ROE is earnings yield times P/B, so a high ROE normally comes with a dear book (see \"A bank's Valuation and Quality scores are one reading, not two\").",
     "roa": "Return on assets — net income over the last four quarters divided by average total assets (now and a year earlier). Key bank efficiency metric. Higher = better.",
     "equity_ratio": "Total equity divided by total assets. Solvency measure — higher = more capital = safer.",
 }

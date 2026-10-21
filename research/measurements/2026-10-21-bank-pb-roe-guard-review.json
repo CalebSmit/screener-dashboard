@@ -1,0 +1,120 @@
+{
+ "run": "4dc4acf1d780",
+ "run_started": "2026-10-21T02:00:03.974680",
+ "note_measured_run": "7c12b43a07b6 (2026-10-20T13:21)",
+ "bank_like": 46,
+ "baseline reproduces the published ranking": "501 of 501",
+ "1_refutation_criteria": {
+  "(a) R2 of log ROE on log E/P and log P/B": 0.978,
+  "(a) bar": 0.9,
+  "(a) verdict": "holds",
+  "(a) coefficients on log E/P, log P/B": [
+   0.994,
+   1.025
+  ],
+  "(b) measured loading on P/B rank": -0.0686,
+  "(b) measured loading on E/P rank": 0.2825,
+  "(b) bar: |P/B| < half of E/P": 0.1413,
+  "(b) verdict": "holds"
+ },
+ "2_can_the_guard_see_it": {
+  "S0_status_quo": {
+   "first-order points (E/P, P/B, B/A)": [
+    22.0,
+    0.0,
+    8.8
+   ],
+   "first-order net on log P/B": 0.0,
+   "measured loading on P/B rank": -0.0686,
+   "measured loading on E/P rank": 0.2825,
+   "proposal's guard (|first-order| <= 1.5)": "passes",
+   "criterion (b) on the measured loading": "holds"
+  },
+  "C1_drop_roe": {
+   "first-order points (E/P, P/B, B/A)": [
+    17.26,
+    -4.74,
+    13.54
+   ],
+   "first-order net on log P/B": -4.74,
+   "measured loading on P/B rank": -0.2108,
+   "measured loading on E/P rank": 0.2129,
+   "proposal's guard (|first-order| <= 1.5)": "FAILS",
+   "criterion (b) on the measured loading": "REFUTED"
+  },
+  "C2_drop_pb": {
+   "first-order points (E/P, P/B, B/A)": [
+    35.2,
+    13.2,
+    8.8
+   ],
+   "first-order net on log P/B": 13.2,
+   "measured loading on P/B rank": 0.2158,
+   "measured loading on E/P rank": 0.5012,
+   "proposal's guard (|first-order| <= 1.5)": "FAILS",
+   "criterion (b) on the measured loading": "holds"
+  },
+  "C3_roe_to_roa": {
+   "first-order points (E/P, P/B, B/A)": [
+    22.0,
+    0.0,
+    16.5
+   ],
+   "first-order net on log P/B": 0.0,
+   "measured loading on P/B rank": -0.1564,
+   "measured loading on E/P rank": 0.2361,
+   "proposal's guard (|first-order| <= 1.5)": "passes",
+   "criterion (b) on the measured loading": "REFUTED"
+  },
+  "C4_drop_roe_roa": {
+   "first-order points (E/P, P/B, B/A)": [
+    8.8,
+    -13.2,
+    8.25
+   ],
+   "first-order net on log P/B": -13.2,
+   "measured loading on P/B rank": -0.3079,
+   "measured loading on E/P rank": 0.1716,
+   "proposal's guard (|first-order| <= 1.5)": "FAILS",
+   "criterion (b) on the measured loading": "REFUTED"
+  },
+  "P1_roe_35_to_25_equity_ratio_25": {
+   "first-order points (E/P, P/B, B/A)": [
+    19.8,
+    -2.2,
+    11.0
+   ],
+   "first-order net on log P/B": -2.2,
+   "measured loading on P/B rank": -0.1192,
+   "measured loading on E/P rank": 0.2559,
+   "proposal's guard (|first-order| <= 1.5)": "FAILS",
+   "criterion (b) on the measured loading": "holds"
+  }
+ },
+ "2b_the_blind_spot": {
+  "what": "C3 (ROE's 35 points moved to ROA) and S0 both read 0.00 first-order, because ROE and ROA enter log P/B with the same +1 coefficient - so moving weight between them cannot move the first-order figure at all. The engine ranks percentiles, and ROA also carries log B/A, which is correlated with log P/B across the bank set, so the measured loading does move.",
+  "S0 first-order / measured": [
+   0.0,
+   -0.0686
+  ],
+  "C3 first-order / measured": [
+   0.0,
+   -0.1564
+  ],
+  "C3 measured / S0 measured": 2.28,
+  "corr(log P/B, log B/A) across the bank set": -0.341,
+  "conclusion": "a weight-only first-order guard cannot see C3, which the note itself names as the mildest route to a deliberate P/B tilt. The guard must measure the loading the published scores produce, not only the algebra on the weights."
+ },
+ "3_what_band_matches_1.5_points": {
+  "measured loading ~ a + b x first-order points": {
+   "b per point": 0.0205,
+   "a": -0.07
+  },
+  "+-1.5 points maps to a measured loading of": [
+   -0.1007,
+   -0.0393
+  ],
+  "half of E/P's loading (criterion b's own bar)": 0.1413,
+  "reading": "the proposal's +-1.5 points is about +-0.03 on the measured loading, far tighter than criterion (b)'s own bar of half of E/P's loading. So keep the first-order check AND add a measured one at criterion (b)'s bar, which is the sentence's own standard and is the one C3 trips."
+ }
+}

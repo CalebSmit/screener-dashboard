@@ -1,135 +1,139 @@
 {
- "run": "7c12b43a07b6",
- "run_started": "2026-10-20T13:21:50.724316",
+ "run": "4dc4acf1d780",
+ "run_started": "2026-10-21T02:00:03.974680",
  "baseline reproduces the published ranking": "501 of 501",
  "bank_like": 46,
  "wilcox line (log P/B = a + b log ROE), this run": {
   "slope b": 0.842,
-  "intercept a": 2.294,
+  "intercept a": 2.295,
   "R2": 0.396,
-  "spearman(residual, earnings yield)": -0.929
+  "spearman(residual, earnings yield)": -0.927
  },
  "S0_status_quo": {
   "bank-like in top 25": 5,
   "bank-like in top 100": 12,
   "best 10 bank-like": {
-   "EG": 5,
+   "EG": 6,
    "ALL": 12,
-   "TRV": 17,
-   "AIZ": 18,
-   "ACGL": 22,
-   "HIG": 30,
-   "GL": 44,
+   "AIZ": 17,
+   "TRV": 20,
+   "ACGL": 20,
+   "HIG": 29,
+   "GL": 43,
+   "CB": 56,
    "CINF": 57,
-   "CB": 59,
    "MTB": 72
   },
   "net exposure": {
    "block on ranks: coef per pct-pt (E/P, P/B, B/A)": [
-    0.284,
-    -0.067,
-    0.22
+    0.283,
+    -0.069,
+    0.219
    ],
    "R2": 0.908,
-   "spearman(block, P/B)": -0.52,
-   "spearman(block, earnings yield)": 0.835,
-   "spearman(block, Wilcox residual)": -0.89,
-   "spearman(valuation, quality), banks": -0.182
+   "spearman(block, P/B)": -0.513,
+   "spearman(block, earnings yield)": 0.831,
+   "spearman(block, Wilcox residual)": -0.892,
+   "spearman(valuation, quality), banks": -0.178
   }
  },
  "C1_drop_roe": {
   "what": "ROE 0; ROA 25 / ER 15 / F 15 / acc 10 renormalised over 65",
   "non-bank composites changed": 0,
-  "universe composite spearman": 0.99678,
-  "bank-set rank spearman (within the 46)": 0.9677,
-  "bank-like median abs universe-rank move": 24.5,
-  "moved 10+": 32,
-  "moved 25+": 23,
-  "top 25 lost": [],
-  "top 25 gained": [],
-  "bank-like in top 25": 5,
+  "universe composite spearman": 0.9968,
+  "bank-set rank spearman (within the 46)": 0.9688,
+  "bank-like median abs universe-rank move": 25.5,
+  "moved 10+": 31,
+  "moved 25+": 25,
+  "top 25 lost": [
+   "TRV"
+  ],
+  "top 25 gained": [
+   "FIX"
+  ],
+  "bank-like in top 25": 4,
   "bank-like in top 100": 18,
   "best 10 bank-like": {
    "EG": 5,
    "AIZ": 16,
    "ACGL": 20,
    "ALL": 21,
-   "TRV": 23,
-   "HIG": 34,
+   "TRV": 27,
+   "HIG": 35,
    "CB": 49,
-   "CINF": 50,
-   "MTB": 52,
+   "CINF": 51,
+   "MTB": 53,
    "GL": 56
   },
   "largest rank moves": {
    "AIG": [
-    205,
+    202,
     98
    ],
    "AMP": [
-    129,
-    227
+    124,
+    222
    ],
    "L": [
-    158,
+    161,
     89
    ],
    "COF": [
-    141,
-    79
+    157,
+    94
    ],
    "PFG": [
-    275,
-    336
+    271,
+    332
    ],
-   "CFG": [
-    146,
-    91
+   "FITB": [
+    328,
+    272
    ],
    "NTRS": [
     333,
-    387
+    388
    ],
-   "FITB": [
-    317,
-    266
+   "CFG": [
+    142,
+    91
    ]
   },
   "net exposure": {
    "block on ranks: coef per pct-pt (E/P, P/B, B/A)": [
     0.213,
-    -0.21,
+    -0.211,
     0.287
    ],
    "R2": 0.929,
-   "spearman(block, P/B)": -0.65,
-   "spearman(block, earnings yield)": 0.755,
-   "spearman(block, Wilcox residual)": -0.851,
-   "spearman(valuation, quality), banks": 0.106
+   "spearman(block, P/B)": -0.648,
+   "spearman(block, earnings yield)": 0.747,
+   "spearman(block, Wilcox residual)": -0.848,
+   "spearman(valuation, quality), banks": 0.112
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    189
+    220,
+    195
    ],
    "JPM": [
     377,
-    416
+    413
    ],
    "PGR": [
-    153,
-    172
+    152,
+    165
    ],
    "AIG": [
-    205,
+    202,
     98
    ],
    "AMP": [
-    129,
-    227
+    124,
+    222
    ],
    "EG": [
-    5,
+    6,
     5
    ],
    "ALL": [
@@ -141,13 +145,13 @@
  "C2_drop_pb": {
   "what": "Valuation = earnings yield alone",
   "non-bank composites changed": 0,
-  "universe composite spearman": 0.99281,
-  "bank-set rank spearman (within the 46)": 0.9282,
+  "universe composite spearman": 0.99292,
+  "bank-set rank spearman (within the 46)": 0.9306,
   "bank-like median abs universe-rank move": 30.5,
-  "moved 10+": 36,
+  "moved 10+": 34,
   "moved 25+": 24,
   "top 25 lost": [
-   "ES",
+   "DECK",
    "NEM",
    "SWK"
   ],
@@ -160,85 +164,85 @@
   "bank-like in top 100": 16,
   "best 10 bank-like": {
    "ALL": 1,
-   "TRV": 2,
+   "TRV": 3,
    "HIG": 7,
    "ACGL": 8,
-   "AIZ": 10,
+   "AIZ": 11,
    "EG": 12,
    "GL": 15,
-   "CINF": 25,
-   "AMP": 28,
-   "PGR": 43
+   "CINF": 24,
+   "AMP": 26,
+   "PGR": 41
   },
   "largest rank moves": {
    "AIG": [
-    205,
-    342
+    202,
+    339
    ],
    "PGR": [
-    153,
-    43
+    152,
+    41
    ],
    "SCHW": [
-    251,
-    146
+    297,
+    198
    ],
    "AMP": [
-    129,
-    28
-   ],
-   "RJF": [
-    227,
-    132
-   ],
-   "WRB": [
-    197,
-    106
+    124,
+    26
    ],
    "L": [
-    158,
-    248
+    161,
+    256
+   ],
+   "RJF": [
+    225,
+    131
    ],
    "AXP": [
-    399,
-    310
+    398,
+    306
+   ],
+   "WRB": [
+    196,
+    104
    ]
   },
   "net exposure": {
    "block on ranks: coef per pct-pt (E/P, P/B, B/A)": [
-    0.502,
-    0.218,
+    0.501,
+    0.216,
     0.226
    ],
-   "R2": 0.908,
-   "spearman(block, P/B)": -0.091,
-   "spearman(block, earnings yield)": 0.807,
+   "R2": 0.909,
+   "spearman(block, P/B)": -0.084,
+   "spearman(block, earnings yield)": 0.81,
    "spearman(block, Wilcox residual)": -0.724,
-   "spearman(valuation, quality), banks": 0.338
+   "spearman(valuation, quality), banks": 0.344
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    275
+    220,
+    276
    ],
    "JPM": [
     377,
-    296
+    292
    ],
    "PGR": [
-    153,
-    43
+    152,
+    41
    ],
    "AIG": [
-    205,
-    342
+    202,
+    339
    ],
    "AMP": [
-    129,
-    28
+    124,
+    26
    ],
    "EG": [
-    5,
+    6,
     12
    ],
    "ALL": [
@@ -250,59 +254,59 @@
  "C3_roe_to_roa": {
   "what": "ROE 0, ROA 60",
   "non-bank composites changed": 0,
-  "universe composite spearman": 0.99737,
-  "bank-set rank spearman (within the 46)": 0.971,
-  "bank-like median abs universe-rank move": 18.0,
+  "universe composite spearman": 0.99725,
+  "bank-set rank spearman (within the 46)": 0.9666,
+  "bank-like median abs universe-rank move": 17.0,
   "moved 10+": 33,
-  "moved 25+": 14,
+  "moved 25+": 15,
   "top 25 lost": [],
   "top 25 gained": [],
   "bank-like in top 25": 5,
   "bank-like in top 100": 15,
   "best 10 bank-like": {
-   "EG": 4,
+   "EG": 5,
    "ALL": 12,
-   "ACGL": 15,
+   "ACGL": 14,
    "AIZ": 17,
-   "TRV": 19,
-   "HIG": 30,
-   "CB": 40,
+   "TRV": 21,
+   "HIG": 29,
+   "CB": 37,
    "CINF": 42,
    "GL": 51,
    "MTB": 56
   },
   "largest rank moves": {
    "AIG": [
-    205,
-    106
+    202,
+    104
    ],
    "PFG": [
-    275,
-    353
+    271,
+    350
    ],
    "AMP": [
-    129,
-    206
-   ],
-   "L": [
-    158,
-    90
+    124,
+    199
    ],
    "MET": [
-    251,
+    250,
     319
    ],
+   "L": [
+    161,
+    93
+   ],
    "PRU": [
-    120,
-    185
+    123,
+    189
    ],
    "BRK-B": [
-    123,
-    65
+    127,
+    66
    ],
    "COF": [
-    141,
-    89
+    157,
+    99
    ]
   },
   "net exposure": {
@@ -312,35 +316,35 @@
     0.337
    ],
    "R2": 0.946,
-   "spearman(block, P/B)": -0.576,
-   "spearman(block, earnings yield)": 0.744,
-   "spearman(block, Wilcox residual)": -0.836,
-   "spearman(valuation, quality), banks": 0.048
+   "spearman(block, P/B)": -0.581,
+   "spearman(block, earnings yield)": 0.743,
+   "spearman(block, Wilcox residual)": -0.839,
+   "spearman(valuation, quality), banks": 0.053
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    207
+    220,
+    208
    ],
    "JPM": [
     377,
-    395
+    393
    ],
    "PGR": [
-    153,
-    151
+    152,
+    148
    ],
    "AIG": [
-    205,
-    106
+    202,
+    104
    ],
    "AMP": [
-    129,
-    206
+    124,
+    199
    ],
    "EG": [
-    5,
-    4
+    6,
+    5
    ],
    "ALL": [
     12,
@@ -352,66 +356,66 @@
   "what": "Quality = ER 15 / F 15 / acc 10 renormalised over 40",
   "non-bank composites changed": 0,
   "universe composite spearman": 0.9926,
-  "bank-set rank spearman (within the 46)": 0.9281,
+  "bank-set rank spearman (within the 46)": 0.9283,
   "bank-like median abs universe-rank move": 41.5,
   "moved 10+": 36,
-  "moved 25+": 31,
+  "moved 25+": 30,
   "top 25 lost": [
    "ACGL",
    "ALL",
    "TRV"
   ],
   "top 25 gained": [
-   "DECK",
    "DLTR",
-   "WDC"
+   "ES",
+   "FIX"
   ],
   "bank-like in top 25": 2,
   "bank-like in top 100": 17,
   "best 10 bank-like": {
    "EG": 5,
-   "AIZ": 17,
-   "HIG": 36,
+   "AIZ": 16,
+   "HIG": 37,
    "ACGL": 38,
-   "TRV": 46,
    "MTB": 49,
+   "TRV": 50,
    "ALL": 55,
-   "CINF": 61,
-   "CB": 63,
-   "KEY": 65
+   "CB": 62,
+   "KEY": 62,
+   "CINF": 65
   },
   "largest rank moves": {
    "AMP": [
-    129,
-    260
-   ],
-   "AIG": [
-    205,
-    91
+    124,
+    259
    ],
    "FITB": [
-    317,
-    205
+    328,
+    217
+   ],
+   "AIG": [
+    202,
+    92
    ],
    "BAC": [
-    248,
-    144
+    244,
+    143
    ],
    "RJF": [
-    227,
-    329
+    225,
+    326
    ],
    "HBAN": [
-    341,
-    245
+    338,
+    244
    ],
    "AFL": [
-    256,
-    341
+    253,
+    333
    ],
-   "TFC": [
-    235,
-    155
+   "NTRS": [
+    333,
+    412
    ]
   },
   "net exposure": {
@@ -420,35 +424,35 @@
     -0.308,
     0.198
    ],
-   "R2": 0.852,
-   "spearman(block, P/B)": -0.761,
-   "spearman(block, earnings yield)": 0.676,
-   "spearman(block, Wilcox residual)": -0.793,
-   "spearman(valuation, quality), banks": 0.241
+   "R2": 0.851,
+   "spearman(block, P/B)": -0.76,
+   "spearman(block, earnings yield)": 0.674,
+   "spearman(block, Wilcox residual)": -0.796,
+   "spearman(valuation, quality), banks": 0.246
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    171
+    220,
+    168
    ],
    "JPM": [
     377,
     439
    ],
    "PGR": [
-    153,
-    212
+    152,
+    210
    ],
    "AIG": [
-    205,
-    91
+    202,
+    92
    ],
    "AMP": [
-    129,
-    260
+    124,
+    259
    ],
    "EG": [
-    5,
+    6,
     5
    ],
    "ALL": [
@@ -460,13 +464,13 @@
  "C5_pb_relative_to_roe": {
   "what": "pb_ratio column = exp(residual of log P/B on log ROE); ROE kept",
   "non-bank composites changed": 0,
-  "universe composite spearman": 0.99469,
-  "bank-set rank spearman (within the 46)": 0.9538,
-  "bank-like median abs universe-rank move": 21.5,
+  "universe composite spearman": 0.99472,
+  "bank-set rank spearman (within the 46)": 0.9609,
+  "bank-like median abs universe-rank move": 22.5,
   "moved 10+": 32,
-  "moved 25+": 21,
+  "moved 25+": 22,
   "top 25 lost": [
-   "ES",
+   "DECK",
    "NEM",
    "SWK"
   ],
@@ -483,81 +487,81 @@
    "HIG": 7,
    "ACGL": 8,
    "EG": 10,
-   "GL": 15,
-   "AIZ": 19,
+   "GL": 14,
+   "AIZ": 20,
    "CINF": 25,
-   "CB": 57,
+   "CB": 56,
    "SYF": 60
   },
   "largest rank moves": {
    "AIG": [
-    205,
-    367
+    202,
+    365
    ],
    "CFG": [
-    146,
-    269
+    142,
+    265
    ],
    "FITB": [
-    317,
-    430
+    328,
+    433
    ],
    "L": [
-    158,
-    249
+    161,
+    253
    ],
    "PGR": [
-    153,
-    73
-   ],
-   "C": [
-    219,
-    296
+    152,
+    72
    ],
    "STT": [
-    195,
-    270
+    190,
+    262
    ],
-   "AMP": [
-    129,
-    74
+   "C": [
+    220,
+    289
+   ],
+   "HBAN": [
+    338,
+    392
    ]
   },
   "net exposure": {
    "block on ranks: coef per pct-pt (E/P, P/B, B/A)": [
-    0.508,
-    0.156,
-    0.266
+    0.506,
+    0.152,
+    0.265
    ],
-   "R2": 0.925,
-   "spearman(block, P/B)": -0.249,
-   "spearman(block, earnings yield)": 0.861,
-   "spearman(block, Wilcox residual)": -0.84,
-   "spearman(valuation, quality), banks": 0.294
+   "R2": 0.927,
+   "spearman(block, P/B)": -0.241,
+   "spearman(block, earnings yield)": 0.863,
+   "spearman(block, Wilcox residual)": -0.838,
+   "spearman(valuation, quality), banks": 0.295
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    296
+    220,
+    289
    ],
    "JPM": [
     377,
     375
    ],
    "PGR": [
-    153,
-    73
+    152,
+    72
    ],
    "AIG": [
-    205,
-    367
+    202,
+    365
    ],
    "AMP": [
-    129,
+    124,
     74
    ],
    "EG": [
-    5,
+    6,
     10
    ],
    "ALL": [
@@ -569,13 +573,13 @@
  "C6_pb_relative_to_roe_drop_roe": {
   "what": "C5 with ROE 0 in Quality",
   "non-bank composites changed": 0,
-  "universe composite spearman": 0.99645,
-  "bank-set rank spearman (within the 46)": 0.9782,
+  "universe composite spearman": 0.9964,
+  "bank-set rank spearman (within the 46)": 0.9784,
   "bank-like median abs universe-rank move": 20.0,
   "moved 10+": 33,
-  "moved 25+": 18,
+  "moved 25+": 19,
   "top 25 lost": [
-   "ES",
+   "DECK",
    "NEM",
    "SWK"
   ],
@@ -585,7 +589,7 @@
    "HIG"
   ],
   "bank-like in top 25": 8,
-  "bank-like in top 100": 14,
+  "bank-like in top 100": 15,
   "best 10 bank-like": {
    "ALL": 2,
    "TRV": 3,
@@ -595,78 +599,78 @@
    "AIZ": 18,
    "GL": 20,
    "CINF": 22,
-   "CB": 50,
-   "MTB": 65
+   "CB": 45,
+   "MTB": 66
   },
   "largest rank moves": {
    "PFG": [
-    275,
-    379
+    271,
+    382
    ],
    "STT": [
-    195,
-    294
+    190,
+    283
    ],
    "MET": [
-    251,
-    337
+    250,
+    330
    ],
    "FITB": [
-    317,
-    397
+    328,
+    406
    ],
    "PGR": [
-    153,
+    152,
     77
    ],
    "CFG": [
-    146,
-    212
+    142,
+    207
    ],
    "BNY": [
-    294,
-    351
+    285,
+    349
    ],
    "NTRS": [
     333,
-    388
+    395
    ]
   },
   "net exposure": {
    "block on ranks: coef per pct-pt (E/P, P/B, B/A)": [
     0.437,
-    0.013,
+    0.01,
     0.333
    ],
-   "R2": 0.938,
-   "spearman(block, P/B)": -0.428,
-   "spearman(block, earnings yield)": 0.841,
-   "spearman(block, Wilcox residual)": -0.883,
-   "spearman(valuation, quality), banks": 0.424
+   "R2": 0.939,
+   "spearman(block, P/B)": -0.421,
+   "spearman(block, earnings yield)": 0.834,
+   "spearman(block, Wilcox residual)": -0.882,
+   "spearman(valuation, quality), banks": 0.426
   },
   "teaching examples (rank before, after)": {
    "C": [
-    219,
-    272
+    220,
+    268
    ],
    "JPM": [
     377,
-    416
+    413
    ],
    "PGR": [
-    153,
+    152,
     77
    ],
    "AIG": [
-    205,
-    257
+    202,
+    261
    ],
    "AMP": [
-    129,
+    124,
     125
    ],
    "EG": [
-    5,
+    6,
     7
    ],
    "ALL": [

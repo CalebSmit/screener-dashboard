@@ -53,7 +53,7 @@ Every stock is scored in 8 categories, each measuring a different aspect of the 
 | Metric | Weight | What It Measures |
 |--------|--------|-----------------|
 | **Earnings Yield** | 40% | LTM Net Income divided by Market Cap (inverse of P/E). Uses LTM for consistency with other flow metrics. Higher = cheaper. |
-| **Price-to-Book (P/B)** | 60% | Market value divided by common shareholders' equity at the balance-sheet date. THE key bank valuation metric – banks' assets are mostly financial instruments carried near fair value. Lower = cheaper. |
+| **Price-to-Book (P/B)** | 60% | Market value divided by common shareholders' equity at the balance-sheet date. A bank's balance sheet is mostly financial instruments carried near fair value, so book value means something here that it does not elsewhere. Lower = cheaper – but read against ROE in Quality, never on its own: a bank's ROE is its earnings yield times its P/B, so the two tables are one reading (see "A bank's Valuation and Quality scores are one reading, not two"). |
 
 **Rationale.** Traditional P/E ratios are distorted by capital structure, one-time charges, and accounting choices. Enterprise value-based metrics strip away those distortions. FCF Yield gets the heaviest weight because cash flow is the hardest number for management to manipulate – it's cash in the door. For banks, EV-based metrics are meaningless (deposits are both liabilities and the core business), so P/B replaces them.
 
@@ -84,7 +84,7 @@ Every stock is scored in 8 categories, each measuring a different aspect of the 
 |--------|--------|-----------------|
 | **Piotroski F-Score** | 15% | A 0-9 checklist scoring profitability, leverage, liquidity, and efficiency trends. Higher = healthier fundamentals. |
 | **Accruals** | 10% | (Net Income − Operating Cash Flow) / Total Assets. Lower (more negative) = higher earnings quality (Sloan 1996). |
-| **ROE** | 35% | Return on equity – net income over the last four quarters divided by average shareholders' equity (now and a year earlier). The key bank profitability metric. Higher = better. |
+| **ROE** | 35% | Return on equity – net income over the last four quarters divided by average shareholders' equity (now and a year earlier). Higher = better – but read against P/B in Valuation, never on its own: ROE is earnings yield times P/B, so a high ROE normally comes with a dear book (see "A bank's Valuation and Quality scores are one reading, not two"). |
 | **ROA** | 25% | Return on assets – net income over the last four quarters divided by average total assets (now and a year earlier). Key bank efficiency metric. Higher = better. |
 | **Equity Ratio** | 15% | Total equity divided by total assets. Solvency measure – higher = more capital = safer. |
 
@@ -216,6 +216,24 @@ The screener decides by **GICS sub-industry** (since 2026-10-09), from the S&P 5
 A Financials stock in a sub-industry on neither list defaults to the bank set – the safer guess for an unseen lender – and the run logs it by name; a test keeps the current universe at none. Until 2026-10-09 the rule read Yahoo's industry names, and 26 of the 59 stocks scored as banks – asset managers and insurance brokers among them – reached the bank set only through that default. Detail: `research/2026-10-09-bank-like-financials.md`.
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
+
+### A bank's Valuation and Quality scores are one reading, not two
+
+A bank's return on equity is its earnings yield multiplied by its price-to-book: net income / equity = (net income / market value) x (market value / equity). All three numbers come from the same two statements, so the identity is accounting, not a correlation – it is inexact only because ROE divides by the *average* of total equity now and a year ago while P/B divides by *ending common* equity (preferred stock is a median 2.6% of equity across the 46 bank-like stocks on the run this page was built from).
+
+That makes the bank Valuation and Quality tables **one reading of the same four amounts** – earnings, market value, book equity, assets – and not two independent verdicts. Dividing out scale leaves three independent coordinates: earnings yield (E/P), price-to-book (P/B) and equity per dollar of assets (B/A). ROE sits on the first two (log ROE = log E/P + log P/B) and ROA on all three. Adding up each metric's composite points with its direction, the Valuation + Quality block carries:
+
+| Coordinate | Net composite points |
+|---|---|
+| Earnings yield (E/P) | **+22.0** |
+| Price-to-book (P/B) | **0.0** |
+| Equity per dollar of assets (B/A) | **+8.8** |
+
+So the 38.5 points those five metrics carry rank a bank on **its ROE relative to its price-to-book** – which, by the identity above, is its earnings yield – and on how much equity backs each dollar of assets, with **no net weight on price-to-book by itself**. P/B's 13.2 points are offset by ROE's 7.7 and ROA's 5.5, because a bank that earns well on its book trades at a higher multiple of it.
+
+**This is the design, and it is deliberate.** Read alone, each category would mislead: the cheapest big-bank book on this run belongs to the bank earning least on it, which scores high on Valuation and low on Quality *for the same reason*. Read together they say what the people who value banks for a living say. Damodaran derives the justified multiple as P/BV = (ROE − g) / (r − g) and values a bank by regressing P/B on ROE across its peers (*Valuing Financial Service Firms*, 2009, pp. 30-33); Wilcox's P/B-ROE model (*Financial Analysts Journal*, 1984) is the same line; Nissim finds conditioning P/B on ROE is the standard in banking and insurance and improves valuation accuracy (*Review of Accounting Studies* 18, 2013, pp. 326, 338); Mercer Capital's bank-valuation deck reads a persistently low price-to-tangible-book as depressed profitability rather than as cheapness; and MSCI's Diversified Multiple-Factor indexes add book-to-price, earnings yield and profitability into one score with no carve-out for financials. Removing the "overlap" does not remove a double count – it removes the conditioning, and turns the bank set into an unconditional bet on cheap book (or, if P/B goes instead, on expensive book). Six such alternatives were rescored on a published run and none came closer to the P/B-against-ROE reading than the weights above.
+
+The figures in this section are computed from `config.yaml`, and `tests/test_bank_pb_roe_identity.py` fails if a reweight moves the block onto a net price-to-book position, or if the identity stops holding on the published payload. Detail: `research/2026-10-20-bank-quality-valuation-overlap.md`, reviewed and accepted 2026-10-21 (`METHODOLOGY_CHANGELOG.md`). No return, information-coefficient or backtest figure stands behind any of it: it describes what the weights *are*, and that what they are matches documented practice.
 
 All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
 
