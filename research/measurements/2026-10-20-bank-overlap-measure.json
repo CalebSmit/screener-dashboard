@@ -1,0 +1,525 @@
+{
+ "run": "7c12b43a07b6",
+ "run_started": "2026-10-20T13:21:50.724316",
+ "bank_like": 46,
+ "note": "Cross-sectional, one run. Descriptive only - no return, IC or backtest figure.",
+ "published_payload_is_this_run": true,
+ "coverage": {
+  "roe": "46 of 46",
+  "roa": "46 of 46",
+  "earnings_yield": "46 of 46",
+  "pb_ratio": "46 of 46",
+  "equity_ratio": "46 of 46",
+  "piotroski_f_score": "46 of 46",
+  "accruals": "46 of 46"
+ },
+ "1_identities": {
+  "ROE = EY x P/B": {
+   "spearman(roe, ey*pb)": 0.9734,
+   "roe / (ey*pb), median": 1.013,
+   "roe / (ey*pb), 10th-90th pct": [
+    0.8973,
+    1.074
+   ],
+   "within 5%": "19 of 46",
+   "within 10%": "37 of 46",
+   "largest gaps": {
+    "FITB": 1.1617,
+    "KEY": 0.8807,
+    "SCHW": 0.8822,
+    "GS": 0.889,
+    "HBAN": 1.1108
+   },
+   "why it is not exact": "ROE's denominator is AVERAGE total equity (incl. preferred); P/B's is ENDING common equity. Ratio = ending common / average total.",
+   "preferred share of equity, median / max": [
+    0.0258,
+    0.1263
+   ]
+  },
+  "ROA = ROE x equity ratio": {
+   "spearman(roa, roe*er)": 0.9957,
+   "roa / (roe*er), median": 1.0066,
+   "within 5%": "35 of 46"
+  }
+ },
+ "2_correlations": {
+  "raw_spearman": {
+   "roe": {
+    "roe": 1.0,
+    "roa": 0.602,
+    "earnings_yield": 0.139,
+    "pb_ratio": 0.727,
+    "equity_ratio": 0.153,
+    "valuation_score": -0.537,
+    "quality_score": 0.787
+   },
+   "roa": {
+    "roe": 0.602,
+    "roa": 1.0,
+    "earnings_yield": 0.375,
+    "pb_ratio": 0.184,
+    "equity_ratio": 0.837,
+    "valuation_score": -0.042,
+    "quality_score": 0.903
+   },
+   "earnings_yield": {
+    "roe": 0.139,
+    "roa": 0.375,
+    "earnings_yield": 1.0,
+    "pb_ratio": -0.463,
+    "equity_ratio": 0.406,
+    "valuation_score": 0.687,
+    "quality_score": 0.338
+   },
+   "pb_ratio": {
+    "roe": 0.727,
+    "roa": 0.184,
+    "earnings_yield": -0.463,
+    "pb_ratio": 1.0,
+    "equity_ratio": -0.24,
+    "valuation_score": -0.952,
+    "quality_score": 0.352
+   },
+   "equity_ratio": {
+    "roe": 0.153,
+    "roa": 0.837,
+    "earnings_yield": 0.406,
+    "pb_ratio": -0.24,
+    "equity_ratio": 1.0,
+    "valuation_score": 0.3,
+    "quality_score": 0.653
+   },
+   "valuation_score": {
+    "roe": -0.537,
+    "roa": -0.042,
+    "earnings_yield": 0.687,
+    "pb_ratio": -0.952,
+    "equity_ratio": 0.3,
+    "valuation_score": 1.0,
+    "quality_score": -0.182
+   },
+   "quality_score": {
+    "roe": 0.787,
+    "roa": 0.903,
+    "earnings_yield": 0.338,
+    "pb_ratio": 0.352,
+    "equity_ratio": 0.653,
+    "valuation_score": -0.182,
+    "quality_score": 1.0
+   }
+  },
+  "scored_percentiles_pearson (pb_ratio_pct: higher = cheaper)": {
+   "roe_pct": {
+    "roe_pct": 1.0,
+    "roa_pct": 0.602,
+    "earnings_yield_pct": 0.111,
+    "pb_ratio_pct": -0.727,
+    "equity_ratio_pct": 0.153,
+    "piotroski_f_score_pct": -0.094,
+    "accruals_pct": 0.304,
+    "valuation_score": -0.498,
+    "quality_score": 0.812
+   },
+   "roa_pct": {
+    "roe_pct": 0.602,
+    "roa_pct": 1.0,
+    "earnings_yield_pct": 0.392,
+    "pb_ratio_pct": -0.184,
+    "equity_ratio_pct": 0.837,
+    "piotroski_f_score_pct": -0.049,
+    "accruals_pct": 0.142,
+    "valuation_score": 0.016,
+    "quality_score": 0.893
+   },
+   "earnings_yield_pct": {
+    "roe_pct": 0.111,
+    "roa_pct": 0.392,
+    "earnings_yield_pct": 1.0,
+    "pb_ratio_pct": 0.5,
+    "equity_ratio_pct": 0.42,
+    "piotroski_f_score_pct": 0.101,
+    "accruals_pct": 0.079,
+    "valuation_score": 0.764,
+    "quality_score": 0.33
+   },
+   "pb_ratio_pct": {
+    "roe_pct": -0.727,
+    "roa_pct": -0.184,
+    "earnings_yield_pct": 0.5,
+    "pb_ratio_pct": 1.0,
+    "equity_ratio_pct": 0.24,
+    "piotroski_f_score_pct": 0.176,
+    "accruals_pct": -0.132,
+    "valuation_score": 0.941,
+    "quality_score": -0.385
+   },
+   "equity_ratio_pct": {
+    "roe_pct": 0.153,
+    "roa_pct": 0.837,
+    "earnings_yield_pct": 0.42,
+    "pb_ratio_pct": 0.24,
+    "equity_ratio_pct": 1.0,
+    "piotroski_f_score_pct": 0.012,
+    "accruals_pct": 0.127,
+    "valuation_score": 0.343,
+    "quality_score": 0.641
+   },
+   "piotroski_f_score_pct": {
+    "roe_pct": -0.094,
+    "roa_pct": -0.049,
+    "earnings_yield_pct": 0.101,
+    "pb_ratio_pct": 0.176,
+    "equity_ratio_pct": 0.012,
+    "piotroski_f_score_pct": 1.0,
+    "accruals_pct": 0.426,
+    "valuation_score": 0.171,
+    "quality_score": 0.17
+   },
+   "accruals_pct": {
+    "roe_pct": 0.304,
+    "roa_pct": 0.142,
+    "earnings_yield_pct": 0.079,
+    "pb_ratio_pct": -0.132,
+    "equity_ratio_pct": 0.127,
+    "piotroski_f_score_pct": 0.426,
+    "accruals_pct": 1.0,
+    "valuation_score": -0.068,
+    "quality_score": 0.452
+   },
+   "valuation_score": {
+    "roe_pct": -0.498,
+    "roa_pct": 0.016,
+    "earnings_yield_pct": 0.764,
+    "pb_ratio_pct": 0.941,
+    "equity_ratio_pct": 0.343,
+    "piotroski_f_score_pct": 0.171,
+    "accruals_pct": -0.068,
+    "valuation_score": 1.0,
+    "quality_score": -0.158
+   },
+   "quality_score": {
+    "roe_pct": 0.812,
+    "roa_pct": 0.893,
+    "earnings_yield_pct": 0.33,
+    "pb_ratio_pct": -0.385,
+    "equity_ratio_pct": 0.641,
+    "piotroski_f_score_pct": 0.17,
+    "accruals_pct": 0.452,
+    "valuation_score": -0.158,
+    "quality_score": 1.0
+   }
+  },
+  "headline": {
+   "spearman(roe, pb)": 0.727,
+   "spearman(roe, earnings_yield)": 0.139,
+   "spearman(earnings_yield, pb)": -0.463,
+   "spearman(valuation_score, quality_score), banks": -0.182
+  }
+ },
+ "3_variance_explained": {
+  "R2 quality_score ~ valuation_score": 0.025,
+  "R2 quality_score ~ ey_pct + pb_pct": 0.511,
+  "  coefficients (const, ey_pct, pb_pct[cheap=high])": [
+   51.789,
+   0.804,
+   -1.043
+  ],
+  "R2 roe_pct ~ ey_pct + pb_pct": 0.828,
+  "R2 roa_pct ~ ey_pct + pb_pct": 0.346,
+  "R2 log(roe) ~ log(ey) + log(pb)": 0.978,
+  "  coefficients (const, log ey, log pb)": [
+   -0.04,
+   0.994,
+   1.025
+  ],
+  "bank Quality rebuilds from its five weighted percentiles": "46 of 46",
+  "share of bank Quality's variance supplied by each metric (cov(w*pct, Q)/var(Q))": {
+   "roe": 0.428,
+   "roa": 0.336,
+   "equity_ratio": 0.145,
+   "piotroski_f_score": 0.03,
+   "accruals": 0.061
+  },
+  "note": "ey_pct is ranked among all 76 Financials stocks; roe/roa/pb/er among the 46 bank-like stocks only (the only ones that carry them)."
+ },
+ "3b_ranking_pools": {
+  "sd of percentile among the bank-like (EY pct, P/B pct, ROE pct)": [
+   23.0,
+   29.2,
+   29.2
+  ],
+  "bank-like EY pct min / median / max": [
+   5.9,
+   64.5,
+   99.3
+  ],
+  "median EY, bank-like vs non-bank Financials": [
+   0.0812,
+   0.0406
+  ],
+  "reading": "a uniform rank over 46 has sd 29.0; the EY percentiles of the 46 have less spread because the non-bank Financials sit mostly below them, so EY's 40% moves a bank's Valuation score less than its weight suggests."
+ },
+ "4_net_exposure": {
+  "first-order composite points on each log coordinate (weights x signs)": {
+   "x1 log E/P": 22.0,
+   "x2 log P/B": 0.0,
+   "x3 log B/A": 8.8
+  },
+  "reading": "P/B's 13.2 composite points are offset by ROE's 7.7 and ROA's 5.5, which both rise with P/B; earnings yield's 8.8 are reinforced by them.",
+  "measured: block = (22*Val + 22*Qual)/44 on standardised x1, x2, x3": {
+   "R2": 0.741,
+   "coef per 1 sd (x1 E/P, x2 P/B, x3 B/A)": [
+    8.65,
+    1.0,
+    6.12
+   ]
+  },
+  "measured: valuation_score alone": {
+   "R2": 0.8,
+   "coef per 1 sd": [
+    4.05,
+    -17.92,
+    0.16
+   ]
+  },
+  "measured: quality_score alone": {
+   "R2": 0.882,
+   "coef per 1 sd": [
+    13.25,
+    19.92,
+    12.08
+   ]
+  },
+  "measured: block on percentile ranks of x1, x2, x3": {
+   "R2": 0.906,
+   "coef per 1 pct-pt": [
+    0.284,
+    -0.067,
+    0.22
+   ]
+  },
+  "spearman(block, P/B)": -0.52,
+  "spearman(block, earnings yield)": 0.835,
+  "spearman(valuation_score, P/B)": -0.952,
+  "sd of x (E/P, P/B, B/A) in logs": [
+   0.503,
+   0.629,
+   0.71
+  ],
+  "corr of x (x1x2, x1x3, x2x3)": [
+   -0.698,
+   0.455,
+   -0.342
+  ]
+ },
+ "5_contrast_non_banks": {
+  "spearman(valuation_score, quality_score), non-bank universe": [
+   454,
+   0.089
+  ],
+  "same, banks": [
+   46,
+   -0.182
+  ],
+  "by sector (n, rho), sectors with 15+ non-bank stocks": {
+   "Communication Services": [
+    22,
+    0.024
+   ],
+   "Consumer Discretionary": [
+    47,
+    0.155
+   ],
+   "Consumer Staples": [
+    33,
+    -0.208
+   ],
+   "Energy": [
+    21,
+    0.388
+   ],
+   "Financials": [
+    29,
+    -0.093
+   ],
+   "Health Care": [
+    60,
+    0.011
+   ],
+   "Industrials": [
+    82,
+    0.099
+   ],
+   "Information Technology": [
+    75,
+    0.014
+   ],
+   "Materials": [
+    24,
+    0.267
+   ],
+   "Real Estate": [
+    30,
+    0.15
+   ],
+   "Utilities": [
+    31,
+    0.438
+   ]
+  },
+  "non-bank Financials (n)": 30
+ },
+ "6_bank_like_by_industry": {
+  "Banks - Regional": 9,
+  "Insurance - Property & Casualty": 8,
+  "Asset Management": 7,
+  "Capital Markets": 5,
+  "Banks - Diversified": 5,
+  "Insurance - Diversified": 4,
+  "Insurance - Life": 4,
+  "Credit Services": 3,
+  "Insurance - Reinsurance": 1
+ },
+ "6_best_ranked_bank_like": {
+  "EG": {
+   "rank": 5,
+   "industry": "Insurance - Reinsurance",
+   "roe": 0.1256,
+   "ey": 0.1273,
+   "pb": 0.97,
+   "val": 97.0,
+   "qual": 56.2
+  },
+  "ALL": {
+   "rank": 12,
+   "industry": "Insurance - Property & Casualty",
+   "roe": 0.4611,
+   "ey": 0.2111,
+   "pb": 1.99,
+   "val": 65.2,
+   "qual": 78.8
+  },
+  "TRV": {
+   "rank": 17,
+   "industry": "Insurance - Property & Casualty",
+   "roe": 0.2651,
+   "ey": 0.1012,
+   "pb": 2.48,
+   "val": 51.3,
+   "qual": 77.7
+  },
+  "AIZ": {
+   "rank": 18,
+   "industry": "Insurance - Property & Casualty",
+   "roe": 0.1834,
+   "ey": 0.076,
+   "pb": 2.3,
+   "val": 46.2,
+   "qual": 66.8
+  },
+  "ACGL": {
+   "rank": 22,
+   "industry": "Insurance - Diversified",
+   "roe": 0.1994,
+   "ey": 0.1366,
+   "pb": 1.48,
+   "val": 77.9,
+   "qual": 70.2
+  },
+  "HIG": {
+   "rank": 30,
+   "industry": "Insurance - Diversified",
+   "roe": 0.235,
+   "ey": 0.1186,
+   "pb": 1.91,
+   "val": 65.1,
+   "qual": 82.5
+  },
+  "GL": {
+   "rank": 44,
+   "industry": "Insurance - Life",
+   "roe": 0.2095,
+   "ey": 0.093,
+   "pb": 2.12,
+   "val": 56.0,
+   "qual": 71.0
+  },
+  "CINF": {
+   "rank": 57,
+   "industry": "Insurance - Property & Casualty",
+   "roe": 0.1873,
+   "ey": 0.1046,
+   "pb": 1.68,
+   "val": 69.3,
+   "qual": 77.7
+  },
+  "CB": {
+   "rank": 59,
+   "industry": "Insurance - Property & Casualty",
+   "roe": 0.1545,
+   "ey": 0.0813,
+   "pb": 1.82,
+   "val": 58.0,
+   "qual": 62.5
+  },
+  "MTB": {
+   "rank": 72,
+   "industry": "Banks - Regional",
+   "roe": 0.1074,
+   "ey": 0.0964,
+   "pb": 1.23,
+   "val": 82.3,
+   "qual": 43.7
+  }
+ },
+ "7_sub_type": {
+  "groups": {
+   "bank": {
+    "n": 14,
+    "median equity ratio": 0.104,
+    "median ROA": 0.0107,
+    "median ROE": 0.107,
+    "median P/B": 1.32,
+    "median EY": 0.088,
+    "mean equity_ratio pct": 40.7,
+    "mean roa pct": 32.3,
+    "mean quality_score": 33.9,
+    "mean valuation_score": 69.0,
+    "in the best 10 bank-like": 1
+   },
+   "broker / asset manager / credit": {
+    "n": 15,
+    "median equity ratio": 0.075,
+    "median ROA": 0.0133,
+    "median ROE": 0.18,
+    "median P/B": 2.66,
+    "median EY": 0.071,
+    "mean equity_ratio pct": 30.5,
+    "mean roa pct": 41.5,
+    "mean quality_score": 45.8,
+    "mean valuation_score": 35.8,
+    "in the best 10 bank-like": 0
+   },
+   "insurer": {
+    "n": 17,
+    "median equity ratio": 0.248,
+    "median ROA": 0.0412,
+    "median ROE": 0.183,
+    "median P/B": 1.91,
+    "median EY": 0.091,
+    "mean equity_ratio pct": 74.9,
+    "mean roa pct": 72.1,
+    "mean quality_score": 61.9,
+    "mean valuation_score": 60.6,
+    "in the best 10 bank-like": 9
+   }
+  },
+  "R2 on sub-type dummies": {
+   "log B/A (equity ratio)": 0.407,
+   "log E/P": 0.202,
+   "log P/B": 0.335,
+   "quality_score": 0.364,
+   "Val+Qual block": 0.379
+  }
+ }
+}
