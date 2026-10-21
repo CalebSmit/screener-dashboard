@@ -5479,8 +5479,10 @@ def _js_table() -> str:
                    ' for the same claim on the same earnings.';
         const rank = (sc.rank === null || sc.rank === undefined)
             ? '' : ', ranked #' + sc.rank + ' here';
+        // "Alphabet Inc." already ends in a stop; do not print "Alphabet Inc.."
+        const name = String(sc.company || sc.scored_as).replace(/\.$/, '');
         return escapeHtml(String(t).toUpperCase()) + ' is a second listed share class of ' +
-            escapeHtml(sc.company || sc.scored_as) + '. The company is scored once, on its ' +
+            escapeHtml(name) + '. The company is scored once, on its ' +
             'more-traded class ' + escapeHtml(sc.scored_as) + rank + ' - the way S&amp;P DJI ' +
             'and FTSE Russell treat multiple share classes.' + gap;
     }

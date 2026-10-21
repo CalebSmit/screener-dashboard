@@ -224,6 +224,15 @@ def test_a_held_name_that_really_left_still_gets_the_departed_card(page):
     assert "share class" not in html
 
 
+def test_a_company_name_ending_in_a_stop_does_not_print_two(page):
+    """Seen on the live page, 2026-10-21: "a second listed share class of Alphabet Inc.."."""
+    page.evaluate("D.share_classes.FOX.company = 'Alphabet Inc.'")
+    t = _txt(page, "notInRunText('FOX')")
+    assert "Alphabet Inc. The company is scored once" in t
+    assert "Inc.." not in t
+    page.evaluate("D.share_classes.FOX.company = 'Fox Corporation'")
+
+
 def test_the_lookup_accepts_the_dotted_spelling(page):
     page.evaluate("D.share_classes['BF-A'] = {scored_as: 'BF-B', company: 'Brown-Forman', "
                   "rank: 7, price: 1, price_gap_pct: 0};")
