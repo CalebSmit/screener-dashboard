@@ -111,3 +111,22 @@ def test_the_optional_notes_the_bot_shows_keep_their_shape():
     # flags.q_rejected: a string or None
     src = Path(g.__file__).read_text(encoding="utf-8")
     assert '"q_rejected": row.get("_quarterly_rejected") if isinstance(row.get("_quarterly_rejected"), str) else None' in src
+
+
+def test_a_second_share_class_names_its_ranked_line_and_carries_its_own_price():
+    """Since 2026-10-21 a company with two listed classes is ranked once (share_classes.py) and
+    the other line is published under ``share_classes``. screener-bot reads ``scored_as`` (judges
+    a held FOX by FOXA's rank) and ``price`` (values FOX at its own price) - `bot/signals.py`
+    ``second_lines_from``. The bot drops an entry whose line is ranked or whose designated line
+    is not, so both must hold here or a held second line is sold as "left the index"."""
+    out = json.loads(g.prepare_dashboard_data({
+        "df": _frame(),
+        "meta": {"run_date": "2026-10-21", "start_time": "2026-10-21T02:00:00"},
+        "weights": {}, "sens_df": None, "corr_df": None, "cfg": {},
+        "share_classes": {"secondary": {"CCX": {"scored_as": "CCC", "price": 11.0,
+                                                "price_gap_pct": -10.2}}},
+    }))
+    ranked = {r["Ticker"] for r in out["table_data"]}
+    entry = out["share_classes"]["CCX"]
+    assert "CCX" not in ranked and entry["scored_as"] in ranked
+    assert isinstance(entry["price"], float) and entry["price"] == 11.0
