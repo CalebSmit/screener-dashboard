@@ -13437,3 +13437,45 @@ published payload carries the corrected text.
   yield x P/B on a near-common book, and both of those changed definition today, so whether 35
   points of bank Quality duplicating two Valuation inputs is a double count is worth the synthesis
   day (section 5 of the note).
+
+## 2026-10-20 (owner-run, evening) - "should we run every backtest we can?" Measured: no. The overfitting check on the research page, and the engine rerun the 13:00 session left
+
+**Health (rule 8):** last code session ran? **yes, both** - 06:00 and 13:00 shipped to main
+(`logs/nightly-2026-10-20_130002-midday.log`). Data loop published? **yes** - 02:00, HEALTH: PASS,
+claims gate 1,117 passed. Evidence base at `1m` = **33 rows, newest 2026-09-18 (32 days, bound 40),
+4 effective**. Priority 0: `allow_auto_apply` **false**, 4 of 8. Top open roadmap item: **0.11, the
+context layer** (opened 2026-10-08, **age 12 days**) - not worked; this session answered an owner
+question instead (below), and the deferral streak the 13:00 entry records still stands.
+
+**Owner:** *"should we be running more backtests, like all the backtests we possibly can to decide
+what is best moving forward for the methodology, weightings, etc?"*, then *"do whatever you think
+would be best"*, and whether the Data.gov API or other APIs would help.
+
+### Shipped
+- **`overfitting.py`** - the probability of backtest overfitting (Bailey, Borwein, Lopez de Prado &
+  Zhu 2017, CSCV) over the ledger's 28 comparable weightings and 176 months, scored as each one's IC
+  lead over the current weighting on shared stocks. Reads the committed ledger only, outside
+  `RESULT_PATHS`, so it cannot stale a row. **Result:** PBO **0.21** over 2012-2026, but Size alone
+  wins 68% of the in-sample trials and its lead sits in the heavy-survivorship 2012-2019 (+0.027) and
+  is negative held out (-0.015); PBO **0.73** on 2020-2026 alone and **0.63** with Size dropped. So
+  "keep the best backtest" would have picked the screen most exposed to the backtest's known defect,
+  and otherwise noise. `research/2026-10-20-backtest-overfitting.md`.
+- **`research.html`** gains "If you had kept the best backtest", every sentence generated from the
+  three readings (the verdict sentence flips only if both checks fall below 0.45).
+  `tests/test_overfitting.py`, 8 tests (noise ~0.5, a real edge -> < 0.1, all 12,870 splits, the page
+  prints the ledger's numbers, no production import, not in `RESULT_PATHS`).
+- **The research-engine rerun the 13:00 session did not do.** Its bank ROE/ROA change edited
+  `factor_engine.py`, which left all 30 ledger rows stale on code. Rerun in committed chunks with
+  `scripts/rerun_experiments.py`: **0 of 25,460 numeric values moved**; `summary.json` unchanged.
+  (One chunk of 4 overran the Bash tool's 600 s and finished in the background; chunks of 3 after.)
+- **`plan/factor-lab.md` "Free data to evaluate"**: Jensen, Kelly & Pedersen (2023) factor data
+  (CC BY-NC 4.0) and Chen & Zimmermann's Open Source Asset Pricing returns - the second may let the
+  lab rerun Piotroski, analyst revisions and earnings drift at the portfolio level. Terms to confirm
+  before building. The api.data.gov key is not useful here (SEC EDGAR and FRED's CSV need none).
+
+### Not changed
+No weight, metric or threshold (rules 4-5). The PBO is a reason not to search harder, not a basis
+for any weight.
+
+### Next
+Unchanged from the 13:00 entry: the share-class proposal, then the context layer (0.11).
