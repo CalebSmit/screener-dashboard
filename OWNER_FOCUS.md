@@ -45,7 +45,26 @@ Two things still outrank this file, and neither is negotiable:
      a run only *reports* a crossing. Top 25 unchanged; the 16 other Communication Services stocks
      gain 1.565 composite points each (they were being held down by rows that were duplicates); 0.0
      change outside that sector. `METHODOLOGY_CHANGELOG.md` 2026-10-21.
-     **The bank P/B-ROE pairing is still open** - it is the next session's first job.
+     **The bank P/B-ROE pairing: DECIDED 2026-10-21 (13:00) - ACCEPTED, with the guard it asked
+     for replaced by one that can see what it claims.** The question was whether 35 points of a
+     bank's Quality score double-count its Valuation inputs. They do not: a bank's ROE is its
+     earnings yield times its price-to-book, so ROE *cancels* P/B rather than adding to it, and the
+     four weights net to a position on earnings yield and on equity per dollar of assets with
+     **nothing on price-to-book by itself** - which is the "high ROE at a low P/B" reading
+     Damodaran, Wilcox, Nissim, Mercer Capital and MSCI's multi-factor indexes all build on
+     purpose. Six ways of removing the "overlap" were rescored and every one is further from it.
+     **So no weight moved** (0 of 501 composites); what was wrong is that the neutrality was the
+     arithmetic of four separately chosen weights and nothing said so. The page now states it, with
+     every figure generated from `config.yaml`.
+     **What the review added:** both of the note's refutation criteria were re-measured on a
+     different run (R-squared 0.978, P/B loading -0.069 against earnings yield's +0.283; all six
+     candidates reproduce to the third decimal) - and the guard the note specified was measured
+     too, and **could not see the one change the note itself calls the mildest route to a
+     price-to-book tilt**: moving ROE's weight to ROA reads exactly 0.00 on its first-order
+     formula, identical to today, while the loading measured on the engine's own scores is 2.3x
+     today's and past the note's own bar. The failing condition is now the measured one.
+     `METHODOLOGY_CHANGELOG.md` 2026-10-21 (13:00 session); the note's new section 11.
+     **No proposal is now waiting for a decision** (`write_brief.open_proposals()` returns `[]`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error

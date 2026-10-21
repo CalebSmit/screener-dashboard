@@ -13710,3 +13710,180 @@ publish behind the data loop's gates.
 section 8, opened 2026-10-20) - state the identity on the methodology page and guard the zero net
 P/B loading with a test. Then `OWNER_FOCUS.md` item 2 (second-read lab experiments 16 and 17) and
 item 3 (the next 12 claim mutations in `plan/claims-mutation-audit.md`).
+
+---
+
+## 2026-10-21 (13:00 session) - QUEUE. The bank P/B-ROE proposal reviewed and ACCEPTED - and the guard it asked for could not see the one change the note itself calls the mildest route to a P/B tilt
+
+**Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 session ends
+"Run complete: shipped to main" at 08:48 (`logs/nightly-2026-10-21_060000.log`). Data loop
+published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data loop complete" at 02:26,
+PUBLISHED CLAIMS PASS (1214 tests). Evidence base at `1m` = **33 rows, newest 2026-09-18 (33 days
+ago, bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply`
+**false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 9 days**) - not worked; its day is Friday 2026-10-23, and the owner queue
+outranks it today.
+**Tests:** before **2969 passed / 1 skipped**, after ****2980 passed / 1 skipped**** - the delta is exactly the one new
+module, no failures and nothing removed. Gates 2 and 3 pass (dry-run exit 0; `index.html` 642,631
+bytes; both payloads `node --check` clean with their opening assignments).
+**Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, which named this as "the
+next session's first job", and it was the only OPEN proposal in the morning brief. **Deferred:**
+item 2 (second-read lab experiments 16 and 17), item 3 (the next 12 claim mutations) and the
+Factor Lab.
+
+### Did
+
+**Reviewed `research/2026-10-20-bank-quality-valuation-overlap.md` section 8 and accepted it -
+with the guard replaced, which is the part only a second reader produces.**
+
+The note's question was whether 35 points of a bank's Quality score double-count two of its
+Valuation inputs. Since the two changes that shipped on 2026-10-20 put ROE and P/B on nearly one
+book, a bank's ROE **is** its earnings yield times its P/B. The note's answer - no, because ROE
+duplicates earnings yield but *cancels* price-to-book, so the four weights net to "high ROE at a
+low P/B", the construction bank analysts and index builders use on purpose - holds up. I
+re-measured it on a different run and it reproduces. **No weight, metric or threshold changed.**
+
+**Re-measured on run `4dc4acf1d780` (today 02:00) against the note's `7c12b43a07b6` (yesterday
+13:21).** Both measurement scripts rerun; the rescoring baseline reproduces **501 of 501**
+published ranks either way:
+
+| | Note's run | My run |
+|---|---|---|
+| **(a)** R-squared, log ROE on log E/P and log P/B (bar 0.90) | 0.978 | **0.978** |
+| **(b)** measured loading on P/B's rank | -0.067 | **-0.069** |
+| loading on E/P's rank - criterion (b)'s bar is half of it | +0.284 | **+0.283** |
+| status quo against the P/B-ROE (Wilcox) residual | -0.890 | **-0.892** |
+| the six alternatives against it | -0.85 / -0.72 / -0.84 / -0.79 / -0.84 / -0.88 | **-0.848 / -0.724 / -0.839 / -0.796 / -0.838 / -0.882** |
+
+Every figure to the third decimal, and the status quo is still the closest of the seven
+constructions to the combined signal. Both refutation criteria hold.
+
+**Then I measured the guard the proposal asked for, and it is blind in the direction that
+matters.** The proposal specified one failing condition: the first-order net loading on log P/B
+computed from `config.yaml` (`-pb_ratio + roe + roa`, in composite points; 0.0 today), outside
++-1.5 points. That is exact algebra on log coordinates - but **the engine ranks percentiles**, and
+**ROE and ROA both enter log P/B with coefficient +1**, so moving weight between them cannot move
+the first-order figure *at all*. Measured on the engine's own scores
+(`research/measurements/2026-10-21-bank-pb-roe-guard-review.py`):
+
+| Candidate | First-order net on log P/B | Proposal's guard | Measured loading on P/B's rank | Criterion (b) |
+|---|---|---|---|---|
+| **S0 status quo** | 0.0 | passes | **-0.069** | holds |
+| C1 drop ROE | -4.7 | FAILS | -0.211 | REFUTED |
+| C2 drop P/B | +13.2 | FAILS | +0.216 | holds |
+| **C3 ROE's 35 -> ROA** | **0.0** | **passes** | **-0.156** | **REFUTED** |
+| C4 drop ROE and ROA | -13.2 | FAILS | -0.308 | REFUTED |
+| P1 ROE 35 -> 25, equity ratio 15 -> 25 | -2.2 | FAILS | -0.119 | holds |
+
+**C3 is not a corner case - it is the change the note's own refutation criterion (c) names as "the
+mildest route measured" to a deliberate P/B tilt.** It reads exactly 0.00, identical to the status
+quo, while its measured loading is **2.3x** today's and past the note's own criterion (b) bar of
+0.141. The mechanism is that ROA also carries log B/A, which correlates **-0.34** with log P/B
+across the bank set. So the proposed guard would have let that reweight through while the page
+went on saying "no net weight on P/B by itself". And **P1 shows the same band erring the other
+way**: a reweight nobody proposed trips it at -2.2 points while leaving the claim measurably true.
+Fitted across the candidates, +-1.5 points is about +-0.03 of measured loading - a fifth of
+criterion (b)'s bar.
+
+**So the failing condition is the measured loading at criterion (b)'s own pre-registered bar**, and
+the first-order check is kept at a quarter of the earnings-yield net as the arithmetic the page
+*explains*. The general form is CLAUDE.md 0.11's lesson: **the first-order figure is the page's
+explanation; the measured loading is the page's claim - guard the claim.**
+
+**What shipped:**
+- **The methodology page** gains "A bank's Valuation and Quality scores are one reading, not two":
+  the identity, the three independent log coordinates, a table of the net composite points
+  (**+22.0** earnings yield, **0.0** price-to-book, **+8.8** equity per dollar of assets) and the
+  practice it follows. **Every figure is generated from `config.yaml`**, and if a reweight ever
+  moves the block off neutral the sentence **states the measured tilt instead of claiming
+  neutrality** - a page that cannot become false rather than a sentence with a constant in it.
+- **The two cells calling P/B and ROE "THE key" bank metric** now say each is read against the
+  other, and why.
+- **A `CONSTRAINT` comment above `bank_metric_weights`** naming the coordinates, the net position,
+  the note and the test - where someone editing one of the four weights will actually read it.
+- **`tests/test_bank_pb_roe_identity.py`** (11 tests) and claim `overview.bank_pb_roe_identity`, so
+  it is in the data loop's publish gate. One test asserts the blind spot itself, so nobody later
+  deletes the measured check as redundant.
+- **The note gains section 11** (the decision, the re-measurement, the guard finding) and its
+  status line is rewritten. `write_brief.open_proposals()` now returns `[]`.
+
+**Looked at the page**, at 1440 and 375, on the *regenerated* page from `rehearse_publish`, not the
+published one: the section renders as an H3 inside Bank-specific scoring, the net-points table
+picks up the page's own table styling with tabular figures, **no console errors at either width**,
+and at 375 the table sits exactly inside its container (354px of 354px) and **wraps rather than
+clips** - checked on the screenshot, not only with `scrollWidth`, which cannot see a clipped cell.
+`scripts/rehearse_publish.py` **PASSED** with the published files restored byte-for-byte.
+**One defect seen by looking and fixed:** the first placement left the
+"All financial-sector stocks receive a `Financial_Sector_Caveat` flag" paragraph orphaned *under*
+my new heading, where it belongs to the parent section. Moved to the end of the block.
+
+**The cost worth knowing, and why I paid it.** Item (4) is a `config.yaml` comment - and
+`v2_experiments` fingerprints `config.yaml` **by its bytes**, so a comment that cannot change a
+number staled all 30 research-engine ledger rows, exactly as the 06:00 session's real config change
+did this morning. I kept the comment (it is the one place a future editor of those weights will
+look) and reran the 30: **every stored statistic of all 30 rows compared with its previous run at full precision, **0 of 25,460 values moved, largest difference 0.0**, and the research page's `summary.json` is byte-identical, so the public page says exactly the same thing**. The honest note for whoever picks this up: this is the second
+time in one day that an over-broad fingerprint has forced a 47-minute rerun for nothing, which is
+the "a marker that fires in normal operation is a marker that gets ignored" failure one level up.
+The 06:00 session already flagged it as worth **narrowing with a test** - hashing `config.yaml` by
+its parsed scoring-relevant content rather than its bytes. I did not do it here because it is
+another subsystem's provenance guard and changing `v2_experiments.py` would stale every row again
+anyway; it wants its own session.
+
+### Evidence / research
+All read in the note and checked against the page's wording before it shipped; nothing here is a
+return claim, and the generated section carries a test forbidding one.
+- **Damodaran, *Valuing Financial Service Firms* (2009), pp. 30-33** - ROE is the biggest
+  determinant of a bank's P/B; the two correlate above 0.70 across U.S. banks (Feb 2009); his
+  worked example regresses P/B on ROE across peers and reads the residual.
+  https://pages.stern.nyu.edu/~adamodar/pdfiles/papers/finfirm09.pdf
+- **Damodaran, *Investment Valuation* (2nd ed.), ch. 19, PDF pp. 6-7** - P/BV = (ROE - g) / (r - g);
+  with no growth, r = ROE / (P/B) = E/P, which is the identity this page now states.
+  https://pages.stern.nyu.edu/~adamodar/pdfiles/valn2ed/ch19.pdf
+- **Wilcox (1984), "The P/B-ROE valuation model", *Financial Analysts Journal* 40(1)** - secondary
+  (CFA Institute abstract + Damodaran ch. 19 PDF p. 23), and the page says only that it is the same
+  line. https://rpc.cfainstitute.org/en/research/financial-analysts-journal/1984/the-pb-roe-valuation-model
+- **Nissim (2013), *Review of Accounting Studies* 18, 324-359, pp. 326, 338** - conditioning P/B on
+  ROE is the standard in insurance and banking and improves valuation accuracy. Accuracy, not
+  return.
+- **Mercer Capital, *Shareholder Value Drivers* (2020), slides 21-22** - a bank-valuation firm
+  reading a persistently low P/TBV as depressed profitability, not cheapness.
+  https://mercercapital.com/content/uploads/Shareholder-Value-Drivers.pdf
+- **MSCI, *Diversified Multiple-Factor Indexes Methodology* (May 2022), pp. 4, 11** - book-to-price,
+  earnings yield and profitability added in one score, **no carve-out for financials**. The closest
+  institutional analogue to what this screener does.
+- **Measured by me, independently, on run `4dc4acf1d780`**
+  (`research/measurements/2026-10-21-bank-pb-roe-guard-review.py`, JSON committed beside it): the
+  two refutation criteria, the first-order-against-measured table above, and the
+  -0.34 correlation between log P/B and log B/A that makes a ROE/ROA reweight move the measured
+  loading.
+
+### Methodology changed
+- **`METHODOLOGY_CHANGELOG.md` 2026-10-21 (13:00 session)** - "Proposal ACCEPTED: a bank's
+  Valuation and Quality scores are one reading, stated on the page and guarded by what it claims".
+  No weight, metric, threshold or input changed; **0 of 501 composites move** and the payload's
+  numbers are byte-identical. The entry is in that file rather than a plain commit because it fixes
+  the *explanation* of a scoring position and pins the position against future drift.
+
+### Tried and rejected
+- **The guard as the proposal specified it** - first-order net from `config.yaml`, +-1.5 composite
+  points - **refused and replaced**, on the C3 and P1 measurements above. It is the one change the
+  review made, and it is the same class of finding as the previous two refusals: the note measured
+  one point, the review measured the thing the sentence actually claims.
+- **Changing any bank weight.** Six alternatives rescored on my own run; every one is further from
+  the documented P/B-against-ROE reading than the status quo, four of six change the top 25, and
+  all move a median 18-42 bank-like places. Removing the "overlap" removes the *conditioning*.
+- **Narrowing `v2_experiments`' config fingerprint** to dodge the 30-row rerun - deferred, with the
+  reasoning above. Doing it would have staled every row anyway.
+- **Dropping the `config.yaml` comment** to avoid the rerun - rejected: it is the proposal's item
+  (4) and the single most likely place for a future session to read the constraint before breaking
+  it. The rerun is cheaper than the defect it prevents.
+
+### Next
+- **`OWNER_FOCUS.md` item 2: second-read lab experiments 16 and 17** (size inside each
+  profitability fifth; Piotroski on Open Source Asset Pricing's portfolios). Each needs its paper
+  reopened, every reference figure re-read against `factor_lab.py`, and `git log` checked that the
+  tolerances were committed before the comparison ran. Experiment 15 is already done.
+- Then **item 3**, the next 12 claim mutations in `plan/claims-mutation-audit.md`.
+- **Worth its own session when one is spare:** narrow `v2_experiments.RESULT_PATHS`' handling of
+  `config.yaml` to the parsed scoring-relevant keys, with a test - it has now forced two 47-minute
+  reruns in one day for changes that provably cannot move a number.

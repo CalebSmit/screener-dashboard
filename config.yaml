@@ -143,13 +143,35 @@ metric_weights:
 # Used INSTEAD OF generic weights for bank-like financial stocks
 # (banks, insurers, credit companies). Each category sums to 100.
 # Growth, momentum, risk, revisions use the generic weights above.
+#
+# CONSTRAINT - read before changing pb_ratio, roe, roa or equity_ratio below,
+# or factor_weights.valuation / .quality above.
+# A bank's ROE is its earnings yield times its P/B (net income / equity =
+# (net income / market value) x (market value / equity)), so these metrics sit
+# on three independent coordinates - log E/P, log P/B, log B/A - and the four
+# weights net to ONE position, not four:
+#     log E/P <- earnings_yield + roe + roa                 = +22.0 points today
+#     log P/B <- -pb_ratio      + roe + roa                 =   0.0 points today
+#     log B/A <-                  roa + equity_ratio        =  +8.8 points today
+# That zero is "high ROE at a low P/B" - the construction bank analysts, insurer
+# valuation research and MSCI's multi-factor indexes all build on purpose - and it
+# is the arithmetic of four separately chosen weights, not a design anyone wrote
+# down until 2026-10-21. Move any one of them and the block acquires a net bet on
+# cheap (or dear) book that nobody chose.
+# The methodology page states this ("A bank's Valuation and Quality scores are one
+# reading, not two", generated from these weights) and
+# tests/test_bank_pb_roe_identity.py fails if the net position moves off neutral or
+# if the identity stops holding on the published payload.
+# Evidence and the six rescored alternatives:
+# research/2026-10-20-bank-quality-valuation-overlap.md; decided 2026-10-21
+# (METHODOLOGY_CHANGELOG.md). No return, IC or backtest figure stands behind it.
 bank_metric_weights:
   valuation:
     ev_ebitda: 0           # EV meaningless for banks
     fcf_yield: 0           # Banks lack traditional CapEx
     earnings_yield: 40     # P/E inverse; works for banks
     ev_sales: 0            # EV meaningless for banks
-    pb_ratio: 60           # THE key bank valuation metric
+    pb_ratio: 60           # Read against roe/roa below - see the CONSTRAINT above
     dividend_yield: 0      # Candidate: improvement engine evaluates IC
 
   quality:
@@ -159,8 +181,8 @@ bank_metric_weights:
     piotroski_f_score: 15  # Partially applicable
     accruals: 10           # Directionally valid
     beneish_m_score: 0     # Banks excluded: no COGS, no PPE, Beneish assumptions break
-    roe: 35                # THE key bank profitability metric
-    roa: 25                # Key bank efficiency metric
+    roe: 35                # Offsets pb_ratio above - see the CONSTRAINT above
+    roa: 25                # Offsets pb_ratio, and carries log B/A - CONSTRAINT above
     equity_ratio: 15       # Solvency (higher = more capital = safer)
     operating_margin: 0    # Candidate: banks skip
     current_ratio: 0       # Candidate: banks skip

@@ -1373,6 +1373,52 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="overview.bank_pb_roe_identity",
+        surface=OVERVIEW,
+        asserts=(
+            "A bank's ROE is its earnings yield times its P/B, so the bank Valuation and Quality "
+            "tables are one reading of the same four amounts, not two independent verdicts. On "
+            "the three independent log coordinates the four metrics net to a position on earnings "
+            "yield and on equity per dollar of assets, with no net weight on price-to-book by "
+            "itself - and the figures the page prints for all three are computed from "
+            "config.yaml's weights, so a reweight either keeps the claim true or makes the page "
+            "state the measured tilt instead of claiming neutrality."
+        ),
+        made_true_by="run_screener:build_screener_overview",
+        checked_by=(
+            # criterion (a): the identity itself, on the published payload
+            "tests/test_bank_pb_roe_identity.py::test_a_banks_roe_is_its_earnings_yield_times_its_price_to_book",
+            # criterion (b) measured on the engine's own scores - the failing condition
+            "tests/test_bank_pb_roe_identity.py::test_the_block_carries_no_net_position_on_price_to_book",
+            "tests/test_bank_pb_roe_identity.py::test_the_first_order_arithmetic_the_page_prints_comes_from_the_config",
+            "tests/test_bank_pb_roe_identity.py::test_the_weights_still_net_to_neutral_on_price_to_book",
+            "tests/test_bank_pb_roe_identity.py::test_a_reweight_between_roe_and_roa_is_not_invisible_to_this_module",
+            "tests/test_bank_pb_roe_identity.py::test_the_page_states_the_identity_and_that_the_two_scores_are_read_together",
+            "tests/test_bank_pb_roe_identity.py::test_the_page_names_the_practice_it_follows_and_claims_no_return",
+            "tests/test_bank_pb_roe_identity.py::test_the_two_metric_cells_no_longer_call_either_one_the_key_metric",
+            "tests/test_bank_pb_roe_identity.py::test_the_config_comment_names_the_constraint_and_the_note",
+        ),
+        # the page's typography pass turns " - " into a spaced en dash, so match either
+        detect=r"A bank's return on equity is its earnings yield multiplied by its price-to-book",
+        caveat=(
+            "Fixed 2026-10-21 - the defect was that the design was undocumented and unguarded. "
+            "The proposal in research/2026-10-20-bank-quality-valuation-overlap.md section 8 was "
+            "reviewed and ACCEPTED by a later session (section 11). No weight, metric or "
+            "threshold changed: "
+            "35 points of bank Quality on ROE duplicate earnings yield and CANCEL price-to-book, "
+            "which is the construction Damodaran, Wilcox, Nissim and MSCI's multi-factor indexes "
+            "build on purpose - six alternatives were rescored and none came closer to it. What "
+            "was wrong was that the zero net price-to-book position was the arithmetic of four "
+            "separately chosen weights and nothing recorded it as a design. The proposal's own "
+            "guard was replaced during the review: it computed only the first-order figure from "
+            "the weights, which cannot see a reweight between ROE and ROA (both enter log P/B "
+            "with coefficient +1) - the note's own 'mildest route' to a P/B tilt reads 0.00 "
+            "first-order while its measured loading is 2.3x the status quo's and past the note's "
+            "criterion (b). The failing condition is now the measured one. No return, "
+            "information-coefficient or backtest figure stands behind any of it (rules 4 and 5)."
+        ),
+    ),
+    Claim(
         id="overview.share_classes",
         surface=OVERVIEW,
         asserts=(
