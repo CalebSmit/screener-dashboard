@@ -1373,6 +1373,54 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="overview.share_classes",
+        surface=OVERVIEW,
+        asserts=(
+            "A company with more than one listed class of common stock is scored ONCE, on the "
+            "class declared in config.yaml (`share_classes.designated`) - S&P DJI's Designated "
+            "Listing, approach B - and the other line is removed before the sector percentiles, "
+            "so it does not count twice in its peers' distribution. The lines the page names are "
+            "the declared ones. The choice is not re-picked from a run's own trading volume; a "
+            "run only reports a crossing of S&P DJI's switching margin, which the page states."
+        ),
+        made_true_by="share_classes:designate",
+        checked_by=(
+            "tests/test_share_classes.py::test_config_declares_one_line_per_known_pair",
+            "tests/test_share_classes.py::test_the_declaration_beats_this_run_s_volume",
+            "tests/test_share_classes.py::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
+            "tests/test_share_classes_page.py::test_the_page_names_the_declared_lines_and_only_those",
+            "tests/test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config",
+        ),
+        # the page's typography pass turns " - " into a spaced en dash, so match either
+        detect=r"Each company is therefore scored \*\*once\*\*, on its more-traded class",
+        caveat=(
+            "Fixed 2026-10-21 (research/2026-10-19-share-classes.md, reviewed with "
+            "research/measurements/2026-10-21-share-class-stability.py). Until then Alphabet, "
+            "Fox and News Corp each held two ranked lines, and the three second lines held the "
+            "other 16 Communication Services stocks' composites down by 1.565 points."
+        ),
+    ),
+    Claim(
+        id="drilldown.share_class_second_line",
+        surface=DRILLDOWN,
+        asserts=(
+            "A ticker that is a second listed share class of a company this run DID rank - in "
+            "the search palette, the table's empty state and My Holdings - is named as such: it "
+            "says which line carries the company, that line's rank, and the price gap between "
+            "the two lines, stated as the same claim on the same earnings. It is never described "
+            "as a company that has left the index or whose data could not be fetched, and a "
+            "saved holding of it is still rendered (CLAUDE.md row 5)."
+        ),
+        made_true_by="generate_dashboard:_share_classes_block",
+        checked_by=(
+            "tests/test_share_classes_page.py::test_the_payload_carries_the_second_lines",
+            "tests/test_share_classes_page.py::test_a_second_class_is_not_called_a_departed_stock",
+            "tests/test_share_classes_page.py::test_the_price_gap_is_the_only_valuation_difference",
+            "tests/test_share_classes_page.py::test_the_holdings_card_names_the_ranked_line",
+            "tests/test_share_classes_page.py::test_a_second_line_whose_company_is_unranked_says_nothing",
+        ),
+    ),
+    Claim(
         id="overview.roic_invested_capital",
         surface=OVERVIEW,
         asserts=(

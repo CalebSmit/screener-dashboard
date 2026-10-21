@@ -64,3 +64,8 @@ data/papers/
 
 # Claude Code agent worktrees (isolated copies used while working; never project files)
 .claude/worktrees/
+
+# A session's scratchpad. Anything a later reader needs belongs in research/measurements/
+# or the log, not here - but an unignored scratch folder fails ship gate 4, and on Windows
+# OneDrive can hold the directory open long enough that a session cannot delete it (2026-10-21).
+.scratch/

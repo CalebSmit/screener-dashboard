@@ -1,0 +1,128 @@
+{
+  "run": "4dc4acf1d780",
+  "A_availability": {
+    "universe_lines": 503,
+    "resolved_to_a_cik": 503,
+    "no_cik": [],
+    "grouping_basis": "sec_cik",
+    "multi_line_companies_by_cik": [
+      [
+        "FOX",
+        "FOXA"
+      ],
+      [
+        "GOOG",
+        "GOOGL"
+      ],
+      [
+        "NWS",
+        "NWSA"
+      ]
+    ],
+    "multi_line_companies_by_longname": [
+      [
+        "FOX",
+        "FOXA"
+      ],
+      [
+        "GOOG",
+        "GOOGL"
+      ],
+      [
+        "NWS",
+        "NWSA"
+      ]
+    ],
+    "the_two_bases_agree": true
+  },
+  "B_stability": {
+    "window": "63 trading-day average daily dollar volume, read at each month end",
+    "month_ends": 89,
+    "from": "2019-06-30",
+    "to": "2026-10-31",
+    "GOOGL/GOOG": {
+      "months": 89,
+      "months_won_by_the_declared_line": 86,
+      "times_the_higher_volume_line_changed": 4,
+      "change_months": [
+        "2020-09-30",
+        "2020-11-30",
+        "2020-12-31",
+        "2021-01-31"
+      ],
+      "months_within_the_20pct_margin": 31,
+      "share_within_the_margin": 0.348,
+      "ratio_min": 1.003,
+      "ratio_median": 1.276
+    },
+    "FOXA/FOX": {
+      "months": 89,
+      "months_won_by_the_declared_line": 89,
+      "times_the_higher_volume_line_changed": 0,
+      "change_months": [],
+      "months_within_the_20pct_margin": 0,
+      "share_within_the_margin": 0.0,
+      "ratio_min": 2.077,
+      "ratio_median": 3.061
+    },
+    "NWSA/NWS": {
+      "months": 89,
+      "months_won_by_the_declared_line": 89,
+      "times_the_higher_volume_line_changed": 0,
+      "change_months": [],
+      "months_within_the_20pct_margin": 0,
+      "share_within_the_margin": 0.0,
+      "ratio_min": 2.193,
+      "ratio_median": 3.556
+    }
+  },
+  "C_D_rescored": {
+    "run": "4dc4acf1d780",
+    "baseline_reproduces_published_ranks": "501 of 501",
+    "declared_GOOGL": {
+      "ranked_rows": 498,
+      "kept_lines": {
+        "FOXA": "61 -> 35",
+        "GOOGL": "199 -> 179",
+        "NWSA": "65 -> 54"
+      },
+      "top25_unchanged": true,
+      "other_rows_moved": 395,
+      "largest_move": 55
+    },
+    "after_a_flip_GOOG": {
+      "ranked_rows": 498,
+      "kept_lines": {
+        "FOXA": "61 -> 35",
+        "GOOG": "106 -> 101",
+        "NWSA": "65 -> 56"
+      },
+      "top25_unchanged": true,
+      "other_rows_moved": 368,
+      "largest_move": 54
+    },
+    "flip_cost": {
+      "alphabet_rank_on_GOOGL": 179,
+      "alphabet_rank_on_GOOG": 101,
+      "places": 78,
+      "the_ticker_in_the_ranking_changes": true,
+      "other_rows_moved_between_the_arms": 137,
+      "largest_other_move": 11
+    },
+    "communication_services": {
+      "rows_published": 22,
+      "rows_after": 19,
+      "other_stocks": 16,
+      "mean_composite_change": 1.565,
+      "min": 0.69,
+      "max": 2.52,
+      "any_went_down": false
+    },
+    "largest_composite_change_outside_communication_services": 0.0,
+    "earnings_yield_ratio_over_price_ratio": {
+      "GOOGL/GOOG": 1.0,
+      "FOXA/FOX": 1.0,
+      "NWSA/NWS": 1.0
+    }
+  }
+}

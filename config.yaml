@@ -9,6 +9,23 @@ universe:
   exclude_sectors: []  # e.g., ['Utilities'] to exclude a sector
   exclude_tickers: []  # e.g., ['BRK.B'] for manual exclusions
 
+# Share classes: one company, one ranked line (S&P DJI's Designated Listing, approach B).
+# Alphabet, Fox and News Corp each list two classes in the index. Every company-statement
+# metric is identical across a pair; the rows differ by the line's price, the line's own
+# return series, and the source's analyst record for the line - the last with no economic
+# content. See share_classes.py and research/2026-10-19-share-classes.md.
+#
+# The choice is DECLARED here, not recomputed from each run's dollar volume, and changed
+# only with a METHODOLOGY_CHANGELOG.md entry. Measured 2026-10-21 over 89 month-ends:
+# Alphabet's two lines sit within S&P's 20% switching margin in 31 of them (34.8%) and the
+# higher-volume line changed four times, while rescoring the 2026-10-21 run puts Alphabet at
+# 179 on GOOGL and 101 on GOOG. A per-run recomputation would move the company 78 places on
+# a coin flip. The run reports a crossing; it never acts on one.
+share_classes:
+  score_once_per_company: true
+  designated: ['GOOGL', 'FOXA', 'NWSA']   # the more-traded class of each pair, 2026-10-21
+  challenge_margin: 0.20                  # S&P DJI's switching margin - reported, not applied
+
 # Factor Category Weights (must sum to 100)
 # Proportionally reduced from 6-factor (25/25/15/15/10/10) to accommodate Size + Investment
 factor_weights:

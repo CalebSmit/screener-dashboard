@@ -157,6 +157,10 @@ class RunContext:
             # The regime rule changes the factor weights a scored table was built with
             # (2026-10-12), so a cache made under one setting is not served under another.
             "momentum_regime": cfg.get("momentum_regime", {}),
+            # Which share class represents a company decides *who is in the percentile
+            # population* (2026-10-21), so a table scored under one declaration must not be
+            # served under another: Alphabet ranks 179 on GOOGL and 101 on GOOG.
+            "share_classes": cfg.get("share_classes", {}),
             # Bump when scoring code changes what a cached scored table contains
             # (columns, not just values). The cache is keyed by config alone, so
             # without this a warm start serves a table built by the previous engine:
@@ -189,7 +193,13 @@ class RunContext:
             # and a year earlier (2026-10-20), no longer the source's `.info` ratios. The inputs
             # already exist, so a warm start would not fail - it would quietly serve 46 stocks'
             # ROE and ROA on the old construction, which is worse.
-            "scoring_schema": 14,
+            # 15 = one company, one ranked line (2026-10-21). The `share_classes` key above
+            # catches a change to the *declaration*, but not the arrival of the rule itself:
+            # the cached table is a 501-row scored frame holding both lines of Alphabet, Fox
+            # and News Corp, built when the sector percentiles counted all of them. A warm
+            # start would publish it unchanged - the whole change would silently not happen,
+            # and the Communication Services percentiles would still be computed over 22 rows.
+            "scoring_schema": 15,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

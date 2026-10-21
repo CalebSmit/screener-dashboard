@@ -35,6 +35,17 @@ Two things still outrank this file, and neither is negotiable:
      (`research/2026-10-19-share-classes.md`), and the bank P/B-ROE pairing - state it on the page
      and guard it with a test (`research/2026-10-20-bank-quality-valuation-overlap.md` section 8).
      The deciding session must not be the one that wrote the note.
+     **Share classes: DECIDED 2026-10-21 (06:00) - ACCEPTED, with one change the review measured.**
+     Alphabet, Fox and News Corp each had two ranked lines; each company is now scored **once**, on
+     its more-traded class, as S&P DJI and FTSE Russell do. The note wanted the line re-picked from
+     every run's own trading volume. Measured over 89 month-ends, Alphabet's two classes are within
+     S&P's own 20% switching margin **a third of the time** and the busier line has actually changed
+     **four times** - and the company ranks **179 on GOOGL against 101 on GOOG**, so that rule would
+     have moved a company 78 places on a coin flip. The choice is now declared in `config.yaml` and
+     a run only *reports* a crossing. Top 25 unchanged; the 16 other Communication Services stocks
+     gain 1.565 composite points each (they were being held down by rows that were duplicates); 0.0
+     change outside that sector. `METHODOLOGY_CHANGELOG.md` 2026-10-21.
+     **The bank P/B-ROE pairing is still open** - it is the next session's first job.
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error

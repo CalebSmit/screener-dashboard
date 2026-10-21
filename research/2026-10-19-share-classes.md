@@ -364,4 +364,24 @@ writes `2026-10-19-share-classes.json`: the inventory (A), every weighted metric
 input class and the price checks (B), the six options' ranks, peer-group effect and top-25 lists (C),
 and the snapshot history (D). The bot's code was read at commit `d06ff82`.
 
-**Proposal status: OPEN** - score each company once: in `run_screener.py`, after `compute_metrics` and before `compute_sector_percentiles`, group universe rows by SEC CIK (falling back to identical `longName`), keep the line with the higher `avg_daily_dollar_volume` (S&P DJI's Designated Listing / FTSE Russell's pricing vehicle; on 2026-10-19 GOOGL, FOXA, NWSA) and remove the other lines from percentiles, scoring and ranking; publish them as unranked entries pointing to the company's ranked line with their own price and the price gap; shipped with a no-two-rows-per-CIK test, the page sentence and its claim, the generated methodology sentence and a changelog entry (section 9). Measured on the 2026-10-19 run: top 25 unchanged; FOXA 47 -> 28, GOOGL 226 -> 197, NWSA 61 -> 52; other Communication Services stocks +1.56 composite points on average
+**Proposal status: ACCEPTED 2026-10-21** by the 06:00 session (not this note's author), **with one
+change the review measured and the note had not.** The proposal re-picked the designated line from
+**each run's own** `avg_daily_dollar_volume`. That is not S&P DJI's rule - S&P changes a Designated
+Listing only when the other line leads by more than 20% - and it is not stable: over 89 month-ends
+(2019-06 to 2026-10, 63-day average daily dollar volume) **Alphabet's two classes sat inside that
+margin in 31 of them (34.8%)**, ratio median 1.276 and minimum 1.003, and the higher-volume line
+actually **changed four times** (2020-09, 2020-11, 2020-12, 2021-01). Fox and News Corp never came
+close (2.077 and 2.193 at their closest). Rescored on the 2026-10-21 run, **Alphabet ranks 179 on
+GOOGL and 101 on GOOG** - 78 places, and a different ticker in the ranking - because of the
+accounting-basis defect in section 7. So the choice of line is now **declared** in `config.yaml`
+(`share_classes.designated`), changed only with a changelog entry, and a run *reports* a crossing
+of the margin instead of acting on it. Everything else shipped as proposed: ONCE + DROP, before the
+sector percentiles, with the second lines published as unranked entries that name the company's
+ranked line and the price gap. Independently re-measured on the 2026-10-21 run: CIK coverage **503
+of 503** with the `longName` fallback giving identical groups, **top 25 unchanged**, FOXA 61 -> 35 /
+GOOGL 199 -> 179 / NWSA 65 -> 54, the other 16 Communication Services stocks **+1.565** composite
+points, and **0.0** change outside that sector. Sections 1-9 stand as written; the measurements are
+in `research/measurements/2026-10-21-share-class-stability.py` and the record is
+`METHODOLOGY_CHANGELOG.md` 2026-10-21. **Section 7 is still open** and needs its own note.
+
+The proposal as it was put, for the record - score each company once: in `run_screener.py`, after `compute_metrics` and before `compute_sector_percentiles`, group universe rows by SEC CIK (falling back to identical `longName`), keep the line with the higher `avg_daily_dollar_volume` (S&P DJI's Designated Listing / FTSE Russell's pricing vehicle; on 2026-10-19 GOOGL, FOXA, NWSA) and remove the other lines from percentiles, scoring and ranking; publish them as unranked entries pointing to the company's ranked line with their own price and the price gap; shipped with a no-two-rows-per-CIK test, the page sentence and its claim, the generated methodology sentence and a changelog entry (section 9). Measured on the 2026-10-19 run: top 25 unchanged; FOXA 47 -> 28, GOOGL 226 -> 197, NWSA 61 -> 52; other Communication Services stocks +1.56 composite points on average
