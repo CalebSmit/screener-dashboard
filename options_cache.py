@@ -160,6 +160,60 @@ def is_session_date(d: str | date | None) -> bool:
     return d is not None and d.weekday() <= 4
 
 
+#: The regular US equity-options session, Eastern time. Used only to say whether quotes taken live
+#: were a mid-session reading or a close; exchange holidays are not resolved (a shut market serves
+#: no quote, so :func:`quotes_are_live` keeps such an hour from ever reaching here).
+SESSION_OPEN, SESSION_CLOSE = (9, 30), (16, 0)
+
+
+def _eastern(now: datetime | None = None) -> datetime:
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+
+        return now.astimezone(ZoneInfo(ET_ZONE))
+    except Exception:  # noqa: BLE001 - a missing tz database must not stop the pass
+        return now.astimezone(timezone(ET_FALLBACK_OFFSET))
+
+
+def live_quote_stamp(now: datetime | None = None) -> dict:
+    """What a reading fetched *live* at ``now`` must say about when its quotes are from.
+
+    WHY THIS EXISTS - measured 2026-10-20 (``plan/context-layer.md``, the 0.11 close-out). The
+    after-close cache stamps every reading with its session (:func:`market_session_date`), but a
+    reading fetched live carried **no** stamp, and the panel's fallback for that case says "Quotes
+    are the previous close." The 13:00 session's live run published at 13:21 CT on 2026-10-20 with
+    quotes taken in the middle of the session, so the live page told readers of **485 of 501**
+    stocks that mid-session quotes were the previous close. A live fetch now records:
+
+    * ``_ctx_opt_quote_date`` - the session the quotes belong to: today's while the market is open
+      or after its close, the previous weekday's before the open or at a weekend;
+    * ``_ctx_opt_quote_time`` - the Eastern clock time of the fetch, ``HH:MM``;
+    * ``_ctx_opt_quote_intraday`` - True when that time is inside the regular session, so the
+      page says it is a mid-session reading rather than a close.
+
+    The page decides nothing itself: it prints which of these the run recorded (CLAUDE.md row
+    0.8 - the page shows the engine's facts and never re-derives them).
+    """
+    et = _eastern(now)
+    t = (et.hour, et.minute)
+    weekday = et.weekday() <= 4
+    intraday = weekday and SESSION_OPEN <= t < SESSION_CLOSE
+    if weekday and t >= SESSION_OPEN:
+        session = et.date()
+    else:
+        # Before the open (or at a weekend) the newest quotes are the previous session's close.
+        d = et.date() - timedelta(days=1)
+        while d.weekday() > 4:
+            d -= timedelta(days=1)
+        session = d
+    return {"_ctx_opt_quote_date": session.strftime("%Y-%m-%d"),
+            "_ctx_opt_quote_time": et.strftime("%H:%M"),
+            "_ctx_opt_quote_intraday": bool(intraday)}
+
+
 # --------------------------------------------------------------------------- read back
 def _parse(d: str | None) -> date | None:
     try:
@@ -301,6 +355,12 @@ def refresh(records: list[dict], root: str | os.PathLike | None = None,
                     continue
                 if ctx.get("_ctx_opt_status") in USABLE_STATUSES:
                     ctx = {k: v for k, v in ctx.items() if k.startswith("_ctx_opt")}
+                    # The clock time too, so a refresh run by hand during the session (the
+                    # 2026-10-09 smoke test ran at 09:46 ET) is described as a mid-session reading
+                    # rather than as that session's close (2026-10-20).
+                    stamp = live_quote_stamp(now)
+                    ctx["_ctx_opt_quote_time"] = stamp["_ctx_opt_quote_time"]
+                    ctx["_ctx_opt_quote_intraday"] = stamp["_ctx_opt_quote_intraday"]
                     ctx["_ctx_opt_quote_date"] = today.strftime("%Y-%m-%d")
                     kept[tk] = ctx
 

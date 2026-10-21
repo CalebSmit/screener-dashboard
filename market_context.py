@@ -150,7 +150,10 @@ def summarise(sid: str, raw: pd.Series) -> dict:
 
 def sahm_indicator(unrate: pd.Series) -> float | None:
     """Sahm (2019): 3-month average unemployment minus its low over the prior 12 months.
-    A reading of 0.50pp or more has marked the start of every US recession since 1970."""
+    A reading of 0.50pp or more has come around the start of every US recession since 1970 -
+    usually in its first months, not before it - with two false alarms (1976, 2024); claim
+    ``context.sahm``. (This docstring said "marked the start" until 2026-10-20, three days after
+    the page sentence it echoed was corrected.)"""
     u = unrate.dropna()
     if len(u) < 15:
         return None
@@ -221,7 +224,8 @@ FACTOR_NOTES = [
              "Quality is one of this screener's two heaviest categories; the column tooltips show this run's weights."},
     {"title": "Momentum and rebounds",
      "text": "Momentum's worst months cluster in sharp rebounds after a high-volatility decline (Daniel & Moskowitz 2016). "
-             "For this reason the screener cuts momentum's weight in that state; the stat strip shows whether the cut is in force."},
+             "For this reason the screener cuts momentum's weight in that state; when the cut is in force, the "
+             "stat strip at the top of the page says so."},
     {"title": "Rates and long-duration stocks",
      "text": "Companies whose value rests on profits far in the future behave more like a long bond, which Dechow, "
              "Sloan & Soliman (2004) call equity duration, and such long-duration stocks have historically earned lower "

@@ -84,16 +84,22 @@ def _context_for(ticker: str, price: float | None, earnings_ts, today, with_opti
 
 
 def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=print,
-           root=None, options_live=None) -> dict:
+           root=None, options_live=None, now=None) -> dict:
     """Add options and insider context to each fetched record, in place. Returns stats.
 
     ``options_live`` overrides the probe (tests, and a caller that already knows). When quotes are
     not being served, the option half is skipped and ``options_cache`` supplies the last reading
     from an hour when they were, labelled with its date; a stock with no cached reading gets
-    ``_ctx_opt_status = "quotes-closed"``, which the page states plainly.
+    ``_ctx_opt_status = "quotes-closed"``, which the page states plainly. When quotes are live,
+    each reading is stamped with the session and clock time it was taken at, so the page can say
+    whether it is a close or a mid-session reading.
     """
     import options_cache
 
+    # ``now`` (a callable returning an aware instant) is for tests; a live reading is stamped with
+    # the instant it was taken (options_cache.live_quote_stamp).
+    if now is None:
+        now = lambda: datetime.now(timezone.utc)  # noqa: E731
     started = time.time()
     today = datetime.now(timezone.utc).date()
     todo = [r for r in raw if "_error" not in r and r.get("Ticker")]
@@ -153,6 +159,10 @@ def enrich(raw: list[dict], budget_seconds: float = DEFAULT_BUDGET_SECONDS, log=
                 try:
                     # the cached option reading must survive the insider update
                     got = f.result()
+                    if live and got.get("_ctx_opt_status"):
+                        # Say when the quotes are from (2026-10-20): unstamped, the page fell back
+                        # to "Quotes are the previous close" for a reading taken mid-session.
+                        got.update(options_cache.live_quote_stamp(now()))
                     r.update({k: v for k, v in got.items()
                               if live or not k.startswith("_ctx_opt")})
                     done += 1

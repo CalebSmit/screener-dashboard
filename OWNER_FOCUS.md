@@ -161,8 +161,8 @@ Add items below. Anything under this heading is unclaimed work.
   the paper and what is still unverified, and lets the reader change the conditions. The queue
   there is ordered so that every weight on the methodology page ends up with either an
   experiment or an honest "cannot be rerun on free data". **Friday is the lab's day** (one
-  experiment, finished); Monday adds to its queue; the context-layer item below keeps the other
-  days. The lab never sets a screener parameter and no scoring module may import it.
+  experiment, finished); Monday adds to its queue; the context-layer item kept the other days
+  until it closed on 2026-10-20 (now under Done). The lab never sets a screener parameter and no scoring module may import it.
 
   The same plan carries the "dig deeper" half: use replication as an audit of the screener's own
   citations - every effect size the methodology quotes gets tagged *rerun in the lab*, *cannot
@@ -182,7 +182,7 @@ Add items below. Anything under this heading is unclaimed work.
     2012-2026 history; the lab and the engine answer different questions - what a paper found, and
     what this screener's weighting would have done.
   - **2026-10-14 (06:00 nightly) - deferred for a red ship gate, nothing lost.** The day's work was a
-    data defect published by the 02:00 run (see the context-layer item below and `NIGHTLY_LOG.md`).
+    data defect published by the 02:00 run (see the context-layer item, now under Done, and `NIGHTLY_LOG.md`).
     The lab's next day is Friday **2026-10-23** either way - 2026-10-16 is a retrospective - and the
     next experiment is still profitability (Novy-Marx 2013). No proposal is waiting for a decision:
     `write_brief.open_proposals()` returns `[]` since the Growth refusal.
@@ -324,138 +324,6 @@ Add items below. Anything under this heading is unclaimed work.
     **Next: experiment 2, Daniel & Moskowitz (2016), momentum crashes** - the study the momentum
     regime rule is built on. Write its tolerances before running the comparison.
 
-- **2026-10-08 - The context layer: technicals, options, insiders, macro and a track record.
-  First draft built by an owner-run session; the nightly sessions now own making it right.**
-  Owner, verbatim: *"This is where I want people to come for all of their investing needs ... maybe we should take like technicals into account for timing of investments? Or macro data? Or options data? ... the goal is still long term ... if free somehow ... you would just build the first rough draft of it, then the nightly sessions would really drill into it, and make sure that it is perfect moving forward."* He chose all four (track record, a per-stock "Before you
-  decide" panel, a market backdrop, insider buying) and chose **"context only, track them"**: shown
-  beside the score, never in it, recorded every run so each signal builds an out-of-sample record.
-
-  **The brief is `plan/context-layer.md` - read it first.** Its "Known limits of the draft" list is
-  the queue, in order: (1) measure that the context pass costs the core fetch nothing; (2) the share
-  of stocks with usable option quotes at 2 AM - **measured and fixed in code 2026-10-09**;
-  (3) insider data from the SEC's own filings - **done
-  2026-10-08 (late)**: the owner gave a contact email for the SEC's User-Agent, which lives outside the
-  repo in `data/sec/user_agent.txt` (gitignored); never copy it into a tracked file; (4) one research note per signal;
-  (5) the evaluation harness over `data/context_log/`; (6) track-record hardening; (7) macro data
-  vintages. This is product and data work on the new layer - it does **not** reopen the closed
-  redesign, and it never moves a score (CLAUDE.md row "ctx").
-
-  **Progress (update this line each session):**
-  - **2026-10-17 (13:00 slot) - the macro backdrop's research note is done, and reading the sources
-    found three sentences on the live page that were wrong about their own evidence.** Queue item 4
-    now has one signal left (the track record). `research/2026-10-17-macro-backdrop.md` checks all
-    five readings and all three factor notes against the papers themselves, with every DOI resolved
-    through Crossref before it was written down. **What it found, in plain terms:** the labour-market
-    sentence told you the Sahm rule "has marked **the start** of every US recession since 1970" - on
-    the rule's own real-time series the signal arrived **after** the recession had already begun in
-    **6 of 8** cases, which is also what Claudia Sahm's own chapter says ("within three months of the
-    start"; "the unemployment rate tends to lag the business cycle"), and the page named **no** false
-    alarm while the record holds **two**, one of them in **2024** - visible in the very chart printed
-    beside the sentence. The yield-curve sentence credited a 1998 paper with two facts it does not
-    state: a "6 to 24 month" lag (measured: **6 to 17**) and "at least one false alarm" (the one clear
-    case, 1966-67, falls *outside* the period the same sentence names; the New York Fed reports **no**
-    false signals from 1968 to 2005). The credit-spread sentence carried **no source at all** and
-    explained a widening spread by default risk - the one component the standard paper on the subject
-    shows carries no predictive information. All three are corrected, with 13 tests that **rebuild
-    each record from the Federal Reserve's own data** rather than trust a stored summary, and the
-    corrections reach the live page at the next 02:00 run. **No score, rank or number moved.**
-    The note also answers the standing question for good: **no macro reading will ever join the
-    score**, because one number a month for the whole market cannot rank 500 companies against each
-    other - it can only move the weights, which is a different claim with discouraging evidence
-    behind it (AQR's own authors call factor timing "deceptively difficult", and index providers keep
-    macro out of factor construction). So the backdrop stays what you asked for: context for timing
-    and sizing, beside the score.
-    **Next for this item: the track record's note** (queue item 4's last), then item 6,
-    track-record hardening.
-  - **2026-10-15 (13:00 slot) - deferred, and why, with nothing lost.** The session carried on from
-    the owner-run midday entry's Next instead: a measured input defect left open in
-    `research/2026-10-14-yahoo-vs-sec.md` section 4b, where the screener invented a quarter the
-    source had never published (Berkshire's net income was scored 14.5% below its own filing). It is
-    fixed and exact against the filings, and wiring its sentence onto the page turned up a live
-    defect - the drilldown function those badges live in is **never called**, so this morning's
-    quarterly-rejection badge could never have appeared. **Next for this item is unchanged:**
-    item 4's two remaining per-signal notes (macro backdrop, track record), then item 6,
-    track-record hardening. Nothing here was started, so nothing is half-done.
-  - **2026-10-14 (13:00 session) - queue item 4's three open page-sentence findings are DONE, and
-    reading the paper turned up a correction the next session has to carry.** All three were the
-    same failure - a figure from a paper printed beside a number the paper did not measure.
-    **(a)** The put skew is now Xing, Zhang & Zhao's own construction (the out-of-the-money put
-    nearest 95% of the price minus the **at-the-money call**, not the mean of call and put at 90%),
-    with both implied volatilities printed beside it so the subtraction is checkable on the row.
-    The old measure was their skew *minus half of a different published signal*; measured on 25
-    names from the same option chains, the two **disagreed on the sign for 7 of 22 (32%)**, and the
-    old one produced +46.6 IV points for one stock where the paper's own 95th percentile is +19.92.
-    **(b)** The sentence now quotes the paper at the horizon a monthly reader can act on - 10.9% a
-    year held one week **and 6.5% held four** - and gives McLean & Pontiff's 58% post-publication
-    shrinkage as an upper bound. **(c)** Put/call open interest is off the page: it was a bare
-    *level* with no sentence, where the evidence is about flow and is spent within a week. It is
-    still logged, so its record keeps accruing.
-    **The correction:** the 10-12 note concluded that *every* option-implied signal decays faster
-    than this screener acts, listing XZZ as "weekly rebalanced" - it had the paper second-hand. The
-    paper's Table 4 measures the same spread at a **four-week** holding period (6.52% a year,
-    t 2.70) and out to 28 weeks with *rising* t-statistics. Withdrawn for XZZ, still standing for
-    the other three studies. It does **not** make the skew a candidate for the score, but the first
-    `1m` record from `context_eval.py` (window closes 2026-11-07) must be read as a test of a claim
-    the paper makes at that horizon - and the five log dates before today hold the old
-    construction, so they are excluded rather than spliced.
-    **No score moved** (rehearsal: `dashboard_data.js` byte-unchanged; context payload changed 0,
-    added 0, removed 941 - the withheld old skews and the open-interest row).
-    **Next: item 4's two remaining per-signal notes** - the macro backdrop and the track record -
-    then item 6, track-record hardening.
-  - **2026-10-14 - deferred, and why.** The 06:00 session's test baseline was red: the source had
-    stopped serving one `.info` field and the dividend yield had emptied for 495 of 501 stocks in the
-    run published at 02:00, which also put "Dividend Yield: None" on the page for Coca-Cola, J&J and
-    Procter & Gamble. A failing gate outranks this queue, so the session spent itself on that, on the
-    three further defects it exposed, and on giving the 02:00 loop a gate that would have caught it.
-    **One thing landed for this item anyway:** Xing, Zhang & Zhao (2010) was obtained and read from
-    the paper, so the put-skew correction in item 4 now has its definition from the primary source
-    (`SKEW` = OTM put at 0.95 moneyness minus **ATM call**, 10-60 day options) rather than
-    second-hand. **Next is unchanged:** item 4's remaining per-signal notes (macro backdrop, track
-    record) and its three open options-panel sentence corrections, then item 6.
-  - **2026-10-12 - queue item 2 is CLOSED, and closing it caught a false statement on the live site.**
-    Today's 02:00 run was the first scheduled one after a 20:00 refresh: options `ok` **397 of 503**,
-    `partial` 59, `quotes-closed` 47, against **0 of 503** before the fix. The after-close cache works.
-    But the quotes were stamped **Saturday 2026-10-10** and the page told readers of **455 of 501**
-    stocks "Quotes are the close of Oct 10" - the refresh runs at 21:00 ET, already the next UTC day,
-    and it stamped the UTC date, so every refresh had named the session *after* its quotes. Fixed
-    (`market_session_date`, plus one `is_session_date` predicate shared by the cache and the
-    generator), the cache and the run's copy repaired, and the site republished the same session:
-    `dashboard_data.js` **byte-identical**, `dashboard_context.js` 455 changes, **all of them the
-    date**, and no panel lost. **Queue item 4 advanced:** the options panel's per-signal note is done
-    (`research/2026-10-12-option-implied-signals.md`) and concludes the option signals are **not**
-    candidates for the score - every supported one decays faster than a monthly review cadence - with
-    three page-sentence corrections left open in `plan/context-layer.md` item 4.
-    **Next: item 4's remaining per-signal notes** (the macro backdrop and the track record have none),
-    then item 6, track-record hardening.
-  - **2026-10-09 (owner-run, afternoon) - a new signal, and the evaluation's sector input repaired.**
-    "Against its own five years" (each stock's earnings and FCF yield against its past 60 month-ends,
-    from SEC filings; `valuation_history.py`) joined the panel and the context log as two signals
-    (`_ctx_vh_ey_pct`, `_ctx_vh_fy_pct`) that `context_eval.py` evaluates like the rest. A review found
-    the logs had never carried the GICS sector, so the sector-relative signal was always empty; both
-    committed logs were repaired. A `--tickers` run no longer rewrites the log or the track record.
-  - **2026-10-09 (owner-run, daytime) - the outstanding step is done, and items 4-6 moved.** The
-    `Screener Option Quotes` task is registered and verified (`Get-ScheduledTask`: one weekly 20:00
-    trigger, no logon trigger; loops still PT3M / PT20M) and a live smoke test wrote the cache at
-    08:46 CT. Item 5 (the evaluation harness) is built - `context_eval.py`, a line in the morning
-    brief, first window closes 2026-11-07. Item 4 step one: every research sentence on the panel was
-    checked against its source, three corrected (`research/2026-10-09-context-panel-claims.md`).
-    Item 6 progressed: thin cached price columns are repaired, and picks the price source no longer
-    serves are named on the page. **Next: confirm the `ok` share from the first 02:00 log after a
-    20:00 refresh, then item 4's per-signal research notes.**
-  - **2026-10-09 - item 2 measured and fixed in code; one machine step outstanding.** The options
-    panel was empty for **every stock on every scheduled run**: `ok` for **0 of 503** at the 02:00
-    loop's hour against **394 of 503** at 21:27 ET the evening before, because the source serves the
-    chain overnight with every bid, ask and implied volatility at zero. Fixed by collecting quotes
-    after the close (`options_cache.py`, a new weekday-20:00 task defined in `register-tasks.ps1`)
-    and having the 02:00 pass **probe** rather than guess the hour - it now spends 3 option requests
-    instead of ~1,000, reads the cache, and the page names the session the quotes came from.
-    **Outstanding:** the task was not registered on the machine - every PowerShell call, including a
-    read-only `Get-ScheduledTask`, is auto-denied in a non-interactive session, so this was out of
-    reach rather than skipped (rule 11). Next session: run `scripts/register-tasks.ps1`, confirm all
-    three tasks with `Get-ScheduledTask`, then re-measure the `ok` share from the next 02:00 log.
-    **Then item 2 closes and item 4 (one research note per signal) is next.** The exact verification
-    steps are in `plan/context-layer.md` item 2.
-
 *(No open owner items. Calculation transparency and the premium redesign were finished on
 2026-10-07 in owner-run sessions; their text is archived under **Done**. Owner direction that
 night: *"I actually decided that I want you to finish up all UI/UX work in here tonight. And make
@@ -470,6 +338,161 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 ## Done
 
 Completed items, newest first.
+
+- **2026-10-20 (owner-run, evening) - The context layer (opened 2026-10-08): CLOSED. What was
+  left is written down, the defects it hid are fixed, and the one thing remaining only time can
+  deliver.** Three sessions running had deferred it while its queue was nearly done and nobody had
+  said what remained, so the audit came first: every queue item and every context panel against the
+  code. **What it found on the live site:** the options panel told readers of **485 of 501** stocks
+  that their quotes were "the previous close" when the 13:00 session's live run had taken them in
+  the middle of that day's session - fixed, and the panel now says when quotes were taken. **In
+  the evidence each signal is building:** the same run had replaced the morning's record with the
+  day's unfinished prices (restored, and a run made while the market is open no longer writes it),
+  and the evaluation had been mixing the old and new put-skew measures across six days that the
+  plan said to leave out (it now leaves them out). **Two sentences said more than the code**
+  (a quarter of Momentum does not skip the latest month; the stat strip shows a momentum card only
+  when the cut is on) and are corrected, and five more sentences that state how a context number is
+  computed now have registered checks that test what the code does, not that a string exists. **No
+  score, rank or main-payload byte moved.** `plan/context-layer.md` "CLOSED 2026-10-20".
+  **The one remaining item is time, not work:** each signal's first one-month reading arrives with
+  the **2026-11-09** run (the put skew's about 11-16), and the evidence bar for any signal to be
+  *considered* for the score - 8 independent monthly observations - is about **mid-2027**. Read the
+  morning brief's context line then; nothing about it is deferred. One finding to know: 51 stocks
+  lost the "against its own five years" chart on 10-19 because the SEC's free data feed has not
+  published their July/August quarterly figures (verified for Abbott, Duke and S&P Global); the
+  chart returns when it does. The original item and its progress log follow.
+
+  - **2026-10-08 - The context layer: technicals, options, insiders, macro and a track record.
+    First draft built by an owner-run session; the nightly sessions now own making it right.**
+    Owner, verbatim: *"This is where I want people to come for all of their investing needs ... maybe we should take like technicals into account for timing of investments? Or macro data? Or options data? ... the goal is still long term ... if free somehow ... you would just build the first rough draft of it, then the nightly sessions would really drill into it, and make sure that it is perfect moving forward."* He chose all four (track record, a per-stock "Before you
+    decide" panel, a market backdrop, insider buying) and chose **"context only, track them"**: shown
+    beside the score, never in it, recorded every run so each signal builds an out-of-sample record.
+  
+    **The brief is `plan/context-layer.md` - read it first.** Its "Known limits of the draft" list is
+    the queue, in order: (1) measure that the context pass costs the core fetch nothing; (2) the share
+    of stocks with usable option quotes at 2 AM - **measured and fixed in code 2026-10-09**;
+    (3) insider data from the SEC's own filings - **done
+    2026-10-08 (late)**: the owner gave a contact email for the SEC's User-Agent, which lives outside the
+    repo in `data/sec/user_agent.txt` (gitignored); never copy it into a tracked file; (4) one research note per signal;
+    (5) the evaluation harness over `data/context_log/`; (6) track-record hardening; (7) macro data
+    vintages. This is product and data work on the new layer - it does **not** reopen the closed
+    redesign, and it never moves a score (CLAUDE.md row "ctx").
+  
+    **Progress (update this line each session):**
+    - **2026-10-17 (13:00 slot) - the macro backdrop's research note is done, and reading the sources
+      found three sentences on the live page that were wrong about their own evidence.** Queue item 4
+      now has one signal left (the track record). `research/2026-10-17-macro-backdrop.md` checks all
+      five readings and all three factor notes against the papers themselves, with every DOI resolved
+      through Crossref before it was written down. **What it found, in plain terms:** the labour-market
+      sentence told you the Sahm rule "has marked **the start** of every US recession since 1970" - on
+      the rule's own real-time series the signal arrived **after** the recession had already begun in
+      **6 of 8** cases, which is also what Claudia Sahm's own chapter says ("within three months of the
+      start"; "the unemployment rate tends to lag the business cycle"), and the page named **no** false
+      alarm while the record holds **two**, one of them in **2024** - visible in the very chart printed
+      beside the sentence. The yield-curve sentence credited a 1998 paper with two facts it does not
+      state: a "6 to 24 month" lag (measured: **6 to 17**) and "at least one false alarm" (the one clear
+      case, 1966-67, falls *outside* the period the same sentence names; the New York Fed reports **no**
+      false signals from 1968 to 2005). The credit-spread sentence carried **no source at all** and
+      explained a widening spread by default risk - the one component the standard paper on the subject
+      shows carries no predictive information. All three are corrected, with 13 tests that **rebuild
+      each record from the Federal Reserve's own data** rather than trust a stored summary, and the
+      corrections reach the live page at the next 02:00 run. **No score, rank or number moved.**
+      The note also answers the standing question for good: **no macro reading will ever join the
+      score**, because one number a month for the whole market cannot rank 500 companies against each
+      other - it can only move the weights, which is a different claim with discouraging evidence
+      behind it (AQR's own authors call factor timing "deceptively difficult", and index providers keep
+      macro out of factor construction). So the backdrop stays what you asked for: context for timing
+      and sizing, beside the score.
+      **Next for this item: the track record's note** (queue item 4's last), then item 6,
+      track-record hardening.
+    - **2026-10-15 (13:00 slot) - deferred, and why, with nothing lost.** The session carried on from
+      the owner-run midday entry's Next instead: a measured input defect left open in
+      `research/2026-10-14-yahoo-vs-sec.md` section 4b, where the screener invented a quarter the
+      source had never published (Berkshire's net income was scored 14.5% below its own filing). It is
+      fixed and exact against the filings, and wiring its sentence onto the page turned up a live
+      defect - the drilldown function those badges live in is **never called**, so this morning's
+      quarterly-rejection badge could never have appeared. **Next for this item is unchanged:**
+      item 4's two remaining per-signal notes (macro backdrop, track record), then item 6,
+      track-record hardening. Nothing here was started, so nothing is half-done.
+    - **2026-10-14 (13:00 session) - queue item 4's three open page-sentence findings are DONE, and
+      reading the paper turned up a correction the next session has to carry.** All three were the
+      same failure - a figure from a paper printed beside a number the paper did not measure.
+      **(a)** The put skew is now Xing, Zhang & Zhao's own construction (the out-of-the-money put
+      nearest 95% of the price minus the **at-the-money call**, not the mean of call and put at 90%),
+      with both implied volatilities printed beside it so the subtraction is checkable on the row.
+      The old measure was their skew *minus half of a different published signal*; measured on 25
+      names from the same option chains, the two **disagreed on the sign for 7 of 22 (32%)**, and the
+      old one produced +46.6 IV points for one stock where the paper's own 95th percentile is +19.92.
+      **(b)** The sentence now quotes the paper at the horizon a monthly reader can act on - 10.9% a
+      year held one week **and 6.5% held four** - and gives McLean & Pontiff's 58% post-publication
+      shrinkage as an upper bound. **(c)** Put/call open interest is off the page: it was a bare
+      *level* with no sentence, where the evidence is about flow and is spent within a week. It is
+      still logged, so its record keeps accruing.
+      **The correction:** the 10-12 note concluded that *every* option-implied signal decays faster
+      than this screener acts, listing XZZ as "weekly rebalanced" - it had the paper second-hand. The
+      paper's Table 4 measures the same spread at a **four-week** holding period (6.52% a year,
+      t 2.70) and out to 28 weeks with *rising* t-statistics. Withdrawn for XZZ, still standing for
+      the other three studies. It does **not** make the skew a candidate for the score, but the first
+      `1m` record from `context_eval.py` (window closes 2026-11-07) must be read as a test of a claim
+      the paper makes at that horizon - and the five log dates before today hold the old
+      construction, so they are excluded rather than spliced.
+      **No score moved** (rehearsal: `dashboard_data.js` byte-unchanged; context payload changed 0,
+      added 0, removed 941 - the withheld old skews and the open-interest row).
+      **Next: item 4's two remaining per-signal notes** - the macro backdrop and the track record -
+      then item 6, track-record hardening.
+    - **2026-10-14 - deferred, and why.** The 06:00 session's test baseline was red: the source had
+      stopped serving one `.info` field and the dividend yield had emptied for 495 of 501 stocks in the
+      run published at 02:00, which also put "Dividend Yield: None" on the page for Coca-Cola, J&J and
+      Procter & Gamble. A failing gate outranks this queue, so the session spent itself on that, on the
+      three further defects it exposed, and on giving the 02:00 loop a gate that would have caught it.
+      **One thing landed for this item anyway:** Xing, Zhang & Zhao (2010) was obtained and read from
+      the paper, so the put-skew correction in item 4 now has its definition from the primary source
+      (`SKEW` = OTM put at 0.95 moneyness minus **ATM call**, 10-60 day options) rather than
+      second-hand. **Next is unchanged:** item 4's remaining per-signal notes (macro backdrop, track
+      record) and its three open options-panel sentence corrections, then item 6.
+    - **2026-10-12 - queue item 2 is CLOSED, and closing it caught a false statement on the live site.**
+      Today's 02:00 run was the first scheduled one after a 20:00 refresh: options `ok` **397 of 503**,
+      `partial` 59, `quotes-closed` 47, against **0 of 503** before the fix. The after-close cache works.
+      But the quotes were stamped **Saturday 2026-10-10** and the page told readers of **455 of 501**
+      stocks "Quotes are the close of Oct 10" - the refresh runs at 21:00 ET, already the next UTC day,
+      and it stamped the UTC date, so every refresh had named the session *after* its quotes. Fixed
+      (`market_session_date`, plus one `is_session_date` predicate shared by the cache and the
+      generator), the cache and the run's copy repaired, and the site republished the same session:
+      `dashboard_data.js` **byte-identical**, `dashboard_context.js` 455 changes, **all of them the
+      date**, and no panel lost. **Queue item 4 advanced:** the options panel's per-signal note is done
+      (`research/2026-10-12-option-implied-signals.md`) and concludes the option signals are **not**
+      candidates for the score - every supported one decays faster than a monthly review cadence - with
+      three page-sentence corrections left open in `plan/context-layer.md` item 4.
+      **Next: item 4's remaining per-signal notes** (the macro backdrop and the track record have none),
+      then item 6, track-record hardening.
+    - **2026-10-09 (owner-run, afternoon) - a new signal, and the evaluation's sector input repaired.**
+      "Against its own five years" (each stock's earnings and FCF yield against its past 60 month-ends,
+      from SEC filings; `valuation_history.py`) joined the panel and the context log as two signals
+      (`_ctx_vh_ey_pct`, `_ctx_vh_fy_pct`) that `context_eval.py` evaluates like the rest. A review found
+      the logs had never carried the GICS sector, so the sector-relative signal was always empty; both
+      committed logs were repaired. A `--tickers` run no longer rewrites the log or the track record.
+    - **2026-10-09 (owner-run, daytime) - the outstanding step is done, and items 4-6 moved.** The
+      `Screener Option Quotes` task is registered and verified (`Get-ScheduledTask`: one weekly 20:00
+      trigger, no logon trigger; loops still PT3M / PT20M) and a live smoke test wrote the cache at
+      08:46 CT. Item 5 (the evaluation harness) is built - `context_eval.py`, a line in the morning
+      brief, first window closes 2026-11-07. Item 4 step one: every research sentence on the panel was
+      checked against its source, three corrected (`research/2026-10-09-context-panel-claims.md`).
+      Item 6 progressed: thin cached price columns are repaired, and picks the price source no longer
+      serves are named on the page. **Next: confirm the `ok` share from the first 02:00 log after a
+      20:00 refresh, then item 4's per-signal research notes.**
+    - **2026-10-09 - item 2 measured and fixed in code; one machine step outstanding.** The options
+      panel was empty for **every stock on every scheduled run**: `ok` for **0 of 503** at the 02:00
+      loop's hour against **394 of 503** at 21:27 ET the evening before, because the source serves the
+      chain overnight with every bid, ask and implied volatility at zero. Fixed by collecting quotes
+      after the close (`options_cache.py`, a new weekday-20:00 task defined in `register-tasks.ps1`)
+      and having the 02:00 pass **probe** rather than guess the hour - it now spends 3 option requests
+      instead of ~1,000, reads the cache, and the page names the session the quotes came from.
+      **Outstanding:** the task was not registered on the machine - every PowerShell call, including a
+      read-only `Get-ScheduledTask`, is auto-denied in a non-interactive session, so this was out of
+      reach rather than skipped (rule 11). Next session: run `scripts/register-tasks.ps1`, confirm all
+      three tasks with `Get-ScheduledTask`, then re-measure the `ok` share from the next 02:00 log.
+      **Then item 2 closes and item 4 (one research note per signal) is next.** The exact verification
+      steps are in `plan/context-layer.md` item 2.
 
 - **2026-10-20 (13:00) - the bank ROE/ROA proposal: REVIEWED and ACCEPTED. Two of the heaviest
   numbers in a bank's quality score were ratios nobody had a definition for.** Raised 2026-10-19

@@ -4610,3 +4610,46 @@ That is numerically the ratio `market_fields` already built as `priceToBook`
 `research/2026-10-19-bank-price-to-book.md` section 8 (raised by the 2026-10-19 session; decided by
 a session that did not write it, as the routine requires).
 **Rollback:** revert the commit; `scoring_schema` back to 12. The tag is `good/2026-10-20`.
+
+## 2026-10-20 (evening) - Context layer close-out: three defects in what the panels say and record. No score moved
+
+**Area:** context layer (display and evidence record only - CLAUDE.md settled row "ctx")
+**Changed:**
+- **When option quotes were taken.** A reading fetched live carried no stamp, and the options
+  panel's fallback said "Quotes are the previous close." The 13:00 session's live run published
+  at 13:21 CT with quotes taken mid-session, so the live page said that for **485 of 501** stocks.
+  Live readings (and a refresh run by hand during the session) now record the session, the Eastern
+  clock time and whether the market was open (`options_cache.live_quote_stamp`); the panel names a
+  mid-session reading as one, a close as a close, and an unstamped reading as unstamped.
+- **The evidence record took a mid-session bar as a close.** The same run replaced the data
+  loop's `data/context_log/2026-10-20.parquet` with 502 prices dated 2026-10-20 - the unfinished
+  bar - against every other log's previous-session closes. `write_context_log` now keeps a run made
+  while the market is open out of the log (`context_signals.mid_session_reason`); the committed log
+  is restored to the 06:16 run's (2026-10-19 closes, identical to 02:00's on every checked field).
+- **The evaluation spliced two skew constructions.** `context_eval.py` evaluated the
+  pre-2026-10-14 put skew (0.90 put minus the mean of the ATM call and put) together with Xing,
+  Zhang & Zhao's, which `plan/context-layer.md` item 4 said to exclude. It now uses the generator's
+  own rule - a skew counts only with both legs recorded - which excludes **six** log dates
+  (2026-10-08 to 10-15), not the five the plan said: the 10-15 run read a cache refreshed before the
+  fix merged at 21:34 CT on 10-14. ATM implied volatility, shown on the panel since 10-08 and
+  logged, is now evaluated too.
+- **Two sentences said more than the code.** "The screener's own momentum signal skips the latest
+  month" - a quarter of Momentum (Jensen's alpha, 25 of 100) uses the full twelve months; now says
+  so. "The stat strip shows whether the cut is in force" - the strip shows a card only when it is;
+  now says so.
+
+**Evidence:** measured against the run artifacts (`runs/7c12b43a07b6/meta.json`: options live at
+13:21 CT; the three 2026-10-20 log versions in git, ce4f70e / 9c1a8d6 / 358cd72), the skew code's
+commit time (c09d343), and `config.yaml`'s momentum weights.
+**Expected effect:** none on any score, rank or the main payload (page rebuilt presentation-only,
+`dashboard_data.js` byte-identical). The options sentence changes for live readings from the next
+run; the Market panel's note at the next 02:00 run.
+**Validated by:** `tests/test_context_layer_claims.py` (31 tests: browser renders of the
+generator's own page for the quote sentence, the trend word against `trend_state`, the sector
+median against the payload and the stat strip; behavioural checks for the skip-month returns, the
+market-card arithmetic, the log guard and the harness). Five claims registered
+(`context.price_trend`, `context.momentum_skip`, `context.macro_momentum_rule`,
+`context.macro_series`, `context.logged_every_run`), two extended, two `FORBIDDEN` patterns.
+`scripts/rehearse_publish.py` passed on run 7c12b43a07b6.
+**Applied by:** an owner-run session's agent, 2026-10-20 evening (the CLAUDE.md priority 0.11 audit).
+**Rollback:** revert the commit; nothing downstream reads the new fields.

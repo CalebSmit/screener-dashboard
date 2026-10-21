@@ -53,8 +53,13 @@ SIGNALS = {
     "position_in_52w_range": ("(close - 52-week low) / (52-week high - low)", "stocks nearer their 52-week high did better"),
     "volume_ratio": ("20-day / 3-month average volume", "heavier recent volume preceded better returns"),
     "options_expected_move": ("at-the-money straddle / price", "a bigger implied move preceded better returns"),
-    "options_put_skew": ("90% put IV - at-the-money IV", "steeper put skew preceded better returns (literature: worse)"),
+    "options_put_skew": ("implied volatility of the out-of-the-money put nearest 0.95 moneyness minus the at-the-money "
+                         "call's (Xing, Zhang & Zhao 2010); readings before that construction (logs to 2026-10-15, which "
+                         "carry no legs) are excluded, not spliced",
+                         "steeper put skew preceded better returns (literature: worse)"),
     "options_put_call_oi": ("put / call open interest", "more put open interest preceded better returns"),
+    # Shown on the panel since 2026-10-08 and logged every run, but not evaluated until 2026-10-20.
+    "options_atm_iv": ("implied volatility of the at-the-money options", "higher implied volatility preceded better returns"),
     "insider_buyers": ("officers and directors buying in 90 days", "more insider buyers preceded better returns"),
     "insider_buy_value": ("dollar value of insider purchases, 90 days", "larger insider purchases preceded better returns"),
     "rate_sensitivity": ("return per +1pp in the 10-year yield", "rate-sensitive stocks did better"),
@@ -67,6 +72,24 @@ SIGNALS = {
 
 def _num(s):
     return pd.to_numeric(s, errors="coerce")
+
+
+def skew_is_the_papers_measure(log: pd.DataFrame) -> pd.Series:
+    """True where a logged skew is Xing, Zhang & Zhao's construction, judged as the page judges it.
+
+    The skew changed construction on 2026-10-14 (``research/2026-10-14-volatility-skew-construction.md``):
+    before it, ``_ctx_opt_skew`` was the 0.90-moneyness put minus the *mean* of the at-the-money
+    call and put - a different quantity, which disagreed on the sign for 7 of 22 stocks measured.
+    ``plan/context-layer.md`` item 4 says those dates are excluded, never spliced, and until
+    2026-10-20 the harness spliced them. The rule is the generator's: a skew is the paper's only
+    if both its legs were recorded beside it (``generate_dashboard._stock_context`` withholds a
+    skew without them). One predicate, so the record and the page cannot disagree about which
+    readings are the measure the panel's sentence describes.
+    """
+    legs = [c for c in ("_ctx_opt_skew_put_iv", "_ctx_opt_skew_call_iv") if c in log.columns]
+    if len(legs) < 2:
+        return pd.Series(False, index=log.index)
+    return log[legs].notna().all(axis=1)
 
 
 def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
@@ -91,11 +114,13 @@ def signals_frame(log: pd.DataFrame) -> pd.DataFrame:
     out["position_in_52w_range"] = ((px - lo) / rng).values
     out["volume_ratio"] = _num(log.get("_ctx_vol_ratio")).values
     for col, key in (("options_expected_move", "_ctx_opt_move"), ("options_put_skew", "_ctx_opt_skew"),
-                     ("options_put_call_oi", "_ctx_opt_pc_oi")):
+                     ("options_put_call_oi", "_ctx_opt_pc_oi"), ("options_atm_iv", "_ctx_opt_iv")):
         v = _num(log[key]) if key in log.columns else pd.Series(np.nan, index=log.index)
         # Only readings the page would show: a usable chain.
         if "_ctx_opt_status" in log.columns:
             v = v.where(log["_ctx_opt_status"].isin(["ok", "partial"]))
+        if key == "_ctx_opt_skew":
+            v = v.where(skew_is_the_papers_measure(log))
         out[col] = v.values
     out["insider_buyers"] = (_num(log["_ctx_ins_buy_people"]) if "_ctx_ins_buy_people" in log.columns
                              else pd.Series(np.nan, index=log.index)).values
@@ -193,7 +218,14 @@ def evaluate(log_dir: Path | None = None, today: date | None = None, write: bool
         out["signals"][s] = rec
     if logs:
         first = pd.Timestamp(min(logs))
-        out["first_forward_window_closes"] = (first + pd.Timedelta(days=HORIZON_MIN_DAYS)).date().isoformat()
+        closes = first + pd.Timedelta(days=HORIZON_MIN_DAYS)
+        out["first_forward_window_closes"] = closes.date().isoformat()
+        # The data loop runs on weekdays, so the first forward log - and the first observation -
+        # is the first weekday on or after the window closes (2026-11-07 is a Saturday).
+        due = closes
+        while due.weekday() > 4:
+            due += pd.Timedelta(days=1)
+        out["first_observation_due"] = due.date().isoformat()
         out["earliest_gate_date_if_logged_daily"] = (first + pd.Timedelta(days=30 * gate)).date().isoformat()
     if write:
         OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -207,7 +239,8 @@ def summary_line(ev: dict) -> str:
     best = max((v.get("effective_observations", 0) for v in sig.values()), default=0)
     if best == 0:
         return (f"Context signals: {ev.get('log_dates', 0)} daily logs since {ev.get('first_log')}; the first "
-                f"one-month return window closes {ev.get('first_forward_window_closes')}, so no signal has a "
+                f"one-month return window closes {ev.get('first_forward_window_closes')} and its first reading "
+                f"comes with the run of {ev.get('first_observation_due')}, so no signal has a "
                 f"record yet (gate: {ev.get('gate_effective_observations')} effective observations).")
     lead = sorted(((k, v) for k, v in sig.items() if v.get("mean_ic_independent") is not None),
                   key=lambda kv: -abs(kv[1]["mean_ic_independent"]))[:3]
