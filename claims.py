@@ -223,6 +223,7 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="stock_summary:_sentence_change",
         checked_by=(
             "tests/test_stock_summary.py::test_change_prefers_the_one_month_baseline_over_the_previous_run",
+            "tests/test_stock_summary.py::test_composite_move_is_stated_from_005_and_omitted_below",
         ),
     ),
     Claim(
@@ -265,6 +266,7 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="stock_summary:_sentence_target",
         checked_by=(
             "tests/test_stock_summary.py::test_target_sentence_states_the_gap_and_the_analyst_count",
+            "tests/test_stock_summary.py::test_thin_basis_is_below_five_analysts_and_not_at_five",
         ),
     ),
     Claim(
@@ -366,6 +368,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_claims_register.py::test_overview_states_the_coverage_discount_from_config",
             "tests/test_methodology_claims_audit.py::test_the_discount_example_is_a_coverage_a_ranked_stock_can_have",
+            "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
         ),
         detect=r"coverage discount described under Data quality safeguards",
     ),
@@ -485,6 +488,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_calculation_reproducibility.py::test_composite_and_points_reproduce_including_the_coverage_discount",
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
+            "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
         ),
     ),
     Claim(
@@ -516,6 +520,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_ranking_audit.py::test_earnings_lifted_by_income_outside_operations_are_said",
             "tests/test_ranking_audit.py::test_a_buyback_thinned_equity_base_is_said_when_the_measure_is_at_its_cap",
+            "tests/test_ranking_audit.py::test_the_notes_fire_either_side_of_the_stated_thresholds",
         ),
     ),
     Claim(
@@ -685,6 +690,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer_claims.py::test_the_context_pass_stamps_a_live_reading",
             "tests/test_context_layer_claims.py::test_a_refresh_run_during_the_session_is_marked_mid_session",
             "tests/test_context_layer_claims.py::test_the_page_says_when_each_kind_of_quote_was_taken",
+            "tests/test_context_layer.py::test_expiry_rule_holds_at_its_stated_edges",
         ),
         caveat=(
             "Fixed 2026-10-09. Measured that day: the 02:00 run produced a usable reading for "
@@ -778,6 +784,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_context_layer.py::test_grants_and_exercises_are_not_purchases",
             "tests/test_context_layer.py::test_ninety_day_summary_and_cluster",
             "tests/test_context_layer.py::test_ten_percent_holders_are_shown_apart",
+            "tests/test_context_layer.py::test_the_window_is_the_last_ninety_days_and_no_more",
         ),
     ),
     Claim(
@@ -810,6 +817,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_run_overview.py::test_movers_are_the_panels_own_counts",
             "tests/test_run_overview.py::test_category_shares_weight_absolute_changes",
             "tests/test_run_overview.py::test_top_kept_counts_names_in_both_top_lists",
+            "tests/test_run_overview.py::test_rank_25_is_in_the_top_25_on_both_dates_and_26_is_not",
         ),
     ),
     Claim(
@@ -884,6 +892,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_track_record_claims.py::test_the_coin_toss_chance_is_the_binomial_tail",
             "tests/test_track_record_claims.py::test_the_excess_t_is_the_daily_mean_over_its_standard_error",
             "tests/test_track_record_claims.py::test_the_periods_are_not_called_monthly_and_their_count_is_set_against_chance",
+            "tests/test_track_record_claims.py::test_the_years_to_two_are_counted_in_years_of_252_trading_days",
         ),
         caveat=(
             "Fixed 2026-10-19: until then the panel set no figure against chance. The t treats daily differences as independent; Lo (2002) shows serial "
@@ -1237,6 +1246,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_metric_lineage.py::test_percentiles_reproduce_from_the_published_peer_values",
             "tests/test_metric_lineage.py::test_sector_stats_agree_with_the_raw_values",
+            "tests/test_methodology_claims_audit.py::test_a_sector_with_exactly_the_minimum_is_ranked_within_itself",
         ),
     ),
     Claim(
@@ -1573,7 +1583,10 @@ CLAIMS: tuple[Claim, ...] = (
                  "lower-is-better metrics, within the sector - or across the universe where fewer "
                  "than 10 stocks in the sector have a value."),
         made_true_by="factor_engine:compute_sector_percentiles",
-        checked_by=("tests/test_methodology_claims_audit.py::test_the_percentile_rule_is_the_midpoint_rank_with_a_small_sector_fallback",),
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_percentile_rule_is_the_midpoint_rank_with_a_small_sector_fallback",
+            "tests/test_methodology_claims_audit.py::test_a_sector_with_exactly_the_minimum_is_ranked_within_itself",
+        ),
         detect=r"the k-th lowest of n stocks scores",
     ),
     Claim(
@@ -1595,7 +1608,12 @@ CLAIMS: tuple[Claim, ...] = (
                  "price target upside is clamped to the configured [-50%, +100%]. Every published value "
                  "is what those floors and clamps give from the stock's own published inputs."),
         made_true_by="factor_engine:compute_metrics",
-        checked_by=("tests/test_methodology_claims_audit.py::test_the_clamps_and_floors_on_the_page_are_the_ones_applied",),
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_clamps_and_floors_on_the_page_are_the_ones_applied",
+            "tests/test_methodology_claims_audit.py::test_the_fetch_applies_the_surprise_floor_the_page_states",
+            "tests/test_methodology_claims_audit.py::test_the_engine_clamps_price_target_upside_where_the_page_says",
+            "tests/test_forward_eps_growth.py::test_a_small_base_uses_the_one_dollar_floor",
+        ),
         detect=r"Analyst surprise uses a \$[\d.]+ floor on estimated EPS",
     ),
 )

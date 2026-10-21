@@ -287,6 +287,61 @@ def test_overview_states_the_coverage_discount_from_config(generated_overview, c
     assert f"{rate}%" in generated_overview
 
 
+def test_the_engine_applies_the_discount_the_page_states(generated_overview, cfg):
+    """Claims ``overview.coverage_discount`` and ``drilldown.composite_chain``: the
+    engine's discount is the page's formula, at the page's threshold and rate.
+
+    Every check on these two claims read either the page's text or the payload's own
+    ``disc`` field, which is whatever the engine applied - so halving the rate inside
+    ``compute_composite``, or starting the discount five points below the stated
+    threshold, passed all of them (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``). Here the threshold and rate are read off the
+    generated page and the engine is run on stocks either side of that threshold."""
+    import numpy as np
+    import pandas as pd
+    import factor_engine as fe
+
+    cov = cfg["data_quality"]["coverage_discount"]
+    if not cov.get("enabled", False):
+        pytest.skip("coverage discount disabled in config")
+    m = re.search(r"Below (\d+)% metric coverage, the composite is multiplied by "
+                  r"1 \S \((\d+)% \S coverage\) \S (\d+)%", generated_overview)
+    assert m, "the discount formula sentence has moved"
+    thr, thr2, rate = (int(x) / 100 for x in m.groups())
+    assert thr == thr2
+
+    gen, _ = fe.weighted_metric_sets(cfg)
+    gen = [c for c in fe.METRIC_COLS if c in gen]
+    n = len(gen)
+    # Present counts from full coverage down past the threshold, including every count
+    # within ten points below it - where a shifted threshold would show.
+    counts = sorted({n, int(np.ceil(thr * n)), *range(int(thr * n) - 3, int(thr * n) + 1),
+                     int(0.6 * n)}, reverse=True)
+    rows = []
+    for i, k in enumerate(counts):
+        row = {"Ticker": f"S{i}", "Sector": "Industrials", "_is_bank_like": False}
+        for j, c in enumerate(gen):
+            row[c] = 1.0 if j < k else np.nan
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    for c in fe.METRIC_COLS:
+        if c not in df.columns:
+            df[c] = np.nan
+    for col in ("valuation_score", "quality_score", "growth_score", "momentum_score",
+                "risk_score", "revisions_score", "size_score", "investment_score"):
+        df[col] = 50.0
+    out = fe.compute_composite(df, cfg)
+    seen_below = 0
+    for k, (_, r) in zip(counts, out.iterrows()):
+        coverage = k / n
+        expect = (thr - coverage) * rate if coverage < thr else 0.0
+        seen_below += coverage < thr
+        assert r["_cov_discount"] == pytest.approx(expect, abs=1e-9), f"{k} of {n}"
+        # the composite is published to 2dp
+        assert r["Composite"] == pytest.approx(50.0 * (1 - expect), abs=0.0051), f"{k} of {n}"
+    assert seen_below >= 3
+
+
 def test_confidence_metric_count_is_the_discount_coverage(payload, generated_overview):
     """The drilldown's "N of M metrics" must be the coverage the discount reads.
 

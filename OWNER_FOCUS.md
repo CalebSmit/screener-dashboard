@@ -24,6 +24,51 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
+  you can tonight before the 2 am session please! Then have the sessions fine tune things and test
+  things."* The night shipped (owner-run, tags `good/2026-10-20-owner-1..`): the overfitting check on
+  the research page, the engine calibration test, Factor Lab experiment 15 (Jensen, Kelly & Pedersen
+  2023), the Size and bank-overlap research notes, the context layer's close-out (0.11), and the
+  measurements listed in `NIGHTLY_LOG.md` 2026-10-20 (owner-run, night). **The sessions' job now is
+  to check that work as a second reader and harden it, not to add surfaces.** In order:
+  1. **Decide the OPEN proposals** (the morning brief lists them with their ages): share classes
+     (`research/2026-10-19-share-classes.md`), and the bank P/B-ROE pairing - state it on the page
+     and guard it with a test (`research/2026-10-20-bank-quality-valuation-overlap.md` section 8).
+     The deciding session must not be the one that wrote the note.
+  2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
+     open the paper, re-read each reference figure against `factor_lab.py`, and check in
+     `git log` that the tolerances were committed before the comparison ran. A transcription error
+     found here is a defect to fix and record; a miss that is real stays a miss. **Experiment 15:
+     DONE the same night** - all ten figures re-read in the paper and recomputed independently;
+     the licence's copyright notice added (`research/2026-10-20-lab-jkp.md`, "Second reading").
+     Any experiment merged after it still needs its second reader.
+  3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
+     one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
+     passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
+     running table in `plan/claims-mutation-audit.md`. **Started the same night:** 38 mutations on
+     22 claims; **15 got through** (8 were untested boundaries, 3 checked the committed payload
+     instead of the code), all 15 now caught by registered tests. The plan file lists the next 12.
+  4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
+     look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
+     tonight (`tests/test_engine_calibration.py`).
+  5. **Lab experiment 4b** - size inside each profitability quintile (French
+     `25_Portfolios_ME_OP_5x5`), with the refutation criterion already written in
+     `research/2026-10-20-size-weight.md` section 9. It is the one result that would reopen Size.
+  6. **Backtest v2's two free data fixes, then the extended build**
+     (`research/2026-10-20-free-survivorship-sources.md`): 167 member-months of today's members
+     dropped because a rename or symbol format is not carried before May 2014 (BF.B, MHP->SPGI,
+     SAI->LDOS, PCS->TMUS, ACE->CB, TYC->JCI), and 773 `no_filings` member-months whose older filings
+     sit under a predecessor's CIK (Exxon, BlackRock, Disney, Cigna, Alphabet...). Both touch
+     `RESULT_PATHS`, so do them together: one rebuild, one rerun. Then the note's section 8 plan for
+     the extended universe - **register `only-size-extended` first, with its one-sided reading**
+     (free data adds the members that shrank out but almost none that were acquired, so the Size
+     test can falsify the survivorship explanation and cannot confirm it).
+  7. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
+     against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
+     `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file
+     if it is slow).
+  Close this item when 1-6 are done or argued down in the log.
+
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
   can be shown to people and trusted.** Owner: *"we're trying to come up with the best methodology
   to screen stocks by, and it has to be backed up, it has to be proven, so ... I can show this to

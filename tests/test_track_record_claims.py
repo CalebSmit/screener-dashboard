@@ -227,6 +227,25 @@ def test_the_excess_t_is_the_daily_mean_over_its_standard_error():
     assert got["years_to_two"] == pytest.approx((2 / t) ** 2 * len(ex) / 252, abs=0.1)
 
 
+def test_the_years_to_two_are_counted_in_years_of_252_trading_days():
+    """Claim ``context.track_luck``: '(2/t)^2 x trading days / 252'.
+
+    The test above compares at abs=0.1 on a figure near 1.5 years, so a 250-day year
+    (0.8% off) passed it (mutation audit 2026-10-20, ``plan/claims-mutation-audit.md``).
+    A small lead over a lot of noise makes the figure large enough that the year length
+    shows through the published rounding to one decimal."""
+    idx = pd.bdate_range("2026-01-02", periods=121)
+    ex = np.array([0.0101, -0.0099] * 60)               # mean 0.0001 a day, sd ~0.01
+    a = pd.Series(100 * np.cumprod(np.r_[1.0, 1 + ex]), index=idx)
+    b = pd.Series(100.0, index=idx)                      # the benchmark stands still
+    got = tr.excess_record(a, b)
+    n = len(ex)
+    t = ex.mean() / (ex.std(ddof=1) / math.sqrt(n))
+    assert got["days"] == n
+    assert got["years_to_two"] > 100                     # a year-length error is > 0.8 here
+    assert got["years_to_two"] == pytest.approx((2.0 / t) ** 2 * n / 252.0, abs=0.051)
+
+
 def test_the_record_publishes_no_annualised_figure():
     """GIPS 2020 for Firms 2.A.12: returns for periods of less than one year must not be
     annualised. Nothing in the record carries an annual rate, and the panel prints none."""

@@ -1666,6 +1666,8 @@ def test_the_jkp_data_is_published_whole_and_attributed(published):
     att = published["attribution_jkp"]
     assert "CC BY-NC 4.0" in att["text"] and att["licence"] == "https://creativecommons.org/licenses/by-nc/4.0/"
     assert "Jensen, Kelly and Pedersen" in att["text"] and "Changed here" in att["note"]
+    # CC BY-NC 4.0 s.3(a)(1)(A)(ii): keep the copyright notice the licensor supplied (DATA_LICENSE)
+    assert "Copyright (c) 2023 Theis Ingerslev Jensen, Bryan T. Kelly, Lasse Heje Pedersen" in att["text"]
     assert "D.attribution_jkp.licence" in PAGE.read_text(encoding="utf-8")
     # the paper's own counts: 102 factors with five years before their sample, 115 after, 119 either
     counts = next(x for x in published["experiments"] if x["id"] == "replication-crisis")["result"]["counts"]

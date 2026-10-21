@@ -274,6 +274,12 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   cash flow, not book value; free-cash-flow yield holds up there better than experiment 11's
   cash-flow sort suggested; momentum is flat since 2000; profitability holds best. Research only - no
   weight proposed. Fifteen experiments, 134 of 196 within.
+  **Second reading (same night, a different session):** all ten reference figures re-read from a fresh
+  copy of the article and transcribed correctly; `438a7f9` holds every figure and tolerance and no
+  return-computing function, nothing widened since; all ten recomputed from the raw files with an
+  independent pandas/numpy script, matching the page. Noted, not changed: the paper's 82.6% / 83.3%
+  fit its own 102 / 115 counts only swapped (within 5.0 either way). One licence gap fixed: the page now
+  keeps the licensor's copyright notice (CC BY-NC 4.0 s.3(a)(1)(A)(ii)). Note section "Second reading".
 
 - **2026-10-19 - experiment 14: Cooper, Gulen & Schill (2008), asset growth.** Read from the published
   article (Table II Panels B.1/B.2, pp. 1618-1619); tolerances committed on their own before the

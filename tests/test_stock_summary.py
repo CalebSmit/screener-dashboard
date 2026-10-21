@@ -429,6 +429,18 @@ def test_thin_analyst_coverage_is_disclosed():
     assert "thin basis" not in _fact(_build(), "target")
 
 
+def test_thin_basis_is_below_five_analysts_and_not_at_five():
+    """Claim ``summary.target``: 'a thin basis' below THIN_ANALYST_COUNT (5).
+
+    The test above uses 2 and 20 analysts, so moving the boundary - ``<`` to ``<=``,
+    or the constant to 4 or 6 - left it passing (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``). Pin both sides of the stated boundary."""
+    assert ss.THIN_ANALYST_COUNT == 5, "the register states 5; change claims.py with it"
+    assert "thin basis" in _fact(_build(_detail(num_analysts=4)), "target")
+    assert "thin basis" not in _fact(_build(_detail(num_analysts=5)), "target")
+    assert "the mean of 5 analyst estimates." in _fact(_build(_detail(num_analysts=5)), "target")
+
+
 def test_missing_price_target_says_so_rather_than_omitting_it():
     """Silence would read as "no gap"; the absence is itself a coverage fact."""
     fact = _fact(_build(_detail(pt_mean=None)), "target")
@@ -526,6 +538,25 @@ def test_change_falls_back_to_the_previous_run_when_no_month_baseline():
     assert "Sep 7, 2026" in fact
     assert "moved down 12 places" in fact
     assert "composite down 1.1" in fact
+
+
+def test_composite_move_is_stated_from_005_and_omitted_below():
+    """Claim ``summary.change``: composite movement is stated when it is at least 0.05.
+
+    No test exercised the threshold - the two above use 2.6 and 1.1 - so raising it
+    tenfold to 0.5 passed the suite (mutation audit 2026-10-20). The rule's reason is
+    that 0.05 is where a one-decimal figure stops reading "0.0": every move that prints
+    as 0.1 or more is stated, and none that prints as 0.0 is."""
+    def change(dc):
+        return _fact(_build(history_delta={"m1": {"dr": 3, "dc": dc}},
+                            history_compare=COMPARE), "change")
+
+    assert "composite up 0.1" in change(0.06)
+    assert "composite down 0.1" in change(-0.06)
+    assert "composite up 0.4" in change(0.4)
+    assert "composite" not in change(0.04)
+    assert "composite" not in change(-0.04)
+    assert "0.0" not in change(0.049)
 
 
 def test_a_one_rank_move_is_singular():

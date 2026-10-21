@@ -39,6 +39,23 @@ def test_a_buyback_thinned_equity_base_is_said_when_the_measure_is_at_its_cap():
     assert "sustainable_growth" not in RA.stock_notes(_detail(eq=1.209e9, ta=28.8e9, sgr=0.4))  # not at the cap
 
 
+def test_the_notes_fire_either_side_of_the_stated_thresholds():
+    """Claim ``drilldown.ranking_audit``: 'more than 1.25 times its operating income
+    after a 21% tax' and 'equity under 10% of total assets'.
+
+    The two tests above use one stock far from each line (1.46x; equity 4.2%), so moving
+    the equity bar from 10% to 15% passed them (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``), and a ratio bar anywhere in 0.85-1.45 would have
+    too. Each threshold is pinned from both sides, one percent either way."""
+    ebit = 1.0e9
+    after_tax = ebit * (1 - 0.21)
+    assert "earnings_yield" in RA.stock_notes(_detail(ni=1.26 * after_tax, ebit=ebit))
+    assert "earnings_yield" not in RA.stock_notes(_detail(ni=1.24 * after_tax, ebit=ebit))
+    ta = 20e9
+    assert "sustainable_growth" in RA.stock_notes(_detail(eq=0.099 * ta, ta=ta, sgr=1.0))
+    assert "sustainable_growth" not in RA.stock_notes(_detail(eq=0.101 * ta, ta=ta, sgr=1.0))
+
+
 def test_ordinary_figures_get_no_note_and_losses_are_left_alone():
     assert RA.stock_notes(_detail(ni=0.6e9, ebit=0.9e9)) == {}
     assert RA.stock_notes(_detail(ni=-1e9, ebit=0.9e9)) == {}

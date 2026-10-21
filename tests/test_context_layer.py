@@ -104,6 +104,23 @@ def test_expiry_without_a_report_is_nearest_thirty_days():
     assert cs.choose_expiry(["2026-10-09"], today, None) == (None, False)   # 1 day: too short
 
 
+def test_expiry_rule_holds_at_its_stated_edges():
+    """Claim ``context.expected_move``: 'the first expiry after a report due within 60
+    days, else the expiry nearest 30 days'.
+
+    The tests above put the report 27 days out and the nearest expiry at 29 against 15
+    and 43, so a 45-day report window, or a 35- or 25-day target, passed them (mutation
+    audit 2026-10-20, ``plan/claims-mutation-audit.md``). Here the report sits at exactly
+    60 and 61 days, and the expiries at 22, 30 and 38 days, where any other target picks
+    a different one."""
+    today = date(2026, 10, 8)
+    d = lambda n: (today + timedelta(days=n)).isoformat()
+    exps = [d(22), d(30), d(38), d(64), d(71)]
+    assert cs.choose_expiry(exps, today, today + timedelta(days=60)) == (d(64), True)
+    assert cs.choose_expiry(exps, today, today + timedelta(days=61)) == (d(30), False)
+    assert cs.choose_expiry(exps, today, None) == (d(30), False)
+
+
 def _chain(spot=100.0, call_bid=3.0, call_ask=3.2, put_bid=2.8, put_ask=3.0, iv=0.30, skew_iv=0.38):
     strikes = [85, 90, 95, 100, 105, 110]
     calls = pd.DataFrame({"strike": strikes, "bid": [16, 11, 6.5, call_bid, 1.2, 0.5],
@@ -389,6 +406,22 @@ def test_ninety_day_summary_and_cluster():
     assert s["cluster"] is True and s["officer_buy"] is True
     assert s["sell_n"] == 1 and s["sell_value"] == 90000.0
     assert s["recent"][0]["date"] >= s["recent"][-1]["date"]
+
+
+def test_the_window_is_the_last_ninety_days_and_no_more():
+    """Claim ``context.insider_trades``: 'over the last 90 days'.
+
+    The test above has trades a few weeks old and one 150 days old, so widening the
+    window to 120 days passed it (mutation audit 2026-10-20,
+    ``plan/claims-mutation-audit.md``). The page's caller relies on the default
+    (``generate_dashboard`` passes no ``window_days``), so the default is the claim:
+    a purchase 90 days back is in, one 91 days back is out."""
+    today = date(2026, 10, 8)
+    row = lambda n, name: {"date": (today - timedelta(days=n)).isoformat(), "code": "P",
+                           "name": name, "role": "Director", "value": 1000.0 * n}
+    s = ia.summarise_rows([row(1, "A"), row(90, "B"), row(91, "C"), row(100, "D")], today)
+    assert s["window"] == 90
+    assert s["buy_n"] == 2 and s["buy_value"] == 91000.0
 
 
 def _sec_entry(today):
