@@ -3016,7 +3016,8 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
         "state_names": STATE_NAMES, "category_map": CATEGORY_MAP,
         "attribution_jkp": {
             "text": ("Data: Global Factor Data, Jensen, Kelly and Pedersen (2023), \"Is there a replication crisis "
-                     "in finance?\", Journal of Finance 78(5). Licensed CC BY-NC 4.0."),
+                     "in finance?\", Journal of Finance 78(5). Copyright (c) 2023 Theis Ingerslev Jensen, "
+                     "Bryan T. Kelly, Lasse Heje Pedersen. Licensed CC BY-NC 4.0."),
             "url": JKP_HOME, "licence": JKP_LICENCE,
             "note": ("Changed here: the factor returns are rounded to a basis point, the size-group series are "
                      "turned the way each factor's paper found it paid, and nothing after the files' own months "
