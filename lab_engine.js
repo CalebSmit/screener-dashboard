@@ -274,6 +274,32 @@
         return out;
     }
 
+    // Size inside each profitability fifth (factor_lab.double_run). data.vw[c] is the portfolio in
+    // size group floor(c / 5) and profitability group c % 5, both counted from 0 (smallest, weakest).
+    // In each profitability row: the smallest size group minus the largest, and the fourth minus the
+    // largest; the same two averaged equally across the five rows, month by month; and inside the
+    // largest and the smallest size group, the most profitable fifth minus the least.
+    function doubleRun(data, o) {
+        const idx = [];
+        for (let i = 0; i < data.months.length; i++) if (data.months[i] >= o.start && data.months[i] <= o.end) idx.push(i);
+        const col = data.vw.map(c => idx.map(i => c[i])), T = 5, top = 4;
+        const cell = (s, p) => col[T * s + p], diff = (a, b) => a.map((v, j) => v - b[j]);
+        const sb = [], fb = [];
+        for (let p = 0; p < T; p++) { sb.push(diff(cell(0, p), cell(top, p))); fb.push(diff(cell(top - 1, p), cell(top, p))); }
+        const avg = rows => rows[0].map((_, j) => { let s = 0; for (const r of rows) s += r[j]; return s / rows.length; });
+        return { months: idx.map(i => data.months[i]), cells: col.map(meanT),
+                 rows: sb.map((x, p) => ({ small_big: meanT(x), four_big: meanT(fb[p]) })),
+                 smbq: meanT(avg(sb)), fourq: meanT(avg(fb)),
+                 trait_big: meanT(diff(cell(top, T - 1), cell(top, 0))), trait_small: meanT(diff(cell(0, T - 1), cell(0, 0))) };
+    }
+    // The research note's rule, read on the same data (factor_lab.criterion_result): refuted when the
+    // average is no larger than crit.unconditional or its t-statistic is below crit.min_t.
+    function criterionResult(data, crit) {
+        const r = doubleRun(data, { start: crit.start, end: crit.end }), q = r.fourq;
+        return { first: r.months[0], last: r.months[r.months.length - 1], months: r.months.length, mean: q.mean, t: q.t,
+                 by_row: r.rows.map(x => x.four_big.mean), refuted: q.mean <= crit.unconditional || q.t < crit.min_t };
+    }
+
     // ---------------------------------------------------------------- experiment 15: 153 factors
     // Jensen, Kelly & Pedersen (2023) on their own library (factor_lab.jkp_*). Series are whole
     // basis points, [first month index, value, ...]; every calculation divides by 100 first.
@@ -466,10 +492,21 @@
         return compareFigures(ref.figures, got);
     }
 
+    // Size inside each profitability fifth (reproduce_double / double_figures).
+    function compareDouble(data, ref) {
+        const r = doubleRun(data, { start: ref.start, end: ref.end }), got = {
+            smbq: r.smbq.mean, t_smbq: r.smbq.t, fourq: r.fourq.mean, qj_big: r.trait_big.mean, t_qj_big: r.trait_big.t,
+            qj_small: r.trait_small.mean, t_qj_small: r.trait_small.t };
+        r.rows.forEach((row, p) => { got['sb_' + (p + 1)] = row.small_big.mean; got['t_sb_' + (p + 1)] = row.small_big.t; });
+        return compareFigures(ref.figures, got);
+    }
+
     return { stats: stats, run: run, compare: compare, growth: growth, deepestFall: deepestFall,
              crashRun: crashRun, ols: ols, factorRun: factorRun, sizeRun: sizeRun, sortRun: sortRun,
              splitRun: splitRun, comboRun: comboRun, jkpRun: jkpRun, jkpOutside: jkpOutside,
+             doubleRun: doubleRun, criterionResult: criterionResult,
              compareCrashes: compareCrashes,
              compareFactors: compareFactors, compareSize: compareSize, compareSort: compareSort,
-             compareSplit: compareSplit, compareCombo: compareCombo, compareReplication: compareReplication };
+             compareSplit: compareSplit, compareCombo: compareCombo, compareReplication: compareReplication,
+             compareDouble: compareDouble };
 });

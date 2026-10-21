@@ -66,7 +66,12 @@ FRENCH_FILES = {
     "split_momentum": ("6_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "quint_value": ("25_Portfolios_5x5_CSV.zip", "Average Value Weighted Returns -- Monthly"),
     "quint_momentum": ("25_Portfolios_ME_Prior_12_2_CSV.zip", "Average Value Weighted Returns -- Monthly"),
+    "double_size_op": ("25_Portfolios_ME_OP_5x5_CSV.zip", "Average Value Weighted Returns -- Monthly"),
 }
+# The 25 size-by-profitability portfolios (experiment "size-given-profitability"): column
+# 5 * s + p is size quintile s (0 smallest .. 4 largest) and operating-profitability quintile p
+# (0 weakest .. 4 most profitable), the library's own order (SMALL LoOP, ME1 OP2, ..., BIG HiOP).
+DOUBLE_SIZE, DOUBLE_TRAIT = 5, 5
 # The 25 size-by-trait portfolios: five size groups, five trait groups inside each, in that
 # order. The lowest and highest trait group of the smallest and of the largest size group.
 QUINT_KEYS = ["value", "momentum"]
@@ -428,8 +433,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
 # 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
 # 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
-# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution.
-ASSET_VERSION = 24
+# 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution;
+# 25 = size inside each profitability fifth (queue row 4b; a new kind, double) and the note's pre-registered rule.
+ASSET_VERSION = 25
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -760,6 +766,70 @@ def quintile_data(raw_dir: Path = RAW_DIR) -> dict:
     for key in QUINT_KEYS:
         out[key] = {part: [round(raw[key][m][i], 4) for m in months] for i, part in enumerate(SPLIT_PARTS)}
     return out
+
+
+def double_data(raw_dir: Path = RAW_DIR) -> dict:
+    """The 25 size-by-profitability portfolios, value-weighted, monthly, in percent: ``vw[c]`` is
+    column c = 5 x size quintile + profitability quintile, both counted from 0 (smallest, weakest).
+    Only months where all 25 are present."""
+    fname, mark = FRENCH_FILES["double_size_op"]
+    dates, rows, vintage = read_table(raw_dir / fname, mark)
+    n = DOUBLE_SIZE * DOUBLE_TRAIT
+    keep = [i for i in range(len(dates)) if all(v > MISSING for v in rows[i][:n])]
+    return {"months": [dates[i] for i in keep], "vintage": vintage,
+            "vw": [[round(rows[i][c], 2) for i in keep] for c in range(n)]}
+
+
+def double_run(data: dict, start: str, end: str) -> dict:
+    """Size inside each profitability quintile, over a period: every portfolio's average month;
+    in each profitability row the smallest size quintile minus the largest (``small_big``) and the
+    fourth minus the largest (``four_big``) - the size effect among large companies - each a
+    monthly difference with its t-statistic; the same two averaged equally across the five rows
+    month by month (``smbq``, Asness et al.'s SMBQ, and ``fourq``); and, inside the largest and the
+    smallest size quintile, the most profitable fifth minus the least (``trait_big``, ``trait_small``)."""
+    idx = [i for i, m in enumerate(data["months"]) if start <= m <= end]
+    col = [[c[i] for i in idx] for c in data["vw"]]
+    top = DOUBLE_SIZE - 1
+
+    def cell(s: int, p: int) -> list[float]:
+        return col[DOUBLE_TRAIT * s + p]
+
+    def diff(a: list[float], b: list[float]) -> list[float]:
+        return [x - y for x, y in zip(a, b)]
+
+    sb = [diff(cell(0, p), cell(top, p)) for p in range(DOUBLE_TRAIT)]
+    fb = [diff(cell(top - 1, p), cell(top, p)) for p in range(DOUBLE_TRAIT)]
+    avg = lambda rows: [sum(v) / len(v) for v in zip(*rows)] if rows and rows[0] else []   # noqa: E731
+    return {"months": [data["months"][i] for i in idx],
+            "cells": [mean_t(c) for c in col],
+            "rows": [{"small_big": mean_t(sb[p]), "four_big": mean_t(fb[p])} for p in range(DOUBLE_TRAIT)],
+            "smbq": mean_t(avg(sb)), "fourq": mean_t(avg(fb)),
+            "trait_big": mean_t(diff(cell(top, DOUBLE_TRAIT - 1), cell(top, 0))),
+            "trait_small": mean_t(diff(cell(0, DOUBLE_TRAIT - 1), cell(0, 0)))}
+
+
+def double_figures(data: dict, start: str, end: str) -> dict:
+    """The figures a size-by-trait experiment compares with its paper, by key."""
+    r = double_run(data, start, end)
+    got = {"smbq": r["smbq"]["mean"], "t_smbq": r["smbq"]["t"], "fourq": r["fourq"]["mean"],
+           "qj_big": r["trait_big"]["mean"], "t_qj_big": r["trait_big"]["t"],
+           "qj_small": r["trait_small"]["mean"], "t_qj_small": r["trait_small"]["t"]}
+    for p, row in enumerate(r["rows"], 1):
+        got[f"sb_{p}"], got[f"t_sb_{p}"] = row["small_big"]["mean"], row["small_big"]["t"]
+    return got
+
+
+def criterion_result(data: dict, crit: dict) -> dict:
+    """A rule written into a research note before its data was fetched, read on that data: the
+    fourth size quintile minus the largest, averaged across the trait's five rows, over the rule's
+    window. Refuted when the average is no larger than ``unconditional`` or its t-statistic is below
+    ``min_t`` - the note's own words, carried on the record as ``rule``."""
+    r = double_run(data, crit["start"], crit["end"])
+    q = r["fourq"]
+    return {"first": r["months"][0], "last": r["months"][-1], "months": len(r["months"]),
+            "mean": q["mean"], "t": q["t"],
+            "by_row": [row["four_big"]["mean"] for row in r["rows"]],
+            "refuted": bool(q["mean"] <= crit["unconditional"] or q["t"] < crit["min_t"])}
 
 
 def split_run(split: dict, start: str, end: str) -> dict:
@@ -2447,6 +2517,145 @@ JKP_REPLICATION = {
 }
 EXPERIMENTS.append(JKP_REPLICATION)
 
+# Queue row 4b (plan/factor-lab.md), set by research/2026-10-20-size-weight.md section 9: the one
+# published case for the Size weight is conditional on quality, and nobody has published it among
+# large companies alone. Kept self-contained (its own kind, "double") so it can be merged beside
+# experiments being added in parallel.
+SIZE_GIVEN_PROFITABILITY = {
+    "id": "size-given-profitability",
+    "group": "Across the factors",
+    "kind": "double",
+    "topic": "Size",
+    "title": "Does size pay once profitability is held fixed?",
+    "tab": "Size, given profitability",
+    "paper": {
+        "authors": "Clifford Asness, Andrea Frazzini, Ronen Israel, Tobias J. Moskowitz and Lasse H. Pedersen",
+        "year": 2018,
+        "title": "Size matters, if you control your junk",
+        "journal": "Journal of Financial Economics 129(3), 479-509",
+        "doi": "10.1016/j.jfineco.2018.05.006",
+    },
+    "claim": ("Once low-quality (\"junk\") companies are held apart, smaller companies earned more in every "
+              "group but the junkiest. Sorting US stocks into fifths by size and, separately, by quality, "
+              "from 1957 to 2012 the smallest fifth beat the largest by 0.42% to 0.54% a month in the four "
+              "higher-quality groups, and by 0.23% among the junk. The question this page adds, because the "
+              "screener ranks only large companies: does the fourth size group still beat the largest once "
+              "profitability is held fixed?"),
+    "reference": {
+        "source": ("The published article (open access), Table 3, Panel A (page 495), and its text on the same "
+                   "page: 25 value-weighted portfolios from independent sorts on size and on quality, average "
+                   "monthly returns over T-bills and their t-statistics, July 1957 to December 2012. The fourth "
+                   "size group minus the biggest is derived from the table's two columns; the paper gives it no "
+                   "t-statistic."),
+        "start": "196307", "end": "201212",
+        # Written 2026-10-20 BEFORE the comparison was run, from the paper alone, and committed on
+        # their own: nothing had been computed on the library's 25 size-by-profitability file, which
+        # was fetched for the first time that night (only its table titles were read, to find the
+        # value-weighted table). The note that queued this experiment had measured related figures on
+        # other files - SMB inside the 2x3 profitability terciles, 0.228 (t 1.75) over 1963-2026 -
+        # which is why these tolerances are written for a stand-in, not for a rerun.
+        #
+        # Why they are wide. The paper sorts on its quality score (QMJ: profitability, growth, safety
+        # and payout, re-ranked every month); the library sorts once a year on operating profitability
+        # alone. Its sample starts in 1957; the library's profitability files start in July 1963, so
+        # the window is 594 months against 666 and every t-statistic is expected about 6% lower for
+        # that alone. So 0.15% a month on an average or a spread (one paper standard error is about
+        # 0.15-0.19 on these rows), and 1.0 on a t-statistic. Expected: the four upper rows and the
+        # averages mostly within, the weakest-profitability row the likeliest miss (operating
+        # profitability's lowest fifth is not the paper's junk), and the quality spreads among the
+        # smallest the other likely one. By plan rule 8 a result of no effect - every spread and
+        # t-statistic zero - matches none of the seventeen (the smallest paper figure is 0.23, the
+        # smallest t-statistic 1.21).
+        "tolerances_written": "before",
+        "figures": [
+            {"key": "sb_1", "label": "Weakest profitability fifth: smallest size group minus largest, a month (%)", "paper": 0.23, "tolerance": 0.15, "where": "Table 3A, Junk row"},
+            {"key": "t_sb_1", "label": "Weakest fifth: t-statistic", "paper": 1.21, "tolerance": 1.0, "where": "Table 3A, Junk row"},
+            {"key": "sb_2", "label": "Second fifth: smallest minus largest, a month (%)", "paper": 0.46, "tolerance": 0.15, "where": "Table 3A, row 2"},
+            {"key": "t_sb_2", "label": "Second fifth: t-statistic", "paper": 3.02, "tolerance": 1.0, "where": "Table 3A, row 2"},
+            {"key": "sb_3", "label": "Middle fifth: smallest minus largest, a month (%)", "paper": 0.54, "tolerance": 0.15, "where": "Table 3A, row 3"},
+            {"key": "t_sb_3", "label": "Middle fifth: t-statistic", "paper": 3.44, "tolerance": 1.0, "where": "Table 3A, row 3"},
+            {"key": "sb_4", "label": "Fourth fifth: smallest minus largest, a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "Table 3A, row 4"},
+            {"key": "t_sb_4", "label": "Fourth fifth: t-statistic", "paper": 2.82, "tolerance": 1.0, "where": "Table 3A, row 4"},
+            {"key": "sb_5", "label": "Most profitable fifth: smallest minus largest, a month (%)", "paper": 0.44, "tolerance": 0.15, "where": "Table 3A, Quality row"},
+            {"key": "t_sb_5", "label": "Most profitable fifth: t-statistic", "paper": 2.87, "tolerance": 1.0, "where": "Table 3A, Quality row"},
+            {"key": "smbq", "label": "Smallest minus largest, averaged across the five (SMBQ), a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "p. 495, text"},
+            {"key": "t_smbq", "label": "That average: t-statistic", "paper": 3.18, "tolerance": 1.0, "where": "p. 495, text"},
+            {"key": "fourq", "label": "Fourth size group minus largest, averaged across the five, a month (%)", "paper": 0.254, "tolerance": 0.15, "where": "Table 3A, derived: columns 4 and Big"},
+            {"key": "qj_big", "label": "Largest size group: most profitable fifth minus least, a month (%)", "paper": 0.42, "tolerance": 0.15, "where": "Table 3A, Big column"},
+            {"key": "t_qj_big", "label": "Largest size group: t-statistic", "paper": 2.78, "tolerance": 1.0, "where": "Table 3A, Big column"},
+            {"key": "qj_small", "label": "Smallest size group: most profitable fifth minus least, a month (%)", "paper": 0.62, "tolerance": 0.15, "where": "Table 3A, Small column"},
+            {"key": "t_qj_small", "label": "Smallest size group: t-statistic", "paper": 4.78, "tolerance": 1.0, "where": "Table 3A, Small column"},
+        ],
+    },
+    # The screener's own test, separate from the comparison with the paper: written into
+    # research/2026-10-20-size-weight.md (section 9, item 1) and committed before the library's file
+    # was fetched. Its words are carried verbatim; its numbers are the ones it names. The page
+    # prints the rule, the figure and the reading, whichever way it falls.
+    "criterion": {
+        "source": "research/2026-10-20-size-weight.md, section 9, item 1",
+        "rule": ("Refutes the case for the weight if, over 1963-2026, the average of the five is no larger "
+                 "than the unconditional Q4 - Q5 spread (0.136% a month, value-weighted, section 2.1), or "
+                 "its t-statistic is below 1.5 - i.e. if holding profitability fixed does not strengthen "
+                 "size among large companies the way it does across the market."),
+        "measure": ("Size quintile 4 minus quintile 5 inside each profitability quintile, value-weighted, "
+                    "averaged across the five, month by month."),
+        "start": "196307", "end": "202612",
+        "unconditional": 0.136, "min_t": 1.5,
+        "unconditional_source": ("The library's size quintile 4 minus quintile 5, value-weighted, July 1963 "
+                                 "to August 2026 (research/measurements/2026-10-20-size-lab.json)."),
+        "weight": "Size weight (5% of the score)",
+    },
+    "double": {
+        "rows": ["Weakest profitability", "Second fifth", "Middle fifth", "Fourth fifth", "Most profitable"],
+        "cols": ["Smallest", "2", "3", "4", "Largest"],
+        "presets": [["The paper's years · 1963–2012", "196307", "201212"],
+                    ["After the paper · 2013–now", "201301", "LAST"],
+                    ["Since 1981", "198101", "LAST"], ["Since 2000", "200001", "LAST"],
+                    ["Everything", "FIRST", "LAST"]],
+    },
+    "verdict_note": ("The averages across the five profitability fifths match, including the fourth size group's. "
+                     "The misses are two of the five rows and the gaps between profitable and weak companies, "
+                     "which here are about half the paper's: operating profitability is one part of the paper's "
+                     "quality score, not the whole of it."),
+    "conditions": [
+        ["Portfolios", "Each June, every US-listed stock is put in one of five size groups and, separately, one "
+                       "of five groups by operating profitability, both on New York Stock Exchange breakpoints. "
+                       "The 25 portfolios are the overlaps."],
+        ["Quality", "Operating profitability (sales minus the cost of goods, selling and administrative costs "
+                    "and interest, over book equity) stands in for the paper's quality score, which also counts "
+                    "growth, safety and payout and is not published in this form."],
+        ["Data", "Kenneth R. French's Data Library, \"25 Portfolios Formed on Size and Operating "
+                 "Profitability\". It includes financial companies and utilities."],
+        ["Sample", "From July 1963, the first month the library sorts on profitability. The paper starts in "
+                   "July 1957, so its window is six years longer."],
+        ["Weighting", "Value-weighted within each portfolio, as in the paper."],
+        ["Large stocks", "The fourth and fifth size groups. In August 2026 the fourth averaged about $15 billion "
+                         "and the fifth about $190 billion; the screener's roughly 500 companies sit across "
+                         "both."],
+        ["Costs", "None. These are paper portfolios."],
+    ],
+    "open_details": [
+        "Operating profitability is one of the paper's four parts of quality. Its quality score is built from "
+        "company accounts and is not public in a size-by-quality grid, so the paper's own sort cannot be "
+        "rebuilt here.",
+        "The paper does not state its size breakpoints; the library's are New York Stock Exchange quintiles. "
+        "If the paper used all stocks, its largest fifth is a larger group than the library's.",
+        "The paper re-ranks every month; the library re-forms its groups once a year, in June.",
+        "The paper reports returns over T-bills. Every figure compared here is a difference between two "
+        "portfolios, which the T-bill does not change, so none needs it.",
+        "The paper's regressions on its quality factor, its main evidence, are not rerun.",
+    ],
+    "in_the_screener": (
+        "The screener's Size category scores a company higher for being smaller, among the large companies "
+        "it ranks, beside a Quality category that carries 22% of the score. The research note behind the "
+        "Size weight found no size premium among large companies on its own and kept the weight on this "
+        "paper's case - that size pays once quality is controlled - and wrote down, before this file was "
+        "fetched, the result that would refute that case among large companies. That rule, and what the "
+        "data says, are printed beside the comparison. A refutation reopens the weight for a research note "
+        "to decide; this page does not set it."),
+}
+EXPERIMENTS.append(SIZE_GIVEN_PROFITABILITY)
+
 
 # One sentence per experiment for the lab's front page. Each is a statement about what the
 # published data shows, and tests/test_factor_lab.py checks every one against that data, so a
@@ -2496,6 +2705,10 @@ TAKEAWAYS = {
                            "above zero on the public library to 2020, and 76% inside the mega caps alone - "
                            "close to the paper's 77%. Since 2014 only 9 of them clear that bar among mega caps, "
                            "over a period too short to settle it."),
+    "size-given-profitability": ("Holding profitability fixed, the fourth size group beat the largest by about 0.24% a "
+                                 "month in the paper's years, close to the paper's 0.25%, and by 0.17% over 1963-2026 - "
+                                 "enough to pass the test the screener's research note set in advance. Since 2013 it "
+                                 "has been below zero, over a period too short to settle it."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2542,7 +2755,7 @@ CATEGORY_MAP = [
      "gap": "Cannot be rerun here: Chan, Jegadeesh and Lakonishok (1996) and the later work on earnings "
             "surprises. They need a history of analysts' estimates as they stood at the time, which is "
             "sold, not published."},
-    {"category": "Size", "key": "size", "experiments": ["size-effect", "five-factors", "replication-crisis"],
+    {"category": "Size", "key": "size", "experiments": ["size-effect", "size-given-profitability", "five-factors", "replication-crisis"],
      "has": "The size effect by size group, and the size factor.",
      "gap": "Which size groups the screener's own companies fall in has not been measured."},
     {"category": "Investment", "key": "investment", "experiments": ["asset-growth", "five-factors", "big-and-small", "replication-crisis"],
@@ -2581,8 +2794,10 @@ SCORECARD_OPEN = {
              "the methodology now says so."),
     "revisions": ("It rests on the cited studies alone. The screener's own record, run by run, is the "
                   "only measurement it will get."),
-    "size": ("A small effect for its weight, and the screener's companies sit almost entirely in the "
-             "two largest groups."),
+    "size": ("Researched 2026-10-20: no size premium among large companies on its own; the weight rests on "
+             "the case that size pays once quality is held fixed. Holding profitability fixed passed the test "
+             "written for it in advance, by a margin over the plain spread too small to tell from zero. Since "
+             "2013 the spread with profitability held fixed has been below zero."),
     "investment": "How much of this category is Valuation counted a second time.",
 }
 
@@ -2658,7 +2873,8 @@ def next_month(m: str) -> str:
 
 
 def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: dict,
-                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None) -> list[dict]:
+                    split: dict | None = None, quintiles: dict | None = None, jkp: dict | None = None,
+                    double: dict | None = None) -> list[dict]:
     """Each experiment's headline result in its paper's sample and in the months since, side by
     side - the lab's one table about what happens to a published result after publication
     (plan/factor-lab.md queue item 8; McLean & Pontiff 2016 is the study of the question).
@@ -2747,6 +2963,13 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
             b = jkp_run(jkp, next_month(JKP_END), end, u, "capm", "sig")
             add("replication-crisis", f"The 119 published factors among {name}: average CAPM alpha, a month",
                 "pct", 1, cell(a["alpha"], span("000000", JKP_END)), cell(b["alpha"], span(next_month(JKP_END), end)))
+
+    if double is not None and "size-given-profitability" in exps:
+        ref = exps["size-given-profitability"]["reference"]
+        a, b = double_run(double, ref["start"], ref["end"]), double_run(double, next_month(ref["end"]), end)
+        add("size-given-profitability", "Fourth size group minus largest, profitability held fixed, a month", "pct", 1,
+            cell(a["fourq"]["mean"], len(a["months"]), a["fourq"]["t"]),
+            cell(b["fourq"]["mean"], len(b["months"]), b["fourq"]["t"]))
     return rows
 
 
@@ -2965,6 +3188,23 @@ def reproduce_combo(split: dict, factors: dict, exp: dict) -> dict:
             "corr_resid": r["corr_resid"]}
 
 
+def reproduce_double(data: dict, exp: dict) -> dict:
+    """A size-by-trait experiment at the paper's sample, against its table, and - separately, never
+    counted in the comparison - the screener's own pre-registered rule read on the same data."""
+    ref = exp["reference"]
+    got = double_figures(data, ref["start"], ref["end"])
+    rows = []
+    for f in ref["figures"]:
+        here = got[f["key"]]
+        diff = here - f["paper"]
+        rows.append({**f, "here": here, "diff": diff, "within": abs(diff) <= f["tolerance"]})
+    r = double_run(data, ref["start"], ref["end"])
+    return {"rows": rows, "within": sum(x["within"] for x in rows), "total": len(rows),
+            "months": len(r["months"]), "means": [c["mean"] for c in r["cells"]],
+            "smbq": r["smbq"], "fourq": r["fourq"],
+            "criterion": criterion_result(data, exp["criterion"])}
+
+
 def reproduce(data: dict, exp: dict) -> dict:
     """Run an experiment at the paper's own settings and compare."""
     ref = exp["reference"]
@@ -2985,6 +3225,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
     sorts = {name: sort_data(name, raw_dir) for name in SORTS}
     split = split_data(raw_dir)
     quintiles = quintile_data(raw_dir)
+    double = double_data(raw_dir)
     exps = []
     for exp in EXPERIMENTS:
         result = (reproduce_split(quintiles if exp.get("split", {}).get("data") == "quintiles" else split, exp)
@@ -2995,6 +3236,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                   else reproduce_sort(sorts[exp["sort"]["data"]], exp) if exp["kind"] == "sort"
                   else reproduce_combo(split, factors, exp) if exp["kind"] == "combo"
                   else reproduce_replication(jkp, exp) if exp["kind"] == "replication"
+                  else reproduce_double(double, exp) if exp["kind"] == "double"
                   else reproduce(data, exp))
         for row, n in zip(result["rows"], null_rows(exp)):            # what no effect at all would show
             row["null"] = n["null"]
@@ -3023,7 +3265,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
                      "turned the way each factor's paper found it paid, and nothing after the files' own months "
                      "is added. Non-commercial use only, under the licence."),
         },
-        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp),
+        "after_the_paper": after_the_paper(data, market, factors, size, sorts, split, quintiles, jkp, double),
         "scorecard": scorecard(split, size, screener_weights(), sorts["asset-growth"]),
         "factor_keys": FACTOR_KEYS, "factor_names": FACTOR_NAMES, "factor_long": FACTOR_LONG,
         "factor_category": FACTOR_CATEGORY,
@@ -3031,6 +3273,7 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
         "size": {k: size[k] for k in ("months", "ew", "vw")},
         "sorts": sorts,
         "quintiles": quintiles,
+        "double": {k: double[k] for k in ("months", "vw")},
         "split": split, "split_keys": SPLIT_KEYS, "split_names": SPLIT_NAMES, "split_category": SPLIT_CATEGORY,
         "momentum": {k: data[k] for k in ("months", "wml", "vol", "daily_first", "daily_last")},
         "jkp": jkp,
