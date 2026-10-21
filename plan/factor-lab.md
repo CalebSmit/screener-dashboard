@@ -194,6 +194,23 @@ or an honest "cannot be rerun on free data, and here is what it would need"**.
 | 8 | Results in their papers' samples and since (the question McLean & Pontiff 2016 study) | All | The experiments' own series | **Shipped 2026-10-12** as a table on the front page (`factor_lab.after_the_paper`): eleven headline results, each with its months. 9 of the 10 that claim a direction were weaker after their sample. A new experiment adds its row there. Still open: reproducing McLean & Pontiff's own figures, which needs their list of anomalies. |
 | - | **Cannot be rerun on free data:** Piotroski (2000), Beneish (1999), analyst revisions (Chan, Jegadeesh & Lakonishok 1996), post-earnings drift | Quality, Revisions, Growth | Needs stock-level fundamentals and estimates history | Give each a card saying exactly that and what data it would take. Check first whether the French library's accruals and net-issuance portfolios can stand in for Sloan (1996). |
 
+### Free data to evaluate (added 2026-10-20, owner-run)
+
+Owner, 2026-10-20: *"is there any other apis that would be helpful for bringing in lots of useful
+data?"* Two free, published research libraries could widen what the lab can rerun - and the second
+may close the "cannot be rerun on free data" row above. **Check each one's terms and confirm the
+download works before building anything**, and keep the lab's rule: data anyone can download.
+
+| Library | What it adds | Terms, as found 2026-10-20 |
+|---|---|---|
+| **Jensen, Kelly & Pedersen (2023), "Is there a replication crisis in finance?", *JF* 78(5)** - `jkpfactors.com`; maintained code `github.com/bkelly-lab/jkp-data` | 153 factors in 13 themes, the US and 92 other countries, with size-group versions - the large-company question (`research/2026-10-12-value-and-momentum-among-large-companies.md`) on a second, independent construction, and out of the US entirely | CC BY-NC 4.0 (non-commercial, attribution). Files served from a public bucket; the newest vintage is also on WRDS |
+| **Chen & Zimmermann (2022), "Open source cross-sectional asset pricing", *Critical Finance Review* 11(2)** - `openassetpricing.com` | Portfolio returns for 200+ published predictors, built from CRSP/Compustat by the authors - **including signals the lab cannot build itself** (Piotroski's score, analyst revisions, earnings surprise drift). A portfolio-level rerun of those papers needs only the returns | Free download of portfolio returns; the CRSP-derived *firm-level* signals need WRDS. Confirm the licence before publishing derived figures |
+
+Not useful here: the **api.data.gov key** (owner has one). It is a gateway key for EPA, FDA, GPO,
+NREL and similar; the federal sources this screener uses - SEC EDGAR, FRED's CSV endpoint - need no
+key. If a key is ever needed it goes in a gitignored file beside `data/sec/user_agent.txt`, never in
+a tracked one.
+
 ## Dig deeper: replication as an audit of the screener's own citations
 
 The lab is also a lens for the work the nightly sessions already do. Three standing tasks:
