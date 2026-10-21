@@ -142,8 +142,9 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 14 = its Valuation and Momentum rows after theirs; 15 = the ninth experiment; 16 = the tenth; 17 = the eleventh; 18 = the twelfth; 19 = the thirteenth (a new kind, combo); 20 = the grouped menu (a group per experiment);
 # 21 = the 2026-10-16 audit (when each experiment's tolerances were written, what a null result would match);
 # 22 = the engine computes every comparison with the paper (E.compare*), and the page fills it from them;
-# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group.
-ASSET_VERSION = 23
+# 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
+# 24 = the fifteenth (Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution).
+ASSET_VERSION = 24
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -219,15 +220,23 @@ def read_osap(path: Path, signal: str) -> dict[str, dict[str, float]]:
                 yield from csv.DictReader(f)
 
     out: dict[str, dict[str, float]] = {}
+
+    def put(port: str, date: str, ret: str | None) -> None:
+        if ret in (None, "", "NA"):
+            return
+        port = port.strip().strip('"')
+        port = port if not port.isdigit() else f"{int(port):02d}"
+        out.setdefault(port, {})[_osap_month(date)] = float(ret)
+
     for row in rows():
         if "signalname" in row and row["signalname"] != signal:
             continue
-        ret = row.get("ret")
-        if ret in (None, "", "NA"):
-            continue
-        port = row["port"].strip().strip('"')
-        port = port if not port.isdigit() else f"{int(port):02d}"
-        out.setdefault(port, {})[_osap_month(row["date"])] = float(ret)
+        if "port" in row:                              # long: one row per port and month
+            put(row["port"], row["date"], row.get("ret"))
+        else:                                          # wide (a single signal's file): port01 ... portLS
+            for col, ret in row.items():
+                if col and col.startswith("port"):
+                    put(col[4:], row["date"], ret)
     if not out:
         raise ValueError(f"{path.name}: no portfolio returns for signal {signal!r}")
     return out
@@ -2157,7 +2166,13 @@ EXPERIMENTS = [
                 {"key": "t_spread", "label": "Its t-statistic", "paper": 5.594, "tolerance": 1.5, "where": "Table 3, Panel B, High-Low, t-statistic 5.594 (p. 17)"},
             ],
         },
-        "verdict_note": "",
+        "verdict_note": ("The highest-scoring end matches the paper (30.4% a year against 31.3%); the lowest "
+                         "does not (26.1% against 7.8%), so the gap is a fifth of the paper's - 4.3% a year, "
+                         "t 1.5 - and outside. Expected in direction, not in size: the public portfolios' "
+                         "lowest decile averaged a score of 2.7 over these years and its highest 7.5, where the "
+                         "paper's groups are 0-1 and 8-9, and they are re-formed monthly rather than held a "
+                         "year. Weighted by market value, the authors' own cut, the gap was 12.6% a year, "
+                         "t 3.6. Published as a miss; the tolerances stay as written."),
         "sort": {
             "data": "piotroski",
             "groups": ["Lowest score decile", "Highest score decile"],
@@ -2169,8 +2184,8 @@ EXPERIMENTS = [
             "key_rest": "The lowest scores",
             "chart": "by Piotroski score, lowest first",
             "presets": [["The paper · 1976–1996", "197601", "199612"],
-                        ["After the paper · 1997–now", "199701", "LAST"],
-                        ["Since 2007", "200701", "LAST"], ["Everything", "FIRST", "LAST"]],
+                        ["After the paper · 1997–2024", "199701", "LAST"],
+                        ["Since 2007", "200701", "LAST"], ["Everything · 1972–2024", "FIRST", "LAST"]],
             "weightings": [["ew", "Equally · paper"], ["vw", "By market value · OSAP's cut"]],
         },
         "conditions": [
@@ -2262,6 +2277,10 @@ TAKEAWAYS = {
     "asset-growth": ("Companies that grew their assets slowest beat the fastest growers in the paper's years on "
                      "the public sort too, by less than the paper found. Since the paper, equally weighted the "
                      "gap is a quarter of its old size, and weighted by market value it has been about zero."),
+    "piotroski": ("On the authors' public portfolios, the highest-scoring tenth of high book-to-market companies "
+                  "beat the lowest by about 4% a year equally weighted in the paper's years - a fifth of the "
+                  "paper's 23.5%, and not distinguishable from zero - and by about 13% weighted by market value. "
+                  "Since 1997 neither gap can be told from zero."),
     "market-beta": ("From the lowest-beta group to the highest, average returns were flat in the paper's "
                     "sample, and the difference has not been distinguishable from zero since - while the "
                     "highest-beta group has been about twice as volatile."),
@@ -2279,12 +2298,16 @@ CATEGORY_MAP = [
      "gap": "The screener's heaviest valuation measure is free cash flow (after capital spending) against "
             "the value of the whole business, compared within sectors. The public sorts use cash flow "
             "before capital spending against the shares alone, across the whole market."},
-    {"category": "Quality", "key": "quality", "experiments": ["profitability", "accruals", "five-factors", "big-and-small"],
-     "has": "Stocks sorted by profitability and by accruals, and the profitability factor - robustly "
-            "profitable companies minus weakly profitable ones.",
-     "gap": "Cannot be rerun here: Piotroski (2000) and Beneish (1999), which the methodology cites for "
-            "its financial-strength and earnings-manipulation scores. Both need each company's accounts, "
-            "year by year, for decades; the accruals sort covers one of Beneish's eight inputs."},
+    {"category": "Quality", "key": "quality",
+     "experiments": ["profitability", "accruals", "piotroski", "five-factors", "big-and-small"],
+     "has": "Stocks sorted by profitability and by accruals, the profitability factor - robustly "
+            "profitable companies minus weakly profitable ones - and Piotroski's financial-strength score "
+            "among high book-to-market companies, on the portfolios Chen and Zimmermann publish.",
+     "gap": "The Piotroski rerun reads published portfolio returns, not company accounts, so it checks a "
+            "careful public construction of the score, not the paper's own numbers, and only among high "
+            "book-to-market companies. Beneish (1999), the methodology's earnings-manipulation score, "
+            "cannot be rerun here: it needs each company's accounts for decades, and the accruals sort "
+            "covers one of its eight inputs."},
     {"category": "Growth", "key": "growth", "experiments": ["asset-growth"],
      "has": "Nothing on the category's own measures. The asset-growth sort is Investment's measure, but it is "
             "the one Growth's revenue growth moves with, and the two categories score it in opposite "
@@ -2329,7 +2352,9 @@ SCORECARD_OPEN = {
                   "measures, which are the ones the screener weights. Those measures, compared within "
                   "sectors, have still not been rerun here."),
     "quality": ("Whether the screener's financial-strength and manipulation scores add to plain "
-                "profitability among large companies. Neither can be rerun on public data."),
+                "profitability among large companies. The financial-strength score now has a rerun on "
+                "published portfolios, among high book-to-market companies of every size; neither score "
+                "can be tested among large companies alone on public data."),
     "growth": ("Researched 2026-10-12 and the weight reviewed 2026-10-13: index providers treat "
                "growth as a style, not a rewarded factor, and the studies of sales growth and "
                "growth forecasts run flat to negative. The 3-point reduction that followed was "
@@ -2469,7 +2494,8 @@ def after_the_paper(mom: dict, market: dict, factors: dict, size: dict, sorts: d
         cell(b["small_big"]["mean"], len(b["months"]), b["small_big"]["t"]))
 
     for exp_id, sign in (("low-volatility", -1), ("earnings-yield", 1), ("market-beta", 0),
-                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1)):
+                         ("profitability", 1), ("cash-flow-yield", 1), ("accruals", 1), ("asset-growth", 1),
+                         ("piotroski", 1)):
         x = exps[exp_id]
         ref = x["reference"]
         data = sorts[x["sort"]["data"]]
@@ -2754,6 +2780,16 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None) -> dict:
                      "decile minus bottom decile, the market's excess return, and volatility and "
                      "trailing-return readings computed from the daily and monthly files). "
                      "Download the originals from the library; this page does not republish them."),
+            # a second source, for the experiments that read it (SORTS entries with source "osap")
+            "others": [{
+                "text": ("Data: Open Source Asset Pricing, Andrew Y. Chen and Tom Zimmermann, " + OSAP_RELEASE
+                         + ". Cite: Chen and Zimmermann (2022), \"Open source cross-sectional asset pricing\", "
+                         "Critical Finance Review 11(2), 207-264."),
+                "url": OSAP_HOME,
+                "note": ("The Piotroski experiment reads the authors' published monthly returns for the lowest and "
+                         "highest deciles of their Piotroski-score portfolios, equally and value-weighted, which "
+                         "they built from CRSP and Compustat. Download the originals from their data page."),
+            }],
         },
         "tolerances": TOLERANCES, "tolerances_written": TOLERANCES_WRITTEN,
         "stat_labels": STAT_LABELS, "vol_windows": list(VOL_WINDOWS),

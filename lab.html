@@ -228,8 +228,8 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     <footer id="foot"></footer>
 </div>
 
-<script src="lab_data.js?v=23"></script>
-<script src="lab_engine.js?v=23"></script>
+<script src="lab_data.js?v=24"></script>
+<script src="lab_engine.js?v=24"></script>
 <script>
 (function () {
     'use strict';
@@ -1197,6 +1197,7 @@ h3[id^="x-"] { scroll-margin-top: 16px; }
     let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => current && current.redraw(), 120); });
     document.getElementById('foot').innerHTML =
         `<p>${esc(D.attribution.text)} <a href="${esc(D.attribution.url)}" rel="noopener">Open the library</a>. ${esc(D.attribution.note)}</p>` +
+        (D.attribution.others || []).map(o => `<p>${esc(o.text)} <a href="${esc(o.url)}" rel="noopener">Open the data page</a>. ${esc(o.note)}</p>`).join('') +
         `<p>${esc(D.attribution.vintage)} Built ${esc(D.built)}; monthly returns run to ${mon(LAST)}.</p>` +
         `<p>Not investment advice. Past results of a published strategy say nothing certain about its future, and each “After the paper” period shows how a result held once its sample ended.</p>`;
     // One typographic pass over what the lab draws (2026-10-16), as the methodology page has: the experiment
