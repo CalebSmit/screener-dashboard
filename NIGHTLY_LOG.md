@@ -13553,8 +13553,9 @@ Data loop published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data l
 - inside the bound, no action. Priority 0: `allow_auto_apply` **false**, 4 of 8 effective
 observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 9 days**) -
 not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
-**Tests:** before **2922 passed / 1 skipped**, after **2964 passed / 1 skipped** - +42, which is
-exactly the two new modules (26 + 16), no failures and nothing removed.
+**Tests:** before **2922 passed / 1 skipped**, after **2969 passed / 1 skipped** - +47, which is
+exactly the two new modules, no failures and nothing removed. Gates 2 and 3 pass (dry-run exit 0;
+`index.html` 642,631 bytes; both payloads `node --check` clean with their opening assignments).
 **Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, the first OPEN proposal.
 Wednesday's nominal SYNTHESIS focus was displaced by it, which the prompt requires - and the work
 was a synthesis question anyway: what the *population* of a sector percentile should be. **Deferred:**
@@ -13616,6 +13617,38 @@ two declared lines of one company raise. Everything else shipped as proposed.
   data loop's publish gate. The page claims are checked by **reading the sentences out of a browser
   render of the generator's own page**, not by grepping the source for a string (CLAUDE.md 0.11).
 
+**Verified end to end, and that is where the only real defect turned up.** I ran the whole
+screener (run `4e31fc82a3d6`, 08:16) rather than trusting unit tests, into a throwaway run whose
+published artifacts I then restored byte-for-byte - the 02:00 loop publishes this through its own
+gates, which a code session should not bypass. **The first attempt crashed**: inside the pipeline
+the fetch is a **list of per-ticker dicts** and only the run artifact is a DataFrame, so
+`'list' object has no attribute 'columns'` - with all 42 unit tests green, because every one of
+them had handed the function a DataFrame. Fixed as `share_classes.fetch_maps`, which reads both
+shapes, with four tests that would have caught it. The second run:
+
+- `Share classes (sec_cik): 3 multi-class companies, scored once on ['FOXA', 'GOOGL', 'NWSA'];
+  3 line(s) not ranked: ['FOX', 'GOOG', 'NWS']`, no margin warning (GOOG/GOOGL 1.52x today).
+- **498 composites and 3,979 category scores reproduced from the published payload alone**
+  (`calc_trace`, CLAUDE.md row 0.8), and the ranks match the pre-shipping rescoring **exactly**:
+  FOXA **#35**, GOOGL **#179**, NWSA **#54**.
+- **`scripts/check_run_health.py`: HEALTH: PASS** on the 498-row run - price coverage 498/498,
+  every category's dispersion within its band, no metric availability change. So the 02:00 loop
+  will accept it.
+- **Looked at the page at 1440 and 375** with that run's real payload (no console errors at either
+  width): the hero now reads "RANKED THIS RUN **498**", and searching FOX, GOOG or NWS gives, for
+  example, *"FOX is a second listed share class of Fox Corporation. The company is scored once, on
+  its more-traded class FOXA, ranked #35 here - the way S&P DJI and FTSE Russell treat multiple
+  share classes. It trades 10.8% below FOXA for the same claim on the same earnings."* The holdings
+  card says the same and keeps its remove button. **One defect seen by looking and fixed**: the
+  sentence printed "a second listed share class of Alphabet Inc.**.**" - a company name that ends
+  in a stop now loses it, with a test.
+- `scripts/rehearse_publish.py` **PASSED** (it had failed first time, for the ledger reason below).
+- **One thing to know if you do this again:** the verification run's directory must be removed
+  afterwards, not just its published artifacts. Leaving a 498-row run *newer* than the 501-row
+  published payload is the mismatch CLAUDE.md row 0.5/0.7 forbids, and
+  `tests/test_investor_profiles.py` caught it immediately (`KeyError: 'FOX'`) - the test reads the
+  committed payload against `latest_run_dir`. Both throwaway runs are gone and the suite is green.
+
 ### Evidence / research
 - **MSCI, *Fundamental Data Methodology* (March 2021), s1 p. 10 / s2.1 p. 19** - company-level
   aggregation of all classes, listed and unlisted; every ratio is the **security's** price over the
@@ -13663,6 +13696,14 @@ two declared lines of one company raise. Everything else shipped as proposed.
   evidence. All 30 rerun in committed chunks: **0 of 25,460 numeric values moved**, and
   `summary.json` is byte-identical, so the public research page says the same thing. Worth a future
   session's attention as a *narrowing* with a test, not as a loosening.
+
+### Lesson for the routine
+**Unit tests cannot see a shape assumption; an end-to-end run can.** 42 tests passed on a module
+whose single caller would have crashed the 02:00 data loop tonight, because every test handed it
+the shape the run artifact has and the pipeline hands it another. The habit worth keeping is the
+one that caught it: **run the thing, in full, before you push a pipeline change** - into a
+throwaway run whose published artifacts you restore, so the verification costs nothing and does not
+publish behind the data loop's gates.
 
 ### Next
 **The second open proposal: the bank P/B-ROE pairing** (`research/2026-10-20-bank-quality-valuation-overlap.md`
