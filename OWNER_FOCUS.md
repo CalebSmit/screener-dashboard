@@ -49,11 +49,20 @@ Two things still outrank this file, and neither is negotiable:
   5. **Lab experiment 4b** - size inside each profitability quintile (French
      `25_Portfolios_ME_OP_5x5`), with the refutation criterion already written in
      `research/2026-10-20-size-weight.md` section 9. It is the one result that would reopen Size.
-  6. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
+  6. **Backtest v2's two free data fixes, then the extended build**
+     (`research/2026-10-20-free-survivorship-sources.md`): 167 member-months of today's members
+     dropped because a rename or symbol format is not carried before May 2014 (BF.B, MHP->SPGI,
+     SAI->LDOS, PCS->TMUS, ACE->CB, TYC->JCI), and 773 `no_filings` member-months whose older filings
+     sit under a predecessor's CIK (Exxon, BlackRock, Disney, Cigna, Alphabet...). Both touch
+     `RESULT_PATHS`, so do them together: one rebuild, one rerun. Then the note's section 8 plan for
+     the extended universe - **register `only-size-extended` first, with its one-sided reading**
+     (free data adds the members that shrank out but almost none that were acquired, so the Size
+     test can falsify the survivorship explanation and cannot confirm it).
+  7. **Watch two numbers and act before they bite:** the full suite's runtime (6:23-7:20 tonight,
      against the Bash tool's 600 s per call - speed it up or split the call, never drop tests), and
      `lab_data.js` at ~2.9 MB (measure the lab's first paint; move the JKP series to their own file
      if it is slow).
-  Close this item when 1-5 are done or argued down in the log.
+  Close this item when 1-6 are done or argued down in the log.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
   can be shown to people and trusted.** Owner: *"we're trying to come up with the best methodology
