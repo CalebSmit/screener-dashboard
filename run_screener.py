@@ -1809,6 +1809,58 @@ def run_factor_engine(cfg, args, ctx=None):
     pipeline_log.info("Outlier flagging complete: %d stocks, %d metrics with tail values",
                       len(df), len(_outliers))
 
+    # ---- One company, one ranked line (S&P DJI's Designated Listing, approach B) ----
+    # Before the percentiles, because a two-line company otherwise counts twice in its
+    # sector's distribution: measured 2026-10-21, the three second lines held the other 16
+    # Communication Services stocks' composites down by 1.565 points on average, and nothing
+    # outside that sector moved at all (0.0). The 02 artifact above keeps all the fetched
+    # lines, so the dropped rows stay auditable. share_classes.py has the sources.
+    secondary_lines, share_class_notes = {}, []
+    if cfg.get("share_classes", {}).get("score_once_per_company", True):
+        import share_classes as _sc
+        _src = raw.set_index("Ticker") if "Ticker" in getattr(raw, "columns", []) else raw
+        _names = (_src["longName"].to_dict() if "longName" in _src.columns else {})
+        _prices = (_src["currentPrice"].to_dict() if "currentPrice" in _src.columns else {})
+        _groups, _basis = _sc.group_companies(df["Ticker"].tolist(), names=_names)
+        if _groups:
+            _vols = (df.set_index("Ticker")["avg_daily_dollar_volume"].to_dict()
+                     if "avg_daily_dollar_volume" in df.columns else {})
+            secondary_lines, share_class_notes = _sc.designate(
+                _groups, _vols,
+                declared=cfg["share_classes"].get("designated", []),
+                margin=float(cfg["share_classes"].get("challenge_margin", _sc.CHALLENGE_MARGIN)),
+            )
+        print(f"  Share classes ({_basis}): {len(_groups)} multi-class companies, "
+              f"scored once on {sorted(set(secondary_lines.values()))}; "
+              f"{len(secondary_lines)} line(s) not ranked: {sorted(secondary_lines)}")
+        for _n in share_class_notes:
+            print(f"  {_n}")
+            pipeline_log.warning("share_classes: %s", _n)
+        pipeline_log.info("Share classes: basis=%s, groups=%d, not ranked=%s",
+                          _basis, len(_groups), sorted(secondary_lines))
+        if secondary_lines:
+            for _t, _keep in sorted(secondary_lines.items()):
+                dq_log(_t, "share_class_not_ranked", "Low",
+                       f"{_t} is a second listed class of the company scored as {_keep}",
+                       "Not ranked; shown as that company's other class")
+            df = df[~df["Ticker"].isin(list(secondary_lines))].reset_index(drop=True)
+        # The record the dashboard reads, so the page can answer for a ticker it no longer
+        # ranks instead of telling a holder of FOX the company left the index.
+        if ctx is not None:
+            import json as _json_sc
+            _rec = {
+                "basis": _basis,
+                "designated": sorted(set(secondary_lines.values())),
+                "secondary": _sc.price_gaps(secondary_lines, _prices),
+                "notes": share_class_notes,
+            }
+            for _t, _v in _rec["secondary"].items():
+                _v["company"] = _names.get(_v["scored_as"]) or _names.get(_t)
+            with open(ctx.run_dir / "share_classes.json", "w") as _f:
+                _json_sc.dump(_rec, _f, indent=2)
+    stats["share_class_secondary_lines"] = secondary_lines
+    stats["share_class_notes"] = share_class_notes
+
     print("Computing sector-relative percentile ranks...")
     df = compute_sector_percentiles(df)
 
