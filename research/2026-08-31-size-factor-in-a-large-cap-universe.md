@@ -4,6 +4,12 @@
 **Author:** nightly code session (research day)
 **Status:** complete. No production code changed by this note.
 
+**The weight question (factor-lab question 4) was answered 2026-10-20** -
+`research/2026-10-20-size-weight.md`: the weight stays at 5%, with the literature on size among
+large companies read and the conditional (quality-controlled) case set out. Its "what would
+change my mind" item 1 is answered there: no study tests the premium within the largest 500, and
+the unconditional evidence among large companies is near zero.
+
 **Wednesday's synthesis happened on 2026-09-02** —
 `research/2026-09-02-category-independence-synthesis.md`. Disposition of the
 three candidates below:
