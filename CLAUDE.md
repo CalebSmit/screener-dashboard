@@ -809,7 +809,7 @@ Cooper, Gulen & Schill 2008; 13 of 24) is in `plan/factor-lab.md` and
   **do not cut Momentum on the lab's number alone, and never quote an all-stock premium for either
   category on the methodology page** (`tests/test_large_company_evidence.py`).
 
-Questions 3, 4 and 5 in the plan are open Mondays.
+**Question 4 is answered (2026-10-20): Size stays at 5%** (`research/2026-10-20-size-weight.md`) - no unconditional size premium among large companies, but the within-sector small tilt beside Quality is documented practice (MSCI, FTSE Russell, Dimensional) and it is one of the counterweights holding the ranking growth-neutral; the trigger to reopen it is lab experiment 4b, with its refutation criterion written in the note. Questions 3 and 5 are open Mondays.
 
 **0.10. Keep the inputs the 11 history-based metrics need, at fetch (opened 2026-10-07).**
 A data change, not design - the residual of the transparency work. **(a)-(d) are BUILT**
