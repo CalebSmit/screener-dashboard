@@ -48,12 +48,22 @@ CAVEATS = (
 )
 
 
-def month_end_prices(daily: pd.DataFrame, months: list[str]) -> pd.DataFrame:
-    """Adjusted close on the last trading day on or before each month-end: months x tickers."""
+def daily_wide(daily: pd.DataFrame) -> pd.DataFrame:
+    """Adjusted close per trading day: dates x tickers, tickers named as the universe names them.
+
+    The one place the daily panel is reshaped. ``month_end_prices`` takes its month-end rows from
+    this frame and a within-month price path (``v2_experiments.stop_loss_inputs``) takes its daily
+    rows from it, so a stop measured against a month-end price is measured against the same series
+    the forward return divides - keep it that way."""
     d = daily.copy()
     d["date"] = pd.to_datetime(d["date"])
     d["ticker"] = d["ticker"].map(lambda s: s if s.startswith("^") else uh.normalize_ticker(s))
-    wide = d.pivot_table(index="date", columns="ticker", values="adj_close").sort_index()
+    return d.pivot_table(index="date", columns="ticker", values="adj_close").sort_index()
+
+
+def month_end_prices(daily: pd.DataFrame, months: list[str]) -> pd.DataFrame:
+    """Adjusted close on the last trading day on or before each month-end: months x tickers."""
+    wide = daily_wide(daily)
     rows = {m: wide[wide.index <= pd.Timestamp(m)].ffill().iloc[-1] if (wide.index <= pd.Timestamp(m)).any()
             else pd.Series(dtype=float) for m in months}
     return pd.DataFrame(rows).T
