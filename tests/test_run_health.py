@@ -363,8 +363,15 @@ def _run_dir(tmp_path, run_id="bbb", start="2026-10-14T02:00:03.815047",
         "run_id": run_id, "start_time": start, "end_time": end,
         "cli_flags": {"refresh": False, "tickers": tickers}}), encoding="utf-8")
     (d / "config.yaml").write_text(cfg or "improvement:\n  enabled: true\n", encoding="utf-8")
+    # A full universe, every price dated on the session the run expects, and the universe.json
+    # every live run writes - what the 2026-10-22 input gates read (tests/test_input_gates.py).
+    (d / "universe.json").write_text(json.dumps(
+        {"scored": [], "failed": [], "scored_count": 500, "failed_count": 0}), encoding="utf-8")
     if payload:
-        p = _payload()
+        p = _payload(n=500)
+        session = h.expected_session(start).isoformat()
+        for v in p["stock_detail"].values():
+            v["price_date"] = session
         p["kpis"] = {"run_timestamp": start if stamp is None else stamp}
         (d / "dashboard_data.js").write_text(
             "window.SCREENER_DATA = " + json.dumps(p) + ";", encoding="utf-8")
@@ -372,6 +379,9 @@ def _run_dir(tmp_path, run_id="bbb", start="2026-10-14T02:00:03.815047",
 
 
 def _main(monkeypatch, run_dir, capsys):
+    # No published ranking to compare with: main() would otherwise read the real repo's
+    # committed dashboard_data.js through git.
+    monkeypatch.setattr(h, "published_payload", lambda ref="HEAD": None)
     monkeypatch.setattr(sys, "argv", ["check_run_health.py", "--run-dir", str(run_dir)])
     code = h.main()
     return code, capsys.readouterr().out

@@ -1145,6 +1145,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
         detail["gt"] = _safe(row.get("Growth_Trap_Flag"))
         # Analyst price targets (dollar values)
         detail["price"] = _safe(row.get("_current_price"))
+        # The NYSE session that price is from (factor_engine.published_price_date). The health
+        # check refuses a run whose prices are not the expected session's (2026-10-22).
+        _pd_ = row.get("_price_date")
+        detail["price_date"] = _pd_ if isinstance(_pd_, str) and _pd_ else None
         detail["pt_mean"] = _safe(row.get("_target_mean"))
         detail["pt_high"] = _safe(row.get("_target_high"))
         detail["pt_low"] = _safe(row.get("_target_low"))
@@ -1368,6 +1372,10 @@ def prepare_dashboard_data(run_data: dict) -> str:
         "growth_traps": int(df["Growth_Trap_Flag"].sum()) if "Growth_Trap_Flag" in df.columns else 0,
         "avg_composite": round(float(df["Composite"].mean()), 1),
         "median_composite": round(float(df["Composite"].median()), 1),
+        # The run's methodology version (run_context.config_hash, recorded in meta.json by
+        # run_screener.py). The health check compares it with the published run's before it will
+        # accept a ranking that broke from the last one (2026-10-22). None for a run made before.
+        "methodology_version": meta.get("methodology_version"),
     }
 
     # Metric display metadata

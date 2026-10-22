@@ -175,6 +175,16 @@ MODULES: tuple[tuple[str, str], ...] = (
     # Added 2026-10-19: the methodology page's computational sentences against the code - ROIC's
     # invested capital rebuilt from the published inputs, the cache window, the coverage bars,
     # the alerts, the weight tables, the percentile and trap rules, and the workbook's sheets.
+    # Added 2026-10-22 (screener-bot ROADMAP 1.9): the trading bot reads dashboard_data.js as
+    # Pages serves it and refuses to trade when a field it needs is missing - so a run that drops
+    # one does not break this site, it silently stops the bot. The loop that publishes the payload
+    # five mornings a week now checks the contract before it does.
+    ("tests/test_bot_payload_contract.py",
+     "every field the trading bot reads from dashboard_data.js is still published, in the "
+     "shape it reads"),
+    ("tests/test_input_gates.py",
+     "the payload carries each price's NYSE session and the run's methodology version, which the "
+     "health check's 2026-10-22 gates read, and those gates refuse what they were built to refuse"),
     ("tests/test_methodology_claims_audit.py",
      "every formula, threshold, window and rule the methodology page states is the one the code "
      "applies (research/2026-10-19-methodology-claims-audit.md)"),

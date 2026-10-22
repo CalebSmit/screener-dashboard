@@ -42,6 +42,36 @@ Two things still outrank this file, and neither is negotiable:
      session, or if over half are unchanged across a session.
   4. **Data-loop git hygiene** (1.9): fail closed when `git pull --ff-only` fails; push only the data
      commit, never all of local `main`; put `tests/test_bot_payload_contract.py` in the publish gate.
+
+  **Items 1-4 BUILT 2026-10-22 (on a worktree branch; merged by the session that relays it).** All in
+  `scripts/check_run_health.py` / `scripts/data-run.ps1`, tested in `tests/test_input_gates.py`, and
+  replayed before shipping against every page the site published since 2026-08-21
+  (`research/measurements/2026-10-22-input-gates-replay.py` + JSON; 62 versions, 46 data-loop runs):
+  **no ordinary day fails any rule**; the known-bad pages do (07-28: Spearman 0.856, 10 new, 7 fallen;
+  08-06 synthetic and 08-07 warm-start: -0.017, 22 new, 23 fallen, no prices; 08-10: no prices).
+  - *1:* the baseline is `dashboard_data.js` as committed at HEAD (the working-tree file is the run
+    itself by then). "Methodology version" = `RunContext.config_hash` - the scored-cache key, which
+    covers every weight, the data-quality/universe/sector/trap/regime/share-class rules and the
+    `scoring_schema` counter - recorded in `meta.json` and published as `kpis.methodology_version`.
+    **One deliberate change to the wording:** the changelog entry may be dated from the published
+    run's day to today, not today only - measured, 6 of the 46 data-loop runs (09-02, 09-03, 09-11,
+    10-13, 10-20, 10-22) were the first scored under a change documented the day before, and under
+    "today" only a refusal there could never clear (every later run is compared with the same stale
+    page). The 10-09 overhaul passes outright (0.935, 6 new, 1 fallen) and had the waiver available.
+    Known limit, written in the docstring: a bad page published by a code session (ungated here)
+    would make good runs fail until item 5 moves the baseline to the last data-loop run.
+  - *2:* `universe.json`'s `failed` (fetch errors + empty records + coverage filter) over 2% of the
+    universe, or under 490 ranked; history max 0.4% (HONA, VYLR), min 498 ranked. `data-run.ps1`'s
+    40% gate now counts every "Excluded from scoring" ticker, once each.
+  - *3:* `stock_detail[t].price_date` (the quote's `regularMarketTime` in Eastern, or the last bar
+    when the quote is missing). Expected session from a rule-based NYSE calendar (holidays verified
+    2022-2027; an unscheduled closure costs one discarded run). Verified live on a 29-stock run at
+    12:45 CT: 29/29 dated 2026-10-22. History cannot replay the dates (they did not exist); its
+    unchanged-across-a-session share peaked at 1.2% against the 50% line.
+  - *4:* pull failure and a local `main` ahead of `origin/main` both stop the run before the
+    screener; the push is `<data commit>:refs/heads/main`, only when it is the single commit ahead;
+    `test_bot_payload_contract.py` and `test_input_gates.py` are in `check_published_claims.py`.
+  The methodology page states the new refusals from the gate's own constants. **5 and 6 are open.**
   5. **Only the data loop's run is tradable** (1.2, this repo's half): after every gate `data-run.ps1`
      writes `signals.json` (top 40, run_id, git_sha, raw-fetch sha256, gate verdicts); the code
      runner never stages it (test it beside `tests/test_gate_ordering.py`). Code sessions' full runs

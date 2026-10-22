@@ -218,7 +218,25 @@ try {
         Write-NativeOutput $co 'ERROR'
         Stop-Run "Could not check out main."
     }
-    Invoke-Native 'git' @('pull', '--ff-only') | Out-Null
+    # Fail closed (2026-10-22, screener-bot ROADMAP 1.9). This line used to discard the pull's
+    # result, so a pull that failed - a diverged main, a network blip after the probe, an index
+    # lock - left the run going on whatever local main held, and the push below then published
+    # it. A trading bot now acts on what this loop pushes; a run built on a main nobody can
+    # vouch for must not reach it.
+    $pull = Invoke-Native 'git' @('pull', '--ff-only')
+    if ($pull.ExitCode -ne 0) {
+        Write-NativeOutput $pull 'ERROR'
+        Stop-Run "git pull --ff-only failed - local main cannot be brought level with origin/main. Not running on it." 2
+    }
+    # A pull that succeeds can still leave local main AHEAD of origin/main (a commit made here
+    # and never pushed). Publishing on top of it would publish that commit too, ungated by this
+    # loop. Stop rather than carry it: the code loop's runner says "resolve by hand" in the same
+    # state, and the watchdog reports a stalled loop.
+    $ahead = Invoke-Native 'git' @('rev-list', '--count', 'origin/main..HEAD')
+    if ($ahead.ExitCode -ne 0 -or $ahead.Text.Trim() -ne '0') {
+        Write-NativeOutput $ahead 'ERROR'
+        Stop-Run "Local main has commits origin/main does not ($($ahead.Text.Trim())). Not publishing on top of unpublished work - resolve by hand." 2
+    }
 
     # --- Run the screener ---------------------------------------------------
     $args = @('run_screener.py')
@@ -251,9 +269,16 @@ try {
         $synthetic = @($todayRows | Where-Object {
             $_.Description -match 'synthetic' -or $_.Action_Taken -match 'sample values'
         })
-        $fetchFail = @($todayRows | Where-Object { $_.Issue_Type -eq 'fetch_failure' })
+        # Every ticker left out of the ranking for missing data, not only fetch errors
+        # (2026-10-22). A record that arrives empty or thin is dropped by the coverage filter and
+        # logged as missing_metric / "Excluded from scoring" - on 2026-10-22 two were, while this
+        # line read "0 fetch failure(s)". Counted once per ticker.
+        $fetchFail = @($todayRows | Where-Object {
+            $_.Issue_Type -eq 'fetch_failure' -or $_.Action_Taken -eq 'Excluded from scoring'
+        } | Select-Object -ExpandProperty Ticker -Unique)
+        $fetchErr = @($todayRows | Where-Object { $_.Issue_Type -eq 'fetch_failure' })
 
-        Write-Log "Data quality: $($fetchFail.Count) fetch failure(s), $($synthetic.Count) synthetic substitution(s) today."
+        Write-Log "Data quality: $($fetchFail.Count) ticker(s) unscored ($($fetchErr.Count) fetch failure(s), the rest empty or thin records), $($synthetic.Count) synthetic substitution(s) today."
 
         if ($synthetic.Count -gt 0) {
             Write-Log "Screener substituted SYNTHETIC data for $($synthetic.Count) ticker(s)." 'ERROR'
@@ -499,7 +524,17 @@ try {
 
     if ($SkipPush) { Write-Log "-SkipPush set; stopping before push."; exit 0 }
 
-    $push = Invoke-Native 'git' @('push', 'origin', 'main')
+    # Push the data commit and nothing else (2026-10-22, screener-bot ROADMAP 1.9). This was a
+    # push of local main, which publishes every commit it holds. The refspec now names the commit
+    # object, and it goes only if it is the one commit between origin/main and here - the same
+    # structural guarantee Publish-BriefToMain gives the brief.
+    $dataCommit = (Invoke-Native 'git' @('rev-parse', 'HEAD')).Text.Trim()
+    $between = Invoke-Native 'git' @('rev-list', '--count', 'origin/main..HEAD')
+    if ($between.ExitCode -ne 0 -or $between.Text.Trim() -ne '1') {
+        Stop-Run "Expected exactly the data commit ahead of origin/main, found $($between.Text.Trim()). Not pushing." 2
+    }
+    $push = Invoke-Native 'git' @('push', 'origin', "${dataCommit}:refs/heads/main")
+    Write-NativeOutput $push
     if ($push.ExitCode -ne 0) { Stop-Run "Push to main failed. Local main is ahead." 2 }
     Write-Log "Published to main - live dashboard refreshed."
 

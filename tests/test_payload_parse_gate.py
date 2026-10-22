@@ -228,7 +228,7 @@ def test_the_parse_runs_before_the_data_runner_commits():
     code = _code(DATA_RUNNER)
     parse_at = code.find("'--check'")
     commit_at = code.find("'commit', '-m'")
-    push_at = code.find("'push', 'origin', 'main'")
+    push_at = code.find("'push', 'origin', \"${dataCommit}:refs/heads/main\"")  # the data commit only (2026-10-22)
     assert -1 not in (parse_at, commit_at, push_at)
     assert parse_at < commit_at < push_at
 
@@ -267,5 +267,5 @@ def test_the_data_runner_repacks_and_never_dies_doing_it():
     window = code[idx : idx + 300]
     assert "Stop-Run" not in window, "repacking must never end the run"
     assert "'WARN'" in window, "a failed repack should be logged, not swallowed"
-    push_at = code.find("'push', 'origin', 'main'")
+    push_at = code.find("'push', 'origin', \"${dataCommit}:refs/heads/main\"")  # the data commit only (2026-10-22)
     assert push_at < idx, "repack after publishing, never before"
