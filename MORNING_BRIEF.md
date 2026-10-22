@@ -1,4 +1,4 @@
-# Morning Brief - Wednesday 21 October 2026, 14:30
+# Morning Brief - Thursday 22 October 2026, 02:24
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,19 +9,24 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-21T02:00:03.974680 |
-| Stocks scored | 501 |
-| With a price | 501/501 |
-| With an analyst target | 497/501 |
-| Top 5 | EXPE, APA, INCY, HST, VLO |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (33 rows, but overlapping windows are not independent; 89 rows across all horizons), newest 2026-10-13 |
-| Context signals | Context signals: 10 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 407/411 within 0.5%; net income 398/421 within 0.5%; market value 447/487 within 5%; filings cached 5 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#11: net income 16% off the filing); MU (#14: a period behind its filings) |
-| Context coverage | options usable 492/501 (9 quotes-closed) - insider from SEC 501/501 - earnings variability 443 |
+| Dashboard data from | 2026-10-22T02:00:04.595430 |
+| Stocks scored | 498 |
+| With a price | 498/498 |
+| With an analyst target | 496/498 |
+| Top 5 | EXPE, APA, HST, INCY, EG |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (34 rows, but overlapping windows are not independent; 91 rows across all horizons), newest 2026-10-14 |
+| Context signals | Context signals: 11 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 422/423 within 0.5%; operating cash flow 405/409 within 0.5%; net income 396/418 within 0.5%; market value 444/484 within 5%; filings cached 6 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#9: net income 16% off the filing); MU (#14: a period behind its filings) |
+| Context coverage | options usable 490/498 (8 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
 ## What changed in the repo
 
+- `9c0bc1b data: screener run 2026-10-22 - 498 scored, top: EXPE APA HST INCY EG`
+- `a45fb93 OWNER_FOCUS: one pre-registered stop-loss test on the bot's rule (Han, Zhou & Zhu 2016), never a sweep`
+- `eaef387 OWNER_FOCUS: the screener's half of the plan to real money - no wrong or stale ranking reaches the bot`
+- `13e3146 contract: pin share_classes for screener-bot (scored_as + the line's own price)`
+- `d5d3a5c brief: code session 2026-10-21-midday`
 - `0055951 log: the 2026-10-21 13:00 session - the bank P/B-ROE decision and the guard it replaced`
 - `732ad0a research engine: rerun all 30 after the config.yaml comment (0 of 25,460 values moved)`
 - `55b9291 record: the bank P/B-ROE decision - changelog, owner queue, section order`
@@ -32,11 +37,6 @@ history is in `NIGHTLY_LOG.md`.
 - `1fd3cb4 page: do not print 'Alphabet Inc..' - strip a trailing stop from the company name`
 - `2411b85 fix: read the fetch in both of its shapes (share_classes.fetch_maps)`
 - `268ead4 log: the 2026-10-21 session entry and the owner queue's progress line`
-- `1d16900 research engine: rerun after the config change (30 of 30)`
-- `328235d research engine: rerun after the config change (27 of 30)`
-- `9590f13 research engine: rerun after the config change (22 of 30)`
-- `f9f738d research engine: rerun after the config change (17 of 30)`
-- `9eb07be research engine: rerun after the config change (12 of 30)`
 
 ## The session's own account
 
