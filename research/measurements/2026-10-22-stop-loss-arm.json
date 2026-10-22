@@ -1,0 +1,301 @@
+{
+  "base": "bot-rule-v1.1",
+  "arm": "bot-rule-v1.1-stop10",
+  "months": 176,
+  "comparable_provenance": true,
+  "code_version": "good/2026-10-22-owner-1-3-g513c364",
+  "data_hash": "d8cb038fff2b",
+  "stops": {
+    "total": 469,
+    "months_with_none": 58,
+    "per_month_mean": 2.665,
+    "per_month_median": 1,
+    "busiest": [
+      [
+        "2020-02-29",
+        25
+      ],
+      [
+        "2025-03-31",
+        18
+      ],
+      [
+        "2018-11-30",
+        17
+      ],
+      [
+        "2022-05-31",
+        17
+      ],
+      [
+        "2018-09-30",
+        15
+      ],
+      [
+        "2015-07-31",
+        14
+      ]
+    ],
+    "mean_held_by_period": {
+      "presample": 23.1,
+      "discovery": 21.1,
+      "holdout": 21.7,
+      "all": 21.4
+    },
+    "share_of_positions_per_month": {
+      "presample": 0.0812,
+      "discovery": 0.1851,
+      "holdout": 0.1516,
+      "all": 0.1688
+    }
+  },
+  "periods": {
+    "presample": {
+      "worst_month": {
+        "base": -0.0813,
+        "arm": -0.0841
+      },
+      "max_drawdown": {
+        "base": -0.1455,
+        "arm": -0.1543
+      },
+      "universe_worst_month": {
+        "base": -0.0882,
+        "arm": -0.0882
+      },
+      "universe_max_drawdown": {
+        "base": -0.1216,
+        "arm": -0.1216
+      },
+      "turnover_a_year": {
+        "base": 1.423,
+        "arm": 2.001
+      },
+      "positions_stopped": {
+        "base": 0,
+        "arm": 180
+      },
+      "ret_mean": {
+        "base": 0.01175,
+        "arm": 0.01083
+      },
+      "excess_mean": {
+        "base": -0.00148,
+        "arm": -0.0024
+      },
+      "excess_t": {
+        "base": -1.09,
+        "arm": -1.71
+      },
+      "both_figures_better": false,
+      "months": 96
+    },
+    "discovery": {
+      "worst_month": {
+        "base": -0.1727,
+        "arm": -0.1396
+      },
+      "max_drawdown": {
+        "base": -0.2062,
+        "arm": -0.1865
+      },
+      "universe_worst_month": {
+        "base": -0.1668,
+        "arm": -0.1668
+      },
+      "universe_max_drawdown": {
+        "base": -0.1964,
+        "arm": -0.1964
+      },
+      "turnover_a_year": {
+        "base": 1.737,
+        "arm": 3.05
+      },
+      "positions_stopped": {
+        "base": 0,
+        "arm": 164
+      },
+      "ret_mean": {
+        "base": 0.00534,
+        "arm": 0.00545
+      },
+      "excess_mean": {
+        "base": -0.00701,
+        "arm": -0.0069
+      },
+      "excess_t": {
+        "base": -2.64,
+        "arm": -2.32
+      },
+      "both_figures_better": true,
+      "months": 42
+    },
+    "holdout": {
+      "worst_month": {
+        "base": -0.0527,
+        "arm": -0.0836
+      },
+      "max_drawdown": {
+        "base": -0.0752,
+        "arm": -0.1413
+      },
+      "universe_worst_month": {
+        "base": -0.0624,
+        "arm": -0.0624
+      },
+      "universe_max_drawdown": {
+        "base": -0.0842,
+        "arm": -0.0842
+      },
+      "turnover_a_year": {
+        "base": 1.345,
+        "arm": 2.418
+      },
+      "positions_stopped": {
+        "base": 0,
+        "arm": 125
+      },
+      "ret_mean": {
+        "base": 0.0091,
+        "arm": 0.00719
+      },
+      "excess_mean": {
+        "base": -0.0022,
+        "arm": -0.00411
+      },
+      "excess_t": {
+        "base": -0.55,
+        "arm": -0.94
+      },
+      "both_figures_better": false,
+      "months": 38
+    },
+    "all": {
+      "worst_month": {
+        "base": -0.1727,
+        "arm": -0.1396
+      },
+      "max_drawdown": {
+        "base": -0.2062,
+        "arm": -0.1865
+      },
+      "universe_worst_month": {
+        "base": -0.1668,
+        "arm": -0.1668
+      },
+      "universe_max_drawdown": {
+        "base": -0.1964,
+        "arm": -0.1964
+      },
+      "turnover_a_year": {
+        "base": 1.551,
+        "arm": 2.75
+      },
+      "positions_stopped": {
+        "base": 0,
+        "arm": 289
+      },
+      "ret_mean": {
+        "base": 0.00713,
+        "arm": 0.00628
+      },
+      "excess_mean": {
+        "base": -0.00472,
+        "arm": -0.00558
+      },
+      "excess_t": {
+        "base": -2.0,
+        "arm": -2.16
+      },
+      "both_figures_better": true,
+      "months": 80
+    }
+  },
+  "worst_months": [
+    {
+      "month": "2020-02-29",
+      "base_ret": -0.1727,
+      "arm_ret": -0.139621,
+      "universe": -0.166825,
+      "stopped": 25,
+      "stop_helped": true
+    },
+    {
+      "month": "2022-05-31",
+      "base_ret": -0.09505,
+      "arm_ret": -0.08669,
+      "universe": -0.089068,
+      "stopped": 17,
+      "stop_helped": true
+    },
+    {
+      "month": "2022-08-31",
+      "base_ret": -0.091765,
+      "arm_ret": -0.08227,
+      "universe": -0.090518,
+      "stopped": 13,
+      "stop_helped": true
+    },
+    {
+      "month": "2020-01-31",
+      "base_ret": -0.085844,
+      "arm_ret": -0.089097,
+      "universe": -0.085084,
+      "stopped": 9,
+      "stop_helped": false
+    },
+    {
+      "month": "2018-11-30",
+      "base_ret": -0.081349,
+      "arm_ret": -0.084126,
+      "universe": -0.088209,
+      "stopped": 17,
+      "stop_helped": false
+    },
+    {
+      "month": "2018-09-30",
+      "base_ret": -0.079266,
+      "arm_ret": -0.070042,
+      "universe": -0.06685,
+      "stopped": 15,
+      "stop_helped": true
+    },
+    {
+      "month": "2015-07-31",
+      "base_ret": -0.06557,
+      "arm_ret": -0.076501,
+      "universe": -0.052348,
+      "stopped": 14,
+      "stop_helped": false
+    },
+    {
+      "month": "2022-11-30",
+      "base_ret": -0.06407,
+      "arm_ret": -0.059846,
+      "universe": -0.04684,
+      "stopped": 9,
+      "stop_helped": true
+    },
+    {
+      "month": "2023-04-30",
+      "base_ret": -0.057517,
+      "arm_ret": -0.046081,
+      "universe": -0.031399,
+      "stopped": 4,
+      "stop_helped": true
+    },
+    {
+      "month": "2019-04-30",
+      "base_ret": -0.056628,
+      "arm_ret": -0.045625,
+      "universe": -0.057336,
+      "stopped": 5,
+      "stop_helped": true
+    }
+  ],
+  "stop_helped_in_worst_ten": 7,
+  "stop_helped_months": 82,
+  "stop_changed_months": 174,
+  "down_months": 58,
+  "stop_helped_down_months": 36
+}
