@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 22 October 2026, 02:24
+# Morning Brief - Thursday 22 October 2026, 07:25
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -22,6 +22,12 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `9bf29e2 log: the gates' numbers, the rerun check, and the three guards that fired`
+- `15efe21 research engine: all 31 rows rerun level, and the page reports the stop arm`
+- `3a56a63 log + OWNER_FOCUS: the 2026-10-22 stop-loss item, done and moved to Done`
+- `5e9d966 research: the stop-loss arm's result, and the page reports it beside the unstopped rule`
+- `513c364 research engine: register and build one stop-loss arm on the bot's rule (Han, Zhou & Zhu 2016)`
+- `ad2346d brief: data run 2026-10-22`
 - `9c0bc1b data: screener run 2026-10-22 - 498 scored, top: EXPE APA HST INCY EG`
 - `a45fb93 OWNER_FOCUS: one pre-registered stop-loss test on the bot's rule (Han, Zhou & Zhu 2016), never a sweep`
 - `eaef387 OWNER_FOCUS: the screener's half of the plan to real money - no wrong or stale ranking reaches the bot`
@@ -31,60 +37,54 @@ history is in `NIGHTLY_LOG.md`.
 - `732ad0a research engine: rerun all 30 after the config.yaml comment (0 of 25,460 values moved)`
 - `55b9291 record: the bank P/B-ROE decision - changelog, owner queue, section order`
 - `859a7dd bank P/B-ROE proposal ACCEPTED: state the pairing on the page, guard the measured loading`
-- `ba9b400 brief: code session 2026-10-21`
-- `5e4ccd0 gitignore: a session's .scratch/ folder`
-- `0e5c04a log: the end-to-end verification, the shape bug it caught, and the gate results`
-- `1fd3cb4 page: do not print 'Alphabet Inc..' - strip a trailing stop from the company name`
-- `2411b85 fix: read the fetch in both of its shapes (share_classes.fetch_maps)`
-- `268ead4 log: the 2026-10-21 session entry and the owner queue's progress line`
 
 ## The session's own account
 
-> 2026-10-21 (13:00 session) - QUEUE. The bank P/B-ROE proposal reviewed and ACCEPTED - and the guard it asked for could not see the one change the note itself calls the mildest route to a P/B tilt
+> 2026-10-22 (06:00 session) - QUEUE/BUILD. One pre-registered stop-loss on the bot's rule, and the prediction failed in two of three periods
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 session ends
-> "Run complete: shipped to main" at 08:48 (`logs/nightly-2026-10-21_060000.log`). Data loop
-> published? **yes** - `logs/datarun-2026-10-21_020001.log` ends "Data loop complete" at 02:26,
-> PUBLISHED CLAIMS PASS (1214 tests). Evidence base at `1m` = **33 rows, newest 2026-09-18 (33 days
-> ago, bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply`
-> **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 9 days**) - not worked; its day is Friday 2026-10-23, and the owner queue
-> outranks it today.
-> **Tests:** before **2969 passed / 1 skipped**, after ****2980 passed / 1 skipped**** - the delta is exactly the one new
-> module, no failures and nothing removed. Gates 2 and 3 pass (dry-run exit 0; `index.html` 642,631
-> bytes; both payloads `node --check` clean with their opening assignments).
-> **Owner queue / rotation:** took `OWNER_FOCUS.md`'s 2026-10-20 item **1**, which named this as "the
-> next session's first job", and it was the only OPEN proposal in the morning brief. **Deferred:**
-> item 2 (second-read lab experiments 16 and 17), item 3 (the next 12 claim mutations) and the
-> Factor Lab.
+> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-21 13:00 ends "Run complete:
+> shipped to main" at 14:30 (`logs/nightly-2026-10-21_130001-midday.log`). Data loop published?
+> **yes** - `logs/datarun-2026-10-22_020001.log` ends "Data loop complete" at 02:24, PUBLISHED CLAIMS
+> PASS (1272 tests), 498 scored. Evidence base at `1m` = **34 rows, newest 2026-09-21 (31 days ago,
+> bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply` **false**,
+> 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+> **age 10 days**) - not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
+> **Tests:** before **2981 passed / 1 skipped** (364s), after **2988 passed / 1 skipped** (353s) -
+> +7, which is exactly the seven new tests in two existing modules, no failures and nothing removed.
+> Gates 2 and 3 pass (dry-run exit 0; `index.html` 651,277 bytes; both payloads `node --check` clean
+> with their opening assignments; `research.html` 55,107 bytes).
+> **Owner queue / rotation:** took `OWNER_FOCUS.md`'s **top open item, 2026-10-22** - one
+> pre-registered stop-loss test on the bot's rule. It is a BUILD day and this was a build item, so
+> nothing was displaced. No proposal was waiting for a decision (`write_brief.open_proposals()`
+> returned `[]`). **Deferred:** the 2026-10-21 item (the rank-continuity gate and the rest of the
+> screener's half of the path to real money), the 2026-10-20 item's parts 2-6, and the Factor Lab.
 > 
 > ### Did
 > 
-> **Reviewed `research/2026-10-20-bank-quality-valuation-overlap.md` section 8 and accepted it -
-> with the guard replaced, which is the part only a second reader produces.**
+> **The owner asked for exactly one thing and the value is in its being exactly one.** Register a
+> stop-loss variant of the trading rule before building it, build that one, report it beside the
+> unstopped rule, never sweep the level. All four held: `bot-rule-v1.1-stop10` and the code that runs
+> it are in **one commit** (513c364) and no ledger row for it existed before, so the git history is
+> the pre-registration.
 > 
-> The note's question was whether 35 points of a bank's Quality score double-count two of its
-> Valuation inputs. Since the two changes that shipped on 2026-10-20 put ROE and P/B on nearly one
-> book, a bank's ROE **is** its earnings yield times its P/B. The note's answer - no, because ROE
-> duplicates earnings yield but *cancels* price-to-book, so the four weights net to "high ROE at a
-> low P/B", the construction bank analysts and index builders use on purpose - holds up. I
-> re-measured it on a different run and it reproduces. **No weight, metric or threshold changed.**
+> **The rule was read from the paper, not from memory.** Han, Zhou & Zhu (2016), "Taming Momentum
+> Crashes: A Simple Stop-Loss Strategy", SSRN 2407199, DOI 10.2139/ssrn.2407199 - 52-page PDF
+> downloaded and read with `pypdf`; construction on printed pp. 5-6, Table I Panels A-C on pp. 6-7,
+> turnover and stop frequency pp. 8-9. **Two things the reading corrected:** the DOI resolves through
+> Crossref to SSRN posted content and **no journal** - it is a working paper, and the *Journal of
+> Financial Markets* in the owner's item is Kaminski & Lo (2014), a different paper. And the paper's
+> rule is not "sell at the close 10% down": it triggers on the day's **lowest** price, waits a day,
+> and sells at a limit of `(1-L/2)(1-L)P0` - 85.5% of the month's starting price at L = 10% - or at
+> that day's close if the whole day trades below it.
 > 
-> **Re-measured on run `4dc4acf1d780` (today 02:00) against the note's `7c12b43a07b6` (yesterday
-> 13:21).** Both measurement scripts rerun; the rescoring baseline reproduces **501 of 501**
-> published ranks either way:
+> **So four differences are registered under `construction_note`, each because it changes when the
+> stop fires:** the trigger here is the close (the daily panel carries no intraday range, so this
+> fires *less* often than the paper's); the sale is at the triggering close, not the next day's limit
+> (so it exits *sooner and higher*, and exits names the paper's band would have kept); cash earns
+> nothing where the paper earns T-bills; and this is the long side of a 25-name screen, not long-short
+> momentum deciles.
 > 
-> | | Note's run | My run |
-> |---|---|---|
-> | **(a)** R-squared, log ROE on log E/P and log P/B (bar 0.90) | 0.978 | **0.978** |
-> | **(b)** measured loading on P/B's rank | -0.067 | **-0.069** |
-> | loading on E/P's rank - criterion (b)'s bar is half of it | +0.284 | **+0.283** |
-> | status quo against the P/B-ROE (Wilcox) residual | -0.890 | **-0.892** |
-> | the six alternatives against it | -0.85 / -0.72 / -0.84 / -0.79 / -0.84 / -0.88 | **-0.848 / -0.724 / -0.839 / -0.796 / -0.838 / -0.882** |
-> 
-> Every figure to the third decimal, and the status quo is still the closest of the seven
-> constructions to the combined signal. Both refutation criteria hold.
-> 
+> **The prediction, registered before the run:** less negative worst month *and* maximum drawdown in
 > ...
 
 ---
