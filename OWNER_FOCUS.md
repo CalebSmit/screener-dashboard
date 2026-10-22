@@ -24,6 +24,34 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-21 - The screener's half of the plan to real money: no wrong or stale ranking reaches the
+  trading bot.** Owner: *"I want you to start thinking in the way that you need to make me money in
+  the stock market with this tool. And that's going to be through the trading bot."* The plan is
+  `screener-bot/ROADMAP.md` (rewritten 2026-10-21 from five audits); its **phase 1** is the input
+  side, and these items are this repo's. Measured: on a normal day the top 25 gains at most 4 new
+  names and the rank correlation with the previous run is >= 0.981 (the 10-09 overhaul: 6 and 0.935;
+  the broken 07-28 run: 24 and 0.016). In order, each with its test:
+  1. **Rank-continuity gate** in `check_run_health.py` (bot ROADMAP 1.3): FAIL below 0.90 correlation
+     with the last published run, more than 8 new top-25 names, or more than 3 top-25 names below #40;
+     override only when the methodology version changed and a changelog entry is dated today. Test: a
+     shuffled ranking with normal spread fails, a normal day passes, an overhaul with its entry passes.
+  2. **The empty-record hole** (1.4): FAIL below 490 scored or coverage exclusions above 2% of the
+     universe, and count them toward the 40% fetch gate. Today `meta.json` shows 2 unscored while the
+     log says 0 failures.
+  3. **Price freshness** (1.5): publish each price's bar date; FAIL unless >= 95% sit on the expected
+     session, or if over half are unchanged across a session.
+  4. **Data-loop git hygiene** (1.9): fail closed when `git pull --ff-only` fails; push only the data
+     commit, never all of local `main`; put `tests/test_bot_payload_contract.py` in the publish gate.
+  5. **Only the data loop's run is tradable** (1.2, this repo's half): after every gate `data-run.ps1`
+     writes `signals.json` (top 40, run_id, git_sha, raw-fetch sha256, gate verdicts); the code
+     runner never stages it (test it beside `tests/test_gate_ordering.py`). Code sessions' full runs
+     keep publishing the page; they stop being what the bot trades.
+  6. **Audit trail** (1.10): `run_id`, `git_sha`, a config hash and `raw_sha256` in `kpis` (add them
+     to the contract test); archive each published run's raw fetch and log outside OneDrive, never
+     pruned.
+  The bot's halves (fresh-ranking rule, methodology pause, second price source, pre-trade verifier)
+  are owner-run work in the bot repo. **None of this changes a score.**
+
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
   things."* The night shipped (owner-run, tags `good/2026-10-20-owner-1..`): the overfitting check on
