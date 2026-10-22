@@ -13887,3 +13887,146 @@ return claim, and the generated section carries a test forbidding one.
 - **Worth its own session when one is spare:** narrow `v2_experiments.RESULT_PATHS`' handling of
   `config.yaml` to the parsed scoring-relevant keys, with a test - it has now forced two 47-minute
   reruns in one day for changes that provably cannot move a number.
+
+## 2026-10-22 (06:00 session) - QUEUE/BUILD. One pre-registered stop-loss on the bot's rule, and the prediction failed in two of three periods
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-21 13:00 ends "Run complete:
+shipped to main" at 14:30 (`logs/nightly-2026-10-21_130001-midday.log`). Data loop published?
+**yes** - `logs/datarun-2026-10-22_020001.log` ends "Data loop complete" at 02:24, PUBLISHED CLAIMS
+PASS (1272 tests), 498 scored. Evidence base at `1m` = **34 rows, newest 2026-09-21 (31 days ago,
+bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply` **false**,
+4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+**age 10 days**) - not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
+**Tests:** before **2981 passed / 1 skipped** (363s), after **3002 passed / 1 skipped** - +21, which
+is exactly the new tests in two existing modules, no failures and nothing removed. Gates 2 and 3
+pass (dry-run exit 0; `index.html` 642,631 bytes; both payloads `node --check` clean with their
+opening assignments).
+**Owner queue / rotation:** took `OWNER_FOCUS.md`'s **top open item, 2026-10-22** - one
+pre-registered stop-loss test on the bot's rule. It is a BUILD day and this was a build item, so
+nothing was displaced. No proposal was waiting for a decision (`write_brief.open_proposals()`
+returned `[]`). **Deferred:** the 2026-10-21 item (the rank-continuity gate and the rest of the
+screener's half of the path to real money), the 2026-10-20 item's parts 2-6, and the Factor Lab.
+
+### Did
+
+**The owner asked for exactly one thing and the value is in its being exactly one.** Register a
+stop-loss variant of the trading rule before building it, build that one, report it beside the
+unstopped rule, never sweep the level. All four held: `bot-rule-v1.1-stop10` and the code that runs
+it are in **one commit** (513c364) and no ledger row for it existed before, so the git history is
+the pre-registration.
+
+**The rule was read from the paper, not from memory.** Han, Zhou & Zhu (2016), "Taming Momentum
+Crashes: A Simple Stop-Loss Strategy", SSRN 2407199, DOI 10.2139/ssrn.2407199 - 52-page PDF
+downloaded and read with `pypdf`; construction on printed pp. 5-6, Table I Panels A-C on pp. 6-7,
+turnover and stop frequency pp. 8-9. **Two things the reading corrected:** the DOI resolves through
+Crossref to SSRN posted content and **no journal** - it is a working paper, and the *Journal of
+Financial Markets* in the owner's item is Kaminski & Lo (2014), a different paper. And the paper's
+rule is not "sell at the close 10% down": it triggers on the day's **lowest** price, waits a day,
+and sells at a limit of `(1-L/2)(1-L)P0` - 85.5% of the month's starting price at L = 10% - or at
+that day's close if the whole day trades below it.
+
+**So four differences are registered under `construction_note`, each because it changes when the
+stop fires:** the trigger here is the close (the daily panel carries no intraday range, so this
+fires *less* often than the paper's); the sale is at the triggering close, not the next day's limit
+(so it exits *sooner and higher*, and exits names the paper's band would have kept); cash earns
+nothing where the paper earns T-bills; and this is the long side of a 25-name screen, not long-short
+momentum deciles.
+
+**The prediction, registered before the run:** less negative worst month *and* maximum drawdown in
+**every** period, excess about unchanged or slightly lower, turnover higher.
+
+**It failed in two of the three periods, on the one thing a stop is for.**
+
+| | 2012-2019 (96 mo) | 2020 - mid-2023 (42 mo) | mid-2023 - 2026 (38 mo) |
+|---|---|---|---|
+| Worst month, no stop -> 10% stop | -8.13% -> **-8.41%** | -17.27% -> **-13.96%** | -5.27% -> **-8.36%** |
+| Max drawdown, no stop -> stop | -14.55% -> **-15.43%** | -20.62% -> **-18.65%** | -7.52% -> **-14.13%** |
+| Excess vs the average scored stock | -0.148% -> -0.240% | -0.701% -> -0.690% | -0.220% -> -0.411% |
+| Turnover a year | 1.42 -> **2.00** | 1.74 -> **3.05** | 1.35 -> **2.42** |
+| Positions stopped | 180 | 164 | 125 |
+
+Both figures improved only in 2020 - mid-2023, the period containing March 2020, where the stop
+turned a -17.27% month into -13.96% with all 25 positions stopped. **In the held-out years it made
+the deepest fall nearly twice as bad.** Across all 176 months it changed the result in 174 and
+**helped in 82** - fewer than half; in the ten worst months for the unstopped rule it helped in 7,
+in the 58 losing months in 36. The mechanism is the obvious one: a stop pays for the falls it avoids
+with the rebounds it misses, and a run of ordinary 10% dips and recoveries is what it loses on.
+
+**The construction was checked against the paper's own frequency figure rather than assumed
+correct.** 469 positions closed over 176 months, median 1 a month, none at all in 58 of them, 25 of
+25 in March 2020 - **8.1%** of positions a month in 2012-2019 and **18.5%** in 2020 - mid-2023,
+against the paper's **10.05%** of winner positions over 1926-2013, higher where the period was more
+volatile, which is also what the paper reports about volatility (its stopped share correlates 68.49%
+with market volatility for the winners, p. 9).
+
+**What shipped:**
+- **`registry.yaml`: `bot-rule-v1.1-stop10`**, with the paper's figures, the four differences and
+  the prediction. A test asserts there is **exactly one** registered stop level and that the arm's
+  rule is otherwise identical to `bot-rule-v1.1`, so the comparison can never quietly become two
+  changes at once or a sweep.
+- **`backtest_v2_returns.daily_wide`** is now the one place the daily panel is reshaped, and
+  `month_end_prices` takes its rows from it. That is what makes the stop measurable against **the
+  same price series the forward return divides** - so a month in which no stop triggers reproduces
+  the unstopped simulation **exactly**, which is asserted rather than hoped for. A stop rule handed
+  no prices **raises** rather than silently simulating no stop under the stopped name.
+- **`summarise_evaluation`** now records the worst month, the universe's worst month, the months
+  with a stop and the positions stopped, for every evaluation - the figures a stop is judged on were
+  not being kept.
+- **The research page** carries the arm's table beside the unstopped rule's, with the construction
+  and a **generated** verdict sentence. The test feeds it three fabricated pairs - better
+  everywhere, worse everywhere, mixed - and checks it says a different thing for each; a sentence
+  that could only ever report success would be checking plumbing, not the claim (0.11's lesson).
+- `research/2026-10-22-stop-loss-on-the-bots-rule.md` and
+  `research/measurements/2026-10-22-stop-loss-arm.{py,json}`.
+
+**The 47-minute rerun was budgeted for and run in the session**, not left for someone else: editing
+`v2_experiments.py`, `backtest_v2_returns.py` and the registry moved the code fingerprint, so all 31
+rows went stale. The two evaluations were run first (so the owner's answer existed before the long
+tail), then the 29 experiments through `scripts/rerun_experiments.py`. **Checked rather than
+assumed, as the 2026-10-18 session established:** every experiment's stored statistics compared
+against its previous run at full precision.
+
+### Evidence / research
+- **Han, Y., Zhou, G. & Zhu, Y. (2016)**, "Taming Momentum Crashes: A Simple Stop-Loss Strategy",
+  SSRN working paper 2407199, DOI 10.2139/ssrn.2407199 (Crossref: SSRN posted content, no journal).
+  CRSP 1926-2013, equal-weighted six-month momentum deciles. At L = 10% (Table I Panel C): mean
+  2.32% a month against the unstopped 0.99%, sd 4.61% against 6.01%, Sharpe 0.504 against 0.165,
+  skewness +1.54 against -1.18, worst month -15.37% against -49.79%. Stop frequency 10.05% of
+  winner positions a month; winners' monthly turnover 39.11% -> 49.08% (pp. 8-9). The paper
+  attributes most of the loss reduction to the **losers** portfolio - the side this screener does
+  not have.
+- **Kaminski, K. & Lo, A. (2014)**, "When do stop-loss rules stop losses?", *Journal of Financial
+  Markets* 18, 234-254 - the reference behind the bot's decision to carry no stop, and the correct
+  owner of the journal name in the owner's item.
+- **Measured here** (`research/measurements/2026-10-22-stop-loss-arm.json`, both rows on one code
+  version and one data vintage): the table above. Backtest observation only, not Evidence for any
+  change (rule 5, until 2027-02-11).
+
+### Methodology changed
+- **None.** No weight, metric, threshold or score moved, and nothing in the bot changed. This was a
+  registered test whose result is reported, which is what the item asked for.
+
+### Tried and rejected
+- **Trying 15% or 20% as well.** The paper reports all three and 15% is its headline, so a sweep
+  would have looked like thoroughness. It is the one way this test could have produced a number
+  nobody should believe: a stop level chosen by what 176 months of one market rewarded is fitted,
+  and the engine's rules already forbid registering a variation of a near-miss. The owner's item
+  says "one variant only"; a test now asserts it.
+- **Reading the failure as "stops are bad".** It is the long side of a 25-name screen; the paper's
+  gain comes mostly from the short side it does not have, and 42 to 96 months cannot distinguish a
+  0.1-0.2%-a-month difference from zero. The note says so in both directions.
+- **Registering a claim in `claims.py` for the new page sentences.** The register's surfaces are
+  enumerated (summary / overview / README / drilldown) and `research.html` is not one of them, so
+  adding one is a real extension rather than a line - see **Next**. The sentences are checked by
+  behaviour in `tests/test_research_page.py` meanwhile, which is in the publish gate.
+
+### Next
+- **Give `claims.py` a `RESEARCH` surface** so the research page's computational sentences are in
+  the register like every other public page's, with
+  `test_every_detect_pattern_still_matches_its_surface` reading the generated `research.html`.
+  Today's two new sentences (the stop's construction and its verdict) are the first entries;
+  `overview.research_engine` already exists for the methodology page's version.
+- Then `OWNER_FOCUS.md`'s **2026-10-21** item 1: the rank-continuity gate in `check_run_health.py`
+  (FAIL below 0.90 correlation with the last published run, more than 8 new top-25 names, or more
+  than 3 top-25 names below #40). It is the first step of the screener's half of the path to real
+  money and it has a test specified in the item.
