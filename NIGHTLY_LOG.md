@@ -13897,10 +13897,10 @@ PASS (1272 tests), 498 scored. Evidence base at `1m` = **34 rows, newest 2026-09
 bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply` **false**,
 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
 **age 10 days**) - not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
-**Tests:** before **2981 passed / 1 skipped** (363s), after **3002 passed / 1 skipped** - +21, which
-is exactly the new tests in two existing modules, no failures and nothing removed. Gates 2 and 3
-pass (dry-run exit 0; `index.html` 642,631 bytes; both payloads `node --check` clean with their
-opening assignments).
+**Tests:** before **2981 passed / 1 skipped** (364s), after **2988 passed / 1 skipped** (353s) -
++7, which is exactly the seven new tests in two existing modules, no failures and nothing removed.
+Gates 2 and 3 pass (dry-run exit 0; `index.html` 651,277 bytes; both payloads `node --check` clean
+with their opening assignments; `research.html` 55,107 bytes).
 **Owner queue / rotation:** took `OWNER_FOCUS.md`'s **top open item, 2026-10-22** - one
 pre-registered stop-loss test on the bot's rule. It is a BUILD day and this was a build item, so
 nothing was displaced. No proposal was waiting for a decision (`write_brief.open_proposals()`
@@ -13983,8 +13983,37 @@ with market volatility for the winners, p. 9).
 `v2_experiments.py`, `backtest_v2_returns.py` and the registry moved the code fingerprint, so all 31
 rows went stale. The two evaluations were run first (so the owner's answer existed before the long
 tail), then the 29 experiments through `scripts/rerun_experiments.py`. **Checked rather than
-assumed, as the 2026-10-18 session established:** every experiment's stored statistics compared
-against its previous run at full precision.
+assumed, as the 2026-10-18 session established:** 30 of 31 ids compared with their previous run at
+full precision - **0 fields differ, largest numeric difference 0.0**. The check is not vacuous: it
+saw **192 new fields** on `bot-rule-v1.1` (the worst month, the drawdown and the per-month stop
+count, which were not being kept) and no changed value. `allow_auto_apply` and `METHOD_VERSION` are
+untouched - nothing about *how* an existing comparison is measured changed, which is what that
+check establishes rather than asserts.
+
+**Three existing guards fired on the first draft of the page, and all three were right - so the fix
+went the other way round, twice.** (a) The no-advice guard (`BANNED_TERMS`, priority 4) refuses the
+registered entry's wording, and this page's own tripwire refuses the phrase "in every period",
+which the registered prediction contains. **A registered prediction may never be edited once it has
+run** (`registry.yaml`'s own rule), and editing one after seeing its result is the single most
+corrosive thing this project could do to its record - so the *page* states the construction and the
+prediction in its own words, page-safe, and points at the registered text by path, while RESULTS.md
+and the research note quote it verbatim. A test asserts the page does **not** quote it, still names
+all four differences, and carries both paths. (b) `test_results_md_marks_every_known_outcome_row`
+forbids "on the same months" anywhere in RESULTS.md - method version 1's description of the pairing,
+corrected 2026-10-16. The stop arm's registered prediction says its two *portfolio rules* are
+compared "on the same months", which for a portfolio simulation is simply true, there being no
+per-stock intersection to take. The assertion is now **scoped to the report's own prose**: every
+verbatim registered field is stripped first, and a second assertion **fails if no registered field
+carries the phrase any more**, so the exclusion is deleted along with the wording that needed it.
+Anything the report writes itself is still scanned. That is the narrower-but-not-weaker shape; a
+blanket string ban that a quoted prediction can trip is a guard that will eventually be deleted
+rather than scoped.
+
+**Looked at the page at 1440 and 375** (`scripts/shot_research.py`, new - `shot_dashboard.py` only
+knows about `index.html`): no horizontal overflow at either width; the two tables read as one
+comparison; on mobile the turnover column sits one swipe right inside the page's existing `.tw`
+scroll container. **Both tables gained a "Deepest fall" column** - the verdict sentence cites the
+deepest fall and the page was not showing it.
 
 ### Evidence / research
 - **Han, Y., Zhou, G. & Zhu, Y. (2016)**, "Taming Momentum Crashes: A Simple Stop-Loss Strategy",
