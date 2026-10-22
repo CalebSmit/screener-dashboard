@@ -1,0 +1,66 @@
+{
+ "members_2012_01": 500,
+ "members_with_cik": 457,
+ "periods": {
+  "CY2009Q2I": {
+   "filers_in_frame": 549,
+   "members_present": 328,
+   "share_of_members_with_cik": 0.718,
+   "present_and_filed_within_a_year": 316
+  },
+  "CY2009Q3I": {
+   "filers_in_frame": 632,
+   "members_present": 344,
+   "share_of_members_with_cik": 0.753,
+   "present_and_filed_within_a_year": 322
+  },
+  "CY2009Q4I": {
+   "filers_in_frame": 1425,
+   "members_present": 400,
+   "share_of_members_with_cik": 0.875,
+   "present_and_filed_within_a_year": 62
+  },
+  "CY2010Q1I": {
+   "filers_in_frame": 647,
+   "members_present": 346,
+   "share_of_members_with_cik": 0.757,
+   "present_and_filed_within_a_year": 336
+  },
+  "CY2010Q2I": {
+   "filers_in_frame": 1655,
+   "members_present": 412,
+   "share_of_members_with_cik": 0.902,
+   "present_and_filed_within_a_year": 401
+  },
+  "CY2010Q3I": {
+   "filers_in_frame": 2061,
+   "members_present": 422,
+   "share_of_members_with_cik": 0.923,
+   "present_and_filed_within_a_year": 402
+  },
+  "CY2010Q4I": {
+   "filers_in_frame": 6512,
+   "members_present": 434,
+   "share_of_members_with_cik": 0.95,
+   "present_and_filed_within_a_year": 84
+  },
+  "CY2011Q2I": {
+   "filers_in_frame": 7541,
+   "members_present": 428,
+   "share_of_members_with_cik": 0.937,
+   "present_and_filed_within_a_year": 412
+  },
+  "CY2011Q4I": {
+   "filers_in_frame": 8166,
+   "members_present": 434,
+   "share_of_members_with_cik": 0.95,
+   "present_and_filed_within_a_year": 82
+  },
+  "CY2012Q2I": {
+   "filers_in_frame": 7492,
+   "members_present": 430,
+   "share_of_members_with_cik": 0.941,
+   "present_and_filed_within_a_year": 417
+  }
+ }
+}
