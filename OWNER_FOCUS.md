@@ -24,6 +24,26 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
+- **2026-10-22 - One pre-registered test of a stop-loss on the bot's rule.** Owner, 2026-10-21, on
+  trader-style setups: *"setting price targets on a chart ... the setup and the price target and ...
+  the stop loss."* Answered (screener-bot `SESSION_LOG.md` 2026-10-22): chart rules mostly fail after
+  costs and fair testing, stop-losses usually lower a diversified book's return (Kaminski & Lo 2014,
+  *J. Financial Markets*), and the bot's exit is a rank - so the bot now shows chart context and no
+  stop. The one stop with published support is against **momentum crashes** (Han, Zhou & Zhu 2016,
+  "Taming momentum crashes: a simple stop-loss strategy"). Test exactly that, once:
+  1. **Register before building** a new evaluation in `research/experiments/registry.yaml`,
+     `bot-rule-v1.1-stop10`: the existing `bot-rule-v1.1` rule plus a per-stock stop - a holding that
+     closes 10% or more below its price at the start of the month is sold at that close and its slot
+     stays in cash until the next monthly rebalance (Han, Zhou & Zhu's construction; read their paper
+     for the exact rule and cite the page). **One variant only - never sweep the stop level.** Write
+     the prediction first: lower maximum drawdown and worst month, mean excess about unchanged or
+     slightly lower, turnover higher.
+  2. Build it in `simulate_bot` using the daily prices in `cache/v2_daily.parquet`; registry and
+     engine edits mark every ledger row stale, so plan the ~47-minute resumable rerun
+     (`scripts/rerun_experiments.py`) in the same session, and put both changes in one commit.
+  3. Report it beside `bot-rule-v1.1` on the research page. **Decision-grade for nothing before
+     2027-02-11** (rule 5); any bot change would still go through the bot's `STRATEGY_LOG.md` first.
+
 - **2026-10-21 - The screener's half of the plan to real money: no wrong or stale ranking reaches the
   trading bot.** Owner: *"I want you to start thinking in the way that you need to make me money in
   the stock market with this tool. And that's going to be through the trading bot."* The plan is
