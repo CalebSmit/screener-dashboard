@@ -1087,6 +1087,11 @@ def price_history_fields(hist: pd.DataFrame) -> dict:
     closes = hist["Close"].dropna()
     daily_ret = np.log(closes / closes.shift(1)).dropna()
     rec["price_latest"] = float(closes.iloc[-1])
+    # The session that bar closed in - the date `price_latest` is from, kept because the page
+    # publishes it when the quote is missing (published_price_date, 2026-10-22). A single bar,
+    # so it survives a rejected series exactly as `price_latest` does.
+    _last = closes.index[-1]
+    rec["_price_bar_date"] = str(_last.date()) if hasattr(_last, "date") else str(_last)[:10]
 
     # Refuse to derive metrics from a series that mixes two price
     # scales.  Withholding them is the honest outcome: the
@@ -1133,6 +1138,38 @@ def price_history_fields(hist: pd.DataFrame) -> dict:
             float(dv_63.mean()) if len(dv_63) >= 20 else np.nan
         )
     return rec
+
+
+def published_price_date(d: dict) -> str | None:
+    """The NYSE session (``YYYY-MM-DD``, Eastern) of the price ``_current_price`` publishes.
+
+    Mirrors ``_coalesce(d, "currentPrice", "price_latest")`` exactly: when the quote is used its
+    date is the Eastern date of ``regularMarketTime``; when the last daily bar is used, that bar's
+    date. None when the price used has no date - which the health check counts as not fresh.
+    Display and gating only (2026-10-22, ``scripts/check_run_health.check_price_freshness``):
+    no score reads it.
+    """
+    def _present(v) -> bool:
+        if v is None:
+            return False
+        try:
+            return not pd.isna(v)
+        except (TypeError, ValueError):
+            return True
+
+    if _present(d.get("currentPrice")):
+        t = d.get("regularMarketTime")
+        if not _present(t):
+            return None
+        try:
+            from zoneinfo import ZoneInfo
+            return datetime.fromtimestamp(float(t), ZoneInfo("America/New_York")).date().isoformat()
+        except (TypeError, ValueError, OverflowError, OSError):
+            return None
+    if _present(d.get("price_latest")):
+        b = d.get("_price_bar_date")
+        return str(b)[:10] if _present(b) and str(b) else None
+    return None
 
 
 def fetch_single_ticker(ticker_str: str, max_retries: int = 3,
@@ -1196,6 +1233,9 @@ def _fetch_single_ticker_inner(ticker_str: str) -> dict:
         rec["forwardEps"]         = _safe(info, "forwardEps")
         rec["currentPrice"]       = _safe(info, "currentPrice",
                                           _safe(info, "regularMarketPrice"))
+        # When that quote last traded (epoch seconds) - the session the published price is from,
+        # which the health check dates against the NYSE calendar (2026-10-22). Same .info dict.
+        rec["regularMarketTime"]  = _safe(info, "regularMarketTime")
         rec["totalDebt"]          = _safe(info, "totalDebt")
         rec["totalCash"]          = _safe(info, "totalCash")
         rec["sharesOutstanding"]  = _safe(info, "sharesOutstanding")
@@ -2965,6 +3005,7 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
 
         # -- Passthrough: analyst price targets for dashboard display --
         rec["_current_price"]     = _coalesce(d, "currentPrice", "price_latest")
+        rec["_price_date"]        = published_price_date(d)
         rec["_target_mean"]       = d.get("targetMeanPrice", np.nan)
         rec["_target_high"]       = d.get("targetHighPrice", np.nan)
         rec["_target_low"]        = d.get("targetLowPrice", np.nan)

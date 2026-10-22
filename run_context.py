@@ -141,11 +141,17 @@ class RunContext:
         self.log.info("Config snapshot saved", extra={"phase": "init"})
         return path
 
-    def config_hash(self, cfg: dict) -> str:
+    def config_hash(self, cfg: dict, scoring_schema: int | None = None) -> str:
         """Compute a deterministic hash of scoring-relevant config keys.
 
         Includes 'universe' so that two runs with different excluded tickers
         or different market-cap thresholds produce different cache keys.
+
+        Also the run's **methodology version** (2026-10-22): ``run_screener.py`` records it in
+        ``meta.json`` and the generator publishes it as ``kpis.methodology_version``, which
+        ``scripts/check_run_health.py``'s rank-continuity gate reads. ``scoring_schema`` is for
+        replaying a past commit's version with that commit's counter
+        (``research/measurements/2026-10-22-input-gates-replay.py``); leave it None.
         """
         relevant = {
             "factor_weights": cfg.get("factor_weights", {}),
@@ -199,7 +205,10 @@ class RunContext:
             # and News Corp, built when the sector percentiles counted all of them. A warm
             # start would publish it unchanged - the whole change would silently not happen,
             # and the Communication Services percentiles would still be computed over 22 rows.
-            "scoring_schema": 15,
+            # 16 = each stock's published price carries the NYSE session it is from
+            # (`_price_date`, 2026-10-22): a warm start would serve a table without the column and
+            # the health check's price-freshness gate would find no price dated at all.
+            "scoring_schema": 16 if scoring_schema is None else scoring_schema,
         }
         raw = json.dumps(relevant, sort_keys=True)
         return hashlib.sha256(raw.encode()).hexdigest()[:12]

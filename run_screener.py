@@ -683,6 +683,24 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
     max_workers = fetch.get("max_workers", 3)
     inter_batch_delay = fetch.get("inter_batch_delay", 3.0)
 
+    # The data loop's input gates (2026-10-22), stated from the gate's own constants so the page
+    # cannot name a threshold scripts/check_run_health.py does not apply (tests/test_input_gates.py).
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location("_check_run_health", ROOT / "scripts" / "check_run_health.py")
+    _crh = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_crh)
+    input_gates_text = (
+        f" Since 2026-10-22 it also refuses a run that ranks fewer than {_crh.MIN_SCORED} stocks or "
+        f"leaves more than {_crh.MAX_EXCLUDED_SHARE:.0%} of the universe unscored for missing data; "
+        f"one where fewer than {_crh.MIN_PRICE_ON_SESSION:.0%} of prices are dated on the latest "
+        f"NYSE session, or more than {_crh.MAX_UNCHANGED_ACROSS_SESSION:.0%} are unchanged from the "
+        f"last published run after a session has closed; and one whose ranking breaks from the last "
+        f"published one - a rank correlation below {_crh.RANK_MIN_SPEARMAN:.2f}, more than "
+        f"{_crh.RANK_MAX_NEW_IN_TOP} new names in the top {_crh.RANK_TOP_N}, or more than "
+        f"{_crh.RANK_MAX_FALLEN} of the top {_crh.RANK_TOP_N} falling below #{_crh.RANK_FALL_LINE} - "
+        f"unless the methodology version changed and the methodology changelog records the change."
+    )
+
     md = f"""# How the screener works
 
 **What the screener measures, how it scores and ranks the S&P 500, and why each choice was made.**
@@ -1155,7 +1173,7 @@ The top {DATA_VALIDATION_TOP_N} stocks of the ranking (not the portfolio's holdi
 
 1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade — individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.
 
-   **Fetch reliability, measured:** the 18 scheduled runs from 2026-09-02 to 2026-09-25 report **0 fetch failures across 9,036 ticker-fetches**. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; *corrected 2026-09-25*. Rate limiting remains possible on a free API, which is why a run that fetches badly is **discarded before publication** rather than shipped: `scripts/check_run_health.py` refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median. A number on this site has passed that gate.
+   **Fetch reliability, measured:** the 18 scheduled runs from 2026-09-02 to 2026-09-25 report **0 fetch failures across 9,036 ticker-fetches**. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; *corrected 2026-09-25*. Rate limiting remains possible on a free API, which is why a run that fetches badly is **discarded before publication** rather than shipped: `scripts/check_run_health.py` refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median.{input_gates_text} A number on this site has passed that gate.
 
 2. **GAAP vs. normalized EPS:** Yahoo Finance provides GAAP trailing EPS but normalized forward consensus. For companies with large non-cash charges, write-downs, or unrealized gains (e.g., insurers like CINF), the two bases diverge. Since 2026-10-09 Forward EPS Growth avoids the mix: it sets the next twelve months' consensus against the last four quarters' actual EPS as the same analysts report it, and gives no growth rate at all when those four quarters sum to a loss. Where those inputs are missing it falls back to Yahoo's forward EPS over GAAP trailing EPS, and there, when the ratio is extreme (>2x or <0.3x — the signature of this contamination), `forward_eps_growth` is set to NaN and its weight is redistributed, rather than scoring a fabricated growth figure.
 
@@ -2765,6 +2783,13 @@ def main():
         cfg = apply_preset(cfg, args.preset)
         print(f"  Preset '{args.preset.upper()}' applied (factor_weights overridden)")
 
+    # The run's methodology version (2026-10-22): the scored-cache key, taken from the config as
+    # loaded - before anything in the run mutates it - so a data-driven auto-disable can never
+    # read as a methodology change. Published as kpis.methodology_version; the health check's
+    # rank-continuity gate waives a broken ranking only when this changed AND the changelog
+    # documents it (scripts/check_run_health.py, continuity_override).
+    methodology_version = ctx.config_hash(cfg)
+
     # ---- 1.5. Dry-run validation (early exit if --dry-run) ----
     if args.dry_run:
         print("\n" + "="*50)
@@ -2929,6 +2954,7 @@ def main():
         "portfolio_stats": port_stats,
         "data_quality_counts": dq_counts,
         "total_time_seconds": total_time,
+        "methodology_version": methodology_version,
     })
     print(f"\n  Run artifacts saved to: runs/{ctx.run_id}/")
 

@@ -1,0 +1,3617 @@
+{
+ "summary": {
+  "versions_judged": 72,
+  "in_scope_versions": 62,
+  "in_scope_data_loop_runs": 46,
+  "fails_by_rule": {
+   "rule1": [
+    "2026-07-28 8ac9354 Update dashboard with fresh data (2026-07-28)",
+    "2026-08-06 410eb00 data: screener run 2026-08-06",
+    "2026-08-06 4a39060 Revert \"data: screener run 2026-08-06\"",
+    "2026-08-07 1bc35e7 data: screener run 2026-08-07",
+    "2026-08-10 710621b data: full refresh - restore prices, analyst targets and cor"
+   ],
+   "rule2": [],
+   "rule3": [
+    "2026-08-06 410eb00 data: screener run 2026-08-06",
+    "2026-08-07 1bc35e7 data: screener run 2026-08-07",
+    "2026-08-10 0c9aa58 data: screener run 2026-08-10"
+   ]
+  },
+  "overrides": [],
+  "override_available_on": [
+   "2026-09-02 3024a59 data: screener run 2026-09-02 - 502 scored, top: H: the methodology version changed (284578844dfa -> 68655cafc2f6) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-01",
+   "2026-09-03 115a5d6 data: screener run 2026-09-03 - 502 scored, top: H: the methodology version changed (68655cafc2f6 -> 80885c46958c) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-02",
+   "2026-09-11 88b4b46 data: screener run 2026-09-11 - 502 scored, top: E: the methodology version changed (80885c46958c -> 86cd5cc7fb72) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-10",
+   "2026-10-07 05ee944 merge: owner-run build - calculation transparency : the methodology version changed (86cd5cc7fb72 -> 93ad76e241c2) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-07",
+   "2026-10-08 6e646c1 nightly 2026-10-08 - BUILD: the methodology version changed (93ad76e241c2 -> b5ddebea03a1) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-08",
+   "2026-10-09 6730253 Merge owner/evening-run: 2026-10-09 owner-run - me: the methodology version changed (b5ddebea03a1 -> 371313024c1a) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-09",
+   "2026-10-13 a5e84b8 data: screener run 2026-10-13 - 501 scored, top: E: the methodology version changed (371313024c1a -> 4ae696bab759) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-12",
+   "2026-10-20 ce4f70e data: screener run 2026-10-20 - 501 scored, top: E: the methodology version changed (4ae696bab759 -> 52a442b52451) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-19",
+   "2026-10-20 cfdb795 nightly 2026-10-20 - PRODUCT, THROUGH THE NUMBERS: the methodology version changed (52a442b52451 -> 7380e708ccc6) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+   "2026-10-20 3182592 nightly 2026-10-20 - QUEUE: the methodology version changed (7380e708ccc6 -> 57a55dd486f8) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+   "2026-10-22 9c0bc1b data: screener run 2026-10-22 - 498 scored, top: E: the methodology version changed (57a55dd486f8 -> e9d1abb3405e) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-21"
+  ],
+  "data_loop_runs_first_scored_under_a_change_documented_the_day_before": [
+   "2026-09-02 3024a59",
+   "2026-09-03 115a5d6",
+   "2026-09-11 88b4b46",
+   "2026-10-13 a5e84b8",
+   "2026-10-20 ce4f70e",
+   "2026-10-22 9c0bc1b"
+  ],
+  "ordinary_data_loop_min_spearman": 0.9812,
+  "ordinary_data_loop_max_new_in_top": 4,
+  "ordinary_data_loop_max_fallen": 1,
+  "ordinary_data_loop_min_scored": 498,
+  "ordinary_data_loop_max_unscored_share": 0.004,
+  "ordinary_data_loop_max_unchanged_share": 0.01195219123505976,
+  "drift_by_distance": {
+   "1": {
+    "pairs": 45,
+    "min_spearman": 0.9349,
+    "median_spearman": 0.9967,
+    "max_new_in_top": 6,
+    "max_fallen": 2
+   },
+   "2": {
+    "pairs": 44,
+    "min_spearman": 0.9313,
+    "median_spearman": 0.9939,
+    "max_new_in_top": 6,
+    "max_fallen": 2
+   },
+   "3": {
+    "pairs": 43,
+    "min_spearman": 0.9308,
+    "median_spearman": 0.9913,
+    "max_new_in_top": 7,
+    "max_fallen": 2
+   },
+   "5": {
+    "pairs": 41,
+    "min_spearman": 0.9289,
+    "median_spearman": 0.9847,
+    "max_new_in_top": 7,
+    "max_fallen": 2
+   },
+   "10": {
+    "pairs": 36,
+    "min_spearman": 0.9167,
+    "median_spearman": 0.9607,
+    "max_new_in_top": 8,
+    "max_fallen": 3
+   },
+   "15": {
+    "pairs": 31,
+    "min_spearman": 0.9113,
+    "median_spearman": 0.9461,
+    "max_new_in_top": 8,
+    "max_fallen": 3
+   },
+   "20": {
+    "pairs": 26,
+    "min_spearman": 0.9034,
+    "median_spearman": 0.9344,
+    "max_new_in_top": 9,
+    "max_fallen": 3
+   },
+   "30": {
+    "pairs": 16,
+    "min_spearman": 0.8759,
+    "median_spearman": 0.8989,
+    "max_new_in_top": 9,
+    "max_fallen": 3
+   }
+  },
+  "thresholds": {
+   "RANK_MIN_SPEARMAN": 0.9,
+   "RANK_MAX_NEW_IN_TOP": 8,
+   "RANK_MAX_FALLEN": 3,
+   "RANK_FALL_LINE": 40,
+   "MIN_SCORED": 490,
+   "MAX_EXCLUDED_SHARE": 0.02,
+   "MIN_PRICE_ON_SESSION": 0.95,
+   "MAX_UNCHANGED_ACROSS_SESSION": 0.5
+  }
+ },
+ "versions": [
+  {
+   "run_timestamp": "2026-07-28T20:08:12.399353",
+   "baseline_run_timestamp": "2026-04-14T21:41:24.525810",
+   "rule1": {
+    "spearman": 0.8557,
+    "n_common": 501,
+    "new_in_top": 10,
+    "fallen": 7,
+    "fallen_names": [
+     "AOS",
+     "CHRW",
+     "DG",
+     "DVN",
+     "HAS",
+     "HCA",
+     "LVS"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "FAIL"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "BK",
+     "CTRA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-07-28",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": true,
+   "sha": "8ac9354",
+   "subject": "Update dashboard with fresh data (2026-07-28)",
+   "committed": "2026-07-28T20:22:03-05:00",
+   "baseline_sha": "4bb770a",
+   "data_loop": false,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-07-29T00:02:37.847145",
+   "baseline_run_timestamp": "2026-07-28T20:08:12.399353",
+   "rule1": {
+    "spearman": 0.9805,
+    "n_common": 501,
+    "new_in_top": 5,
+    "fallen": 1,
+    "fallen_names": [
+     "EA"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [],
+    "universe": 503,
+    "unscored_share": 0.0,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-07-28",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "1e3fc1e",
+   "subject": "chore: refresh outputs from post-remediation live run + REVIEW_CHANGELOG",
+   "committed": "2026-07-29T00:23:08-05:00",
+   "baseline_sha": "8ac9354",
+   "data_loop": false,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-06T02:00:01.910029",
+   "baseline_run_timestamp": "2026-07-29T00:02:37.847145",
+   "rule1": {
+    "spearman": -0.0174,
+    "n_common": 501,
+    "new_in_top": 22,
+    "fallen": 23,
+    "fallen_names": [
+     "ACGL",
+     "AIZ",
+     "ALL",
+     "APA",
+     "BBY",
+     "BMY",
+     "CAH",
+     "CINF",
+     "CNC",
+     "DLTR",
+     "EG",
+     "EIX",
+     "EXPD",
+     "EXPE",
+     "FOXA",
+     "HIG",
+     "HST",
+     "INCY",
+     "JBHT",
+     "NEM",
+     "NTAP",
+     "TRV",
+     "VLO"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "FAIL"
+   },
+   "rule2": {
+    "scored": 503,
+    "unscored": [],
+    "universe": 503,
+    "unscored_share": 0.0,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-05",
+    "priced_share": 0.0,
+    "dated_proxy_verdict": "FAIL",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "FAIL",
+    "why": [
+     "price dates: 0/503 on the expected session 2026-08-05 (0.0%, need >= 95%); others: none x503 - the prices are not the latest session's, and the bot sizes orders and checks fills against them"
+    ]
+   },
+   "any_fail": true,
+   "sha": "410eb00",
+   "subject": "data: screener run 2026-08-06",
+   "committed": "2026-08-06T02:00:45-05:00",
+   "baseline_sha": "1e3fc1e",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-07-29T00:02:37.847145",
+   "baseline_run_timestamp": "2026-08-06T02:00:01.910029",
+   "rule1": {
+    "spearman": -0.0174,
+    "n_common": 501,
+    "new_in_top": 23,
+    "fallen": 22,
+    "fallen_names": [
+     "BEN",
+     "BLK",
+     "CMI",
+     "CVS",
+     "EA",
+     "EXC",
+     "FICO",
+     "GOOGL",
+     "KEYS",
+     "L",
+     "OMC",
+     "OXY",
+     "PTC",
+     "Q",
+     "SATS",
+     "SBUX",
+     "SCHW",
+     "SJM",
+     "SWK",
+     "TECH",
+     "WRB",
+     "WTW"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "FAIL"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [],
+    "universe": 503,
+    "unscored_share": 0.0,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-07-28",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": true,
+   "sha": "4a39060",
+   "subject": "Revert \"data: screener run 2026-08-06\"",
+   "committed": "2026-08-06T07:40:32-05:00",
+   "baseline_sha": "410eb00",
+   "data_loop": false,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-07T02:11:43.985611",
+   "baseline_run_timestamp": "2026-07-29T00:02:37.847145",
+   "rule1": {
+    "spearman": -0.0174,
+    "n_common": 501,
+    "new_in_top": 22,
+    "fallen": 23,
+    "fallen_names": [
+     "ACGL",
+     "AIZ",
+     "ALL",
+     "APA",
+     "BBY",
+     "BMY",
+     "CAH",
+     "CINF",
+     "CNC",
+     "DLTR",
+     "EG",
+     "EIX",
+     "EXPD",
+     "EXPE",
+     "FOXA",
+     "HIG",
+     "HST",
+     "INCY",
+     "JBHT",
+     "NEM",
+     "NTAP",
+     "TRV",
+     "VLO"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "FAIL"
+   },
+   "rule2": {
+    "scored": 503,
+    "unscored": null,
+    "universe": null,
+    "unscored_share": null,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "not in history"
+   },
+   "rule3": {
+    "expected_session": "2026-08-06",
+    "priced_share": 0.0,
+    "dated_proxy_verdict": "FAIL",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "FAIL",
+    "why": [
+     "price dates: 0/503 on the expected session 2026-08-06 (0.0%, need >= 95%); others: none x503 - the prices are not the latest session's, and the bot sizes orders and checks fills against them"
+    ]
+   },
+   "any_fail": true,
+   "sha": "1bc35e7",
+   "subject": "data: screener run 2026-08-07",
+   "committed": "2026-08-07T02:12:55-05:00",
+   "baseline_sha": "4a39060",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-10T18:51:09.951753",
+   "baseline_run_timestamp": "2026-08-07T02:11:43.985611",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 503,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 503,
+    "unscored": null,
+    "universe": null,
+    "unscored_share": null,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "not in history"
+   },
+   "rule3": {
+    "expected_session": "2026-08-10",
+    "priced_share": 0.0,
+    "dated_proxy_verdict": "FAIL",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "FAIL",
+    "why": [
+     "price dates: 0/503 on the expected session 2026-08-10 (0.0%, need >= 95%); others: none x503 - the prices are not the latest session's, and the bot sizes orders and checks fills against them"
+    ]
+   },
+   "any_fail": true,
+   "sha": "0c9aa58",
+   "subject": "data: screener run 2026-08-10",
+   "committed": "2026-08-10T18:51:23-05:00",
+   "baseline_sha": "1bc35e7",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-10T19:06:21.881280",
+   "baseline_run_timestamp": "2026-08-10T18:51:09.951753",
+   "rule1": {
+    "spearman": -0.0036,
+    "n_common": 495,
+    "new_in_top": 23,
+    "fallen": 21,
+    "fallen_names": [
+     "BEN",
+     "BLK",
+     "CMI",
+     "EA",
+     "EXC",
+     "EXE",
+     "FICO",
+     "GOOGL",
+     "KEYS",
+     "L",
+     "OMC",
+     "OXY",
+     "PTC",
+     "Q",
+     "SATS",
+     "SBUX",
+     "SCHW",
+     "SJM",
+     "TECH",
+     "WRB",
+     "WTW"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "FAIL"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-10",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": true,
+   "sha": "710621b",
+   "subject": "data: full refresh - restore prices, analyst targets and correct rankings",
+   "committed": "2026-08-10T19:22:30-05:00",
+   "baseline_sha": "0c9aa58",
+   "data_loop": false,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-12T08:04:59.455861",
+   "baseline_run_timestamp": "2026-08-10T19:06:21.881280",
+   "rule1": {
+    "spearman": 0.996,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-11",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "dc618ef",
+   "subject": "data: screener run 2026-08-12 - 502 scored, top: HST EXPE EIX APA CF",
+   "committed": "2026-08-12T08:18:07-05:00",
+   "baseline_sha": "710621b",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-14T02:00:04.105056",
+   "baseline_run_timestamp": "2026-08-12T08:04:59.455861",
+   "rule1": {
+    "spearman": 0.9918,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-13",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "3fba581",
+   "subject": "data: screener run 2026-08-14 - 502 scored, top: HST EXPE EIX APA CF",
+   "committed": "2026-08-14T02:11:48-05:00",
+   "baseline_sha": "dc618ef",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-20T23:12:35.263391",
+   "baseline_run_timestamp": "2026-08-14T02:00:04.105056",
+   "rule1": {
+    "spearman": 0.9919,
+    "n_common": 500,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VMRK"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-20",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     500
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "77805fe",
+   "subject": "data: screener run 2026-08-20 - 501 scored, top: HST EXPE APA EIX CF",
+   "committed": "2026-08-20T23:28:50-05:00",
+   "baseline_sha": "3fba581",
+   "data_loop": true,
+   "in_scope": false
+  },
+  {
+   "run_timestamp": "2026-08-21T02:00:04.009887",
+   "baseline_run_timestamp": "2026-08-20T23:12:35.263391",
+   "rule1": {
+    "spearman": 0.994,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VMRK"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-20",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "3d00bcc",
+   "subject": "data: screener run 2026-08-21 - 501 scored, top: HST EXPE APA EIX CF",
+   "committed": "2026-08-21T02:12:06-05:00",
+   "baseline_sha": "77805fe",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-24T02:00:03.959537",
+   "baseline_run_timestamp": "2026-08-21T02:00:04.009887",
+   "rule1": {
+    "spearman": 0.9969,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VMRK"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-21",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "37ab0c9",
+   "subject": "data: screener run 2026-08-24 - 501 scored, top: HST EXPE APA EIX CF",
+   "committed": "2026-08-24T02:11:43-05:00",
+   "baseline_sha": "3d00bcc",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-25T02:00:03.840225",
+   "baseline_run_timestamp": "2026-08-24T02:00:03.959537",
+   "rule1": {
+    "spearman": 0.9898,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VMRK"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-24",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "4a0a90f",
+   "subject": "data: screener run 2026-08-25 - 501 scored, top: HST EXPE APA CF EIX",
+   "committed": "2026-08-25T02:11:49-05:00",
+   "baseline_sha": "37ab0c9",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-25T02:00:03.840225",
+   "baseline_run_timestamp": "2026-08-25T02:00:03.840225",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VMRK"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-24",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "99fa64d",
+   "subject": "feat(dashboard): What Changed - movers, rank deltas and per-stock history",
+   "committed": "2026-08-25T06:24:24-05:00",
+   "baseline_sha": "4a0a90f",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-26T02:00:03.870018",
+   "baseline_run_timestamp": "2026-08-25T02:00:03.840225",
+   "rule1": {
+    "spearman": 0.997,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-25",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "0a61fd4",
+   "subject": "data: screener run 2026-08-26 - 502 scored, top: HST EXPE APA EIX CF",
+   "committed": "2026-08-26T02:11:47-05:00",
+   "baseline_sha": "99fa64d",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-26T02:00:03.870018",
+   "baseline_run_timestamp": "2026-08-26T02:00:03.870018",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-25",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "2962b9f",
+   "subject": "merge: product session 2026-08-26 evening - model portfolio out, about sections in",
+   "committed": "2026-08-26T19:10:13-05:00",
+   "baseline_sha": "0a61fd4",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-26T19:38:23.969875",
+   "baseline_run_timestamp": "2026-08-26T02:00:03.870018",
+   "rule1": {
+    "spearman": 0.9966,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-26",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "d6074a9",
+   "subject": "data: screener run 2026-08-26 - 502 scored, top: MAA DOC KIM REG UDR",
+   "committed": "2026-08-26T19:50:27-05:00",
+   "baseline_sha": "2962b9f",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-27T02:00:03.379939",
+   "baseline_run_timestamp": "2026-08-26T19:38:23.969875",
+   "rule1": {
+    "spearman": 0.9994,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-26",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "8e021ab",
+   "subject": "data: screener run 2026-08-27 - 502 scored, top: HST EXPE EIX APA CF",
+   "committed": "2026-08-27T02:12:33-05:00",
+   "baseline_sha": "d6074a9",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-28T02:00:03.803219",
+   "baseline_run_timestamp": "2026-08-27T02:00:03.379939",
+   "rule1": {
+    "spearman": 0.9943,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-27",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "7dfe548",
+   "subject": "data: screener run 2026-08-28 - 502 scored, top: HST EXPE APA EIX CF",
+   "committed": "2026-08-28T02:12:39-05:00",
+   "baseline_sha": "8e021ab",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-28T02:00:03.803219",
+   "baseline_run_timestamp": "2026-08-28T02:00:03.803219",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-27",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "493ddeb",
+   "subject": "data: republish the dashboard with weights that add up",
+   "committed": "2026-08-28T06:16:47-05:00",
+   "baseline_sha": "7dfe548",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-08-31T02:00:03.976670",
+   "baseline_run_timestamp": "2026-08-28T02:00:03.803219",
+   "rule1": {
+    "spearman": 0.9948,
+    "n_common": 502,
+    "new_in_top": 3,
+    "fallen": 1,
+    "fallen_names": [
+     "DLTR"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-28",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "f4db5cd",
+   "subject": "data: screener run 2026-08-31 - 502 scored, top: HST EXPE EIX APA CF",
+   "committed": "2026-08-31T02:12:05-05:00",
+   "baseline_sha": "493ddeb",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-01T02:00:03.870132",
+   "baseline_run_timestamp": "2026-08-31T02:00:03.976670",
+   "rule1": {
+    "spearman": 0.9911,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-08-31",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     5,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "c916b5e",
+   "subject": "data: screener run 2026-09-01 - 502 scored, top: HST EXPE APA CF VLO",
+   "committed": "2026-09-01T02:12:11-05:00",
+   "baseline_sha": "f4db5cd",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-02T02:00:05.461510",
+   "baseline_run_timestamp": "2026-09-01T02:00:03.870132",
+   "rule1": {
+    "spearman": 0.9971,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (284578844dfa -> 68655cafc2f6) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-01",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-01",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "3024a59",
+   "subject": "data: screener run 2026-09-02 - 502 scored, top: HST EXPE APA CF EIX",
+   "committed": "2026-09-02T02:12:21-05:00",
+   "baseline_sha": "c916b5e",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-03T02:00:03.208847",
+   "baseline_run_timestamp": "2026-09-02T02:00:05.461510",
+   "rule1": {
+    "spearman": 0.9872,
+    "n_common": 502,
+    "new_in_top": 4,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (68655cafc2f6 -> 80885c46958c) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-02",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-02",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "115a5d6",
+   "subject": "data: screener run 2026-09-03 - 502 scored, top: HST EXPE APA CF VLO",
+   "committed": "2026-09-03T02:12:06-05:00",
+   "baseline_sha": "3024a59",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-04T02:00:03.088823",
+   "baseline_run_timestamp": "2026-09-03T02:00:03.208847",
+   "rule1": {
+    "spearman": 0.9966,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-03",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "25f34f1",
+   "subject": "data: screener run 2026-09-04 - 502 scored, top: HST EXPE APA CF VLO",
+   "committed": "2026-09-04T02:12:12-05:00",
+   "baseline_sha": "115a5d6",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-07T02:00:03.446087",
+   "baseline_run_timestamp": "2026-09-04T02:00:03.088823",
+   "rule1": {
+    "spearman": 0.9812,
+    "n_common": 502,
+    "new_in_top": 4,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-04",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "e2afbe4",
+   "subject": "data: screener run 2026-09-07 - 502 scored, top: HST EXPE APA CAH VLO",
+   "committed": "2026-09-07T02:12:03-05:00",
+   "baseline_sha": "25f34f1",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-08T02:00:04.268668",
+   "baseline_run_timestamp": "2026-09-07T02:00:03.446087",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-04",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "c72d9c1",
+   "subject": "data: screener run 2026-09-08 - 502 scored, top: HST EXPE APA CAH VLO",
+   "committed": "2026-09-08T02:12:18-05:00",
+   "baseline_sha": "e2afbe4",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-08T02:00:04.268668",
+   "baseline_run_timestamp": "2026-09-08T02:00:04.268668",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-04",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "908aec2",
+   "subject": "nightly 2026-09-08 - PRODUCT",
+   "committed": "2026-09-08T06:29:55-05:00",
+   "baseline_sha": "c72d9c1",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-09T02:00:08.689246",
+   "baseline_run_timestamp": "2026-09-08T02:00:04.268668",
+   "rule1": {
+    "spearman": 0.9924,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-08",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "a195b07",
+   "subject": "data: screener run 2026-09-09 - 502 scored, top: HST EXPE APA VLO ALL",
+   "committed": "2026-09-09T02:12:36-05:00",
+   "baseline_sha": "908aec2",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-10T02:00:04.141425",
+   "baseline_run_timestamp": "2026-09-09T02:00:08.689246",
+   "rule1": {
+    "spearman": 0.9978,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-09",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "f68979d",
+   "subject": "data: screener run 2026-09-10 - 502 scored, top: HST EXPE APA VLO ALL",
+   "committed": "2026-09-10T02:12:14-05:00",
+   "baseline_sha": "a195b07",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-11T02:00:03.557036",
+   "baseline_run_timestamp": "2026-09-10T02:00:04.141425",
+   "rule1": {
+    "spearman": 0.9841,
+    "n_common": 502,
+    "new_in_top": 4,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (80885c46958c -> 86cd5cc7fb72) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-09-10",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-10",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     4,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "88b4b46",
+   "subject": "data: screener run 2026-09-11 - 502 scored, top: EXPE HST APA VLO EIX",
+   "committed": "2026-09-11T02:13:42-05:00",
+   "baseline_sha": "f68979d",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-14T02:00:05.118731",
+   "baseline_run_timestamp": "2026-09-11T02:00:03.557036",
+   "rule1": {
+    "spearman": 0.9974,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-11",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "6b8d071",
+   "subject": "data: screener run 2026-09-14 - 502 scored, top: EXPE HST VLO APA CAH",
+   "committed": "2026-09-14T02:13:49-05:00",
+   "baseline_sha": "88b4b46",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-15T02:00:04.708829",
+   "baseline_run_timestamp": "2026-09-14T02:00:05.118731",
+   "rule1": {
+    "spearman": 0.9977,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-14",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "3072180",
+   "subject": "data: screener run 2026-09-15 - 502 scored, top: EXPE HST VLO APA CAH",
+   "committed": "2026-09-15T02:13:26-05:00",
+   "baseline_sha": "6b8d071",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-16T02:00:02.876409",
+   "baseline_run_timestamp": "2026-09-15T02:00:04.708829",
+   "rule1": {
+    "spearman": 0.9976,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-15",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "fdd85a4",
+   "subject": "data: screener run 2026-09-16 - 502 scored, top: EXPE HST VLO CAH BBY",
+   "committed": "2026-09-16T02:13:39-05:00",
+   "baseline_sha": "3072180",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-17T02:00:02.915870",
+   "baseline_run_timestamp": "2026-09-16T02:00:02.876409",
+   "rule1": {
+    "spearman": 0.9929,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-16",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "090abba",
+   "subject": "data: screener run 2026-09-17 - 502 scored, top: HST EXPE CAH BBY JBHT",
+   "committed": "2026-09-17T02:13:16-05:00",
+   "baseline_sha": "fdd85a4",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-18T02:00:08.064952",
+   "baseline_run_timestamp": "2026-09-17T02:00:02.915870",
+   "rule1": {
+    "spearman": 0.9921,
+    "n_common": 502,
+    "new_in_top": 4,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-17",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "db3bdd5",
+   "subject": "data: screener run 2026-09-18 - 502 scored, top: EXPE HST CAH VLO BMY",
+   "committed": "2026-09-18T02:14:09-05:00",
+   "baseline_sha": "090abba",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-21T02:00:03.202880",
+   "baseline_run_timestamp": "2026-09-18T02:00:08.064952",
+   "rule1": {
+    "spearman": 0.9958,
+    "n_common": 499,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-18",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     499
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "120daba",
+   "subject": "data: screener run 2026-09-21 - 502 scored, top: EXPE HST BBY VLO CAH",
+   "committed": "2026-09-21T02:14:13-05:00",
+   "baseline_sha": "db3bdd5",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-22T02:00:03.386380",
+   "baseline_run_timestamp": "2026-09-21T02:00:03.202880",
+   "rule1": {
+    "spearman": 0.9963,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-21",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "e6fa846",
+   "subject": "data: screener run 2026-09-22 - 502 scored, top: EXPE HST BBY VLO APA",
+   "committed": "2026-09-22T02:13:22-05:00",
+   "baseline_sha": "120daba",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-23T02:00:04.289151",
+   "baseline_run_timestamp": "2026-09-22T02:00:03.386380",
+   "rule1": {
+    "spearman": 0.9978,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-22",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "bbb288d",
+   "subject": "data: screener run 2026-09-23 - 502 scored, top: EXPE HST VLO APA ALL",
+   "committed": "2026-09-23T02:14:25-05:00",
+   "baseline_sha": "e6fa846",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-24T02:00:05.938141",
+   "baseline_run_timestamp": "2026-09-23T02:00:04.289151",
+   "rule1": {
+    "spearman": 0.9959,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-23",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "4ca65a5",
+   "subject": "data: screener run 2026-09-24 - 502 scored, top: EXPE HST VLO BBY BMY",
+   "committed": "2026-09-24T02:14:04-05:00",
+   "baseline_sha": "bbb288d",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-25T02:00:03.515421",
+   "baseline_run_timestamp": "2026-09-24T02:00:05.938141",
+   "rule1": {
+    "spearman": 0.9958,
+    "n_common": 502,
+    "new_in_top": 3,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-24",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "aad81aa",
+   "subject": "data: screener run 2026-09-25 - 502 scored, top: EXPE HST VLO MPC EIX",
+   "committed": "2026-09-25T02:15:11-05:00",
+   "baseline_sha": "4ca65a5",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-28T02:00:04.753730",
+   "baseline_run_timestamp": "2026-09-25T02:00:03.515421",
+   "rule1": {
+    "spearman": 0.9961,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-25",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "2e08f62",
+   "subject": "data: screener run 2026-09-28 - 502 scored, top: EXPE HST BBY EIX MPC",
+   "committed": "2026-09-28T02:13:58-05:00",
+   "baseline_sha": "aad81aa",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-29T02:00:04.389921",
+   "baseline_run_timestamp": "2026-09-28T02:00:04.753730",
+   "rule1": {
+    "spearman": 0.9971,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-28",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     4,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "826afad",
+   "subject": "data: screener run 2026-09-29 - 502 scored, top: EXPE HST MPC CAH VLO",
+   "committed": "2026-09-29T02:12:45-05:00",
+   "baseline_sha": "2e08f62",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-09-30T02:00:04.133596",
+   "baseline_run_timestamp": "2026-09-29T02:00:04.389921",
+   "rule1": {
+    "spearman": 0.997,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-29",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     5,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "114da5c",
+   "subject": "data: screener run 2026-09-30 - 502 scored, top: EXPE HST TRV ALL BBY",
+   "committed": "2026-09-30T02:14:47-05:00",
+   "baseline_sha": "826afad",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-01T02:00:03.852116",
+   "baseline_run_timestamp": "2026-09-30T02:00:04.133596",
+   "rule1": {
+    "spearman": 0.9942,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-09-30",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "7d24629",
+   "subject": "data: screener run 2026-10-01 - 502 scored, top: EXPE HST CAH MPC TRV",
+   "committed": "2026-10-01T02:13:24-05:00",
+   "baseline_sha": "114da5c",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-02T02:00:03.760075",
+   "baseline_run_timestamp": "2026-10-01T02:00:03.852116",
+   "rule1": {
+    "spearman": 0.995,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-01",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     2,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "f1de3c1",
+   "subject": "data: screener run 2026-10-02 - 502 scored, top: EXPE HST BBY CAH VLO",
+   "committed": "2026-10-02T02:13:30-05:00",
+   "baseline_sha": "7d24629",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-05T02:00:06.261856",
+   "baseline_run_timestamp": "2026-10-02T02:00:03.760075",
+   "rule1": {
+    "spearman": 0.9968,
+    "n_common": 502,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-02",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "5a4bb9e",
+   "subject": "data: screener run 2026-10-05 - 502 scored, top: EXPE HST BBY VLO CAH",
+   "committed": "2026-10-05T02:14:20-05:00",
+   "baseline_sha": "f1de3c1",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-06T02:00:03.627268",
+   "baseline_run_timestamp": "2026-10-05T02:00:06.261856",
+   "rule1": {
+    "spearman": 0.9967,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-05",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "2913fac",
+   "subject": "data: screener run 2026-10-06 - 502 scored, top: EXPE HST BBY DLTR CAH",
+   "committed": "2026-10-06T02:13:51-05:00",
+   "baseline_sha": "5a4bb9e",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T02:00:04.100170",
+   "baseline_run_timestamp": "2026-10-06T02:00:03.627268",
+   "rule1": {
+    "spearman": 0.9983,
+    "n_common": 502,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "99c2431",
+   "subject": "data: screener run 2026-10-07 - 502 scored, top: EXPE HST BBY DLTR BMY",
+   "committed": "2026-10-07T02:14:33-05:00",
+   "baseline_sha": "2913fac",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T02:00:04.100170",
+   "baseline_run_timestamp": "2026-10-07T02:00:04.100170",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "9fd59bc",
+   "subject": "nightly 2026-10-07 - SYNTHESIS",
+   "committed": "2026-10-07T06:38:42-05:00",
+   "baseline_sha": "99c2431",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T07:15:44.664524",
+   "baseline_run_timestamp": "2026-10-07T02:00:04.100170",
+   "rule1": {
+    "spearman": 0.9998,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (86cd5cc7fb72 -> 93ad76e241c2) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-07",
+    "override_if_dated_today_only": "the methodology version changed (86cd5cc7fb72 -> 93ad76e241c2) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-07",
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "05ee944",
+   "subject": "merge: owner-run build - calculation transparency T0b-T6 and the premium redesign D1-D7 (first version)",
+   "committed": "2026-10-07T08:03:35-05:00",
+   "baseline_sha": "9fd59bc",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T07:15:44.664524",
+   "baseline_run_timestamp": "2026-10-07T07:15:44.664524",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "ab0e10d",
+   "subject": "merge: owner-run pass 3 - the numbers behind every score on the row, checked against the engine",
+   "committed": "2026-10-07T19:48:55-05:00",
+   "baseline_sha": "05ee944",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T07:15:44.664524",
+   "baseline_run_timestamp": "2026-10-07T07:15:44.664524",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "74037f6",
+   "subject": "merge: owner-run pass 4 - calculations on click, reasons for unused metrics, sheet scroll fix",
+   "committed": "2026-10-07T20:03:46-05:00",
+   "baseline_sha": "ab0e10d",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-07T07:15:44.664524",
+   "baseline_run_timestamp": "2026-10-07T07:15:44.664524",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-06",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "28b7afe",
+   "subject": "merge: owner-run final UI pass - the redesign is finished; nightly sessions return to methodology",
+   "committed": "2026-10-07T23:26:12-05:00",
+   "baseline_sha": "74037f6",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-08T02:00:03.589594",
+   "baseline_run_timestamp": "2026-10-07T07:15:44.664524",
+   "rule1": {
+    "spearman": 0.9978,
+    "n_common": 502,
+    "new_in_top": 3,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-07",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     6,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "d704cc6",
+   "subject": "data: screener run 2026-10-08 - 502 scored, top: EXPE HST BBY APA DLTR",
+   "committed": "2026-10-08T02:14:44-05:00",
+   "baseline_sha": "28b7afe",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-08T06:18:36.982674",
+   "baseline_run_timestamp": "2026-10-08T02:00:03.589594",
+   "rule1": {
+    "spearman": 0.9996,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (93ad76e241c2 -> b5ddebea03a1) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-08",
+    "override_if_dated_today_only": "the methodology version changed (93ad76e241c2 -> b5ddebea03a1) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-08",
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-07",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "6e646c1",
+   "subject": "nightly 2026-10-08 - BUILD",
+   "committed": "2026-10-08T06:55:23-05:00",
+   "baseline_sha": "d704cc6",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-08T19:50:06.424413",
+   "baseline_run_timestamp": "2026-10-08T06:18:36.982674",
+   "rule1": {
+    "spearman": 0.9989,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-08",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     502
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "e36294b",
+   "subject": "merge: owner-run context layer, first draft - technicals, options, insiders, macro and the track record (context only)",
+   "committed": "2026-10-08T20:27:42-05:00",
+   "baseline_sha": "6e646c1",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-08T19:50:06.424413",
+   "baseline_run_timestamp": "2026-10-08T19:50:06.424413",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 502,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 502,
+    "unscored": [
+     "HONA"
+    ],
+    "universe": 503,
+    "unscored_share": 0.002,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-08",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "7428988",
+   "subject": "merge: owner-run context split - the context layer loads from its own file after the page is usable",
+   "committed": "2026-10-08T21:18:52-05:00",
+   "baseline_sha": "e36294b",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-09T02:00:03.566643",
+   "baseline_run_timestamp": "2026-10-08T19:50:06.424413",
+   "rule1": {
+    "spearman": 0.9983,
+    "n_common": 499,
+    "new_in_top": 2,
+    "fallen": 1,
+    "fallen_names": [
+     "CTVA"
+    ],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-08",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "e8991bc",
+   "subject": "data: screener run 2026-10-09 - 501 scored, top: EXPE HST APA BBY DLTR",
+   "committed": "2026-10-09T02:19:36-05:00",
+   "baseline_sha": "7428988",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-09T15:05:20.993582",
+   "baseline_run_timestamp": "2026-10-09T02:00:03.566643",
+   "rule1": {
+    "spearman": 0.9351,
+    "n_common": 501,
+    "new_in_top": 6,
+    "fallen": 1,
+    "fallen_names": [
+     "GEN"
+    ],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (b5ddebea03a1 -> 371313024c1a) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-09",
+    "override_if_dated_today_only": "the methodology version changed (b5ddebea03a1 -> 371313024c1a) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-09",
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-09",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "6730253",
+   "subject": "Merge owner/evening-run: 2026-10-09 owner-run - metric audit and fixes, GICS bank-like rule, trap and channel-stuffing flags, valuation against its own history, investor profiles; published from an after-close run",
+   "committed": "2026-10-09T15:30:51-05:00",
+   "baseline_sha": "e8991bc",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-12T02:00:03.296811",
+   "baseline_run_timestamp": "2026-10-09T15:05:20.993582",
+   "rule1": {
+    "spearman": 0.999,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-09",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "c620c4b",
+   "subject": "data: screener run 2026-10-12 - 501 scored, top: EXPE HST APA CF BMY",
+   "committed": "2026-10-12T02:20:33-05:00",
+   "baseline_sha": "6730253",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-13T02:00:02.873759",
+   "baseline_run_timestamp": "2026-10-12T02:00:03.296811",
+   "rule1": {
+    "spearman": 0.9974,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (371313024c1a -> 4ae696bab759) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-12",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-12",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "a5e84b8",
+   "subject": "data: screener run 2026-10-13 - 501 scored, top: EXPE HST INCY APA BMY",
+   "committed": "2026-10-13T02:19:20-05:00",
+   "baseline_sha": "c620c4b",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-14T02:00:10.255065",
+   "baseline_run_timestamp": "2026-10-13T02:00:02.873759",
+   "rule1": {
+    "spearman": 0.9969,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-13",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "ccbc795",
+   "subject": "data: screener run 2026-10-14 - 501 scored, top: EXPE INCY HST APA SNDK",
+   "committed": "2026-10-14T02:21:20-05:00",
+   "baseline_sha": "a5e84b8",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-14T02:00:10.255065",
+   "baseline_run_timestamp": "2026-10-14T02:00:10.255065",
+   "rule1": {
+    "spearman": 1.0,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-13",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "c3bdb30",
+   "subject": "nightly 2026-10-14 - SYNTHESIS",
+   "committed": "2026-10-14T06:40:07-05:00",
+   "baseline_sha": "ccbc795",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-15T02:00:03.638262",
+   "baseline_run_timestamp": "2026-10-14T02:00:10.255065",
+   "rule1": {
+    "spearman": 0.9973,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-14",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "cfc228c",
+   "subject": "data: screener run 2026-10-15 - 501 scored, top: EXPE APA HST INCY BMY",
+   "committed": "2026-10-15T02:21:55-05:00",
+   "baseline_sha": "c3bdb30",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-16T02:00:03.815047",
+   "baseline_run_timestamp": "2026-10-15T02:00:03.638262",
+   "rule1": {
+    "spearman": 0.996,
+    "n_common": 501,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-15",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "7d1b33c",
+   "subject": "data: screener run 2026-10-16 - 501 scored, top: EXPE APA HST INCY EG",
+   "committed": "2026-10-16T02:22:02-05:00",
+   "baseline_sha": "cfc228c",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-19T02:00:04.793163",
+   "baseline_run_timestamp": "2026-10-16T02:00:03.815047",
+   "rule1": {
+    "spearman": 0.9973,
+    "n_common": 501,
+    "new_in_top": 3,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-16",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "ddc5083",
+   "subject": "data: screener run 2026-10-19 - 501 scored, top: EXPE APA INCY HST SNDK",
+   "committed": "2026-10-19T02:24:11-05:00",
+   "baseline_sha": "7d1b33c",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-20T02:00:03.858333",
+   "baseline_run_timestamp": "2026-10-19T02:00:04.793163",
+   "rule1": {
+    "spearman": 0.9978,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (4ae696bab759 -> 52a442b52451) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-19",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-19",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     3,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "ce4f70e",
+   "subject": "data: screener run 2026-10-20 - 501 scored, top: EXPE HST APA INCY VLO",
+   "committed": "2026-10-20T02:24:10-05:00",
+   "baseline_sha": "ddc5083",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-20T06:16:57.643100",
+   "baseline_run_timestamp": "2026-10-20T02:00:03.858333",
+   "rule1": {
+    "spearman": 0.9996,
+    "n_common": 501,
+    "new_in_top": 0,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (52a442b52451 -> 7380e708ccc6) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+    "override_if_dated_today_only": "the methodology version changed (52a442b52451 -> 7380e708ccc6) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-19",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "cfdb795",
+   "subject": "nightly 2026-10-20 - PRODUCT, THROUGH THE NUMBERS",
+   "committed": "2026-10-20T08:05:53-05:00",
+   "baseline_sha": "ce4f70e",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-20T13:21:50.724316",
+   "baseline_run_timestamp": "2026-10-20T06:16:57.643100",
+   "rule1": {
+    "spearman": 0.9981,
+    "n_common": 501,
+    "new_in_top": 2,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (7380e708ccc6 -> 57a55dd486f8) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+    "override_if_dated_today_only": "the methodology version changed (7380e708ccc6 -> 57a55dd486f8) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-20",
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-20",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     0,
+     501
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "3182592",
+   "subject": "nightly 2026-10-20 - QUEUE",
+   "committed": "2026-10-20T14:19:25-05:00",
+   "baseline_sha": "cfdb795",
+   "data_loop": false,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-21T02:00:03.974680",
+   "baseline_run_timestamp": "2026-10-20T13:21:50.724316",
+   "rule1": {
+    "spearman": 0.9988,
+    "n_common": 501,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": false,
+    "override": null,
+    "override_available": null,
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 501,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-20",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": null,
+    "unchanged_checked": false,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "ab5c87e",
+   "subject": "data: screener run 2026-10-21 - 501 scored, top: EXPE APA INCY HST VLO",
+   "committed": "2026-10-21T02:24:40-05:00",
+   "baseline_sha": "3182592",
+   "data_loop": true,
+   "in_scope": true
+  },
+  {
+   "run_timestamp": "2026-10-22T02:00:04.595430",
+   "baseline_run_timestamp": "2026-10-21T02:00:03.974680",
+   "rule1": {
+    "spearman": 0.996,
+    "n_common": 498,
+    "new_in_top": 1,
+    "fallen": 0,
+    "fallen_names": [],
+    "version_changed": true,
+    "override": null,
+    "override_available": "the methodology version changed (57a55dd486f8 -> e9d1abb3405e) and METHODOLOGY_CHANGELOG.md has an entry dated 2026-10-21",
+    "override_if_dated_today_only": null,
+    "verdict": "PASS"
+   },
+   "rule2": {
+    "scored": 498,
+    "unscored": [
+     "HONA",
+     "VYLR"
+    ],
+    "universe": 503,
+    "unscored_share": 0.004,
+    "verdict": "PASS",
+    "why": [],
+    "unscored_source": "committed DQ log"
+   },
+   "rule3": {
+    "expected_session": "2026-10-21",
+    "priced_share": 1.0,
+    "dated_proxy_verdict": "PASS",
+    "unchanged": [
+     1,
+     498
+    ],
+    "unchanged_checked": true,
+    "verdict": "PASS",
+    "why": []
+   },
+   "any_fail": false,
+   "sha": "9c0bc1b",
+   "subject": "data: screener run 2026-10-22 - 498 scored, top: EXPE APA HST INCY EG",
+   "committed": "2026-10-22T02:24:38-05:00",
+   "baseline_sha": "ab5c87e",
+   "data_loop": true,
+   "in_scope": true
+  }
+ ],
+ "run_folders": [
+  {
+   "run": "01583f233f0d",
+   "start_time": "2026-10-22T02:00:04.595430",
+   "scored": 498,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "498 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-21T02:00:03.974680",
+   "rule1": {
+    "spearman": 0.996,
+    "new_in_top": 1,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "377ec40838b1",
+   "start_time": "2026-10-19T02:00:04.793163",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-16T02:00:03.815047",
+   "rule1": {
+    "spearman": 0.9973,
+    "new_in_top": 3,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "4dc4acf1d780",
+   "start_time": "2026-10-21T02:00:03.974680",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-20T13:21:50.724316",
+   "rule1": {
+    "spearman": 0.9988,
+    "new_in_top": 1,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "735e18b2e3bc",
+   "start_time": "2026-10-16T02:00:03.815047",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-15T02:00:03.638262",
+   "rule1": {
+    "spearman": 0.996,
+    "new_in_top": 2,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "7c12b43a07b6",
+   "start_time": "2026-10-20T13:21:50.724316",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-20T06:16:57.643100",
+   "rule1": {
+    "spearman": 0.9981,
+    "new_in_top": 2,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "a35b687ccf19",
+   "start_time": "2026-10-20T06:16:57.643100",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-20T02:00:03.858333",
+   "rule1": {
+    "spearman": 0.9996,
+    "new_in_top": 0,
+    "fallen": 0
+   }
+  },
+  {
+   "run": "b2dec67a410e",
+   "start_time": "2026-10-20T02:00:03.858333",
+   "scored": 501,
+   "universe_json_failed": [
+    "HONA",
+    "VYLR"
+   ],
+   "rule2": "PASS",
+   "rule2_lines": [
+    "501 ranked; 2 of 503 unscored for missing data (0.4%, limit 2%): HONA, VYLR"
+   ],
+   "rule1_vs": "2026-10-19T02:00:04.793163",
+   "rule1": {
+    "spearman": 0.9978,
+    "new_in_top": 1,
+    "fallen": 0
+   }
+  }
+ ]
+}
