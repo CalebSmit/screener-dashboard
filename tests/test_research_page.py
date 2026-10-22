@@ -229,9 +229,22 @@ def test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_
     assert sev["id"] in latest, "the registered stop arm has no ledger row - rerun the evaluations"
     import html as _html
     assert "The same rule with a 10% stop-loss" in page
-    assert _html.escape(sev["construction_note"]) in page
     assert "never searched over" in page            # one level, stated on the page itself
     assert "SSRN&nbsp;2407199" in page
+    # The page states the construction in its own words, because the registered text uses the word
+    # BANNED_TERMS forbids and its prediction carries a phrase this page's own tripwire forbids -
+    # and a registered prediction may never be edited once it has run. So: not quoted verbatim,
+    # all four differences still stated, and the registered text pointed at by path.
+    assert _html.escape(sev["construction_note"]) not in page
+    assert _html.escape(sev["prediction"]) not in page
+    for difference in ("lowest price", "intraday range", "triggering close",
+                       "Treasury-bill interest", "long-short momentum sort"):
+        assert difference in page, difference
+    assert "research/experiments/registry.yaml" in page
+    assert "research/2026-10-22-stop-loss-on-the-bots-rule.md" in page
+    assert "in all three periods" in page           # what was predicted, in page words
+    assert f"{int(sev['rule']['stop_loss_pct'])}% or more below its price at the start" in page
+    assert f"a further {int(sev['rule']['stop_loss_pct']) // 2}% down" in page
 
     periods = [("presample", "2012&ndash;2019"), ("discovery", "2020 &ndash; mid-2023"),
                ("holdout", "mid-2023 &ndash; 2026")]

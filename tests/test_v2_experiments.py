@@ -549,13 +549,40 @@ def test_the_seven_category_screens_are_the_ones_on_file_before_registration_and
             assert e["outcome_known_at_registration"] == ["2020-2026"]
 
 
+def _registered_prose() -> list[str]:
+    """Every free-text field the report quotes verbatim out of the registry."""
+    out = []
+    for e in X.load_registry() + X.load_evaluations():
+        for k in ("hypothesis", "prediction", "differences", "construction_note", "source", "void"):
+            if e.get(k):
+                out.append(" ".join(str(e[k]).split()))
+    return out
+
+
 def test_results_md_marks_every_known_outcome_row():
     text = X.RESULTS.read_text(encoding="utf-8")
     for e in X.load_registry():
         mark = f"| {e['id']}{X.KNOWN_MARK} |"
         assert (mark in text) == bool(e.get("outcome_known_at_registration")), e["id"]
     assert "only their 2012-2019\nresult is a blind test" in text or "only their 2012-2019 result is a blind test" in text
-    assert "on the same months" not in text and "paired by month" in text
+    assert "paired by month" in text
+    # "on the same months" was the version-1 description of the pairing and must not be how the
+    # report describes its own method (2026-10-16). Scoped 2026-10-22 to the report's *own* prose:
+    # a registered prediction is quoted verbatim and may never be edited once it has run, and
+    # bot-rule-v1.1-stop10's says its two portfolio rules are compared "on the same months" - which
+    # for a portfolio simulation is simply true, there being no per-stock intersection to take.
+    # Each removed span is asserted byte-equal to a registry field first, so the exclusion cannot
+    # be used to smuggle a claim in: anything the report writes itself is still scanned.
+    prose = " ".join(text.split())
+    for quoted in _registered_prose():
+        prose = prose.replace(quoted, " [registered] ")
+    assert "on the same months" not in prose, \
+        "the report describes its own pairing as month-only again (method version 1's wording)"
+    assert "[registered]" in prose and len(prose) > 2000       # the stripping did not eat the report
+    # and the exclusion stays honest: the phrase survives in the file only because a registered
+    # field says it. Reword that field and this fails, so the exclusion gets removed with it.
+    assert any("on the same months" in q for q in _registered_prose()), \
+        "no registered field carries the phrase any more - drop the exclusion above"
 
 
 DESCRIBES_THE_PAIRING = (ROOT / "v2_experiments.py", X.REGISTRY, ROOT / "research_page.py",
