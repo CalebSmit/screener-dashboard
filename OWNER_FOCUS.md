@@ -24,26 +24,6 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
-- **2026-10-22 - One pre-registered test of a stop-loss on the bot's rule.** Owner, 2026-10-21, on
-  trader-style setups: *"setting price targets on a chart ... the setup and the price target and ...
-  the stop loss."* Answered (screener-bot `SESSION_LOG.md` 2026-10-22): chart rules mostly fail after
-  costs and fair testing, stop-losses usually lower a diversified book's return (Kaminski & Lo 2014,
-  *J. Financial Markets*), and the bot's exit is a rank - so the bot now shows chart context and no
-  stop. The one stop with published support is against **momentum crashes** (Han, Zhou & Zhu 2016,
-  "Taming momentum crashes: a simple stop-loss strategy"). Test exactly that, once:
-  1. **Register before building** a new evaluation in `research/experiments/registry.yaml`,
-     `bot-rule-v1.1-stop10`: the existing `bot-rule-v1.1` rule plus a per-stock stop - a holding that
-     closes 10% or more below its price at the start of the month is sold at that close and its slot
-     stays in cash until the next monthly rebalance (Han, Zhou & Zhu's construction; read their paper
-     for the exact rule and cite the page). **One variant only - never sweep the stop level.** Write
-     the prediction first: lower maximum drawdown and worst month, mean excess about unchanged or
-     slightly lower, turnover higher.
-  2. Build it in `simulate_bot` using the daily prices in `cache/v2_daily.parquet`; registry and
-     engine edits mark every ledger row stale, so plan the ~47-minute resumable rerun
-     (`scripts/rerun_experiments.py`) in the same session, and put both changes in one commit.
-  3. Report it beside `bot-rule-v1.1` on the research page. **Decision-grade for nothing before
-     2027-02-11** (rule 5); any bot change would still go through the bot's `STRATEGY_LOG.md` first.
-
 - **2026-10-21 - The screener's half of the plan to real money: no wrong or stale ranking reaches the
   trading bot.** Owner: *"I want you to start thinking in the way that you need to make me money in
   the stock market with this tool. And that's going to be through the trading bot."* The plan is
@@ -476,6 +456,48 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 ## Done
 
 Completed items, newest first.
+
+- **2026-10-22 - One pre-registered test of a stop-loss on the bot's rule. DONE the same day
+  (06:00 session) - and the prediction failed in two of the three periods.** Registered and built in
+  one commit (513c364), so the git history is the pre-registration; all 31 ledger rows rerun in the
+  same session. **The result:** the 10% stop cut both the worst month and the deepest fall only in
+  2020 - mid-2023, the period containing March 2020 (a -17.27% month became -13.96%, all 25
+  positions stopped). In the **held-out** years it made the deepest fall nearly twice as bad
+  (-7.52% -> -14.13%) and the worst month half again worse; in 2012-2019 it made both slightly
+  worse. Turnover rose 1.4x-1.8x as predicted. Across 176 months the stop changed the result in 174
+  and **helped in 82** - fewer than half. A stop pays for the falls it avoids with the rebounds it
+  misses, and a run of ordinary 10% dips and recoveries is what it loses on.
+  **Why this is a result and not a failure:** the prediction was on the public record before the
+  number existed, and the construction was checked against the paper's own frequency figure rather
+  than assumed - 8.1% of positions stopped a month in 2012-2019 and 18.5% in 2020 - mid-2023 against
+  Han, Zhou & Zhu's 10.05% of winner positions over 1926-2013, higher where the period was more
+  volatile, which is what they report too. It is **not** a refutation of the paper: their gain comes
+  mostly from the short side ("it seems mainly coming from the losers portfolio") and this screener
+  has no short side. Decision-grade for nothing before 2027-02-11, and **one level was registered
+  and one was run** - a test now fails if a second stop level is ever registered.
+  `research/2026-10-22-stop-loss-on-the-bots-rule.md`; the research page carries the arm beside the
+  unstopped rule with a verdict sentence generated from the two summaries, so it can say the
+  prediction failed, and does. The original item follows.
+
+  Owner, 2026-10-21, on
+  trader-style setups: *"setting price targets on a chart ... the setup and the price target and ...
+  the stop loss."* Answered (screener-bot `SESSION_LOG.md` 2026-10-22): chart rules mostly fail after
+  costs and fair testing, stop-losses usually lower a diversified book's return (Kaminski & Lo 2014,
+  *J. Financial Markets*), and the bot's exit is a rank - so the bot now shows chart context and no
+  stop. The one stop with published support is against **momentum crashes** (Han, Zhou & Zhu 2016,
+  "Taming momentum crashes: a simple stop-loss strategy"). Test exactly that, once:
+  1. **Register before building** a new evaluation in `research/experiments/registry.yaml`,
+     `bot-rule-v1.1-stop10`: the existing `bot-rule-v1.1` rule plus a per-stock stop - a holding that
+     closes 10% or more below its price at the start of the month is sold at that close and its slot
+     stays in cash until the next monthly rebalance (Han, Zhou & Zhu's construction; read their paper
+     for the exact rule and cite the page). **One variant only - never sweep the stop level.** Write
+     the prediction first: lower maximum drawdown and worst month, mean excess about unchanged or
+     slightly lower, turnover higher.
+  2. Build it in `simulate_bot` using the daily prices in `cache/v2_daily.parquet`; registry and
+     engine edits mark every ledger row stale, so plan the ~47-minute resumable rerun
+     (`scripts/rerun_experiments.py`) in the same session, and put both changes in one commit.
+  3. Report it beside `bot-rule-v1.1` on the research page. **Decision-grade for nothing before
+     2027-02-11** (rule 5); any bot change would still go through the bot's `STRATEGY_LOG.md` first.
 
 - **2026-10-20 (owner-run, evening) - The context layer (opened 2026-10-08): CLOSED. What was
   left is written down, the defects it hid are fixed, and the one thing remaining only time can

@@ -181,6 +181,45 @@ def bot_sentence(b: dict, periods: list, p_value) -> str:
     return " ".join(out)
 
 
+def stop_verdict(base: dict, arm: dict, periods: list) -> str:
+    """Whether the pre-registered stop-loss prediction held, period by period, generated from the
+    numbers rather than written down beside them (2026-10-22).
+
+    The prediction registered before the arm ran was: a less negative worst month and maximum
+    drawdown in **every** period, excess about unchanged or slightly lower, turnover higher. So the
+    sentence has to be able to say the prediction failed - which is what it says."""
+    kept, broke = [], []
+    for k, lab in periods:
+        if k not in base or k not in arm:
+            continue
+        better = (arm[k]["worst_month"] > base[k]["worst_month"]
+                  and arm[k]["max_drawdown"] > base[k]["max_drawdown"])
+        (kept if better else broke).append(lab)
+    if not kept and not broke:
+        return ""
+    if not broke:
+        head = ("The prediction held: the stop cut both the worst month and the deepest fall in "
+                "every period measured.")
+    elif not kept:
+        head = ("<strong>The prediction failed.</strong> The stop did not cut the worst month and "
+                "the deepest fall in any period measured - in every one it made at least one of "
+                "them worse.")
+    else:
+        head = (f"<strong>The prediction half failed.</strong> The stop cut both the worst month and "
+                f"the deepest fall in {' and '.join(kept)}, and made at least one of them worse in "
+                f"{' and '.join(broke)}.")
+    tn = [f'{arm[k]["turnover_a_year"] / base[k]["turnover_a_year"]:.1f}x' for k, _ in periods
+          if k in arm and k in base and base[k]["turnover_a_year"]]
+    turn = (f" Turnover rose as predicted, to {' / '.join(tn)} the unstopped rule's." if tn else "")
+    stops = sum(arm[k]["positions_stopped"] for k, _ in periods if k in arm)
+    return (f"<p>{head}{turn} The stop closed <span class=\"num\">{stops}</span> positions across the "
+            f"periods shown. A stop exits into a fall and holds cash until the next monthly "
+            f"rebalance, so it trades the falls it escapes for the rebounds it misses, and the "
+            f"periods above disagree about whether that is a good trade. One stop level was tested, "
+            f"10%, fixed before the test ran and never searched over &mdash; a level chosen by what "
+            f"this history happened to reward would tell you nothing.</p>")
+
+
 def _pbo_words(pbo: float) -> str:
     """How a PBO compares with the 0.5 that luck alone gives (Bailey et al. 2017)."""
     if pbo >= 0.55:
@@ -392,6 +431,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
         brows = "".join(
             f'<tr><td class="per">{SHORT[k]}</td><td class="num">{pct(b[k]["ret"]["mean"])}</td>'
             f'<td class="num">{_ex(b[k]["excess"])}</td>'
+            f'<td class="num">{pct(b[k]["worst_month"])}</td>'
+            f'<td class="num">{pct(b[k]["max_drawdown"])}</td>'
             f'<td class="num">{b[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
             for k, lab in periods if k in b)
         cov_line = ""
@@ -403,15 +444,46 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
                         f"each month's members in {ys[0]}, rising to <span class=\"num\">{yc(ys[-1]):.0f}%</span> "
                         f"in {ys[-1]}, so the average leans toward the companies that survived.")
         rule = ev["rule"]
+        # The stop-loss arm beside it (2026-10-22, OWNER_FOCUS): one pre-registered variant of the
+        # same rule. Rendered only when its row is in the ledger on the same provenance, so the two
+        # tables can never be two different vintages of the records read as one comparison.
+        stop_html = ""
+        sev = next((e for e in evaluations if e["rule"].get("stop_loss_pct")), None)
+        srow = latest.get(sev["id"]) if sev else None
+        if srow and X.comparable_provenance(srow, latest[ev["id"]]) \
+                and srow.get("data_hash") == latest[ev["id"]].get("data_hash"):
+            s = srow["summary"]
+            srows = "".join(
+                f'<tr><td class="per">{SHORT[k]}</td><td class="num">{pct(s[k]["ret"]["mean"])}</td>'
+                f'<td class="num">{_ex(s[k]["excess"])}</td>'
+                f'<td class="num">{pct(s[k]["worst_month"])}</td>'
+                f'<td class="num">{pct(s[k]["max_drawdown"])}</td>'
+                f'<td class="num">{s[k]["turnover_a_year"] * 100:.0f}%</td></tr>'
+                for k, lab in periods if k in s)
+            # Page prose, not the registry's text verbatim, for two reasons that are both rules:
+            # the registered entry uses the word the no-advice guard bans (``BANNED_TERMS``), and
+            # its prediction contains "in every period", which this page's own tripwire forbids
+            # because a *result* sentence once claimed it falsely. A registered prediction may
+            # never be edited after it has run, so the page says the same thing in its own words
+            # and points at the registered text; RESULTS.md and the research note quote it.
+            stop_html = f"""
+    <h3>The same rule with a {sev['rule']['stop_loss_pct']:.0f}% stop-loss</h3>
+    <p>One pre-registered variant of the rule above: a holding whose adjusted close ends a day {sev['rule']['stop_loss_pct']:.0f}% or more below its price at the start of the month is closed out at that close, and its slot stays in cash until the next monthly rebalance. The construction is Han, Zhou &amp; Zhu (2016), <em>Taming Momentum Crashes: A Simple Stop-Loss Strategy</em> (SSRN&nbsp;2407199) &mdash; the one stop-loss rule with published support behind it. It was registered with its prediction before it ran: a less negative worst month and a shallower deepest fall in all three periods, the gap against the average scored stock about unchanged or slightly lower, and turnover higher.</p>
+    <div class="src">Four differences from the paper are recorded with the rule, each because it changes when the stop fires. The paper triggers on the day&rsquo;s lowest price where this reads the close, because the daily record carries no intraday range. The paper waits a day and exits at a limit a further {sev['rule']['stop_loss_pct'] / 2:.0f}% down, where this exits at the triggering close. The paper earns Treasury-bill interest on the proceeds, where cash here earns nothing. And the paper&rsquo;s portfolio is a long-short momentum sort of every listed stock, where this is the long side of a 25-name screen. The registered text is in <code>research/experiments/registry.yaml</code>, with the reading of the paper in <code>research/2026-10-22-stop-loss-on-the-bots-rule.md</code>.</div>
+    <div class="tw"><table class="bot">
+      <thead><tr><th>Period</th><th class="num">Return a month</th><th class="num">Against the average scored stock</th><th class="num">Worst month</th><th class="num">Deepest fall</th><th class="num">Turnover a year</th></tr></thead>
+      <tbody>{srows}</tbody>
+    </table></div>
+    {stop_verdict(b, s, periods)}"""
         bot_html = f"""
   <section>
     <h2>What a simple trading rule on the ranking would have done</h2>
     <p>A rule that holds the top {rule['target_count']}, keeps each until it falls past rank {rule['sell_rank']}, skip names flagged as value or growth traps, at most {rule['max_per_sector']} in a sector, {rule['cost_bps']} basis points of cost a side, rebalanced monthly. It is compared with the equal-weighted average return of the stocks the test could score each month.{cov_line}</p>
     <div class="tw"><table class="bot">
-      <thead><tr><th>Period</th><th class="num">Return a month</th><th class="num">Against the average scored stock</th><th class="num">Turnover a year</th></tr></thead>
+      <thead><tr><th>Period</th><th class="num">Return a month</th><th class="num">Against the average scored stock</th><th class="num">Worst month</th><th class="num">Deepest fall</th><th class="num">Turnover a year</th></tr></thead>
       <tbody>{brows}</tbody>
     </table></div>
-    <p>{bot_sentence(b, periods, X.p_value)} Read any live record of the ranking next to an equal-weight fund.</p>
+    <p>{bot_sentence(b, periods, X.p_value)} Read any live record of the ranking next to an equal-weight fund.</p>{stop_html}
   </section>"""
 
     return f"""<!DOCTYPE html>

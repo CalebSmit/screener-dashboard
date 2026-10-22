@@ -216,6 +216,59 @@ def test_the_trading_rule_sentence_follows_each_period_s_sign_and_t():
     assert "within the noise" in rp.bot_sentence(flipped, [("discovery", "2020 &ndash; mid-2023")], X.p_value)
 
 
+def test_the_stop_loss_arm_is_shown_beside_the_rule_with_a_verdict_that_can_say_it_failed():
+    """OWNER_FOCUS 2026-10-22: one pre-registered stop, reported beside the unstopped rule.
+
+    The verdict sentence is generated from the two summaries, so it is checked by feeding it
+    numbers - a stop that cut both figures everywhere, one that cut neither, and one that cut them
+    in some periods only. A sentence that could only ever say "the prediction held" would be
+    checking plumbing, not the claim."""
+    page = rp.PAGE.read_text(encoding="utf-8")
+    sev = next(e for e in X.load_evaluations() if e["rule"].get("stop_loss_pct"))
+    latest = _latest()
+    assert sev["id"] in latest, "the registered stop arm has no ledger row - rerun the evaluations"
+    import html as _html
+    assert "The same rule with a 10% stop-loss" in page
+    assert "never searched over" in page            # one level, stated on the page itself
+    assert "SSRN&nbsp;2407199" in page
+    # The page states the construction in its own words, because the registered text uses the word
+    # BANNED_TERMS forbids and its prediction carries a phrase this page's own tripwire forbids -
+    # and a registered prediction may never be edited once it has run. So: not quoted verbatim,
+    # all four differences still stated, and the registered text pointed at by path.
+    assert _html.escape(sev["construction_note"]) not in page
+    assert _html.escape(sev["prediction"]) not in page
+    for difference in ("lowest price", "intraday range", "triggering close",
+                       "Treasury-bill interest", "long-short momentum sort"):
+        assert difference in page, difference
+    assert "research/experiments/registry.yaml" in page
+    assert "research/2026-10-22-stop-loss-on-the-bots-rule.md" in page
+    assert "in all three periods" in page           # what was predicted, in page words
+    assert f"{int(sev['rule']['stop_loss_pct'])}% or more below its price at the start" in page
+    assert f"a further {int(sev['rule']['stop_loss_pct']) // 2}% down" in page
+
+    periods = [("presample", "2012&ndash;2019"), ("discovery", "2020 &ndash; mid-2023"),
+               ("holdout", "mid-2023 &ndash; 2026")]
+    base = {k: {"worst_month": -0.10, "max_drawdown": -0.20, "turnover_a_year": 1.0,
+                "positions_stopped": 0} for k, _ in periods}
+    better = {k: dict(v, worst_month=-0.05, max_drawdown=-0.10, turnover_a_year=2.0,
+                      positions_stopped=10) for k, v in base.items()}
+    worse = {k: dict(v, worst_month=-0.20, max_drawdown=-0.30, turnover_a_year=2.0,
+                     positions_stopped=10) for k, v in base.items()}
+    mixed = dict(worse, discovery=better["discovery"])
+    assert "The prediction held" in rp.stop_verdict(base, better, periods)
+    assert "prediction failed" in rp.stop_verdict(base, worse, periods)
+    half = rp.stop_verdict(base, mixed, periods)
+    assert "half failed" in half and "2020 &ndash; mid-2023" in half
+    # one of the two figures better and the other worse is not "it worked"
+    one = {k: dict(v, worst_month=-0.05, max_drawdown=-0.30) for k, v in base.items()}
+    assert "prediction failed" in rp.stop_verdict(base, one, periods)
+    assert "2.0x" in rp.stop_verdict(base, better, periods)
+
+    # and the page says whichever of those the measured rows actually support
+    b, s = latest["bot-rule-v1.1"]["summary"], latest[sev["id"]]["summary"]
+    assert rp.stop_verdict(b, s, periods) in page
+
+
 def test_within_sector_screens_are_labelled_so_on_the_page_with_their_note():
     """Item 6: single-metric screens and Size on its own are within-sector versions of market-wide
     papers; the page labels them and carries the note."""

@@ -342,6 +342,105 @@ def test_the_bot_simulation_halts_new_buys_in_a_drawdown_and_charges_costs():
     assert pm.loc["2024-02-29", "held"] == 0                              # the sell still happens
 
 
+# ----------------------------------------------------- the stop-loss arm (Han, Zhou & Zhu 2016)
+# OWNER_FOCUS 2026-10-22: one pre-registered stop, never a sweep. The registry entry carries the
+# paper's construction and every difference from it; these tests check the arithmetic against the
+# rule as the paper states it on pp. 5-6, and - the one that matters most - that a month in which
+# no stop triggers reproduces the unstopped simulation exactly rather than approximately.
+STOP_RULE = dict(RULE, stop_loss_pct=10)
+
+
+def _paths(month: str, dates: list[str], closes: dict) -> dict:
+    return {month: pd.DataFrame(closes, index=pd.to_datetime(dates))}
+
+
+def test_the_stop_triggers_on_the_first_close_at_or_below_the_papers_level():
+    """Han, Zhou & Zhu (2026-10-22 registry entry): P0 is the month-start close, the stop triggers
+    the first time the price passes below (1 - L) * P0, and the sale is at that close."""
+    path = pd.DataFrame({"A": [95.0, 89.0, 85.0, 99.0], "B": [95.0, 90.0, 92.0, 99.0],
+                         "C": [95.0, 90.5, 91.0, 99.0]},
+                        index=pd.to_datetime(["2024-02-01", "2024-02-02", "2024-02-05", "2024-02-29"]))
+    assert X.stop_return("A", 100.0, path, 0.10) == pytest.approx(-0.11)   # the first close at or
+    assert X.stop_return("B", 100.0, path, 0.10) == pytest.approx(-0.10)   # below 90, not the lowest
+    assert X.stop_return("C", 100.0, path, 0.10) is None                   # 90.5 never reaches the level
+    assert X.stop_return("A", 100.0, path, 0.20) is None                   # never 20% down on a close
+    assert X.stop_return("D", 100.0, path, 0.10) is None                   # not held in the panel
+    for bad in (None, float("nan"), 0.0, -1.0):
+        assert X.stop_return("A", bad, path, 0.10) is None                 # no usable month-start price
+
+
+def test_a_month_with_no_stop_reproduces_the_unstopped_simulation_exactly():
+    inputs = {"2024-01-31": _month([("A", 1, "X", False, False), ("B", 2, "X", False, False)]),
+              "2024-02-29": _month([("A", 1, "X", False, False), ("B", 2, "X", False, False)])}
+    fwd = pd.DataFrame({"A": [-0.05, 0.08], "B": [0.03, -0.02]}, index=list(inputs))
+    prices = pd.DataFrame({"A": [100.0, 95.0], "B": [50.0, 51.5]}, index=list(inputs))
+    paths = {"2024-01-31": pd.DataFrame({"A": [98.0, 95.0], "B": [50.5, 51.5]},
+                                        index=pd.to_datetime(["2024-02-15", "2024-02-29"])),
+             "2024-02-29": pd.DataFrame({"A": [101.0, 102.6], "B": [51.0, 50.47]},
+                                        index=pd.to_datetime(["2024-03-15", "2024-03-29"]))}
+    plain = X.simulate_bot(inputs, fwd, RULE)
+    stopped = X.simulate_bot(inputs, fwd, STOP_RULE, stop_prices=prices, stop_paths=paths)
+    for col in ("ret", "universe", "turnover", "held", "bought"):
+        assert list(stopped[col]) == list(plain[col]), col
+    assert list(stopped["stopped"]) == [0, 0] and list(plain["stopped"]) == [0, 0]
+
+
+def test_a_stop_sells_at_the_triggering_close_charges_the_cost_and_holds_cash_to_month_end():
+    """The slot stays in cash: the stock's recovery after the stop does not come back."""
+    rule = dict(STOP_RULE, target_count=1, sell_rank=1, cost_bps=10)
+    inputs = {"2024-01-31": _month([("A", 1, "X", False, False)])}
+    fwd = pd.DataFrame({"A": [-0.05]}, index=list(inputs))          # the month ends down only 5%
+    prices = pd.DataFrame({"A": [100.0]}, index=list(inputs))
+    paths = _paths("2024-01-31", ["2024-02-15", "2024-02-29"], {"A": [88.0, 95.0]})
+    pm = X.simulate_bot(inputs, fwd, rule, stop_prices=prices, stop_paths=paths)
+    # bought at 10 bps, sold at -12% (the 88.0 close) with 10 bps out; the 95.0 recovery is forgone
+    assert pm.loc["2024-01-31", "ret"] == pytest.approx(0.999 * 0.88 * 0.999 - 1)
+    assert pm.loc["2024-01-31", "stopped"] == 1 and pm.loc["2024-01-31", "held"] == 0
+    plain = X.simulate_bot(inputs, fwd, dict(rule, stop_loss_pct=0))
+    assert plain.loc["2024-01-31", "ret"] == pytest.approx(0.999 * 0.95 - 1)
+    # the stop cut this holding *below* where the month ended - the honest cost of a stop, and the
+    # reason the paper's own gain comes from the tail and not from the average month
+    assert pm.loc["2024-01-31", "ret"] < plain.loc["2024-01-31", "ret"]
+    assert pm.loc["2024-01-31", "turnover"] > plain.loc["2024-01-31", "turnover"]
+
+
+def test_a_stop_rule_refuses_to_run_without_the_prices_it_measures_from():
+    """Silently simulating no stop would publish the unstopped result under the stopped name."""
+    inputs = {"2024-01-31": _month([("A", 1, "X", False, False)])}
+    fwd = pd.DataFrame({"A": [-0.5]}, index=list(inputs))
+    with pytest.raises(ValueError, match="stop_loss_pct"):
+        X.simulate_bot(inputs, fwd, STOP_RULE)
+
+
+def test_the_stop_is_registered_once_at_one_level_and_changes_nothing_else():
+    """One variant only (OWNER_FOCUS 2026-10-22). A second stop level, or a stop entry that also
+    moved the target count or the hold band, would make the comparison two changes at once."""
+    evs = {e["id"]: e for e in X.load_evaluations()}
+    stops = {i: e["rule"]["stop_loss_pct"] for i, e in evs.items() if e["rule"].get("stop_loss_pct")}
+    assert stops == {"bot-rule-v1.1-stop10": 10}, "exactly one registered stop level, never a sweep"
+    base, arm = evs["bot-rule-v1.1"]["rule"], evs["bot-rule-v1.1-stop10"]["rule"]
+    assert {k: v for k, v in arm.items() if k != "stop_loss_pct"} == base
+    e = evs["bot-rule-v1.1-stop10"]
+    assert "2407199" in e["source"] and "pp. 5-6" in e["source"]
+    note = e["construction_note"].lower()
+    for word in ("lowest", "t-bill", "long-short"):          # the differences from the paper, stated
+        assert word in note, word
+    assert "drawdown" in e["prediction"] and "turnover higher" in e["prediction"]
+
+
+def test_the_month_end_prices_a_stop_measures_from_are_the_ones_the_returns_divide():
+    """One reshape of the daily panel for both (``backtest_v2_returns.daily_wide``), so a stop is
+    measured against the same series as the forward return it replaces."""
+    import backtest_v2_returns as br
+    daily = pd.DataFrame({"date": pd.to_datetime(["2024-01-30", "2024-01-31", "2024-02-29"] * 2),
+                          "adj_close": [10.0, 11.0, 12.0, 20.0, 21.0, 22.0],
+                          "ticker": ["AAA"] * 3 + ["BBB"] * 3})
+    wide = br.daily_wide(daily)
+    me = br.month_end_prices(daily, ["2024-01-31", "2024-02-29"])
+    assert me.loc["2024-01-31", "AAA"] == wide.loc[pd.Timestamp("2024-01-31"), "AAA"] == 11.0
+    assert me.loc["2024-02-29", "BBB"] == wide.loc[pd.Timestamp("2024-02-29"), "BBB"] == 22.0
+
+
 def test_every_verdict_says_how_small_a_difference_it_could_see():
     """Queue item 2 (2026-10-15): 'not distinguishable' is printed next to what it rules out."""
     assert X.detectable(0.01, 1) == pytest.approx((3.0 + 0.84) * 0.01, abs=1e-4)       # |t| >= 3 binds
@@ -450,13 +549,40 @@ def test_the_seven_category_screens_are_the_ones_on_file_before_registration_and
             assert e["outcome_known_at_registration"] == ["2020-2026"]
 
 
+def _registered_prose() -> list[str]:
+    """Every free-text field the report quotes verbatim out of the registry."""
+    out = []
+    for e in X.load_registry() + X.load_evaluations():
+        for k in ("hypothesis", "prediction", "differences", "construction_note", "source", "void"):
+            if e.get(k):
+                out.append(" ".join(str(e[k]).split()))
+    return out
+
+
 def test_results_md_marks_every_known_outcome_row():
     text = X.RESULTS.read_text(encoding="utf-8")
     for e in X.load_registry():
         mark = f"| {e['id']}{X.KNOWN_MARK} |"
         assert (mark in text) == bool(e.get("outcome_known_at_registration")), e["id"]
     assert "only their 2012-2019\nresult is a blind test" in text or "only their 2012-2019 result is a blind test" in text
-    assert "on the same months" not in text and "paired by month" in text
+    assert "paired by month" in text
+    # "on the same months" was the version-1 description of the pairing and must not be how the
+    # report describes its own method (2026-10-16). Scoped 2026-10-22 to the report's *own* prose:
+    # a registered prediction is quoted verbatim and may never be edited once it has run, and
+    # bot-rule-v1.1-stop10's says its two portfolio rules are compared "on the same months" - which
+    # for a portfolio simulation is simply true, there being no per-stock intersection to take.
+    # Each removed span is asserted byte-equal to a registry field first, so the exclusion cannot
+    # be used to smuggle a claim in: anything the report writes itself is still scanned.
+    prose = " ".join(text.split())
+    for quoted in _registered_prose():
+        prose = prose.replace(quoted, " [registered] ")
+    assert "on the same months" not in prose, \
+        "the report describes its own pairing as month-only again (method version 1's wording)"
+    assert "[registered]" in prose and len(prose) > 2000       # the stripping did not eat the report
+    # and the exclusion stays honest: the phrase survives in the file only because a registered
+    # field says it. Reword that field and this fails, so the exclusion gets removed with it.
+    assert any("on the same months" in q for q in _registered_prose()), \
+        "no registered field carries the phrase any more - drop the exclusion above"
 
 
 DESCRIBES_THE_PAIRING = (ROOT / "v2_experiments.py", X.REGISTRY, ROOT / "research_page.py",

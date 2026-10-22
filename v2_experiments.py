@@ -875,7 +875,49 @@ def bot_month_inputs(months: dict, cfg: dict) -> dict:
     return out
 
 
-def simulate_bot(inputs: dict, fwd: pd.DataFrame, rule: dict, start_equity: float = 100_000.0) -> pd.DataFrame:
+def stop_loss_inputs(months: list[str]) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+    """What a within-month stop reads: the month-end prices each stop is measured from, and per
+    month the adjusted closes of every trading day after that month-end up to and including the
+    next one.
+
+    The prices are ``month_end_prices`` - the same frame ``forward_returns`` divides - and the paths
+    come from the same ``daily_wide`` panel, so a month in which no stop triggers reproduces the
+    unstopped simulation exactly rather than approximately. ``tests/test_v2_experiments.py``
+    asserts that identity on the registered rule."""
+    daily = pd.read_parquet(ROOT / "cache" / "v2_daily.parquet")
+    nxt = (pd.Timestamp(months[-1]) + pd.offsets.MonthEnd(1)).strftime("%Y-%m-%d")
+    prices = br.month_end_prices(daily, list(months) + [nxt])
+    wide = br.daily_wide(daily)
+    paths = {m: wide[(wide.index > pd.Timestamp(m)) & (wide.index <= pd.Timestamp(nm))]
+             for m, nm in zip(months, list(months[1:]) + [nxt])}
+    return prices, paths
+
+
+def stop_return(ticker: str, p0: float, path: pd.DataFrame, stop: float) -> float | None:
+    """The return a stop-loss sale realises, or ``None`` if the stop never triggers this month.
+
+    Han, Zhou & Zhu (2016), SSRN 2407199, section III pp. 5-6: ``p0`` is the close at the end of the
+    previous month, when the portfolio is formed, and the stop triggers the first time the price
+    passes below ``(1 - L) * p0``. Two differences from the paper, both registered under this
+    evaluation's ``construction_note`` and neither free to change here: the paper reads the day's
+    *lowest* price where this reads the close (the daily panel carries no intraday range), and the
+    paper waits a day and sells at a limit ``(1 - L/2)(1 - L) * p0`` where this sells at the
+    triggering close. Proceeds are cash for the rest of the month; the paper earns T-bills on them.
+    """
+    if path is None or p0 is None or not np.isfinite(p0) or p0 <= 0:
+        return None
+    s = path.get(ticker)
+    if s is None:
+        return None
+    hit = s[s <= p0 * (1 - stop)]
+    if hit.empty:
+        return None
+    return float(hit.iloc[0]) / p0 - 1
+
+
+def simulate_bot(inputs: dict, fwd: pd.DataFrame, rule: dict, start_equity: float = 100_000.0,
+                 stop_prices: pd.DataFrame | None = None,
+                 stop_paths: dict[str, pd.DataFrame] | None = None) -> pd.DataFrame:
     """The bot's ``plan_rebalance`` (screener-bot ``bot/strategy.py``, v1.1) applied once a month.
 
     Exits: a holding ranked worse than ``sell_rank``, or missing from the month's ranking, is sold.
@@ -886,11 +928,20 @@ def simulate_bot(inputs: dict, fwd: pd.DataFrame, rule: dict, start_equity: floa
     ``drawdown_halt_pct`` below its peak. Every traded dollar costs ``cost_bps``. Positions drift with
     their returns between months; cash earns nothing.
 
+    ``rule["stop_loss_pct"]``, when set, adds Han, Zhou & Zhu's (2016) sell stop: a holding whose
+    close falls that far below its price at the start of the month is sold at that close and its
+    slot stays in cash until the next rebalance (``stop_return``). It needs ``stop_prices`` and
+    ``stop_paths`` from ``stop_loss_inputs``, and refuses to run without them rather than quietly
+    simulating no stop at all.
+
     Differences from the live bot, all stated in the report: monthly, not weekly; a name missing from
     a month's ranking is sold at once (the bot waits a few runs); no order-size cap or minimum."""
     target, sell_rank = int(rule["target_count"]), int(rule["sell_rank"])
     cap, reserve = int(rule["max_per_sector"]), float(rule["cash_reserve_pct"]) / 100
     cost, halt = float(rule["cost_bps"]) / 10_000, float(rule["drawdown_halt_pct"]) / 100
+    stop = float(rule.get("stop_loss_pct") or 0) / 100
+    if stop and (stop_prices is None or stop_paths is None):
+        raise ValueError("stop_loss_pct needs stop_prices and stop_paths (stop_loss_inputs)")
     pos: dict[str, float] = {}
     cash, peak = start_equity, start_equity
     rows = []
@@ -935,15 +986,26 @@ def simulate_bot(inputs: dict, fwd: pd.DataFrame, rule: dict, start_equity: floa
                         traded += each
                     bought = len(cands)
         r = fwd.loc[m]
-        for t in pos:
-            x = r.get(t)
-            pos[t] *= 1 + (float(x) if pd.notna(x) else 0.0)
+        stopped = 0
+        for t in sorted(pos):
+            s = None
+            if stop:
+                p0 = stop_prices.loc[m].get(t) if m in stop_prices.index else None
+                s = stop_return(t, p0, stop_paths.get(m), stop)
+            if s is None:
+                x = r.get(t)
+                pos[t] *= 1 + (float(x) if pd.notna(x) else 0.0)
+            else:
+                v = pos.pop(t) * (1 + s)
+                cash += v * (1 - cost)
+                traded += v
+                stopped += 1
         after = cash + sum(pos.values())
         uni = r.reindex(g["Ticker"]).astype(float)
         rows.append({"month": m, "ret": after / equity - 1, "universe": float(uni.mean()),
                      "index": float(r.get("^SP500TR")) if pd.notna(r.get("^SP500TR")) else np.nan,
                      "turnover": traded / 2 / equity, "held": len(pos), "bought": bought,
-                     "halted": bool(halted)})
+                     "halted": bool(halted), "stopped": stopped})
     out = pd.DataFrame(rows).set_index("month")
     out["excess"] = out["ret"] - out["universe"]
     out["excess_index"] = out["ret"] - out["index"]
@@ -969,6 +1031,13 @@ def summarise_evaluation(pm: pd.DataFrame) -> dict:
                      "excess_index": _stats(sl["excess_index"]),
                      "turnover_a_year": round(float(sl["turnover"].mean() * 12), 3),
                      "max_drawdown": _drawdown(sl["ret"]), "universe_max_drawdown": _drawdown(sl["universe"]),
+                     # the two figures a stop-loss is supposed to move (Han, Zhou & Zhu 2016,
+                     # Table I: the worst month is the paper's headline), recorded for every
+                     # evaluation so the stopped and unstopped rules are read off one table
+                     "worst_month": round(float(sl["ret"].min()), 4),
+                     "universe_worst_month": round(float(sl["universe"].min()), 4),
+                     "months_with_a_stop": int((sl["stopped"] > 0).sum()),
+                     "positions_stopped": int(sl["stopped"].sum()),
                      "months_halted": int(sl["halted"].sum()), "mean_held": round(float(sl["held"].mean()), 1)}
     return out
 
@@ -986,24 +1055,28 @@ def run_evaluations(ids: list[str] | None = None) -> list[dict]:
     code = code_fingerprint()
     cfg0 = base_config()
     inputs = bot_month_inputs(months, cfg0)
+    stop_prices, stop_paths = (stop_loss_inputs(sorted(months))
+                               if any(e["rule"].get("stop_loss_pct") for e in evs) else (None, None))
     results = []
     for e in evs:
         if ids and e["id"] not in ids:
             continue
-        pm = simulate_bot(inputs, fwd, e["rule"])
+        pm = simulate_bot(inputs, fwd, e["rule"], stop_prices=stop_prices, stop_paths=stop_paths)
         res = {"id": e["id"], "kind": "evaluation", "run_at": datetime.now().isoformat(timespec="seconds"),
                "commit": git_commit(), "months": int(len(pm)), "method_version": METHOD_VERSION,
                "base_config_hash": config_hash(cfg0, {"kind": "baseline"}),
                **vintage, **code, "summary": summarise_evaluation(pm),
                "by_month": {m: {k: (round(float(r[k]), 6) if pd.notna(r[k]) else None)
                                 for k in ("ret", "universe", "index", "turnover")}
+                                | {"stopped": int(r["stopped"])}
                             for m, r in pm.iterrows()}}
         with LEDGER.open("a", encoding="utf-8") as f:
             f.write(json.dumps(res) + "\n")
         results.append(res)
         for p, s in res["summary"].items():
             print(f"{e['id']} {p}: excess vs universe {s['excess'].get('mean')} (t {s['excess'].get('t')}), "
-                  f"turnover {s['turnover_a_year']}/yr, max dd {s['max_drawdown']}", flush=True)
+                  f"turnover {s['turnover_a_year']}/yr, max dd {s['max_drawdown']}, "
+                  f"worst month {s['worst_month']}, stops {s['positions_stopped']}", flush=True)
     return results
 
 
@@ -1015,12 +1088,12 @@ def _evaluation_lines(latest: dict) -> list[str]:
              "The baseline's rankings, run through a trading rule month by month. Excess is against the "
              "equal-weighted average of every stock ranked that month; *vs index* against the S&P 500 "
              "total-return index. Costs included; no taxes.", "",
-             "| Evaluation | Period | Return a month | Excess vs universe (t) | vs index (t) | Turnover a year | Max drawdown (universe) | Months halted |",
-             "|---|---|---|---|---|---|---|---|"]
+             "| Evaluation | Period | Return a month | Excess vs universe (t) | vs index (t) | Turnover a year | Max drawdown (universe) | Worst month (universe) | Stops | Months halted |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for e in evs:
         r = latest.get(e["id"])
         if not r:
-            lines.append(f"| {e['id']} | not run | | | | | | |")
+            lines.append(f"| {e['id']} | not run | | | | | | | | |")
             continue
         for p in ("discovery", "holdout", "presample"):
             s = r["summary"].get(p)
@@ -1030,10 +1103,14 @@ def _evaluation_lines(latest: dict) -> list[str]:
                          f"{s['excess'].get('mean', 0) * 100:+.2f}% ({s['excess'].get('t')}) | "
                          f"{s['excess_index'].get('mean', 0) * 100:+.2f}% ({s['excess_index'].get('t')}) | "
                          f"{s['turnover_a_year'] * 100:.0f}% | {s['max_drawdown']} ({s['universe_max_drawdown']}) | "
+                         f"{s.get('worst_month')} ({s.get('universe_worst_month')}) | "
+                         f"{s.get('positions_stopped', 0)} in {s.get('months_with_a_stop', 0)} mo | "
                          f"{s['months_halted']} |")
     for e in evs:
         lines += ["", f"**{e['id']}** - predicted: {e.get('prediction', '')} Differences from the live rule: "
                   f"{e.get('differences', '')}"]
+        if e.get("construction_note"):
+            lines += [f"How it is built here, against the paper it cites: {e['construction_note']}"]
     return lines
 
 

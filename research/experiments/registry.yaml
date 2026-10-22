@@ -80,6 +80,60 @@ evaluations:
       rankings are the filings-and-prices screener (no Revisions, no forward EPS growth) on v2's
       survivorship-limited universe.
 
+  # Registered 2026-10-22 (06:00 session), BEFORE the stop was built - the commit that adds this
+  # entry also adds the code, and no row for it existed before. One stop level, 10%, chosen because
+  # it is the level the owner's item names and one of the three the paper reports (Table I Panels
+  # B-D: L = 15% headline, 10% and 20% as robustness). It is NEVER swept: a stop level fitted to
+  # this history is the one way this test could produce a number nobody should believe, and the
+  # engine's rules already forbid registering a variation of a near-miss.
+  - id: bot-rule-v1.1-stop10
+    hypothesis: >-
+      The same rule with Han, Zhou & Zhu's sell stop at a 10% loss: a holding whose adjusted close
+      falls 10% or more below its price at the start of the month is sold at that close, and its
+      slot stays in cash until the next monthly rebalance.
+    source: >-
+      Han, Y., Zhou, G. & Zhu, Y. (2016), "Taming Momentum Crashes: A Simple Stop-Loss Strategy",
+      SSRN working paper 2407199 (first draft January 2014; this is the September 2016 version),
+      DOI 10.2139/ssrn.2407199 - resolved through Crossref 2026-10-22, which returns SSRN posted
+      content and no journal: it is a working paper, cited as one, not peer-reviewed (the
+      Journal of Financial Markets reference in the owner's item is Kaminski & Lo 2014, a different
+      paper). Read from the PDF, not second-hand - construction on pp. 5-6
+      (section III; P0 is "the close price at the end of the previous month when we form the
+      momentum portfolio", the stop trigger is the first day the price "passes below SP_D =
+      (1-L)P0"), and Table I Panel C for L = 10% on CRSP 1926-2013 (mean 2.32% a month against the
+      unstopped 0.99%, standard deviation 4.61% against 6.01%, Sharpe 0.504 against 0.165, worst
+      month -15.37% against -49.79%, skewness +1.54 against -1.18). Turnover pp. 8-9: the sell stop
+      closes about 10.05% of the winners' positions in an average month and raises the winners'
+      monthly turnover from 39.11% to 49.08%.
+    rule: {target_count: 25, sell_rank: 40, max_per_sector: 6, cash_reserve_pct: 2, cost_bps: 5, drawdown_halt_pct: 25, stop_loss_pct: 10}
+    prediction: >-
+      Against bot-rule-v1.1 on the same months: lower (less negative) maximum drawdown and a less
+      negative worst month in every period; mean excess over the equal-weighted universe about
+      unchanged or slightly lower, and in no period a difference this record could distinguish from
+      zero; turnover higher. The paper's doubling of the Sharpe ratio is NOT predicted here - it is
+      a long-short momentum result and this is the long side of a 25-name large-company screen.
+    construction_note: >-
+      How this differs from the paper, every difference stated because each one makes the stop fire
+      sooner, later or not at all. (1) The paper triggers on the day's LOWEST price (eq. 1, p. 5);
+      cache/v2_daily.parquet carries no intraday high or low, so the trigger here is the day's
+      adjusted close - a stop that fires less often than the paper's, and only on falls that hold
+      to the close. (2) The paper does not sell on the trigger day: it sells on the following day at
+      a limit price LP_D = (1-L/2)(1-L)P0 - 85.5% of P0 at L = 10% - or at that day's close if the
+      whole day trades below it, and keeps the stock if the day's low stays above it (p. 5-6, the
+      L/2 threshold "to make sure that the initial drop is genuine"). Here the sale is at the
+      triggering close, so this stop exits sooner and higher than the paper's and also exits names
+      the paper's threshold would have kept. (3) The paper invests the proceeds in T-bills for the
+      rest of the month; cash earns nothing in this harness everywhere, so the stop is charged that
+      lost yield. (4) The paper's portfolio is long-short six-month momentum deciles over all CRSP
+      common stocks with a one-month gap, prices over $5 and the smallest NYSE size decile excluded;
+      only the sell-side stop applies here, to the long side of a 25-name eight-category screen of
+      S&P 500 members.
+    differences: >-
+      Everything under bot-rule-v1.1, plus: the stop is read from daily closes once a month where a
+      live bot would watch them every day, and the live bot has no stop at all (screener-bot
+      SESSION_LOG.md 2026-10-22 - its exit is a rank). Decision-grade for nothing before 2027-02-11
+      (CLAUDE.md rule 5); any change to the bot goes through its own STRATEGY_LOG.md first.
+
 experiments:
   - id: baseline
     hypothesis: The current weighting (the filings-and-prices screener, v2_config).
