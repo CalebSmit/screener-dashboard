@@ -11,6 +11,11 @@ Every failure this guards against actually happened, in the same week:
   category's dispersion collapsed 25-36%, and the published Top 5 was wrong for
   three days.
 
+* **2026-10-22** - a trading bot now acts on what this loop publishes, so three checks compare
+  the run with the ranking the site last published (rank continuity), count the stocks that went
+  unscored for missing data, and date every price against the NYSE session it should come from.
+  See the block above ``main``.
+
 * **2026-10-14** - the source stopped serving one `.info` field and
   `dividend_yield` fell from 402 of 501 stocks to 6. This script said PASS, the
   claims gate said PASS, and the run published; the code loop's test suite found
@@ -540,6 +545,413 @@ def check_dispersion(payload: dict, res: Result) -> None:
             res.note(f"{cat} dispersion {current[cat]:.1f} vs median {median:.1f}")
 
 
+# =========================================================================== 2026-10-22
+# The trading bot's inputs (OWNER_FOCUS 2026-10-21, items 1-3; screener-bot ROADMAP 1.3-1.5).
+#
+# Every check above asks whether *this run* is internally sound. None asked whether it agrees
+# with the ranking the site already published - and since 2026-10-09 a bot trades whatever this
+# loop publishes. Three ways a run can be internally sound and still wrong to trade:
+#
+#   1. it is scrambled - 2026-07-28 published a ranking with Spearman 0.016 against the run
+#      before it, 24 of 25 top names new, and every check of its day passed;
+#   2. it scored a shrunken universe - 2026-10-22's meta.json shows 2 stocks unscored while the
+#      fetch log says 0 failures, because a record that arrives *empty* is dropped by the
+#      coverage filter, which nothing counted;
+#   3. its prices are old - nothing recorded which session a price belongs to, so yesterday's
+#      prices re-served under today's date would have passed the price-coverage check.
+#
+# Thresholds measured against every published version of dashboard_data.js since 2026-08-21:
+# research/measurements/2026-10-22-input-gates-replay.py and its JSON. Read them before moving
+# a number - each was set so that no ordinary day in that history would have failed.
+
+RANK_MIN_SPEARMAN = 0.90      # ordinary days measured >= 0.981; the scrambled 07-28 run 0.016
+RANK_TOP_N = 25
+RANK_MAX_NEW_IN_TOP = 8       # ordinary days measured <= 4 new names; 07-28 had 24
+RANK_FALL_LINE = 40
+RANK_MAX_FALLEN = 3           # top-25 names now ranked below #40 (or no longer ranked at all)
+
+MIN_SCORED = 490              # 498-503 on every published run; 500 companies after share classes
+MAX_EXCLUDED_SHARE = 0.02     # of the universe, unscored for missing data (11+ of 503 fails)
+
+MIN_PRICE_ON_SESSION = 0.95   # of stocks whose price is dated on the expected NYSE session
+MAX_UNCHANGED_ACROSS_SESSION = 0.50
+
+CHANGELOG = ROOT / "METHODOLOGY_CHANGELOG.md"
+ET_ZONE = "America/New_York"
+
+
+def _parse_payload_text(text: str) -> dict:
+    return json.loads(text[text.index("{"):].rstrip().rstrip(";"))
+
+
+def published_payload(ref: str = "HEAD") -> dict | None:
+    """The ranking the site last published: ``dashboard_data.js`` as committed at ``ref``.
+
+    **Not the working-tree file.** ``run_screener.py`` step 12 copies the run's own payload over
+    the root ``dashboard_data.js`` before this gate runs, so the file on disk is the run being
+    judged. The committed one is what GitHub Pages serves and what the bot last read; in
+    ``data-run.ps1`` HEAD is ``main`` as just pulled (and since 2026-10-22 a failed pull stops the
+    run, so HEAD cannot be a stale ``main``). None when git cannot produce it.
+    """
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "show", f"{ref}:dashboard_data.js"],
+                           capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode != 0 or not r.stdout:
+        return None
+    try:
+        return _parse_payload_text(r.stdout.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
+def _ranks(payload: dict) -> dict[str, float]:
+    out = {}
+    for r in payload.get("table_data") or []:
+        t, k = r.get("Ticker"), r.get("Rank")
+        if t is not None and isinstance(k, (int, float)):
+            out[str(t)] = float(k)
+    return out
+
+
+def _spearman(a: list[float], b: list[float]) -> float:
+    ra = pd.Series(a).rank(method="average")
+    rb = pd.Series(b).rank(method="average")
+    return float(ra.corr(rb))
+
+
+def rank_continuity(current: dict, baseline: dict) -> dict:
+    """How far ``current``'s ranking is from ``baseline``'s - the three numbers the gate reads.
+
+    ``spearman`` is over the names ranked in both. ``new_in_top`` are names in the current top
+    ``RANK_TOP_N`` that were not in the baseline's. ``fallen`` are baseline top-``RANK_TOP_N``
+    names now ranked below ``RANK_FALL_LINE`` **or not ranked at all** - a top name that
+    vanished is the same event for anything holding it.
+    """
+    cur, base = _ranks(current), _ranks(baseline)
+    common = sorted(set(cur) & set(base))
+    rho = _spearman([cur[t] for t in common], [base[t] for t in common]) if len(common) >= 3 else None
+    top_cur = {t for t, k in cur.items() if k <= RANK_TOP_N}
+    top_base = {t for t, k in base.items() if k <= RANK_TOP_N}
+    fallen = sorted(t for t in top_base if cur.get(t, float("inf")) > RANK_FALL_LINE)
+    return {"spearman": rho, "n_common": len(common), "new_in_top": sorted(top_cur - top_base),
+            "fallen": fallen}
+
+
+def methodology_version(payload: dict) -> str | None:
+    """``kpis.methodology_version``: ``RunContext.config_hash`` of the config the run scored with.
+
+    Chosen 2026-10-22 because it already is this project's definition of "a different scoring":
+    it is the key the scored-table cache is stored under, it covers every weight, the
+    data-quality and universe rules, sector neutrality, the trap filters, the momentum regime
+    rule and the share-class declaration, and its ``scoring_schema`` counter is bumped by every
+    scoring-code change that a cache must not hide (15 bumps to 2026-10-21, five of them on the
+    2026-10-09 overhaul). It is conservative - a non-scoring column change bumps it too - which
+    can only make the override below *available*; it never fails a run.
+    """
+    v = (payload.get("kpis") or {}).get("methodology_version")
+    return str(v) if v else None
+
+
+def changelog_dates(text: str) -> set[str]:
+    """The dates of ``METHODOLOGY_CHANGELOG.md``'s entries - its ``## YYYY-MM-DD`` headings."""
+    import re
+    return set(re.findall(r"^## (\d{4}-\d{2}-\d{2})\b", text or "", flags=re.M))
+
+
+def _read_changelog() -> str:
+    try:
+        return CHANGELOG.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def continuity_override(payload: dict, baseline: dict, changelog_text: str) -> str | None:
+    """Why a broken continuity is a documented methodology change, or None if it is not.
+
+    Both must hold: the methodology version differs from the published run's, **and**
+    ``METHODOLOGY_CHANGELOG.md`` has an entry dated between the published run's date and this
+    run's date, inclusive. The owner's wording was "an entry dated today"; the window starts at
+    the published run instead because a session that changes the methodology at 06:00 and does
+    not republish leaves the *next day's* 02:00 run as the first one scored under it - with
+    "today" only, that run fails, the published ranking never moves, and every later run is
+    compared with the same stale page and fails too: a gate that can only fail closed, which
+    jams the loop (CLAUDE.md row 0.5/0.7). The window admits exactly the entries written since
+    the ranking being replaced was published. Measured, not hypothetical: 6 of the 46 data-loop
+    runs from 2026-08-21 to 2026-10-22 were the first scored under a change whose entry is dated
+    the day before (09-02, 09-03, 09-11, 10-13, 10-20, 10-22); none needed the waiver, but under
+    "today" only not one of them could have had it.
+    """
+    cur_v, base_v = methodology_version(payload), methodology_version(baseline)
+    if not cur_v or not base_v or cur_v == base_v:
+        return None
+    run_day = str((payload.get("kpis") or {}).get("run_timestamp") or "")[:10]
+    base_day = str((baseline.get("kpis") or {}).get("run_timestamp") or "")[:10]
+    if not run_day or not base_day:
+        return None
+    dated = sorted(d for d in changelog_dates(changelog_text) if base_day <= d <= run_day)
+    if not dated:
+        return None
+    return (f"the methodology version changed ({base_v} -> {cur_v}) and METHODOLOGY_CHANGELOG.md "
+            f"has an entry dated {', '.join(dated)}")
+
+
+def check_rank_continuity(payload: dict, baseline: dict | None, res: Result,
+                          changelog_text: str | None = None, run_dir: Path | None = None) -> None:
+    """FAIL when this run's ranking breaks from the last published one (bot ROADMAP 1.3).
+
+    Below Spearman ``RANK_MIN_SPEARMAN`` over the names ranked in both, more than
+    ``RANK_MAX_NEW_IN_TOP`` new names in the top ``RANK_TOP_N``, or more than ``RANK_MAX_FALLEN``
+    of the published top ``RANK_TOP_N`` now below #``RANK_FALL_LINE``. Waived only by
+    ``continuity_override``. No published ranking to compare with is a NOTE: it is the
+    environment failing, not the run, and a gate that cannot read its baseline must not jam the
+    loop (the node/pytest fallback precedent).
+
+    **Replayed 2026-10-22** over the 62 versions the site published from 2026-08-21 to 2026-10-22
+    (46 of them data-loop runs): it fails none of them. Ordinary data-loop days measured Spearman
+    >= 0.981, <= 4 new top-25 names, <= 1 fallen; the 2026-10-09 overhaul (owner-run, published
+    by merge) 0.935, 6 new, 1 fallen - inside the limits outright, and the override was available
+    too (its version changed; the changelog has 2026-10-09 entries). It fails the known-bad pages:
+    2026-07-28 (0.856, 10 new, 7 fallen), 2026-08-06's synthetic run and 2026-08-07's price-less
+    one (-0.017, 22 new, 23 fallen).
+
+    **Two limits, both measured.** (1) A refused run leaves the published ranking standing, and
+    every later run is compared with it: ordinary drift stays inside every limit for 10 runs (two
+    weeks; worst case exactly 8 new and 3 fallen) and crosses the new-names limit at 20, so a
+    refusal that nobody resolves turns into a stop within about a month. (2) The baseline is
+    whatever ``main`` serves, and a code session's full run publishes without this gate - so a bad
+    page published that way would make every good run after it fail (the replay shows the
+    2026-08-10 manual repair failing against the broken 08-07 page). OWNER_FOCUS item 5 (only the
+    data loop's run is tradable, ``signals.json``) is the place to move the baseline to the last
+    *data-loop* run. Until then both cases are a discarded run with this check's reason in the
+    log and the morning brief - visible, never silent; the site keeps the page it last published.
+    """
+    if run_dir is not None and (_run_meta(run_dir).get("cli_flags") or {}).get("tickers"):
+        res.note("rank continuity not checked - a --tickers subset run is never published")
+        return
+    if baseline is None:
+        res.note("rank continuity NOT checked - the last published dashboard_data.js could not be "
+                 "read from git")
+        return
+    c = rank_continuity(payload, baseline)
+    if c["spearman"] is None:
+        res.note(f"rank continuity NOT checked - only {c['n_common']} names ranked in both runs")
+        return
+    base_when = str((baseline.get("kpis") or {}).get("run_timestamp") or "?")[:16]
+    summary = (f"rank continuity vs the published run of {base_when}: Spearman {c['spearman']:.3f} "
+               f"over {c['n_common']} names, {len(c['new_in_top'])} new in the top {RANK_TOP_N}, "
+               f"{len(c['fallen'])} of the published top {RANK_TOP_N} below #{RANK_FALL_LINE}")
+    broken = []
+    if c["spearman"] < RANK_MIN_SPEARMAN:
+        broken.append(f"Spearman {c['spearman']:.3f} < {RANK_MIN_SPEARMAN}")
+    if len(c["new_in_top"]) > RANK_MAX_NEW_IN_TOP:
+        broken.append(f"{len(c['new_in_top'])} new top-{RANK_TOP_N} names > {RANK_MAX_NEW_IN_TOP} "
+                      f"({', '.join(c['new_in_top'][:12])})")
+    if len(c["fallen"]) > RANK_MAX_FALLEN:
+        broken.append(f"{len(c['fallen'])} published top-{RANK_TOP_N} names below "
+                      f"#{RANK_FALL_LINE} > {RANK_MAX_FALLEN} ({', '.join(c['fallen'][:12])})")
+    if not broken:
+        res.note(summary)
+        return
+    why = continuity_override(payload, baseline,
+                              _read_changelog() if changelog_text is None else changelog_text)
+    if why:
+        res.note(f"{summary} - outside the continuity limits ({'; '.join(broken)}), allowed "
+                 f"because {why}")
+        return
+    res.fail(f"{summary}. The ranking broke from the published one ({'; '.join(broken)}) with no "
+             f"documented methodology change - a scrambled or mis-joined run looks like this, and "
+             f"the trading bot would act on it.")
+
+
+def check_scored_universe(payload: dict, run_dir: Path, res: Result) -> None:
+    """FAIL below ``MIN_SCORED`` ranked, or more than ``MAX_EXCLUDED_SHARE`` of the universe
+    unscored for missing data (bot ROADMAP 1.4).
+
+    The unscored count is ``universe.json``'s ``failed``: fetch errors, records that came back
+    empty, and stocks the coverage filter dropped. The last two are logged as ``missing_metric``,
+    not ``fetch_failure``, so until 2026-10-22 the data loop's 40% gate never counted them -
+    2026-10-22 had 2 unscored and a fetch log reading 0 failures. A ``--tickers`` subset run is
+    exempt by design.
+    """
+    meta = _run_meta(run_dir)
+    if (meta.get("cli_flags") or {}).get("tickers"):
+        res.note("scored-universe floor not checked - a --tickers subset run")
+        return
+    scored = len(payload.get("table_data") or [])
+    if scored < MIN_SCORED:
+        res.fail(f"only {scored} stocks are ranked (need >= {MIN_SCORED}) - the universe shrank, "
+                 f"and the bot would be choosing from a partial list")
+    try:
+        u = json.loads((run_dir / "universe.json").read_text(encoding="utf-8"))
+        failed = list(u.get("failed") or [])
+        universe = int(u.get("scored_count", len(u.get("scored") or []))) + len(failed)
+    except (OSError, ValueError, TypeError):
+        res.cannot_evaluate(f"run {run_dir.name} has no readable universe.json, so how many stocks "
+                            f"went unscored cannot be counted")
+        return
+    share = len(failed) / universe if universe else 1.0
+    line = (f"{scored} ranked; {len(failed)} of {universe} unscored for missing data "
+            f"({share:.1%}, limit {MAX_EXCLUDED_SHARE:.0%})"
+            + (f": {', '.join(failed[:12])}{'...' if len(failed) > 12 else ''}" if failed else ""))
+    if share > MAX_EXCLUDED_SHARE:
+        res.fail(line + " - records that arrive empty or thin are dropped silently; this many is "
+                        "a source event")
+    elif scored >= MIN_SCORED:
+        res.note(line)
+
+
+# --------------------------------------------------------------------------- NYSE sessions
+def _easter(year: int):
+    """Gregorian Easter Sunday (Anonymous Gregorian / Meeus-Jones-Butcher algorithm)."""
+    from datetime import date
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = (h + l - 7 * m + 114) % 31 + 1
+    return date(year, month, day)
+
+
+def nyse_holidays(year: int) -> set:
+    """The NYSE's full-day holidays by its published rules (Rule 7.2 and the holiday schedule).
+
+    A Saturday holiday is observed the Friday before, a Sunday one the Monday after - except New
+    Year's Day on a Saturday, which the exchange does not observe on December 31. Unscheduled
+    closures (a national day of mourning, 2025-01-09) are not rules and are not here: on such a
+    day this gate expects a session that did not happen and discards that one run, and the next
+    run expects a real session again. A one-day discard, never a jam.
+    """
+    from datetime import date, timedelta
+
+    def nth(month, weekday, n):          # n-th weekday (Mon=0) of a month
+        d = date(year, month, 1)
+        d += timedelta(days=(weekday - d.weekday()) % 7)
+        return d + timedelta(weeks=n - 1)
+
+    def last(month, weekday):
+        d = date(year, month + 1, 1) - timedelta(days=1) if month < 12 else date(year, 12, 31)
+        return d - timedelta(days=(d.weekday() - weekday) % 7)
+
+    def observed(d):
+        return d - timedelta(days=1) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
+
+    out = {
+        nth(1, 0, 3),                                  # Martin Luther King Jr. Day
+        nth(2, 0, 3),                                  # Washington's Birthday
+        _easter(year) - timedelta(days=2),             # Good Friday
+        last(5, 0),                                    # Memorial Day
+        observed(date(year, 7, 4)),                    # Independence Day
+        nth(9, 0, 1),                                  # Labor Day
+        nth(11, 3, 4),                                 # Thanksgiving
+        observed(date(year, 12, 25)),                  # Christmas
+    }
+    ny = date(year, 1, 1)
+    if ny.weekday() != 5:
+        out.add(observed(ny))
+    if year >= 2022:
+        out.add(observed(date(year, 6, 19)))           # Juneteenth
+    return out
+
+
+def is_nyse_session(d) -> bool:
+    return d.weekday() < 5 and d not in nyse_holidays(d.year)
+
+
+def _to_eastern(at):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    if isinstance(at, str):
+        at = datetime.fromisoformat(at)
+    # A naive stamp is the run machine's local time (run_context writes datetime.now()), which
+    # astimezone() reads as local.
+    return at.astimezone(ZoneInfo(ET_ZONE))
+
+
+def expected_session(at):
+    """The NYSE session a price fetched at ``at`` should come from: the latest session that had
+    opened (09:30 Eastern) by then. At 02:00 Central that is the previous trading day; a
+    catch-up run after the open is today, intraday."""
+    from datetime import time, timedelta
+    et = _to_eastern(at)
+    d = et.date()
+    if not (is_nyse_session(d) and et.time() >= time(9, 30)):
+        d -= timedelta(days=1)
+        while not is_nyse_session(d):
+            d -= timedelta(days=1)
+    return d
+
+
+def check_price_freshness(payload: dict, baseline: dict | None, res: Result,
+                          run_dir: Path | None = None) -> None:
+    """FAIL unless >= ``MIN_PRICE_ON_SESSION`` of prices are dated on the expected NYSE session,
+    or if more than ``MAX_UNCHANGED_ACROSS_SESSION`` of prices are unchanged from the published
+    run although a session has closed in between (bot ROADMAP 1.5).
+
+    ``stock_detail[t].price_date`` is the session of the price the page publishes (the quote's
+    ``regularMarketTime``, or the last daily bar when the quote is missing;
+    ``factor_engine.published_price_date``). The expected session is taken at the run's start
+    *and* its end, so a fetch that straddles an open is not refused for it. A stock with no
+    price or no date counts against the share - it cannot be shown to be fresh.
+    """
+    detail = payload.get("stock_detail") or {}
+    if not detail:
+        return
+    meta = _run_meta(run_dir) if run_dir is not None else {}
+    stamps = [s for s in (meta.get("start_time"), meta.get("end_time"),
+                          (payload.get("kpis") or {}).get("run_timestamp")) if s]
+    if not stamps:
+        res.note("price freshness NOT checked - the run has no timestamp")
+        return
+    sessions = {expected_session(s) for s in stamps[:2]}
+    want = {d.isoformat() for d in sessions}
+    from collections import Counter
+    dates = Counter(str(v.get("price_date")) if v.get("price") and v.get("price_date") else "none"
+                    for v in detail.values())
+    on = sum(n for d, n in dates.items() if d in want)
+    share = on / len(detail)
+    other = ", ".join(f"{d} x{n}" for d, n in dates.most_common() if d not in want)
+    line = (f"price dates: {on}/{len(detail)} on the expected session {'/'.join(sorted(want))} "
+            f"({share:.1%}, need >= {MIN_PRICE_ON_SESSION:.0%})" + (f"; others: {other}" if other else ""))
+    if share < MIN_PRICE_ON_SESSION:
+        res.fail(line + " - the prices are not the latest session's, and the bot sizes orders "
+                        "and checks fills against them")
+    else:
+        res.note(line)
+
+    if baseline is None:
+        return
+    base_ts = (baseline.get("kpis") or {}).get("run_timestamp")
+    if not base_ts:
+        return
+    base_session = expected_session(base_ts)
+    if base_session >= min(sessions):
+        res.note(f"prices not compared with the published run - no session has closed since it "
+                 f"({base_session.isoformat()})")
+        return
+    bdet = baseline.get("stock_detail") or {}
+    pairs = [(v.get("price"), (bdet.get(t) or {}).get("price")) for t, v in detail.items()]
+    pairs = [(a, b) for a, b in pairs if isinstance(a, (int, float)) and isinstance(b, (int, float))]
+    if not pairs:
+        return
+    same = sum(1 for a, b in pairs if abs(a - b) < 1e-9)
+    s_share = same / len(pairs)
+    line = (f"{same}/{len(pairs)} prices unchanged from the published run although the "
+            f"{base_session.isoformat()} session has been followed by "
+            f"{'/'.join(sorted(want))} ({s_share:.1%}, limit {MAX_UNCHANGED_ACROSS_SESSION:.0%})")
+    if s_share > MAX_UNCHANGED_ACROSS_SESSION:
+        res.fail(line + " - yesterday's prices served again")
+    else:
+        res.note(line)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, default=None)
@@ -574,6 +986,11 @@ def main() -> int:
     check_coverage(payload, res)
     check_metric_availability(res, run_dir)
     check_dispersion(payload, res)
+    # The trading bot's inputs (2026-10-22): against the ranking the site last published.
+    published = published_payload()
+    check_rank_continuity(payload, published, res, run_dir=run_dir)
+    check_scored_universe(payload, run_dir, res)
+    check_price_freshness(payload, published, res, run_dir)
     check_inputs_against_filings(payload, res)
     check_top_of_ranking(payload, res)
 

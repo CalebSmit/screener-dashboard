@@ -127,7 +127,9 @@ FIELD_CLASSES = {
     # a price history the backtest already holds, restated per month
     "price_history": ("currentPrice", "price_latest", "price_1m_ago", "price_6m_ago", "price_12m_ago",
                       "volatility_1y", "_vol_daily_sd", "_daily_returns", "_price_series_rejected",
-                      "fiftyTwoWeekHigh", "avg_daily_dollar_volume"),
+                      "fiftyTwoWeekHigh", "avg_daily_dollar_volume",
+                      # the session of the published price (2026-10-22): display and gating only
+                      "regularMarketTime", "_price_bar_date"),
     # no free retrospective source: analyst estimates and history, short interest, holdings
     "no_free_history": ("forwardEps", "targetMeanPrice", "targetHighPrice", "targetLowPrice",
                         "numberOfAnalystOpinions", "recommendationMean", "analyst_surprise",

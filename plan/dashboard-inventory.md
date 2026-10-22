@@ -789,7 +789,9 @@ see `plan/dashboard-north-star.md` - but it is the largest single addition since
 `composite`, `rank`, `sector`, `company`, `industry`, `about`, `summary`,
 `vt`/`gt`, `price`, `pt_mean/high/low`, `num_analysts`, `eps_mismatch`,
 `eps_ratio`, `data_source`, `metric_count`/`metric_total`, `financials`,
-`flags`, `peers`, `self_metrics`.
+`flags`, `peers`, `self_metrics`. Since 2026-10-22 also `price_date`: the NYSE session the
+`price` is from (`factor_engine.published_price_date`) - not shown on the page; the data
+loop's health check refuses a run where under 95% of prices are dated on the expected session.
 
 **`raw` is the value as fetched, from 2026-09-01.** Until then the pipeline
 winsorized every metric at the 1st/99th percentiles immediately before ranking
@@ -849,7 +851,8 @@ build and will not publish weights that fail to reproduce them.
 
 ## Other payload keys
 
-`kpis`, `weights` (factor + metric, plus `base_factor_weights` /
+`kpis` (since 2026-10-22 with `methodology_version`, the run's `RunContext.config_hash`, which
+the health check's rank-continuity gate compares with the published run's), `weights` (factor + metric, plus `base_factor_weights` /
 `factor_weights_adjusted` / `factor_weights_derived` since 2026-08-28),
 `metric_meta` (36 metrics),
 `sectors` (11), `sector_composition`, `histogram`, `vt_by_sector`,

@@ -313,7 +313,7 @@ def test_the_gate_runs_after_regeneration_and_before_the_commit():
     regen_at = code.find("'generate_dashboard.py'")
     gate_at = code.find("'scripts/check_published_claims.py'")
     commit_at = code.find("'commit', '-m'")
-    push_at = code.find("'push', 'origin', 'main'")
+    push_at = code.find("'push', 'origin', \"${dataCommit}:refs/heads/main\"")  # the data commit only (2026-10-22)
     assert -1 not in (regen_at, gate_at, commit_at, push_at)
     assert regen_at < gate_at < commit_at < push_at
 
