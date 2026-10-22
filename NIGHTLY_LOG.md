@@ -14059,3 +14059,41 @@ deepest fall and the page was not showing it.
   (FAIL below 0.90 correlation with the last published run, more than 8 new top-25 names, or more
   than 3 top-25 names below #40). It is the first step of the screener's half of the path to real
   money and it has a test specified in the item.
+
+## 2026-10-22 (owner-run, afternoon) - an improvement wave across both repos: the bot's safety and measurement, the screener's input gates, and which free data adds evidence
+
+**Health (rule 8):** last code session ran? **yes** - 06:00 shipped (the stop-loss test). Data loop
+published? **yes** - 02:00, HEALTH PASS, claims 1,272 passed, 498 scored. Evidence base at `1m` =
+**34 rows, newest 2026-09-21 (31 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply`
+**false**, 4 of 8. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 10
+days**) - not worked; the owner's request outranked it. The 13:00 slot stood down for the owner
+marker, as designed.
+
+**Owner:** *"go and find something in these tools to improve ... maybe even coming up with a better
+plan ... so much data out there."* Answered with five agents in isolated worktrees and merged here.
+
+### Screener (this repo)
+- **The trading bot's input gates** (screener-bot ROADMAP 1.3-1.5, 1.9; `OWNER_FOCUS` 2026-10-21 items
+  1-4): rank continuity, the unscored share, price dates (`stock_detail[t].price_date`,
+  `scoring_schema` 16 - tonight's run refetches), and data-loop git hygiene (fail closed on a bad pull,
+  push only the data commit). **Replayed against all 72 published pages since 07-28: the four
+  known-bad runs fail, no ordinary day does.** `data-run.ps1` was parse-checked here
+  (`Parser::ParseFile`: OK) - the agent could not run PowerShell. `tests/test_input_gates.py` (75),
+  in the publish gate. CLAUDE.md row 0.5/0.7 and the data-loop gates paragraph updated.
+- **Free data that adds evidence** (`research/2026-10-22-free-data-that-adds-evidence.md`): the scarce
+  thing is months, not data. Three free, licensed sources add independent evidence or fix a recorded
+  weakness - **SEC 13F** (quarter-end prices for departed members, acquisitions included), **FINRA
+  short interest** (history from at least 2017-12, contradicting the "no free history" class for
+  `short_interest_ratio`), **SEC XBRL 2009-2011** (about 22 untouched months for backtest v2). Three
+  pre-registerable tests written, none registered: **Proposal status OPEN** for a later session.
+
+### screener-bot (owner-run; its SESSION_LOG has the detail)
+- Order safety (2.3-2.5), account safety (2.1, 2.2 built not switched on, 2.6, 2.7, 2.10, 2.11) and
+  measurement (3.3, 3.4, 3.6, 3.7 part) merged and joined: sells send the bot's own quantity; the
+  emergency stop keeps a wholesale close under its own name; the completeness check asks whether
+  each planned buy went in (a 95%-invested floor fired on a correct rebalance and was replaced at
+  merge). 475 tests, rehearsals clean, CI green. The setup panel now uses finished sessions only.
+
+### Next
+The data-scout proposal (register tests A-C or refuse them) is the open decision. Then the 2026-10-21
+OWNER_FOCUS item's parts 5-6 (a data-loop-only `signals.json` the bot trades from; the audit trail).
