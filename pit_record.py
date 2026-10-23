@@ -130,7 +130,13 @@ FIELD_CLASSES = {
                       "fiftyTwoWeekHigh", "avg_daily_dollar_volume",
                       # the session of the published price (2026-10-22): display and gating only
                       "regularMarketTime", "_price_bar_date"),
-    # no free retrospective source: analyst estimates and history, short interest, holdings
+    # no free retrospective panel IN USE: analyst estimates and history, short interest, holdings.
+    # "No free source exists" is true of the analyst fields and false of short interest: FINRA
+    # publishes daysToCoverQuantity for exchange-listed names from 2017-12-29 (measured
+    # 2026-10-23, research/measurements/2026-10-23-finra-short-interest-probe.json). shortRatio
+    # and shortPercentOfFloat stay in this class anyway, and must until a panel is actually wired
+    # in: backtest_v2._record NaNs everything here, so moving a field out without supplying its
+    # history makes every historical month read TODAY's value - the leak this class prevents.
     "no_free_history": ("forwardEps", "targetMeanPrice", "targetHighPrice", "targetLowPrice",
                         "numberOfAnalystOpinions", "recommendationMean", "analyst_surprise",
                         "earnings_acceleration", "consecutive_beat_streak", "_eps_quarters",

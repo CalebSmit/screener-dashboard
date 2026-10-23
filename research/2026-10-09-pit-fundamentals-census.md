@@ -50,8 +50,12 @@ even that assumption unnecessary.
   That is gross profit / assets (22% of Quality) and Piotroski's margin signal - the inputs a free
   v2 would have to treat most carefully, or measure as partially point-in-time.
 - **Not reachable from filings at all:** the 9.0pp of analyst estimates (forward EPS growth, FY1
-  revisions, surprise history) - as the plan expected - plus short interest, which has no free
-  history either.
+  revisions, surprise history) - as the plan expected - plus short interest.
+  **Corrected 2026-10-23:** this said short interest "has no free history either", which is false.
+  FINRA publishes `daysToCoverQuantity` for exchange-listed names from **2017-12-29**, measured
+  (`research/measurements/2026-10-23-finra-short-interest-probe.json`). It is not reachable *from
+  filings*, which is what this bullet is about; it is reachable, and no panel is built yet
+  (`research/2026-10-22-free-data-that-adds-evidence.md` section 7).
 
 **Limits.** Current constituents only (survivorship is the other half of v2 and is measured
 separately); coverage counts the *availability* of a figure, not that the engine's exact definition

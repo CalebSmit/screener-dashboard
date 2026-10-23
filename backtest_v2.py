@@ -65,8 +65,13 @@ CACHE = ROOT / "cache"
 SCORES_PATH = CACHE / "v2_scores.parquet"
 CENSUS_PATH = CACHE / "v2_census.json"
 
-#: Weighted metrics whose inputs have no free retrospective source (pit_record's
+#: Weighted metrics whose inputs have no free retrospective panel *in use* (pit_record's
 #: ``no_free_history`` class). v2 gives them weight 0 rather than pretend.
+#: Not all of them are unobtainable: ``short_interest_ratio``'s input is published free by FINRA
+#: from 2017-12-29 (measured 2026-10-23). It stays at weight 0 until that panel is built and
+#: verified to be scored - a registered test of it before then would run on an all-NaN column and
+#: report a null that is a property of the missing data
+#: (research/2026-10-22-free-data-that-adds-evidence.md section 7).
 UNMEASURABLE_METRICS = ("forward_eps_growth", "fy1_revision_3m", "analyst_surprise",
                         "price_target_upside", "consecutive_beat_streak",
                         "short_interest_ratio", "earnings_acceleration", "peg_ratio",
