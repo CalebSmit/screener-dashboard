@@ -181,7 +181,7 @@ Section 5's item 1 was built in the same session, with items 2-3's data:
 - **`backtest_v2.py`** scores every month-end 2020-01 .. 2026-09: the S&P 500 as it stood that
   month (`universe_history`), records from `pit_record`, the month's prices and risk inputs, the
   month's momentum-rule reading, the engine's own pipeline in the live run's order. Analyst inputs
-  and short interest have no free history, so **v2 scores the filings-and-prices screener**:
+  and short interest have no free history *in use*, so **v2 scores the filings-and-prices screener**:
   Revisions and `forward_eps_growth` at weight 0 (`v2_config`, 15.85 points), said in every output.
   Members that cannot be scored are named in a census by reason - chiefly **no current record**,
   i.e. they have left the index since (about 117 of 505 in early 2020, falling as the window nears

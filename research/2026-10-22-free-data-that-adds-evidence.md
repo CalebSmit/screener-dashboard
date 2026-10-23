@@ -7,7 +7,14 @@ pre-registerable tests in section 4 are written in the registry's style and **de
 to `research/experiments/registry.yaml`** - a session that adopts one commits it there, before any
 month of it is built.
 
-**Proposal status: OPEN** - register tests A, B and C (section 4) in `research/experiments/registry.yaml`, each in its own commit before any of its data is built; or refuse one here with the reason.
+**Proposal status: DECIDED 2026-10-23 (06:00 session, not the note's author)** - the instruction
+"register tests A, B and C in `research/experiments/registry.yaml`, each in its own commit before
+any of its data is built" is **REFUSED for all three, as written**, because the registry cannot hold
+any of them and for B registering first would manufacture a false null. The **research stands**:
+test B's data is real and independently re-verified, and B is **accepted in substance** with a
+corrected pre-registration and a stated build order. Test A is refused on its own void condition
+and on sequencing; test C is refused on the trade between what it costs and the 9.8% of precision
+it buys. Reasoning and measurements: **section 7**.
 
 ## 1. The question, and the answer in one paragraph
 
@@ -289,6 +296,158 @@ ROADMAP, which already lists this.
 
 **And rule 5.** Whatever these sources show, nothing a backtest says decides a weight before
 2027-02-11.
+
+## 7. Second reading and decision (2026-10-23, the 06:00 scheduled session)
+
+Decided by a session that did not write the note, as the routine requires. Everything below was
+measured today; the two scripts are committed beside this note.
+
+### 7.1 What re-measuring found
+
+**(a) The FINRA claim is true, and I re-ran it rather than taking it.**
+`research/measurements/2026-10-23-finra-short-interest-probe.py` (+ `.json`) fetched twelve
+settlement dates. 2014-12-31, 2015-12-31 and 2016-12-30 return **403**; **2017-12-29 onward return
+200**, with 15,495 rows rising to 20,516 by 2025-06-30. The files are **pipe-delimited despite the
+`.csv` extension** (the note does not say so; a reader following it with a comma parser gets one
+column - the first run of my own probe did exactly that). `daysToCoverQuantity` is present on every
+served date and is numeric and positive for **15,494 of 15,495** rows on 2017-12-29 and
+**20,516 of 20,516** on 2025-06-30. `marketClassCode` on 2017-12-29: OTC 7,152, **NYSE 3,102, NNM
+2,355, ARCA 1,433** - so exchange-listed rows are in the file four years before the June 2021 that
+FINRA's own page gives, and the note's correction of FINRA is itself correct. All seven large
+exchange-listed members probed (AAPL, JPM, MSFT, XOM, JNJ, KO, GE) are present on **every** served
+date; AAPL 2017-12-29 reads 1.91 days to cover on 45,746,430 shares short against 23,901,107 average
+daily volume, JPM 2.53 on 27,572,737 against 10,902,017. One construction detail the note should
+carry: the field **floors at 1.00** (AAPL and JPM both read exactly 1.00 on 2018-12-31, when average
+volume exceeded the short position), so it is censored below, not a clean ratio.
+
+**(b) The registry cannot hold any of the three, and this is the decisive finding.**
+`research/measurements/2026-10-23-can-the-registry-hold-these-tests.py` runs the engine's own call
+sites against the note's entries instead of judging the YAML by eye. The committed registry has
+exactly **two** shapes: `experiments:` - 29 entries, **every one** with a `transform` whose `kind`
+is one of `baseline, config, drop_category, equal_categories, metrics, only_category, whole_market`
+- and `evaluations:` - 2 entries, every one with a `rule` and **no** transform (the bot arms).
+None of A, B or C is either. Against an entry shaped as the note writes it, `apply_transform` raises
+**`KeyError: 'factor_weights'`**, and the bare `e["transform"]["kind"]` read raises
+**`KeyError: 'transform'`** - a read that is unguarded at `v2_experiments.py:1122`, `:1156` and
+`:1180` (`report`, `summary_for_page`) and in three places in `tests/test_engine_calibration.py`.
+So the literal instruction does not describe an executable action: it would red the suite and the
+public research page, not pre-register anything.
+
+**(c) For test B specifically, registering first would manufacture a false null.** This is worse
+than an error. `base_config()` is `v2_config(config.yaml)` (`v2_experiments.py:126-127`), which
+zeroes every name in `backtest_v2.UNMEASURABLE_METRICS` - `short_interest_ratio` is in it
+(verified) - and `backtest_v2._record` NaNs every field in
+`pit_record.FIELD_CLASSES["no_free_history"]`, which holds **`shortRatio` and
+`shortPercentOfFloat`** (verified). A `kind: metrics` transform *could* put the weight back, and the
+entry would then **run without error** on an all-NaN column: zero coverage, renormalised away, a
+"not distinguishable from zero" row in the ledger. Pre-registration exists to stop data-dependent
+choices; here it would publish a null that is a property of the missing panel and says nothing about
+short interest. **Build the panel, confirm the metric is actually scored, then register the
+prediction before any return is computed.** That order is the opposite of the proposal's.
+
+**(d) Test B's pre-registration is malformed as written.** Its `prediction` is a null (mean IC
+positive, below 0.02, `|t| < 2`); its `refuted_if` is a condition on the **sign of the point
+estimate** ("mean IC is <= 0 at the point estimate"). Under the entry's own predicted null the
+point estimate is negative with probability **0.500** - so the entry would be declared *refuted* on
+a coin flip by exactly the state of the world it predicts, while the prediction itself holds with
+probability 0.466 at its stated SE of 0.011. A verdict rule that fires half the time under its own
+null is not a pre-registration.
+
+**(e) Test C has a 16.2% hole where it returns no verdict at all.** At its own stated SE of 0.023
+over 22 months, the `prediction` band (`|IC| < 0.03`) binds at `|t| < 1.304` and fires with
+probability **0.808** under the null; `refuted_if` (`|IC| >= 0.05` **and** `|t| >= 2`) binds at
+`|t| >= 2.174` and fires with probability **0.030**. Between them sits **0.162** of the null
+distribution for which the entry says nothing. At SE 0.021 it is 0.136.
+
+**(f) What test C's 22 months actually buy.** At the engine's own month-to-month IC spread of 0.11,
+adding 22 months to 2012-2019's 96 moves the standard error from **0.01123 to 0.01013** - a **9.8%**
+precision gain - and the smallest IC visible at `t >= 3` from **0.0337 to 0.0304**.
+
+### 7.2 The decisions
+
+**Test A (`size-survivorship-13f-quarterly`): REFUSED.** Three reasons, in order of weight.
+*First*, its own `void_if` requires a price for **>= 80% of departed member-quarters**, and both
+coverage rates the note measured sit below that bar: **60 of 86 acquired members name-matched
+(69.8%)** and **29 of 39 13F prices within 1% of Yahoo (74.4%)**. The entry proposes better
+identification routes (SC 13G cover pages, then OpenFIGI), but their yield is **unmeasured** - so
+the registration would commit an "L"-effort build whose feasibility precondition is unknown and
+whose own stated outcome may be "void". Measure the identification rate first; it is a cheap
+EDGAR exercise and it decides whether the test exists.
+*Second*, the price panel is built from a long list of choices made while looking at the data -
+filers with >= 1,000 shares, >= 5 filers, splits inferred as integer ratios in aggregate share
+counts, deal prices hand-checked with "the eight known extraction errors corrected first",
+Shumway's -30% for bankruptcies. Pre-registering the *hypothesis* does not protect a result when
+the *measurement* carries that many free parameters; freezing the construction in code, before any
+return is read, is what would.
+*Third*, sequencing: `only-size-extended` is already queued (`OWNER_FOCUS.md` 2026-10-20 item 6)
+with its one-sided reading written, is monthly rather than quarterly, and can **falsify** the
+survivorship explanation - which is the decision-relevant direction, since the explanation is
+currently the live excuse for a near-miss. Do the cheap falsifying test before building a quarterly
+price panel from 13F filings. The YAML in section 4 stays as a draft for after it.
+
+**Test B (`short-interest-dtc-finra`): ACCEPTED in substance, REFUSED in form.** It is the only one
+of the three that tests a metric **carrying live weight** - `short_interest_ratio` is 13.5 of the
+Revisions table's 100 points, **1.35 composite points** (`config.yaml:125`, verified) - and which
+v2 today scores at weight 0 as unmeasurable. Its data is real, free, public-domain-adjacent and now
+independently verified back to 2017-12-29 across ~104 months. Its published priors are genuine and
+point the right way. It should be built. The **form** is refused for (b), (c) and (d): it cannot go
+in `experiments:`, registering before the panel exists would publish a mechanical null, and its
+refutation rule fires on a coin flip. The corrected build order, for the session that takes it:
+
+1. Verify the licence route **before** collecting anything. My probe used
+   `cdn.finra.org/equity/otcmarket/biweekly/`, i.e. the **website**, whose terms forbid derivative
+   works and building a database from it. The route that permits publication is the **Query API**
+   under the Equity Specific Terms. The CDN path containing `otcmarket` is suggestive that these are
+   the same dataset group the API terms name, but it is not proof. If the API does not serve the
+   exchange-listed rows, this test is private-reading only and **no figure from it goes on a public
+   page** - settle that first, not last.
+2. Build the panel: settlement dates 2017-12-29 onward, each value used from its FINRA
+   **dissemination** date, with the reporting calendar written into the entry. Record that
+   `daysToCoverQuantity` is **censored at 1.00**.
+3. Wire it into v2 as a *measured* field - which means taking `shortRatio` out of
+   `no_free_history` **only for the months the panel covers**, never globally. Reclassifying it
+   without a panel makes `backtest_v2._record` read **today's** value into every historical month:
+   a look-ahead leak of exactly the kind that class exists to prevent. Confirm non-zero coverage
+   on the scored months before anything is predicted.
+4. *Then* register, in its own commit, with the verdict bands disjoint and keyed to effect size
+   rather than sign - e.g. **prediction**: mean IC in (0, 0.02) with `|t| < 2`; **refuted_if**:
+   mean IC <= -0.02 with `t <= -2` (the metric is signed the wrong way for this universe) **or**
+   mean IC >= 0.04 with `t >= 3` (the effect is large among large companies, against the decay
+   prediction); **inconclusive** otherwise, and said so.
+5. Read the large-company and value-weighted rows of Boehmer, Huszar & Jordan (2010) and Hong et
+   al. (2015) from the PDFs first, as the entry already requires - the effect sizes in section 4
+   are flagged as from abstracts and secondary summaries.
+
+**Test C (`phasein`): REFUSED.** Not because blind months are worthless - the note is right that
+months are the scarce thing - but on the trade. It buys **9.8%** of precision on the 2012-2019 era
+(7.1f) for a rebuild of v2's records back to 2009 plus a full ~47-minute rerun; its confirm band
+fires with probability 0.808 under the null and it leaves 16.2% of outcomes without a verdict
+(7.1e); and its months are **selected on size**. The XBRL phase-in was mandated by public float
+above $5bn (SEC Release 33-9002, the note's own citation), and a member enters only if `pit_record`
+builds its record - so the phase-in universe is the largest members first, by construction. The one
+near-miss the engine has produced is **Size alone in 2012-2019**, so these are precisely the months
+that could not be pooled into the question they would most be wanted for. A test that cannot be
+combined with the live question, almost certainly confirms, and has a 16% undefined region does not
+earn a rebuild. **What would change this:** if the free survivorship fixes in `OWNER_FOCUS.md` item
+6 are built anyway (they touch `RESULT_PATHS` and force the same rerun), the marginal cost of the
+phase-in months drops to the record rebuild alone - reopen it then, with the verdict gap closed and
+the size selection written into `differences` rather than left in prose.
+
+### 7.3 Two corrections this decision leaves behind
+
+- **"Short interest has no free history" is false and is written in three places in the code**, not
+  two: `pit_record.py`'s `no_free_history` comment, `backtest_v2.py`'s `UNMEASURABLE_METRICS`
+  comment, and `research/2026-10-15-pit-record-validation.md`. The accurate statement is that no
+  free retrospective panel is **in use** - FINRA publishes days to cover from 2017-12-29, measured
+  today. Corrected in this session's commit; the class **membership is deliberately unchanged**,
+  for the look-ahead reason in 7.2 step 3.
+- **The ledger was already 31 rows stale before this session**, from commit `502ca2b` (2026-10-22),
+  which added `_price_bar_date`, `regularMarketTime` and `published_price_date` to `factor_engine.py`
+  and `pit_record.py` - both in `RESULT_PATHS`. The change is additive and display/gating-only
+  (`published_price_date` is called by `check_run_health`, never by scoring; the two fields are
+  classed `price_history`, which v2 restates per month), so the rerun it owes **cannot move a
+  number** - the same category as the 2026-10-18 provenance rerun, which measured 0 differences
+  across 29 rows. It is provenance hygiene, not a result, and it is this session's logged Next.
 
 ## Sources
 

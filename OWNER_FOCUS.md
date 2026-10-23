@@ -122,7 +122,27 @@ Two things still outrank this file, and neither is negotiable:
      formula, identical to today, while the loading measured on the engine's own scores is 2.3x
      today's and past the note's own bar. The failing condition is now the measured one.
      `METHODOLOGY_CHANGELOG.md` 2026-10-21 (13:00 session); the note's new section 11.
-     **No proposal is now waiting for a decision** (`write_brief.open_proposals()` returns `[]`).
+     **A third proposal arrived 2026-10-22 and was DECIDED 2026-10-23 (06:00) - all three of its
+     registrations REFUSED as written; test B accepted in substance.**
+     `research/2026-10-22-free-data-that-adds-evidence.md` asked a later session to register three
+     pre-registered tests in `research/experiments/registry.yaml`. The decisive finding is that
+     **the registry cannot hold any of them**: `experiments:` is 29 weighting transforms (29 of 29
+     carry one) and `evaluations:` is 2 bot rules, and shaped as the note writes them the engine
+     raises `KeyError: 'transform'` in `report`, `summary_for_page` and three places in
+     `tests/test_engine_calibration.py`. For the short-interest test it is worse than an error:
+     `v2_config` zeroes the metric and `_record` NaNs its inputs, so the entry would have **run
+     clean on an all-NaN column** and published a null caused by the missing panel. Its data is
+     real, though - FINRA's files were re-probed independently: 403 before 2017, **200 from
+     2017-12-29**, exchange-listed rows present four years before FINRA's own page says, ~100% of
+     rows carrying days to cover. So the note's research stands and the build order is now written
+     into its section 7, licence check first. Test A refused on its own void condition (both
+     coverage rates measured, 69.8% and 74.4%, sit under its 80% bar); test C refused on the trade
+     (22 months buy 9.8% of precision, its confirm band fires with probability 0.808 under the null,
+     and the months are size-selected by SEC Release 33-9002, so they cannot be pooled into the Size
+     near-miss they would most be wanted for). A false "short interest has no free history" was
+     corrected in four places, with a mutation-tested guard against the reclassification that
+     correction invites. **No proposal is now waiting for a decision**
+     (`write_brief.open_proposals()` returns `[]`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
      `git log` that the tolerances were committed before the comparison ran. A transcription error
@@ -320,6 +340,15 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-23 (06:00 nightly) - deferred, and why; nothing started, so nothing is half-done.**
+    This was the lab's Friday, but a proposal was waiting for a decision (1 day open) and both the
+    prompt and item 1 above put that ahead of the day's focus. It was decided - all three of its
+    registrations refused as written, test B accepted in substance - see item 1 and
+    `NIGHTLY_LOG.md` 2026-10-23. **The next experiment is still unstarted**; any session that finds
+    no proposal waiting can take one, and the next non-retrospective Friday is **2026-11-06**
+    (2026-10-30 falls in an even ISO week, so the runner swaps in the retrospective). One thing for
+    whoever takes it: the lab's own `lab_data.js` is at ~2.9 MB and item 7 above asks for its first
+    paint to be measured - worth doing in the same session as experiment 18 rather than separately.
   - **2026-10-15 (owner-run) - three experiments in a day: 10, 11 and 12.** Profitability (Novy-Marx
     2013, 6 of 6 within), cash-flow yield (Lakonishok, Shleifer & Vishny 1994, 11 of 11) and accruals
     (Sloan 1996, 6 of 11 - the direction at half the size). Each says the same thing about the weights:

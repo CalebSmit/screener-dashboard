@@ -1,0 +1,762 @@
+{
+  "url_template": "https://cdn.finra.org/equity/otcmarket/biweekly/shrt{date}.csv",
+  "wanted": [
+    "AAPL",
+    "JPM",
+    "MSFT",
+    "XOM",
+    "JNJ",
+    "KO",
+    "GE"
+  ],
+  "probes": [
+    {
+      "settlement_date": "20141231",
+      "http_status": 403,
+      "bytes": 0
+    },
+    {
+      "settlement_date": "20151231",
+      "http_status": 403,
+      "bytes": 0
+    },
+    {
+      "settlement_date": "20161230",
+      "http_status": 403,
+      "bytes": 0
+    },
+    {
+      "settlement_date": "20171229",
+      "http_status": 200,
+      "bytes": 1507693,
+      "delimiter": "|",
+      "rows": 15495,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 7152,
+        "NYSE": 3102,
+        "NNM": 2355,
+        "ARCA": 1433,
+        "SC": 854,
+        "AMEX": 347,
+        "BZX": 235,
+        "OTCBB": 17
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.91",
+          "short_position": "45746430",
+          "avg_daily_volume": "23901107"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.53",
+          "short_position": "27572737",
+          "avg_daily_volume": "10902017"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "2.31",
+          "short_position": "39929844",
+          "avg_daily_volume": "17277896"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "3.70",
+          "short_position": "33658118",
+          "avg_daily_volume": "9089433"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "3.33",
+          "short_position": "16159731",
+          "avg_daily_volume": "4846227"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "4.09",
+          "short_position": "30667056",
+          "avg_daily_volume": "7495086"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.81",
+          "short_position": "112836951",
+          "avg_daily_volume": "62396842"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 15494
+    },
+    {
+      "settlement_date": "20180629",
+      "http_status": 200,
+      "bytes": 1523132,
+      "delimiter": "|",
+      "rows": 15573,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 7197,
+        "NYSE": 3126,
+        "NNM": 2348,
+        "ARCA": 1429,
+        "SC": 894,
+        "AMEX": 329,
+        "BZX": 243,
+        "OTCBB": 7
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.54",
+          "short_position": "38080068",
+          "avg_daily_volume": "24684978"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.28",
+          "short_position": "18628336",
+          "avg_daily_volume": "14609326"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "1.66",
+          "short_position": "47843448",
+          "avg_daily_volume": "28836374"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.73",
+          "short_position": "31391108",
+          "avg_daily_volume": "11494777"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.28",
+          "short_position": "15679641",
+          "avg_daily_volume": "6871781"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.28",
+          "short_position": "29176732",
+          "avg_daily_volume": "12804251"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.37",
+          "short_position": "130182969",
+          "avg_daily_volume": "94990073"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 15573
+    },
+    {
+      "settlement_date": "20181231",
+      "http_status": 200,
+      "bytes": 1537274,
+      "delimiter": "|",
+      "rows": 15687,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 7258,
+        "NYSE": 3088,
+        "NNM": 2368,
+        "ARCA": 1465,
+        "SC": 931,
+        "AMEX": 314,
+        "BZX": 262,
+        "IEX": 1
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.00",
+          "short_position": "45279694",
+          "avg_daily_volume": "51387635"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.00",
+          "short_position": "22015178",
+          "avg_daily_volume": "23891502"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "1.00",
+          "short_position": "55925306",
+          "avg_daily_volume": "57252976"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.32",
+          "short_position": "30089009",
+          "avg_daily_volume": "22858109"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.00",
+          "short_position": "15719662",
+          "avg_daily_volume": "15979892"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.75",
+          "short_position": "29811027",
+          "avg_daily_volume": "17059757"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.08",
+          "short_position": "152096259",
+          "avg_daily_volume": "141364365"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 15687
+    },
+    {
+      "settlement_date": "20190115",
+      "http_status": 200,
+      "bytes": 1548209,
+      "delimiter": "|",
+      "rows": 15812,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 7348,
+        "NYSE": 3087,
+        "NNM": 2365,
+        "ARCA": 1491,
+        "SC": 941,
+        "AMEX": 312,
+        "BZX": 267,
+        "IEX": 1
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.03",
+          "short_position": "46579709",
+          "avg_daily_volume": "45191034"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.19",
+          "short_position": "20243844",
+          "avg_daily_volume": "16971189"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "1.72",
+          "short_position": "58402379",
+          "avg_daily_volume": "33973306"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.46",
+          "short_position": "31180812",
+          "avg_daily_volume": "12664557"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.88",
+          "short_position": "14012467",
+          "avg_daily_volume": "7437205"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.92",
+          "short_position": "26071117",
+          "avg_daily_volume": "13584316"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.28",
+          "short_position": "151273237",
+          "avg_daily_volume": "118410510"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 15812
+    },
+    {
+      "settlement_date": "20191231",
+      "http_status": 200,
+      "bytes": 1583785,
+      "delimiter": "|",
+      "rows": 16208,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 7497,
+        "NYSE": 3083,
+        "NNM": 2425,
+        "ARCA": 1517,
+        "SC": 1038,
+        "BZX": 347,
+        "AMEX": 301
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.58",
+          "short_position": "45514898",
+          "avg_daily_volume": "28719633"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.92",
+          "short_position": "28532239",
+          "avg_daily_volume": "9755888"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "3.01",
+          "short_position": "62706418",
+          "avg_daily_volume": "20806843"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "3.01",
+          "short_position": "38805666",
+          "avg_daily_volume": "12899703"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "3.29",
+          "short_position": "20500856",
+          "avg_daily_volume": "6228177"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "3.92",
+          "short_position": "37466279",
+          "avg_daily_volume": "9554728"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.05",
+          "short_position": "86753712",
+          "avg_daily_volume": "42281882"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 16208
+    },
+    {
+      "settlement_date": "20210528",
+      "http_status": 200,
+      "bytes": 1964865,
+      "delimiter": "|",
+      "rows": 20132,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 9696,
+        "NYSE": 3509,
+        "NNM": 2654,
+        "SC": 1938,
+        "ARCA": 1573,
+        "BZX": 466,
+        "AMEX": 296
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.83",
+          "short_position": "123121920",
+          "avg_daily_volume": "67230115"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.96",
+          "short_position": "20771693",
+          "avg_daily_volume": "10575409"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "2.37",
+          "short_position": "46469032",
+          "avg_daily_volume": "19571849"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.79",
+          "short_position": "39492704",
+          "avg_daily_volume": "22009939"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.58",
+          "short_position": "14180881",
+          "avg_daily_volume": "5493899"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.12",
+          "short_position": "35023137",
+          "avg_daily_volume": "16487645"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.63",
+          "short_position": "100082541",
+          "avg_daily_volume": "61567589"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 20132
+    },
+    {
+      "settlement_date": "20210615",
+      "http_status": 200,
+      "bytes": 1986262,
+      "delimiter": "|",
+      "rows": 20251,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 9720,
+        "NYSE": 3512,
+        "NNM": 2681,
+        "SC": 1972,
+        "ARCA": 1592,
+        "BZX": 476,
+        "AMEX": 298
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.57",
+          "short_position": "108937943",
+          "avg_daily_volume": "69509314"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.78",
+          "short_position": "22999076",
+          "avg_daily_volume": "12911930"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "2.23",
+          "short_position": "48137624",
+          "avg_daily_volume": "21556202"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.62",
+          "short_position": "38118103",
+          "avg_daily_volume": "23504747"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.31",
+          "short_position": "15161651",
+          "avg_daily_volume": "6553069"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.95",
+          "short_position": "24988625",
+          "avg_daily_volume": "12807805"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.82",
+          "short_position": "87507681",
+          "avg_daily_volume": "48213026"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 20091
+    },
+    {
+      "settlement_date": "20230630",
+      "http_status": 200,
+      "bytes": 1900950,
+      "delimiter": "|",
+      "rows": 19465,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 8379,
+        "NNM": 3300,
+        "NYSE": 3165,
+        "ARCA": 1916,
+        "SC": 1770,
+        "BZX": 585,
+        "AMEX": 350
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "2.01",
+          "short_position": "117870227",
+          "avg_daily_volume": "58589395"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.56",
+          "short_position": "16536682",
+          "avg_daily_volume": "10594528"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "1.49",
+          "short_position": "38002864",
+          "avg_daily_volume": "25424440"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.55",
+          "short_position": "26405475",
+          "avg_daily_volume": "16983045"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.75",
+          "short_position": "12985336",
+          "avg_daily_volume": "7435179"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.17",
+          "short_position": "19343707",
+          "avg_daily_volume": "16494561"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.35",
+          "short_position": "13360711",
+          "avg_daily_volume": "5685591"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 19464
+    },
+    {
+      "settlement_date": "20250630",
+      "http_status": 200,
+      "bytes": 2004145,
+      "delimiter": "|",
+      "rows": 20516,
+      "columns": [
+        "accountingYearMonthNumber",
+        "symbolCode",
+        "issueName",
+        "issuerServicesGroupExchangeCode",
+        "marketClassCode",
+        "currentShortPositionQuantity",
+        "previousShortPositionQuantity",
+        "stockSplitFlag",
+        "averageDailyVolumeQuantity",
+        "daysToCoverQuantity",
+        "revisionFlag",
+        "changePercent",
+        "changePreviousNumber",
+        "settlementDate"
+      ],
+      "days_to_cover_column": "daysToCoverQuantity",
+      "market_class_column": "marketClassCode",
+      "market_class_counts": {
+        "OTC": 9145,
+        "NNM": 3257,
+        "NYSE": 2863,
+        "ARCA": 2348,
+        "SC": 1636,
+        "BZX": 960,
+        "AMEX": 307
+      },
+      "symbol_column": "symbolCode",
+      "wanted_symbols": {
+        "AAPL": {
+          "market_class": "NNM",
+          "days_to_cover": "1.89",
+          "short_position": "110101153",
+          "avg_daily_volume": "58315896"
+        },
+        "JPM": {
+          "market_class": "NYSE",
+          "days_to_cover": "2.44",
+          "short_position": "25036078",
+          "avg_daily_volume": "10255065"
+        },
+        "MSFT": {
+          "market_class": "NNM",
+          "days_to_cover": "2.44",
+          "short_position": "56857827",
+          "avg_daily_volume": "23339673"
+        },
+        "XOM": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.80",
+          "short_position": "40600231",
+          "avg_daily_volume": "22512853"
+        },
+        "JNJ": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.67",
+          "short_position": "15824423",
+          "avg_daily_volume": "9466482"
+        },
+        "KO": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.85",
+          "short_position": "35288473",
+          "avg_daily_volume": "19050290"
+        },
+        "GE": {
+          "market_class": "NYSE",
+          "days_to_cover": "1.77",
+          "short_position": "15470920",
+          "avg_daily_volume": "8744337"
+        }
+      },
+      "wanted_found": 7,
+      "rows_with_usable_days_to_cover": 20516
+    }
+  ]
+}

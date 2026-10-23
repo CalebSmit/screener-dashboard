@@ -197,6 +197,49 @@ def test_the_classes_do_not_overlap():
             seen[f] = cls
 
 
+# ``no_free_history`` says "no panel is in use", not "no source exists" - and for short interest a
+# free source does exist: FINRA publishes daysToCoverQuantity for exchange-listed names from
+# 2017-12-29 (measured 2026-10-23, research/measurements/2026-10-23-finra-short-interest-probe.json;
+# the decision is research/2026-10-22-free-data-that-adds-evidence.md section 7, which refused
+# registering a test of it before the panel exists).
+#
+# That correction is itself the hazard this guards: a later session, reading the comment, could
+# "fix" the classification. ``backtest_v2._record`` NaNs every field in this class, so a field moved
+# out of it without a historical panel is read at TODAY's value in every historical month - the
+# look-ahead leak the class exists to prevent, inside the metric Phase 13 already fixed once for a
+# fallback cohort. Both halves must move together or not at all.
+SHORT_INTEREST_FIELDS = ("shortRatio", "shortPercentOfFloat")
+
+
+def test_short_interest_stays_unmeasured_until_its_panel_is_built():
+    """Reclassifying short interest without supplying its history is a look-ahead leak.
+
+    The two states that are coherent: the fields sit in ``no_free_history`` **and**
+    ``short_interest_ratio`` carries weight 0 in v2; or a panel exists, the fields are classed as
+    something v2 restates per month, and the metric is scored. Anything between leaks.
+    """
+    import backtest_v2 as b2
+
+    in_no_free = [f for f in SHORT_INTEREST_FIELDS
+                  if f in pr.FIELD_CLASSES["no_free_history"]]
+    zeroed = "short_interest_ratio" in b2.UNMEASURABLE_METRICS
+
+    assert len(in_no_free) in (0, len(SHORT_INTEREST_FIELDS)), (
+        f"{SHORT_INTEREST_FIELDS} must move together; only {in_no_free} are in no_free_history")
+
+    if in_no_free:
+        assert zeroed, (
+            "shortRatio/shortPercentOfFloat are NaN-ed by backtest_v2._record, so "
+            "short_interest_ratio must stay in UNMEASURABLE_METRICS - otherwise the metric is "
+            "weighted on an all-NaN column and reports a null that is a property of the missing "
+            "panel, not of short interest")
+    else:
+        assert not zeroed, (
+            "a short-interest panel has been wired in, so short_interest_ratio must come out of "
+            "UNMEASURABLE_METRICS - and the registered test of it goes in only after coverage on "
+            "the scored months is confirmed non-zero")
+
+
 # v2 is the consumer the module exists for; nothing else at the root may read it.
 V2_MODULES = ("backtest_v2.py", "backtest_v2_returns.py")
 
