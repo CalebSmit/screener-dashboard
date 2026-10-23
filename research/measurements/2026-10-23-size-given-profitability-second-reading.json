@@ -1,0 +1,103 @@
+{
+  "file": "25_Portfolios_ME_OP_5x5_CSV.zip (202608 CRSP vintage)",
+  "months_available": [
+    "196307",
+    "202608",
+    758
+  ],
+  "paper_table3A": {
+    "small_minus_big": {
+      "junk": 0.23,
+      "p2": 0.46,
+      "p3": 0.54,
+      "p4": 0.42,
+      "quality": 0.44
+    },
+    "small_minus_big_t": {
+      "junk": 1.21,
+      "p2": 3.02,
+      "p3": 3.44,
+      "p4": 2.82,
+      "quality": 2.87
+    },
+    "smbq": 0.42,
+    "smbq_t": 3.18,
+    "fourth_minus_big_rowwise": [
+      0.28,
+      0.19,
+      0.25,
+      0.3,
+      0.25
+    ],
+    "fourth_minus_big_average": 0.254,
+    "quality_minus_junk_big": 0.42,
+    "quality_minus_junk_big_t": 2.78,
+    "quality_minus_junk_small": 0.62,
+    "quality_minus_junk_small_t": 4.78
+  },
+  "measured_over_the_papers_window": {
+    "window": [
+      "196307",
+      "201212"
+    ],
+    "small_minus_big_by_profitability_quintile": {
+      "p1": {
+        "mean": 0.2325,
+        "t": 1.0639,
+        "n_months": 594
+      },
+      "p2": {
+        "mean": 0.6076,
+        "t": 3.4959,
+        "n_months": 594
+      },
+      "p3": {
+        "mean": 0.3769,
+        "t": 2.2354,
+        "n_months": 594
+      },
+      "p4": {
+        "mean": 0.4439,
+        "t": 2.6539,
+        "n_months": 594
+      },
+      "p5": {
+        "mean": 0.2978,
+        "t": 1.5587,
+        "n_months": 594
+      }
+    },
+    "smbq_average_of_the_five": {
+      "mean": 0.3918,
+      "t": 2.3585,
+      "n_months": 594
+    },
+    "fourth_size_group_minus_largest_average": {
+      "mean": 0.2414,
+      "t": 3.0532,
+      "n_months": 594
+    },
+    "quality_minus_junk_largest_size_group": {
+      "mean": 0.2257,
+      "t": 1.6398,
+      "n_months": 594
+    },
+    "quality_minus_junk_smallest_size_group": {
+      "mean": 0.2911,
+      "t": 2.3046,
+      "n_months": 594
+    }
+  },
+  "criterion_1963_to_now": {
+    "unconditional_spread": 0.136,
+    "min_t": 1.5,
+    "mean": 0.1661,
+    "t": 2.3641,
+    "n_months": 758
+  },
+  "criterion_since_2013": {
+    "mean": -0.1066,
+    "t": -0.7027,
+    "n_months": 164
+  }
+}

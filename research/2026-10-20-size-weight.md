@@ -648,3 +648,56 @@ What the rule did not ask, recorded so nobody reads more into the pass than it h
 as written. The test also adds one reason to keep reading item 2 closely: the only measured support
 for the 5 points is now a quality-conditional spread among large companies, so a cut to Quality
 would remove the condition this result depends on.
+
+## 12. Second reading, 2026-10-23 (13:00 session): experiment 16 confirmed, paper and arithmetic
+
+`OWNER_FOCUS.md` 2026-10-20 item 2 - every new lab experiment needs a reader who did not build it.
+Experiment 16 (`size-given-profitability`, the lab's queue row 4b) is the one whose result decides
+whether the Size weight reopens, so it is the one worth checking hardest. Three things were checked
+independently; **nothing needed correcting.**
+
+**1. All seventeen reference figures, re-read in the paper.** The published open-access version was
+obtained today (the CBS Research Portal copy of the publisher's PDF; ScienceDirect returns 403 to
+anything that is not a browser, and that was not worked around) and kept in the gitignored
+`data/lab/papers/`. Table 3 Panel A, printed **page 495**, "July 1957 to December 2012":
+
+| Row | Small - Big | t | What the experiment records |
+|---|---|---|---|
+| Junk | 0.23 | 1.21 | 0.23 / 1.21 |
+| 2 | 0.46 | 3.02 | 0.46 / 3.02 |
+| 3 | 0.54 | 3.44 | 0.54 / 3.44 |
+| 4 | 0.42 | 2.82 | 0.42 / 2.82 |
+| Quality | 0.44 | 2.87 | 0.44 / 2.87 |
+
+Quality - Junk: **0.62 (t 4.78)** among the smallest and **0.42 (t 2.78)** among the biggest, both as
+recorded. SMBQ **42 bps, t 3.18** is the text on the same page, verbatim: *"a return spread of 42 bps
+per month with a t-statistic of 3.18"*. The one derived figure is derived correctly: the paper's
+column "4" minus column "Big" is 0.28, 0.19, 0.25, 0.30, 0.25 down the five rows, and their mean is
+**0.254** exactly. Seventeen of seventeen correct, and each entry's `where` string names the right
+place. The two caveats section 3 of this note attached to the row also hold on re-reading: the paper
+gives **no** t-statistic for the fourth-minus-biggest difference, and it does **not** state its
+quintile breakpoints (the table note says only "independent sorts of stocks into five quintiles").
+
+**2. Every measured figure recomputed by a second implementation**
+(`research/measurements/2026-10-23-size-given-profitability-second-reading.py`, which reads the
+library zip directly and does not import `factor_lab`). Over 196307-201212, 594 months: SMBQ
+**0.3918 (t 2.36)**, fourth-minus-biggest **0.2414 (t 3.05)**, Quality - Junk **0.2257 (t 1.64)** in
+the biggest size group and **0.2911 (t 2.30)** in the smallest, and the five Small - Big rows 0.2325,
+0.6076, 0.3769, 0.4439, 0.2978. Scored against the committed tolerances (0.15 on a level, 1.0 on a
+t) that is **10 within and 7 outside - the published count** - and the misses are the ones the
+verdict note names: row 3 on both figures, row 5's t-statistic, and all four quality-spread figures.
+The pre-registered criterion recomputes to **0.1661 a month, t 2.3641** over 196307-202608 (758
+months) against its bar of 0.136 and 1.5, and **-0.1066 (t -0.70)** since 2013 - so "not refuted" is
+right, and by the margin the addendum states. The committed `lab_data.js` carries 0.2414, 0.3918 and
+2.364, so the published page shows these numbers rather than a second derivation of them.
+
+**3. The tolerances were committed before the comparison ran.** `39a6727` (2026-10-20 22:05:47)
+adds the seventeen figures, the tolerance reasoning and the criterion with `"verdict_note": ""`, and
+touches only `factor_lab.py` and its tests - no `lab_data.js`, so no comparison had been built.
+`8cd9ce7` (22:29:11) is the result, 24 minutes later, and `39a6727` is its ancestor.
+
+**Where this reading stops**, said plainly because that is half of what a second reader is for: it
+establishes that the experiment reports the paper and the library correctly. It does not make
+operating profitability a better stand-in for QMJ than it is, and section 11's conclusion still
+rests on a one-part stand-in for a four-part score. The route to settling that is unchanged and
+needs stock-level data the lab does not have.

@@ -1,0 +1,107 @@
+{
+  "window": [
+    "1976-01",
+    "1996-12"
+  ],
+  "paper_table3B": {
+    "low": 7.8,
+    "high": 31.3,
+    "spread": 23.5,
+    "t": 5.594,
+    "n_high_bm_firm_years": 14043,
+    "n_low": 396,
+    "n_high": 1448,
+    "source": "Piotroski (2000), Table 3 Panel B, printed p. 17"
+  },
+  "paper_table3A_for_contrast": {
+    "low": -9.6,
+    "high": 13.4,
+    "spread": 23.0,
+    "t": 5.59,
+    "note": "one-year MARKET-ADJUSTED; OSAP's SignalDoc names Table 3A as the key table but quotes Panel B's t-statistic 5.594 (Panel A's is 5.590)"
+  },
+  "equally_weighted": {
+    "n_months": 252,
+    "first": "1976-01",
+    "last": "1996-12",
+    "mean_lowest_pct_year": 26.0735,
+    "mean_highest_pct_year": 30.414,
+    "spread_pct_year": 4.3406,
+    "t_spread": 1.5175
+  },
+  "value_weighted": {
+    "n_months": 252,
+    "first": "1976-01",
+    "last": "1996-12",
+    "mean_lowest_pct_year": 14.7462,
+    "mean_highest_pct_year": 27.3226,
+    "spread_pct_year": 12.5764,
+    "t_spread": 3.6426
+  },
+  "mean_score_in_window": {
+    "lowest_decile": 2.6901,
+    "highest_decile": 7.5274
+  },
+  "other_periods": {
+    "after_the_paper": {
+      "ew": {
+        "n_months": 336,
+        "first": "1997-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 18.3138,
+        "mean_highest_pct_year": 16.3167,
+        "spread_pct_year": -1.9971,
+        "t_spread": -0.5505
+      },
+      "vw": {
+        "n_months": 336,
+        "first": "1997-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 5.8425,
+        "mean_highest_pct_year": 13.3373,
+        "spread_pct_year": 7.4949,
+        "t_spread": 1.3785
+      }
+    },
+    "since_2007": {
+      "ew": {
+        "n_months": 216,
+        "first": "2007-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 15.2694,
+        "mean_highest_pct_year": 12.6066,
+        "spread_pct_year": -2.6628,
+        "t_spread": -0.5982
+      },
+      "vw": {
+        "n_months": 216,
+        "first": "2007-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 3.9375,
+        "mean_highest_pct_year": 10.8148,
+        "spread_pct_year": 6.8773,
+        "t_spread": 1.0332
+      }
+    },
+    "everything": {
+      "ew": {
+        "n_months": 636,
+        "first": "1972-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 21.1892,
+        "mean_highest_pct_year": 21.9773,
+        "spread_pct_year": 0.7881,
+        "t_spread": 0.3371
+      },
+      "vw": {
+        "n_months": 636,
+        "first": "1972-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 9.9822,
+        "mean_highest_pct_year": 18.3918,
+        "spread_pct_year": 8.4096,
+        "t_spread": 2.5103
+      }
+    }
+  }
+}

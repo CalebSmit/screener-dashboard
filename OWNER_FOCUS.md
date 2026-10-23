@@ -149,7 +149,30 @@ Two things still outrank this file, and neither is negotiable:
      found here is a defect to fix and record; a miss that is real stays a miss. **Experiment 15:
      DONE the same night** - all ten figures re-read in the paper and recomputed independently;
      the licence's copyright notice added (`research/2026-10-20-lab-jkp.md`, "Second reading").
-     Any experiment merged after it still needs its second reader.
+     **Experiments 16 and 17: DONE 2026-10-23 (13:00), and both stand - nothing needed
+     correcting.** They were the two merged after 15 and the last ones outstanding, so **this
+     sub-item is now clear**; the next experiment built needs its own second reader.
+     *16 (`size-given-profitability`, Asness et al. 2018):* the publisher's open-access PDF
+     obtained and Table 3 Panel A (p. 495) re-read - **all seventeen reference figures exact**,
+     including the one derived figure (the paper's column "4" minus "Big" is 0.28/0.19/0.25/0.30/
+     0.25, mean **0.254**). A second implementation that does not import `factor_lab` recomputes
+     every measured figure and the pre-registered criterion (**0.1661 a month, t 2.3641** against
+     its bar of 0.136 and 1.5; **-0.1066, t -0.70** since 2013), which reproduces **10 of 17
+     within** and "not refuted" - so **Size's weight is not reopened**, on a checked number rather
+     than an unchecked one. `research/2026-10-20-size-weight.md` section 12.
+     *17 (`piotroski`):* Table 3 Panel B (p. 17) re-read - **all four figures exact** (0.078,
+     0.313, 0.235, t 5.594) with the firm-year counts, and every measured figure reproduced
+     independently (26.07 / 30.41 / 4.34 / t 1.5175; the authors' value-weighted cut 12.58, t 3.64;
+     the end deciles' average scores 2.69 and 7.53). Section 7's other-period claims were measured
+     too, since no tolerance covers them, and hold. **Two source observations, neither a defect
+     here:** OSAP's own `SignalDoc.csv` names Table **3A** as the key table while quoting Panel
+     **B**'s t-statistic (Panel A's is 5.590 on market-adjusted returns) - the experiment cites
+     Panel B, where its figures actually are, so it is right and more precise than its own data
+     source; and the `open_details` figure from Table 4 ("largest third, high minus low 15.2%,
+     t 1.88") is exact but market-adjusted, a basis the sentence does not name, which changes no
+     number. `research/2026-10-20-lab-osap.md` section 8.
+     Both pre-registrations were verified in `git log` as genuine: tolerances committed with an
+     empty `verdict_note` and no `lab_data.js`, 24 and 90 minutes before the result commits.
   3. **Test the tests.** Pick three registered claims a session (`claims.py`), break the code each
      one describes in a scratch copy, and confirm its `checked_by` test fails. A check that still
      passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
@@ -162,6 +185,10 @@ Two things still outrank this file, and neither is negotiable:
   5. **Lab experiment 4b** - size inside each profitability quintile (French
      `25_Portfolios_ME_OP_5x5`), with the refutation criterion already written in
      `research/2026-10-20-size-weight.md` section 9. It is the one result that would reopen Size.
+     **DONE 2026-10-20 the same night** - it shipped as experiment 16, `size-given-profitability`,
+     10 of 17 within and the rule not refuted - and **second-read 2026-10-23** under item 2 above,
+     which is what makes the "not refuted" reading checked. This line was still open because
+     nobody had closed it; the work was finished before it was written.
   6. **Backtest v2's two free data fixes, then the extended build**
      (`research/2026-10-20-free-survivorship-sources.md`): 167 member-months of today's members
      dropped because a rename or symbol format is not carried before May 2014 (BF.B, MHP->SPGI,
@@ -340,6 +367,23 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-23 (13:00 midday) - the lab's two unchecked experiments now have their second
+    reader, and both stand.** The morning deferred the lab for a proposal decision; by 13:00 no
+    proposal was waiting (`open_proposals()` returns `[]`), and the thing the lab most needed was
+    not an eighteenth experiment but a reader for the two that had none - 16 and 17, merged on the
+    owner-run night of 2026-10-20. Both were checked three ways: the paper reopened and every
+    reference figure re-read, every measured figure recomputed by an implementation that does not
+    import `factor_lab`, and the pre-registration confirmed in `git log`. **All 21 reference
+    figures are exact, every measured figure reproduces, and both counts (10 of 17, 1 of 4) are
+    right** - so nothing needed correcting, and in particular the result that keeps Size at 5%
+    rests on a number someone other than its author has now checked. Two things were corrected:
+    this plan's row 7c called experiment 17 "experiment 15" (the JKP one), and two source
+    observations are recorded where a later reader would otherwise read them as errors - OSAP's
+    `SignalDoc.csv` names the wrong panel of Piotroski's Table 3, and one `open_details` figure is
+    market-adjusted where the page's main comparison is raw. Details in item 2 above.
+    **The lab's seventeen experiments are now all second-read.** The next experiment (18) is still
+    unstarted; the next non-retrospective Friday is **2026-11-06**, and `lab_data.js` at ~2.9 MB
+    still wants its first paint measured in the same session (item 7 above).
   - **2026-10-23 (06:00 nightly) - deferred, and why; nothing started, so nothing is half-done.**
     This was the lab's Friday, but a proposal was waiting for a decision (1 day open) and both the
     prompt and item 1 above put that ahead of the day's focus. It was decided - all three of its
