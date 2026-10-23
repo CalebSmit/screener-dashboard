@@ -66,8 +66,8 @@ def ew_rows() -> tuple[dict[str, tuple[float, float]], dict[str, list[float]]]:
     return out, lags
 
 
-def summarise(series: dict[str, tuple[float, float]]) -> dict:
-    months = sorted(m for m in series if START <= m <= END)
+def summarise(series: dict[str, tuple[float, float]], start: str = START, end: str = END) -> dict:
+    months = sorted(m for m in series if start <= m <= end)
     lo = [series[m][0] for m in months]
     hi = [series[m][1] for m in months]
     sp = [h - l for h, l in zip(hi, lo)]
@@ -98,6 +98,16 @@ def main() -> int:
         "value_weighted": summarise(vw_series()),
         "mean_score_in_window": {"lowest_decile": round(statistics.fmean(lags["01"]), 4),
                                  "highest_decile": round(statistics.fmean(lags["10"]), 4)},
+        # research/2026-10-20-lab-osap.md section 7 asserts two things about the other periods,
+        # which the four tolerance figures do not cover: that the value-weighted gap was the larger
+        # "in every period", and that since publication neither weighting is distinguishable from
+        # zero ("t 1.38 and -0.55"). Both are re-measured here rather than taken from the note.
+        "other_periods": {
+            label: {"ew": summarise(ew, a, b), "vw": summarise(vw_series(), a, b)}
+            for label, a, b in (("after_the_paper", "1997-01", "9999-99"),
+                                ("since_2007", "2007-01", "9999-99"),
+                                ("everything", "0000-00", "9999-99"))
+        },
     }
     print(json.dumps(result, indent=2))
     OUT.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

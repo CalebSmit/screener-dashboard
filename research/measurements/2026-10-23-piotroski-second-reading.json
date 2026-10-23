@@ -41,5 +41,67 @@
   "mean_score_in_window": {
     "lowest_decile": 2.6901,
     "highest_decile": 7.5274
+  },
+  "other_periods": {
+    "after_the_paper": {
+      "ew": {
+        "n_months": 336,
+        "first": "1997-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 18.3138,
+        "mean_highest_pct_year": 16.3167,
+        "spread_pct_year": -1.9971,
+        "t_spread": -0.5505
+      },
+      "vw": {
+        "n_months": 336,
+        "first": "1997-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 5.8425,
+        "mean_highest_pct_year": 13.3373,
+        "spread_pct_year": 7.4949,
+        "t_spread": 1.3785
+      }
+    },
+    "since_2007": {
+      "ew": {
+        "n_months": 216,
+        "first": "2007-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 15.2694,
+        "mean_highest_pct_year": 12.6066,
+        "spread_pct_year": -2.6628,
+        "t_spread": -0.5982
+      },
+      "vw": {
+        "n_months": 216,
+        "first": "2007-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 3.9375,
+        "mean_highest_pct_year": 10.8148,
+        "spread_pct_year": 6.8773,
+        "t_spread": 1.0332
+      }
+    },
+    "everything": {
+      "ew": {
+        "n_months": 636,
+        "first": "1972-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 21.1892,
+        "mean_highest_pct_year": 21.9773,
+        "spread_pct_year": 0.7881,
+        "t_spread": 0.3371
+      },
+      "vw": {
+        "n_months": 636,
+        "first": "1972-01",
+        "last": "2024-12",
+        "mean_lowest_pct_year": 9.9822,
+        "mean_highest_pct_year": 18.3918,
+        "spread_pct_year": 8.4096,
+        "t_spread": 2.5103
+      }
+    }
   }
 }
