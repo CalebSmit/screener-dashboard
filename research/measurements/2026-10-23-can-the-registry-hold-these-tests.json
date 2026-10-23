@@ -1,0 +1,122 @@
+{
+  "registry_as_committed": {
+    "experiments": {
+      "count": 29,
+      "every_entry_has_transform": true,
+      "transform_kinds": [
+        "baseline",
+        "config",
+        "drop_category",
+        "equal_categories",
+        "metrics",
+        "only_category",
+        "whole_market"
+      ],
+      "keys_of_first": [
+        "hypothesis",
+        "id",
+        "prediction",
+        "source",
+        "transform"
+      ]
+    },
+    "evaluations": {
+      "count": 2,
+      "every_entry_has_rule": true,
+      "every_entry_has_transform": false,
+      "keys_of_first": [
+        "differences",
+        "hypothesis",
+        "id",
+        "prediction",
+        "rule",
+        "source"
+      ]
+    }
+  },
+  "engine_probes": [
+    {
+      "id": "size-survivorship-13f-quarterly",
+      "section_the_note_implies": "experiments",
+      "probes": {
+        "apply_transform": "KeyError: 'factor_weights'",
+        "statistic_keys": "accepted (no error)",
+        "transform_kind_read": "KeyError: 'transform'",
+        "short_interest_in_UNMEASURABLE_METRICS": "True",
+        "short_interest_fields_in_no_free_history": "['shortRatio', 'shortPercentOfFloat']"
+      }
+    },
+    {
+      "id": "short-interest-dtc-finra",
+      "section_the_note_implies": "experiments",
+      "probes": {
+        "apply_transform": "KeyError: 'factor_weights'",
+        "statistic_keys": "accepted (no error)",
+        "transform_kind_read": "KeyError: 'transform'",
+        "short_interest_in_UNMEASURABLE_METRICS": "True",
+        "short_interest_fields_in_no_free_history": "['shortRatio', 'shortPercentOfFloat']"
+      }
+    },
+    {
+      "id": "phasein",
+      "section_the_note_implies": "(a top-level block, not a list entry)",
+      "probes": {
+        "apply_transform": "KeyError: 'factor_weights'",
+        "statistic_keys": "accepted (no error)",
+        "transform_kind_read": "KeyError: 'transform'",
+        "short_interest_in_UNMEASURABLE_METRICS": "True",
+        "short_interest_fields_in_no_free_history": "['shortRatio', 'shortPercentOfFloat']"
+      }
+    }
+  ],
+  "verdict_bands_under_the_null": {
+    "B_short_interest_dtc_finra": [
+      {
+        "se": 0.01,
+        "p_prediction_holds_under_null": 0.4772,
+        "p_refuted_if_fires_under_null": 0.5,
+        "note": "refuted_if is a condition on the SIGN of the point estimate, so under the entry's own predicted null it fires on a coin flip"
+      },
+      {
+        "se": 0.011,
+        "p_prediction_holds_under_null": 0.4655,
+        "p_refuted_if_fires_under_null": 0.5,
+        "note": "refuted_if is a condition on the SIGN of the point estimate, so under the entry's own predicted null it fires on a coin flip"
+      },
+      {
+        "se": 0.012,
+        "p_prediction_holds_under_null": 0.4522,
+        "p_refuted_if_fires_under_null": 0.5,
+        "note": "refuted_if is a condition on the SIGN of the point estimate, so under the entry's own predicted null it fires on a coin flip"
+      }
+    ],
+    "C_phasein": [
+      {
+        "se": 0.021,
+        "confirm_band_t": 1.429,
+        "refute_band_t": 2.381,
+        "p_prediction_holds_under_null": 0.8469,
+        "p_refuted_if_fires_under_null": 0.0173,
+        "p_neither_under_null": 0.1359
+      },
+      {
+        "se": 0.023,
+        "confirm_band_t": 1.304,
+        "refute_band_t": 2.174,
+        "p_prediction_holds_under_null": 0.8079,
+        "p_refuted_if_fires_under_null": 0.0297,
+        "p_neither_under_null": 0.1624
+      }
+    ],
+    "C_precision_gain": {
+      "months_now": 96,
+      "months_added": 22,
+      "ic_spread_assumed": 0.11,
+      "se_now": 0.01123,
+      "se_with_phasein": 0.01013,
+      "precision_gain_pct": 9.8,
+      "smallest_ic_at_t3_now": 0.0337,
+      "smallest_ic_at_t3_with_phasein": 0.0304
+    }
+  }
+}
