@@ -1,4 +1,4 @@
-# Morning Brief - Thursday 22 October 2026, 07:25
+# Morning Brief - Friday 23 October 2026, 02:28
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -9,19 +9,32 @@ history is in `NIGHTLY_LOG.md`.
 |---|---|
 | Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-22T02:00:04.595430 |
+| Dashboard data from | 2026-10-23T02:00:04.666022 |
 | Stocks scored | 498 |
 | With a price | 498/498 |
 | With an analyst target | 496/498 |
-| Top 5 | EXPE, APA, HST, INCY, EG |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (34 rows, but overlapping windows are not independent; 91 rows across all horizons), newest 2026-10-14 |
-| Context signals | Context signals: 11 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 422/423 within 0.5%; operating cash flow 405/409 within 0.5%; net income 396/418 within 0.5%; market value 444/484 within 5%; filings cached 6 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); CF (#9: net income 16% off the filing); MU (#14: a period behind its filings) |
-| Context coverage | options usable 490/498 (8 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
+| Top 5 | EXPE, APA, HST, INCY, SNDK |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (35 rows, but overlapping windows are not independent; 93 rows across all horizons), newest 2026-10-15 |
+| Context signals | Context signals: 12 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 423/424 within 0.5%; operating cash flow 406/410 within 0.5%; net income 396/419 within 0.5%; market value 444/484 within 5%; filings cached 0 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); MU (#10: a period behind its filings); NEM (#12: a period behind its filings); CF (#16: net income 16% off the filing) |
+| Context coverage | options usable 486/498 (12 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
+
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **register tests A, B and C (section 4) in `research/experiments/registry.yaml`, each in its own commit before any of its data is built; or refuse one here with the reason.** - open 1 day - `research/2026-10-22-free-data-that-adds-evidence.md`
 
 ## What changed in the repo
 
+- `3e366b0 data: screener run 2026-10-23 - 498 scored, top: EXPE APA HST INCY SNDK`
+- `1b02665 log + CLAUDE.md: the 2026-10-22 improvement wave; the bot's input gates recorded as settled`
+- `5ab1eca research + OWNER_FOCUS: the input gates replayed against every published page`
+- `502ca2b health: the trading bot's inputs - rank continuity, the unscored share, price dates; data-loop git hygiene`
+- `8b9c494 research: which free data adds evidence, not more tests on the same history`
+- `b4d0333 brief: code session 2026-10-22`
 - `9bf29e2 log: the gates' numbers, the rerun check, and the three guards that fired`
 - `15efe21 research engine: all 31 rows rerun level, and the page reports the stop arm`
 - `3a56a63 log + OWNER_FOCUS: the 2026-10-22 stop-loss item, done and moved to Done`
@@ -31,61 +44,46 @@ history is in `NIGHTLY_LOG.md`.
 - `9c0bc1b data: screener run 2026-10-22 - 498 scored, top: EXPE APA HST INCY EG`
 - `a45fb93 OWNER_FOCUS: one pre-registered stop-loss test on the bot's rule (Han, Zhou & Zhu 2016), never a sweep`
 - `eaef387 OWNER_FOCUS: the screener's half of the plan to real money - no wrong or stale ranking reaches the bot`
-- `13e3146 contract: pin share_classes for screener-bot (scored_as + the line's own price)`
-- `d5d3a5c brief: code session 2026-10-21-midday`
-- `0055951 log: the 2026-10-21 13:00 session - the bank P/B-ROE decision and the guard it replaced`
-- `732ad0a research engine: rerun all 30 after the config.yaml comment (0 of 25,460 values moved)`
-- `55b9291 record: the bank P/B-ROE decision - changelog, owner queue, section order`
-- `859a7dd bank P/B-ROE proposal ACCEPTED: state the pairing on the page, guard the measured loading`
 
 ## The session's own account
 
-> 2026-10-22 (06:00 session) - QUEUE/BUILD. One pre-registered stop-loss on the bot's rule, and the prediction failed in two of three periods
+> 2026-10-22 (owner-run, afternoon) - an improvement wave across both repos: the bot's safety and measurement, the screener's input gates, and which free data adds evidence
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-21 13:00 ends "Run complete:
-> shipped to main" at 14:30 (`logs/nightly-2026-10-21_130001-midday.log`). Data loop published?
-> **yes** - `logs/datarun-2026-10-22_020001.log` ends "Data loop complete" at 02:24, PUBLISHED CLAIMS
-> PASS (1272 tests), 498 scored. Evidence base at `1m` = **34 rows, newest 2026-09-21 (31 days ago,
-> bound 40), 4 effective** - inside the bound, no action. Priority 0: `allow_auto_apply` **false**,
-> 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
-> **age 10 days**) - not worked; its day is Friday 2026-10-23, and the owner queue outranks it today.
-> **Tests:** before **2981 passed / 1 skipped** (364s), after **2988 passed / 1 skipped** (353s) -
-> +7, which is exactly the seven new tests in two existing modules, no failures and nothing removed.
-> Gates 2 and 3 pass (dry-run exit 0; `index.html` 651,277 bytes; both payloads `node --check` clean
-> with their opening assignments; `research.html` 55,107 bytes).
-> **Owner queue / rotation:** took `OWNER_FOCUS.md`'s **top open item, 2026-10-22** - one
-> pre-registered stop-loss test on the bot's rule. It is a BUILD day and this was a build item, so
-> nothing was displaced. No proposal was waiting for a decision (`write_brief.open_proposals()`
-> returned `[]`). **Deferred:** the 2026-10-21 item (the rank-continuity gate and the rest of the
-> screener's half of the path to real money), the 2026-10-20 item's parts 2-6, and the Factor Lab.
+> **Health (rule 8):** last code session ran? **yes** - 06:00 shipped (the stop-loss test). Data loop
+> published? **yes** - 02:00, HEALTH PASS, claims 1,272 passed, 498 scored. Evidence base at `1m` =
+> **34 rows, newest 2026-09-21 (31 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply`
+> **false**, 4 of 8. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 10
+> days**) - not worked; the owner's request outranked it. The 13:00 slot stood down for the owner
+> marker, as designed.
 > 
-> ### Did
+> **Owner:** *"go and find something in these tools to improve ... maybe even coming up with a better
+> plan ... so much data out there."* Answered with five agents in isolated worktrees and merged here.
 > 
-> **The owner asked for exactly one thing and the value is in its being exactly one.** Register a
-> stop-loss variant of the trading rule before building it, build that one, report it beside the
-> unstopped rule, never sweep the level. All four held: `bot-rule-v1.1-stop10` and the code that runs
-> it are in **one commit** (513c364) and no ledger row for it existed before, so the git history is
-> the pre-registration.
+> ### Screener (this repo)
+> - **The trading bot's input gates** (screener-bot ROADMAP 1.3-1.5, 1.9; `OWNER_FOCUS` 2026-10-21 items
+>   1-4): rank continuity, the unscored share, price dates (`stock_detail[t].price_date`,
+>   `scoring_schema` 16 - tonight's run refetches), and data-loop git hygiene (fail closed on a bad pull,
+>   push only the data commit). **Replayed against all 72 published pages since 07-28: the four
+>   known-bad runs fail, no ordinary day does.** `data-run.ps1` was parse-checked here
+>   (`Parser::ParseFile`: OK) - the agent could not run PowerShell. `tests/test_input_gates.py` (75),
+>   in the publish gate. CLAUDE.md row 0.5/0.7 and the data-loop gates paragraph updated.
+> - **Free data that adds evidence** (`research/2026-10-22-free-data-that-adds-evidence.md`): the scarce
+>   thing is months, not data. Three free, licensed sources add independent evidence or fix a recorded
+>   weakness - **SEC 13F** (quarter-end prices for departed members, acquisitions included), **FINRA
+>   short interest** (history from at least 2017-12, contradicting the "no free history" class for
+>   `short_interest_ratio`), **SEC XBRL 2009-2011** (about 22 untouched months for backtest v2). Three
+>   pre-registerable tests written, none registered: **Proposal status OPEN** for a later session.
 > 
-> **The rule was read from the paper, not from memory.** Han, Zhou & Zhu (2016), "Taming Momentum
-> Crashes: A Simple Stop-Loss Strategy", SSRN 2407199, DOI 10.2139/ssrn.2407199 - 52-page PDF
-> downloaded and read with `pypdf`; construction on printed pp. 5-6, Table I Panels A-C on pp. 6-7,
-> turnover and stop frequency pp. 8-9. **Two things the reading corrected:** the DOI resolves through
-> Crossref to SSRN posted content and **no journal** - it is a working paper, and the *Journal of
-> Financial Markets* in the owner's item is Kaminski & Lo (2014), a different paper. And the paper's
-> rule is not "sell at the close 10% down": it triggers on the day's **lowest** price, waits a day,
-> and sells at a limit of `(1-L/2)(1-L)P0` - 85.5% of the month's starting price at L = 10% - or at
-> that day's close if the whole day trades below it.
+> ### screener-bot (owner-run; its SESSION_LOG has the detail)
+> - Order safety (2.3-2.5), account safety (2.1, 2.2 built not switched on, 2.6, 2.7, 2.10, 2.11) and
+>   measurement (3.3, 3.4, 3.6, 3.7 part) merged and joined: sells send the bot's own quantity; the
+>   emergency stop keeps a wholesale close under its own name; the completeness check asks whether
+>   each planned buy went in (a 95%-invested floor fired on a correct rebalance and was replaced at
+>   merge). 475 tests, rehearsals clean, CI green. The setup panel now uses finished sessions only.
 > 
-> **So four differences are registered under `construction_note`, each because it changes when the
-> stop fires:** the trigger here is the close (the daily panel carries no intraday range, so this
-> fires *less* often than the paper's); the sale is at the triggering close, not the next day's limit
-> (so it exits *sooner and higher*, and exits names the paper's band would have kept); cash earns
-> nothing where the paper earns T-bills; and this is the long side of a 25-name screen, not long-short
-> momentum deciles.
-> 
-> **The prediction, registered before the run:** less negative worst month *and* maximum drawdown in
-> ...
+> ### Next
+> The data-scout proposal (register tests A-C or refuse them) is the open decision. Then the 2026-10-21
+> OWNER_FOCUS item's parts 5-6 (a data-loop-only `signals.json` the bot trades from; the audit trail).
 
 ---
 
