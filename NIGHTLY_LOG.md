@@ -14258,3 +14258,166 @@ half-moved, the metric un-zeroed) fail with the right message.
   terms forbid derivative works and building a database from it. The route that permits publication
   is the Query API under the Equity Specific Terms. If the API does not serve the exchange-listed
   rows, nothing from this test may appear on a public page.
+
+## 2026-10-23 (13:00 session) - the lab's two unchecked experiments second-read: all 21 reference figures exact, every measured figure reproduced, and the number that keeps Size at 5% is now checked
+
+**Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 ended "Run complete:
+shipped to main" at 06:35. Data loop published? **yes** - 02:28 today, HEALTH PASS, 498 scored.
+Evidence base at `1m` = **35 rows, newest 2026-09-22 (31 days ago, bound 40), 4 effective**
+(`_n_observations` 4, `_n_raw_observations` 35 - the raw count is the one not to quote). Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+Factor Lab** (opened 2026-10-12, **age 11 days**) - advanced, see below.
+**Tests:** before **3064 passed, 1 skipped**; after **3064 passed, 1 skipped**. Gates 2, 3, 4 pass
+(dry-run clean; `index.html` 651,844 bytes, both payload files parse under `node --check` and open
+with their own assignment; working tree clean). `scripts/rehearse_publish.py` **not run and not
+needed**: the diff is research notes, measurement scripts, `OWNER_FOCUS.md` and `plan/`, and
+touches nothing the page is built from.
+**Owner queue / rotation:** `OWNER_FOCUS.md` 2026-10-20 **item 2** taken and its outstanding half
+**closed**; **item 5** closed as already-done. No proposal was waiting
+(`write_brief.open_proposals()` returns `[]`). **Deferred: the research-engine rerun** the 06:00
+session named as Next - the argument is below, under *Tried and rejected*, because deferring an
+earlier session's Next on the same day needs one.
+
+### Did
+
+**Second-read Factor Lab experiments 16 and 17, the two that had no reader but their author.**
+`OWNER_FOCUS.md` item 2 asks for exactly this and names what it means: reopen the paper, re-read
+every reference figure against `factor_lab.py`, and check in `git log` that the tolerances were
+committed before the comparison ran. Experiment 15 was done the night it shipped; 16 and 17 were
+merged after it on the owner-run night of 2026-10-20 and have been uncovered since. Both were
+checked three ways, and a fourth was added - recomputing every *measured* figure from the source
+files with no import of `factor_lab`, so a construction error would disagree rather than be
+reproduced. **Nothing needed correcting.** Both measurement scripts are committed.
+
+**Experiment 16, `size-given-profitability`** (Asness, Frazzini, Israel, Moskowitz & Pedersen 2018)
+- the one that matters most, because its verdict is what kept the Size weight at 5% on 2026-10-20.
+The publisher's open-access PDF was obtained (the CBS Research Portal copy; ScienceDirect answers
+403 to anything that is not a browser and that was **not** worked around) and **all seventeen
+reference figures are exact** against Table 3 Panel A, printed p. 495: the Small - Big column
+0.23/0.46/0.54/0.42/0.44 with t 1.21/3.02/3.44/2.82/2.87, the Quality - Junk ends 0.62 (t 4.78) and
+0.42 (t 2.78), and SMBQ 42 bps t 3.18 quoted verbatim from the text on the same page. The single
+**derived** figure is derived correctly - the paper's column "4" minus column "Big" runs
+0.28/0.19/0.25/0.30/0.25 down the five rows and their mean is **0.254**. The second implementation
+reproduces every measured figure (SMBQ **0.3918**, fourth-minus-biggest **0.2414**, the five rows,
+both quality spreads), gives **10 within and 7 outside** on the committed tolerances - the published
+count, with the misses exactly where the verdict note says - and recomputes the pre-registered
+criterion at **0.1661 a month, t 2.3641** against its bar of 0.136 and 1.5, **-0.1066 (t -0.70)**
+since 2013. So "not refuted" is right. `research/2026-10-20-size-weight.md` section 12.
+
+**Experiment 17, `piotroski`** (Piotroski 2000, on Open Source Asset Pricing). **All four reference
+figures exact** in Table 3 Panel B, printed p. 17: 0.078, 0.313, 0.235, t 5.594, with the firm-year
+counts (14,043 / 396 / 1,448) and the abstract's "23% annual return between 1976 and 1996" as
+quoted. Measured side reproduced over the same 252 months: **26.07 / 30.41 / 4.34 / t 1.5175**, the
+authors' value-weighted cut **12.58 (t 3.64)**, and the end deciles' average scores - the stated
+reason for the miss - **2.69** and **7.53**. Section 7 of that note also makes two claims about
+periods no tolerance covers, so they were measured too: "t 1.38 and -0.55" after the paper is right,
+and the value-weighted gap is the larger in **all four** of the page's presets.
+`research/2026-10-20-lab-osap.md` section 8.
+
+**Both pre-registrations are genuine, checked in `git log` rather than taken on the commit
+message.** `39a6727` (22:05:47) carries experiment 16's seventeen figures, its tolerance reasoning
+and the criterion with `"verdict_note": ""`, and touches only `factor_lab.py` and its tests - no
+`lab_data.js`, so no comparison existed; `8cd9ce7` is the result 24 minutes later. `ce78f7d`
+(21:09:10) does the same for experiment 17, with the message recording that Google Drive was
+refusing the OSAP release at the time so not even a header had been seen; `534433a` is the result 90
+minutes later. Each tolerance commit is an ancestor of its result commit.
+
+**Three corrections, none of them to a number:**
+
+- **`plan/factor-lab.md` row 7c called experiment 17 "experiment 15"** - which is the JKP one. Both
+  of its commit messages say the same (history, so not fixable there). `EXPERIMENTS` and the code
+  comment have always had it as 17. Fixed in the plan, with the slip recorded so the commit
+  messages do not read as evidence of a different experiment.
+- **OSAP's own `SignalDoc.csv` names the wrong panel** for `PS`: `Key Table in OP = 3A` beside
+  `T-Stat = 5.594`. Those cannot both be right - 5.594 is Panel **B**'s; Panel A is one-year
+  *market-adjusted* returns and reports High-Low 0.230 with t **5.590** and ends of -0.096 and
+  0.134. The experiment cites Panel B, where all four of its figures actually are, so **the lab is
+  right and more precise than the library it draws on.** Recorded in the note so a reader comparing
+  the page with `SignalDoc.csv` does not conclude the panel was mis-cited.
+- **One `open_details` figure is on a different basis from the comparison beside it.** "Among the
+  largest third, high minus low 15.2%, t 1.88" is exact (Table 4, Large Firms, p. 19), but Table 4
+  reports market-adjusted returns where the page's main comparison is raw; the right contrast is
+  Panel A's all-sizes 23.0%, not Panel B's 23.5%. The sentence's point - the effect is concentrated
+  in small and medium companies - holds on either basis and no number on the page changes, so this
+  is recorded rather than edited (editing it would rebuild `lab_data.js` and bump `ASSET_VERSION`
+  for a wording change).
+
+**Also checked against the screener rather than the paper:** experiment 17's `in_the_screener`
+sentence says the score is 16% of Quality, Quality 22% of the composite, "about 3.5 points", halved
+where the valuation score is below the middle. `config.yaml` has `piotroski_f_score: 16`,
+`quality: 22`, `piotroski_conditional.reduction_factor: 0.5`; 0.16 x 22 = 3.52. Correct as printed.
+
+**All seventeen lab experiments are now second-read.** Item 2's second sub-item is clear, and item 5
+(lab row 4b) was closed as already-done - it shipped as experiment 16 on 2026-10-20 and the line had
+simply never been closed.
+
+### Evidence / research
+
+- **Asness, C., Frazzini, A., Israel, R., Moskowitz, T.J. & Pedersen, L.H. (2018).** "Size matters,
+  if you control your junk." *Journal of Financial Economics* 129(3), 479-509.
+  DOI **10.1016/j.jfineco.2018.05.006**. Read from the publisher's open-access PDF today, Table 3
+  Panel A and its text, printed p. 495; sample July 1957 - December 2012. Figures as tabulated
+  above. Two caveats re-confirmed: the paper gives **no** t-statistic for the fourth-size-group
+  difference, and it does **not** state its quintile breakpoints.
+- **Piotroski, J.D. (2000).** "Value investing: the use of historical financial statement
+  information to separate winners from losers." *Journal of Accounting Research* 38 (Supplement),
+  1-41. DOI **10.2307/2672906**. Read from the University of Chicago GSB Selected Paper 84 reprint
+  (January 2002): Table 3 Panels A and B (pp. 16-17), Table 4 (p. 19), sections 2.3 and 3.1.
+- **Chen, A.Y. & Zimmermann, T. (2022).** "Open source cross-sectional asset pricing." *Critical
+  Finance Review* 11(2), 207-264. `SignalDoc.csv` for `PS` in the October 2025 release - the source
+  of the panel-naming discrepancy above, and of the `signallag` column used to check the average
+  scores of the two end deciles.
+- **Kenneth R. French Data Library**, "25 Portfolios Formed on Size and Operating Profitability"
+  (202608 CRSP vintage), value-weighted monthly block, 758 months from 196307.
+- Both measurements are committed and rerunnable from the gitignored library files:
+  `research/measurements/2026-10-23-size-given-profitability-second-reading.py` (+ `.json`) and
+  `research/measurements/2026-10-23-piotroski-second-reading.py` (+ `.json`).
+- **No backtest or IC number from this system was used** (rules 4 and 5). Every quantity here is a
+  figure printed in a paper, a published portfolio return, or arithmetic on those.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or category moved; no score, rank or payload byte changed.
+  `METHODOLOGY_CHANGELOG.md` has no entry today, correctly. The session's result is that an existing
+  decision - Size stays at 5% - is now resting on figures a second reader has checked, and that the
+  twenty-one figures behind two published replications are confirmed.
+
+### Tried and rejected
+
+- **The research-engine rerun the 06:00 session named as its Next: deferred, deliberately, and
+  this is the reason.** All 31 rows are stale against the tree (commit `502ca2b` touched two files
+  in `RESULT_PATHS`), and the honest case for rerunning is provenance currency, not a number.
+  Three things measured before deciding: `scripts/rerun_experiments.py --status` reports **"rows
+  level with each other: yes"**, so the report is not flagging a mixture and nothing public is
+  inconsistent; the **full suite is green at 3064** passed, so no provenance test is red; and the
+  06:00 session's own argument is that the change *cannot move a number*. That is precisely the
+  case the rerun script's docstring was written to exclude - *"A change that cannot move a number
+  ... leaves every row stale and level - which is not by itself a reason to spend 47 minutes
+  rerunning."* Against that, a 47-minute foreground wait (background jobs are forbidden; see the
+  settled row) is most of this session. And the lab's day is **fortnightly** - 2026-10-30 is an
+  even ISO week, so the next lab Friday is 2026-11-06 - whereas the rerun is resumable at
+  four-row granularity by any later session and costs nothing to carry. **The one thing that would
+  change this:** `OWNER_FOCUS.md` item 6's two free survivorship fixes force the same rerun, so
+  whoever takes them should do the rerun in the same session - one rebuild, one rerun - rather
+  than spending it twice.
+- **Editing the Table 4 sentence on the lab page to name its basis.** Rejected for today: it is
+  not wrong, no number moves, and it would force a `lab_data.js` rebuild and an `ASSET_VERSION`
+  bump for a wording change. Recorded in the note instead, where the next session that touches the
+  experiment will find it.
+- **Starting experiment 18.** The lab's Friday was the nominal focus and item 2 outranked it, but
+  the honest reason is narrower: with ~2.5 hours and two unchecked experiments already merged, a
+  reader for those is worth more than an eighteenth result nobody has checked either. Said here so
+  the trade is visible rather than inferred.
+
+### Next
+
+- **The research-engine rerun, batched with `OWNER_FOCUS.md` 2026-10-20 item 6** - the two free
+  survivorship fixes (167 renamed/reformatted member-months, 773 `no_filings` months under
+  predecessor CIKs). Both touch `RESULT_PATHS`, so they force the rerun the deferral above leaves
+  owed: one rebuild, one rerun, all 31 rows, `python scripts/rerun_experiments.py --limit 4` per
+  foreground call with the ledger and report committed after each. Do not start what cannot be
+  finished in the session - a partial rerun leaves mixed fingerprints inside one method version.
+- Then `OWNER_FOCUS.md` item 3, the claims mutation audit: `plan/claims-mutation-audit.md` lists
+  the next 12, and the last pass found **15 of 38** mutations got through.
+- The lab's next experiment (18) is unstarted; next non-retrospective Friday **2026-11-06**, and
+  item 7 asks for `lab_data.js`'s first paint (~2.9 MB) to be measured in the same session.
