@@ -1,4 +1,4 @@
-# Morning Brief - Friday 23 October 2026, 02:28
+# Morning Brief - Friday 23 October 2026, 06:35
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,15 +20,12 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); MU (#10: a period behind its filings); NEM (#12: a period behind its filings); CF (#16: net income 16% off the filing) |
 | Context coverage | options usable 486/498 (12 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **register tests A, B and C (section 4) in `research/experiments/registry.yaml`, each in its own commit before any of its data is built; or refuse one here with the reason.** - open 1 day - `research/2026-10-22-free-data-that-adds-evidence.md`
-
 ## What changed in the repo
 
+- `523f66f log + OWNER_FOCUS: the proposal decided, the lab's Friday deferred and why`
+- `3eee020 decide the open proposal: all three registrations refused as written, test B accepted in substance`
+- `0fc5c75 measurements: second reading of the three proposed registrations (FINRA files, registry shape, verdict bands)`
+- `8c2064b brief: data run 2026-10-23`
 - `3e366b0 data: screener run 2026-10-23 - 498 scored, top: EXPE APA HST INCY SNDK`
 - `1b02665 log + CLAUDE.md: the 2026-10-22 improvement wave; the bot's input gates recorded as settled`
 - `5ab1eca research + OWNER_FOCUS: the input gates replayed against every published page`
@@ -40,50 +37,55 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `3a56a63 log + OWNER_FOCUS: the 2026-10-22 stop-loss item, done and moved to Done`
 - `5e9d966 research: the stop-loss arm's result, and the page reports it beside the unstopped rule`
 - `513c364 research engine: register and build one stop-loss arm on the bot's rule (Han, Zhou & Zhu 2016)`
-- `ad2346d brief: data run 2026-10-22`
-- `9c0bc1b data: screener run 2026-10-22 - 498 scored, top: EXPE APA HST INCY EG`
-- `a45fb93 OWNER_FOCUS: one pre-registered stop-loss test on the bot's rule (Han, Zhou & Zhu 2016), never a sweep`
-- `eaef387 OWNER_FOCUS: the screener's half of the plan to real money - no wrong or stale ranking reaches the bot`
 
 ## The session's own account
 
-> 2026-10-22 (owner-run, afternoon) - an improvement wave across both repos: the bot's safety and measurement, the screener's input gates, and which free data adds evidence
+> 2026-10-23 (06:00) - the open proposal decided: the registry cannot hold any of the three tests, and one of them would have manufactured a false null
 > 
-> **Health (rule 8):** last code session ran? **yes** - 06:00 shipped (the stop-loss test). Data loop
-> published? **yes** - 02:00, HEALTH PASS, claims 1,272 passed, 498 scored. Evidence base at `1m` =
-> **34 rows, newest 2026-09-21 (31 days, bound 40), 4 effective**. Priority 0: `allow_auto_apply`
-> **false**, 4 of 8. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 10
-> days**) - not worked; the owner's request outranked it. The 13:00 slot stood down for the owner
-> marker, as designed.
+> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-22 06:00 ended "shipped to
+> main" (the 13:00 slot stood down for the owner marker, as designed). Data loop published? **yes** -
+> 02:28 today, HEALTH PASS, 498 scored, claims gate 1,360 passed. Evidence base at `1m` = **35 rows,
+> newest 2026-09-22 (31 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
+> 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+> **age 11 days**) - **deferred**, see below.
+> **Tests:** before **3063 passed, 1 skipped**; after **3064 passed, 1 skipped** (one new guard).
+> **Owner queue / rotation:** today was the lab's Friday. A proposal was waiting for a decision
+> (1 day open), which the prompt and `OWNER_FOCUS.md` item 1 both put ahead of the focus, so **the
+> Factor Lab experiment is deferred**. Nothing lab-side was started, so nothing is half-done.
 > 
-> **Owner:** *"go and find something in these tools to improve ... maybe even coming up with a better
-> plan ... so much data out there."* Answered with five agents in isolated worktrees and merged here.
+> ### Did
 > 
-> ### Screener (this repo)
-> - **The trading bot's input gates** (screener-bot ROADMAP 1.3-1.5, 1.9; `OWNER_FOCUS` 2026-10-21 items
->   1-4): rank continuity, the unscored share, price dates (`stock_detail[t].price_date`,
->   `scoring_schema` 16 - tonight's run refetches), and data-loop git hygiene (fail closed on a bad pull,
->   push only the data commit). **Replayed against all 72 published pages since 07-28: the four
->   known-bad runs fail, no ordinary day does.** `data-run.ps1` was parse-checked here
->   (`Parser::ParseFile`: OK) - the agent could not run PowerShell. `tests/test_input_gates.py` (75),
->   in the publish gate. CLAUDE.md row 0.5/0.7 and the data-loop gates paragraph updated.
-> - **Free data that adds evidence** (`research/2026-10-22-free-data-that-adds-evidence.md`): the scarce
->   thing is months, not data. Three free, licensed sources add independent evidence or fix a recorded
->   weakness - **SEC 13F** (quarter-end prices for departed members, acquisitions included), **FINRA
->   short interest** (history from at least 2017-12, contradicting the "no free history" class for
->   `short_interest_ratio`), **SEC XBRL 2009-2011** (about 22 untouched months for backtest v2). Three
->   pre-registerable tests written, none registered: **Proposal status OPEN** for a later session.
+> **Decided the open proposal in `research/2026-10-22-free-data-that-adds-evidence.md` - and the
+> decision is a refusal of all three registrations as written, with the research left standing.**
+> The note asked a later session to register three pre-registered tests in
+> `research/experiments/registry.yaml`, "each in its own commit before any of its data is built".
+> It was written by a different session, so this is the second reader the routine is built around.
+> Three things were measured that the note had not; both scripts are committed beside it.
 > 
-> ### screener-bot (owner-run; its SESSION_LOG has the detail)
-> - Order safety (2.3-2.5), account safety (2.1, 2.2 built not switched on, 2.6, 2.7, 2.10, 2.11) and
->   measurement (3.3, 3.4, 3.6, 3.7 part) merged and joined: sells send the bot's own quantity; the
->   emergency stop keeps a wholesale close under its own name; the completeness check asks whether
->   each planned buy went in (a 95%-invested floor fired on a correct rebalance and was replaced at
->   merge). 475 tests, rehearsals clean, CI green. The setup panel now uses finished sessions only.
+> **1. The FINRA claim is true - re-run, not taken.** Twelve settlement dates fetched
+> (`research/measurements/2026-10-23-finra-short-interest-probe.py` + `.json`). 2014-2016 return
+> **403**; **2017-12-29 onward return 200**, 15,495 rows rising to 20,516 by 2025. `marketClassCode`
+> on 2017-12-29: **NYSE 3,102, NNM 2,355, ARCA 1,433** beside OTC 7,152 - exchange-listed rows are in
+> the file four years before the June 2021 FINRA's own page states, so the note's correction of FINRA
+> stands. `daysToCoverQuantity` is numeric and positive on **15,494 of 15,495** rows then and
+> **20,516 of 20,516** in 2025, and all seven large members probed (AAPL, JPM, MSFT, XOM, JNJ, KO,
+> GE) are present on every served date. Two details the note should have carried: the files are
+> **pipe-delimited despite the `.csv` extension** (my first probe read one column), and the field
+> **floors at 1.00** - AAPL and JPM both read exactly 1.00 on 2018-12-31 - so it is censored below.
 > 
-> ### Next
-> The data-scout proposal (register tests A-C or refuse them) is the open decision. Then the 2026-10-21
-> OWNER_FOCUS item's parts 5-6 (a data-loop-only `signals.json` the bot trades from; the audit trail).
+> **2. The decisive finding: the registry cannot hold any of the three, so the instruction is not an
+> executable action.** Measured by running the engine's own call sites rather than reading the YAML
+> (`research/measurements/2026-10-23-can-the-registry-hold-these-tests.py` + `.json`). The committed
+> registry has exactly **two** shapes: `experiments:` - 29 entries, **29 of 29** carrying a
+> `transform` whose `kind` is one of seven known kinds - and `evaluations:` - 2 entries, each with a
+> `rule` and no transform. None of A, B or C is either. Shaped as the note writes them,
+> `apply_transform` raises **`KeyError: 'factor_weights'`** and the bare `e["transform"]["kind"]` read
+> raises **`KeyError: 'transform'`** - unguarded at `v2_experiments.py:1122`, `:1156` and `:1180`
+> (`report`, `summary_for_page`) and in three places in `tests/test_engine_calibration.py`. Following
+> the instruction would have reddened the suite and the public research page, not pre-registered
+> anything.
+> 
+> ...
 
 ---
 
