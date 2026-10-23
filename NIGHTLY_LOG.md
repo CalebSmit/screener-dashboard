@@ -14097,3 +14097,164 @@ plan ... so much data out there."* Answered with five agents in isolated worktre
 ### Next
 The data-scout proposal (register tests A-C or refuse them) is the open decision. Then the 2026-10-21
 OWNER_FOCUS item's parts 5-6 (a data-loop-only `signals.json` the bot trades from; the audit trail).
+
+
+---
+
+## 2026-10-23 (06:00) - the open proposal decided: the registry cannot hold any of the three tests, and one of them would have manufactured a false null
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-22 06:00 ended "shipped to
+main" (the 13:00 slot stood down for the owner marker, as designed). Data loop published? **yes** -
+02:28 today, HEALTH PASS, 498 scored, claims gate 1,360 passed. Evidence base at `1m` = **35 rows,
+newest 2026-09-22 (31 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
+4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
+**age 11 days**) - **deferred**, see below.
+**Tests:** before **3063 passed, 1 skipped**; after **3064 passed, 1 skipped** (one new guard).
+**Owner queue / rotation:** today was the lab's Friday. A proposal was waiting for a decision
+(1 day open), which the prompt and `OWNER_FOCUS.md` item 1 both put ahead of the focus, so **the
+Factor Lab experiment is deferred**. Nothing lab-side was started, so nothing is half-done.
+
+### Did
+
+**Decided the open proposal in `research/2026-10-22-free-data-that-adds-evidence.md` - and the
+decision is a refusal of all three registrations as written, with the research left standing.**
+The note asked a later session to register three pre-registered tests in
+`research/experiments/registry.yaml`, "each in its own commit before any of its data is built".
+It was written by a different session, so this is the second reader the routine is built around.
+Three things were measured that the note had not; both scripts are committed beside it.
+
+**1. The FINRA claim is true - re-run, not taken.** Twelve settlement dates fetched
+(`research/measurements/2026-10-23-finra-short-interest-probe.py` + `.json`). 2014-2016 return
+**403**; **2017-12-29 onward return 200**, 15,495 rows rising to 20,516 by 2025. `marketClassCode`
+on 2017-12-29: **NYSE 3,102, NNM 2,355, ARCA 1,433** beside OTC 7,152 - exchange-listed rows are in
+the file four years before the June 2021 FINRA's own page states, so the note's correction of FINRA
+stands. `daysToCoverQuantity` is numeric and positive on **15,494 of 15,495** rows then and
+**20,516 of 20,516** in 2025, and all seven large members probed (AAPL, JPM, MSFT, XOM, JNJ, KO,
+GE) are present on every served date. Two details the note should have carried: the files are
+**pipe-delimited despite the `.csv` extension** (my first probe read one column), and the field
+**floors at 1.00** - AAPL and JPM both read exactly 1.00 on 2018-12-31 - so it is censored below.
+
+**2. The decisive finding: the registry cannot hold any of the three, so the instruction is not an
+executable action.** Measured by running the engine's own call sites rather than reading the YAML
+(`research/measurements/2026-10-23-can-the-registry-hold-these-tests.py` + `.json`). The committed
+registry has exactly **two** shapes: `experiments:` - 29 entries, **29 of 29** carrying a
+`transform` whose `kind` is one of seven known kinds - and `evaluations:` - 2 entries, each with a
+`rule` and no transform. None of A, B or C is either. Shaped as the note writes them,
+`apply_transform` raises **`KeyError: 'factor_weights'`** and the bare `e["transform"]["kind"]` read
+raises **`KeyError: 'transform'`** - unguarded at `v2_experiments.py:1122`, `:1156` and `:1180`
+(`report`, `summary_for_page`) and in three places in `tests/test_engine_calibration.py`. Following
+the instruction would have reddened the suite and the public research page, not pre-registered
+anything.
+
+**3. Worse than an error, for test B: registering first would have manufactured a false null.**
+`base_config()` is `v2_config(config.yaml)`, which zeroes every name in
+`backtest_v2.UNMEASURABLE_METRICS` - `short_interest_ratio` is in it - and `backtest_v2._record`
+NaNs every field in `pit_record.FIELD_CLASSES["no_free_history"]`, which holds `shortRatio` and
+`shortPercentOfFloat`. A `kind: metrics` transform *could* put the weight back, and the entry would
+then **run without error on an all-NaN column**: zero coverage, renormalised away, a "not
+distinguishable from zero" row in the ledger. Pre-registration exists to stop data-dependent
+choices; here it would publish a null that is a property of the missing panel and says nothing about
+short interest. Build the panel, confirm the metric is scored, *then* register - the opposite order
+to the proposal's.
+
+**The three verdicts** (full reasoning in the note's new section 7):
+
+- **Test A, 13F quarterly prices for the survivorship question: REFUSED.** Its own `void_if` needs a
+  price for **>= 80%** of departed member-quarters and both coverage rates the note measured sit
+  below it - **60 of 86** acquired members name-matched (69.8%) and **29 of 39** 13F prices within 1%
+  of Yahoo (74.4%) - with the better identification routes it proposes left **unmeasured**. It would
+  commit an "L"-effort build whose own stated outcome may be "void". The price panel also carries a
+  long list of choices made while looking at the data (filer thresholds, splits inferred from
+  aggregate share counts, hand-checked deal prices, Shumway's -30%), which a pre-registered
+  *hypothesis* does not protect. And `only-size-extended` is already queued, is monthly, and can
+  **falsify** the survivorship explanation - the decision-relevant direction. Do the cheap test first.
+- **Test B, short interest: ACCEPTED in substance, REFUSED in form.** The only one of the three
+  testing a metric that **carries live weight** - 13.5 of Revisions' 100 points, **1.35 composite
+  points** (`config.yaml:125`, verified) - and which v2 scores at 0 as unmeasurable. Its data is
+  real and now verified across ~104 months. Refused in form for findings 2 and 3 above and because
+  its pre-registration is malformed: its `prediction` is a null while its `refuted_if` is a
+  condition on the **sign** of the point estimate, so under its own predicted null it is declared
+  refuted with probability **0.500** while the prediction holds with 0.466. The note now carries a
+  five-step build order, licence check first, with the verdict bands rewritten disjoint and keyed to
+  effect size.
+- **Test C, the XBRL phase-in months: REFUSED** on the trade. The 22 months buy **9.8%** of
+  precision on 2012-2019 (SE 0.01123 -> 0.01013; smallest IC at `t >= 3`, 0.0337 -> 0.0304) for a
+  v2 record rebuild to 2009 plus a full rerun. Its confirm band fires with probability **0.808**
+  under the null and it leaves **16.2%** of outcomes with no verdict at all (confirm at `|t| < 1.304`,
+  refute at `|t| >= 2.174`). And the months are **selected on size** - the XBRL phase-in was mandated
+  by public float above $5bn (SEC Release 33-9002, the note's own citation) and a member enters only
+  if `pit_record` builds its record - so they are precisely the months that could not be pooled into
+  the engine's one near-miss, Size alone in 2012-2019. What would reopen it is written in the note.
+
+**Corrected a false statement on the project's own record, in four places, without creating the
+leak the correction invites.** "Short interest has no free history" appears in `pit_record.py`'s
+`no_free_history` comment, `backtest_v2.py`'s `UNMEASURABLE_METRICS` comment and
+`research/2026-10-09-pit-fundamentals-census.md`, and is repeated in
+`research/2026-10-15-pit-record-validation.md`. All four now say no free panel is **in use** and name
+the measurement. **The class membership is deliberately unchanged:** `backtest_v2._record` NaNs
+everything in that class, so moving a field out without supplying its history makes every historical
+month read **today's** value - a look-ahead leak inside the very metric Phase 13 once fixed for a
+fallback cohort. Because the correction is itself what invites a future session to reclassify, it
+ships with a guard: `test_short_interest_stays_unmeasured_until_its_panel_is_built` requires the two
+fields and the metric's v2 weight to move **together or not at all**. Mutation-tested as the routine
+requires - unmutated passes, and all three mutations (both fields reclassified, one field
+half-moved, the metric un-zeroed) fail with the right message.
+
+### Evidence / research
+
+- Measured today, both committed: `research/measurements/2026-10-23-finra-short-interest-probe.py`
+  (12 FINRA settlement dates; the exact 403/200 boundary at 2017-12-29, row counts, market-class
+  counts, per-symbol days-to-cover) and
+  `research/measurements/2026-10-23-can-the-registry-hold-these-tests.py` (the registry's two
+  shapes; the engine's own call sites against the note's entries; the probability each entry's own
+  verdict bands fire under the null it predicts; the precision 22 months buy).
+- SEC Release 33-9002 (2009), *Interactive Data to Improve Financial Reporting* - phase 1 covers
+  large accelerated filers with public float above $5bn, periods ending after 2009-06-15. The note
+  cites it; the consequence it did not draw is that test C's months are **size-selected**.
+- Boehmer, Huszar & Jordan (2010), *JFE* 96(1), 80-97; Hong, Li, Ni, Scheinkman & Yan (2015), NBER
+  WP 21166; McLean & Pontiff (2016), *JF* 71(1) - test B's priors, **not re-read today** and still
+  flagged in the entry as from abstracts and secondary summaries. Reading them from the PDFs is step
+  5 of the build order, not something this decision rests on.
+- **No backtest or IC number from this system justified anything here** (rules 4 and 5). The only
+  quantities used are data availability, the engine's code paths, and arithmetic on each entry's own
+  stated standard error.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold or category moved; no score, rank or payload byte changed.
+  The decision refuses registrations and corrects documentation. `METHODOLOGY_CHANGELOG.md` has no
+  entry today, correctly.
+
+### Tried and rejected
+
+- **Registering test B as a `kind: metrics` experiment anyway**, which is the one registry shape
+  that could nominally express "weight this single metric". Rejected because it is the trap, not the
+  route: `v2_config` zeroes the metric and `_record` NaNs its inputs, so the entry would run clean
+  and report a null caused by the absent panel. A test that cannot see its own variable is worse
+  than no test, because its null looks like evidence.
+- **Reclassifying `shortRatio` out of `no_free_history` on the strength of the FINRA finding**, which
+  is the obvious-looking follow-through and is a look-ahead leak: `_record` NaNs that class, so a
+  field removed from it without a panel is read at today's value in every historical month. Guarded
+  by a test rather than left to the next reader's judgement.
+
+### Next
+
+- **Run the owed research-engine rerun: all 31 rows, in one session.** The ledger was **already 31
+  rows stale at baseline**, from commit `502ca2b` (2026-10-22), which added `_price_bar_date`,
+  `regularMarketTime` and `published_price_date` to `factor_engine.py` and `pit_record.py` - both in
+  `RESULT_PATHS`. That change is additive and display/gating-only (`published_price_date` is called
+  by `check_run_health`, never by scoring; the two fields are classed `price_history`, which v2
+  restates per month), so the rerun **cannot move a number** - the same category as the 2026-10-18
+  provenance rerun, which measured 0 differences across 29 rows, largest 0.0. It is provenance
+  hygiene, not a result. `python scripts/rerun_experiments.py --status` reports them; `--limit 4` is
+  about 8 minutes and fits one foreground call, so budget ~8 calls and commit the ledger after each.
+  A *partial* rerun leaves rows at mixed fingerprints inside one method version, so it is all 31 or
+  none - do not start what the session cannot finish.
+- After that, the deferred items in order: **0.13, the Factor Lab** (age 11 days today); then
+  `OWNER_FOCUS.md` 2026-10-20 item 6's two free survivorship fixes, which force the same rerun and
+  so should be batched with it.
+- **If someone wants test B built:** the five-step order is in the note's section 7.2. Step 1 is the
+  licence, and it is genuinely first - my probe used `cdn.finra.org`, i.e. the **website**, whose
+  terms forbid derivative works and building a database from it. The route that permits publication
+  is the Query API under the Equity Specific Terms. If the API does not serve the exchange-listed
+  rows, nothing from this test may appear on a public page.
