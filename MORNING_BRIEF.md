@@ -1,4 +1,4 @@
-# Morning Brief - Friday 23 October 2026, 06:35
+# Morning Brief - Friday 23 October 2026, 13:40
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -22,6 +22,14 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `b6352de log: the 2026-10-23 13:00 session - experiments 16 and 17 second-read, the rerun deferred with its argument`
+- `257faa3 measurements: extend the Piotroski second reading to the note's other-period claims`
+- `749064e record: experiments 16 and 17 second-read; close item 5; correct 7c's experiment number`
+- `ce959a6 research: second reading of lab experiment 17 - four paper figures exact, every measured figure reproduced`
+- `8b83ff5 research: second reading of lab experiment 16 - all 17 paper figures and every measured figure confirmed`
+- `76dbb7b measurements: second reading of lab experiment 16 (Asness et al. 2018 Table 3A), recomputed independently`
+- `99806bb measurements: second reading of lab experiment 17 (Piotroski 2000 on OSAP), recomputed independently`
+- `88f5430 brief: code session 2026-10-23`
 - `523f66f log + OWNER_FOCUS: the proposal decided, the lab's Friday deferred and why`
 - `3eee020 decide the open proposal: all three registrations refused as written, test B accepted in substance`
 - `0fc5c75 measurements: second reading of the three proposed registrations (FINRA files, registry shape, verdict bands)`
@@ -29,61 +37,53 @@ history is in `NIGHTLY_LOG.md`.
 - `3e366b0 data: screener run 2026-10-23 - 498 scored, top: EXPE APA HST INCY SNDK`
 - `1b02665 log + CLAUDE.md: the 2026-10-22 improvement wave; the bot's input gates recorded as settled`
 - `5ab1eca research + OWNER_FOCUS: the input gates replayed against every published page`
-- `502ca2b health: the trading bot's inputs - rank continuity, the unscored share, price dates; data-loop git hygiene`
-- `8b9c494 research: which free data adds evidence, not more tests on the same history`
-- `b4d0333 brief: code session 2026-10-22`
-- `9bf29e2 log: the gates' numbers, the rerun check, and the three guards that fired`
-- `15efe21 research engine: all 31 rows rerun level, and the page reports the stop arm`
-- `3a56a63 log + OWNER_FOCUS: the 2026-10-22 stop-loss item, done and moved to Done`
-- `5e9d966 research: the stop-loss arm's result, and the page reports it beside the unstopped rule`
-- `513c364 research engine: register and build one stop-loss arm on the bot's rule (Han, Zhou & Zhu 2016)`
 
 ## The session's own account
 
-> 2026-10-23 (06:00) - the open proposal decided: the registry cannot hold any of the three tests, and one of them would have manufactured a false null
+> 2026-10-23 (13:00 session) - the lab's two unchecked experiments second-read: all 21 reference figures exact, every measured figure reproduced, and the number that keeps Size at 5% is now checked
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-22 06:00 ended "shipped to
-> main" (the 13:00 slot stood down for the owner marker, as designed). Data loop published? **yes** -
-> 02:28 today, HEALTH PASS, 498 scored, claims gate 1,360 passed. Evidence base at `1m` = **35 rows,
-> newest 2026-09-22 (31 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
-> 4 of 8 effective observations. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12,
-> **age 11 days**) - **deferred**, see below.
-> **Tests:** before **3063 passed, 1 skipped**; after **3064 passed, 1 skipped** (one new guard).
-> **Owner queue / rotation:** today was the lab's Friday. A proposal was waiting for a decision
-> (1 day open), which the prompt and `OWNER_FOCUS.md` item 1 both put ahead of the focus, so **the
-> Factor Lab experiment is deferred**. Nothing lab-side was started, so nothing is half-done.
+> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 ended "Run complete:
+> shipped to main" at 06:35. Data loop published? **yes** - 02:28 today, HEALTH PASS, 498 scored.
+> Evidence base at `1m` = **35 rows, newest 2026-09-22 (31 days ago, bound 40), 4 effective**
+> (`_n_observations` 4, `_n_raw_observations` 35 - the raw count is the one not to quote). Priority 0:
+> `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+> Factor Lab** (opened 2026-10-12, **age 11 days**) - advanced, see below.
+> **Tests:** before **3064 passed, 1 skipped**; after **3064 passed, 1 skipped**. Gates 2, 3, 4 pass
+> (dry-run clean; `index.html` 651,844 bytes, both payload files parse under `node --check` and open
+> with their own assignment; working tree clean). `scripts/rehearse_publish.py` **not run and not
+> needed**: the diff is research notes, measurement scripts, `OWNER_FOCUS.md` and `plan/`, and
+> touches nothing the page is built from.
+> **Owner queue / rotation:** `OWNER_FOCUS.md` 2026-10-20 **item 2** taken and its outstanding half
+> **closed**; **item 5** closed as already-done. No proposal was waiting
+> (`write_brief.open_proposals()` returns `[]`). **Deferred: the research-engine rerun** the 06:00
+> session named as Next - the argument is below, under *Tried and rejected*, because deferring an
+> earlier session's Next on the same day needs one.
 > 
 > ### Did
 > 
-> **Decided the open proposal in `research/2026-10-22-free-data-that-adds-evidence.md` - and the
-> decision is a refusal of all three registrations as written, with the research left standing.**
-> The note asked a later session to register three pre-registered tests in
-> `research/experiments/registry.yaml`, "each in its own commit before any of its data is built".
-> It was written by a different session, so this is the second reader the routine is built around.
-> Three things were measured that the note had not; both scripts are committed beside it.
+> **Second-read Factor Lab experiments 16 and 17, the two that had no reader but their author.**
+> `OWNER_FOCUS.md` item 2 asks for exactly this and names what it means: reopen the paper, re-read
+> every reference figure against `factor_lab.py`, and check in `git log` that the tolerances were
+> committed before the comparison ran. Experiment 15 was done the night it shipped; 16 and 17 were
+> merged after it on the owner-run night of 2026-10-20 and have been uncovered since. Both were
+> checked three ways, and a fourth was added - recomputing every *measured* figure from the source
+> files with no import of `factor_lab`, so a construction error would disagree rather than be
+> reproduced. **Nothing needed correcting.** Both measurement scripts are committed.
 > 
-> **1. The FINRA claim is true - re-run, not taken.** Twelve settlement dates fetched
-> (`research/measurements/2026-10-23-finra-short-interest-probe.py` + `.json`). 2014-2016 return
-> **403**; **2017-12-29 onward return 200**, 15,495 rows rising to 20,516 by 2025. `marketClassCode`
-> on 2017-12-29: **NYSE 3,102, NNM 2,355, ARCA 1,433** beside OTC 7,152 - exchange-listed rows are in
-> the file four years before the June 2021 FINRA's own page states, so the note's correction of FINRA
-> stands. `daysToCoverQuantity` is numeric and positive on **15,494 of 15,495** rows then and
-> **20,516 of 20,516** in 2025, and all seven large members probed (AAPL, JPM, MSFT, XOM, JNJ, KO,
-> GE) are present on every served date. Two details the note should have carried: the files are
-> **pipe-delimited despite the `.csv` extension** (my first probe read one column), and the field
-> **floors at 1.00** - AAPL and JPM both read exactly 1.00 on 2018-12-31 - so it is censored below.
-> 
-> **2. The decisive finding: the registry cannot hold any of the three, so the instruction is not an
-> executable action.** Measured by running the engine's own call sites rather than reading the YAML
-> (`research/measurements/2026-10-23-can-the-registry-hold-these-tests.py` + `.json`). The committed
-> registry has exactly **two** shapes: `experiments:` - 29 entries, **29 of 29** carrying a
-> `transform` whose `kind` is one of seven known kinds - and `evaluations:` - 2 entries, each with a
-> `rule` and no transform. None of A, B or C is either. Shaped as the note writes them,
-> `apply_transform` raises **`KeyError: 'factor_weights'`** and the bare `e["transform"]["kind"]` read
-> raises **`KeyError: 'transform'`** - unguarded at `v2_experiments.py:1122`, `:1156` and `:1180`
-> (`report`, `summary_for_page`) and in three places in `tests/test_engine_calibration.py`. Following
-> the instruction would have reddened the suite and the public research page, not pre-registered
-> anything.
+> **Experiment 16, `size-given-profitability`** (Asness, Frazzini, Israel, Moskowitz & Pedersen 2018)
+> - the one that matters most, because its verdict is what kept the Size weight at 5% on 2026-10-20.
+> The publisher's open-access PDF was obtained (the CBS Research Portal copy; ScienceDirect answers
+> 403 to anything that is not a browser and that was **not** worked around) and **all seventeen
+> reference figures are exact** against Table 3 Panel A, printed p. 495: the Small - Big column
+> 0.23/0.46/0.54/0.42/0.44 with t 1.21/3.02/3.44/2.82/2.87, the Quality - Junk ends 0.62 (t 4.78) and
+> 0.42 (t 2.78), and SMBQ 42 bps t 3.18 quoted verbatim from the text on the same page. The single
+> **derived** figure is derived correctly - the paper's column "4" minus column "Big" runs
+> 0.28/0.19/0.25/0.30/0.25 down the five rows and their mean is **0.254**. The second implementation
+> reproduces every measured figure (SMBQ **0.3918**, fourth-minus-biggest **0.2414**, the five rows,
+> both quality spreads), gives **10 within and 7 outside** on the committed tolerances - the published
+> count, with the misses exactly where the verdict note says - and recomputes the pre-registered
+> criterion at **0.1661 a month, t 2.3641** against its bar of 0.136 and 1.5, **-0.1066 (t -0.70)**
+> since 2013. So "not refuted" is right. `research/2026-10-20-size-weight.md` section 12.
 > 
 > ...
 
