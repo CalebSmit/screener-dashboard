@@ -14584,3 +14584,24 @@ was gated when it was not.
 - **For the owner, in the other repo:** nothing in `screener-bot` reads `signals.json` yet, so
   until its `bot/signals.py` is pointed at it the file accrues beside the page and changes nothing.
   That is bot work and nightly sessions here do not do it.
+
+## 2026-10-24 (13:00 midday session) - the two free data fixes backtest v2's record was missing, and the rule I first wrote for one of them was wrong in both directions
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 06:00 weekend ended
+"Run complete: shipped to main" at 06:42, tag `good/2026-10-24`. Data loop published? **yes** -
+2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; no 02:00 run today,
+correctly - Saturday. Evidence base at `1m` = **35 rows, newest 2026-09-22 (32 days ago, bound
+40), 4 effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority
+0: `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13,
+the Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred; the next experiment is 18 and
+the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical today.
+**Tests:** before **3109 passed, 1 skipped**; after **PENDING**
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 6, first
+half** - the two free data fixes - which is also what the 06:00 session and the 10-23 13:00
+session both named as Next. No proposal is waiting for a decision
+(`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear.
+
+### Did
+
+**PENDING - see the sections below; this entry is written as the work lands.**
+
