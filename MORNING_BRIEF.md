@@ -1,4 +1,4 @@
-# Morning Brief - Saturday 24 October 2026, 06:42
+# Morning Brief - Saturday 24 October 2026, 15:49
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -22,69 +22,69 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
+- `5dad042 test: the research page's intervals come from the ledger, not from one audit's literals`
+- `0693eda research engine: all 31 ledger rows rerun on the rebuilt records`
+- `f3d757f plans: the two v2 data fixes are done; what remains of the sub-item`
+- `5eedc7c wip: the log entry's body, up to the rerun`
+- `9bf99fd wip: the main build's effect, measured`
+- `40b2e93 wip: the presample rebuild's effect, measured`
+- `789c940 wip: the research note and the log entry for the two v2 data fixes`
+- `1306eb7 v2 data: carry the pre-2014 renames and each member's predecessor filings`
+- `a36bf60 brief: code session 2026-10-24-weekend`
 - `93f7d37 comment: the side file is ~10 KB, measured, not 2`
 - `b8c592b log: correct the after-count to the measured 3109`
 - `19d8435 log: the 2026-10-24 weekend session - owner item 2026-10-21 items 5 and 6, and the item closed`
 - `ddf7abc the published run's inputs outlive the four-week prune`
 - `5b83030 only the gated run is tradable: signals.json`
 - `fd88886 wip: the page says which run, which commit and which raw fetch it came from`
-- `86c90cb brief: code session 2026-10-23-midday`
-- `b6352de log: the 2026-10-23 13:00 session - experiments 16 and 17 second-read, the rerun deferred with its argument`
-- `257faa3 measurements: extend the Piotroski second reading to the note's other-period claims`
-- `749064e record: experiments 16 and 17 second-read; close item 5; correct 7c's experiment number`
-- `ce959a6 research: second reading of lab experiment 17 - four paper figures exact, every measured figure reproduced`
-- `8b83ff5 research: second reading of lab experiment 16 - all 17 paper figures and every measured figure confirmed`
-- `76dbb7b measurements: second reading of lab experiment 16 (Asness et al. 2018 Table 3A), recomputed independently`
-- `99806bb measurements: second reading of lab experiment 17 (Piotroski 2000 on OSAP), recomputed independently`
-- `88f5430 brief: code session 2026-10-23`
 
 ## The session's own account
 
-> 2026-10-24 (06:00 weekend session) - the screener's half of the plan to real money is finished: only the gated run is tradable, and the run a page came from can now be checked against its own inputs
+> 2026-10-24 (13:00 midday session) - the two free data fixes backtest v2's record was missing, and the rule I first wrote for one of them was wrong in both directions
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-23 13:00 ended "Run
-> complete: shipped to main" at 13:40, tag `good/2026-10-23-1340`. Data loop published? **yes** -
-> 2026-10-23 02:28, HEALTH PASS, 498 scored, all four of the 2026-10-22 input gates green (Spearman
-> 0.994, 1 new in the top 25, 498/498 prices on the expected session). No 02:00 run today, correctly
-> - Saturday. Evidence base at `1m` = **35 rows, newest 2026-09-22 (32 days ago, bound 40), 4
-> effective** (`_n_observations` 4; the raw count of 35 is the one not to quote). Priority 0:
-> `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
-> Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred, see below.
-> **Tests:** before **3064 passed, 1 skipped**; after **3109 passed, 1 skipped** (+45: three new
-> modules - 22, 14 and 8 - plus one new contract test). Gates 2, 3, 4 pass. **`scripts/rehearse_publish.py` run and
-> PASSED** - the diff touches `generate_dashboard.py`, which the four gates cannot see.
-> **Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item, 2026-10-21, items 5 and 6** - both
-> built, and the item is now **closed and moved to Done**. **Deferred: the research-engine rerun**
-> batched with the 2026-10-20 item 6, which the 10-23 13:00 session named as its Next; the argument
-> is under *Tried and rejected*.
+> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 06:00 weekend ended
+> "Run complete: shipped to main" at 06:42, tag `good/2026-10-24`. Data loop published? **yes** -
+> 2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; no 02:00 run today,
+> correctly - Saturday. Evidence base at `1m` = **35 rows, newest 2026-09-22 (32 days ago, bound
+> 40), 4 effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority
+> 0: `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13,
+> the Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred; the next experiment is 18 and
+> the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical today.
+> **Tests:** before **3109 passed, 1 skipped**; after **3129 passed, 1 skipped** (+20, one new
+> module). Gates 2 and 4 pass; gate 3 via `tests/test_payload_parse_gate.py` (19) and the fact that
+> no payload file is in this diff - `node --check` is refused by this session's tool guard, and the
+> runner re-runs gate 3 itself. **`scripts/rehearse_publish.py` run and PASSED**, because the diff
+> changes `SCREENER_OVERVIEW.md`, which `generate_dashboard` embeds in the page.
+> **One test needed changing and the reason is worth reading** (see *Tried and rejected*):
+> `test_every_headline_figure_carries_its_interval_from_the_ledger` pinned the 2026-10-20 audit's
+> literal confidence interval, which a legitimate data fix moves.
+> **Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 6, first
+> half** - the two free data fixes - which is also what the 06:00 session and the 10-23 13:00
+> session both named as Next. No proposal is waiting for a decision
+> (`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear.
 > 
 > ### Did
 > 
-> **`OWNER_FOCUS.md` 2026-10-21 item 5 - only the gated run is tradable.** The hole this closes is
-> an asymmetry, the same shape as the two previous retrospectives found. `dashboard_data.js` is
-> published by **two** paths: the 02:00 data loop, behind seven gates (no synthetic data, a
-> fetch-failure ceiling, `check_run_health.py` with its rank-continuity, empty-record and
-> price-freshness rules, a size floor, a real `node --check`, the opening assignment, and
-> `check_published_claims.py`); and any code session that runs the full screener, behind **none of
-> them** - its four ship gates are about the repository, not about the run. The bot reads the page as
-> Pages serves it and cannot tell the two apart.
+> **`OWNER_FOCUS.md` 2026-10-20, sub-item 6, first half: backtest v2's two free data fixes, done
+> together because both are in `v2_experiments.RESULT_PATHS` and so force one rebuild and one
+> rerun.** The write-up is `research/2026-10-24-v2-pre-2014-renames.md`; every figure below is in
+> `research/measurements/2026-10-24-v2-data-fix-effect.json`.
 > 
-> So the gated run now writes a second, small file and the bot trades that. `scripts/write_signals.py`
-> is called from `data-run.ps1` after the published-claims gate and before the commit, and
-> `signals.json` is in `$DataArtifacts`. `scripts/nightly-screener.ps1` never writes or stages it -
-> **that asymmetry is the whole mechanism**, so one test asserts the code runner does not mention it
-> and another that no other module in the repo writes it.
+> **Re-measured before touching anything (the prompt's rule), and nothing had moved since
+> 2026-10-20:** 48,282 member-months in 2012-2019, 31,919 built, `no_current_record` 15,108,
+> `no_price` 434, `symbol_reused` 48, `no_filings` 773 - every figure identical. The 167 months the
+> note attributes to an uncarried rename reproduce symbol by symbol (TYC 56, ACE 48, SAI 21, MHP 16,
+> PCS 16, BFB 6, CMCSK 3, SAIC 1).
 > 
-> Three decisions in it worth recording, because each could reasonably have gone the other way:
-> 
-> - **It is derived from the gated payload, not from a second read of the run directory.** The
->   ranking in `signals.json` is then by construction the ranking those gates inspected. A second
->   read could disagree with the page, and the disagreement would be invisible.
-> - **Gate verdicts are `pass` or `warn`, and there is no `fail`.** Two gates publish on a documented
->   fallback when the tool they need is missing (node, pytest), and a consumer is entitled to know a
->   check did not run - `all_gates_ran` is false then. A `fail` verdict could not be true in a file
->   only reached after every gate accepted, so the parser refuses one.
-> - **It is not a gate.** A failed write leaves the previous `signals.json` in place, which is the
+> **Fix 1 - the renames the membership history cannot carry.** `Inputs.current_symbol` matches a
+> month's member to today's record by SEC registrant number and nothing else, which is right: only
+> the CIK separates a rename from a removal. But the revisions had no CIK column until **2014-05**,
+> so a company renamed before then has no registrant number anywhere in the history and the matcher
+> has nothing to match on. `universe_history.PRE_REVISION_CIKS` supplies three - BFB (BF.B written
+> without the dot, so it normalises to a symbol that never meets today's BF-B), MHP (S&P Global) and
+> SAI (Leidos) - each a *unique* name match against SEC's own `cik-lookup-data.txt` from the
+> 2026-10-20 note, each verified here to resolve to a company in today's universe, to a target that
+> was **not itself a member in any affected month**, and to a price series that covers those months.
 > ...
 
 ---
