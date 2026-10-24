@@ -14603,5 +14603,109 @@ session both named as Next. No proposal is waiting for a decision
 
 ### Did
 
-**PENDING - see the sections below; this entry is written as the work lands.**
+**`OWNER_FOCUS.md` 2026-10-20, sub-item 6, first half: backtest v2's two free data fixes, done
+together because both are in `v2_experiments.RESULT_PATHS` and so force one rebuild and one
+rerun.** The write-up is `research/2026-10-24-v2-pre-2014-renames.md`; every figure below is in
+`research/measurements/2026-10-24-v2-data-fix-effect.json`.
+
+**Re-measured before touching anything (the prompt's rule), and nothing had moved since
+2026-10-20:** 48,282 member-months in 2012-2019, 31,919 built, `no_current_record` 15,108,
+`no_price` 434, `symbol_reused` 48, `no_filings` 773 - every figure identical. The 167 months the
+note attributes to an uncarried rename reproduce symbol by symbol (TYC 56, ACE 48, SAI 21, MHP 16,
+PCS 16, BFB 6, CMCSK 3, SAIC 1).
+
+**Fix 1 - the renames the membership history cannot carry.** `Inputs.current_symbol` matches a
+month's member to today's record by SEC registrant number and nothing else, which is right: only
+the CIK separates a rename from a removal. But the revisions had no CIK column until **2014-05**,
+so a company renamed before then has no registrant number anywhere in the history and the matcher
+has nothing to match on. `universe_history.PRE_REVISION_CIKS` supplies three - BFB (BF.B written
+without the dot, so it normalises to a symbol that never meets today's BF-B), MHP (S&P Global) and
+SAI (Leidos) - each a *unique* name match against SEC's own `cik-lookup-data.txt` from the
+2026-10-20 note, each verified here to resolve to a company in today's universe, to a target that
+was **not itself a member in any affected month**, and to a price series that covers those months.
+
+**The other five are refused, and the refusals are the rule rather than exceptions to it.** ACE→CB
+(48 months) and TYC→JCI (56): the target symbol was itself a member in **every** affected month -
+Chubb Corp and Johnson Controls Inc, both later absorbed by the registrant that now holds the
+symbol - so one current record would have to stand for two members, and the symbol's price history
+before the merger belongs to the other company. CMCSK→CMCSA (3): a second share class of a company
+already scored, which the 2026-10-21 share-class decision says is scored once. PCS→TMUS (16): the
+note's own identity check - SEC public float against the symbol's close - reports **MISMATCH**
+(median ratio 0.353, 2 of 9 dates), because MetroPCS's 1:2 reverse split *and* $4.05 special
+dividend are not a clean split and the filed share count cannot be reconciled with the adjusted
+price. SAIC (1): the note resolves it to Leidos's registrant but takes its prices from today's
+SAIC, a different company.
+
+**Fix 2 - each member's predecessor registrant.** `facts.parquet` is fetched by today's CIK, so a
+holding-company reorganisation or redomicile leaves every month before it asking a registrant that
+had filed nothing - **773 member-months** in 2012-2019, among them the whole window for Apache,
+BlackRock and Exxon. Read off the parquet the pattern is unmistakable: each symbol's filings begin
+the day its current registrant started filing (XOM 2026-08-03, BLK 2024-11-06, APA 2021-05-07,
+DIS 2019-05-08, CI 2019-02-28, DD 2017-11-06, AVGO 2018-06-14, GOOG/GOOGL 2015-10-29, MDT
+2015-02-27). **Those filings were public at the time** and are the company's own under the name it
+then had, so joining them is the opposite of look-ahead - leaving them out is a hole in the
+point-in-time record, and the only reason it exists is a fetch keyed to a symbol's *current*
+registrant. `research/measurements/2026-10-24-predecessor-facts.py` fetches every CIK the history
+ever gave a current member (22 pairs, one `companyfacts` request each, 12 seconds) and
+`backtest_v2._load_facts` concatenates the side file; `pit_record` then selects by filed date
+exactly as before, so there is no handover date to maintain.
+
+**The rule I first wrote for admitting a pair was wrong in both directions, and measuring it is
+what showed that.** The draft refused any pair whose predecessor kept filing after the successor
+started, on the theory that a real reorganisation hands over cleanly. On the 22 pairs it refused
+**three genuine reorganisations** - Apache Corp (96 months), EIDP (68) and Dow Chemical all still
+file as debt-only subsidiaries of their own holding companies, overlapping by 1,280, 548 and 2,639
+days - and **admitted two different companies**, SanDisk Corp and Twenty-First Century Fox, each of
+which stopped filing before today's holder of its symbol was created. What replaced it is a cut
+with a proof: keep only rows filed **strictly before** today's registrant's first filing, because
+`pit_record` takes the latest filing, so a kept row can only ever be chosen for a month in which
+today's registrant had filed *nothing at all* - exactly the gap being filled. Strictly before, so a
+same-day handover resolves to the successor (Alphabet and Google Inc both filed on 2015-10-29).
+A second bound stops a registrant that lost the symbol years earlier - IQVIA held `Q` for three
+months in 2017 and filed until 2025 - by dropping rows filed more than 120 days after the last
+month the history named it. 24,365 of 30,063 fetched facts kept; `CB:20171` and `JCI:53669` cut to
+nothing, which is the two whose predecessor is a company today's registrant absorbed.
+
+**What the rebuild changed.** All 176 months rebuilt, four shards at a time, and compared against
+the pre-fix census and scores copied aside first:
+
+| | 2012-2019 | 2020-2026 |
+|---|---|---|
+| `no_filings` | 773 -> **91** | 177 -> **13** |
+| `no_current_record` | 15,108 -> **15,065** (-43) | unchanged |
+| Records built | +725 | +164 |
+| Member-months **scored** | +398 | +98 |
+| Month-stocks removed | **0** | **0** |
+
+The -43 is exactly the three renames (SAI 21, MHP 16, BFB 6). The scored names are DIS 94, DD 52,
+GOOG 49, AVGO 45, CI 31, MDT 25, GOOGL 22, LDOS 21, APA 17, SPGI 16, BLK 11, KHC 7, BF-B 6, FOX 1,
+FOXA 1 in the earlier period; BLK 61, APA 25, BG 11, XOM 1 in the later one.
+
+**Two things in that table needed explaining rather than reporting, and both check out.**
+
+- **725 built but 398 scored.** The coverage filter declined the rest, and the largest single case
+  is instructive: **Exxon gains a record in all 96 months and is ranked in none**, because CIK
+  34088 files **no `OperatingIncomeLoss` tag at all** - measured: of the fetch's fourteen input
+  concepts it is missing `operating_income`, `gross_profit` and `cost_of_revenue`, and operating
+  income feeds ROIC, EV/EBITDA, operating margin and operating leverage together. BlackRock also
+  lacks both current-asset items, Cigna those and operating income. This is a property of a
+  filings-only rebuild, not of this fix, and the right response is that a filter declined a record
+  it could not cover. It also names the next free improvement: more XBRL tags per input, no new
+  data source (note section 5).
+- **12,800 of 31,410 already-scored composites moved, the largest by 7.42 points.** That is the
+  mechanism working. The engine ranks each metric **within the stock's sector**, so adding a name
+  to a month re-ranks every other name in that sector. The symbols that moved most often are
+  exactly the sector-mates of what was added - Netflix 96 months, Omnicom 95, AT&T 95, Comcast 94,
+  Verizon 92, the Communication Services peers of Disney and the two Alphabet lines; then a block
+  of banks beside Cigna and BlackRock. In 2020-2026 it is 6,779 moved and the top twenty-five are
+  **all** financials, beside a BlackRock that was absent from 58 of 80 months. A version of this
+  that left peers untouched would be the broken one.
+
+**What has already been published rested on the old panel.** Until today v2's 2020-2026 rankings
+contained no Exxon in any month and no BlackRock in 58 of 80, and its 2012-2019 rankings contained
+no Exxon, Apache, BlackRock, Disney, Cigna, DuPont, Broadcom, Alphabet or Medtronic for most or all
+of the window. Every research-engine result was measured on that panel, which is why the rerun
+below is not optional bookkeeping.
+
+**RERUN_PENDING**
 
