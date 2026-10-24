@@ -24,64 +24,6 @@ Two things still outrank this file, and neither is negotiable:
 
 ## Open
 
-- **2026-10-21 - The screener's half of the plan to real money: no wrong or stale ranking reaches the
-  trading bot.** Owner: *"I want you to start thinking in the way that you need to make me money in
-  the stock market with this tool. And that's going to be through the trading bot."* The plan is
-  `screener-bot/ROADMAP.md` (rewritten 2026-10-21 from five audits); its **phase 1** is the input
-  side, and these items are this repo's. Measured: on a normal day the top 25 gains at most 4 new
-  names and the rank correlation with the previous run is >= 0.981 (the 10-09 overhaul: 6 and 0.935;
-  the broken 07-28 run: 24 and 0.016). In order, each with its test:
-  1. **Rank-continuity gate** in `check_run_health.py` (bot ROADMAP 1.3): FAIL below 0.90 correlation
-     with the last published run, more than 8 new top-25 names, or more than 3 top-25 names below #40;
-     override only when the methodology version changed and a changelog entry is dated today. Test: a
-     shuffled ranking with normal spread fails, a normal day passes, an overhaul with its entry passes.
-  2. **The empty-record hole** (1.4): FAIL below 490 scored or coverage exclusions above 2% of the
-     universe, and count them toward the 40% fetch gate. Today `meta.json` shows 2 unscored while the
-     log says 0 failures.
-  3. **Price freshness** (1.5): publish each price's bar date; FAIL unless >= 95% sit on the expected
-     session, or if over half are unchanged across a session.
-  4. **Data-loop git hygiene** (1.9): fail closed when `git pull --ff-only` fails; push only the data
-     commit, never all of local `main`; put `tests/test_bot_payload_contract.py` in the publish gate.
-
-  **Items 1-4 BUILT 2026-10-22 (on a worktree branch; merged by the session that relays it).** All in
-  `scripts/check_run_health.py` / `scripts/data-run.ps1`, tested in `tests/test_input_gates.py`, and
-  replayed before shipping against every page the site published since 2026-08-21
-  (`research/measurements/2026-10-22-input-gates-replay.py` + JSON; 62 versions, 46 data-loop runs):
-  **no ordinary day fails any rule**; the known-bad pages do (07-28: Spearman 0.856, 10 new, 7 fallen;
-  08-06 synthetic and 08-07 warm-start: -0.017, 22 new, 23 fallen, no prices; 08-10: no prices).
-  - *1:* the baseline is `dashboard_data.js` as committed at HEAD (the working-tree file is the run
-    itself by then). "Methodology version" = `RunContext.config_hash` - the scored-cache key, which
-    covers every weight, the data-quality/universe/sector/trap/regime/share-class rules and the
-    `scoring_schema` counter - recorded in `meta.json` and published as `kpis.methodology_version`.
-    **One deliberate change to the wording:** the changelog entry may be dated from the published
-    run's day to today, not today only - measured, 6 of the 46 data-loop runs (09-02, 09-03, 09-11,
-    10-13, 10-20, 10-22) were the first scored under a change documented the day before, and under
-    "today" only a refusal there could never clear (every later run is compared with the same stale
-    page). The 10-09 overhaul passes outright (0.935, 6 new, 1 fallen) and had the waiver available.
-    Known limit, written in the docstring: a bad page published by a code session (ungated here)
-    would make good runs fail until item 5 moves the baseline to the last data-loop run.
-  - *2:* `universe.json`'s `failed` (fetch errors + empty records + coverage filter) over 2% of the
-    universe, or under 490 ranked; history max 0.4% (HONA, VYLR), min 498 ranked. `data-run.ps1`'s
-    40% gate now counts every "Excluded from scoring" ticker, once each.
-  - *3:* `stock_detail[t].price_date` (the quote's `regularMarketTime` in Eastern, or the last bar
-    when the quote is missing). Expected session from a rule-based NYSE calendar (holidays verified
-    2022-2027; an unscheduled closure costs one discarded run). Verified live on a 29-stock run at
-    12:45 CT: 29/29 dated 2026-10-22. History cannot replay the dates (they did not exist); its
-    unchanged-across-a-session share peaked at 1.2% against the 50% line.
-  - *4:* pull failure and a local `main` ahead of `origin/main` both stop the run before the
-    screener; the push is `<data commit>:refs/heads/main`, only when it is the single commit ahead;
-    `test_bot_payload_contract.py` and `test_input_gates.py` are in `check_published_claims.py`.
-  The methodology page states the new refusals from the gate's own constants. **5 and 6 are open.**
-  5. **Only the data loop's run is tradable** (1.2, this repo's half): after every gate `data-run.ps1`
-     writes `signals.json` (top 40, run_id, git_sha, raw-fetch sha256, gate verdicts); the code
-     runner never stages it (test it beside `tests/test_gate_ordering.py`). Code sessions' full runs
-     keep publishing the page; they stop being what the bot trades.
-  6. **Audit trail** (1.10): `run_id`, `git_sha`, a config hash and `raw_sha256` in `kpis` (add them
-     to the contract test); archive each published run's raw fetch and log outside OneDrive, never
-     pruned.
-  The bot's halves (fresh-ranking rule, methodology pause, second price source, pre-trade verifier)
-  are owner-run work in the bot repo. **None of this changes a score.**
-
 - **2026-10-20 - Fine-tune and test what the 2026-10-20 night built.** Owner: *"do as much work as
   you can tonight before the 2 am session please! Then have the sessions fine tune things and test
   things."* The night shipped (owner-run, tags `good/2026-10-20-owner-1..`): the overfitting check on
@@ -559,6 +501,104 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 ## Done
 
 Completed items, newest first.
+
+- **2026-10-24 - The screener's half of phase 1: DONE.** Items 1-4 shipped 2026-10-22; items 5
+  and 6 shipped 2026-10-24 (06:00 weekend session) - `signals.json` written only after every
+  gate and staged only by the data loop, the four audit identifiers in `kpis`, and each
+  published run's raw fetch archived outside OneDrive and verified against the hash the page
+  publishes. No score moved. The bot's own halves remain owner-run work in `screener-bot`.
+  The original item, with what each sub-item shipped, follows.
+
+- **2026-10-21 - The screener's half of the plan to real money: no wrong or stale ranking reaches the
+  trading bot.** Owner: *"I want you to start thinking in the way that you need to make me money in
+  the stock market with this tool. And that's going to be through the trading bot."* The plan is
+  `screener-bot/ROADMAP.md` (rewritten 2026-10-21 from five audits); its **phase 1** is the input
+  side, and these items are this repo's. Measured: on a normal day the top 25 gains at most 4 new
+  names and the rank correlation with the previous run is >= 0.981 (the 10-09 overhaul: 6 and 0.935;
+  the broken 07-28 run: 24 and 0.016). In order, each with its test:
+  1. **Rank-continuity gate** in `check_run_health.py` (bot ROADMAP 1.3): FAIL below 0.90 correlation
+     with the last published run, more than 8 new top-25 names, or more than 3 top-25 names below #40;
+     override only when the methodology version changed and a changelog entry is dated today. Test: a
+     shuffled ranking with normal spread fails, a normal day passes, an overhaul with its entry passes.
+  2. **The empty-record hole** (1.4): FAIL below 490 scored or coverage exclusions above 2% of the
+     universe, and count them toward the 40% fetch gate. Today `meta.json` shows 2 unscored while the
+     log says 0 failures.
+  3. **Price freshness** (1.5): publish each price's bar date; FAIL unless >= 95% sit on the expected
+     session, or if over half are unchanged across a session.
+  4. **Data-loop git hygiene** (1.9): fail closed when `git pull --ff-only` fails; push only the data
+     commit, never all of local `main`; put `tests/test_bot_payload_contract.py` in the publish gate.
+
+  **Items 1-4 BUILT 2026-10-22 (on a worktree branch; merged by the session that relays it).** All in
+  `scripts/check_run_health.py` / `scripts/data-run.ps1`, tested in `tests/test_input_gates.py`, and
+  replayed before shipping against every page the site published since 2026-08-21
+  (`research/measurements/2026-10-22-input-gates-replay.py` + JSON; 62 versions, 46 data-loop runs):
+  **no ordinary day fails any rule**; the known-bad pages do (07-28: Spearman 0.856, 10 new, 7 fallen;
+  08-06 synthetic and 08-07 warm-start: -0.017, 22 new, 23 fallen, no prices; 08-10: no prices).
+  - *1:* the baseline is `dashboard_data.js` as committed at HEAD (the working-tree file is the run
+    itself by then). "Methodology version" = `RunContext.config_hash` - the scored-cache key, which
+    covers every weight, the data-quality/universe/sector/trap/regime/share-class rules and the
+    `scoring_schema` counter - recorded in `meta.json` and published as `kpis.methodology_version`.
+    **One deliberate change to the wording:** the changelog entry may be dated from the published
+    run's day to today, not today only - measured, 6 of the 46 data-loop runs (09-02, 09-03, 09-11,
+    10-13, 10-20, 10-22) were the first scored under a change documented the day before, and under
+    "today" only a refusal there could never clear (every later run is compared with the same stale
+    page). The 10-09 overhaul passes outright (0.935, 6 new, 1 fallen) and had the waiver available.
+    Known limit, written in the docstring: a bad page published by a code session (ungated here)
+    would make good runs fail until item 5 moves the baseline to the last data-loop run.
+  - *2:* `universe.json`'s `failed` (fetch errors + empty records + coverage filter) over 2% of the
+    universe, or under 490 ranked; history max 0.4% (HONA, VYLR), min 498 ranked. `data-run.ps1`'s
+    40% gate now counts every "Excluded from scoring" ticker, once each.
+  - *3:* `stock_detail[t].price_date` (the quote's `regularMarketTime` in Eastern, or the last bar
+    when the quote is missing). Expected session from a rule-based NYSE calendar (holidays verified
+    2022-2027; an unscheduled closure costs one discarded run). Verified live on a 29-stock run at
+    12:45 CT: 29/29 dated 2026-10-22. History cannot replay the dates (they did not exist); its
+    unchanged-across-a-session share peaked at 1.2% against the 50% line.
+  - *4:* pull failure and a local `main` ahead of `origin/main` both stop the run before the
+    screener; the push is `<data commit>:refs/heads/main`, only when it is the single commit ahead;
+    `test_bot_payload_contract.py` and `test_input_gates.py` are in `check_published_claims.py`.
+  The methodology page states the new refusals from the gate's own constants.
+  **5 and 6 BUILT 2026-10-24 (06:00 weekend session) - this repo's half of phase 1 is complete.**
+  5. **Only the data loop's run is tradable** (1.2, this repo's half): after every gate `data-run.ps1`
+     writes `signals.json` (top 40, run_id, git_sha, raw-fetch sha256, gate verdicts); the code
+     runner never stages it (test it beside `tests/test_gate_ordering.py`). Code sessions' full runs
+     keep publishing the page; they stop being what the bot trades.
+     **DONE.** `scripts/write_signals.py`, called from `data-run.ps1` after the published-claims
+     gate and before the commit, with `signals.json` in `$DataArtifacts`. Each gate now records its
+     verdict as it passes (`$GateVerdicts`), and the two documented fallbacks - node absent, pytest
+     absent - record **`warn`** rather than silence, so `all_gates_ran` tells a consumer a check did
+     not run. There is deliberately **no `fail` verdict**: the file is written only after every gate
+     accepted, so a failing verdict in it could not be true, and the parser refuses one.
+     It is **not** a gate - a failed write leaves the previous `signals.json`, which is stale and
+     which the bot's own freshness rule declines; discarding a good run over a 10 KB side file would
+     cost a day of evidence. Verified end to end against the 2026-10-23 published run: top 40 in
+     rank order beginning EXPE APA HST INCY SNDK, 9,673 bytes.
+     `tests/test_tradable_signals.py` (22), in the publish gate.
+  6. **Audit trail** (1.10): `run_id`, `git_sha`, a config hash and `raw_sha256` in `kpis` (add them
+     to the contract test); archive each published run's raw fetch and log outside OneDrive, never
+     pruned.
+     **DONE, both halves.** `kpis` carries `run_id`, `git_sha` and `raw_sha256` beside the
+     `methodology_version` published since 2026-10-22; `run_fingerprint.py` is the one computation
+     and hashes **this run's own** `00_raw_fetch.parquet`, never the copy
+     `generate_dashboard._find_raw_fetch` borrows from a neighbouring run for display (right for a
+     price target, a lie in an audit trail), and publishes an absent identifier as `null` rather
+     than as git's literal `"unknown"`. The rebuilt payload differs from the live one in **exactly
+     those three keys and nothing else** - no score, rank or sentence moved.
+     `scripts/archive_run.py` then keeps each **published** run's raw fetch, log, config and
+     universe in `%LOCALAPPDATA%\ScreenerArchive`, verified by re-hashing the copy against the
+     hash the page publishes. Outside OneDrive because the synced tree rewrites mtimes (the reason
+     `latest_run_dir` stopped trusting them on 2026-10-16), can leave a file as an on-demand
+     placeholder, and has a quota; outside the repo because `prune_artifacts.py` empties `runs/`
+     after twenty runs - **about four weeks, after which the published hash pointed at nothing.**
+     Never pruned, by design; it reports its size each run instead. ~1.9 MB a run, ~0.5 GB a year.
+     Verified on this machine, not just in tests: the 2026-10-23 run is archived and its archived
+     parquet re-hashes to the value the regenerated payload carries.
+     `tests/test_run_fingerprint.py` (8), `tests/test_run_archive.py` (14), both in the publish gate.
+  **What this does not do, and is the bot's half:** nothing in `screener-bot` reads `signals.json`
+  yet. Until it does, the file accrues beside the page and changes nothing. The bot's halves
+  (fresh-ranking rule, methodology pause, second price source, pre-trade verifier) are owner-run
+  work in the bot repo. **None of this changes a score.**
+  **The first `signals.json` arrives with the 2026-10-26 (Monday) 02:00 run** - it is deliberately
+  not committed by hand, because a hand-written one would assert a gate stack that never ran.
 
 - **2026-10-22 - One pre-registered test of a stop-loss on the bot's rule. DONE the same day
   (06:00 session) - and the prediction failed in two of the three periods.** Registered and built in
