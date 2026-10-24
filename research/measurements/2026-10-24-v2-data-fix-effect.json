@@ -110,10 +110,10 @@
   },
   "main_2020_2026": {
    "scored_before": 35207,
-   "scored_after": 35207,
-   "scored_change": 0,
+   "scored_after": 35305,
+   "scored_change": 98,
    "built_before": 35389,
-   "built_after": 35389,
+   "built_after": 35553,
    "members": 40292,
    "by_reason": {
     "no_current_record": {
@@ -123,20 +123,58 @@
     },
     "no_filings": {
      "before": 177,
-     "after": 177,
-     "change": 0
+     "after": 13,
+     "change": -164
     }
    },
-   "symbols_rescued": {},
+   "symbols_rescued": {
+    "no_filings": {
+     "XOM": 79,
+     "BLK": 58,
+     "APA": 16,
+     "BG": 11
+    }
+   },
    "scores": {
     "rows_before": 35207,
-    "rows_after": 35207,
+    "rows_after": 35305,
     "shared": 35207,
-    "shared_composites_moved": 0,
-    "largest_move": 0.0,
-    "moved_by_ticker": {},
-    "added_name_months": 0,
-    "added_by_ticker": {},
+    "shared_composites_moved": 6779,
+    "largest_move": 5.449999999999996,
+    "moved_by_ticker": {
+     "MTB": 80,
+     "FITB": 80,
+     "JPM": 80,
+     "STT": 80,
+     "HBAN": 80,
+     "HIG": 80,
+     "CFG": 80,
+     "BRK-B": 80,
+     "AFL": 80,
+     "RJF": 79,
+     "WFC": 79,
+     "USB": 79,
+     "SYF": 79,
+     "RF": 79,
+     "TFC": 78,
+     "GS": 78,
+     "PFG": 78,
+     "AIZ": 78,
+     "PNC": 78,
+     "KEY": 78,
+     "SCHW": 77,
+     "MS": 77,
+     "BNY": 77,
+     "GL": 76,
+     "AMP": 76
+    },
+    "added_name_months": 98,
+    "added_by_ticker": {
+     "BLK": 61,
+     "APA": 25,
+     "BG": 11,
+     "XOM": 1
+    },
     "removed_name_months": 0,
     "removed_by_ticker": {}
    }
