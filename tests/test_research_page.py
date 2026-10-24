@@ -176,8 +176,18 @@ def test_every_headline_figure_carries_its_interval_from_the_ledger():
     assert f'Pooled over all <span class="num">{len(series)}</span> months it was <span class="num">{rp.num(m)}</span>' in page
     assert f'<span class="num">{rp.num(round(m - q * se, 4))} to {rp.num(round(m + q * se, 4))}</span>' in page
     assert f'<span class="num">{X.detectable(se, 1, len(series)):.3f}</span> at a t-statistic of 3' in page
-    assert rp.num(-0.0229) == "&minus;0.023" and "&minus;0.023 to +0.017" in page    # the audit's figures
-    assert "&minus;0.027 to +0.027" in page
+    # The formatter, which is the half of this the loop above cannot cover: a true minus sign, a
+    # leading + on a positive, three decimals. NOT a literal interval - both lines here used to
+    # pin the 2026-10-20 audit's own figures ("&minus;0.023 to +0.017" and "&minus;0.027 to
+    # +0.027"), and on 2026-10-24 a legitimate data fix moved the record those intervals are
+    # computed from, so both went red while the page was perfectly correct. The derived loop above
+    # is the stricter check anyway: it reads the ledger and fails if the page disagrees with it at
+    # *any* data version, where a literal can only say whether the data is the data it was written
+    # against. A tripwire that fires when nothing is wrong is one that gets ignored (the same
+    # lesson as the 2026-10-18 dirty-marker bug, plan/research-engine.md).
+    assert rp.num(-0.0229) == "&minus;0.023"
+    assert rp.num(0.0173) == "+0.017"
+    assert rp.num(0.0) == "0.000"
 
 
 def test_the_band_and_the_pass_bar_are_named_separately_and_a_t_of_3_5_is_never_called_indistinguishable():
