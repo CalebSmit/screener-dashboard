@@ -185,6 +185,18 @@ MODULES: tuple[tuple[str, str], ...] = (
     ("tests/test_input_gates.py",
      "the payload carries each price's NYSE session and the run's methodology version, which the "
      "health check's 2026-10-22 gates read, and those gates refuse what they were built to refuse"),
+    # signals.json is written by this very run, after these gates, and is the only ranking the
+    # bot may trade (2026-10-24). The page keeps being published by both loops; this file is
+    # what says a gate stack accepted it, so the loop that writes it checks it first.
+    ("tests/test_tradable_signals.py",
+     "signals.json is written only after every gate and only by this loop, carries the top 40 "
+     "by rank, and the code loop never stages it"),
+    ("tests/test_run_fingerprint.py",
+     "the payload names the run, the commit and the raw fetch it was computed from, and never "
+     "borrows a neighbouring run's identity"),
+    ("tests/test_run_archive.py",
+     "the published run's raw fetch is kept outside the pruned tree and verified against the "
+     "hash the payload publishes"),
     ("tests/test_methodology_claims_audit.py",
      "every formula, threshold, window and rule the methodology page states is the one the code "
      "applies (research/2026-10-19-methodology-claims-audit.md)"),

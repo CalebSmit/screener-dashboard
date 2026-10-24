@@ -14421,3 +14421,166 @@ simply never been closed.
   the next 12, and the last pass found **15 of 38** mutations got through.
 - The lab's next experiment (18) is unstarted; next non-retrospective Friday **2026-11-06**, and
   item 7 asks for `lab_data.js`'s first paint (~2.9 MB) to be measured in the same session.
+
+## 2026-10-24 (06:00 weekend session) - the screener's half of the plan to real money is finished: only the gated run is tradable, and the run a page came from can now be checked against its own inputs
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-23 13:00 ended "Run
+complete: shipped to main" at 13:40, tag `good/2026-10-23-1340`. Data loop published? **yes** -
+2026-10-23 02:28, HEALTH PASS, 498 scored, all four of the 2026-10-22 input gates green (Spearman
+0.994, 1 new in the top 25, 498/498 prices on the expected session). No 02:00 run today, correctly
+- Saturday. Evidence base at `1m` = **35 rows, newest 2026-09-22 (32 days ago, bound 40), 4
+effective** (`_n_observations` 4; the raw count of 35 is the one not to quote). Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred, see below.
+**Tests:** before **3064 passed, 1 skipped**; after **3109 passed, 1 skipped** (+45: three new
+modules - 22, 14 and 8 - plus one new contract test). Gates 2, 3, 4 pass. **`scripts/rehearse_publish.py` run and
+PASSED** - the diff touches `generate_dashboard.py`, which the four gates cannot see.
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item, 2026-10-21, items 5 and 6** - both
+built, and the item is now **closed and moved to Done**. **Deferred: the research-engine rerun**
+batched with the 2026-10-20 item 6, which the 10-23 13:00 session named as its Next; the argument
+is under *Tried and rejected*.
+
+### Did
+
+**`OWNER_FOCUS.md` 2026-10-21 item 5 - only the gated run is tradable.** The hole this closes is
+an asymmetry, the same shape as the two previous retrospectives found. `dashboard_data.js` is
+published by **two** paths: the 02:00 data loop, behind seven gates (no synthetic data, a
+fetch-failure ceiling, `check_run_health.py` with its rank-continuity, empty-record and
+price-freshness rules, a size floor, a real `node --check`, the opening assignment, and
+`check_published_claims.py`); and any code session that runs the full screener, behind **none of
+them** - its four ship gates are about the repository, not about the run. The bot reads the page as
+Pages serves it and cannot tell the two apart.
+
+So the gated run now writes a second, small file and the bot trades that. `scripts/write_signals.py`
+is called from `data-run.ps1` after the published-claims gate and before the commit, and
+`signals.json` is in `$DataArtifacts`. `scripts/nightly-screener.ps1` never writes or stages it -
+**that asymmetry is the whole mechanism**, so one test asserts the code runner does not mention it
+and another that no other module in the repo writes it.
+
+Three decisions in it worth recording, because each could reasonably have gone the other way:
+
+- **It is derived from the gated payload, not from a second read of the run directory.** The
+  ranking in `signals.json` is then by construction the ranking those gates inspected. A second
+  read could disagree with the page, and the disagreement would be invisible.
+- **Gate verdicts are `pass` or `warn`, and there is no `fail`.** Two gates publish on a documented
+  fallback when the tool they need is missing (node, pytest), and a consumer is entitled to know a
+  check did not run - `all_gates_ran` is false then. A `fail` verdict could not be true in a file
+  only reached after every gate accepted, so the parser refuses one.
+- **It is not a gate.** A failed write leaves the previous `signals.json` in place, which is the
+  safe state: it carries an older `run_timestamp` and the bot's own freshness rule declines it.
+  Discarding a published run over a 10 KB side file would cost a day of evidence - the `node` and
+  pytest fallback precedent read the same way.
+
+Verified end to end against the real 2026-10-23 published run: 40 names in rank order beginning
+**EXPE APA HST INCY SNDK** - the same five that run's commit subject names - 9,673 bytes.
+**No `signals.json` is committed today**, deliberately: a hand-written one would assert a gate
+stack that never ran. The first is written by the **2026-10-26** 02:00 run.
+
+**Item 6, first half - the page now says which run it came from.** `kpis` carries `run_id`,
+`git_sha` and `raw_sha256` beside the `methodology_version` published since 2026-10-22.
+`run_fingerprint.py` is the one computation, and the rule in it that matters:
+`generate_dashboard._find_raw_fetch` deliberately falls back to a **neighbouring run's**
+`00_raw_fetch.parquet` so a cache-hit run can still show price targets - right for a price target,
+a lie in an audit trail. The fingerprint hashes this run's own file or reports `None`; the same
+rule as the health gate, which has judged only the run's own artifacts since 2026-10-16. Git's
+literal `"unknown"` is published as `null` for the same reason: an absent identifier must not read
+like a value.
+
+**Item 6, second half - and the half that makes the hash mean anything.** `kpis.raw_sha256` names
+a file in `runs/`, which is gitignored scratch that `prune_artifacts.py` empties after twenty runs
+- **about four weeks**, after which the published hash points at nothing and a questioned trade
+cannot be checked against its inputs at all. `scripts/archive_run.py` copies each **published**
+run's raw fetch, log, config and universe to `%LOCALAPPDATA%\ScreenerArchive`, re-hashes the copy
+and verifies it against the hash the page publishes, and appends a manifest line. Outside OneDrive
+for three separate reasons (it rewrites folder mtimes - the reason `latest_run_dir` stopped
+trusting them on 2026-10-16; Files On-Demand can leave a placeholder that needs the network months
+later; a quota and a cloud-side recycle bin this project does not control) and outside the repo
+because inside it would be either a 1.7 MB daily commit or a gitignored sibling of the very folder
+the prune empties. **Never pruned**, on purpose - four-week retention is the problem being fixed -
+so it reports its size each run instead and says so loudly past 5 GB. Measured: **1.9 MB a run,
+about 0.5 GB a year.**
+
+**Verified on the machine, not only in tests (rule 11).** The archiver was run against the
+2026-10-23 published run: `C:\Users\smitc\AppData\Local\ScreenerArchive\2026-10-23_725915b457e4`
+holds five files, the archived parquet re-hashes to
+`4ffe57bab10221552028684c9939718817a6f120d839181e21d536a64480275d` - byte for byte the value the
+regenerated payload carries and the value `sha256sum` prints for the source - and a second call
+reports `skipped`. Nothing scheduled had to change: the archiver is invoked from `data-run.ps1`
+after the push, so the existing task picks it up on Monday.
+
+**Nothing on the page moved.** The rehearsal regenerated the next run's page with this tree's code,
+and the rebuilt payload differs from the live one in **exactly three keys - `run_id`, `git_sha`,
+`raw_sha256` - and nothing else**; every other top-level key is identical, including all 498 table
+rows and all the stock detail blocks. No score, rank, sentence or visible element changed, and the
+three new fields are not displayed anywhere. `rehearse_publish.py`: 355 page tests pass,
+`check_published_claims` passes at 1,406, published files restored byte for byte.
+
+All three new modules are in the data loop's publish gate (`check_published_claims.py` MODULES),
+because `signals.json` is an artifact that very run writes and publishes. `conftest.py` protects
+`signals.json` as a tripwire from the day it exists - a test that wrote it would be asserting a run
+was gated when it was not.
+
+### Evidence / research
+
+- **A demonstrated failure, not a citation.** The justification here is structural and checkable,
+  in the form CLAUDE.md names: *"a documented failure - a real user-facing problem you can
+  demonstrate."* Two facts, both verifiable in this repo today: (1) `scripts/data-run.ps1` contains
+  seven refusals before its publish and `scripts/nightly-screener.ps1` contains none of them, while
+  both paths can rewrite `dashboard_data.js` - so "the page was gated" is false of one of the two
+  publishers; (2) `scripts/prune_artifacts.py` keeps the newest **20** runs and the data loop makes
+  five a week, so the file `kpis.raw_sha256` names is deleted about four weeks after it is
+  published. Neither needed a backtest or an IC number to establish.
+- **The asymmetry rule followed here is the project's own, twice-measured one** (CLAUDE.md, "The
+  data loop's gates, and the asymmetry to keep checking"): the strongest checks guard the path that
+  publishes least often, and when you compare the two runners the weaker one is usually the bug.
+  2026-09-18 (the payload parse) and 2026-10-02 (the claims gate) are the two prior instances; this
+  is the third, on the consumer rather than on the page.
+- **No backtest number and no IC number was used** (rules 4 and 5). Nothing here touches a weight,
+  a metric, a threshold or a score.
+
+### Methodology changed
+
+- **None.** `METHODOLOGY_CHANGELOG.md` correctly has no entry today: no weight, metric, threshold,
+  category or rule that can move a score was touched. The rebuilt payload's only difference from
+  the live one is three provenance keys.
+
+### Tried and rejected
+
+- **Writing `signals.json` as a gate of its own.** Rejected: a failure to write a 10 KB side file
+  would then discard a run that passed every check that matters, costing a day of evidence for the
+  improvement engine. The previous file staying put is already the safe state, because it is stale
+  and the bot's freshness rule declines it.
+- **Reading the run directory a second time to build `signals.json`.** Rejected: the point of the
+  file is that it describes the run the gates accepted, and a second read of
+  `05_final_scored.parquet` could disagree with the payload those gates inspected. Deriving it from
+  the gated payload makes the agreement structural rather than something a test has to notice.
+- **Committing a first `signals.json` by hand so the file exists in the repo today.** Rejected on
+  the same ground the whole item rests on: it would carry gate verdicts for a gate stack that never
+  ran.
+- **Showing the new provenance on the page's Data Provenance panel.** Not done: the owner item asks
+  for the identifiers in `kpis` and in an archive, and a visible surface is a separate question
+  that would need a registered claim. Noted here rather than quietly added.
+- **The research-engine rerun batched with the 2026-10-20 item 6 (two free survivorship fixes)** -
+  what the 10-23 13:00 session named as Next. Deferred, and this is the reason: `OWNER_FOCUS.md`'s
+  **top** open item was the 2026-10-21 one, whose items 5 and 6 were the only two things left in
+  this repo's half of the owner's "make me money" plan, and both the prompt and that file put the
+  top open item ahead of a previous session's Next. The deferral costs nothing that is accruing:
+  `scripts/rerun_experiments.py --status` still reports the rows level with each other, so nothing
+  public is inconsistent, and the rerun is resumable at four-row granularity. It stays the next
+  session's work, and should be done in the same session as the survivorship fixes - one rebuild,
+  one rerun.
+
+### Next
+
+- **The research-engine rerun, batched with `OWNER_FOCUS.md` 2026-10-20 item 6** - unchanged from
+  2026-10-23. The two free survivorship fixes (167 renamed/reformatted member-months, 773
+  `no_filings` months under predecessor CIKs) both touch `RESULT_PATHS`, so they force the rerun:
+  one rebuild, one rerun of all 31 rows, `python scripts/rerun_experiments.py --limit 4` per
+  foreground call, ledger and report committed after each. ~47 minutes. Do not start what cannot be
+  finished - a partial rerun leaves mixed fingerprints inside one method version.
+- Then `OWNER_FOCUS.md` 2026-10-20 item 3, the claims mutation audit
+  (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
+  through).
+- **For the owner, in the other repo:** nothing in `screener-bot` reads `signals.json` yet, so
+  until its `bot/signals.py` is pointed at it the file accrues beside the page and changes nothing.
+  That is bot work and nightly sessions here do not do it.

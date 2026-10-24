@@ -45,6 +45,11 @@ PROTECTED_PATHS = [
     ROOT / "validation" / "data_quality_log.csv",
     ROOT / "sp500_tickers.json",
     ROOT / "factor_output.xlsx",
+    # Written only by the 02:00 data loop, after every gate (scripts/write_signals.py,
+    # 2026-10-24). A test that writes it would be asserting a run was gated when it
+    # was not, and the bot trades this file - so it is a tripwire here from the day
+    # it was introduced rather than after the first accident.
+    ROOT / "signals.json",
 ]
 
 

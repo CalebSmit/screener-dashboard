@@ -61,6 +61,20 @@ def test_run_timestamp_is_published_and_iso(payload):
     datetime.fromisoformat(payload["kpis"]["run_timestamp"])
 
 
+def test_the_audit_trail_keys_are_always_present(payload):
+    """`OWNER_FOCUS.md` 2026-10-21 item 6 / screener-bot ROADMAP 1.10.
+
+    The bot records which run it traded on, so when a fill is questioned the
+    page it acted on can be identified. The *keys* are the contract - the
+    values are None here because this fixture has no run directory, and a run
+    that genuinely has no git or no raw fetch publishes None too. A missing
+    key, though, is a KeyError in the consumer, so it must never be dropped.
+    """
+    for key in ("run_timestamp", "methodology_version",
+                "run_id", "git_sha", "raw_sha256"):
+        assert key in payload["kpis"], key
+
+
 def test_every_table_row_carries_what_the_bot_reads(payload):
     for row in payload["table_data"]:
         assert TABLE_FIELDS <= row.keys(), TABLE_FIELDS - row.keys()

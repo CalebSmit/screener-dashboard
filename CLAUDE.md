@@ -441,6 +441,10 @@ outcome.
 - `presets.py` - weighting presets (balanced/value/growth/momentum)
 - `config.yaml` - all tuneable parameters
 - `schemas.py`, `cli.py`, `run_context.py`, `instrumentation.py`
+- `run_fingerprint.py` - which run, which commit, which raw fetch a published page came
+  from (2026-10-24). One computation, read by `generate_dashboard` for `kpis` and by
+  `scripts/write_signals.py`. **Never falls back to another run's raw fetch** - see settled
+  row "bot"
 
 ### Front-end
 - `generate_dashboard.py` - **source of truth**; writes `dashboard.html` + `dashboard_data.js`
@@ -473,6 +477,10 @@ outcome.
   `stock_detail[t].price`, and refuses to trade if any is missing.
   `tests/test_bot_payload_contract.py` pins them. Nightly sessions here do not
   work on the bot; it has its own `CLAUDE.md` and `ROADMAP.md`.
+  **Since 2026-10-24 the page is not what it should trade: `signals.json` is** - written by
+  `scripts/write_signals.py` from the gated payload, only by the 02:00 loop, only after every
+  gate. See settled row "bot". The bot does not read it yet; wiring that up is owner-run work
+  in the other repo.
 
 ### Docs (public-facing - keep truthful)
 - `SCREENER_OVERVIEW.md` - canonical methodology reference. **Generated** by
@@ -496,7 +504,9 @@ outcome.
 - `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop); `prompts/continuation.md`
   (the one resume of a session that ended dirty); `scripts/wait_for.py` (foreground waits) and
   `scripts/rerun_experiments.py` (resumable engine reruns)
-- `scripts/data-run.ps1` (2:00 AM data loop)
+- `scripts/data-run.ps1` (2:00 AM data loop); `scripts/write_signals.py` (the tradable
+  ranking, after every gate) and `scripts/archive_run.py` (the published run's inputs,
+  outside OneDrive, never pruned)
 - `NIGHTLY_LOG.md`, `research/`, `ROLLBACK.md`, `logs/` (gitignored)
 
 ## The two loops
@@ -677,6 +687,7 @@ already shipped to the live public site.
 | 0.8 | **The page shows the engine's numbers and refuses to publish if they do not add up.** Metric weights are resolved in one place (`factor_engine.metric_weight_profiles`) and published, never re-derived; `generate_dashboard` rebuilds every score from its own payload (`calc_trace`) and raises `CalculationMismatch`; an equation is shown only if it reproduces (`metric_lineage.RECOMPUTE`); `scoring_schema` keys the scored cache. Do not widen the tolerances to pass a build | `tests/test_calculation_reproducibility.py`, `tests/test_metric_lineage.py`, `tests/test_dashboard_browser.py` |
 | 0.8c | **A scoring change ships with its frontend in the same commit** (owner, 2026-10-07). Opening any metric row shows the stock's figures through the formula (`metric_lineage.EQUATIONS`), and an unscored metric says why (`NOT_USED_BECAUSE`); the suite evaluates each exact equation against every stock's scored value at a 99% bar, and a weighted metric with no line fails. Change a formula -> update `LINEAGE`, `RECOMPUTE` and `EQUATIONS` together. Never satisfy it by loosening the bar or marking a template `exact=False` | `tests/test_metric_lineage.py` (equation tests), `tests/test_dashboard_navigation.py::test_every_metric_row_shows_its_own_numbers`; `prompts/nightly.md` section 3 |
 | ctx | **Context is shown beside the score, never in it** (owner, 2026-10-08: "context only, track them"). Trend, options, insider, rate-sensitivity, macro, own-history valuation and track-record data live in `context_signals` / `context_fetch` / `insider_activity` / `market_context` / `valuation_history` / `track_record` and the payload's `ctx`, `market`, `track`; none may reach `raw`, `pct`, a category score or the composite, and no scoring module may read a `_ctx_` field. Option and insider requests run in a separate, time-budgeted pass **after** the core fetch (inside it they tripped the rate limiter). Every signal is logged per run in `data/context_log/`; one joins the score only with a research note **and** a measured `1m` record meeting the engine's own observation gate, then a changelog entry. The track record lists no current holdings (the Model Portfolio decision) and is not methodology evidence (rule 4) | `tests/test_context_layer.py`; `plan/context-layer.md` |
+| bot | **Only the gated run is tradable** (2026-10-24, owner item 2026-10-21 items 5-6; bot ROADMAP 1.2/1.10). `dashboard_data.js` is published by **two** paths and the seven data-loop gates stand in front of only one of them, so `data-run.ps1` writes **`signals.json`** after the last gate and before the commit, and **`nightly-screener.ps1` never writes or stages it** - that asymmetry *is* the mechanism, and a second writer anywhere reopens the hole. Each gate records `pass`, or **`warn`** where node or pytest was absent; there is no `fail` verdict, because the file exists only after every gate accepted. It is **not a gate**: a failed write leaves the previous file (stale, which the bot declines) rather than discarding a day of evidence. `kpis` carries the four audit identifiers - `run_timestamp`, `methodology_version`, `run_id`, `git_sha`, `raw_sha256` - computed once in `run_fingerprint.py`, which hashes **this run's own** `00_raw_fetch.parquet` and never the copy `_find_raw_fetch` borrows for display, and publishes an absent one as `null`, never as git's `"unknown"`. `scripts/archive_run.py` keeps each published run's raw fetch where the prune cannot reach it (`%LOCALAPPDATA%\ScreenerArchive`, outside OneDrive, **never pruned**), verified by re-hashing against the published hash - without it the hash names a file deleted after four weeks | `tests/test_tradable_signals.py`, `tests/test_run_fingerprint.py`, `tests/test_run_archive.py` |
 | gates | Both publish paths parse **both payload files** (`node --check`) and check each one's opening assignment - `dashboard_data.js` and `dashboard_context.js`; **every `.js` in `$DataArtifacts` must be named in both runners' specs** (2026-10-16, after the context payload published unguarded for eight days). The data loop also verifies the **claims** in what it is about to publish (`scripts/check_published_claims.py`), and **that gate's membership is derived from `claims.py`'s `checked_by`, never transcribed** (2026-10-16: 15 modules, 64 claim checks, were outside a hand-kept list). Where node or pytest is absent both fall back with a `WARN` rather than jamming; a check left out goes in `EXCLUDED` with a reason that is printed every run. **The overview tripwire counts both routes to the page's text** - the committed `SCREENER_OVERVIEW.md` *and* a call to `build_screener_overview` (2026-10-13) - and `PUBLISHED_ARTIFACTS` is checked in **both** directions against `$DataArtifacts` | `tests/test_payload_parse_gate.py`, `tests/test_published_claims_gate.py` |
 
 **One constraint with no test, kept here because it governs how you spend the
