@@ -255,6 +255,15 @@ try {
         Stop-Run "Data run failed - the code loop will see this in logs/ and should treat it as top priority." 2
     }
 
+    # Every gate from here down records its verdict, and the record is written
+    # into signals.json after the last of them (2026-10-24, OWNER_FOCUS
+    # 2026-10-21 item 5). Two of the gates below publish on a documented
+    # fallback when the tool they need is absent - node, pytest - and a
+    # consumer is entitled to know that a check did not run, so 'warn' is a
+    # verdict rather than silence. There is no 'fail': a failing gate calls
+    # Stop-Run and signals.json is never reached.
+    $GateVerdicts = [ordered]@{}
+
     # --- Data quality gate ---------------------------------------------------
     # The screener falls back to "sector-realistic sample values" when a fetch
     # fails. That is fine for one or two tickers; it is fabricated data if it
@@ -299,6 +308,8 @@ try {
             Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
             Stop-Run "Run discarded: fetch failure rate ~$failPct%." 2
         }
+        $GateVerdicts['synthetic_data'] = 'pass'
+        $GateVerdicts['fetch_failure_rate'] = 'pass'
     } else {
         Write-Log "No data quality log found - cannot verify the run was real. Not publishing." 'ERROR'
         Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
@@ -325,6 +336,7 @@ try {
         Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
         Stop-Run "Run discarded - could not verify it was healthy." 2
     }
+    $GateVerdicts['run_health'] = 'pass'
 
     # --- Regenerate the dashboard -------------------------------------------
     Write-Log "Regenerating dashboard..."
@@ -334,6 +346,7 @@ try {
         Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
         Stop-Run "Dashboard generation failed." 2
     }
+    $GateVerdicts['dashboard_generated'] = 'pass'
 
     # index.html is what GitHub Pages serves; keep it in step with dashboard.html
     $dash = Join-Path $RepoPath 'dashboard.html'
@@ -364,6 +377,7 @@ try {
             Stop-Run "Refusing to publish a broken dashboard." 2
         }
     }
+    $GateVerdicts['payload_size'] = 'pass'
 
     # This loop is what puts dashboard_data.js on the public site, five days a
     # week. Until 2026-09-18 the size floor above was the *only* thing standing
@@ -391,8 +405,10 @@ try {
             }
             Write-Log "$leaf parses ($([int]((Get-Item $p).Length / 1024)) KB)."
         }
+        $GateVerdicts['payload_parse'] = 'pass'
     } else {
         Write-Log "node not found - published on the size check alone, without a parse." 'WARN'
+        $GateVerdicts['payload_parse'] = 'warn'
     }
 
     # The code loop's gate 3 has always also checked that the payload is the
@@ -409,6 +425,7 @@ try {
             Stop-Run "Refusing to publish a payload the dashboard will not recognise." 2
         }
     }
+    $GateVerdicts['payload_header'] = 'pass'
 
     # --- Published-claims gate ------------------------------------------------
     # Ship gate 1 (the full test suite) had no counterpart here, on the path
@@ -432,6 +449,7 @@ try {
     Write-NativeOutput $claims
     if ($claims.ExitCode -eq 3) {
         Write-Log "Published claims NOT verified (pytest unavailable) - publishing on the earlier checks alone." 'WARN'
+        $GateVerdicts['published_claims'] = 'warn'
     }
     elseif ($claims.ExitCode -ne 0) {
         Write-Log "The regenerated artifacts contradict claims this project asserts about them." 'ERROR'
@@ -439,6 +457,31 @@ try {
         Invoke-Native 'git' @('checkout', '--', '.') | Out-Null
         Invoke-Native 'git' @('clean', '-fd', 'improvement/snapshots') | Out-Null
         Stop-Run "Run discarded: published-claims check failed - fix the generator, not the file." 2
+    }
+    if (-not $GateVerdicts.Contains('published_claims')) { $GateVerdicts['published_claims'] = 'pass' }
+
+    # --- The tradable ranking ------------------------------------------------
+    # Everything above has accepted the run, so this is the last point at which
+    # "gated" is still true and the first at which it can be written down.
+    # signals.json is what screener-bot trades (OWNER_FOCUS 2026-10-21 item 5,
+    # bot ROADMAP 1.2): dashboard_data.js is published by this loop *and* by any
+    # code session that runs the full screener, and none of the gates above
+    # stand in front of that second path. The page keeps being published by
+    # both; only this file says a gate stack accepted it.
+    #
+    # scripts/nightly-screener.ps1 must never stage it - that is the whole
+    # mechanism, and tests/test_tradable_signals.py fails if it ever does.
+    #
+    # NOT a gate. A failure here leaves the previous signals.json in place,
+    # which is the safe state: it carries an older run_timestamp and the bot's
+    # own freshness rule declines to trade on it. Discarding a good run over a
+    # 2 KB side file would cost a day of evidence for nothing.
+    $signalArgs = @('scripts/write_signals.py', '--date', $Date)
+    foreach ($g in $GateVerdicts.GetEnumerator()) { $signalArgs += @('--gate', "$($g.Key)=$($g.Value)") }
+    $signals = Invoke-Native 'python' $signalArgs
+    Write-NativeOutput $signals
+    if ($signals.ExitCode -ne 0) {
+        Write-Log "signals.json was not written - the previous one stands and the bot will see it as stale." 'WARN'
     }
 
     # --- Commit --------------------------------------------------------------
@@ -462,6 +505,9 @@ try {
         'index.html',
         'dashboard_data.js',
         'dashboard_context.js',
+        # The one ranking a downstream consumer may trade. Only this loop
+        # writes it, and only after every gate above accepted the run.
+        'signals.json',
         'factor_output.xlsx',
         'factor_vol_history.csv',
         'sp500_tickers.json',
