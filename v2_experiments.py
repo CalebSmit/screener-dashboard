@@ -118,7 +118,10 @@ RESULT_PATHS = ("v2_experiments.py", "backtest_v2.py", "backtest_v2_returns.py",
 DATA_SOURCES = {"v2_daily": "cache/v2_daily.parquet",       # the prices every return and momentum reads
                 "v2_index": "cache/v2_index.parquet",       # the market return and risk-free rate
                 "splits": "cache/splits.parquet",           # the split adjustment on every price history
-                "sec_facts": "data/sec/pit/facts.parquet"}  # the filings every fundamental comes from
+                "sec_facts": "data/sec/pit/facts.parquet",  # the filings every fundamental comes from
+                # each member's predecessor registrant's filings, for the years before a
+                # holding-company reorganisation (2026-10-24; backtest_v2._load_facts)
+                "sec_facts_predecessor": "data/sec/pit/facts_predecessor.parquet"}
 BUILD_RECORD = "cache/v2_metrics/_build.json"   # written by backtest_v2 when it builds the months
 
 

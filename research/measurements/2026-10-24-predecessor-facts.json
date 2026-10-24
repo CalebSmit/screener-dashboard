@@ -1,0 +1,454 @@
+{
+ "generated": "2026-10-24T18:16:31.151527+00:00",
+ "pairs": [
+  {
+   "ticker": "APA",
+   "cik": 6769,
+   "months": 99,
+   "first": "2014-05-31",
+   "last": "2022-07-31",
+   "today_cik": 1841666
+  },
+  {
+   "ticker": "AVGO",
+   "cik": 1441634,
+   "months": 60,
+   "first": "2014-05-31",
+   "last": "2019-04-30",
+   "today_cik": 1730168
+  },
+  {
+   "ticker": "BG",
+   "cik": 1144519,
+   "months": 8,
+   "first": "2023-03-31",
+   "last": "2023-10-31",
+   "today_cik": 1996862
+  },
+  {
+   "ticker": "BLK",
+   "cik": 1364742,
+   "months": 125,
+   "first": "2014-05-31",
+   "last": "2024-09-30",
+   "today_cik": 2012383
+  },
+  {
+   "ticker": "CB",
+   "cik": 20171,
+   "months": 20,
+   "first": "2014-05-31",
+   "last": "2015-12-31",
+   "today_cik": 896159
+  },
+  {
+   "ticker": "CI",
+   "cik": 701221,
+   "months": 76,
+   "first": "2014-05-31",
+   "last": "2020-08-31",
+   "today_cik": 1739940
+  },
+  {
+   "ticker": "DD",
+   "cik": 30554,
+   "months": 40,
+   "first": "2014-05-31",
+   "last": "2017-08-31",
+   "today_cik": 1666700
+  },
+  {
+   "ticker": "DIS",
+   "cik": 1001039,
+   "months": 76,
+   "first": "2014-05-31",
+   "last": "2020-08-31",
+   "today_cik": 1744489
+  },
+  {
+   "ticker": "DOW",
+   "cik": 29915,
+   "months": 40,
+   "first": "2014-05-31",
+   "last": "2017-08-31",
+   "today_cik": 1751788
+  },
+  {
+   "ticker": "FOX",
+   "cik": 1308161,
+   "months": 60,
+   "first": "2015-09-30",
+   "last": "2020-08-31",
+   "today_cik": 1754301
+  },
+  {
+   "ticker": "FOXA",
+   "cik": 1308161,
+   "months": 76,
+   "first": "2014-05-31",
+   "last": "2020-08-31",
+   "today_cik": 1754301
+  },
+  {
+   "ticker": "GOOG",
+   "cik": 1288776,
+   "months": 25,
+   "first": "2014-05-31",
+   "last": "2016-05-31",
+   "today_cik": 1652044
+  },
+  {
+   "ticker": "GOOGL",
+   "cik": 1288776,
+   "months": 25,
+   "first": "2014-05-31",
+   "last": "2016-05-31",
+   "today_cik": 1652044
+  },
+  {
+   "ticker": "IR",
+   "cik": 1466258,
+   "months": 70,
+   "first": "2014-05-31",
+   "last": "2020-02-29",
+   "today_cik": 1699150
+  },
+  {
+   "ticker": "JCI",
+   "cik": 53669,
+   "months": 29,
+   "first": "2014-05-31",
+   "last": "2016-09-30",
+   "today_cik": 833444
+  },
+  {
+   "ticker": "JKHY",
+   "cik": 1262439,
+   "months": 6,
+   "first": "2018-11-30",
+   "last": "2019-04-30",
+   "today_cik": 779152
+  },
+  {
+   "ticker": "KHC",
+   "cik": 1545158,
+   "months": 21,
+   "first": "2015-07-31",
+   "last": "2017-03-31",
+   "today_cik": 1637459
+  },
+  {
+   "ticker": "MDT",
+   "cik": 64670,
+   "months": 60,
+   "first": "2014-05-31",
+   "last": "2019-04-30",
+   "today_cik": 1613103
+  },
+  {
+   "ticker": "Q",
+   "cik": 1478242,
+   "months": 3,
+   "first": "2017-08-31",
+   "last": "2017-10-31",
+   "today_cik": 2058873
+  },
+  {
+   "ticker": "SNDK",
+   "cik": 1000180,
+   "months": 24,
+   "first": "2014-05-31",
+   "last": "2016-04-30",
+   "today_cik": 2023554
+  },
+  {
+   "ticker": "URI",
+   "cik": 1215583,
+   "months": 7,
+   "first": "2014-09-30",
+   "last": "2015-03-31",
+   "today_cik": 1067701
+  },
+  {
+   "ticker": "XOM",
+   "cik": 34088,
+   "months": 147,
+   "first": "2014-05-31",
+   "last": "2026-07-31",
+   "today_cik": 2115436
+  }
+ ],
+ "facts_fetched_by_pair": {
+  "APA:6769": 2239,
+  "AVGO:1441634": 925,
+  "BG:1144519": 3014,
+  "BLK:1364742": 1985,
+  "CB:20171": 532,
+  "CI:701221": 1365,
+  "DD:30554": 1329,
+  "DIS:1001039": 1786,
+  "DOW:29915": 1508,
+  "FOX:1308161": 1456,
+  "FOXA:1308161": 1456,
+  "GOOG:1288776": 820,
+  "GOOGL:1288776": 820,
+  "IR:1466258": 2686,
+  "JCI:53669": 1444,
+  "JKHY:1262439": "fetch failed",
+  "KHC:1545158": 486,
+  "MDT:64670": 826,
+  "Q:1478242": 2140,
+  "SNDK:1000180": 1003,
+  "URI:1215583": "fetch failed",
+  "XOM:34088": 2243
+ },
+ "verdicts": {
+  "APA:6769": {
+   "rows": 2239,
+   "kept": 1753,
+   "cut": "2021-05-07",
+   "tenure_bound": "2022-11-28",
+   "bound_used": "2021-05-07",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2024-11-07",
+   "overlap_days": 1280
+  },
+  "AVGO:1441634": {
+   "rows": 925,
+   "kept": 925,
+   "cut": "2018-06-14",
+   "tenure_bound": "2019-08-28",
+   "bound_used": "2018-06-14",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-12-17",
+   "overlap_days": -910
+  },
+  "BG:1144519": {
+   "rows": 3014,
+   "kept": 3014,
+   "cut": "2024-02-22",
+   "tenure_bound": "2024-02-28",
+   "bound_used": "2024-02-22",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2023-10-26",
+   "overlap_days": -119
+  },
+  "BLK:1364742": {
+   "rows": 1985,
+   "kept": 1985,
+   "cut": "2024-11-06",
+   "tenure_bound": "2025-01-28",
+   "bound_used": "2024-11-06",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2024-08-06",
+   "overlap_days": -92
+  },
+  "CB:20171": {
+   "rows": 532,
+   "kept": 0,
+   "cut": "2009-08-07",
+   "tenure_bound": "2016-04-29",
+   "bound_used": "2009-08-07",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-11-06",
+   "overlap_days": 2282
+  },
+  "CI:701221": {
+   "rows": 1365,
+   "kept": 1365,
+   "cut": "2019-02-28",
+   "tenure_bound": "2020-12-29",
+   "bound_used": "2019-02-28",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2018-11-01",
+   "overlap_days": -119
+  },
+  "DD:30554": {
+   "rows": 1329,
+   "kept": 1255,
+   "cut": "2017-11-06",
+   "tenure_bound": "2017-12-29",
+   "bound_used": "2017-11-06",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2019-05-08",
+   "overlap_days": 548
+  },
+  "DIS:1001039": {
+   "rows": 1786,
+   "kept": 1786,
+   "cut": "2019-05-08",
+   "tenure_bound": "2020-12-29",
+   "bound_used": "2019-05-08",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2019-02-05",
+   "overlap_days": -92
+  },
+  "DOW:29915": {
+   "rows": 1508,
+   "kept": 1203,
+   "cut": "2019-05-03",
+   "tenure_bound": "2017-12-29",
+   "bound_used": "2017-12-29",
+   "bound_is": "tenure",
+   "pred_last_filed": "2026-07-24",
+   "overlap_days": 2639
+  },
+  "FOX:1308161": {
+   "rows": 1456,
+   "kept": 1456,
+   "cut": "2019-03-18",
+   "tenure_bound": "2020-12-29",
+   "bound_used": "2019-03-18",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2019-02-06",
+   "overlap_days": -40
+  },
+  "FOXA:1308161": {
+   "rows": 1456,
+   "kept": 1456,
+   "cut": "2019-03-18",
+   "tenure_bound": "2020-12-29",
+   "bound_used": "2019-03-18",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2019-02-06",
+   "overlap_days": -40
+  },
+  "GOOG:1288776": {
+   "rows": 820,
+   "kept": 786,
+   "cut": "2015-10-29",
+   "tenure_bound": "2016-09-28",
+   "bound_used": "2015-10-29",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-10-29",
+   "overlap_days": 0
+  },
+  "GOOGL:1288776": {
+   "rows": 820,
+   "kept": 786,
+   "cut": "2015-10-29",
+   "tenure_bound": "2016-09-28",
+   "bound_used": "2015-10-29",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-10-29",
+   "overlap_days": 0
+  },
+  "IR:1466258": {
+   "rows": 2686,
+   "kept": 1287,
+   "cut": "2017-08-04",
+   "tenure_bound": "2020-06-28",
+   "bound_used": "2017-08-04",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2026-07-30",
+   "overlap_days": 3282
+  },
+  "JCI:53669": {
+   "rows": 1444,
+   "kept": 0,
+   "cut": "2009-07-30",
+   "tenure_bound": "2017-01-28",
+   "bound_used": "2009-07-30",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2016-11-23",
+   "overlap_days": 2673
+  },
+  "KHC:1545158": {
+   "rows": 486,
+   "kept": 486,
+   "cut": "2015-08-10",
+   "tenure_bound": "2017-07-29",
+   "bound_used": "2015-08-10",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-04-28",
+   "overlap_days": -104
+  },
+  "MDT:64670": {
+   "rows": 826,
+   "kept": 798,
+   "cut": "2015-02-27",
+   "tenure_bound": "2019-08-28",
+   "bound_used": "2015-02-27",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2015-02-27",
+   "overlap_days": 0
+  },
+  "Q:1478242": {
+   "rows": 2140,
+   "kept": 778,
+   "cut": "2025-11-18",
+   "tenure_bound": "2018-02-28",
+   "bound_used": "2018-02-28",
+   "bound_is": "tenure",
+   "pred_last_filed": "2026-05-05",
+   "overlap_days": 168
+  },
+  "SNDK:1000180": {
+   "rows": 1003,
+   "kept": 1003,
+   "cut": "2025-03-07",
+   "tenure_bound": "2016-08-28",
+   "bound_used": "2016-08-28",
+   "bound_is": "tenure",
+   "pred_last_filed": "2016-05-02",
+   "overlap_days": -3231
+  },
+  "XOM:34088": {
+   "rows": 2243,
+   "kept": 2243,
+   "cut": "2026-08-03",
+   "tenure_bound": "2026-11-28",
+   "bound_used": "2026-08-03",
+   "bound_is": "today's first filing",
+   "pred_last_filed": "2026-05-04",
+   "overlap_days": -91
+  }
+ },
+ "pairs_with_rows_kept": [
+  "APA:6769",
+  "AVGO:1441634",
+  "BG:1144519",
+  "BLK:1364742",
+  "CI:701221",
+  "DD:30554",
+  "DIS:1001039",
+  "DOW:29915",
+  "FOX:1308161",
+  "FOXA:1308161",
+  "GOOG:1288776",
+  "GOOGL:1288776",
+  "IR:1466258",
+  "KHC:1545158",
+  "MDT:64670",
+  "Q:1478242",
+  "SNDK:1000180",
+  "XOM:34088"
+ ],
+ "pairs_fully_cut": [
+  "CB:20171",
+  "JCI:53669"
+ ],
+ "facts_fetched": 30063,
+ "facts_kept": 24365,
+ "tickers": [
+  "APA",
+  "AVGO",
+  "BG",
+  "BLK",
+  "CI",
+  "DD",
+  "DIS",
+  "DOW",
+  "FOX",
+  "FOXA",
+  "GOOG",
+  "GOOGL",
+  "IR",
+  "KHC",
+  "MDT",
+  "Q",
+  "SNDK",
+  "XOM"
+ ],
+ "earliest_filed": "2009-07-27"
+}

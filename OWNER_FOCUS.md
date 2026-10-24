@@ -140,6 +140,19 @@ Two things still outrank this file, and neither is negotiable:
      the extended universe - **register `only-size-extended` first, with its one-sided reading**
      (free data adds the members that shrank out but almost none that were acquired, so the Size
      test can falsify the survivorship explanation and cannot confirm it).
+     **The two data fixes are DONE, 2026-10-24 (13:00 session)**, with the one rebuild and the one
+     rerun they force - `research/2026-10-24-v2-pre-2014-renames.md`. `no_filings` went **773 -> 91**
+     in 2012-2019 and **177 -> 13** in 2020-2026; **three** of the eight uncarried renames were
+     admitted (BFB, MHP, SAI - 43 member-months) and five refused with their reasons, two of them
+     because the symbol they would claim was itself a member that month. **+398 and +98 member-months
+     scored, none removed** - until today v2 ranked no Exxon in any month and no BlackRock in 58 of
+     80 after 2020, so every published engine result had been measured without them. One rule in it
+     was wrong on its first draft and measuring it is what showed that; the log entry has the
+     account. **What remains of this sub-item is the extended universe** (`only-size-extended`
+     registered first). The residual inside v2 is now **coverage, not registrants**: 725 records were
+     built in 2012-2019 and 398 scored, because a filings-only record carries only the tags the filer
+     used - Exxon files no `OperatingIncomeLoss` at all. More XBRL tags per input is the next free
+     step, and it needs no new data source.
      **Late the same night:** Tiingo's public ticker list carries 84 of the 152 acquired names (65% of
      acquired member-months) - the hole free sources could not fill. If the owner opens a free Tiingo
      account, he saves the key himself in the gitignored `data/survivorship/tiingo_key.txt` (never in

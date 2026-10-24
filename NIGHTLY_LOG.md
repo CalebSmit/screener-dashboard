@@ -14584,3 +14584,242 @@ was gated when it was not.
 - **For the owner, in the other repo:** nothing in `screener-bot` reads `signals.json` yet, so
   until its `bot/signals.py` is pointed at it the file accrues beside the page and changes nothing.
   That is bot work and nightly sessions here do not do it.
+
+## 2026-10-24 (13:00 midday session) - the two free data fixes backtest v2's record was missing, and the rule I first wrote for one of them was wrong in both directions
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 06:00 weekend ended
+"Run complete: shipped to main" at 06:42, tag `good/2026-10-24`. Data loop published? **yes** -
+2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; no 02:00 run today,
+correctly - Saturday. Evidence base at `1m` = **35 rows, newest 2026-09-22 (32 days ago, bound
+40), 4 effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority
+0: `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13,
+the Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred; the next experiment is 18 and
+the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical today.
+**Tests:** before **3109 passed, 1 skipped**; after **3129 passed, 1 skipped** (+20, one new
+module). Gates 2 and 4 pass; gate 3 via `tests/test_payload_parse_gate.py` (19) and the fact that
+no payload file is in this diff - `node --check` is refused by this session's tool guard, and the
+runner re-runs gate 3 itself. **`scripts/rehearse_publish.py` run and PASSED**, because the diff
+changes `SCREENER_OVERVIEW.md`, which `generate_dashboard` embeds in the page.
+**One test needed changing and the reason is worth reading** (see *Tried and rejected*):
+`test_every_headline_figure_carries_its_interval_from_the_ledger` pinned the 2026-10-20 audit's
+literal confidence interval, which a legitimate data fix moves.
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 6, first
+half** - the two free data fixes - which is also what the 06:00 session and the 10-23 13:00
+session both named as Next. No proposal is waiting for a decision
+(`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear.
+
+### Did
+
+**`OWNER_FOCUS.md` 2026-10-20, sub-item 6, first half: backtest v2's two free data fixes, done
+together because both are in `v2_experiments.RESULT_PATHS` and so force one rebuild and one
+rerun.** The write-up is `research/2026-10-24-v2-pre-2014-renames.md`; every figure below is in
+`research/measurements/2026-10-24-v2-data-fix-effect.json`.
+
+**Re-measured before touching anything (the prompt's rule), and nothing had moved since
+2026-10-20:** 48,282 member-months in 2012-2019, 31,919 built, `no_current_record` 15,108,
+`no_price` 434, `symbol_reused` 48, `no_filings` 773 - every figure identical. The 167 months the
+note attributes to an uncarried rename reproduce symbol by symbol (TYC 56, ACE 48, SAI 21, MHP 16,
+PCS 16, BFB 6, CMCSK 3, SAIC 1).
+
+**Fix 1 - the renames the membership history cannot carry.** `Inputs.current_symbol` matches a
+month's member to today's record by SEC registrant number and nothing else, which is right: only
+the CIK separates a rename from a removal. But the revisions had no CIK column until **2014-05**,
+so a company renamed before then has no registrant number anywhere in the history and the matcher
+has nothing to match on. `universe_history.PRE_REVISION_CIKS` supplies three - BFB (BF.B written
+without the dot, so it normalises to a symbol that never meets today's BF-B), MHP (S&P Global) and
+SAI (Leidos) - each a *unique* name match against SEC's own `cik-lookup-data.txt` from the
+2026-10-20 note, each verified here to resolve to a company in today's universe, to a target that
+was **not itself a member in any affected month**, and to a price series that covers those months.
+
+**The other five are refused, and the refusals are the rule rather than exceptions to it.** ACE→CB
+(48 months) and TYC→JCI (56): the target symbol was itself a member in **every** affected month -
+Chubb Corp and Johnson Controls Inc, both later absorbed by the registrant that now holds the
+symbol - so one current record would have to stand for two members, and the symbol's price history
+before the merger belongs to the other company. CMCSK→CMCSA (3): a second share class of a company
+already scored, which the 2026-10-21 share-class decision says is scored once. PCS→TMUS (16): the
+note's own identity check - SEC public float against the symbol's close - reports **MISMATCH**
+(median ratio 0.353, 2 of 9 dates), because MetroPCS's 1:2 reverse split *and* $4.05 special
+dividend are not a clean split and the filed share count cannot be reconciled with the adjusted
+price. SAIC (1): the note resolves it to Leidos's registrant but takes its prices from today's
+SAIC, a different company.
+
+**Fix 2 - each member's predecessor registrant.** `facts.parquet` is fetched by today's CIK, so a
+holding-company reorganisation or redomicile leaves every month before it asking a registrant that
+had filed nothing - **773 member-months** in 2012-2019, among them the whole window for Apache,
+BlackRock and Exxon. Read off the parquet the pattern is unmistakable: each symbol's filings begin
+the day its current registrant started filing (XOM 2026-08-03, BLK 2024-11-06, APA 2021-05-07,
+DIS 2019-05-08, CI 2019-02-28, DD 2017-11-06, AVGO 2018-06-14, GOOG/GOOGL 2015-10-29, MDT
+2015-02-27). **Those filings were public at the time** and are the company's own under the name it
+then had, so joining them is the opposite of look-ahead - leaving them out is a hole in the
+point-in-time record, and the only reason it exists is a fetch keyed to a symbol's *current*
+registrant. `research/measurements/2026-10-24-predecessor-facts.py` fetches every CIK the history
+ever gave a current member (22 pairs, one `companyfacts` request each, 12 seconds) and
+`backtest_v2._load_facts` concatenates the side file; `pit_record` then selects by filed date
+exactly as before, so there is no handover date to maintain.
+
+**The rule I first wrote for admitting a pair was wrong in both directions, and measuring it is
+what showed that.** The draft refused any pair whose predecessor kept filing after the successor
+started, on the theory that a real reorganisation hands over cleanly. On the 22 pairs it refused
+**three genuine reorganisations** - Apache Corp (96 months), EIDP (68) and Dow Chemical all still
+file as debt-only subsidiaries of their own holding companies, overlapping by 1,280, 548 and 2,639
+days - and **admitted two different companies**, SanDisk Corp and Twenty-First Century Fox, each of
+which stopped filing before today's holder of its symbol was created. What replaced it is a cut
+with a proof: keep only rows filed **strictly before** today's registrant's first filing, because
+`pit_record` takes the latest filing, so a kept row can only ever be chosen for a month in which
+today's registrant had filed *nothing at all* - exactly the gap being filled. Strictly before, so a
+same-day handover resolves to the successor (Alphabet and Google Inc both filed on 2015-10-29).
+A second bound stops a registrant that lost the symbol years earlier - IQVIA held `Q` for three
+months in 2017 and filed until 2025 - by dropping rows filed more than 120 days after the last
+month the history named it. 24,365 of 30,063 fetched facts kept; `CB:20171` and `JCI:53669` cut to
+nothing, which is the two whose predecessor is a company today's registrant absorbed.
+
+**What the rebuild changed.** All 176 months rebuilt, four shards at a time, and compared against
+the pre-fix census and scores copied aside first:
+
+| | 2012-2019 | 2020-2026 |
+|---|---|---|
+| `no_filings` | 773 -> **91** | 177 -> **13** |
+| `no_current_record` | 15,108 -> **15,065** (-43) | unchanged |
+| Records built | +725 | +164 |
+| Member-months **scored** | +398 | +98 |
+| Month-stocks removed | **0** | **0** |
+
+The -43 is exactly the three renames (SAI 21, MHP 16, BFB 6). The scored names are DIS 94, DD 52,
+GOOG 49, AVGO 45, CI 31, MDT 25, GOOGL 22, LDOS 21, APA 17, SPGI 16, BLK 11, KHC 7, BF-B 6, FOX 1,
+FOXA 1 in the earlier period; BLK 61, APA 25, BG 11, XOM 1 in the later one.
+
+**Two things in that table needed explaining rather than reporting, and both check out.**
+
+- **725 built but 398 scored.** The coverage filter declined the rest, and the largest single case
+  is instructive: **Exxon gains a record in all 96 months and is ranked in none**, because CIK
+  34088 files **no `OperatingIncomeLoss` tag at all** - measured: of the fetch's fourteen input
+  concepts it is missing `operating_income`, `gross_profit` and `cost_of_revenue`, and operating
+  income feeds ROIC, EV/EBITDA, operating margin and operating leverage together. BlackRock also
+  lacks both current-asset items, Cigna those and operating income. This is a property of a
+  filings-only rebuild, not of this fix, and the right response is that a filter declined a record
+  it could not cover. It also names the next free improvement: more XBRL tags per input, no new
+  data source (note section 5).
+- **12,800 of 31,410 already-scored composites moved, the largest by 7.42 points.** That is the
+  mechanism working. The engine ranks each metric **within the stock's sector**, so adding a name
+  to a month re-ranks every other name in that sector. The symbols that moved most often are
+  exactly the sector-mates of what was added - Netflix 96 months, Omnicom 95, AT&T 95, Comcast 94,
+  Verizon 92, the Communication Services peers of Disney and the two Alphabet lines; then a block
+  of banks beside Cigna and BlackRock. In 2020-2026 it is 6,779 moved and the top twenty-five are
+  **all** financials, beside a BlackRock that was absent from 58 of 80 months. A version of this
+  that left peers untouched would be the broken one.
+
+**What has already been published rested on the old panel.** Until today v2's 2020-2026 rankings
+contained no Exxon in any month and no BlackRock in 58 of 80, and its 2012-2019 rankings contained
+no Exxon, Apache, BlackRock, Disney, Cigna, DuPont, Broadcom, Alphabet or Medtronic for most or all
+of the window. Every research-engine result was measured on that panel, which is why the rerun
+below is not optional bookkeeping.
+
+**The rerun: all 31 rows, and nothing a reader is told has changed.** A rebuild of
+`cache/v2_metrics` stales every row's data fingerprint, and the engine refuses to compare results
+across one, so all 29 experiments and both trading-rule evaluations were rerun in the same
+session - 45 minutes, `STALE REMAINING: 0`. **Every stored figure in all 31 rows moved**, which is
+what a data change does and is the reason the rerun is compulsory rather than tidy. What did not
+move is the conclusion:
+
+- **0 of 27 alternative weightings beat the current one**, exactly as before.
+- The baseline's rank correlation with next month's return is still indistinguishable from zero in
+  both eras: **-0.00188** in 2012-2019 (was -0.00275) and **-0.00030** in 2020-2026 (was
+  -0.00003), pooled t **-0.14** (was -0.18), against a design that can see about 0.032.
+- **No verdict changed on any row.**
+
+`SCREENER_OVERVIEW.md` was regenerated, because the methodology page quotes those baseline ICs
+from `research/experiments/summary.json` (`run_screener._research_engine_sentence`) - the one
+sentence that moves reads **-0.002** where it read -0.003. That is the whole public-facing effect
+of the day's work: no weight, metric, threshold or score changed, and the live dashboard payload is
+untouched.
+
+### Evidence / research
+
+- **A documented failure, demonstrable in the repo, which is the form CLAUDE.md names.** Not a
+  citation and not a backtest number: `cache/v2_census_presample.json` records 773 member-months
+  where v2 has the company and no filings, and `data/sec/pit/facts.parquet` shows why - XOM's
+  earliest `filed` under today's CIK is **2026-08-03**, BLK's **2024-11-06**, APA's **2021-05-07**.
+  The census's own 167 rename-months reproduce symbol by symbol. Nothing here needed an IC or a
+  backtest figure to establish.
+- **SEC EDGAR XBRL `companyfacts` and `cik-lookup-data.txt`** - the registrant numbers, the entity
+  names that told the three real reorganisations from the symbol handovers (`IR`'s earlier CIK
+  prints as *Trane Technologies plc*, `Q`'s as *IQVIA Holdings*), and every fact's `filed` date,
+  which is what makes the join point-in-time rather than look-ahead.
+- `research/2026-10-20-free-survivorship-sources.md` sections 1, 2 and 6 - the census of what is
+  missing, each departure's cause, and the identity checks the five refusals rest on (PCS's float
+  MISMATCH at median ratio 0.353 is the one that refused a rename on measured grounds rather than
+  on judgement).
+- `research/2026-10-15-pit-record-validation.md` - why this is worth a session: the fundamentals
+  half of v1's look-ahead is the larger half, **72.5% of name-months**, so the completeness of the
+  point-in-time record is the thing v2 exists to get right.
+- **No backtest number and no IC number justified anything** (rules 4 and 5). The engine figures
+  above are reported as what the rerun produced, not as a reason for any change; no weight, metric
+  or threshold moved.
+
+### Methodology changed
+
+- **None.** No weight, metric, threshold, category or scoring rule was touched, and the published
+  ranking is byte-identical - the only generated public file that moved is one sentence of
+  `SCREENER_OVERVIEW.md`, and it moved because the research engine's own baseline number did.
+  `METHODOLOGY_CHANGELOG.md` correctly has no entry.
+
+### Tried and rejected
+
+- **"Refuse a predecessor pair whose registrant kept filing after the successor started."** My own
+  first rule, rejected because measuring it on all 22 pairs refuted it in both directions: it
+  refused Apache (96 months), EIDP (68) and Dow Chemical, all three genuine reorganisations whose
+  predecessor survives as a debt-only subsidiary, and it admitted SanDisk Corp and Twenty-First
+  Century Fox, which are different companies that merely stopped filing early. Replaced by the cut,
+  which has a proof rather than a theory behind it. `tests/test_v2_data_fixes.py` fails if the
+  overlap refusal returns.
+- **Carrying ACE->CB and TYC->JCI (104 of the 167 rename-months, the two largest).** Refused: the
+  symbol they would claim was itself a member in every affected month, so one current record would
+  have to stand for two members, and the symbol's price history before the merger belongs to the
+  other company - which is the defect `check_price_series_integrity` exists to catch. The 104
+  months stay unscored and the reason is written down.
+- **Carrying PCS->TMUS (16 months).** Refused on a measured ground, not a judgement: the
+  2026-10-20 note's own identity check puts the symbol's close against the filed public float and
+  reports MISMATCH, 2 of 9 dates agreeing, because MetroPCS's reverse split *and* special dividend
+  are not a clean split and `cache/splits.parquet` carries only the 0.5.
+- **Adding ICE and ETN to the rename constant** (32 `no_filings` months from reorganisations before
+  2014-05, which the general rule cannot see). Not done, and recorded in the note rather than left
+  implicit: a hand-maintained list of companies is the thing this session was trying to avoid, and
+  32 member-months does not pay for one. If a later session wants them, the note says exactly what
+  it would take.
+- **Loosening the coverage filter so the 327 built-but-unscored records would rank.** Rejected
+  outright - a filter declining a record it cannot cover is the filter working. The right fix is
+  more XBRL tags per input, which is a different and better-defined piece of work.
+- **Leaving `tests/test_research_page.py` as it was.** One test went red, and it is the only test
+  this session changed, so the reasoning matters. Its last two assertions pinned the **2026-10-20
+  audit's own literal confidence intervals** - `"&minus;0.023 to +0.017"` and
+  `"&minus;0.027 to +0.027"` - in the page text. Today's data fix legitimately moved the record
+  those intervals are computed from, to -0.022..+0.018 and -0.028..+0.027, so both went red while
+  the page was exactly right. **This is not weakening a test to pass a gate.** The same test's
+  loop, five lines above, already asserts each era's interval string **computed from the ledger**,
+  which is the strictly stronger check: it fails if the page disagrees with the ledger at *any*
+  data version, where a literal can only say whether today's data is the data it was written
+  against. What the literals uniquely covered was the number *formatter*, and that is now asserted
+  directly on three values (a negative, a positive, and zero). The lesson is this project's own,
+  from the 2026-10-18 dirty-marker bug: a tripwire that fires when nothing is wrong is one that
+  gets ignored.
+
+### Next
+
+- **The extended universe, which is the rest of `OWNER_FOCUS.md` 2026-10-20 sub-item 6.** Register
+  `only-size-extended` in `research/experiments/registry.yaml` **first and alone in its commit**,
+  with the one-sided reading from `research/2026-10-20-free-survivorship-sources.md` section 7
+  (falsified at >= +0.020; a fall below +0.014 does **not** confirm, because the acquired members
+  are still missing) and the paired month-by-month statistic, then follow that note's section 8.
+  Budget the rebuild and the ~45-minute rerun in the same session as today did: registering it
+  stales all 31 rows.
+- **The cheaper win first, if a session wants one:** more XBRL tags per input in
+  `research/measurements/2026-10-09-xbrl-point-in-time-census.py`'s `INPUTS`. 725 records were
+  built in 2012-2019 and 398 scored; the gap is `gross_profit`, `operating_income` and
+  `cost_of_revenue` tags the filers did not use under the names the fetch asks for. It needs no new
+  data source and it would lift the same records - **but it is also a data-version change, so it
+  carries the same rebuild and rerun.** Do it in one session with something else that forces them,
+  never on its own.
+- Then `OWNER_FOCUS.md` 2026-10-20 item 3, the claims mutation audit
+  (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
+  through) - unchanged from the 06:00 session's Next, and still untouched.
+

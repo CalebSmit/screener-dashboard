@@ -248,6 +248,46 @@ def parse_ticker_ciks(html: str) -> dict:
     return {}
 
 
+# --------------------------------------------------------------------------- pre-2014 renames
+# The revisions' CIK column only begins in 2014-05 (``parse_ticker_ciks`` returns ``{}`` before
+# that), so a company renamed *before* then carries no registrant number anywhere in the
+# membership history, and ``backtest_v2.Inputs.current_symbol`` - which matches a member to its
+# current symbol by CIK and by nothing else - cannot find it. Measured 2026-10-24: 167 of the
+# 48,282 member-months in 2012-2019 are companies **in today's index** that v2 drops for this
+# reason (``research/2026-10-24-v2-pre-2014-renames.md``).
+#
+# Each CIK below is the SEC registrant the symbol belonged to, resolved by a *unique* name match
+# against SEC's own ``cik-lookup-data.txt`` in
+# ``research/measurements/2026-10-20-survivorship-free-sources.py`` (``classification[sym]``,
+# ``cik_source``), accepted only where the registrant filed 10-Ks through the membership years.
+#
+# **Three of the eight, not all eight.** The other five are refused, and the reasons are the point
+# of the rule rather than exceptions to it:
+#
+# * ``ACE`` -> CB and ``TYC`` -> JCI: today's symbol was *itself a member* in every one of those
+#   months (Chubb Corp and Johnson Controls Inc, both since absorbed by the registrant that now
+#   holds the symbol), so today's record cannot stand for two different members, and the symbol's
+#   price history before the merger belongs to the other company.
+# * ``CMCSK`` -> CMCSA: a second share class of a registrant already scored under CMCSA. Each
+#   company is scored once (the share-class decision, ``METHODOLOGY_CHANGELOG.md`` 2026-10-21).
+# * ``PCS`` -> TMUS: the note's own identity check - SEC public float against the symbol's close -
+#   reports MISMATCH (median ratio 0.353, 2 of 9 dates agreeing). MetroPCS's 1:2 reverse split and
+#   $4.05 special dividend are not a clean split, so the filed share count cannot be reconciled
+#   with the adjusted price and the market value would be wrong.
+# * ``SAIC``: the note resolves the symbol to Leidos's registrant (1336920) but takes its prices
+#   from today's SAIC (Science Applications International Corp) - two different companies. One
+#   month, and the ambiguity is real, so it stays out.
+#
+# Adding a symbol here is a data-version change: it stales every research-engine ledger row
+# (``v2_experiments.RESULT_PATHS``) and needs the full rebuild and rerun.
+PRE_REVISION_CIKS = {
+    "BFB": 14693,     # Brown-Forman: the 2012 revisions write BF.B without the dot, so it
+                      # normalises to BFB and never meets today's BF-B
+    "MHP": 64040,     # McGraw-Hill -> McGraw Hill Financial -> S&P Global (SPGI), same registrant
+    "SAI": 1336920,   # SAIC Inc -> Leidos Holdings (LDOS), same registrant
+}
+
+
 def validate_membership(tickers, as_of=None) -> None:
     """Raise if a parsed list cannot be a real S&P 500 membership.
 

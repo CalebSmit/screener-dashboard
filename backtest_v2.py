@@ -153,8 +153,38 @@ class Inputs:
         return cls(pd.read_parquet(root / "cache" / "v2_daily.parquet"),
                    pd.read_parquet(root / "cache" / "v2_index.parquet"),
                    pd.read_parquet(root / "cache" / "splits.parquet"),
-                   pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet"), base,
+                   _load_facts(root), base,
                    _load_ciks(root), _load_month_ciks(root), base_run=runs[-1].parent.name)
+
+
+PREDECESSOR_FACTS = Path("data") / "sec" / "pit" / "facts_predecessor.parquet"
+
+
+def _load_facts(root: Path) -> pd.DataFrame:
+    """Every member's filings as filed: ``facts.parquet`` plus each member's **predecessor
+    registrant's** (2026-10-24).
+
+    ``facts.parquet`` is fetched by today's CIK, so a holding-company reorganisation or a
+    redomicile leaves the years before it with no filings at all - measured on
+    ``cache/v2_census_presample.json``: **773 of the 48,282 member-months in 2012-2019**, among
+    them Apache, BlackRock, Exxon, Disney, Cigna, DuPont, Broadcom, Alphabet and Medtronic for all
+    or most of the window. Those filings were public at the time and are the company's own under
+    the name it then had, so joining them is the opposite of look-ahead; leaving them out is a hole
+    in the point-in-time record.
+
+    ``research/measurements/2026-10-24-predecessor-facts.py`` writes the side file and is where
+    the two admission bounds live and are argued. Nothing here re-decides them: the frames are
+    concatenated and ``pit_record`` selects by filed date exactly as before. **Missing is normal**
+    - a clean checkout has neither parquet - so an absent side file is silently no predecessors,
+    never an error, and ``v2_experiments.DATA_SOURCES`` records which one the result ran on."""
+    facts = pd.read_parquet(root / "data" / "sec" / "pit" / "facts.parquet")
+    p = root / PREDECESSOR_FACTS
+    if not p.is_file():
+        return facts
+    pred = pd.read_parquet(p)
+    if pred.empty:
+        return facts
+    return pd.concat([facts, pred[list(facts.columns)]], ignore_index=True)
 
 
 def _load_month_ciks(root: Path) -> dict:
@@ -170,13 +200,21 @@ def _load_month_ciks(root: Path) -> dict:
 
 def _load_ciks(root: Path) -> dict:
     """The membership history's ticker -> CIK map (``data/universe_history/ticker_ciks.json``,
-    built from the same Wikipedia revisions as the membership), or ``{}`` without it."""
+    built from the same Wikipedia revisions as the membership), or ``{}`` without it.
+
+    Plus ``universe_history.PRE_REVISION_CIKS`` for the handful of symbols renamed before the
+    revisions carried a CIK column at all (2026-10-24). The revisions always win - ``setdefault``,
+    never an overwrite - so the constant can only supply a registrant the history does not have,
+    which keeps the source of truth where it was."""
     import json as _json
     p = root / "data" / "universe_history" / "ticker_ciks.json"
     try:
-        return {k: int(v) for k, v in _json.loads(p.read_text(encoding="utf-8"))["ciks"].items()}
+        out = {k: int(v) for k, v in _json.loads(p.read_text(encoding="utf-8"))["ciks"].items()}
     except (OSError, KeyError, ValueError, TypeError):
-        return {}
+        out = {}
+    for tk, cik in uh.PRE_REVISION_CIKS.items():
+        out.setdefault(tk, int(cik))
+    return out
 
 
 def history_window(g: pd.DataFrame, as_of: pd.Timestamp, splits: pd.DataFrame | None = None) -> pd.DataFrame:
