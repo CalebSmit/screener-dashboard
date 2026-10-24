@@ -219,6 +219,18 @@ def load_run_data(run_dir: Path) -> dict:
         with open(meta_path) as f:
             meta = json.load(f)
 
+    # Provenance that travels with the page (OWNER_FOCUS 2026-10-21 item 6):
+    # which run, which code, which raw fetch. `run_fingerprint` normalises
+    # git's "unknown" to None and hashes *this run's own* 00_raw_fetch.parquet
+    # - never the fallback copy `_find_raw_fetch` borrows above, which is right
+    # for display and wrong for an audit trail. These land in `kpis`.
+    try:
+        from run_fingerprint import fingerprint as _run_fingerprint
+        meta.update({k: v for k, v in _run_fingerprint(run_dir).items()
+                     if k != "methodology_version"})
+    except Exception:  # noqa: BLE001 - provenance must never lose a run
+        pass
+
     # Effective weights
     weights_path = run_dir / "effective_weights.json"
     weights = {}
@@ -1376,6 +1388,16 @@ def prepare_dashboard_data(run_data: dict) -> str:
         # run_screener.py). The health check compares it with the published run's before it will
         # accept a ranking that broke from the last one (2026-10-22). None for a run made before.
         "methodology_version": meta.get("methodology_version"),
+        # The rest of the audit trail, added 2026-10-24 (OWNER_FOCUS 2026-10-21 item 6,
+        # screener-bot ROADMAP 1.10): which run folder, which commit, and a hash of the
+        # raw fetch every metric was computed from. Together with the timestamp and the
+        # methodology version these are what lets a trade be traced back to its inputs
+        # after the fact - `runs/` is gitignored and pruned after twenty runs, so until
+        # now the page carried nothing that outlived it. See `run_fingerprint.py`; the
+        # archived copy of the raw fetch is `scripts/archive_run.py`.
+        "run_id": meta.get("run_id"),
+        "git_sha": meta.get("git_sha"),
+        "raw_sha256": meta.get("raw_sha256"),
     }
 
     # Metric display metadata
