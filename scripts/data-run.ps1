@@ -628,6 +628,23 @@ try {
     # failed run leaves no marker, so a catch-up trigger will retry it.
     [System.IO.File]::WriteAllText($SuccessMarker, $Date)
 
+    # --- Archive the run's evidence outside the pruned tree ------------------
+    # OWNER_FOCUS 2026-10-21 item 6. kpis.raw_sha256 names the fetched record
+    # this ranking was computed from; the file itself lives in runs/, which the
+    # prune below empties after twenty runs - about four weeks. A trade
+    # questioned later than that cannot be checked against its inputs at all.
+    #
+    # Only a run that actually reached the live site is archived, so this sits
+    # after the push and before the prune. Outside OneDrive and outside the
+    # repo by default (%LOCALAPPDATA%\ScreenerArchive) and never pruned - see
+    # scripts/archive_run.py for why each of those is deliberate.
+    #
+    # Non-fatal: the publish that matters has already happened, and a failure
+    # to archive must not look like a failed run.
+    $arch = Invoke-Native 'python' @('scripts/archive_run.py')
+    Write-NativeOutput $arch
+    if ($arch.ExitCode -ne 0) { Write-Log "Run evidence was NOT archived - the published page stands." 'WARN' }
+
     # --- Prune local scratch -------------------------------------------------
     # runs/ and logs/ are gitignored working directories that every run appends
     # to and nothing ever removed. Measured 2026-08-25, three weeks in: runs/
