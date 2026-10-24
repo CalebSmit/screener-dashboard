@@ -14432,8 +14432,8 @@ complete: shipped to main" at 13:40, tag `good/2026-10-23-1340`. Data loop publi
 effective** (`_n_observations` 4; the raw count of 35 is the one not to quote). Priority 0:
 `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
 Factor Lab** (opened 2026-10-12, **age 12 days**) - deferred, see below.
-**Tests:** before **3064 passed, 1 skipped**; after **3108 passed, 1 skipped** (+44: three new
-modules and one new contract test). Gates 2, 3, 4 pass. **`scripts/rehearse_publish.py` run and
+**Tests:** before **3064 passed, 1 skipped**; after **3109 passed, 1 skipped** (+45: three new
+modules - 22, 14 and 8 - plus one new contract test). Gates 2, 3, 4 pass. **`scripts/rehearse_publish.py` run and
 PASSED** - the diff touches `generate_dashboard.py`, which the four gates cannot see.
 **Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item, 2026-10-21, items 5 and 6** - both
 built, and the item is now **closed and moved to Done**. **Deferred: the research-engine rerun**
