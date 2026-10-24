@@ -3,11 +3,11 @@
  "alternatives": 27,
  "better": 0,
  "worse": 0,
- "data_hash": "d8cb038fff2b",
+ "data_hash": "4a7a38dc3471",
  "baseline_ic": {
-  "presample": -0.00275,
-  "all": -3e-05,
-  "pooled": -0.00151
+  "presample": -0.00188,
+  "all": -0.0003,
+  "pooled": -0.00116
  },
  "months": {
   "presample": 96,
@@ -16,19 +16,19 @@
  },
  "baseline_ic_ci95": {
   "presample": [
-   -0.0228,
-   0.0173
+   -0.0218,
+   0.018
   ],
   "all": [
-   -0.0274,
-   0.0274
+   -0.0277,
+   0.0271
   ],
   "pooled": [
-   -0.0179,
-   0.0149
+   -0.0175,
+   0.0152
   ]
  },
- "pooled_t": -0.18,
+ "pooled_t": -0.14,
  "pooled_detectable": 0.0319,
  "method_version": 2
 }
