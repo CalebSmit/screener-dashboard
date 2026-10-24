@@ -475,7 +475,7 @@ try {
     # NOT a gate. A failure here leaves the previous signals.json in place,
     # which is the safe state: it carries an older run_timestamp and the bot's
     # own freshness rule declines to trade on it. Discarding a good run over a
-    # 2 KB side file would cost a day of evidence for nothing.
+    # ~10 KB side file would cost a day of evidence for nothing.
     $signalArgs = @('scripts/write_signals.py', '--date', $Date)
     foreach ($g in $GateVerdicts.GetEnumerator()) { $signalArgs += @('--gate', "$($g.Key)=$($g.Value)") }
     $signals = Invoke-Native 'python' $signalArgs
