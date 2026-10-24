@@ -1,0 +1,145 @@
+{
+ "before_dir": "logs/v2_before",
+ "after_dir": "cache",
+ "builds": {
+  "presample_2012_2019": {
+   "scored_before": 31410,
+   "scored_after": 31808,
+   "scored_change": 398,
+   "built_before": 31919,
+   "built_after": 32644,
+   "members": 48282,
+   "by_reason": {
+    "no_current_record": {
+     "before": 15108,
+     "after": 15065,
+     "change": -43
+    },
+    "no_filings": {
+     "before": 773,
+     "after": 91,
+     "change": -682
+    },
+    "no_price": {
+     "before": 434,
+     "after": 434,
+     "change": 0
+    },
+    "symbol_reused": {
+     "before": 48,
+     "after": 48,
+     "change": 0
+    }
+   },
+   "symbols_rescued": {
+    "no_current_record": {
+     "SAI": 21,
+     "MHP": 16,
+     "BFB": 6
+    },
+    "no_filings": {
+     "APA": 96,
+     "BLK": 96,
+     "XOM": 96,
+     "DIS": 88,
+     "CI": 85,
+     "DD": 68,
+     "AVGO": 49,
+     "GOOG": 45,
+     "MDT": 37,
+     "GOOGL": 18,
+     "DWDP": 2,
+     "KHC": 1,
+     "DOW": 1
+    }
+   },
+   "scores": {
+    "rows_before": 31410,
+    "rows_after": 31808,
+    "shared": 31410,
+    "shared_composites_moved": 12800,
+    "largest_move": 7.419999999999995,
+    "moved_by_ticker": {
+     "NFLX": 96,
+     "OMC": 95,
+     "T": 95,
+     "FISV": 95,
+     "CMCSA": 94,
+     "VZ": 92,
+     "SCHW": 90,
+     "WFC": 90,
+     "STT": 89,
+     "COF": 87,
+     "APD": 85,
+     "IFF": 85,
+     "NUE": 85,
+     "HBAN": 84,
+     "MTB": 84,
+     "KEY": 84,
+     "CF": 84,
+     "OKE": 84,
+     "NDAQ": 84,
+     "JPM": 84,
+     "VMC": 82,
+     "FCX": 81,
+     "PPG": 81,
+     "ECL": 80,
+     "SHW": 80
+    },
+    "added_name_months": 398,
+    "added_by_ticker": {
+     "DIS": 94,
+     "DD": 52,
+     "GOOG": 49,
+     "AVGO": 45,
+     "CI": 31,
+     "MDT": 25,
+     "GOOGL": 22,
+     "LDOS": 21,
+     "APA": 17,
+     "SPGI": 16,
+     "BLK": 11,
+     "KHC": 7,
+     "BF-B": 6,
+     "FOX": 1,
+     "FOXA": 1
+    },
+    "removed_name_months": 0,
+    "removed_by_ticker": {}
+   }
+  },
+  "main_2020_2026": {
+   "scored_before": 35207,
+   "scored_after": 35207,
+   "scored_change": 0,
+   "built_before": 35389,
+   "built_after": 35389,
+   "members": 40292,
+   "by_reason": {
+    "no_current_record": {
+     "before": 4726,
+     "after": 4726,
+     "change": 0
+    },
+    "no_filings": {
+     "before": 177,
+     "after": 177,
+     "change": 0
+    }
+   },
+   "symbols_rescued": {},
+   "scores": {
+    "rows_before": 35207,
+    "rows_after": 35207,
+    "shared": 35207,
+    "shared_composites_moved": 0,
+    "largest_move": 0.0,
+    "moved_by_ticker": {},
+    "added_name_months": 0,
+    "added_by_ticker": {},
+    "removed_name_months": 0,
+    "removed_by_ticker": {}
+   }
+  }
+ }
+}
