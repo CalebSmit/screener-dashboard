@@ -229,11 +229,23 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    falsifies** the survivorship explanation, while a fall **below +0.014 would not confirm it**.
    **Next step (not done): register `only-size-extended` with that one-sided reading and the paired
    month-by-month statistic, committed before any extended month exists** - it stales every ledger
-   row, so budget the ~47-minute rerun - then follow the note's section 8 build plan. Two
-   non-survivorship v2 data fixes it found (167 member-months of renames not carried before 2014-05;
-   773 `no_filings` months under predecessor CIKs - Exxon, BlackRock, Disney, Alphabet ...) are in
-   its section 6. Yahoo deletes a delisted symbol's history, so this route shrinks every year: the
+   row, so budget the ~47-minute rerun - then follow the note's section 8 build plan.
+   Yahoo deletes a delisted symbol's history, so this route shrinks every year: the
    accepted series are cached in the main checkout's `data/survivorship/`.
+
+   **The two non-survivorship data fixes that note found (its section 6) are DONE, 2026-10-24
+   (13:00 session)** - `research/2026-10-24-v2-pre-2014-renames.md`, which is the rebuild and the
+   rerun this item says to budget for, already spent. `no_filings` went **773 -> 91** in 2012-2019
+   and **177 -> 13** in 2020-2026; three of the eight uncarried renames were admitted (43
+   member-months) and five refused with reasons; **+398 and +98 member-months scored, none
+   removed.** Two things to carry into (d): the rebuild re-ranks sector peers, so **12,800 and
+   6,779 already-scored composites moved** - that is `compute_sector_percentiles` working, and an
+   extended build will do the same at a larger scale, so measure it the same way; and the residual
+   is now **coverage, not registrants** - 725 records were built in 2012-2019 and 398 scored,
+   because a filings-only record is missing whatever tags the filer did not use (Exxon files no
+   `OperatingIncomeLoss` at all and is ranked in 1 month of 176 despite having a record in every
+   one). **More XBRL tags per input in the 2026-10-09 census script's `INPUTS` is the next free
+   improvement to v2's record, and it needs no new source.**
 
    **(e) Measure today's sector and industry taxonomy on historical months before changing it.**
    v2 assigns each historical member today's sector (the engine ranks within sector, so this sets
