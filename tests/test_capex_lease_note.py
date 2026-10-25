@@ -109,6 +109,27 @@ def test_the_threshold_is_the_registered_ten_percent():
         assert ("SMALL" in X.lease_book({"stock_detail": _details()}, f)) is expected
 
 
+def test_the_reconciliation_is_the_registered_five_percent():
+    """Claim ``drilldown.capex_lease_note`` promises the two filed parts "reconcile with the
+    capex above to within 5%". Nothing held that number: the audit of 2026-10-25
+    (``plan/claims-mutation-audit.md`` row 54) widened ``LEASE_RECONCILE_TOL`` to 8% and every
+    registered check passed, because the one assertion about it reads
+    ``rel=X.LEASE_RECONCILE_TOL`` - a tolerance taken from the constant under test cannot see the
+    constant move. Ford is the reason the bar exists at all (it files 5.8x its capex in loan and
+    lease purchases, so without the check the row would claim 577% of its capex was vehicles for
+    lease), and a bar that can drift is the one case the note would then get wrong quietly.
+    """
+    assert X.LEASE_RECONCILE_TOL == 0.05
+    facts = _facts()
+    ppe = facts.concept == "PaymentsToAcquirePropertyPlantAndEquipment"
+    # NOPROC files $2.8B of lease purchases against $4.0B of capex. Move its PP&E leg so the two
+    # parts miss the capex by a chosen share of it, either side of the stated 5%.
+    for gap, expected in ((0.04, True), (0.06, False)):
+        f = facts.copy()
+        f.loc[(f.ticker == "NOPROC") & ppe, "val"] = 4e9 * (1 - gap) - 2.8e9
+        assert ("NOPROC" in X.lease_book({"stock_detail": _details()}, f)) is expected, gap
+
+
 def test_the_proceeds_sentence_appears_only_when_the_company_files_them():
     det = _details()
     g._attach_capex_lease_note(det, facts=_facts())

@@ -643,10 +643,16 @@ def _sentence_earnings(detail: dict, run_date: str | None) -> str | None:
     * **An estimated date is labelled every time.** Measured across all 503
       tickers on 2026-09-29, 209 of the 492 forthcoming dates (42.5%) were
       provider estimates rather than company-announced schedules.
-    * **A date at or before the run date is dropped, never relabelled.** It
-      cannot be shown as "next" and there is no evidence for what it is. That
-      guard is not hypothetical: 11 of 503 names that day carried a date
-      already in the past, the provider not having scheduled the next one.
+    * **A date *before* the run date is dropped, never relabelled.** It cannot be
+      shown as "next" and there is no evidence for what it is. That guard is not
+      hypothetical: 11 of 503 names that day carried a date already in the past,
+      the provider not having scheduled the next one. A date **on** the run date
+      is a different case and is kept, as "the day of this run": it genuinely is
+      the next report, and by the paper above it is the one day on which a sell
+      beats its counterfactual, so dropping it would withhold the schedule
+      exactly where the evidence says the schedule matters most. These three
+      lines read "at or before" until 2026-10-25, when the claims mutation audit
+      found that no code had ever done that - see claim ``summary.earnings``.
     """
     earn = detail.get("earn") or {}
     day = earn.get("d")

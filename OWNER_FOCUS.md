@@ -120,7 +120,27 @@ Two things still outrank this file, and neither is negotiable:
      passes is checking plumbing, not the claim (CLAUDE.md, 0.11's lesson) - fix it, and keep a
      running table in `plan/claims-mutation-audit.md`. **Started the same night:** 38 mutations on
      22 claims; **15 got through** (8 were untested boundaries, 3 checked the committed payload
-     instead of the code), all 15 now caught by registered tests. The plan file lists the next 12.
+     instead of the code), all 15 now caught by registered tests.
+     **Second pass DONE 2026-10-25 (13:00 session) - the queue's items 1-8 and 12 are closed, and
+     one of the claims turned out to be false rather than unchecked.** 24 more mutations on 11
+     claims (rows 39-62): **15 caught, 4 real gaps, 5 gaps in the register, 1 false claim.**
+     The four real gaps - two bars in the weakest-category sentence, the panic rule's volatility
+     bar, and the capex note's 5% reconciliation - now each fail a registered check, verified by
+     re-running every mutation after the fix. **The false one:** `summary.earnings` and
+     `_sentence_earnings`'s docstring both said "a date at or before the run date is dropped",
+     which no version of the code has done - it keeps a same-day date and reads "the day of this
+     run", which is right, and is the one day the paper behind the feature says a sell beats its
+     counterfactual. The sentence was corrected; nothing a reader sees moved.
+     **Two things generalise.** A check may not import the number it is checking: the capex
+     tolerance's only assertion read `rel=X.LEASE_RECONCILE_TOL`, so widening the constant widened
+     the assertion with it and the test passed at any value. And a test's name is read far more
+     often than its body - `test_the_threshold_is_strict_and_configurable` probed the volatility
+     bar 0.001 either side and never *at* it, the one point that separates `>` from `>=`, so the
+     name made the gap invisible to anyone looking for one.
+     **And the limitation the last pass recorded is fixed:** `checked_by` can now name
+     `Class::method`, which the register could not, so the good tests in `tests/test_metrics.py`
+     are no longer invisible to it or to the publish gate. The plan file lists the next six items,
+     two of them mechanical searches that should outperform more hand-picked mutations.
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).

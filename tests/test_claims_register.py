@@ -75,9 +75,31 @@ def payload() -> dict:
 
 
 def _test_functions(path: Path) -> set[str]:
+    """Every selectable test name in a module: bare functions, and ``Class::method``
+    for tests inside a class.
+
+    The class form was added 2026-10-25 by the claims mutation audit
+    (``plan/claims-mutation-audit.md``). Its 2026-10-20 pass recorded "``checked_by``
+    cannot name a class method" as a known limitation, because this helper returned
+    only bare names while ``test_every_checked_by_test_exists`` partitions a reference
+    on its *first* ``::`` - so ``tests/test_metrics.py::TestPriceTargetUpside::test_clamp_high``
+    was unregistrable and the good tests in that module were invisible to the register
+    and therefore to the data loop's publish gate. The audit's 2026-10-25 pass hit it a
+    second time (``TestStalenessThreshold::test_config_override_threshold`` is the only
+    test in the suite that pins the configured stale-filing bar), so the limitation is
+    fixed rather than worked around with a duplicate module-level test.
+
+    Every other consumer of ``checked_by`` already takes ``ref.split("::")[0]`` for the
+    module, so the longer form needs nothing from them; pytest selects it directly.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    return {n.name for n in ast.walk(tree)
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    names = {n.name for n in ast.walk(tree)
+             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+        for n in cls.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                names.add(f"{cls.name}::{n.name}")
+    return names
 
 
 # ---------------------------------------------------------------------------

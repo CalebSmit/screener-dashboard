@@ -15016,3 +15016,171 @@ arm's hash, its months and its stock-months.
   (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
   through) - named as Next by three sessions now and still untouched. **A session with no owner item
   waiting and no broken loop should take it** rather than make it a fourth deferral.
+
+## 2026-10-25 (13:00 midday session) - the claims register's second mutation pass: four bars nothing could see, a test named for a strictness it did not test, and one claim that was simply false
+
+**Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session
+ended "Run complete: shipped to main" at 08:13, tag `good/2026-10-25`. Data loop published?
+**yes** - 2026-10-23 02:28, HEALTH PASS, 498 scored; **no 02:00 run on 10-24 or today, correctly -
+Saturday and Sunday**; the next is Monday 2026-10-26, which brings the first `signals.json`.
+Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4 effective**
+(`_n_observations` 4; 35 is the row count and never the one to quote). Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred again; experiment 18 is unstarted and
+the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical, and this
+session took an owner sub-item that outranks it.
+**Tests:** before **3149 passed, 1 skipped** (364.6s) - identical to the 06:00 session's after
+count, so no drift. After **3152 passed, 1 skipped** (+3: two in `test_stock_summary.py`, one in
+`test_capex_lease_note.py`).
+**Owner queue / rotation:** `OWNER_FOCUS.md` 2026-10-20, **sub-item 3, "Test the tests"** - the
+claims mutation audit. No proposal was waiting (`open_proposals()` returns `[]`). This item had
+been named as Next by **three** consecutive sessions and never taken, and the 06:00 entry said
+plainly that a session with no proposal waiting and no broken loop should take it rather than make
+it a fourth deferral. I did. The morning's own Next - the extended universe - is deferred and
+stated below, because it needs a rebuild plus a ~45-minute serial rerun and this slot had under
+three hours.
+
+### Did
+
+**`OWNER_FOCUS.md` 2026-10-20 sub-item 3: the second mutation pass over `claims.py`.**
+`plan/claims-mutation-audit.md`, rows 39-62. Method unchanged: for each registered sentence that
+states a number, make the smallest plausible edit that makes the sentence false, run **only** that
+claim's `checked_by`, and record caught or gap. **24 mutations on 11 claims: 15 caught, 4 real
+gaps, 5 gaps in the register, and 1 mutation that could not be made because the claim was already
+false.** Every gap now fails a registered check, and every mutation was **re-run after its fix and
+required to read CAUGHT** - which caught me out once: two fixes first came back as register gaps
+because I had written the test and not yet named it in `checked_by`.
+
+**One improvement to the harness, which is the reason the numbers above are legible.** It now runs
+the claim's `checked_by` *and* the whole of each module those tests live in, so "nothing in the
+suite checks this" and "the suite checks it but the register does not say so" are separate
+verdicts. The 2026-10-20 pass had to tell them apart by hand and its rows 35 and 37 record the
+distinction informally. Five of this pass's nine gaps were the second kind.
+
+**The four real gaps** - nothing anywhere in the suite saw them (verified: only the one module
+references each symbol):
+
+1. **`summary.weakest`, `LARGEST_SIZE_SCORE` 10 -> 11.** The sentence says "at 10 or under, one of
+   the largest"; the four registered checks probe Size at 2, 30 and 55, so the bar could have sat
+   anywhere between 2 and 30. Now `test_the_largest_company_bar_holds_at_ten_and_not_above_it`.
+2. **`summary.weakest`, the sector-median bar `n >= 50` -> `n > 50`.** The relaxed version prints
+   the gloss *at* the median - telling a reader a sector-median company is "larger than most of
+   its sector". Now `test_the_gloss_is_said_below_fifty_and_not_at_fifty`.
+3. **The momentum panic rule's volatility bar, `vol > thr` -> `vol >= thr`.** This is the rule
+   CLAUDE.md 0.12 says is set in advance and never re-fitted, and its edge could widen with
+   nothing going red.
+4. **The capex note's 5% reconciliation, widened to 8%.** The bar exists because Ford files 5.8x
+   its capex in loan and lease purchases; without it the row would tell a reader that 577% of
+   Ford's capex was vehicles for lease.
+
+**The claim that was already false.** `summary.earnings` asserted - and `_sentence_earnings`'s own
+docstring repeated - that "a date at or before the run date is dropped". **No version of the code
+has ever done that:** it drops `days < 0` and renders `days == 0` as "the day of this run". So the
+mutation that would make the sentence true is the one that *breaks* the behaviour, and a test in
+the module (`test_near_horizons_read_naturally["2026-09-29"]`) fails on it - the register simply
+did not name it. **The code is the right half and the sentence was corrected**, per the method's
+rule 5: a company reporting on the run date genuinely is its next report, and by the paper the
+feature is built on (Akepanidtaworn, Di Mascio, Imas & Schmidt 2023, *JF* 78(6)) announcement day
+is the one day on which a sell beats its random-sell counterfactual, so dropping the date would
+withhold the schedule exactly where the evidence says it matters most. **Nothing a reader sees
+changed.** This is the second false claim the audit has found; the first was 0.11's
+`context.expected_move`.
+
+**The five register gaps** - the suite had cover, `checked_by` did not name it. Four are the
+momentum rule: the three registered checks pinned 0.70, the equal split of freed weight and the
+two-condition logic, while the **126-day window, the 24-month window and the configured 20.6%
+threshold** - three of the four numbers the sentence names - were held only by tests the register
+never mentioned. The module runs in the publish gate either way, because `module_paths()` is
+derived rather than transcribed, so nothing was unprotected today. What was missing is the thing
+the register exists for: telling the *next* session which test is load-bearing for a public
+sentence, before it edits the sentence. The fifth is `summary.confidence`'s configured
+stale-filing bar.
+
+**And the limitation that blocked the last of those, fixed rather than worked around:**
+`checked_by` can now name `Class::method`. The 2026-10-20 pass recorded "`checked_by` cannot name
+a class method" as a known cost and wrote duplicate module-level tests instead; hitting it a
+second time made fixing it cheaper, because the only two tests in the whole suite that pin the
+configured stale bar are methods of `TestStalenessThreshold`. `_test_functions` in
+`tests/test_claims_register.py` now emits both forms, and every other consumer of `checked_by`
+already takes `ref.split("::")[0]`, so nothing else needed changing. This also makes the good
+tests in `tests/test_metrics.py` registrable - the last pass listed their invisibility to the
+register and to the publish gate as an open cost.
+
+**What generalises, and is now written into the plan's standing rules:**
+
+- **A check may not import the number it is checking.** The capex tolerance's only assertion read
+  `approx(..., rel=X.LEASE_RECONCILE_TOL)`. Widening the constant widens the assertion with it, so
+  the test passes at every value. It is rows 12-13's self-consistency failure in a new shape, and
+  the plan's next pass now has it as a **mechanical grep** rather than more hand-picked mutations.
+- **A test's name is read far more often than its body.**
+  `test_the_threshold_is_strict_and_configurable` probed the bar 0.001 above and 0.001 below the
+  reading and never *at* it - the single point that separates `>` from `>=`. A name that claims a
+  property the body does not test is worse than no test: three sessions could read it and conclude
+  strictness was covered.
+- **Finishing a gap means registering the fix.** A new test `checked_by` does not name reads as a
+  gap on the next pass and sits outside the publish gate's derivation.
+
+### Evidence / research
+
+- No methodology evidence was needed or used: this pass changed no score, weight, threshold or
+  published number. The one judgement call that needed a source was whether to keep a same-day
+  earnings date, and the source is the paper the feature already cites and the register already
+  records - **Akepanidtaworn, Di Mascio, Imas & Schmidt (2023), "Selling Fast and Buying Slow",
+  *Journal of Finance* 78(6)**: sells executed on a holding's earnings-announcement day beat
+  non-announcement-day sells by more than +150 bp/year and are the only sells in the sample that
+  beat a random-sell counterfactual. That is the case for keeping the date, so the code was kept
+  and the sentence corrected.
+- The pass's own evidence is the measurement: 24 mutations, each with its verdict in
+  `plan/claims-mutation-audit.md`, and each fix shown to fail under its mutation and pass without
+  it. That is a documented failure in the mandate's sense - four public sentences whose stated
+  numbers could move with nothing going red.
+
+### Methodology changed
+
+- **None.** No weight, threshold, formula or published sentence moved. Three corrections are to
+  the project's own record of itself: `summary.earnings`'s `asserts`, the matching docstring in
+  `stock_summary.py`, and four caveats recording what each gap was. `METHODOLOGY_CHANGELOG.md` is
+  deliberately untouched - there is no methodology change to record, and an entry for a test fix
+  would dilute the file that exists to explain real ones.
+
+### Tried and rejected
+
+- **Writing a duplicate module-level test for the stale-filing bar**, which is what the 2026-10-20
+  pass did when it hit the `Class::method` limitation. Rejected: the two tests that pin that bar
+  already exist, are correct, and are the only ones in the suite that do; copying them to get past
+  a parser would leave two copies to keep in step and would not help
+  `tests/test_metrics.py`, which the same limitation hides entirely. Teaching the register the
+  longer form is ~8 lines and every other consumer already tolerated it.
+- **Loosening `test_the_recorded_caveats_say_whether_fixed_or_which_stage_extends_them`.** Two of
+  my new caveats failed it because they began "corrected 2026-10-25" rather than "Fixed". The
+  contract is right - a recorded caveat must say whether it is closed - so the caveats were
+  reworded, not the test.
+- **Mutating the trap-flag percentiles by editing their `.get()` defaults.** Equivalent mutants:
+  `config.yaml` supplies all four, so the default is dead code and the mutation proves nothing. I
+  shifted the effective threshold instead, and separately replaced one config read with a
+  constant - which is the mutation that tests "read from config", and was caught.
+- **Starting the extended-universe build** (the morning's Next). It needs a records rebuild plus a
+  ~45-minute serial rerun of 31 ledger rows, and the ledger is append-only, so a half-finished one
+  is worse than none. Under three hours was not a budget for it; see Next.
+
+### Next
+
+- **The extended universe - the only open piece of `OWNER_FOCUS.md` 2026-10-20 sub-item 6**, and
+  unchanged from the 06:00 entry. Register `only-size-extended` in
+  `research/experiments/registry.yaml` **first and alone in its commit**, with the one-sided
+  reading from `research/2026-10-20-free-survivorship-sources.md` section 7 (falsified at
+  >= +0.020; a fall below +0.014 does **not** confirm, because the acquired members are still
+  missing) and the paired month-by-month statistic, then follow that note's section 8. **Budget the
+  rebuild and the ~45-minute rerun in the same session, in series, not concurrently.** A session
+  that cannot finish both should not start either.
+- **The cheaper win, still unclaimed:** more XBRL tags per input in
+  `research/measurements/2026-10-09-xbrl-point-in-time-census.py`'s `INPUTS` - 725 records built in
+  2012-2019 against 398 scored, the gap being `gross_profit`, `operating_income` and
+  `cost_of_revenue` tags filers did not use under the names the fetch asks for. Same rebuild and
+  rerun, so pair it with the item above.
+- **The mutation audit's next pass is six items, two of them mechanical** and worth more than four
+  more hand-picked mutations: grep the suite for `rel=<module>.<CONST>` and `== <module>.<CONST>`
+  where the constant is the number the claim states (row 59's shape), and re-probe every claim
+  whose only check reads the committed payload (rows 35-37's shape, plus row 57, which is *caught*
+  only by a payload-reading test - so a wrong constant there merges green and first appears when
+  the data loop refuses to publish the next morning). `plan/claims-mutation-audit.md`.
