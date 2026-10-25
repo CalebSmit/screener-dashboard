@@ -14823,3 +14823,22 @@ untouched.
   (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
   through) - unchanged from the 06:00 session's Next, and still untouched.
 
+
+## 2026-10-25 (06:00 weekend session) - the positive control is a ledger row: the page's "the test can see a signal" is now a number, rerun with everything else
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 13:00 midday ended "Run
+complete: shipped to main" at 15:49, tag `good/2026-10-24-1549`. Data loop published? **yes** -
+2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; **no 02:00 run on 10-24 or
+today, correctly - Saturday and Sunday** (next is Monday 2026-10-26, which brings the first
+`signals.json`). Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4
+effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred; the next experiment is 18 and the next
+non-retrospective Friday is 2026-11-06, so nothing about it is time-critical.
+**Tests:** before **3129 passed, 1 skipped** (369.6s) - identical to the 10-24 13:00 session's after
+count, so no drift overnight; after: see below.
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 4** - the
+positive control as a ledger row. No proposal was waiting for a decision
+(`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear. Sub-item 4 is the
+one the 10-18 and 10-19 sessions both named as Next and nobody had taken since; sub-item 6's
+remaining half (the extended universe) is the larger piece and is left as Next with its reason.
