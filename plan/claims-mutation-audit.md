@@ -94,7 +94,92 @@ its mutation and pass without it.
 | 37 | `overview.clamps_and_floors` | price-target clamp ceiling x1.5 | **gap** in the register; `tests/test_metrics.py::TestPriceTargetUpside::test_clamp_high` caught it | fixed: `test_the_engine_clamps_price_target_upside_where_the_page_says` |
 | 38 | `overview.clamps_and_floors` | clamp read from a constant, not config (equivalent on today's config) | **gap** | fixed: same test, run on a different config |
 
-### What the gaps have in common
+## Results, 2026-10-25 (13:00 midday session)
+
+The next six claims from the queue below, plus the three the same code paths pulled in.
+**24 mutations, 11 claims. 15 caught; 4 real gaps (nothing in the suite saw them); 5 gaps in
+the register (the suite had cover, `checked_by` did not name it); and one mutation that could
+not be made, because the claim was already false.**
+
+The harness gained one thing worth keeping: it now runs the claim's `checked_by` **and** the
+whole of each module those tests live in, so it separates "nothing checks this" from "the
+register does not know what checks this". They want different fixes and the 2026-10-20 pass had
+to tell them apart by hand (its rows 35 and 37).
+
+| # | Claim | Mutation (file) | Registered checks | Now |
+|---|---|---|---|---|
+| 39 | `summary.earnings` | same-day date dropped: `days < 0` -> `<= 0` (stock_summary) | **gap in the register** - `test_near_horizons_read_naturally` caught it | **the claim was false** - corrected; that test and `test_past_dates_are_dropped_never_relabelled` registered |
+| 40 | `summary.weakest` | `LARGEST_SIZE_SCORE` 10 -> 11 (stock_summary) | **gap** | fixed: `test_the_largest_company_bar_holds_at_ten_and_not_above_it` |
+| 41 | `summary.weakest` | the sector-median bar `n >= 50` -> `n > 50` | **gap** | fixed: `test_the_gloss_is_said_below_fifty_and_not_at_fifty` |
+| 42 | `summary.drivers` | sorted by category score, not by contribution | caught | - |
+| 43 | `summary.confidence` | configured stale-filing bar less 30 days (factor_engine) | **gap in the register** - `TestStalenessThreshold` caught it | registered both of its methods; `checked_by` taught `Class::method` |
+| 44 | `overview.momentum_regime`, `context.macro_momentum_rule` | panic vol bar `vol > thr` -> `vol >= thr` (factor_engine) | **gap** | fixed: the strictness probe added to `test_the_threshold_is_strict_and_configurable` |
+| 45 | same | vol threshold off config to a 0.19 constant | **gap in the register** | registered `test_the_readings_are_the_replays_definitions`, `test_the_threshold_is_strict_and_configurable`, `test_the_configured_thresholds_are_the_pre_registered_ones` |
+| 46 | same | vol window 126 -> 120 trading days | **gap in the register** | same three |
+| 47 | same | return window 24 -> 23 months | **gap in the register** | same three |
+| 48 | same | PANIC scale 0.70 -> 0.75 | caught | - |
+| 49 | same | freed weight split 2:1 to Quality, not equally (`apply_momentum_regime`) | caught | - |
+| 50 | same | panic needs either condition, not both (`and` -> `or`) | caught | - |
+| 51 | `overview.trap_rules`, `dashboard.trap_flag_key` | majority `>= 2` -> `>= 1` of three (factor_engine) | caught | - |
+| 52 | same | value-trap cheap quantile shifted 5 points | caught | - |
+| 53 | same | growth-trap quality floor off config, 35 -> 30 | caught | - |
+| 54 | `overview.roic_invested_capital` | operating-cash share 2% -> 3% of revenue | caught | - |
+| 55 | same | excess-cash cap 50% -> 60% of cash | caught | - |
+| 56 | same | invested-capital floor 10% -> 12% of assets | caught | - |
+| 57 | `drilldown.special_item_note` | materiality bar 10% -> 15% of net income (sec_crosscheck) | caught | - |
+| 58 | `drilldown.capex_lease_note` | lease-share bar 10% -> 15% of capex | **gap in the register** - `test_the_threshold_is_the_registered_ten_percent` caught it | registered |
+| 59 | `drilldown.capex_lease_note` | reconciliation tolerance 5% -> 8% | **gap** | fixed: `test_the_reconciliation_is_the_registered_five_percent` |
+| 60 | `overview.bank_roe_roa` | bank ROE on ending equity, not the average of two | caught | - |
+| 61 | same | bank ROA on ending assets, not the average | caught | - |
+| 62 | same | `sustainable_growth`'s ROE on ending equity | caught | - |
+
+### The claim that was already false (row 39)
+
+`summary.earnings` asserted, and `_sentence_earnings`'s own docstring repeated, that **"a date
+at or before the run date is dropped"**. No version of the code has done that: it drops
+`days < 0` and renders `days == 0` as "the day of this run". The mutation that would make the
+sentence true was therefore the one that *broke* the behaviour, and a test in the module -
+`test_near_horizons_read_naturally["2026-09-29"]` - fails on it.
+
+**The code is the right half, and the sentence was corrected.** A company reporting on the run
+date genuinely is its next report, and by the paper the feature is built on (Akepanidtaworn,
+Di Mascio, Imas & Schmidt, 2023, *Journal of Finance* 78(6)) announcement day is the one day on
+which a sell beats its random-sell counterfactual, so dropping the date would withhold the
+schedule exactly where the evidence says the schedule matters most. Nothing a reader sees
+changed; what changed is that the register and the docstring now describe the code.
+
+This is the route the method's rule 5 reserves for a false claim rather than a missing test, and
+it is the second time the audit has found one: the first was 0.11's `context.expected_move`.
+
+### What the 2026-10-25 gaps have in common
+
+- **A tolerance read from the constant under test (59).** The only assertion about the capex
+  note's 5% reconciliation was `entry["ppe"] + entry["purchases"] == approx(entry["capex"],
+  rel=X.LEASE_RECONCILE_TOL)`. Widening the constant widens the assertion with it, so the test
+  passes at any value. It is the self-consistency failure of rows 12-13 in a new shape: **a
+  check that imports the number it is checking cannot see the number move.**
+- **A test named for the property it does not test (44).**
+  `test_the_threshold_is_strict_and_configurable` probed the volatility bar 0.001 above and
+  0.001 below the reading and never *at* it - the single point that separates `>` from `>=`.
+  The name made the gap invisible to a reader looking for one, which is worse than no test:
+  three sessions could have read that name and concluded strictness was covered.
+- **The register naming the weakest tests in a module (43, 45-47, 58).** Five of nine gaps were
+  modules that *did* hold the right test. For `overview.momentum_regime` the three registered
+  checks pinned 0.70, the equal split and the two-condition logic, while the 126-day window, the
+  24-month window and the configured threshold - three of the four numbers the sentence names,
+  and numbers CLAUDE.md 0.12 says may never be re-fitted - were held only by tests the register
+  did not mention. The module runs in the publish gate either way (`module_paths()` is derived),
+  so nothing was unprotected today; what was missing is the thing the register exists for -
+  telling the *next* session which test is load-bearing for a public sentence before it edits it.
+- **`Class::method` is now registrable.** The 2026-10-20 pass recorded the limitation and worked
+  around it by writing module-level tests. Hitting it a second time (row 43: the two tests that
+  pin the configured stale bar are the only ones in the suite that do, and both are methods)
+  made fixing it cheaper than working around it. `_test_functions` in
+  `tests/test_claims_register.py` now emits both forms; every other consumer of `checked_by`
+  already takes `ref.split("::")[0]`. This also makes the good tests in `tests/test_metrics.py`
+  registrable, which the last pass listed as a known cost.
+
+### What the 2026-10-20 gaps had in common
 
 - **Untested boundaries (8 of 15: #1, 3, 7, 16, 25, 28, 32, 33).** The test used one value far
   from the stated threshold - 2 and 20 analysts around a bar of 5, a report 27 days out
@@ -118,31 +203,34 @@ its mutation and pass without it.
   to the data loop's publish gate. Either teach the register `Class::method`, or write
   module-level tests for claims (done here).
 
-## Next 12 claims (for the nightly sessions)
+## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
 the date, and move this list down.
 
-1. `summary.weakest` - the "below 50" rule and "at 10 or under, one of the largest" for Size:
-   move each bar by one.
-2. `summary.drivers` - largest *contributions*, not scores: sort by score instead.
-3. `summary.confidence` - the metric count (weighted set) and the stale-filing age threshold.
-4. `summary.earnings` - "a date at or before the run date is dropped": `<=` -> `<`.
-5. `overview.trap_rules` / `dashboard.trap_flag_key` - the 30% / 35% bars and "at least
-   two of three": `>= 2` -> `>= 1` and each quantile by five points.
-6. `overview.momentum_regime` / `context.macro_momentum_rule` - 0.70, 24 months, 126 days,
-   the 20.6% volatility bar, and the split of freed weight between Quality and Valuation.
-7. `overview.roic_invested_capital` - the 2%-of-revenue, 50%-of-cash and 10%-of-assets
-   constants, one at a time.
-8. `overview.bank_roe_roa` - average of the two balances -> ending balance only.
-9. `context.put_skew` - the 0.80-0.95 and 0.95-1.05 bands, "nearest 0.95", the 10-60 day
+**The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62). What is left of
+it, and what the two passes have added to it:
+
+1. `context.put_skew` - the 0.80-0.95 and 0.95-1.05 bands, "nearest 0.95", the 10-60 day
    window flag.
-10. `context.sahm` - 3-month average minus the prior-12-month low of the 3-month average; the
-    0.50 trigger (`>=` -> `>`).
-11. `context.track_turnover` - half the sum of absolute weight changes; the break-even
-    formula's factor of 2.
-12. `drilldown.special_item_note` / `drilldown.capex_lease_note` - the 10% materiality bars and
-    the 5% reconciliation tolerance.
+2. `context.sahm` - 3-month average minus the prior-12-month low of the 3-month average; the
+   0.50 trigger (`>=` -> `>`).
+3. `context.track_turnover` - half the sum of absolute weight changes; the break-even
+   formula's factor of 2.
+4. **The `research.*` surface, which no pass has touched.** `research.html` became a claims
+   surface on 2026-10-25 (claim `research.positive_control`); its sentences quote intervals,
+   t-statistics and a detectable-difference figure, which is exactly the shape rows 26 and 59
+   show is easiest to get wrong - a tolerance or a divisor that no test pins independently.
+5. **Re-probe every claim whose only check reads the committed payload.** Rows 35-37 found three;
+   row 57 is a fourth that is *caught* only by a payload-reading test
+   (`test_the_published_payload_agrees_with_the_filings`), which means a wrong constant merges
+   green and first shows up when the data loop refuses to publish the next morning. Grep
+   `checked_by` for the claims whose checks all read `dashboard_data.js` and give each one a test
+   that runs the function.
+6. **Grep for the row-59 shape across the suite, not claim by claim.** Any assertion of the form
+   `approx(..., rel=<module>.<CONST>)` or `== <module>.<CONST>` where `<CONST>` is the number the
+   claim states is unable to see that number move. This is a mechanical search and probably
+   catches more than four more hand-picked mutations would.
 
 Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metric_coverage`
 (mean of weighted coverage), `drilldown.newer_filing` ("a quarter or more"),
@@ -158,3 +246,14 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
 - Nothing in this audit changes scoring behaviour or published text. A gap that turns out to
   be a *false claim* (the code is right and the sentence is wrong, or the reverse) is not a
   test fix - stop, write it up, and correct the claim through the usual changelog route.
+- **A check may not import the number it is checking** (added 2026-10-25, row 59). Write the
+  stated figure as a literal in the test and probe both sides of it. `rel=M.TOLERANCE` and
+  `assert x == M.THRESHOLD` are not checks of the claim; they are restatements of the code.
+- **A test's name is read far more often than its body.** If it is called
+  `..._is_strict_and_configurable`, the next session will not re-derive whether it tests
+  strictness (row 44). Either make the name true or make the body match it.
+- **Finishing a gap means registering the fix too.** A new test that `checked_by` does not name
+  reads as a gap on the next pass and is outside the publish gate's derivation. The 2026-10-25
+  pass re-ran its own mutations after fixing them and two came back
+  `GAP-IN-REGISTER` for exactly this reason - re-run the mutation after the fix, and require
+  `CAUGHT`, not merely a red test somewhere.
