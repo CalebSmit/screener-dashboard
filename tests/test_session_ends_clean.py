@@ -283,9 +283,21 @@ def test_a_limited_rerun_does_experiments_first_and_evaluations_once_they_are_le
         def config_hash(cfg, tr):
             return "b1"
 
-    assert R.plan(X, 2) == (["e2", "e3"], [], 4)
-    assert R.plan(X, 4) == (["e2", "e3", "e4"], ["v1"], 4)
-    assert R.plan(X, None) == (["e2", "e3", "e4"], ["v1"], 4)
+        @staticmethod
+        def load_controls():
+            # a control whose arm is not built in this tmp dir: reported, never run, so it
+            # cannot take a rerun down with it (2026-10-25)
+            return [{"id": "ctl", "scores": "cache/nope.parquet", "built_by": "python x.py"}]
+
+    # (experiments, evaluations, controls, stale total, blocked controls). The ordering is the
+    # point: experiments first, then evaluations once the experiments are level, then controls -
+    # a control is paired against the baseline, so it is worth nothing until that row is current.
+    assert R.plan(X, 2)[:4] == (["e2", "e3"], [], [], 4)
+    assert R.plan(X, 4)[:4] == (["e2", "e3", "e4"], ["v1"], [], 4)
+    assert R.plan(X, None)[:4] == (["e2", "e3", "e4"], ["v1"], [], 4)
+    # the unbuilt arm is named with the command that builds it rather than silently dropped
+    blocked = R.plan(X, None)[4]
+    assert len(blocked) == 1 and "ctl" in blocked[0] and "python x.py" in blocked[0]
 
 
 def test_the_rerun_helper_is_outside_the_engines_result_paths():

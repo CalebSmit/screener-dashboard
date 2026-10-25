@@ -195,13 +195,51 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    *Kept for the record:* the specified data fingerprint was the member list only, which a rebuild
    can leave byte-identical while every number inside the months moves.
 
-   **(c) The positive control, in the ledger.** The look-ahead arm (today's filings for every
-   month, IC +0.050, t 4.71 on 2020-2026) is the page's evidence that the test can see a signal, but
-   it lives in a measurement file. Record it as a ledger row of `kind: control` on the current data
-   version, rerun with everything else. **The synthetic calibration test is DONE 2026-10-20 (owner-run, `tests/test_engine_calibration.py`, 7 tests):** planted differences of 0.03, 0.05 and 0.10 come back within four standard errors in every period, 0.10 clears the bar on the 38 held-out months, no false alarm across ten null pairs, twice `detectable` is always caught, and a 70%-coverage screen is measured on the shared stocks. The ledger row of `kind: control` is still open. As specified: inject a known signal
-   (a score equal to next month's return plus noise scaled to a target IC of 0.03, 0.05 and 0.10)
-   into a copy of one era's months, and assert the engine's paired comparison reports a difference
-   within its interval of the injected one and detects 0.10 at the bar.
+   **(c) The positive control, in the ledger. DONE 2026-10-25 (06:00 weekend session).** Both
+   halves are now built. **The synthetic calibration test, 2026-10-20 (owner-run,
+   `tests/test_engine_calibration.py`, 7 tests):** planted differences of 0.03, 0.05 and 0.10 come
+   back within four standard errors in every period, 0.10 clears the bar on the 38 held-out months,
+   no false alarm across ten null pairs, twice `detectable` is always caught, and a 70%-coverage
+   screen is measured on the shared stocks. **The ledger row, 2026-10-25:** `controls:` in
+   `registry.yaml`, id `lookahead-filings`, pre-registered and committed before the arm was rebuilt
+   and before the comparison was run; the arm rebuilt on the current records (81 months in 44
+   minutes, four shards; 35,470 stock-months against the 2026-10-15 arm's 34,741 - the 10-24 rename
+   and predecessor-CIK fix reached this arm too); run through the engine's own `per_month` pairing at
+   method version 2. Result and measurements: `research/2026-10-25-positive-control.md`.
+
+   **Four things in it not to undo.**
+
+   - **A control is not an experiment, and the registry enforces it.** It has no `transform`, lives
+     in its own `controls:` section, and is never in the multiple-testing denominator.
+     `experiments:` holds weighting transforms and everything downstream reads `e["transform"]` -
+     which is why the 2026-10-23 session refused three registrations written as experiments
+     (`KeyError: 'transform'`). Counting the engine's own self-check as an alternative would also
+     make every real experiment's bar stricter because the engine checked itself.
+   - **The verdict separates two questions and only one is about the engine.** Did the design *see*
+     it (the bar every experiment is judged against - what the control exists to establish), and did
+     it land inside the band registered beforehand (a check on the prediction). A control that is
+     seen but outside its band has still done its job; the band may never be used to decide whether
+     the test works.
+   - **The row names the arm by SHA-256.** `content_hash` covers `cache/v2_metrics/` - the
+     point-in-time records, which are the *baseline* side of the pairing - and cannot see the arm's
+     scores file at all, so without the hash a rebuild of the arm would move every number under a
+     row that still looked current. `scripts/rerun_experiments.py` compares it with the file on
+     disk; an arm that is not built is printed, never run (`run_controls` would raise and take a
+     whole rerun down with it).
+   - **The page states the outcome it got, not the outcome it wants.**
+     `research_page.control_sentence` has three states - seen, not seen, not run on these records -
+     and the "not seen" wording says plainly that every flat result on the page is then
+     uninterpretable. Claim `research.positive_control`, which is what added `research.html` as a
+     claims surface.
+
+   **One cost this exposed, worth knowing before adding any row to the ledger:**
+   `test_every_ledger_row_the_report_reads_names_its_code_and_its_baseline` requires every newest
+   row to share one `code_hash`, so adding a single row forces a rerun of all 31 - whose numbers
+   provably cannot move, because the experiment path was not touched. The test is right (rows that
+   do not compare must not sit in one table) and so is the rerun, but **budget ~45 minutes for it in
+   any session that adds a control, an evaluation or an experiment**, and never start one you cannot
+   finish: a half-done rerun leaves the ledger mixed and gate 1 red, and the ledger is append-only,
+   so it cannot be undone by deleting rows.
 
    **(d) The free extended-universe rebuild - the survivorship test.** SEC filings exist for
    departed members; prices are the gap. Build the months with the departed members whose last

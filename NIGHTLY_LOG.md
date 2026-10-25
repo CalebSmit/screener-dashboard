@@ -14823,3 +14823,196 @@ untouched.
   (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
   through) - unchanged from the 06:00 session's Next, and still untouched.
 
+
+## 2026-10-25 (06:00 weekend session) - the positive control is a ledger row: the page's "the test can see a signal" is now a number, rerun with everything else
+
+**Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 13:00 midday ended "Run
+complete: shipped to main" at 15:49, tag `good/2026-10-24-1549`. Data loop published? **yes** -
+2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; **no 02:00 run on 10-24 or
+today, correctly - Saturday and Sunday** (next is Monday 2026-10-26, which brings the first
+`signals.json`). Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4
+effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority 0:
+`allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
+Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred; the next experiment is 18 and the next
+non-retrospective Friday is 2026-11-06, so nothing about it is time-critical.
+**Tests:** before **3129 passed, 1 skipped** (369.6s) - identical to the 10-24 13:00 session's after
+count, so no drift overnight; after **3149 passed, 1 skipped** (359.3s), **+20, all in the one new
+module** (`tests/test_positive_control.py`). Gates 2 and 4 pass; gate 3 via
+`tests/test_payload_parse_gate.py` (19) and the fact that no payload file is in this diff -
+`node --check` is refused by this session's tool guard, and the runner re-runs gate 3 itself.
+**`scripts/rehearse_publish.py` run and PASSED**, because the diff touches `claims.py`, which the
+page is built from: 1,426 claims-gate tests, 3,979 category scores and 498 composites reproduced
+from the regenerated payload, published files restored byte for byte.
+**One existing test needed updating and it was the contract, not the assertion:**
+`test_a_limited_rerun_does_experiments_first_and_evaluations_once_they_are_level` pinned
+`rerun_experiments.plan`'s return as a 3-tuple. It is now a 5-tuple (controls, and the controls whose
+arm is not built), so the test pins the new shape *and* the new ordering - experiments, then
+evaluations, then controls, because a control is paired against the baseline and is worth nothing
+until that row is current - plus that an unbuilt arm comes back named with the command that builds
+it. Nothing was loosened.
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 4** - the
+positive control as a ledger row. No proposal was waiting for a decision
+(`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear. Sub-item 4 is the
+one the 10-18 and 10-19 sessions both named as Next and nobody had taken since; sub-item 6's
+remaining half (the extended universe) is the larger piece and is left as Next with its reason.
+
+### Did
+
+**`OWNER_FOCUS.md` 2026-10-20 sub-item 4 / `plan/research-engine.md` item 4(c): the positive
+control is a ledger row.** The thing it fixes is a sentence. Since 2026-10-15 the public research
+page has told readers, in the three-bullet answer at the top, that **"The test can see a signal when
+there is one"** - with no number beside it, resting on a measurement from 2026-10-15 that was never
+a ledger row and whose monthly records have since been rebuilt **twice** (operating income on 10-15,
+the pre-2014 renames and predecessor CIKs on 10-24). It was the one claim on that page a reader
+could not check, and the page's 28 flat verdicts are the claim that most depends on it: a row of
+nulls is exactly what a broken measurement produces.
+
+**Why a null needs this and cannot supply it.** Harvey, Liu & Zhu (2016), *RFS* 29(1) 5-68,
+DOI 10.1093/rfs/hhv059 - whose t >= 3 bar this engine adopts, with a Bonferroni correction on top -
+raise the threshold for a finding, which necessarily lowers the power to detect one. So the power
+has to be shown separately or every "not distinguishable" verdict is uninterpretable. The synthetic
+half of that shipped 2026-10-20 (`test_engine_calibration.py`: planted differences come back within
+four standard errors). This is the other half: a real arm, built by the real pipeline, carried in
+the ledger, rerun with everything else.
+
+**What was registered, and when.** `controls:` in `research/experiments/registry.yaml`, id
+`lookahead-filings`, committed in `e55d36a` **before** the arm was rebuilt and before the comparison
+ran. The prediction: the arm's paired IC advantage over the baseline lands between **+0.030 and
++0.075** and clears p < 0.05/N with |t| >= 3. The failure condition, also written first: if it does
+*not* clear that bar, it is **not** a finding about the screener - it means this design cannot see a
+signal of the size look-ahead manufactures, and every flat verdict in the ledger must be re-read as
+uninformative until the cause is found. A control's outcome is known by construction, so the entry
+carries `outcome_known_at_registration` and `refuse_undisclosed_controls` makes an undisclosed one
+impossible - a control that did not say so would be a false pre-registration wearing a real one's
+clothes.
+
+**The arm, rebuilt on the current records**, because the one on disk was from 2026-10-15 and pairing
+a current baseline against a stale arm would put two data vintages inside one comparison - the thing
+the engine refuses everywhere else. `backtest_v2.py --diagnostic-filings-as-of 2026-10-25`, four
+shards, 81 months in 44 minutes: **35,470 stock-months against the old arm's 34,741**, so the 10-24
+data fix reached this arm too.
+
+**The result: the design sees it, inside the band.**
+
+| Period | Months | The arm's IC | The baseline, same stocks | Difference (95%) | t |
+|---|---|---|---|---|---|
+| Discovery 2020-01..2023-06 | 42 | +0.0425 | -0.0043 | +0.0467 (+0.0135..+0.0799) | 2.84 |
+| **Held out 2023-07..2026-08** | 38 | +0.0602 | +0.0041 | **+0.0561** (+0.0425..+0.0698) | **8.34** |
+| **All 2020-01..2026-08** | 80 | +0.0509 | -0.0003 | **+0.0512** (+0.0330..+0.0694) | **5.59** |
+
+Against a bar of p < 0.05/28 = 0.00179 with |t| >= 3, and a `detectable` floor of **0.0373** - the
+smallest difference this comparison catches eight times in ten. So the signal is about **1.4x the
+floor**, which is the honest version of "it can see this". Three things in that table are worth more
+than the verdict: **the baseline on the same stocks is -0.0003** over 80 months, which is the
+plainest statement of where the screener stands (with the filings as they actually stood,
+approximately nothing; with today's filings, +0.05 a month - the gap *is* the look-ahead, measured);
+**the held-out half is the stronger one**, and nothing was tuned to either; and it **reproduces the
+2026-10-15 figures it replaces** (+0.0509 against the published +0.050) on records rebuilt twice
+since, so that measurement was right - it just could not be checked by anyone, because it was not a
+row.
+
+**And the rerun moved nothing, checked rather than asserted.** Registering the control staled all 31
+existing rows (`registry.yaml` is in `RESULT_PATHS`), so they were rerun and each newest row was
+compared with its predecessor at full precision: **31 ids, 24,796 stored statistics, 0 differences,
+largest 0.0** (`research/measurements/2026-10-25-control-rerun-effect.py` + JSON). That was the
+expected answer - the diff adds a parallel path and never touches the experiment path - but the
+public page quotes these figures and "it should be identical" is how a silent change gets published.
+
+**What was built, not just measured.** Four pieces, each with the failure it prevents:
+
+- **A control is not an experiment, in code.** No `transform`, its own registry section, never in
+  the multiple-testing denominator, and no scoring module may read it. This is the 2026-10-23 lesson
+  applied before it bit: that session refused three registrations because, written as `experiments:`
+  entries, they raised `KeyError: 'transform'` in `report`. And counting the engine's own self-check
+  as an alternative would make every real experiment's bar stricter because the engine checked
+  itself.
+- **The row names its arm by SHA-256.** `content_hash` covers `cache/v2_metrics/` - the
+  point-in-time records, which are the *baseline* side of the pairing - and cannot see the arm's
+  scores file at all. Without the hash, rebuilding the arm would move every number under a row that
+  still looked current. `scripts/rerun_experiments.py` compares it with the file on disk.
+- **An unbuilt arm is printed, never run.** `run_controls` raises on a missing arm, which inside the
+  scheduler would take a whole 45-minute rerun down over an optional row; a scheduler that says
+  which arm to build is better than one that dies.
+- **The page states the outcome it got.** `research_page.control_sentence` has three states - seen,
+  not seen, and not run on these records - and the "not seen" wording says plainly that every flat
+  result on the page is then uninterpretable. A page that could only report the reassuring outcome
+  would be worthless. Registered as claim `research.positive_control`, which added **`research.html`
+  as a claims surface** (it had none), so `tests/test_positive_control.py` joins the data loop's
+  publish gate by derivation - 54 modules now.
+
+**Looked at the page.** The bullet now reads: *"The test can see a signal when there is one. Fed the
+filings as they stand today for every past month - information nobody had at the time - the same
+test puts that ranking +0.051 of rank correlation a month ahead of the real one over 80 months
+(t +5.6), against the +0.037 it could reliably detect. So the flat results above are a finding about
+the ranking, not a test that cannot see anything."* `RESULTS.md` gained a "Controls" section with the
+arm's hash, its months and its stock-months.
+
+### Evidence / research
+
+- **Harvey, C. R., Liu, Y. & Zhu, H. (2016)**, "...and the Cross-Section of Expected Returns",
+  *Review of Financial Studies* 29(1), 5-68, DOI 10.1093/rfs/hhv059. The engine's t >= 3 bar. Used
+  here for the argument it implies and that nobody had acted on: a higher threshold for a finding is
+  a lower power to detect one, so power has to be demonstrated separately.
+- **Measured, this session:** the arm against the baseline, +0.0512 (95% +0.0330 to +0.0694,
+  t 5.59) over 80 months, detectable floor 0.0373; held out +0.0561, t 8.34; the baseline on the
+  same stocks -0.0003. `research/2026-10-25-positive-control.md`.
+- **Measured, this session:** the forced rerun's effect on every existing result - 31 ids, 24,796
+  statistics, **0 differences**.
+- **Prior measurements this rests on:** the look-ahead's two halves, 63.2% of name-months (prices,
+  `research/2026-10-01-lookahead-bias-size.md`) and 72.5% (fundamentals,
+  `research/2026-10-15-pit-record-validation.md` s.3), 75.8% together.
+- **Not evidence, and not used as any:** nothing here is decision-grade before 2027-02-11 (rule 5),
+  and a control is further from it than anything else in the ledger - it is deliberately cheating.
+  No weight, threshold or rule changed. What the control does **not** license is also written down
+  in the note's section 5: it establishes power at the size it was run at and nowhere else, and a
+  *typical* published multi-factor rank IC of 0.02-0.05 is still at or below this design's 0.0373
+  floor - exactly as `research/2026-10-15-research-engine-first-batch.md` already said.
+
+### Methodology changed
+
+- **None.** A control cannot support a methodology change by construction, and nothing else in the
+  session touched scoring. No `METHODOLOGY_CHANGELOG.md` entry: no score, rank, sentence or
+  published number moved except the three figures that are new on `research.html`.
+
+### Tried and rejected
+
+- **A sharded rerun - three processes writing to their own ledger files, merged by a parent.**
+  Written (`logs/_rerun_sharded.py`, with a validate-before-merge refusal) when the clock looked far
+  worse than it was, and **not used**: I had mis-read the time by nearly an hour, and once there was
+  room, the single-process path that is already tested and already documented was obviously the
+  right tool. Recorded because the reasoning may be wanted: three processes cannot append to one
+  ledger (a row carries 176 monthly figures, far past any atomic write, and the ledger is
+  append-only, so a corrupted row is unrecoverable) - but `X.LEDGER` can be reassigned *in a child
+  process* without touching the file on disk, so `code_hash` stays identical and the rows come out
+  level. If a future session genuinely cannot fit a 45-minute rerun, that is the shape; and it must
+  refuse as a whole if any shard is short, because a partial merge is worse than none.
+- **Registering the control in `experiments:`.** Rejected before it was written, on the 2026-10-23
+  precedent: everything downstream reads `e["transform"]`.
+- **Widening `test_the_recorded_caveats_say_whether_fixed_or_which_stage_extends_them`** to accept
+  the new claim's caveat. Rejected - that field carries limits a named T-stage will close, and the
+  control's two limits (2020-2026 only; the hindsight shrinks across the window, so the difference
+  is a *lower bound*) are permanent properties of the arm, not unfinished work. They are stated in
+  the registration instead, and printed in `RESULTS.md`.
+- **Running the two long jobs concurrently.** Not a rejection so much as a measured mistake, worth
+  the next session's attention: the arm's build (4 shards) and the rerun ran together for 15 minutes
+  and produced **one** ledger row between them, against ~1.6 minutes a row when the rerun runs
+  alone. Run them in series.
+
+### Next
+
+- **The extended universe - the rest of `OWNER_FOCUS.md` 2026-10-20 sub-item 6, and now the only
+  open piece of it.** Register `only-size-extended` in `research/experiments/registry.yaml` **first
+  and alone in its commit**, with the one-sided reading from
+  `research/2026-10-20-free-survivorship-sources.md` section 7 (falsified at >= +0.020; a fall below
+  +0.014 does **not** confirm, because the acquired members are still missing) and the paired
+  month-by-month statistic, then follow that note's section 8. **Budget the rebuild and the
+  ~45-minute rerun in the same session, in series, not concurrently** (see above).
+- **The cheaper win, unchanged:** more XBRL tags per input in
+  `research/measurements/2026-10-09-xbrl-point-in-time-census.py`'s `INPUTS`. 725 records built in
+  2012-2019 and 398 scored; the gap is `gross_profit`, `operating_income` and `cost_of_revenue` tags
+  the filers did not use under the names the fetch asks for. It is a data-version change, so it
+  carries the same rebuild and rerun - do it in one session with something else that forces them.
+- Then `OWNER_FOCUS.md` 2026-10-20 item 3, the claims mutation audit
+  (`plan/claims-mutation-audit.md` lists the next 12; the last pass had 15 of 38 mutations get
+  through) - named as Next by three sessions now and still untouched. **A session with no owner item
+  waiting and no broken loop should take it** rather than make it a fourth deferral.

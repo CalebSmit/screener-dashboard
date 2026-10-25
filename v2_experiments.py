@@ -36,6 +36,7 @@ Usage::
 
     python v2_experiments.py run [ID ...]     # run registered experiments (all if none named)
     python v2_experiments.py evaluate [ID ...] # run registered evaluations (a trading rule's record)
+    python v2_experiments.py control [ID ...] # run registered controls (can the test see a signal?)
     python v2_experiments.py report           # rewrite research/experiments/RESULTS.md
 
 Reads ``cache/v2_metrics/<month>.parquet`` (written by ``backtest_v2.py``) and
@@ -556,6 +557,18 @@ def content_fingerprint(root: Path = ROOT, metrics_dir: Path | None = None) -> d
 
 def load_registry() -> list[dict]:
     return yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["experiments"]
+
+
+def load_controls() -> list[dict]:
+    """The registered positive controls (``controls:``; plan/research-engine.md item 4(c)).
+
+    Deliberately its own section. ``experiments:`` holds weighting transforms and everything
+    downstream reads ``e["transform"]``, so an entry without one raises ``KeyError: 'transform'`` in
+    ``report``, ``summary_for_page`` and the calibration tests - which is exactly why the 2026-10-23
+    session refused three registrations written that way (NIGHTLY_LOG.md 2026-10-23). A control is
+    also not an alternative: counting it in the multiple-testing denominator would make every real
+    experiment's bar stricter because the engine checked itself."""
+    return yaml.safe_load(REGISTRY.read_text(encoding="utf-8")).get("controls") or []
 
 
 # --------------------------------------------------------------------------- outcome already known?
@@ -1117,6 +1130,202 @@ def _evaluation_lines(latest: dict) -> list[str]:
     return lines
 
 
+# --------------------------------------------------------------------------- controls (item 4(c))
+# A *control* asks a third question, neither "does this weighting rank better" (an experiment) nor
+# "what would this rule have done" (an evaluation): **can this design see a signal at all?** It holds
+# the weighting fixed and changes the data - the look-ahead arm scores every month on the filings as
+# they stand at the build date, which is backtest v1's design built on purpose and worth about +0.05
+# of monthly IC (research/2026-10-15-pit-record-validation.md section 5c).
+#
+# Why it belongs in the ledger rather than in a measurement file. Twenty-nine experiments report "not
+# distinguishable from the baseline", and a reader is entitled to ask whether that is a fact about the
+# weightings or about the test. A null result cannot answer that for itself: it needs a case where the
+# answer is known. Fed the look-ahead arm, the paired comparison must report a large positive
+# difference - and if it does not, every null verdict in the ledger is uninterpretable until the cause
+# is found. The public research page has asserted this since 2026-10-15 ("The test can see a signal
+# when there is one") on the strength of a measurement that was never a ledger row and was built on
+# monthly records since rebuilt twice; from here the sentence has a row that reruns with everything
+# else, which is the only way it can stay true.
+#
+# Three things a control must never become: an alternative (its data does not exist at the moment a
+# real decision would be made), a term in the multiple-testing denominator, or support for a weighting
+# change. It is deliberately cheating, which is further from decision-grade than anything else here.
+CONTROL_COLS = ("month", "Ticker", "Composite")
+
+
+def control_scores(entry: dict, root: Path = ROOT) -> tuple[pd.DataFrame, dict]:
+    """One control arm's pre-built monthly scores, plus the provenance of the file they came from.
+
+    A control arm is built by a separate command (``built_by`` in the registry), not by a transform
+    here, so the row has to name that file **by content**: ``content_hash`` covers the point-in-time
+    monthly records - the *baseline* side of this pairing - and cannot see the arm's file at all. A
+    control row that did not name its own scores by SHA-256 could be neither reproduced nor
+    falsified, and it would go on reading as current after the arm was rebuilt.
+    """
+    p = root / entry["scores"]
+    if not p.is_file():
+        raise SystemExit(f"{entry['id']}: {entry['scores']} is not built - run: "
+                         f"{entry.get('built_by', '?')}")
+    df = pd.read_parquet(p)
+    missing = [c for c in CONTROL_COLS if c not in df.columns]
+    if missing:
+        raise SystemExit(f"{entry['id']}: {entry['scores']} is missing {missing}")
+    df = df.copy()
+    df["month"] = df["month"].astype(str)
+    lo, hi = (str(x) for x in entry["window"])
+    df = df[(df["month"] >= lo) & (df["month"] <= hi)]
+    if df.empty:
+        raise SystemExit(f"{entry['id']}: no months inside the registered window {lo}..{hi}")
+    return df, {"scores": entry["scores"], "scores_sha256": _file_sha256(p)[:16],
+                "built_by": entry.get("built_by", ""), "window": [lo, hi],
+                "months": int(df["month"].nunique()), "stock_months": int(len(df))}
+
+
+def refuse_undisclosed_controls(entries: list[dict]) -> None:
+    """A control's outcome is known by construction - that is what makes it a control - so a control
+    that does not say so is a false pre-registration dressed as a real one. The field is the same one
+    the seven ``only-*`` experiments use, and the report marks both kinds with the same dagger."""
+    bad = [e["id"] for e in entries if not e.get("outcome_known_at_registration")]
+    if bad:
+        raise SystemExit("a control's outcome is known before it runs, so it must disclose it with "
+                         f"outcome_known_at_registration: {bad}")
+
+
+def run_controls(ids: list[str] | None = None) -> list[dict]:
+    """Run the registered controls through the engine's own pairing - never a second implementation.
+
+    The arm's pre-built monthly scores take the place of ``rank_all``'s output and go through the
+    same ``per_month`` with the same ``baseline_scores``, so the difference is measured over the
+    months and the stocks the two rankings share, exactly as every experiment's is.
+    """
+    reg = load_controls()
+    by_id = {e["id"]: e for e in reg}
+    if ids:
+        unknown = [i for i in ids if i not in by_id]
+        if unknown:
+            raise SystemExit(f"not registered (register before running): {unknown}")
+    todo = [e for e in reg if not ids or e["id"] in ids]
+    if not todo:
+        return []
+    refuse_undisclosed_controls(todo)
+    refuse_edited_tree()
+    months = load_months()
+    if not months:
+        raise SystemExit("no cached monthly metrics - run backtest_v2.py first")
+    fwd = forward_returns(sorted(months))
+    vintage = data_fingerprint(months) | content_fingerprint()
+    code = code_fingerprint()
+    cfg0 = base_config()
+    base_scores = rank_all(months, cfg0)
+    results = []
+    for e in todo:
+        scores, prov = control_scores(e)
+        pm = per_month(scores, fwd, baseline_scores=base_scores)
+        res = {"id": e["id"], "kind": "control",
+               "run_at": datetime.now().isoformat(timespec="seconds"),
+               "commit": git_commit(),
+               # the weighting is the baseline's, unchanged: what differs is the data, so the two
+               # hashes below are deliberately the only thing this row shares with an experiment's
+               "config_hash": config_hash(cfg0, {"kind": "control"}),
+               "base_config_hash": config_hash(cfg0, {"kind": "baseline"}),
+               "months": int(len(pm)), "method_version": METHOD_VERSION,
+               **vintage, **code, "control_data": prov,
+               "summary": summarise(pm),
+               "ic_by_month": {m: round(float(v), 5) for m, v in pm["ic"].items() if pd.notna(v)},
+               "tmu_by_month": {m: round(float(v), 6) for m, v in pm["top_minus_universe"].items()
+                                if pd.notna(v)}}
+        if "n_common" in pm.columns:
+            res["n_common_by_month"] = {m: int(v) for m, v in pm["n_common"].items() if pd.notna(v)}
+            res["base_ic_by_month"] = {m: round(float(v), 5) for m, v in pm["base_ic"].items()
+                                       if pd.notna(v)}
+        LEDGER.parent.mkdir(parents=True, exist_ok=True)
+        with LEDGER.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(res) + "\n")
+        results.append(res)
+        vs = res["summary"].get("all", {}).get("ic_vs_baseline", {})
+        print(f"{e['id']:28} vs baseline {vs.get('mean')} (t {vs.get('t')}) "
+              f"over {res['months']} months", flush=True)
+    return results
+
+
+def control_verdict(e: dict, res: dict, n_tests: int) -> dict:
+    """A control's pre-registered rule (``passes_if``) against what happened.
+
+    Two separate questions, kept separate because they fail for different reasons and only one of
+    them is about the engine:
+
+    * **Did the design see it?** The same bar every experiment is judged against - p < 0.05/N and
+      |t| >= the registered minimum, in the registered direction. This is what the control exists to
+      establish, and a control that is not seen invalidates every null verdict in the ledger.
+    * **Did it land inside the registered band?** A check on the *prediction*. A control that is seen
+      but lands outside its band has still done its job; the band is reported, never used to decide
+      whether the test works.
+    """
+    rule = e.get("passes_if") or {}
+    period = rule.get("period", "all")
+    st = (res.get("summary") or {}).get(period, {}).get("ic_vs_baseline", {})
+    if not st:
+        return {"ran": False, "sees": None, "period": period, "words": "not run"}
+    mean, t = st.get("mean") or 0.0, st.get("t") or 0.0
+    want = rule.get("direction", "positive")
+    right_way = (mean > 0) if want == "positive" else (mean < 0)
+    sees = bool(p_value(st) < 0.05 / max(n_tests, 1)
+                and abs(t) >= float(rule.get("min_abs_t", HLZ_T)) and right_way)
+    band = rule.get("band")
+    in_band = None if not band else bool(float(band[0]) <= mean <= float(band[1]))
+    words = ("the design sees it" if sees else
+             "**the design did NOT see it** - until that is explained, every "
+             "\"not distinguishable\" verdict above says nothing either way")
+    if in_band is True:
+        words += ", inside the band registered beforehand"
+    elif in_band is False:
+        words += f", outside the band registered beforehand ({float(band[0]):+.3f} to {float(band[1]):+.3f})"
+    return {"ran": True, "sees": sees, "in_band": in_band, "mean": mean, "t": t, "n": st.get("n"),
+            "detectable": detectable(st.get("se"), n_tests, st.get("n")), "period": period,
+            "words": words}
+
+
+def _control_lines(latest: dict, n_tests: int) -> list[str]:
+    ctrls = load_controls()
+    if not ctrls:
+        return []
+    lines = ["", "## Controls - can this test see a signal at all?", "",
+             "A control holds the weighting fixed and changes the data, so its answer is known to be "
+             "large before it runs. It is **not** an alternative anyone could choose - its data does "
+             "not exist at the moment a real decision would be made - and it is **not** counted in "
+             "the multiple-testing bar. It is the evidence that the verdicts above mean *there was "
+             "nothing to find* rather than *this test cannot see anything*.", "",
+             "| Control | Period | vs baseline (t; sees) | Months | The arm's own IC | The baseline, "
+             "same stocks | Verdict |", "|---|---|---|---|---|---|---|"]
+    for e in ctrls:
+        r = latest.get(e["id"])
+        if not r:
+            lines.append(f"| {e['id']} | not run | | | | | |")
+            continue
+        v = control_verdict(e, r, n_tests)
+        s = r["summary"].get(v.get("period", "all"), {})
+        base_common = s.get("baseline_ic_on_common")
+        lines.append(f"| {e['id']}{KNOWN_MARK} | {v.get('period')} | "
+                     + _vs_cell(s.get("ic_vs_baseline", {}), n_tests)
+                     + f" | {r.get('months')} | {s.get('ic', {}).get('mean', 0):+.3f} | "
+                     + (f"{base_common:+.3f}" if base_common is not None else "-")
+                     + f" | {v['words']} |")
+    for e in ctrls:
+        lines += ["", f"**{e['id']}** - built by `{e.get('built_by', '')}`. Predicted: "
+                  f"{e.get('prediction', '')}", "",
+                  f"What would count as a failure, written before the run: {e.get('fails_if', '')}", "",
+                  f"What is new here and what was already on file: {e.get('differences', '')}"]
+        r = latest.get(e["id"])
+        d = (r or {}).get("control_data") or {}
+        if d:
+            lines += ["", f"Scores read from `{d.get('scores')}`, SHA-256 `{d.get('scores_sha256')}`, "
+                      f"{d.get('months')} months and {d.get('stock_months'):,} stock-months. The "
+                      "point-in-time records it is paired against are named by this row's own "
+                      "`content_hash`; the arm's own file is named here, because `content_hash` is "
+                      "the monthly records and cannot see it."]
+    return lines
+
+
 def summary_for_page(reg: list, latest: dict) -> dict:
     """The few numbers the public methodology page quotes, computed here once and published as
     ``summary.json`` (2026-10-15): the baseline's mean monthly IC in each era, how many alternatives
@@ -1168,6 +1377,27 @@ def summary_for_page(reg: list, latest: dict) -> dict:
             out["better"] += 1
         elif cleared:
             out["worse"] += 1
+    # the positive control (item 4(c)): the page's claim that this test can see a signal when there
+    # is one, as a number from the ledger rather than as an assertion. ``None`` when no control has
+    # been run on this baseline's data, method and provenance - the same comparability rule every
+    # alternative above is held to, because a control measured on other records proves nothing about
+    # these ones.
+    out["control"] = None
+    for e in load_controls():
+        r = latest.get(e["id"])
+        if not r or r.get("data_hash") != base.get("data_hash") \
+                or r.get("method_version", 1) != base.get("method_version", 1) \
+                or not comparable_provenance(r, base):
+            continue
+        v = control_verdict(e, r, n)
+        st = r["summary"].get(v.get("period", "all"), {})
+        out["control"] = {"id": e["id"], "sees": v.get("sees"), "period": v.get("period"),
+                          "months": r.get("months"), "ic_vs_baseline": v.get("mean"),
+                          "t": v.get("t"), "detectable": v.get("detectable"),
+                          "in_band": v.get("in_band"),
+                          "arm_ic": st.get("ic", {}).get("mean"),
+                          "baseline_ic_on_common": st.get("baseline_ic_on_common")}
+        break
     return out
 
 
@@ -1237,6 +1467,7 @@ def report() -> Path:
     if notes:
         lines += ["**How some screens are built here** (`construction_note`):", ""]
         lines += [f"- **{e['id']}** - {e['construction_note']}" for e in notes] + [""]
+    lines += _control_lines(latest, n)
     lines += _evaluation_lines(latest)
     lines += [""]
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
@@ -1252,13 +1483,15 @@ def report() -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if not argv or argv[0] not in ("run", "evaluate", "report"):
+    if not argv or argv[0] not in ("run", "evaluate", "control", "report"):
         print(__doc__)
         return 2
     if argv[0] == "run":
         run(argv[1:] or None)
     elif argv[0] == "evaluate":
         run_evaluations(argv[1:] or None)
+    elif argv[0] == "control":
+        run_controls(argv[1:] or None)
     report()
     print(f"wrote {RESULTS.relative_to(ROOT)}")
     return 0

@@ -124,6 +124,36 @@ Two things still outrank this file, and neither is negotiable:
   4. **The positive control as a ledger row** (`plan/research-engine.md` item 4(c), second half): the
      look-ahead arm as `kind: control`, rerun with everything else. The synthetic half shipped
      tonight (`tests/test_engine_calibration.py`).
+     **DONE 2026-10-25 (06:00 weekend session) - the test can see a signal, and now it is a number
+     anyone can check rather than a sentence.** The research page has told readers since 2026-10-15
+     that "the test can see a signal when there is one", on the strength of a measurement that was
+     never a ledger row and whose monthly records have since been rebuilt twice. It is now the
+     registered control `lookahead-filings`: the same weighting, the same universe, the same prices,
+     but every month scored on the filings as they stand today - backtest v1's look-ahead on purpose.
+     **Result: the cheating ranking beats the real one by +0.0512 of monthly rank correlation over 80
+     months (95% +0.0330 to +0.0694, t 5.59), against the 0.0373 this test could reliably detect -
+     and inside the +0.030 to +0.075 band written down before the arm was rebuilt.** On the held-out
+     half, +0.0561 with t 8.34. The baseline measured on the same stocks is **-0.0003**, which is the
+     plainest statement of where the screener stands: with the filings as they actually stood,
+     approximately nothing. So the twenty-eight flat verdicts are a finding about the rankings, not a
+     blind test - *for differences of about this size*; a typical published IC of 0.02-0.05 is still
+     below what this design can see, exactly as `research/2026-10-15-research-engine-first-batch.md`
+     says.
+     **What was built, not just measured:** `controls:` in the registry (a control has no
+     `transform`, is never in the multiple-testing denominator and can never support a weighting
+     change - the 2026-10-23 refusal is why that distinction is in code); the row names its own arm by
+     SHA-256, because `content_hash` covers the point-in-time records and cannot see the arm's file;
+     `scripts/rerun_experiments.py` reruns a control whose arm was rebuilt and *prints* an arm that
+     is not built rather than taking a whole rerun down; and the page now has three states, including
+     "the design did NOT see it - every flat result here is uninterpretable", because a page that
+     could only report the reassuring outcome would be worthless. Claim
+     `research.positive_control`, which added `research.html` as a claims surface, so
+     `tests/test_positive_control.py` (20) is in the publish gate by derivation.
+     Record: `research/2026-10-25-positive-control.md`; `plan/research-engine.md` item 4(c).
+     **One cost to budget, which this exposed:** a test requires every newest ledger row to share one
+     `code_hash`, so adding a single row forces a ~45-minute rerun of all 31 - whose numbers provably
+     cannot move (checked: 31 ids, 24,796 statistics, **0 differences**). Both the test and the rerun
+     are right; just do not start one you cannot finish, because the ledger is append-only.
   5. **Lab experiment 4b** - size inside each profitability quintile (French
      `25_Portfolios_ME_OP_5x5`), with the refutation criterion already written in
      `research/2026-10-20-size-weight.md` section 9. It is the one result that would reopen Size.

@@ -61,6 +61,80 @@ presample:
   rule: confirmed only at p < 0.05/N and |t| >= 3, same direction as 2020-2026
   source: Linnainmaa & Roberts (2018), The History of the Cross-Section of Stock Returns, RFS 31(7)
 
+# ---- controls: a check on the TEST, not an idea about the weighting (plan/research-engine.md item
+# 4(c), registered 2026-10-25, 06:00 weekend session). A control holds the weighting fixed and
+# changes the DATA. Its expected answer is large and known before it runs - that is the whole point
+# of a positive control: it is what separates "we looked and there was nothing to find" from "the
+# test cannot see anything". The public research page already asserts the first reading in so many
+# words ("The test can see a signal when there is one"), on the strength of an uncommitted-to-the-
+# ledger measurement from 2026-10-15 built on monthly records that have since been rebuilt twice -
+# so the sentence needs a row of its own, on the current records, rerun with everything else.
+#
+# A control is NOT an experiment, and the distinction is enforced in code:
+#   * it has no `transform` - `experiments:` holds weighting transforms only, and the 2026-10-23
+#     session REFUSED three registrations precisely because they were written as experiments and the
+#     engine raises KeyError: 'transform' on them (NIGHTLY_LOG.md 2026-10-23). A control that had
+#     been shoehorned in there would have broken `report` the same way.
+#   * it is never counted in the multiple-testing denominator N and never appears in the
+#     alternatives chart - it is not an alternative anybody could choose, because its data does not
+#     exist at the time a real decision would be made.
+#   * it can never support a weighting change. Nothing here is decision-grade before 2027-02-11
+#     (CLAUDE.md rule 5) and a control is further from decision-grade than anything else in the
+#     ledger: it is deliberately cheating.
+#
+# This block was committed BEFORE the arm it reads was rebuilt and BEFORE the comparison was run.
+controls:
+  - id: lookahead-filings
+    kind: control
+    hypothesis: >-
+      The same weighting (v2_config), the same point-in-time universe and the same prices, but every
+      month scored on the filings as they stand at the build date rather than on the filings that had
+      actually been published by that month-end. This is backtest v1's look-ahead built on purpose,
+      and the engine's paired comparison should see it easily.
+    scores: cache/v2_scores_lookahead.parquet
+    built_by: python backtest_v2.py --diagnostic-filings-as-of 2026-10-25
+    window: [2020-01-31, 2026-08-31]
+    source: >-
+      The size of the look-ahead this arm reintroduces is measured, not assumed:
+      research/2026-10-01-lookahead-bias-size.md (the price half, >= 63.2% of name-months move, 30.3%
+      by two deciles or more) and research/2026-10-15-pit-record-validation.md sections 3 and 5c (the
+      fundamentals half, 72.5% of name-months; 75.8% together; and the first reading of this arm,
+      IC +0.050 with t 4.71 against the point-in-time arm's -0.002 over the same 80 months).
+      On why a positive control belongs in a research loop at all: Harvey, Liu & Zhu (2016), "...and
+      the Cross-Section of Expected Returns", Review of Financial Studies 29(1), 5-68,
+      DOI 10.1093/rfs/hhv059 - a multiple-testing bar raises the threshold for a finding, so the
+      power of the design has to be demonstrated separately or every null is uninterpretable.
+    prediction: >-
+      Positive and large. The arm's mean monthly IC advantage over the baseline, paired month by
+      month on the stocks both rankings carry (method version 2), over the 80 months
+      2020-01 .. 2026-08, lands between +0.030 and +0.075 and clears the same bar every experiment
+      is judged against (p < 0.05/N and |t| >= 3). The engine's own `detectable` figure for this
+      comparison is about 0.04, so a difference of this size is one the design can see.
+    passes_if: {period: all, min_abs_t: 3.0, direction: positive, band: [0.030, 0.075]}
+    fails_if: >-
+      The difference does not clear p < 0.05/N and |t| >= 3 over the 80 months. That would NOT be a
+      finding about the screener: it would mean this design cannot see a signal of the size
+      look-ahead manufactures, and every "not distinguishable from the baseline" verdict in the
+      ledger - and the research page's sentence about the test seeing a signal - would have to be
+      re-read as uninformative until the cause was found. It is a defect to investigate, not a
+      result to publish.
+    outcome_known_at_registration: ["2020-2026"]
+    differences: >-
+      What is genuinely new here and what is not, stated because this row is a known-outcome row by
+      construction and must say so. ALREADY ON FILE before registration: the two arms' own
+      full-universe ICs over these months (research/measurements/2026-10-15-backtest-v2-returns.json
+      and -lookahead.json, committed 2026-10-15), from which a reader could have guessed a difference
+      near +0.05. NOT on file: the paired difference itself. Method version 2 recomputes both sides on
+      each month's common stocks before differencing, which has never been done for this arm; the
+      monthly records have been rebuilt twice since (2026-10-15 operating income, 2026-10-24 pre-2014
+      renames and predecessor CIKs, which added 98 member-months to 2020-2026 alone); and the arm
+      itself is rebuilt here with the filings as of 2026-10-25. Other limits: the arm is 2020-2026
+      only, because 2012-2019 would need a second diagnostic build of 96 months and the published
+      figure this row replaces is 2020-2026; the hindsight it is given shrinks across the window, from
+      about six years at the start to about two months at the end, so this is a lower bound on what a
+      uniform look-ahead would do; and the universe's own limits (survivorship, no analyst inputs)
+      apply to both arms equally and so cancel in the difference.
+
 # ---- evaluations: what a construction rule would have done (registered 2026-10-15, night, before
 # its first run; plan/research-engine.md item 4). Run with `python v2_experiments.py evaluate`.
 evaluations:
