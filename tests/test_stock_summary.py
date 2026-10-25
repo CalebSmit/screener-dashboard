@@ -311,6 +311,43 @@ def test_no_gloss_where_the_score_reads_the_way_it_looks_or_is_not_low():
     assert "A higher" not in _fact(_build(detail), "weakest")
 
 
+def _weakest_alone(cat: str, score: float) -> str:
+    """``cat`` at ``score`` and every other category at 80, so ``cat`` is the weakest
+    whatever the probe value is. Needed for the 50 bar: at a probe of 50 the fixture's
+    own Risk at 37.62 would be the weakest and would carry *its* gloss instead."""
+    detail = _detail()
+    detail["cat_scores"] = {c: 80.0 for c in CATEGORIES}
+    detail["cat_scores"][cat] = score
+    return _fact(_build(detail), "weakest")
+
+
+def test_the_largest_company_bar_holds_at_ten_and_not_above_it():
+    """Claim ``summary.weakest`` states the bar as a number - "at 10 or under, one of
+    the largest". The checks above probe 2 and 30, so the bar could have sat anywhere
+    between them: the claims mutation audit (2026-10-25, ``plan/claims-mutation-audit.md``
+    row 40) moved ``LARGEST_SIZE_SCORE`` from 10 to 11 and **every registered check, and
+    every test in this module, still passed**. A claim that names a number needs a test
+    on both sides of that number.
+    """
+    at = _weakest_with("size", 10.0)
+    assert "Size at 10 out of 100" in at
+    assert "so a score of 10 makes it one of the largest companies in its sector." in at
+    over = _weakest_with("size", 11.0)
+    assert "Size at 11 out of 100" in over
+    assert "so a score of 11 makes it a larger company than most of its sector." in over
+
+
+def test_the_gloss_is_said_below_fifty_and_not_at_fifty():
+    """Claim ``summary.weakest``: the gloss is said "where that score is below 50",
+    the sector median. Audit row 41 relaxed ``n >= 50`` to ``n > 50`` - so the gloss
+    would have been printed *at* the median, calling a sector-median company "larger
+    than most of its sector" - and nothing in this module saw it."""
+    assert "A higher Size score means" in _weakest_alone("size", 49.0)
+    assert "A higher" not in _weakest_alone("size", 50.0)
+    # The headline half of the sentence is unaffected either side of the bar.
+    assert "Size at 50 out of 100" in _weakest_alone("size", 50.0)
+
+
 def test_the_low_score_glosses_are_advice_free_and_plain():
     for cat, score in (("size", 2.0), ("size", 30.0), ("risk", 20.0), ("investment", 12.0)):
         fact = _weakest_with(cat, score)

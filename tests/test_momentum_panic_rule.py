@@ -71,10 +71,21 @@ def test_the_readings_are_the_replays_definitions():
 
 
 def test_the_threshold_is_strict_and_configurable():
+    """**The strictness half was added 2026-10-25** by the claims mutation audit
+    (``plan/claims-mutation-audit.md`` row 44). The test was named for strictness and
+    could not see it: it probed the threshold 0.001 either side of the reading and never
+    *at* it, so relaxing ``vol > thr`` to ``vol >= thr`` passed this test, every other
+    test in this module, and every check registered on claims ``overview.momentum_regime``
+    and ``context.macro_momentum_rule``. The boundary is the one point that separates the
+    two operators, and 20.6% is a pre-registered number that may never be re-fitted
+    (CLAUDE.md 0.12), so the rule must not quietly widen at its own edge.
+    """
     s = closes(WILD, FALLING)
     vol = fe.market_panic_state(s)["vol"]
     assert fe.market_panic_state(s, {"vol_threshold": vol + 0.001})["state"] == "NORMAL"
     assert fe.market_panic_state(s, {"vol_threshold": vol - 0.001})["state"] == "PANIC"
+    # Exactly at the bar is NORMAL: the rule is "above", not "at or above".
+    assert fe.market_panic_state(s, {"vol_threshold": vol})["state"] == "NORMAL"
     # a 12-month window on a series that fell only in its first year reads the recovery
     lr = np.r_[np.full(500, -0.001), np.full(260, 0.001)]
     v = pd.Series(100 * np.exp(np.cumsum(lr)), index=pd.bdate_range(end="2026-10-09", periods=760))

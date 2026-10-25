@@ -308,8 +308,17 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_stock_summary.py::test_metric_coverage_is_stated",
             "tests/test_claims_register.py::test_confidence_metric_count_is_the_discount_coverage",
+            "tests/test_defensibility_improvements.py::TestStalenessThreshold::test_default_threshold_is_120",
+            "tests/test_defensibility_improvements.py::TestStalenessThreshold::test_config_override_threshold",
         ),
         caveat=(
+            "**The staleness half became registered on 2026-10-25** (claims mutation audit, "
+            "`plan/claims-mutation-audit.md` row 48): the sentence says 'Its filings are flagged "
+            "stale (N days old)', and subtracting 30 days from the configured bar inside "
+            "`compute_metrics` passed both registered checks. The two tests that do see it were "
+            "already in the suite and are the only ones anywhere that pin the configured bar - "
+            "they are class methods, which `checked_by` could not name until the same session "
+            "taught the register the `Class::method` form. "
             "Fixed 2026-10-07 (T0b). 'rests on N of M metrics' used to count a "
             "hard-coded 18-metric list, which is NOT the applicable-metric coverage "
             "the coverage discount reads; 62 stocks read under 80% on that basis and "
@@ -327,12 +336,30 @@ CLAIMS: tuple[Claim, ...] = (
         asserts=(
             "The next reporting date or window, its horizon expressed relative to "
             "**this run** rather than the reader's clock, and whether the date is "
-            "a provider estimate. A date at or before the run date is dropped."
+            "a provider estimate. A date **before** the run date is dropped; a date "
+            "**on** the run date is kept and reads 'the day of this run'."
         ),
         made_true_by="stock_summary:_sentence_earnings",
         checked_by=(
             "tests/test_earnings_date.py::test_horizon_is_anchored_to_the_run_not_the_reader",
             "tests/test_earnings_date.py::test_estimated_date_is_labelled",
+            "tests/test_earnings_date.py::test_near_horizons_read_naturally",
+            "tests/test_earnings_date.py::test_past_dates_are_dropped_never_relabelled",
+        ),
+        caveat=(
+            "**Fixed 2026-10-25** by the claims mutation audit "
+            "(`plan/claims-mutation-audit.md` row 39). It read 'a date at or before "
+            "the run date is dropped', which the code has never done and should not do: "
+            "`_sentence_earnings` drops `days < 0` and renders `days == 0` as 'the day of "
+            "this run'. The code is the right half - a company reporting on the run date "
+            "genuinely is the next report, and it is the one day Akepanidtaworn et al. "
+            "(2023) find a sell beats its counterfactual, so dropping it would withhold "
+            "the schedule exactly where the evidence says it matters most. The register "
+            "sentence and the function's own docstring were wrong, and the two tests that "
+            "pin the real boundary (`test_near_horizons_read_naturally`, "
+            "`test_past_dates_are_dropped_never_relabelled`) were in the module but not "
+            "registered here, so the audit's first pass reported a gap where the suite "
+            "in fact had cover."
         ),
     ),
 
@@ -1107,6 +1134,8 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_momentum_panic_rule.py::test_panic_needs_both_conditions",
             "tests/test_momentum_panic_rule.py::test_the_rule_only_ever_cuts_momentum",
+            "tests/test_momentum_panic_rule.py::test_the_readings_are_the_replays_definitions",
+            "tests/test_momentum_panic_rule.py::test_the_threshold_is_strict_and_configurable",
             "tests/test_context_layer_claims.py::test_the_volatility_reading_describes_the_configured_rule",
             "tests/test_context_layer_claims.py::test_the_stat_strip_shows_a_momentum_cut",
             "tests/test_context_layer_claims.py::test_quality_is_one_of_the_two_heaviest_categories",
@@ -1289,8 +1318,22 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_momentum_panic_rule.py::test_the_overview_states_the_rule_the_engine_applies",
             "tests/test_momentum_panic_rule.py::test_panic_needs_both_conditions",
             "tests/test_momentum_panic_rule.py::test_the_rule_only_ever_cuts_momentum",
+            "tests/test_momentum_panic_rule.py::test_the_readings_are_the_replays_definitions",
+            "tests/test_momentum_panic_rule.py::test_the_threshold_is_strict_and_configurable",
+            "tests/test_momentum_panic_rule.py::test_the_configured_thresholds_are_the_pre_registered_ones",
         ),
         detect=r"Momentum regime rule [-–] currently (on|off)\.\*\* Momentum strategies crash in what Daniel",
+        caveat=(
+            "**Fixed 2026-10-25**: three of the four numbers in this sentence had no registered "
+            "check. Claims mutation audit, `plan/claims-mutation-audit.md` rows 44-47. The sentence names "
+            "0.70, 24 months, 126 days and a fixed volatility threshold, and the three registered "
+            "checks pinned only 0.70, the equal split and the two-condition logic: moving the "
+            "volatility window to 120 days, the return window to 23 months, or the threshold off "
+            "config to a constant passed every one of them. The tests that do see those three were "
+            "already in `tests/test_momentum_panic_rule.py` and are now named here - which matters "
+            "because CLAUDE.md 0.12 says these numbers are set in advance and never re-fitted, and "
+            "the register is where a later session is told which test enforces that."
+        ),
     ),
     Claim(
         id="overview.factor_premia_since_2014",
