@@ -697,6 +697,16 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_capex_lease_note.py::test_the_proceeds_sentence_appears_only_when_the_company_files_them",
             "tests/test_capex_lease_note.py::test_the_note_never_reaches_a_score",
             "tests/test_capex_lease_note.py::test_the_published_payload_agrees_with_the_filings",
+            "tests/test_capex_lease_note.py::test_the_threshold_is_the_registered_ten_percent",
+            "tests/test_capex_lease_note.py::test_the_reconciliation_is_the_registered_five_percent",
+        ),
+        caveat=(
+            "**Fixed 2026-10-25** (claims mutation audit, `plan/claims-mutation-audit.md` rows "
+            "53-54): the sentence names 10% and 5%, and neither bar had a registered check. The "
+            "10% one was already tested on both sides in the module and is now named here; the 5% "
+            "reconciliation had no check anywhere, because the only assertion about it read "
+            "`rel=X.LEASE_RECONCILE_TOL` - a tolerance taken from the constant under test cannot "
+            "see the constant move. Widening it to 8% passed the whole module."
         ),
     ),
     Claim(
