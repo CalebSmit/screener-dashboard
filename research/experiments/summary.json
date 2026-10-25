@@ -31,5 +31,16 @@
  "pooled_t": -0.14,
  "pooled_detectable": 0.0319,
  "method_version": 2,
- "control": null
+ "control": {
+  "id": "lookahead-filings",
+  "sees": true,
+  "period": "all",
+  "months": 80,
+  "ic_vs_baseline": 0.05117,
+  "t": 5.59,
+  "detectable": 0.0373,
+  "in_band": true,
+  "arm_ic": 0.05089,
+  "baseline_ic_on_common": -0.00028
+ }
 }
