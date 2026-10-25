@@ -185,6 +185,16 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_stock_summary.py::test_a_low_size_score_says_it_is_a_large_company",
             "tests/test_stock_summary.py::test_a_low_risk_or_investment_score_says_which_way_it_runs",
             "tests/test_stock_summary.py::test_a_low_score_in_an_inverted_category_says_what_it_means",
+            "tests/test_stock_summary.py::test_the_largest_company_bar_holds_at_ten_and_not_above_it",
+            "tests/test_stock_summary.py::test_the_gloss_is_said_below_fifty_and_not_at_fifty",
+        ),
+        caveat=(
+            "**Fixed 2026-10-25** (claims mutation audit, `plan/claims-mutation-audit.md` rows "
+            "40-41): this sentence names two numbers - 'below 50' and 'at 10 or under' - and "
+            "neither had a check on both sides of it. The four checks above probe Size at 2, 30 "
+            "and 55, so moving `LARGEST_SIZE_SCORE` to 11, or relaxing the median bar so the "
+            "gloss printed *at* 50, passed every one of them and every other test in the module. "
+            "The last two checks are the boundaries."
         ),
     ),
     Claim(
