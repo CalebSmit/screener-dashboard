@@ -1,4 +1,4 @@
-# Morning Brief - Sunday 25 October 2026, 08:13
+# Morning Brief - Sunday 25 October 2026, 13:44
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -32,6 +32,12 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 
 ## What changed in the repo
 
+- `67c6ff8 log + OWNER_FOCUS: the 2026-10-25 midday session - the claims register's second mutation pass`
+- `61890df plan: the 2026-10-25 mutation audit - 24 mutations, 11 claims, 4 real gaps and a false claim`
+- `8564552 claims audit: the capex note's 5% reconciliation had no check that could see it`
+- `905b2aa claims: register the two new summary.weakest boundary checks`
+- `fc888b8 claims audit: two untested bars, a test named for a strictness it could not see, and a register sentence no code ever obeyed`
+- `12b1b94 brief: code session 2026-10-25-weekend`
 - `ef1a514 log: the 2026-10-25 weekend session - the positive control as a ledger row`
 - `96ac5f6 test: the rerun planner's new shape - controls last, an unbuilt arm reported not run`
 - `4cc2f50 OWNER_FOCUS: sub-item 4 done - the positive control is a ledger row`
@@ -41,60 +47,54 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 - `344a9e9 research engine: controls, so a null result can be told from a blind test`
 - `e55d36a register the positive control, before it is built or run`
 - `e7ccef5 brief: code session 2026-10-24-midday`
-- `5dad042 test: the research page's intervals come from the ledger, not from one audit's literals`
-- `0693eda research engine: all 31 ledger rows rerun on the rebuilt records`
-- `f3d757f plans: the two v2 data fixes are done; what remains of the sub-item`
-- `5eedc7c wip: the log entry's body, up to the rerun`
-- `9bf99fd wip: the main build's effect, measured`
-- `40b2e93 wip: the presample rebuild's effect, measured`
 
 ## The session's own account
 
-> 2026-10-25 (06:00 weekend session) - the positive control is a ledger row: the page's "the test can see a signal" is now a number, rerun with everything else
+> 2026-10-25 (13:00 midday session) - the claims register's second mutation pass: four bars nothing could see, a test named for a strictness it did not test, and one claim that was simply false
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - 2026-10-24 13:00 midday ended "Run
-> complete: shipped to main" at 15:49, tag `good/2026-10-24-1549`. Data loop published? **yes** -
-> 2026-10-23 02:28, HEALTH PASS, 498 scored, all four input gates green; **no 02:00 run on 10-24 or
-> today, correctly - Saturday and Sunday** (next is Monday 2026-10-26, which brings the first
-> `signals.json`). Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4
-> effective** (`_n_observations` 4; 35 is the row count and not the one to quote). Priority 0:
+> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session
+> ended "Run complete: shipped to main" at 08:13, tag `good/2026-10-25`. Data loop published?
+> **yes** - 2026-10-23 02:28, HEALTH PASS, 498 scored; **no 02:00 run on 10-24 or today, correctly -
+> Saturday and Sunday**; the next is Monday 2026-10-26, which brings the first `signals.json`.
+> Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4 effective**
+> (`_n_observations` 4; 35 is the row count and never the one to quote). Priority 0:
 > `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
-> Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred; the next experiment is 18 and the next
-> non-retrospective Friday is 2026-11-06, so nothing about it is time-critical.
-> **Tests:** before **3129 passed, 1 skipped** (369.6s) - identical to the 10-24 13:00 session's after
-> count, so no drift overnight; after **3149 passed, 1 skipped** (359.3s), **+20, all in the one new
-> module** (`tests/test_positive_control.py`). Gates 2 and 4 pass; gate 3 via
-> `tests/test_payload_parse_gate.py` (19) and the fact that no payload file is in this diff -
-> `node --check` is refused by this session's tool guard, and the runner re-runs gate 3 itself.
-> **`scripts/rehearse_publish.py` run and PASSED**, because the diff touches `claims.py`, which the
-> page is built from: 1,426 claims-gate tests, 3,979 category scores and 498 composites reproduced
-> from the regenerated payload, published files restored byte for byte.
-> **One existing test needed updating and it was the contract, not the assertion:**
-> `test_a_limited_rerun_does_experiments_first_and_evaluations_once_they_are_level` pinned
-> `rerun_experiments.plan`'s return as a 3-tuple. It is now a 5-tuple (controls, and the controls whose
-> arm is not built), so the test pins the new shape *and* the new ordering - experiments, then
-> evaluations, then controls, because a control is paired against the baseline and is worth nothing
-> until that row is current - plus that an unbuilt arm comes back named with the command that builds
-> it. Nothing was loosened.
-> **Owner queue / rotation:** `OWNER_FOCUS.md`'s **top open item (2026-10-20), sub-item 4** - the
-> positive control as a ledger row. No proposal was waiting for a decision
-> (`write_brief.open_proposals()` returns `[]`), so section 3's first job was clear. Sub-item 4 is the
-> one the 10-18 and 10-19 sessions both named as Next and nobody had taken since; sub-item 6's
-> remaining half (the extended universe) is the larger piece and is left as Next with its reason.
+> Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred again; experiment 18 is unstarted and
+> the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical, and this
+> session took an owner sub-item that outranks it.
+> **Tests:** before **3149 passed, 1 skipped** (364.6s) - identical to the 06:00 session's after
+> count, so no drift. After **3152 passed, 1 skipped** (+3: two in `test_stock_summary.py`, one in
+> `test_capex_lease_note.py`).
+> **Owner queue / rotation:** `OWNER_FOCUS.md` 2026-10-20, **sub-item 3, "Test the tests"** - the
+> claims mutation audit. No proposal was waiting (`open_proposals()` returns `[]`). This item had
+> been named as Next by **three** consecutive sessions and never taken, and the 06:00 entry said
+> plainly that a session with no proposal waiting and no broken loop should take it rather than make
+> it a fourth deferral. I did. The morning's own Next - the extended universe - is deferred and
+> stated below, because it needs a rebuild plus a ~45-minute serial rerun and this slot had under
+> three hours.
 > 
 > ### Did
 > 
-> **`OWNER_FOCUS.md` 2026-10-20 sub-item 4 / `plan/research-engine.md` item 4(c): the positive
-> control is a ledger row.** The thing it fixes is a sentence. Since 2026-10-15 the public research
-> page has told readers, in the three-bullet answer at the top, that **"The test can see a signal when
-> there is one"** - with no number beside it, resting on a measurement from 2026-10-15 that was never
-> a ledger row and whose monthly records have since been rebuilt **twice** (operating income on 10-15,
-> the pre-2014 renames and predecessor CIKs on 10-24). It was the one claim on that page a reader
-> could not check, and the page's 28 flat verdicts are the claim that most depends on it: a row of
-> nulls is exactly what a broken measurement produces.
+> **`OWNER_FOCUS.md` 2026-10-20 sub-item 3: the second mutation pass over `claims.py`.**
+> `plan/claims-mutation-audit.md`, rows 39-62. Method unchanged: for each registered sentence that
+> states a number, make the smallest plausible edit that makes the sentence false, run **only** that
+> claim's `checked_by`, and record caught or gap. **24 mutations on 11 claims: 15 caught, 4 real
+> gaps, 5 gaps in the register, and 1 mutation that could not be made because the claim was already
+> false.** Every gap now fails a registered check, and every mutation was **re-run after its fix and
+> required to read CAUGHT** - which caught me out once: two fixes first came back as register gaps
+> because I had written the test and not yet named it in `checked_by`.
 > 
-> **Why a null needs this and cannot supply it.** Harvey, Liu & Zhu (2016), *RFS* 29(1) 5-68,
-> DOI 10.1093/rfs/hhv059 - whose t >= 3 bar this engine adopts, with a Bonferroni correction on top -
+> **One improvement to the harness, which is the reason the numbers above are legible.** It now runs
+> the claim's `checked_by` *and* the whole of each module those tests live in, so "nothing in the
+> suite checks this" and "the suite checks it but the register does not say so" are separate
+> verdicts. The 2026-10-20 pass had to tell them apart by hand and its rows 35 and 37 record the
+> distinction informally. Five of this pass's nine gaps were the second kind.
+> 
+> **The four real gaps** - nothing anywhere in the suite saw them (verified: only the one module
+> references each symbol):
+> 
+> 1. **`summary.weakest`, `LARGEST_SIZE_SCORE` 10 -> 11.** The sentence says "at 10 or under, one of
+>    the largest"; the four registered checks probe Size at 2, 30 and 55, so the bar could have sat
 > ...
 
 ---
