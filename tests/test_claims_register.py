@@ -150,7 +150,8 @@ def test_every_claim_is_complete_and_uniquely_identified():
     for claim in claims.CLAIMS:
         assert claim.asserts.strip(), f"{claim.id}: empty `asserts`"
         assert claim.checked_by, f"{claim.id}: no check - a claim with no check fails"
-        assert claim.surface in (claims.SUMMARY, claims.OVERVIEW, claims.README, claims.DRILLDOWN), \
+        assert claim.surface in (claims.SUMMARY, claims.OVERVIEW, claims.README, claims.DRILLDOWN,
+                                 claims.RESEARCH), \
             f"{claim.id}: unknown surface {claim.surface!r}"
 
 

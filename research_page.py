@@ -220,6 +220,49 @@ def stop_verdict(base: dict, arm: dict, periods: list) -> str:
             f"this history happened to reward would tell you nothing.</p>")
 
 
+def control_sentence(c: dict | None) -> str:
+    """The page's claim that the test can see a signal, from the positive control's ledger row.
+
+    Until 2026-10-25 this bullet asserted the claim in words with no number behind it, on the
+    strength of a measurement from 2026-10-15 that was never a ledger row and was built on monthly
+    records since rebuilt twice (plan/research-engine.md item 4(c)). Three states, and the page says
+    which one it is in rather than asserting the first:
+
+    * **seen** - the control cleared the same bar every alternative is judged against. Quote the
+      difference, its t-statistic and the smallest difference this comparison could reliably detect,
+      because "it saw a big one" is only informative beside what it can see.
+    * **not seen** - say so plainly and say what it costs: every flat result on the page becomes
+      uninterpretable. A page that could only report the reassuring outcome would be worthless.
+    * **not run on these records** - no claim. ``summary_for_page`` returns ``None`` for a control
+      row built on other data, by another method or from another baseline weighting, exactly as it
+      drops an alternative on those grounds, so this is also the state in a fresh checkout.
+    """
+    if not c:
+        return ("<strong>Whether the test can see a signal is being re-measured.</strong> The check "
+                "feeds the ranking the filings as they stand today for every past month &mdash; "
+                "information nobody had at the time &mdash; and asks whether this test spots the "
+                "advantage. It is registered with its prediction, and it is not quoted here until it "
+                "has been run on the same monthly records as everything above.")
+    if not c.get("sees"):
+        return ("<strong>Warning: the test did not see a signal that is known to be there.</strong> "
+                "Fed the filings as they stand today for every past month &mdash; information nobody "
+                "had at the time &mdash; this test put the cheating ranking "
+                f'<span class="num">{num(c["ic_vs_baseline"])}</span> ahead of the real one '
+                f'(t <span class="num">{c["t"]:+.1f}</span>), which does not clear its own bar. '
+                "Until that is explained, read every flat result on this page as *this test cannot "
+                "tell*, not as *there was nothing to find*.")
+    seen = (f'<strong>The test can see a signal when there is one.</strong> Fed the filings as they '
+            f'stand today for every past month &mdash; information nobody had at the time &mdash; the '
+            f'same test puts that ranking <span class="num">{num(c["ic_vs_baseline"])}</span> of rank '
+            f'correlation a month ahead of the real one over <span class="num">{c["months"]}</span> '
+            f'months (t <span class="num">{c["t"]:+.1f}</span>)')
+    if c.get("detectable") is not None:
+        seen += (f', against the <span class="num">{num(c["detectable"])}</span> it could reliably '
+                 f'detect')
+    return seen + (". So the flat results above are a finding about the ranking, not a test that "
+                   "cannot see anything.")
+
+
 def _pbo_words(pbo: float) -> str:
     """How a PBO compares with the 0.5 that luck alone gives (Bailey et al. 2017)."""
     if pbo >= 0.55:
@@ -382,6 +425,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
                     f"narrowest alternative, "
                     f'{display_label(next(r["e"] for r in rows if r["id"] == m_id))}, '
                     f'<span class="num">{m_n:.0f}</span>.{overlap}')
+
+    control_li = control_sentence(summary.get("control"))
 
     dots = []
     for r in rows:
@@ -613,7 +658,7 @@ details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; 
   <ul class="answer">
     <li>{headline}</li>
     <li><strong>No alternative did better.</strong> {"None" if summary['better'] == 0 else summary['better']} of the {summary['alternatives']} alternative weightings cleared the bar set before the test, in either period.</li>
-    <li><strong>The test can see a signal when there is one.</strong> Fed information it could not have had at the time (today's filings, for past months), the same test finds a strong one.</li>
+    <li>{control_li}</li>
   </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
 

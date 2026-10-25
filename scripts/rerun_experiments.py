@@ -13,11 +13,16 @@ of 29 on 2026-10-18), and both times the rows already written were thrown away i
 the only command available starts again from the first experiment. The engine already appends each
 row the moment it is computed, so the work is resumable; nothing was using that.
 
-This picks the registered experiments (and evaluations) whose newest ledger row does not match the
-current code, record contents, baseline weighting and method version, and runs only those - all of
-them, or the first ``--limit`` - through the engine's own ``run`` / ``run_evaluations``, then
-rewrites the report. It is a scheduler over the engine, never a second implementation of it: every
-number still comes from ``v2_experiments``. Rows it writes are ordinary ledger rows.
+This picks the registered experiments (and evaluations, and controls) whose newest ledger row does
+not match the current code, record contents, baseline weighting and method version, and runs only
+those - all of them, or the first ``--limit`` - through the engine's own ``run`` /
+``run_evaluations`` / ``run_controls``, then rewrites the report. It is a scheduler over the engine,
+never a second implementation of it: every number still comes from ``v2_experiments``. Rows it
+writes are ordinary ledger rows.
+
+A control (2026-10-25) carries one more input than the four provenance keys can see - the arm's own
+pre-built scores file - so its recorded SHA-256 is compared with the file on disk as well, and an
+arm that has not been built yet is printed rather than run (see ``stale_controls``).
 
     python scripts/rerun_experiments.py --status     # what is stale; changes nothing
     python scripts/rerun_experiments.py --limit 4    # ~8 minutes: fits one foreground call
@@ -64,6 +69,33 @@ def stale_ids(ids: list[str], latest: dict[str, dict], current: dict) -> list[st
             if i not in latest or any(latest[i].get(k) != current[k] for k in PROVENANCE_KEYS)]
 
 
+def stale_controls(X, latest: dict[str, dict], current: dict) -> tuple[list[str], list[str]]:
+    """(controls to rerun, controls that cannot be run yet and why).
+
+    A control carries one input the four provenance keys above cannot see: the arm's own pre-built
+    scores file. ``content_hash`` covers ``cache/v2_metrics/`` - the point-in-time records, which are
+    the *baseline* side of the pairing - so rebuilding the arm would leave a control row looking
+    current while the numbers under it had moved. Its SHA-256 is recorded in the row
+    (``control_data.scores_sha256``) and compared with the file on disk here.
+
+    An arm that has not been built is reported, never run: ``run_controls`` would raise and take the
+    whole rerun down with it, and a scheduler that cannot finish because one optional row is
+    unbuilt is worse than one that says which row to build.
+    """
+    todo, blocked = [], []
+    for e in X.load_controls():
+        p = ROOT / e["scores"]
+        if not p.is_file():
+            blocked.append(f"{e['id']}: {e['scores']} not built - run: {e.get('built_by', '?')}")
+            continue
+        now = X._file_sha256(p)[:16]
+        row = latest.get(e["id"])
+        if row is None or any(row.get(k) != current[k] for k in PROVENANCE_KEYS) \
+                or (row.get("control_data") or {}).get("scores_sha256") != now:
+            todo.append(e["id"])
+    return todo, blocked
+
+
 def rows_are_level(ids: list[str], latest: dict[str, dict]) -> bool:
     """Whether every id has a row and all those rows share one provenance - what the report checks."""
     if any(i not in latest for i in ids):
@@ -78,25 +110,28 @@ def current_provenance(X) -> dict:
             "method_version": X.METHOD_VERSION}
 
 
-def plan(X, limit: int | None) -> tuple[list[str], list[str], int]:
-    """(experiments to run now, evaluations to run now, stale count before running)."""
+def plan(X, limit: int | None) -> tuple[list[str], list[str], list[str], int, list[str]]:
+    """(experiments, evaluations, controls to run now; stale count before running; blocked controls)."""
     current = current_provenance(X)
     latest = latest_rows(X.LEDGER)
     exps = stale_ids([e["id"] for e in X.load_registry()], latest, current)
     evs = stale_ids([e["id"] for e in X.load_evaluations()], latest, current)
-    total = len(exps) + len(evs)
+    ctrls, blocked = stale_controls(X, latest, current)
+    total = len(exps) + len(evs) + len(ctrls)
     if limit is not None:
+        room = max(limit - len(exps), 0)
         exps = exps[:max(limit, 0)]
-        evs = evs if len(exps) < limit else []          # evaluations go once the experiments are level
-        evs = evs[:max(limit - len(exps), 0)]
-    return exps, evs, total
+        evs = evs[:room]                   # evaluations go once the experiments are level
+        ctrls = ctrls[:max(room - len(evs), 0)]
+    return exps, evs, ctrls, total, blocked
 
 
 def remaining(X) -> int:
     current = current_provenance(X)
     latest = latest_rows(X.LEDGER)
     return (len(stale_ids([e["id"] for e in X.load_registry()], latest, current))
-            + len(stale_ids([e["id"] for e in X.load_evaluations()], latest, current)))
+            + len(stale_ids([e["id"] for e in X.load_evaluations()], latest, current))
+            + len(stale_controls(X, latest, current)[0]))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -111,13 +146,17 @@ def main(argv: list[str] | None = None) -> int:
     sys.path.insert(0, str(ROOT))
     import v2_experiments as X     # research tooling only; never imported by production
 
-    exps, evs, total = plan(X, a.limit)
+    exps, evs, ctrls, total, blocked = plan(X, a.limit)
     if a.status:
         stale = plan(X, None)
-        ids = [e["id"] for e in X.load_registry()] + [e["id"] for e in X.load_evaluations()]
+        ids = ([e["id"] for e in X.load_registry()] + [e["id"] for e in X.load_evaluations()]
+               + [e["id"] for e in X.load_controls() if e["id"] in latest_rows(X.LEDGER)])
         level = rows_are_level(ids, latest_rows(X.LEDGER))
         print("stale experiments:", ", ".join(stale[0]) or "none")
         print("stale evaluations:", ", ".join(stale[1]) or "none")
+        print("stale controls:", ", ".join(stale[2]) or "none")
+        for b in stale[4]:
+            print("control not runnable:", b)
         # Not the same question. The report and its tests ask whether the rows are level with EACH
         # OTHER; "stale" asks whether they match the tree as it is now. A change that cannot move a
         # number (2026-10-18: a report-wording fix to v2_experiments.py) leaves every row stale and
@@ -125,11 +164,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"rows level with each other: {'yes' if level else 'NO - the report flags a mixture; rerun'}")
         print(f"STALE REMAINING: {total}", flush=True)
         return 0
-    print(f"{total} stale; running {len(exps)} experiment(s) and {len(evs)} evaluation(s) now", flush=True)
+    for b in blocked:
+        print("control not runnable:", b, flush=True)
+    print(f"{total} stale; running {len(exps)} experiment(s), {len(evs)} evaluation(s) and "
+          f"{len(ctrls)} control(s) now", flush=True)
     if exps:
         X.run(exps)
     if evs:
         X.run_evaluations(evs)
+    if ctrls:
+        X.run_controls(ctrls)
     X.report()
     print(f"wrote {X.RESULTS.relative_to(X.ROOT)} - commit the ledger and the report now", flush=True)
     print(f"STALE REMAINING: {remaining(X)}", flush=True)
