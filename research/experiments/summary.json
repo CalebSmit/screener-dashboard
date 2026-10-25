@@ -30,5 +30,6 @@
  },
  "pooled_t": -0.14,
  "pooled_detectable": 0.0319,
- "method_version": 2
+ "method_version": 2,
+ "control": null
 }
