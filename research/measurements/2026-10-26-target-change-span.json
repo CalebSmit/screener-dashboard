@@ -1,0 +1,117 @@
+{
+ "run_dir": "bc1fe4648fd6",
+ "run_start": "2026-10-26T02:00:04.754086",
+ "window": {
+  "start_date": "2026-07-28",
+  "end_date": "2026-10-26",
+  "gap_days": 90,
+  "n_with_candidate": 482,
+  "n_universe": 498
+ },
+ "weights_before": {
+  "fy1_revision_3m": 48,
+  "analyst_surprise": 15,
+  "price_target_upside": 13.5,
+  "consecutive_beat_streak": 10,
+  "short_interest_ratio": 13.5
+ },
+ "weights_after": {
+  "fy1_revision_3m": 48,
+  "analyst_surprise": 15,
+  "consecutive_beat_streak": 10,
+  "short_interest_ratio": 13.5,
+  "target_change_90d": 13.5
+ },
+ "fidelity": {
+  "revisions_spearman_vs_published": 1.0,
+  "revisions_mean_abs_diff_points": 0.0,
+  "composite_spearman_vs_published": 0.99994
+ },
+ "revisions_category_pairs": {
+  "valuation": {
+   "published": -0.0123,
+   "rebuilt": -0.0123,
+   "after_swap": -0.0411
+  },
+  "quality": {
+   "published": 0.0459,
+   "rebuilt": 0.0459,
+   "after_swap": 0.0804
+  },
+  "growth": {
+   "published": 0.2054,
+   "rebuilt": 0.2054,
+   "after_swap": 0.1553
+  },
+  "momentum": {
+   "published": 0.2223,
+   "rebuilt": 0.2223,
+   "after_swap": 0.3778
+  },
+  "risk": {
+   "published": -0.1488,
+   "rebuilt": -0.1488,
+   "after_swap": -0.0362
+  },
+  "size": {
+   "published": -0.1247,
+   "rebuilt": -0.1247,
+   "after_swap": -0.1426
+  },
+  "investment": {
+   "published": -0.069,
+   "rebuilt": -0.069,
+   "after_swap": -0.0399
+  },
+  "composite": {
+   "published": 0.2907,
+   "rebuilt": 0.2911,
+   "after_swap": 0.3694
+  }
+ },
+ "independence_pct_unspanned": {
+  "published": {
+   "valuation": 75.1,
+   "quality": 93.0,
+   "growth": 63.2,
+   "momentum": 83.5,
+   "risk": 75.7,
+   "revisions": 87.3,
+   "size": 74.3,
+   "investment": 80.5
+  },
+  "after_swap": {
+   "valuation": 75.7,
+   "quality": 92.6,
+   "growth": 63.9,
+   "momentum": 75.9,
+   "risk": 77.1,
+   "revisions": 82.1,
+   "size": 74.6,
+   "investment": 80.5
+  }
+ },
+ "metric_spanning": {
+  "candidate_r2_on_all_8": 0.2598,
+  "candidate_r2_on_momentum_alone": 0.2431,
+  "incumbent_r2_on_all_8": 0.3507,
+  "incumbent_r2_on_momentum_alone": 0.0776
+ },
+ "ranking": {
+  "spearman": 0.99701,
+  "median_abs_rank_move": 6.5,
+  "p90_abs_rank_move": 19.0,
+  "max_abs_rank_move": 46.0,
+  "top25_changed": 0,
+  "top25_leaving": [],
+  "top25_entering": [],
+  "top50_turnover": 3,
+  "names_moving_over_10": 158
+ },
+ "exposure": {
+  "composite_momentum_now": 0.3749,
+  "composite_momentum_after": 0.4031,
+  "composite_valuation_now": 0.563,
+  "composite_valuation_after": 0.5439
+ }
+}
