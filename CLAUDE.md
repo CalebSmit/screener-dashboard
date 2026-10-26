@@ -479,8 +479,10 @@ outcome.
   work on the bot; it has its own `CLAUDE.md` and `ROADMAP.md`.
   **Since 2026-10-24 the page is not what it should trade: `signals.json` is** - written by
   `scripts/write_signals.py` from the gated payload, only by the 02:00 loop, only after every
-  gate. See settled row "bot". The bot does not read it yet; wiring that up is owner-run work
-  in the other repo.
+  gate. See settled row "bot". **The bot reads it since 2026-10-25** (screener-bot `signals.check_tradable`): a rebalance
+  trades only when `signals.json` names the page's own `run_id`, `run_timestamp` and top 40 by
+  (rank, ticker) - so keep `write_signals.py`'s fields and its ordering, or the bot defers every
+  rebalance.
 
 ### Docs (public-facing - keep truthful)
 - `SCREENER_OVERVIEW.md` - canonical methodology reference. **Generated** by
