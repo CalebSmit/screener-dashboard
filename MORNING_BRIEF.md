@@ -1,4 +1,4 @@
-# Morning Brief - Monday 26 October 2026, 06:51
+# Morning Brief - Monday 26 October 2026, 13:40
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,15 +20,12 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#15: net income 16% off the filing) |
 | Context coverage | options usable 477/498 (21 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
-## Waiting for a decision
-
-A session researched these, proposed a change and left it for review. The next
-session decides and records why; you can also answer in `OWNER_FOCUS.md`.
-
-- **replace the scored *level* of implied upside with a 90-day *change* in the consensus target, scaled by price (section 6.2)** - open today - `research/2026-10-26-price-target-upside.md`
-
 ## What changed in the repo
 
+- `8894e3d log: 2026-10-26 13:00 - the price-target-change proposal reviewed and refused`
+- `fd142c7 decide: the price-target-change proposal is REFUSED, and the rule that refused it is now a test`
+- `b31e971 measure: the proposed target-change metric is 94% momentum in its spanned variance`
+- `39f6a30 brief: code session 2026-10-26`
 - `6ed80a6 research: the delegated reads returned late and sharpened the note's reasoning`
 - `6043575 research: price_target_upside - the level is 71% price, and the literature scores the change`
 - `3dcc5a4 measure: price_target_upside is 71% price, not analyst opinion, at the monthly horizon`
@@ -40,58 +37,54 @@ session decides and records why; you can also answer in `OWNER_FOCUS.md`.
 - `61890df plan: the 2026-10-25 mutation audit - 24 mutations, 11 claims, 4 real gaps and a false claim`
 - `8564552 claims audit: the capex note's 5% reconciliation had no check that could see it`
 - `905b2aa claims: register the two new summary.weakest boundary checks`
-- `fc888b8 claims audit: two untested bars, a test named for a strictness it could not see, and a register sentence no code ever obeyed`
-- `12b1b94 brief: code session 2026-10-25-weekend`
-- `ef1a514 log: the 2026-10-25 weekend session - the positive control as a ledger row`
-- `96ac5f6 test: the rerun planner's new shape - controls last, an unbuilt arm reported not run`
 
 ## The session's own account
 
-> 2026-10-26 (06:00 session) - RESEARCH. The last unresearched weighted metric: `price_target_upside` is 71% price and 29% analyst at the horizon we score it over - and the screener is accidentally on the right side of the one thing the literature actually tested
+> 2026-10-26 (13:00 midday session) - QUEUE. The morning's proposal reviewed and REFUSED: the candidate is a real revision metric, and 94% of its overlap with the rest of the screener is momentum
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-25 13:00 midday session
-> ended "Run complete: shipped to main" at 13:44, tag `good/2026-10-25-1344`. Data loop published?
-> **yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, top EXPE MU APA HST
-> INCY; this is the run that wrote the **first `signals.json`**, as the 10-24 entry predicted.
-> Evidence base at `1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4 effective**
-> (`_n_observations` 4 against a gate of 8; 36 is the row count and never the one to quote; the
-> whole file reads 95 rows / 2026-10-16, which is the number that cannot stand still). Priority 0:
-> `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
-> 2026-10-12, **age 14 days**) - advanced today rather than deferred, see below.
-> **Tests:** before **3152 passed, 1 skipped** (376.8s) - identical to the 10-25 midday session's
-> after-count, so no drift overnight. After **3152 passed, 1 skipped** - no production code changed
-> today (Monday).
-> **Owner queue / rotation:** `OWNER_FOCUS.md`'s top open item is 2026-10-20, whose sub-items 1, 2, 4
-> and 5 are closed; **no proposal was waiting** (`open_proposals()` returns `[]`), which is the first
-> thing the prompt asks. So the day's focus stood, and I took the Monday research slot in the way
-> that also advances the top roadmap item: `plan/factor-lab.md`'s "From the lab to the weights" names
-> five ranked weight questions, and this is the metric-level residual of question 2's category. **One
-> thing deferred and stated:** sub-item 6's extended universe, which the last two sessions also
-> deferred - it needs a records rebuild plus a ~45-minute serial append-only rerun, and a research
-> day was not the session to start it. Sub-item 3's next mutation pass is likewise untouched.
+> **Health (rule 8, all five):** last code session ran? **yes** - the 06:00 session this morning
+> ended "Run complete: shipped to main" at 06:51, tag `good/2026-10-26`. Data loop published?
+> **yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, top EXPE MU APA
+> HST INCY. Evidence base at `1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4
+> effective** (`_n_observations` 4 against a gate of 8; unchanged since 02:00, as it should be -
+> no data run between the two sessions). Priority 0: `allow_auto_apply` **false**, unchanged. Top
+> open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 14 days**) - advanced,
+> since the proposal decided today came off its "From the lab to the weights" route.
+> **Tests:** before **3152 passed, 1 skipped** (367.4s) - identical to the 06:00 session's
+> after-count, so no drift. After **3159 passed, 1 skipped** - the 7 new tests are the guard below;
+> no production code changed.
+> **Owner queue / rotation:** took `OWNER_FOCUS.md` **item 1, deciding the open proposals** - the
+> one the 06:00 session left this morning, which the brief and `prompts/nightly.md` both put ahead
+> of the day's focus. Carried on from the morning's **Next**, which named exactly this ("the open
+> proposal above needs a second reader ... its first step is cheap and decisive") and also asked
+> for §3.1's three **[VERIFY FIRST]** papers to be verified; both are done. **Nothing was
+> reversed.** Deferred: `OWNER_FOCUS.md` sub-item 6's extended universe, now **four** consecutive
+> sessions - see **Next** for why the deferral-streak rule has still not triggered and what would
+> trigger it.
 > 
 > ### Did
 > 
-> **Picked the one weighted metric in the composite with no research note of its own.** Everything
-> around `price_target_upside` has been researched - the category was rebuilt on a 1,022-line note,
-> `earnings_acceleration` was zeroed, `short_interest_ratio`'s data history was probed. This metric
-> is mentioned four times across all of `research/` and examined nowhere; the category rebuild's own
-> table says only "role unchanged". It carries 13.5 of the Revisions category's 100 points, so
-> **1.35 composite points**, and it is the only metric in that category that is a *level* rather than
-> a change - with price in its denominator.
+> **Decided the open proposal: REFUSED.** `research/2026-10-26-price-target-upside.md` §6.2 asked a
+> later session to take `price_target_upside`'s 13.5 points off the scored *level* of analyst
+> implied upside and put them on a 90-day *change* in the consensus target. The decision and every
+> figure are **§8** of that note, written by a session that did not write §1-§7. Two measurement
+> scripts: `research/measurements/2026-10-26-target-change-candidate.py` (the candidate built over
+> three windows on every end date the committed payload history supports - 49, 31 and 18 of them)
+> and `-target-change-span.py` (the §8.4 regression on the published run).
 > 
-> `research/2026-10-26-price-target-upside.md`, with
-> `research/measurements/2026-10-26-price-target-upside.py` + `.json`, and a second committed script
-> that re-verifies every quoted paper figure against the PDF bytes.
-> 
-> **1. The measurement, from data already on disk - no return, IC or backtest read anywhere.**
-> Implied upside in logs is exactly `log(target) - log(price)`, so its change decomposes additively.
-> Reading `pt_mean` and `price` out of **56 committed versions of `dashboard_data.js`**:
-> 
-> - Between consecutive published runs the median absolute log change in the consensus target is
->   **exactly 0.0000** while the price moves 0.26-2.7%, and **60-77% of targets are byte-identical**.
->   corr(d upside, d price) runs **-0.82 to -0.99**.
-> - The term structure, which is the part that matters, because daily is not the horizon anything is
+> - **It passed its own first test.** The note made the duplication check step 2 and said "if (2)
+>   finds the duplication, the honest outcome is **no change**". It is not a duplicate: **+0.3475**
+>   within sector against `fy1_revision_3m` at the proposal's own 90-day window (16 end dates),
+>   +0.3028 at 63 days, +0.1978 at 30. Against the incumbent's **-0.007**, the candidate genuinely
+>   is the construct-validity improvement §6.2 claimed - it belongs to the category it would sit in
+>   and the incumbent does not. So the escape hatch did not fire and the proposal had to be judged
+>   on the test it deferred.
+> - **It fails the §8.4 spanning test, which is the one `config.yaml` requires.** With the 13.5
+>   points moved and nothing else touched, **`revisions ~ momentum` goes +0.2223 -> +0.3778**,
+>   through the **~0.35** bar `research/2026-09-07-...` §8.4 set *before seeing its own number* -
+>   the same bar that **admitted** `fy1_revision_3m` at +0.317, which is precisely why it is not
+>   available to be widened now that it refuses something. The rebuild the counterfactual rests on
+>   reproduces the published Revisions score at Spearman **1.0** and **0.0 points** mean absolute
 > ...
 
 ---
