@@ -1,4 +1,4 @@
-# Morning Brief - Monday 26 October 2026, 02:27
+# Morning Brief - Monday 26 October 2026, 06:51
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -20,8 +20,19 @@ history is in `NIGHTLY_LOG.md`.
 | Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#15: net income 16% off the filing) |
 | Context coverage | options usable 477/498 (21 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
+## Waiting for a decision
+
+A session researched these, proposed a change and left it for review. The next
+session decides and records why; you can also answer in `OWNER_FOCUS.md`.
+
+- **replace the scored *level* of implied upside with a 90-day *change* in the consensus target, scaled by price (section 6.2)** - open today - `research/2026-10-26-price-target-upside.md`
+
 ## What changed in the repo
 
+- `6ed80a6 research: the delegated reads returned late and sharpened the note's reasoning`
+- `6043575 research: price_target_upside - the level is 71% price, and the literature scores the change`
+- `3dcc5a4 measure: price_target_upside is 71% price, not analyst opinion, at the monthly horizon`
+- `6a618c8 brief: data run 2026-10-26`
 - `18bb07d data: screener run 2026-10-26 - 498 scored, top: EXPE MU APA HST INCY`
 - `30f7b28 CLAUDE.md: the bot reads signals.json since 2026-10-25 - keep write_signals.py's fields and order`
 - `c637b84 brief: code session 2026-10-25-midday`
@@ -33,58 +44,54 @@ history is in `NIGHTLY_LOG.md`.
 - `12b1b94 brief: code session 2026-10-25-weekend`
 - `ef1a514 log: the 2026-10-25 weekend session - the positive control as a ledger row`
 - `96ac5f6 test: the rerun planner's new shape - controls last, an unbuilt arm reported not run`
-- `4cc2f50 OWNER_FOCUS: sub-item 4 done - the positive control is a ledger row`
-- `f49474d the positive control ran: +0.0512 of monthly IC, t 5.59, inside its band`
-- `bc25a63 wip: the plan's item 4(c), the note's method, and the log entry's health block`
-- `ea102de the page's 'the test can see a signal' claim reads the control's row, or says nothing`
 
 ## The session's own account
 
-> 2026-10-25 (13:00 midday session) - the claims register's second mutation pass: four bars nothing could see, a test named for a strictness it did not test, and one claim that was simply false
+> 2026-10-26 (06:00 session) - RESEARCH. The last unresearched weighted metric: `price_target_upside` is 71% price and 29% analyst at the horizon we score it over - and the screener is accidentally on the right side of the one thing the literature actually tested
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - today's 06:00 weekend session
-> ended "Run complete: shipped to main" at 08:13, tag `good/2026-10-25`. Data loop published?
-> **yes** - 2026-10-23 02:28, HEALTH PASS, 498 scored; **no 02:00 run on 10-24 or today, correctly -
-> Saturday and Sunday**; the next is Monday 2026-10-26, which brings the first `signals.json`.
-> Evidence base at `1m` = **35 rows, newest 2026-09-22 (33 days ago, bound 40), 4 effective**
-> (`_n_observations` 4; 35 is the row count and never the one to quote). Priority 0:
-> `allow_auto_apply` **false**, 4 of 8 effective observations. Top open roadmap item: **0.13, the
-> Factor Lab** (opened 2026-10-12, **age 13 days**) - deferred again; experiment 18 is unstarted and
-> the next non-retrospective Friday is 2026-11-06, so nothing about it is time-critical, and this
-> session took an owner sub-item that outranks it.
-> **Tests:** before **3149 passed, 1 skipped** (364.6s) - identical to the 06:00 session's after
-> count, so no drift. After **3152 passed, 1 skipped** (+3: two in `test_stock_summary.py`, one in
-> `test_capex_lease_note.py`).
-> **Owner queue / rotation:** `OWNER_FOCUS.md` 2026-10-20, **sub-item 3, "Test the tests"** - the
-> claims mutation audit. No proposal was waiting (`open_proposals()` returns `[]`). This item had
-> been named as Next by **three** consecutive sessions and never taken, and the 06:00 entry said
-> plainly that a session with no proposal waiting and no broken loop should take it rather than make
-> it a fourth deferral. I did. The morning's own Next - the extended universe - is deferred and
-> stated below, because it needs a rebuild plus a ~45-minute serial rerun and this slot had under
-> three hours.
+> **Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-25 13:00 midday session
+> ended "Run complete: shipped to main" at 13:44, tag `good/2026-10-25-1344`. Data loop published?
+> **yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, top EXPE MU APA HST
+> INCY; this is the run that wrote the **first `signals.json`**, as the 10-24 entry predicted.
+> Evidence base at `1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4 effective**
+> (`_n_observations` 4 against a gate of 8; 36 is the row count and never the one to quote; the
+> whole file reads 95 rows / 2026-10-16, which is the number that cannot stand still). Priority 0:
+> `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
+> 2026-10-12, **age 14 days**) - advanced today rather than deferred, see below.
+> **Tests:** before **3152 passed, 1 skipped** (376.8s) - identical to the 10-25 midday session's
+> after-count, so no drift overnight. After **3152 passed, 1 skipped** - no production code changed
+> today (Monday).
+> **Owner queue / rotation:** `OWNER_FOCUS.md`'s top open item is 2026-10-20, whose sub-items 1, 2, 4
+> and 5 are closed; **no proposal was waiting** (`open_proposals()` returns `[]`), which is the first
+> thing the prompt asks. So the day's focus stood, and I took the Monday research slot in the way
+> that also advances the top roadmap item: `plan/factor-lab.md`'s "From the lab to the weights" names
+> five ranked weight questions, and this is the metric-level residual of question 2's category. **One
+> thing deferred and stated:** sub-item 6's extended universe, which the last two sessions also
+> deferred - it needs a records rebuild plus a ~45-minute serial append-only rerun, and a research
+> day was not the session to start it. Sub-item 3's next mutation pass is likewise untouched.
 > 
 > ### Did
 > 
-> **`OWNER_FOCUS.md` 2026-10-20 sub-item 3: the second mutation pass over `claims.py`.**
-> `plan/claims-mutation-audit.md`, rows 39-62. Method unchanged: for each registered sentence that
-> states a number, make the smallest plausible edit that makes the sentence false, run **only** that
-> claim's `checked_by`, and record caught or gap. **24 mutations on 11 claims: 15 caught, 4 real
-> gaps, 5 gaps in the register, and 1 mutation that could not be made because the claim was already
-> false.** Every gap now fails a registered check, and every mutation was **re-run after its fix and
-> required to read CAUGHT** - which caught me out once: two fixes first came back as register gaps
-> because I had written the test and not yet named it in `checked_by`.
+> **Picked the one weighted metric in the composite with no research note of its own.** Everything
+> around `price_target_upside` has been researched - the category was rebuilt on a 1,022-line note,
+> `earnings_acceleration` was zeroed, `short_interest_ratio`'s data history was probed. This metric
+> is mentioned four times across all of `research/` and examined nowhere; the category rebuild's own
+> table says only "role unchanged". It carries 13.5 of the Revisions category's 100 points, so
+> **1.35 composite points**, and it is the only metric in that category that is a *level* rather than
+> a change - with price in its denominator.
 > 
-> **One improvement to the harness, which is the reason the numbers above are legible.** It now runs
-> the claim's `checked_by` *and* the whole of each module those tests live in, so "nothing in the
-> suite checks this" and "the suite checks it but the register does not say so" are separate
-> verdicts. The 2026-10-20 pass had to tell them apart by hand and its rows 35 and 37 record the
-> distinction informally. Five of this pass's nine gaps were the second kind.
+> `research/2026-10-26-price-target-upside.md`, with
+> `research/measurements/2026-10-26-price-target-upside.py` + `.json`, and a second committed script
+> that re-verifies every quoted paper figure against the PDF bytes.
 > 
-> **The four real gaps** - nothing anywhere in the suite saw them (verified: only the one module
-> references each symbol):
+> **1. The measurement, from data already on disk - no return, IC or backtest read anywhere.**
+> Implied upside in logs is exactly `log(target) - log(price)`, so its change decomposes additively.
+> Reading `pt_mean` and `price` out of **56 committed versions of `dashboard_data.js`**:
 > 
-> 1. **`summary.weakest`, `LARGEST_SIZE_SCORE` 10 -> 11.** The sentence says "at 10 or under, one of
->    the largest"; the four registered checks probe Size at 2, 30 and 55, so the bar could have sat
+> - Between consecutive published runs the median absolute log change in the consensus target is
+>   **exactly 0.0000** while the price moves 0.26-2.7%, and **60-77% of targets are byte-identical**.
+>   corr(d upside, d price) runs **-0.82 to -0.99**.
+> - The term structure, which is the part that matters, because daily is not the horizon anything is
 > ...
 
 ---
