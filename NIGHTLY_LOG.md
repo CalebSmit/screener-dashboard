@@ -15336,8 +15336,70 @@ consensus estimate, not target versus price.
   a ~45-minute serial rerun of an append-only ledger is not a thing to begin on a research day with
   a 09:00 deadline; a half-finished one is worse than none.
 
+### Addendum, written after the above: the delegated reads returned late and they changed the note
+
+Three background paper/practice reads returned **after** sections 1-2 were committed. Two of them
+handed over PDFs, so I checked their load-bearing figures against the bytes myself; the rest is
+marked unverified in the note's new §3.1 and nothing rests on it. What they changed:
+
+- **The strongest citation in the note now confirms my own measurement, independently.** Green,
+  Hand & Sikochi (2024, *Review of Accounting Studies* 29(1), 889-915, open access) run quantile
+  regressions on target-price implied returns and report, **verified at PDF p. 18**: "The
+  coefficient of **-0.92 on MOM-** in the 90th quantile IRET regression indicates that a 1% more
+  negative MOM- is associated with an 0.92% higher IRET, **almost an inverse one-to-one relation**",
+  concluding that "an important determinant of analysts' claimed undervaluation is **transitory
+  declines in market prices**." That is my 71.4% restated as a slope, on 2001-2017 analyst-report
+  text rather than 2026 Yahoo data. Their bound on what survives: the level predicts returns at
+  **16-18 cents on the dollar**, only where analysts claim undervaluation, only 1-2 quarters out.
+- **And the strongest counter-evidence to my own reading, which is now in the note.** Da &
+  Schaumburg's Table 2 Panel B (**verified, PDF p. 9**): in their S&P 500 sample "less than 1.5% of
+  these stocks have a target price during the current month and none during the previous two
+  months", and the highest-TPER portfolio's recent changes "are dominated by **upgrades**" (55%
+  against 22%). Bilinski et al. (2013, *TAR* 88(3), verified) point the same way - adjusting for
+  revisions moves the met-target rate only 59.1% -> 43.4%. **So "the metric is stale data" is too
+  strong and I am not claiming it.** Mine is a time-series fact (a month apart, the target moves a
+  quarter as much as the price); theirs is a cross-sectional one (high-upside names are covered and
+  recently upgraded). Both hold, and Brav & Lehavy's 9%-a-week correction is why.
+- **Practice turned out to be unanimous on seven primary documents, not two.** Five more rulebooks
+  were page-pinned (FTSE Global Factor Index Series v8.8, which governs the Russell Comprehensive
+  Factor indexes; S&P Quality; S&P QVM; S&P Momentum): across all of them the strings "price
+  target" and "target price" appear **zero times**, and S&P's "risk-adjusted momentum" is a
+  realised 12-1 price return over its own realised daily volatility. The one analyst input either
+  index house scores is Russell style's I/B/E/S two-year **growth-rate** forecast - and §8.10.1
+  **shrinks it toward the sector mean when coverage is thin** (1 analyst -> 1/3 own score, 2 -> 2/3,
+  3+ -> full), which is a reliability treatment worth copying whatever happens to this metric.
+  Reported but unverified: MSCI's 2025 Analyst Sentiment index *does* use price-target data, as a
+  revisions ratio and a change, and **defines no target-to-price descriptor** while defining
+  exactly that for earnings, cash flow and sales.
+- **The proposal's construction changed as a result.** My first draft scaled the target change by
+  the lagged price; MSCI's `PTGF_C` scales by the **target's own mean absolute level** and S&P
+  Global MI's documented signal is simply `TP_t / TP_{t-1m}`. Scaling by price would smuggle the
+  price back in and partly re-create the defect. Also new: S&P MI reports **86% monthly turnover**
+  on a 1-month target change, so the 90-day window is probably the right trade and Novy-Marx &
+  Velikov's 50% bound is the check.
+- **§4's conclusion survived but its reasoning did not.** I had written "literature partly supports
+  it, practice does not, so they disagree and the weight stays". With the later and larger samples
+  in, the literature mostly does *not* support the level either. The weight still does not move
+  today - but because the change the evidence points to is a **substitution**, not a cut, and that
+  needs its own measurement first. A cut would discard the one thing both camps call informative.
+  **The honest version is that I got the right answer for the wrong reason in the first draft, and
+  the note now says so in §4.**
+
+One process note worth keeping: the sweep was commissioned at the start of the session and returned
+near the end, so §7 of the first committed draft said it "did not return in time" - which was true
+when written and false twenty minutes later. Rule 9 cuts both ways; a note is a dated artifact and
+the fix is an addendum that says when each part was known, not a silent rewrite.
+
 ### Next
 
+- **Verify §3.1 before anyone uses it.** Three items are marked **[VERIFY FIRST]** in the note:
+  Palley, Steffen & Zhang (2024, *Management Science* 71(3) - reported long-top/short-bottom on
+  implied return of **-4.60%, t -3.08**), Han, Kang & Kim (2022, *JFM* 59 - betting against
+  optimism, reported **stronger in large caps**), and AQR's *Quality Minus Junk* Table X (reported
+  implied upside falling 0.27 -> 0.16 from junk to quality while realized returns rise 0.08 ->
+  0.13). The last is the one most specific to this screener: if it reads as reported, 22 points of
+  Quality and 1.35 points of implied upside are pulling against each other, and my own -0.171
+  within-sector reading is the same sign.
 - **`short_interest_ratio` is the obvious next Monday**, and it is the same shape of gap: 13.5
   points of the Revisions category, -0.238 within sector against the metric researched today, no
   research note, and a *documented free data history* already probed on 2026-10-23

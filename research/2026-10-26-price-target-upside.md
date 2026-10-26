@@ -346,6 +346,155 @@ So the two production systems this project has documented both build their sell-
 out of **changes in earnings estimates**, and neither scores the level of a price target. That is a
 real finding and it points the same way as §2.2: the informative object is the revision.
 
+### 3.0 The wider sweep, returned late — the verified half
+
+Two further reads returned **after** §1–§2 were committed. Where they handed over a PDF, I checked
+the figure against the bytes myself; those are below and are load-bearing. Where they did not,
+the material is in §3.1 and is explicitly not load-bearing.
+
+**Green, Hand & Sikochi (2024) measure my §1.2 finding, independently, in a peer-reviewed open-access
+paper — and it is the single most important citation in this note.** "The Asymmetric Mispricing
+Information in Analysts' Target Prices", *Review of Accounting Studies* 29(1), 889–915,
+DOI [10.1007/s11142-022-09730-z](https://doi.org/10.1007/s11142-022-09730-z). Analyst-report text
+from Thomson ONE Investext, 2001–2017; 9,781 US and 64,285 international analyst-report
+observations. From their Table 7 quantile regressions (verified, PDF p. 18):
+
+> "The coefficient of **−0.92 on MOM− in the 90th quantile IRET regression** indicates that a 1%
+> more negative MOM− is associated with an 0.92% higher IRET, **almost an inverse one-to-one
+> relation**. In comparison, the coefficient of 0.03 on MOM+ is just 1/30th as large."
+
+and their own reading of it:
+
+> "This table suggests that **an important determinant of analysts' claimed undervaluation is
+> transitory declines in market prices.**"
+
+At the top of the implied-upside distribution — which is where this screener's percentile puts its
+best scores — a 1% fall in the stock produces a 0.92% rise in implied upside. That is §1.2's
+71.4% stated as a slope, from different data, a different vendor, a peer-reviewed sample, and a
+window ending in 2017. My measurement is not a Yahoo artifact.
+
+Their headline result also bounds how much is left once that is accounted for: "target prices only
+predict future returns (at **16 cents to 18 cents on the dollar**) when analysts claim
+undervaluation, not when they claim overvaluation" (PDF p. 1) — and only one to two quarters out.
+
+**Bradshaw, Brown & Huang: the size of the implied upside is the strongest known predictor that the
+target will not be met.** "Do sell-side analysts exhibit differential target price forecasting
+ability?", *Review of Accounting Studies* 18(4), 930–955,
+DOI [10.1007/s11142-012-9216-5](https://doi.org/10.1007/s11142-012-9216-5). *Read from the 2005
+working-paper version, which is a different sample (First Call, 1997–2002, N = 95,852) from the
+published 2013 paper — flagged.* Verified from the bytes: across TP/P quintiles the target is met
+at 12 months "**41 percent of the time**" in the least optimistic quintile and "met just **7 percent
+of the time** at 12 months" in the most optimistic (PDF pp. 18–19); and in the logit, "the control
+variable with the **greatest explanatory power is TP/P**, which is negatively related to target
+prices being met" (PDF p. 21). Note also that the published abstract reports targets met at 12
+months only 38% of the time on a 2000–2009 sample (second-hand, abstract only).
+
+**Bilinski, Lyssimachou & Walker: targets carry thin but real skill, and revisions are not what
+makes them accurate.** "Target Price Accuracy: International Evidence", *The Accounting Review*
+88(3), 825–851, DOI [10.2308/accr-50378](https://doi.org/10.2308/accr-50378). I/B/E/S, 16
+countries, 2002–2009, N = 552,165. Verified: "**59.1%** of TP forecasts are met at some point
+during the 12-month forecast period" (PDF p. 21); "analyst TPs meet or exceed the accuracy of naïve
+price forecasts in **74.5%** of cases, and the analysts' absolute TP forecast error is **9.8%
+lower**" than a naïve trailing-return forecast (PDF p. 3); mean absolute error 44.7% overall and
+"**in the US ... among the highest in the sample at 49.5%**" (PDF p. 22).
+
+**The strongest counter-evidence to my own §1.2, which must be stated.** Da & Schaumburg's Table 2
+Panel B (verified, PDF p. 9) says that in their S&P 500 sample a high TPER is *not* a stale target:
+
+> "The S&P 500 stocks receive frequent target price coverage: **less than 1.5% of these stocks have
+> a target price during the current month and none during the previous two months.** The percentage
+> of target price upgrades increases monotonically with TPER. In Portfolio 1, which has the highest
+> TPER, the recent target price changes are dominated by **upgrades** (percentage upgrades and
+> downgrades are 55% and 22%, respectively)."
+
+Bilinski points the same way: adjusting for revisions moves the met-target rate only from 59.1% to
+43.4%, and the revision-adjusted and raw accuracy measures correlate 0.726–0.744, "which suggests
+that TP revisions have little effect on the accuracy measures."
+
+**How I reconcile that with §1.2, and the limit of my own claim.** These are different statements
+and both can hold. Mine is a *time-series* fact — between two runs a month apart, the target moves
+a quarter as much as the price. Theirs is a *cross-sectional* fact — the stocks that end up with the
+highest implied upside are covered, and recently upgraded. A target can be revised often and still
+move less than the price; Brav & Lehavy's 9%-a-week correction is exactly that. But it does mean
+**"the metric is stale data" is too strong a claim, and I am not making it.** The claim I make is
+the measured one: at a one-month horizon 71.4% of the variation in this metric is price, and
+Green, Hand & Sikochi get −0.92 for the same thing at the top of the distribution.
+
+### 3.1 The rest of the sweep, NOT VERIFIED BY ME
+
+The provider sweep §7 originally recorded as "did not return" **did return, after this note's
+measurement and literature sections were committed.** Its material is substantial and it changes
+the balance of §4, so it is recorded here rather than dropped — but **every figure in this
+subsection is second-hand**: it comes from a sub-agent that read primary methodology PDFs and
+papers, and I have **not** re-checked any of it against the documents in the way I checked §2.1 and
+§2.2. Nothing in §6 is permitted to rest on it, and the first job of the session that decides the
+proposal is to verify the three items marked **[VERIFY FIRST]**.
+
+**The sharpest reported fact, and it is about a deliberate omission.** MSCI's *Analyst Sentiment
+Indexes Methodology* (April 2025) **does** use price-target data — as two descriptors in a
+`PRICE TGT` group: a price-target **revisions ratio** (`PTG_RR_SLOW`, scaled by analyst count) and a
+**change** in the analyst-predicted target (`PTGF_C`, scaled by the mean absolute level of the
+target itself). And MSCI builds an *estimate-to-price* descriptor for three other estimate types —
+`ETOPF_C`, `CPSTOPF_C`, `SALTOPF_C` — but reportedly **defines no target-to-price descriptor at
+all.** If that is right, the provider best placed to build this screener's metric considered the
+family, built the price-scaled version for earnings, cash flow and sales, and declined to build it
+for price targets. That is a stronger statement than "nobody uses it".
+
+**Practice is unanimous, and the sweep now covers five more primary rulebooks.** Read by a
+sub-agent with page-pinned quotes, not re-checked by me: the **FTSE Global Factor Index Series
+Ground Rules** v8.8 (July 2026, 43pp — which governs the Russell 1000/2000 Comprehensive Factor
+indexes too) scores eight factors, every one trailing-reported or price-derived, with **zero**
+occurrences of analyst/forecast/estimate/I/B/E/S; **S&P Quality Indices** (March 2025, 33pp) and
+**S&P Quality, Value & Momentum Multi-factor** (August 2022, 26pp) likewise have **zero** hits, and
+S&P's "risk-adjusted momentum" turns out to be a realised 12-1 price return over its own realised
+daily volatility (**S&P Momentum Indices**, Nov 2014, Appendix A p. 17) — no analyst component at
+all. Across all five documents the strings "price target" and "target price" appear **zero times**.
+The one analyst input either index house scores is **Russell style's I/B/E/S forecast medium-term
+(two-year) earnings growth** (*Russell US Equity Indexes* v7.2, §8.2.1, p. 24) — and even that is
+handled with more care than this screener gives implied upside: §8.10.1 (p. 28) **shrinks it toward
+the sector mean when coverage is thin** (1 analyst → ⅓ own score, 2 → ⅔, 3+ → full), and it is
+banded to damp turnover. That shrinkage rule is worth copying regardless of what happens to this
+metric.
+
+The distinction the two fully-transparent index houses draw is the one this note keeps arriving at:
+a growth forecast is an analyst's estimate of a **fundamental**; implied upside is an analyst's
+**valuation opinion** divided by the market's. They score the first and not the second.
+
+**Three papers that, if they hold, flip §4 rather than refine it:**
+
+- **[VERIFY FIRST]** Palley, Steffen & Zhang (2024), "The Effect of Dispersion on the
+  Informativeness of Consensus Analyst Target Prices", *Management Science* 71(3), 2264–2288.
+  465,797 firm-months, Jul 1999 – Jun 2018. Reported: deciles 1–8 on implied return are flat near
+  12%, then **fall** to 10.84% and 7.28%, so long-top/short-bottom is **−4.60% (t −3.08)** — the
+  highest implied upside has the *worst* subsequent returns. Dispersion is the moderator:
+  **+2.96% (t 2.54)** in the lowest-dispersion decile against **−11.44% (t −5.34)** in the highest.
+- **[VERIFY FIRST]** Han, Kang & Kim (2022), "Betting against analyst target price", *Journal of
+  Financial Markets* 59, 100677. Reported: prices initially move with targets then drift back;
+  betting against earns **0.98%/month (t 3.80)**, 1999–2015, and — the part that matters most here
+  — **stronger among large and liquid stocks.**
+- Da, Hong & Lee (2016), *JBFA* 43(3–4), 487–510, DOI 10.1111/jbfa.12176 — **the same lead author
+  as §2.1**, reported as finding the *absolute* valuation implied by target prices uninformative,
+  consistent with the 2011 paper's own sector-relative/absolute split.
+
+**And the one explicit practitioner statement, which is almost exactly this note's proposal:**
+S&P Global Market Intelligence Quantamental Research (Tortoriello, Sept 2018) reportedly states
+that "consensus target prices and recommendations lack predictive power themselves" while
+"short-term **changes** in target prices ... have been historically predictive", with the simple
+**1-month change in consensus target price** (`TP_t / TP_{t−1m}`) giving long-only active 6.48% and
+long-short 11.39%, IR 1.42, Russell 3000, 2004–2017 — **at 86% monthly turnover**, which is the
+catch and is new information for §6.2.
+
+**[VERIFY FIRST]** Finally, the item most specific to this screener: AQR's *Quality Minus Junk*
+(Asness, Frazzini & Pedersen, *Review of Accounting Studies* 24(1), 2019,
+DOI 10.1007/s11142-018-9470-2) reportedly computes **exactly this metric** — "the ratio of the
+target price to the current price minus 1" — and uses it as evidence that analysts are wrong:
+Table X, US quality deciles, I/B/E/S 1999–2013, implied expected return runs **0.27 (junk) → 0.16
+(quality), H−L −0.11, t −9.86**, while realized 12-month return runs **0.08 → 0.13, H−L +0.05,
+t +6.62**. If that table reads as reported, then **implied upside falls monotonically in quality
+while realized return rises monotonically in it** — and a composite carrying 22 points of Quality
+alongside 1.35 points of implied upside is, in that one respect, scoring against itself. My own
+§1.3 measurement is the same sign and much weaker: −0.171 within sector against `quality_score`.
+
 ---
 
 ## 4. Where academia and practice agree, and where they disagree
@@ -361,11 +510,27 @@ and its own large-growth corner is insignificant; but it is a direct test of thi
 on a sample including the S&P 500, with 15 controls and net of costs, and it should not be waved
 away.
 
-**The project's reading rules were written before this question was asked, and they bind here**
-(`plan/factor-lab.md`, "How to read the evidence"): *"A change needs the lab and the literature or
-practice pointing the same way. Where they disagree the note says so and the weight stays."*
-Literature partly supports the construct the screener actually implements. Practice does not use it
-at all. That is a disagreement, so **the weight stays** and this note proposes no cut.
+**The balance shifted once §3.0 landed, and the honest statement is now narrower than "they
+disagree".** Da & Schaumburg's within-sector result is the one direct test that supports the
+construct, on 1996–2004. Against it, on later and larger samples: Green, Hand & Sikochi (2001–2017)
+find the level's information worth 16–18¢ on the dollar for one to two quarters and **only** on
+claimed undervaluation, with −0.92 of it manufactured by the price falling; Bradshaw, Brown & Huang
+find the size of the implied upside is the strongest known predictor that the target will **not** be
+met; and §3.1 reports two further papers (unverified) finding the top implied-upside decile has the
+*worst* subsequent returns and that betting against analyst optimism pays **more in large caps**.
+Practice is unanimous and now rests on seven primary documents: everyone scores *changes*, nobody
+scores the level, and MSCI — which built a price-scaled descriptor for earnings, cash flow and
+sales — reportedly declined to build one for price targets.
+
+**So the pre-written reading rule still lands on "no weight change", but for a different reason
+than I expected when drafting §1.** It is not that the evidence is balanced; it is that
+`plan/factor-lab.md` requires *"the lab and the literature or practice pointing the same way"* and
+**one change at a time, of at most 3 points** — and the change the evidence now points to is not a
+cut at all but a **substitution** (§6.2), which is a construction change needing its own
+measurement first. Cutting the weight to zero and stopping there would discard the one thing both
+camps agree is informative — the revision — and §1.4 shows it would move no top-25 name anyway. The
+weight stays **today**; the proposal below is the live question, and its priority is higher than it
+was before §3.0 returned.
 
 ---
 
@@ -408,9 +573,21 @@ this project's one-change-at-a-time budget on a rounding error.
 
 ### 6.2 The proposal, left OPEN for a second reader
 
-**Replace the scored level with a change: a 90-day change in the consensus target, scaled by
-price** — `(pt_mean_now − pt_mean_90d_ago) / price_90d_ago` — taking `price_target_upside`'s 13.5
-points, with the level retained as a display-only field.
+**Replace the scored level with a change in the consensus target**, taking
+`price_target_upside`'s 13.5 points, with the level retained as a display-only field.
+
+**On the scaling, which §3.0 changed my mind about.** My first draft divided the change by the
+lagged price. Two sourced constructions say not to: MSCI's `PTGF_C` scales the change by **the mean
+absolute level of the target itself** (a sign-robust symmetric percentage change, summed over four
+63-day buckets with weights 9/7/5/3), and S&P Global MI's documented signal is simply
+**`TP_t / TP_{t−1m}`**. Scaling by price would smuggle the price back into the numerator's
+denominator and partially re-create the defect being fixed. **Prefer the target's own level as the
+scale**, and follow MSCI's bucketed form if the payload history supports it. Also from §3.1, and
+new to me: S&P Global MI reports **86% monthly turnover** for the first decile of a 1-month target
+change — "analysts make frequent target price changes, particularly with stocks that are trending" —
+so a shorter window is not free, and the 90-day version is likely the right trade for a monthly
+screener. Novy-Marx & Velikov's 50% turnover bound is the relevant check, as it was for the hold
+band.
 
 Why this and not a cut:
 
@@ -463,14 +640,25 @@ The measurement is the load-bearing part of this note, so here is what refutes i
 
 ## 7. What this note does not cover
 
-- **An independent sweep of provider methodology documents.** §3 re-uses this project's own
-  sourced reading of the Barra USFAST datasheet and the Zacks Rank components rather than fresh
-  primary documents from MSCI, FTSE Russell, S&P DJI, LSEG StarMine, AQR and Research Affiliates. A
-  background sweep was commissioned this session and did not return in time. Two providers are
-  enough to establish that practice scores changes rather than target levels, and not enough to
-  claim that *no* provider scores the level. A later session should finish it; StarMine's Analyst
-  Revisions Model and MSCI's multi-factor index rulebooks are the two highest-value gaps.
-- **Asquith, Mikhail & Au (2005)**, read only second-hand (§2.3).
+- **Re-verification of §3.0 and §3.1.** The provider sweep and the second literature read returned
+  *after* §1 and §2 were committed. I verified the four figures §3.0 leans on against PDF bytes
+  myself (Green/Hand/Sikochi's −0.92 and 16–18¢; Bradshaw/Brown/Huang's 41%→7% and the TP/P logit
+  sentence; Bilinski's 59.1% / 74.5% / 49.5%; Da & Schaumburg's Table 2 Panel B upgrade
+  percentages). **Everything in §3.1 is unverified by me**, including the three items marked
+  **[VERIFY FIRST]** and the five FTSE Russell / S&P DJI rulebooks — those were page-pinned by a
+  sub-agent from primary documents, which is better than an abstract and is not the same as
+  checked. The deciding session verifies Palley/Steffen/Zhang, Han/Kang/Kim and AQR's Table X
+  before any of them is used for anything.
+- **Version gaps in the practice documents**, reported and not resolved: the S&P QVM methodology
+  read was August 2022 against a current December 2025, S&P Momentum November 2014 against August
+  2026, S&P Quality March 2025 against September 2025. The S&P **Enhanced Value** methodology — the
+  document defining QVM's value leg — was never opened. None of this bears on the price-target
+  question, which is a zero-hit finding in every version read.
+- **Asquith, Mikhail & Au (2005)**, read only second-hand (§2.3). Also not obtained: Bonini et al.
+  (2010), Bradshaw/Huang/Tan (2019) and **Dechow & You (2020)** — the last being the paper whose
+  title is closest to this note's question; its reported finding, that errors in forecasting the
+  expected return to risk proxies are the largest component of implied returns, is consistent with
+  everything above but rests on abstracts.
 - **Brav & Lehavy's beta-by-size breakdown.** Reported second-hand as 1.37 / 1.29 / 1.23 across
   small / medium / large terciles. I could not locate it in the PDF in the time available, so it is
   **not** asserted anywhere above; only the full-sample 1.28 / 1.26 / 1.20 / 1.33 figures, which I
