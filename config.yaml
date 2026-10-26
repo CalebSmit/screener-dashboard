@@ -130,6 +130,14 @@ metric_weights:
     # becomes the 4th largest of the 28 category pairs (+0.171 -> +0.317).
     # Adding any further momentum-adjacent metric here requires re-running the
     # SS8.4 spanning regression first, not just a citation.
+    # 2026-10-26: that rule is now a tripwire, not only a comment -
+    # tests/test_revisions_momentum_budget.py holds the published run's
+    # revisions~momentum to the ~0.35 bar SS8.4 pre-registered. It refused its first
+    # candidate the same day: replacing price_target_upside's 13.5 points with a
+    # 90-day change in the consensus analyst target reads +0.3778 (from +0.2223),
+    # and 94% of that candidate's spanned variance is momentum against the
+    # incumbent's 22%. Across all 57 published payloads the pair has never exceeded
+    # +0.3206. research/2026-10-26-price-target-upside.md SS8.
     # Evidence and a proposed weighting:
     # research/2026-09-07-revisions-category-has-no-revisions.md
 
