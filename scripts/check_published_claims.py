@@ -142,6 +142,12 @@ MODULES: tuple[tuple[str, str], ...] = (
      "was kept on 2026-10-13"),
     ("tests/test_large_company_evidence.py",
      "the large-company value and momentum figures on the page match the lab's data"),
+    # Added 2026-10-26: the Revisions category's independence budget, measured on the run
+    # being published. Here rather than left to the code loop because the figure it holds is
+    # a property of the scored table a data run rewrites every morning.
+    ("tests/test_revisions_momentum_budget.py",
+     "the run being published has not spent more of the Revisions category's independence "
+     "against Momentum than the SS8.4 bar allows"),
     ("tests/test_momentum_panic_rule.py",
      "the page describes the momentum regime rule the engine actually applies"),
     # Added 2026-10-15: the point-in-time limitation quotes the measured look-ahead from its JSON.
