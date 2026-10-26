@@ -15184,3 +15184,235 @@ register and to the publish gate as an open cost.
   whose only check reads the committed payload (rows 35-37's shape, plus row 57, which is *caught*
   only by a payload-reading test - so a wrong constant there merges green and first appears when
   the data loop refuses to publish the next morning). `plan/claims-mutation-audit.md`.
+
+## 2026-10-26 (06:00 session) - RESEARCH. The last unresearched weighted metric: `price_target_upside` is 71% price and 29% analyst at the horizon we score it over - and the screener is accidentally on the right side of the one thing the literature actually tested
+
+**Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-25 13:00 midday session
+ended "Run complete: shipped to main" at 13:44, tag `good/2026-10-25-1344`. Data loop published?
+**yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, top EXPE MU APA HST
+INCY; this is the run that wrote the **first `signals.json`**, as the 10-24 entry predicted.
+Evidence base at `1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4 effective**
+(`_n_observations` 4 against a gate of 8; 36 is the row count and never the one to quote; the
+whole file reads 95 rows / 2026-10-16, which is the number that cannot stand still). Priority 0:
+`allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened
+2026-10-12, **age 14 days**) - advanced today rather than deferred, see below.
+**Tests:** before **3152 passed, 1 skipped** (376.8s) - identical to the 10-25 midday session's
+after-count, so no drift overnight. After **3152 passed, 1 skipped** - no production code changed
+today (Monday).
+**Owner queue / rotation:** `OWNER_FOCUS.md`'s top open item is 2026-10-20, whose sub-items 1, 2, 4
+and 5 are closed; **no proposal was waiting** (`open_proposals()` returns `[]`), which is the first
+thing the prompt asks. So the day's focus stood, and I took the Monday research slot in the way
+that also advances the top roadmap item: `plan/factor-lab.md`'s "From the lab to the weights" names
+five ranked weight questions, and this is the metric-level residual of question 2's category. **One
+thing deferred and stated:** sub-item 6's extended universe, which the last two sessions also
+deferred - it needs a records rebuild plus a ~45-minute serial append-only rerun, and a research
+day was not the session to start it. Sub-item 3's next mutation pass is likewise untouched.
+
+### Did
+
+**Picked the one weighted metric in the composite with no research note of its own.** Everything
+around `price_target_upside` has been researched - the category was rebuilt on a 1,022-line note,
+`earnings_acceleration` was zeroed, `short_interest_ratio`'s data history was probed. This metric
+is mentioned four times across all of `research/` and examined nowhere; the category rebuild's own
+table says only "role unchanged". It carries 13.5 of the Revisions category's 100 points, so
+**1.35 composite points**, and it is the only metric in that category that is a *level* rather than
+a change - with price in its denominator.
+
+`research/2026-10-26-price-target-upside.md`, with
+`research/measurements/2026-10-26-price-target-upside.py` + `.json`, and a second committed script
+that re-verifies every quoted paper figure against the PDF bytes.
+
+**1. The measurement, from data already on disk - no return, IC or backtest read anywhere.**
+Implied upside in logs is exactly `log(target) - log(price)`, so its change decomposes additively.
+Reading `pt_mean` and `price` out of **56 committed versions of `dashboard_data.js`**:
+
+- Between consecutive published runs the median absolute log change in the consensus target is
+  **exactly 0.0000** while the price moves 0.26-2.7%, and **60-77% of targets are byte-identical**.
+  corr(d upside, d price) runs **-0.82 to -0.99**.
+- The term structure, which is the part that matters, because daily is not the horizon anything is
+  decided on. Beta is the slope of d log target on d log price - 0 means the target never moves,
+  1 means it fully tracks the price: **~7d +0.246, ~30d +0.245, ~91d +0.540, ~182d +0.823**. At the
+  **30-day** horizon the review cadence and the bot's rebalance both use, **the price move explains
+  71.4% of the variation in implied upside** and analysts changing their minds explain 28.6%.
+- Within sector the metric is **-0.403** with `jensens_alpha`, **-0.473** with the Risk score,
+  -0.317 with the Momentum score, +0.318 with Growth - and **-0.007 with `fy1_revision_3m`**, the
+  one metric in its own category that measures an analyst revision. A high implied upside
+  identifies a volatile stock that has recently fallen.
+- **What it buys: almost nothing.** Redistributing its 13.5 points in proportion moves the median
+  stock **4 ranks** and changes the top 25 by **0 names**. The reconstruction is exact first - the
+  rebuilt Revisions score is Spearman **1.0** and **0.0 points** from the published one, the
+  rebuilt composite 0.9999 - so that is this screener's arithmetic, not an approximation of it.
+
+**2. The literature, read from the PDF bytes, and it did not say what I expected.** Da & Schaumburg
+(2011, *JFM* 14(1)) is the one paper that tests this exact construct - "TPER = TP/P - 1", PDF p. 2 -
+and the decisive thing in it is a **comparison between two ways of ranking the same signal**: the
+**absolute** level across all stocks returns **79 bp/month, t 0.86, not significant**, while the
+**within-sector** sort returns **177 bp/month, t 3.55** (both PDF pp. 13-14). Their words: "it is
+relative and not absolute valuations that convey the most information to investors."
+**The screener scores a sector percentile, so it is on the supported side of the only distinction
+anyone has tested** - arrived at by this project's general sector-relative design, not by anyone
+reasoning about price targets, and worth writing down before someone "simplifies" that machinery.
+Four findings in the same paper cut the other way, three of them about our own universe and
+cadence: two-thirds of the first month's profit lands in **two weeks** with nothing in months 2-6
+(p. 13); **Large growth is 0.23% risk-adjusted, t 0.37** (p. 28); it decays after decimalization
+and Reg FD (p. 3); and the staleness channel is in their data too - "High (low) TPER stocks tend to
+have a lower (higher) past return at the one-to-six month horizon" (p. 7).
+
+**3. The mechanism, and an independent cross-check I did not go looking for.** Brav & Lehavy (2003,
+*JF* 58(5), DOI 10.1111/1540-6261.00593) find the level is a persistent firm baseline - the long-run
+target/price ratio averages **1.28** across 900 firms, 25th/75th 1.20/1.33 (PDF p. 27), so ranking
+the level across all stocks largely ranks firm identity, which is why the absolute sort is t 0.86.
+And when a gap is wide it closes because **the analyst cuts the target**: "Market prices, in
+contrast, barely contribute to this correction phase" (p. 3), "predominantly made by analysts"
+(p. 28). Their estimated correction rate of 9% of the gap per week implies **31% / 71% / 91%**
+closed by 4, 13 and 26 weeks. **My betas at the matching gaps are 24.5% / 54.0% / 82.3%** - same
+shape, slightly slower, from a different vendor and a sample 27 years earlier. That is the best
+available evidence that section 1 is measuring analyst behaviour and not a Yahoo refresh cycle,
+which was the obvious objection to my own measurement.
+
+**4. Practice points the same way as the mechanism.** Barra USFAST's `Sentiment` factor has three
+analyst descriptors and **all three are changes** (revision ratio, change in analyst-predicted E/P,
+change in analyst-predicted EPS); there is no price-target descriptor anywhere in 24 style factors.
+The Zacks Rank's four components contain no price target either - its "Upside" is estimate versus
+consensus estimate, not target versus price.
+
+### Evidence / research
+
+- **Da, Z. & Schaumburg, E. (2011)**, "Relative valuation and analyst target price forecasts",
+  *Journal of Financial Markets* 14(1), 161-192,
+  <https://academicweb.nd.edu/~zda/TargetPrice.pdf>. First Call, Dec 1996-Dec 2004. Absolute TPER
+  sort **79 bp/month (t 0.86)**; within-sector **177 bp/month (t 3.55)**; net of costs 148 bp
+  (t 3.67, 17.8%/yr, p. 18); significant with all 15 characteristic controls (p. 21); **Large growth
+  0.23% risk-adjusted, t 0.37** (p. 28); two-thirds of month 1 in two weeks (p. 13).
+- **Brav, A. & Lehavy, R. (2003)**, *Journal of Finance* 58(5), 1933-1967,
+  DOI 10.1111/1540-6261.00593, <https://webuser.bus.umich.edu/rlehavy/BL.pdf>. First Call 1997-99,
+  223,016 targets on 6,544 firms. Long-run target/price ratio mean **1.28**, median 1.26, 25th/75th
+  1.20/1.33 (p. 27); correction is "predominantly made by analysts" (p. 28); unexpected revision
+  2.671 (t 27.0) but **"no reliable relationship" for the expected revision** (p. 29).
+- **MSCI Barra USFAST datasheet (March 2015)** and the **Zacks Rank**'s four components, both via
+  this project's own prior sourced reading in `research/2026-09-07-...` §2.1-2.2: every analyst
+  descriptor either provider ships is a *change*; neither scores a price-target level.
+- **Asquith, Mikhail & Au (2005)**, *JFE* 75(2) - **not obtained**; read second-hand from NBER
+  w9246 through a text proxy, flagged as such in §2.3, and **nothing in the recommendation rests on
+  it**.
+- Every figure in section 1 is reproducible from
+  `research/measurements/2026-10-26-price-target-upside.py`; every paper figure is re-checked
+  against the PDF bytes by `research/measurements/2026-10-26-verify-target-price-papers.py`.
+
+### Methodology changed
+
+- **None, deliberately, and the rule that says so was written before the question was asked.**
+  `plan/factor-lab.md`'s reading rules: *"A change needs the lab and the literature or practice
+  pointing the same way. Where they disagree the note says so and the weight stays."* Here the
+  literature partly supports the construct the screener actually implements (sector-relative, t
+  3.55) and practice does not use it at all. That is a disagreement, so the weight stays.
+  Materiality says the same from the other side: a cut moves the median stock 4 ranks and no top-25
+  name, so it would spend the one-change-at-a-time budget on a rounding error.
+- **One proposal left OPEN for a reader who did not write the note** (§6.2): replace the scored
+  *level* with a **90-day change in the consensus target scaled by price**, taking its 13.5 points,
+  with the level kept display-only. That is the object both camps point at, it is the same move this
+  category already made successfully in 2026-09-10 (build `fy1_revision_3m`, do not just delete the
+  broken thing), and it cannot be 71% price by construction. The note lists four things the
+  reviewing session must do first, and says plainly that **if step 2 finds it duplicates
+  `fy1_revision_3m`, the honest outcome is no change.**
+
+### Tried and rejected
+
+- **Cutting or zeroing the weight**, which is where the measurement alone pointed and where the two
+  precedents in this category (`sharpe_ratio`/`sortino_ratio`, `earnings_acceleration`) went.
+  Rejected by the pre-written reading rule above once Da & Schaumburg turned out to test the
+  *sector-relative* level and find it significant on a sample including the S&P 500. I had expected
+  to find the metric unsupported; the honest reading is that the screener is accidentally doing the
+  supported version of it.
+- **Asserting Brav & Lehavy's beta-by-size terciles (1.37 / 1.29 / 1.23).** Reported second-hand and
+  directly useful to my argument that the level is mostly firm identity - and I could not find it in
+  the PDF in the time available, so it is named in §7 as not asserted and the argument rests on the
+  full-sample 1.28 instead. The verification script is what caught this.
+- **Asserting a full provider sweep.** A background sweep of MSCI/FTSE/S&P/StarMine/AQR methodology
+  documents was commissioned and did not return before the time budget; §3 therefore re-uses this
+  project's own two sourced documents and §7 says explicitly that two providers establish that
+  practice scores changes, and do **not** establish that no provider scores the level.
+- **Starting sub-item 6's extended universe** (the last two sessions' Next). A records rebuild plus
+  a ~45-minute serial rerun of an append-only ledger is not a thing to begin on a research day with
+  a 09:00 deadline; a half-finished one is worse than none.
+
+### Addendum, written after the above: the delegated reads returned late and they changed the note
+
+Three background paper/practice reads returned **after** sections 1-2 were committed. Two of them
+handed over PDFs, so I checked their load-bearing figures against the bytes myself; the rest is
+marked unverified in the note's new §3.1 and nothing rests on it. What they changed:
+
+- **The strongest citation in the note now confirms my own measurement, independently.** Green,
+  Hand & Sikochi (2024, *Review of Accounting Studies* 29(1), 889-915, open access) run quantile
+  regressions on target-price implied returns and report, **verified at PDF p. 18**: "The
+  coefficient of **-0.92 on MOM-** in the 90th quantile IRET regression indicates that a 1% more
+  negative MOM- is associated with an 0.92% higher IRET, **almost an inverse one-to-one relation**",
+  concluding that "an important determinant of analysts' claimed undervaluation is **transitory
+  declines in market prices**." That is my 71.4% restated as a slope, on 2001-2017 analyst-report
+  text rather than 2026 Yahoo data. Their bound on what survives: the level predicts returns at
+  **16-18 cents on the dollar**, only where analysts claim undervaluation, only 1-2 quarters out.
+- **And the strongest counter-evidence to my own reading, which is now in the note.** Da &
+  Schaumburg's Table 2 Panel B (**verified, PDF p. 9**): in their S&P 500 sample "less than 1.5% of
+  these stocks have a target price during the current month and none during the previous two
+  months", and the highest-TPER portfolio's recent changes "are dominated by **upgrades**" (55%
+  against 22%). Bilinski et al. (2013, *TAR* 88(3), verified) point the same way - adjusting for
+  revisions moves the met-target rate only 59.1% -> 43.4%. **So "the metric is stale data" is too
+  strong and I am not claiming it.** Mine is a time-series fact (a month apart, the target moves a
+  quarter as much as the price); theirs is a cross-sectional one (high-upside names are covered and
+  recently upgraded). Both hold, and Brav & Lehavy's 9%-a-week correction is why.
+- **Practice turned out to be unanimous on seven primary documents, not two.** Five more rulebooks
+  were page-pinned (FTSE Global Factor Index Series v8.8, which governs the Russell Comprehensive
+  Factor indexes; S&P Quality; S&P QVM; S&P Momentum): across all of them the strings "price
+  target" and "target price" appear **zero times**, and S&P's "risk-adjusted momentum" is a
+  realised 12-1 price return over its own realised daily volatility. The one analyst input either
+  index house scores is Russell style's I/B/E/S two-year **growth-rate** forecast - and §8.10.1
+  **shrinks it toward the sector mean when coverage is thin** (1 analyst -> 1/3 own score, 2 -> 2/3,
+  3+ -> full), which is a reliability treatment worth copying whatever happens to this metric.
+  Reported but unverified: MSCI's 2025 Analyst Sentiment index *does* use price-target data, as a
+  revisions ratio and a change, and **defines no target-to-price descriptor** while defining
+  exactly that for earnings, cash flow and sales.
+- **The proposal's construction changed as a result.** My first draft scaled the target change by
+  the lagged price; MSCI's `PTGF_C` scales by the **target's own mean absolute level** and S&P
+  Global MI's documented signal is simply `TP_t / TP_{t-1m}`. Scaling by price would smuggle the
+  price back in and partly re-create the defect. Also new: S&P MI reports **86% monthly turnover**
+  on a 1-month target change, so the 90-day window is probably the right trade and Novy-Marx &
+  Velikov's 50% bound is the check.
+- **§4's conclusion survived but its reasoning did not.** I had written "literature partly supports
+  it, practice does not, so they disagree and the weight stays". With the later and larger samples
+  in, the literature mostly does *not* support the level either. The weight still does not move
+  today - but because the change the evidence points to is a **substitution**, not a cut, and that
+  needs its own measurement first. A cut would discard the one thing both camps call informative.
+  **The honest version is that I got the right answer for the wrong reason in the first draft, and
+  the note now says so in §4.**
+
+One process note worth keeping: the sweep was commissioned at the start of the session and returned
+near the end, so §7 of the first committed draft said it "did not return in time" - which was true
+when written and false twenty minutes later. Rule 9 cuts both ways; a note is a dated artifact and
+the fix is an addendum that says when each part was known, not a silent rewrite.
+
+### Next
+
+- **Verify §3.1 before anyone uses it.** Three items are marked **[VERIFY FIRST]** in the note:
+  Palley, Steffen & Zhang (2024, *Management Science* 71(3) - reported long-top/short-bottom on
+  implied return of **-4.60%, t -3.08**), Han, Kang & Kim (2022, *JFM* 59 - betting against
+  optimism, reported **stronger in large caps**), and AQR's *Quality Minus Junk* Table X (reported
+  implied upside falling 0.27 -> 0.16 from junk to quality while realized returns rise 0.08 ->
+  0.13). The last is the one most specific to this screener: if it reads as reported, 22 points of
+  Quality and 1.35 points of implied upside are pulling against each other, and my own -0.171
+  within-sector reading is the same sign.
+- **`short_interest_ratio` is the obvious next Monday**, and it is the same shape of gap: 13.5
+  points of the Revisions category, -0.238 within sector against the metric researched today, no
+  research note, and a *documented free data history* already probed on 2026-10-23
+  (`research/2026-10-22-free-data-that-adds-evidence.md` §7 has the build order, licence check
+  first). That would leave the category with every metric researched.
+- **The open proposal above needs a second reader** - it will appear in the morning brief's
+  "Waiting for a decision" from tomorrow. Its first step is cheap and decisive: measure whether a
+  90-day target revision duplicates `fy1_revision_3m` on the committed payload history. If it does,
+  close it as no change.
+- **A session with a long slot should take `OWNER_FOCUS.md` sub-item 6's extended universe** -
+  deferred by three consecutive sessions now, including this one. Register `only-size-extended`
+  first and alone, then budget the rebuild and the ~45-minute rerun in series. Three deferrals is
+  the point at which the rule says the next session carrying no owner item and no broken loop must
+  resolve or demote it.
+- **Finish the provider sweep** §7 leaves open: StarMine's Analyst Revisions Model and MSCI's
+  multi-factor index rulebooks, to settle whether *any* documented provider scores a target level.

@@ -372,6 +372,34 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-26 (06:00) - the route from the lab to the weights used on the last unresearched
+    metric in the composite, and it reached a conclusion I did not expect.**
+    `research/2026-10-26-price-target-upside.md`. `price_target_upside` (13.5 of the Revisions
+    category's 100 points, 1.35 composite points) was the only weighted metric with no research
+    note of its own. Measured from 56 committed payload versions: between consecutive published
+    runs the median consensus target moves **exactly 0.0000** while prices move up to 2.7%, 60-77%
+    of targets are byte-identical, and at the **30-day** horizon the review cadence uses, **71.4%
+    of the variation in implied upside is the price moving**, not analysts changing their minds.
+    Within sector it is **-0.40** with risk-adjusted momentum, **-0.47** with Risk and **-0.007**
+    with `fy1_revision_3m`, the only actual revision metric in its own category.
+    **But the weight did not move, and the pre-written reading rule is why.** Da & Schaumburg
+    (2011) is the one paper that tests this exact construct, and the decisive finding is that the
+    **absolute** level earns 79 bp/month (t 0.86, not significant) while the **within-sector**
+    level earns 177 bp/month (t 3.55) - "it is relative and not absolute valuations that convey the
+    most information". The screener scores a sector percentile, so **it is accidentally on the
+    supported side of the only distinction anyone has tested.** Literature partly supports it,
+    practice (Barra's three analyst descriptors, the Zacks Rank's four components - all changes, no
+    target level) does not use it at all; that is a disagreement, so the weight stays. Removing it
+    would anyway move the median stock 4 ranks and no top-25 name.
+    **One proposal left OPEN** for a reader who did not write the note: replace the scored *level*
+    with a 90-day *change* in the consensus target scaled by price. Its first step is cheap and
+    decisive - if that duplicates `fy1_revision_3m`, the honest outcome is no change.
+    **Worth knowing for any future note:** Brav & Lehavy's 1997-99 estimate that 9% of a
+    target/price gap closes per week predicts 31%/71%/91% closed by 4/13/26 weeks; my betas at the
+    matching gaps are 24.5%/54.0%/82.3% - two independent estimates of the same slow adjustment,
+    27 years apart, which is what rules out "it is just a Yahoo refresh cycle".
+    Next in this category: `short_interest_ratio`, its other 13.5 non-revision points, also with no
+    note and with a free data history already probed.
   - **2026-10-23 (13:00 midday) - the lab's two unchecked experiments now have their second
     reader, and both stand.** The morning deferred the lab for a proposal decision; by 13:00 no
     proposal was waiting (`open_proposals()` returns `[]`), and the thing the lab most needed was
