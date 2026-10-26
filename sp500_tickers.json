@@ -2274,10 +2274,10 @@
     "SubIndustry": "Homebuilding"
   },
   {
-    "Ticker": "PWR",
-    "Company": "Quanta Services",
-    "Sector": "Industrials",
-    "SubIndustry": "Construction & Engineering"
+    "Ticker": "Q",
+    "Company": "Qnity Electronics",
+    "Sector": "Information Technology",
+    "SubIndustry": "Semiconductor Materials & Equipment"
   },
   {
     "Ticker": "QCOM",
@@ -2286,16 +2286,16 @@
     "SubIndustry": "Semiconductors"
   },
   {
+    "Ticker": "PWR",
+    "Company": "Quanta Services",
+    "Sector": "Industrials",
+    "SubIndustry": "Construction & Engineering"
+  },
+  {
     "Ticker": "DGX",
     "Company": "Quest Diagnostics",
     "Sector": "Health Care",
     "SubIndustry": "Health Care Services"
-  },
-  {
-    "Ticker": "Q",
-    "Company": "Qnity Electronics",
-    "Sector": "Information Technology",
-    "SubIndustry": "Semiconductor Materials & Equipment"
   },
   {
     "Ticker": "RL",
@@ -2314,12 +2314,6 @@
     "Company": "Reddit",
     "Sector": "Communication Services",
     "SubIndustry": "Interactive Media & Services"
-  },
-  {
-    "Ticker": "RTX",
-    "Company": "RTX Corporation",
-    "Sector": "Industrials",
-    "SubIndustry": "Aerospace & Defense"
   },
   {
     "Ticker": "O",
@@ -2400,6 +2394,12 @@
     "SubIndustry": "Hotels, Resorts & Cruise Lines"
   },
   {
+    "Ticker": "RTX",
+    "Company": "RTX Corporation",
+    "Sector": "Industrials",
+    "SubIndustry": "Aerospace & Defense"
+  },
+  {
     "Ticker": "SPGI",
     "Company": "S&P Global",
     "Sector": "Financials",
@@ -2461,7 +2461,7 @@
   },
   {
     "Ticker": "SKYD",
-    "Company": "Skydance Corporation",
+    "Company": "Skydance",
     "Sector": "Communication Services",
     "SubIndustry": "Movies & Entertainment"
   },
