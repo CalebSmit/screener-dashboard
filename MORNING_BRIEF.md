@@ -1,37 +1,30 @@
-# Morning Brief - Sunday 25 October 2026, 13:44
+# Morning Brief - Monday 26 October 2026, 02:27
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
-
-## THE ROUTINE IS NOT RUNNING
-
-- **Data run** has not run since 2 days ago
-
-Nothing below is current. A loop that stops firing writes no log, so
-the rest of this page describes the last run that *did* happen, not
-today. Most likely cause: the PC rebooted and nobody logged back in -
-the tasks only run while a user is signed in. See NIGHTLY_LOG.md
-2026-08-20 and `scripts/register-tasks.ps1`.
 
 ## At a glance
 
 | | |
 |---|---|
-| Data run (2 AM) | **completed** - last ran 2 days ago |
+| Data run (2 AM) | **completed** - last ran today |
 | Code session (latest) | **completed** - last ran today |
-| Dashboard data from | 2026-10-23T02:00:04.666022 |
+| Dashboard data from | 2026-10-26T02:00:04.754086 |
 | Stocks scored | 498 |
 | With a price | 498/498 |
 | With an analyst target | 496/498 |
-| Top 5 | EXPE, APA, HST, INCY, SNDK |
-| Evidence for weight changes | 4 of 8 needed at the 1m horizon (35 rows, but overlapping windows are not independent; 93 rows across all horizons), newest 2026-10-15 |
-| Context signals | Context signals: 12 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
-| Inputs vs SEC filings | total assets 423/424 within 0.5%; operating cash flow 406/410 within 0.5%; net income 396/419 within 0.5%; market value 444/484 within 5%; filings cached 0 days ago |
-| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#3: net income 1.46x after-tax operating income); MU (#10: a period behind its filings); NEM (#12: a period behind its filings); CF (#16: net income 16% off the filing) |
-| Context coverage | options usable 486/498 (12 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
+| Top 5 | EXPE, MU, APA, HST, INCY |
+| Evidence for weight changes | 4 of 8 needed at the 1m horizon (36 rows, but overlapping windows are not independent; 95 rows across all horizons), newest 2026-10-16 |
+| Context signals | Context signals: 13 daily logs since 2026-10-08; the first one-month return window closes 2026-11-07 and its first reading comes with the run of 2026-11-09, so no signal has a record yet (gate: 8 effective observations). |
+| Inputs vs SEC filings | total assets 425/426 within 0.5%; operating cash flow 409/413 within 0.5%; net income 399/422 within 0.5%; market value 443/484 within 5%; filings cached 3 days ago |
+| Top 25, worth a look | EXPE (#1: equity 4.2% of assets); HST (#4: net income 1.46x after-tax operating income); CF (#15: net income 16% off the filing) |
+| Context coverage | options usable 477/498 (21 quotes-closed) - insider from SEC 498/498 - earnings variability 440 |
 
 ## What changed in the repo
 
+- `18bb07d data: screener run 2026-10-26 - 498 scored, top: EXPE MU APA HST INCY`
+- `30f7b28 CLAUDE.md: the bot reads signals.json since 2026-10-25 - keep write_signals.py's fields and order`
+- `c637b84 brief: code session 2026-10-25-midday`
 - `67c6ff8 log + OWNER_FOCUS: the 2026-10-25 midday session - the claims register's second mutation pass`
 - `61890df plan: the 2026-10-25 mutation audit - 24 mutations, 11 claims, 4 real gaps and a false claim`
 - `8564552 claims audit: the capex note's 5% reconciliation had no check that could see it`
@@ -44,9 +37,6 @@ the tasks only run while a user is signed in. See NIGHTLY_LOG.md
 - `f49474d the positive control ran: +0.0512 of monthly IC, t 5.59, inside its band`
 - `bc25a63 wip: the plan's item 4(c), the note's method, and the log entry's health block`
 - `ea102de the page's 'the test can see a signal' claim reads the control's row, or says nothing`
-- `344a9e9 research engine: controls, so a null result can be told from a blind test`
-- `e55d36a register the positive control, before it is built or run`
-- `e7ccef5 brief: code session 2026-10-24-midday`
 
 ## The session's own account
 
