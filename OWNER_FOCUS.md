@@ -83,7 +83,51 @@ Two things still outrank this file, and neither is negotiable:
      and the months are size-selected by SEC Release 33-9002, so they cannot be pooled into the Size
      near-miss they would most be wanted for). A false "short interest has no free history" was
      corrected in four places, with a mutation-tested guard against the reclassification that
-     correction invites. **No proposal is now waiting for a decision**
+     correction invites.
+     **A fourth proposal arrived 2026-10-26 (06:00) and was DECIDED the same day (13:00) -
+     REFUSED, on the pre-registered bar the proposal itself nominated as its first test.**
+     `research/2026-10-26-price-target-upside.md` §6.2 asked a later session to take
+     `price_target_upside`'s 13.5 points off the scored *level* of implied analyst upside and put
+     them on a 90-day *change* in the consensus target. It **passed** its own first check - the
+     note said "if it duplicates `fy1_revision_3m` the honest outcome is no change", and it does
+     not (+0.3475 within sector at the proposal's own window, against the incumbent's −0.007, so
+     on construct validity the candidate really is the improvement the note claimed). It
+     **fails** the check the note deferred: `revisions ~ momentum` goes **+0.2223 → +0.3778**,
+     through the **~0.35** bar `research/2026-09-07-...` §8.4 set before seeing its own number -
+     the same bar that *admitted* `fy1_revision_3m` at +0.317, which is why it is not available
+     to be widened now. The sharpest number is the decomposition: **94% of the candidate's
+     spanned variance is momentum** (R² 0.2598 on all eight categories, 0.2431 on momentum
+     alone) against the incumbent's **22%**. So the swap would not reduce the screener's
+     duplication, it would concentrate it in the one category the rule protects, and flip a
+     −0.32 offset against Momentum into a +0.53 alignment with it.
+     **Why the note expected otherwise, which is the lesson worth keeping:** it read the
+     **30-day** beta (+0.245) and applied it to a **90-day** metric, where its own table says
+     +0.540 - and more generally **a level beta does not bound a rank correlation.** Measured on
+     the same series: the beta is flat at ~0.245 from 7 to 30 days while the within-sector rank
+     correlation of target change with price change goes +0.116 → +0.296 → +0.526 → +0.581. A
+     target that moves a quarter as far as the price still moves in the price's *direction*, and
+     a percentile screener keeps all of the direction and none of the attenuation.
+     **Three smaller things settled, so nobody re-opens them:** MSCI's `PTGF_C` and S&P Global
+     MI's ratio are **rank-identical on all 98 end dates**, so §6.2's paragraph choosing between
+     the two scalings cannot matter here; the Russell coverage-shrinkage rule the note called
+     "worth copying regardless" would touch **no scored stock** (1 of 496 has under 3 analysts,
+     median count **20**, 92.9% have 11+), so it was measured rather than shipped; and the
+     90-day window can only ever be built from this project's own payload history, which the
+     **2026-08-07** payload shows going to 0% coverage after a bad run.
+     **What the review added that the note could not:** its three **[VERIFY FIRST]** papers are
+     now read from PDF bytes, with **three corrections** - Palley, Steffen & Zhang's sample is
+     **537,519 firm-months to December 2020**, not 465,797 to June 2018; its positive region is
+     only the two lowest dispersion deciles, not "low dispersion"; and Han & Kim's signal is the
+     **net number of optimistic analysts**, which that paper explicitly prefers *over* consensus
+     implied upside, so it is not a direct test of this metric. AQR's Table X is exact. The net
+     effect is that §6.1's reading of the *incumbent* ("literature and practice disagree") is now
+     too generous to it - there is one direct test for and two against - and §8.7 states that
+     question with its criteria written in advance rather than acting on it.
+     **And the rule is now a tripwire instead of a comment**: `tests/test_revisions_momentum_budget.py`
+     (7 tests, in the publish gate) holds the published run to the §8.4 bar, calibrated across
+     **all 57 committed payloads** (max +0.3206, so no ordinary day fires) and mutation-checked
+     in four ways, including an 80/20 contamination that fires at +0.4777. **No weight, metric or
+     threshold changed. No proposal is now waiting for a decision**
      (`write_brief.open_proposals()` returns `[]`).
   2. **Second-read every new lab experiment.** For experiment 15 (and any later one from tonight):
      open the paper, re-read each reference figure against `factor_lab.py`, and check in
@@ -372,6 +416,33 @@ Add items below. Anything under this heading is unclaimed work.
   not work on (CLAUDE.md "Downstream consumer"); its own next steps are in its `ROADMAP.md`.
 
   **Progress (update this line each session):**
+  - **2026-10-26 (13:00) - the morning's proposal was reviewed and REFUSED, and the rule that
+    refused it is a test now.** The full account is item 1 above and
+    `research/2026-10-26-price-target-upside.md` §8. In short: the morning proposed swapping the
+    scored *level* of analyst implied upside for a 90-day *change* in the consensus target. It
+    survived the check the note put first (it is not a duplicate of the category's existing
+    revision metric) and failed the one the note deferred - the swap takes
+    `revisions ~ momentum` from **+0.2223 to +0.3778**, through the **~0.35** bar written down in
+    September, and **94% of the new metric's overlap with the rest of the screener is momentum**
+    against the incumbent's 22%. So it would move the duplication rather than remove it, which is
+    the opposite of what the category's 10% slot is for.
+    **This is the route working in the direction that matters most.** Both halves of it did their
+    job: the morning did the research and declined to build its own proposal, and a different
+    session measured the thing the proposal had only predicted - and the prediction was wrong, in
+    a way worth remembering (it read a 30-day number and applied it to a 90-day metric; and a
+    regression slope on levels does not bound a rank correlation, which is what a percentile
+    screener actually scores).
+    **Four of the four proposals this routine has produced have now been refused by their
+    reviewer** (Growth, capex, the three free-data registrations, this one) - and each refusal
+    measured something its note had not. That is the argument for the second reader, and it is
+    worth noting that none of the four was refused for being badly researched.
+    **Also from the review, now on the record rather than pending:** the three papers the note
+    could not verify are verified from PDF bytes, with three corrections, and the strongest
+    evidence on this metric is now *against* the level the screener scores - one direct test for
+    it (1996-2004) against two later ones against it. §8.7 makes that the next Monday in this
+    category, with its refutation criteria written before anyone looks, and explicitly refuses a
+    sign flip in advance unless someone can show the reversal in a long-only book.
+    Next in this category is still `short_interest_ratio`, its other 13.5 non-revision points.
   - **2026-10-26 (06:00) - the route from the lab to the weights used on the last unresearched
     metric in the composite, and it reached a conclusion I did not expect.**
     `research/2026-10-26-price-target-upside.md`. `price_target_upside` (13.5 of the Revisions

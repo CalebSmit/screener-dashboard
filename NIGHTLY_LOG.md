@@ -15416,3 +15416,212 @@ the fix is an addendum that says when each part was known, not a silent rewrite.
   resolve or demote it.
 - **Finish the provider sweep** §7 leaves open: StarMine's Analyst Revisions Model and MSCI's
   multi-factor index rulebooks, to settle whether *any* documented provider scores a target level.
+
+## 2026-10-26 (13:00 midday session) - QUEUE. The morning's proposal reviewed and REFUSED: the candidate is a real revision metric, and 94% of its overlap with the rest of the screener is momentum
+
+**Health (rule 8, all five):** last code session ran? **yes** - the 06:00 session this morning
+ended "Run complete: shipped to main" at 06:51, tag `good/2026-10-26`. Data loop published?
+**yes** - 2026-10-26 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, top EXPE MU APA
+HST INCY. Evidence base at `1m` = **36 rows, newest 2026-09-23 (33 days ago, bound 40), 4
+effective** (`_n_observations` 4 against a gate of 8; unchanged since 02:00, as it should be -
+no data run between the two sessions). Priority 0: `allow_auto_apply` **false**, unchanged. Top
+open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 14 days**) - advanced,
+since the proposal decided today came off its "From the lab to the weights" route.
+**Tests:** before **3152 passed, 1 skipped** (367.4s) - identical to the 06:00 session's
+after-count, so no drift. After **3159 passed, 1 skipped** - the 7 new tests are the guard below;
+no production code changed.
+**Owner queue / rotation:** took `OWNER_FOCUS.md` **item 1, deciding the open proposals** - the
+one the 06:00 session left this morning, which the brief and `prompts/nightly.md` both put ahead
+of the day's focus. Carried on from the morning's **Next**, which named exactly this ("the open
+proposal above needs a second reader ... its first step is cheap and decisive") and also asked
+for §3.1's three **[VERIFY FIRST]** papers to be verified; both are done. **Nothing was
+reversed.** Deferred: `OWNER_FOCUS.md` sub-item 6's extended universe, now **four** consecutive
+sessions - see **Next** for why the deferral-streak rule has still not triggered and what would
+trigger it.
+
+### Did
+
+**Decided the open proposal: REFUSED.** `research/2026-10-26-price-target-upside.md` §6.2 asked a
+later session to take `price_target_upside`'s 13.5 points off the scored *level* of analyst
+implied upside and put them on a 90-day *change* in the consensus target. The decision and every
+figure are **§8** of that note, written by a session that did not write §1-§7. Two measurement
+scripts: `research/measurements/2026-10-26-target-change-candidate.py` (the candidate built over
+three windows on every end date the committed payload history supports - 49, 31 and 18 of them)
+and `-target-change-span.py` (the §8.4 regression on the published run).
+
+- **It passed its own first test.** The note made the duplication check step 2 and said "if (2)
+  finds the duplication, the honest outcome is **no change**". It is not a duplicate: **+0.3475**
+  within sector against `fy1_revision_3m` at the proposal's own 90-day window (16 end dates),
+  +0.3028 at 63 days, +0.1978 at 30. Against the incumbent's **-0.007**, the candidate genuinely
+  is the construct-validity improvement §6.2 claimed - it belongs to the category it would sit in
+  and the incumbent does not. So the escape hatch did not fire and the proposal had to be judged
+  on the test it deferred.
+- **It fails the §8.4 spanning test, which is the one `config.yaml` requires.** With the 13.5
+  points moved and nothing else touched, **`revisions ~ momentum` goes +0.2223 -> +0.3778**,
+  through the **~0.35** bar `research/2026-09-07-...` §8.4 set *before seeing its own number* -
+  the same bar that **admitted** `fy1_revision_3m` at +0.317, which is precisely why it is not
+  available to be widened now that it refuses something. The rebuild the counterfactual rests on
+  reproduces the published Revisions score at Spearman **1.0** and **0.0 points** mean absolute
+  difference, so this is the screener's arithmetic and not an approximation of it.
+- **The sharpest number, and the real argument:** of the candidate's overlap with everything the
+  screener already scores, **94% is momentum** - R² **0.2598** on all eight category ranks of
+  which **0.2431** is momentum alone. The incumbent's is **22%** (0.3507 and 0.0776). So the
+  candidate is *more* independent overall and almost all of what it shares is the one thing the
+  rule protects: the swap would **concentrate** the screener's duplication rather than reduce it,
+  and flip a **-0.32** offset against Momentum into a **+0.53** alignment with it. Momentum's own
+  unspanned share falls 83.5% -> 75.9% because Revisions starts carrying it.
+- **What it would have bought:** top 25 unchanged, top-50 turnover 3, median 6.5 ranks. The same
+  materiality argument that made the incumbent "incoherent but not loud" (§1.4) applies to its
+  replacement.
+
+**Shipped the rule as a tripwire: `tests/test_revisions_momentum_budget.py` (7 tests).** The
+§8.4 rule did real work today and nothing enforced it - it was a comment in `config.yaml` a
+session had to remember to read. It now holds the published run's `revisions ~ momentum` to the
+0.35 bar, and holds the comment stating the rule in place. Two things make it a check rather
+than plumbing:
+
+- **Calibrated before shipping**, the way the bot's input gates were (`DECISIONS.md` row 0.5/0.7):
+  replayed across **all 57 committed payload versions** - min **-0.0835**, median **+0.2498**, max
+  **+0.3206**, that maximum on 2026-09-11..09-18 immediately after the 09-10 reweight, which is
+  §8.4's own predicted +0.317 turning up in published data. **No ordinary day fires; the refused
+  change reads +0.3778 and does.**
+- **Mutation-checked four ways**, per `OWNER_FOCUS.md` item 3's discipline: replacing Revisions
+  with Momentum (+1.0000), a 50/50 blend (+0.8394) and even an **80/20** blend (+0.4777) all fire;
+  removing the column or flattening it to a constant fires the vacuity guard rather than passing
+  silently. The bar is a **literal** in the test and in the 09-07 note, not an imported constant -
+  the capex-tolerance defect from the 2026-10-25 audit, where the assertion read the constant it
+  was checking and so passed at any value. And the boundary is probed **at** the bar, which is the
+  one point separating `>` from `>=`. Added to the data loop's publish gate, because the figure it
+  holds is a property of the scored table a data run rewrites every morning.
+
+### Evidence / research
+
+**The three [VERIFY FIRST] items of §3.1 are now read from the PDF bytes, with three
+corrections.** §7 made this the deciding session's first job. Each was downloaded with `curl` and
+a browser user-agent, checked to start with `%PDF`, and read with `pypdf`.
+
+- **Palley, A.B., Steffen, T.D. & Zhang, X.F., "The Effect of Dispersion on the Informativeness of
+  Consensus Analyst Target Prices", *Management Science*,
+  DOI 10.1287/mnsc.2021.03549** (authors' copy, insights.som.yale.edu, 55pp). Their PRET is this
+  screener's metric verbatim. **Figures exact:** deciles 1-8 "fairly stable around 12%" then
+  **10.84%** and **7.28%**, long-top/short-bottom **-4.60% (t -3.08)** (PDF p. 16); dispersion
+  moderator **+2.96% (t 2.54)** against **-11.44% (t -5.34)** (PDF p. 17).
+  **CORRECTION 1:** the sample is **537,519 firm-months, July 1999 - December 2020, 258 months**,
+  not "465,797 firm-months, Jul 1999 - Jun 2018" - the second-hand report understated it and
+  ended it two and a half years early, so the correction *strengthens* the finding.
+  **CORRECTION 2:** the positive region is only the two lowest dispersion deciles - "this positive
+  correlation only manifests when dispersion is very low ... conditioning on low dispersion ... is
+  not a panacea" (PDF p. 17). And their mechanism is this project's §1.2 in a peer-reviewed sample:
+  "incentive-driven staleness in price targets by some analysts after bad news. As a stock performs
+  poorly and some analysts are slow to update their target prices, dispersion increases, and the
+  consensus target price becomes too high."
+- **Han, C. & Kim, S.Y., "Betting Against Analyst Target Price"** - ScienceDirect serves a bot
+  check, so per `prompts/nightly.md` it was not worked around; what was read is the **EFMA 2019
+  conference version (January 2019, 48pp)**, a different draft and author list from the published
+  Han, Kang & Kim (2022), *JFM* 59, 100677, and flagged as such everywhere. **Figures exact:**
+  **0.98% per month (t 3.80)**, US 1999-2015, "more prominent among large, liquid, and high
+  institutional ownership stocks", one-year cumulative 15.10% (t 8.61) (PDF p. 3).
+  **CORRECTION 3, and it matters:** the signal is **NOA, the net number of optimistic analysts**,
+  and the paper explicitly prefers it *over* the construct this screener scores - NOA "is
+  considered to reflect the impact of target price releases better than other alternative measures
+  such as the mean or median of target price implied returns". So it is strong evidence that
+  sell-side target optimism is contrarian in large liquid stocks, and it is **not a direct test of
+  `price_target_upside`**.
+- **Asness, C., Frazzini, A. & Pedersen, L., *Quality Minus Junk*, DOI 10.1007/s11142-018-9470-2**
+  (read from the **June 19, 2014** working draft, 65pp - flagged as pre-publication). **Table X
+  Panel A, U.S., I/B/E/S 1999-2013, exact in every cell:** mean implied expected return
+  0.27/0.23/0.21/0.18/0.18/0.18/0.18/0.17/0.16/0.16, **H-L -0.11, t -9.86**; realized future
+  12-month return 0.08 rising to 0.13, **H-L +0.05, t +6.62** (PDF p. 45). The table's own header
+  defines the construct as "the ratio of target prices to current prices minus 1" - this
+  screener's metric. §1.3's within-sector **-0.171** of it against `quality_score` is the same sign
+  on our own data, much weaker.
+
+**What that does to the note's §6.1, recorded rather than acted on.** §6.1 kept the incumbent on
+"literature and practice disagree", where the literature for it was **one** paper (Da &
+Schaumburg 2011, 1996-2004, whose large-growth corner is t 0.37). The verified ledger on the
+*level* is now **one direct test for** (+177 bp/month, t 3.55, within sector) and **two direct
+tests against** (Palley's -4.60%, t -3.08, on a later and 538k-observation sample to 2020; AQR's
+-0.11, t -9.86, of implied upside against +0.05, t +6.62, of realized return), plus Han & Kim
+indirectly and in our own universe, against unanimous practice across seven primary rulebooks.
+**So "disagree" is too generous to the incumbent.** No weight moved on that today - one change at
+a time, and §1.4 measured that removing the metric entirely moves the median stock 4 ranks and no
+top-25 name - but the question is now live and pointed, with criteria written in §8.7 before
+anyone looks further, including a **sign flip refused in advance** unless someone can show the
+reversal in a long-only large-company book (Palley's -4.60% is a long-short spread whose short leg
+this tool cannot hold).
+
+**Palley's moderator, and whether it is buildable here** (`-target-dispersion-feasibility.py`).
+Their DISP is the standard deviation of individual targets over price. The payload carries
+`pt_high`/`pt_low` for **495 of 498** stocks and an analyst count, and **no individual targets and
+no standard deviation anywhere** - so only a high-low range proxy is possible, and it has a defect
+their measure does not: **Spearman +0.3999** against the analyst count (median range 0.390 at 3-9
+analysts against **0.626** at 25+), because a range widens with the number of estimates and an sd
+does not. With that caveat stated, the decision-relevant reading: within sector, implied upside
+and the proxy correlate **+0.3679**, and the **top implied-upside quintile sits at a median
+dispersion percentile of 79.2 against 40.0 for the bottom** - **49.1%** of top-upside names are
+also in the top dispersion quintile and **5.7%** in the bottom. *The stocks this screener scores
+best on this metric are concentrated in the region where Palley et al. measure -11.44% and nearly
+absent from the region where they measure +2.96%.* It reads no return and changes nothing today;
+§8.7 makes it the next Monday in this category with a precondition written in advance (if the
+proxy's coverage contamination cannot be brought under +0.10, the dispersion branch is closed).
+
+### Methodology changed
+
+**None.** No weight, metric or threshold moved - that is the decision, not an omission. What
+shipped is a guard on an existing rule and a research record; `METHODOLOGY_CHANGELOG.md` is
+untouched, and `tests/test_revisions_momentum_budget.py::test_no_weight_moved_with_the_refusal`
+skips itself the day a changelog entry takes the question up.
+
+### Tried and rejected
+
+- **The substitution itself**, above - refused on §8.4's pre-registered bar, not on taste.
+- **The Russell coverage-shrinkage rule.** §3.1 called it "worth copying regardless of what
+  happens to this metric" (Russell US Equity Indexes v7.2 §8.10.1: 1 analyst -> 1/3 own score,
+  2 -> 2/3, 3+ -> full). Measured on the published run: of 496 stocks with a target, **1** has
+  fewer than 3 analysts and so already scores nothing at the metric's own floor, **1** has exactly
+  3, **1** has 4-5, and **461 (92.9%) have 11 or more**; median analyst count **20**. It would
+  touch no scored stock. Good practice on a Russell 2000 universe, a no-op on the S&P 500 - so it
+  was measured rather than shipped, which is the cheaper outcome than shipping and discovering it.
+- **§6.2's scaling argument**, which turns out to be moot. It spends a paragraph preferring MSCI's
+  `PTGF_C` (change over the mean absolute target) to the first draft's change-over-price, citing
+  S&P Global MI's `TP_t/TP_{t-1m}`. For positive targets both MSCI's form and S&P's ratio are
+  strictly monotone functions of the same ratio, so they are **rank-identical** - verified equal to
+  four decimals on **all 98 end dates** across three windows. A percentile screener cannot
+  distinguish them, and the price-scaled variant differs trivially (+0.3546 against +0.3475).
+- **The inference that made the proposal look safe, which is the lesson worth keeping.** §6.2 read
+  §1.2's **30-day** beta of +0.245 as "a reason to expect the overlap to be *small*" for a
+  **90-day** metric, where its own table four rows up says **+0.540**. More generally: **a level
+  beta does not bound a rank correlation.** Measured on the same series at the same gaps, the beta
+  is flat at ~0.245 from 7 to 30 days while the within-sector rank correlation of target change
+  with price change runs **+0.116 -> +0.296 -> +0.526 -> +0.581**. A target that moves a quarter as
+  far as the price still moves in the price's *direction*, and a screener that ranks keeps all of
+  the direction and none of the attenuation. Any future note reasoning from a beta to an overlap in
+  this screener should read that row first.
+
+### Next
+
+- **`short_interest_ratio`** - the next Monday, carried unchanged from this morning's Next and
+  still right: 13.5 points of the Revisions category, -0.238 within sector against the metric
+  researched today, no research note, and a free data history already probed
+  (`research/2026-10-22-free-data-that-adds-evidence.md` §7 has the build order, **licence check
+  first**). That would leave this category with every metric researched - and then §8.7's
+  dispersion question, which is the heavier of the two.
+- **`OWNER_FOCUS.md` sub-item 6's extended universe is now deferred by four consecutive
+  sessions**, and the deferral-streak rule has **still not triggered**, because its precondition is
+  a session "carrying no owner item and no broken loop" - deciding a waiting proposal *is* an open
+  owner item, and it outranks the rotation by both `prompts/nightly.md` and item 1. **What would
+  trigger it:** the next session that finds `write_brief.open_proposals()` returning `[]` and the
+  data loop healthy. It returns `[]` now, so that is probably tomorrow's 06:00. Register
+  `only-size-extended` first and alone, then budget the rebuild and the ~45-minute rerun in series;
+  do not start it after about 14:00.
+- **Two papers §7 still lists as not obtained are now the gating reads for §8.7**, in this order:
+  **Dechow & You (2020)** - the paper whose title is closest to the question and still cited only
+  from an abstract - then **Bradshaw, Brown & Huang (2013)** in its *published* 2000-2009 sample
+  rather than the 2005 working paper §3.0 read. And on the practice side the specific question is
+  narrower than the sweep already done: does **any** documented provider condition an analyst
+  descriptor on **dispersion**? Practice has been unanimous that nobody scores the level; if it is
+  also silent on dispersion-conditioning, the pre-written rule in §8.7 keeps the weight where it is.
+- **The published Han, Kang & Kim (2022) version remains unread** (bot check, not worked around).
+  It is not load-bearing for anything - the refusal does not use it and §8.5 flags the draft - but
+  if a later session can reach the published paper through a library copy, the author list and the
+  sample should be checked against the EFMA draft before anyone quotes 0.98%/month from this repo.
