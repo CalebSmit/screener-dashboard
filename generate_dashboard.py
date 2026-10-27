@@ -1762,6 +1762,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 {_css_ux()}
 {_css_context()}
 {_css_investor()}
+{_css_page()}
     </style>
 </head>
 <body>
@@ -1819,6 +1820,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <div class="kpi-card sk"><i class="sk-l w40"></i><i class="sk-l sk-big w50"></i><i class="sk-l w70"></i></div>
         </section>
 
+        <!-- The whole ranking in one picture (ui-elevation, 2026-10-27): one dot per company at its
+             published composite, drawn client-side from table_data after first paint. Display only -
+             it re-derives nothing; the dots are the payload's own Composite and Rank. -->
+        <section class="dist" id="dist" aria-labelledby="dist-title">
+            <div class="dist-head">
+                <h2 class="dist-title" id="dist-title">The whole ranking, one dot per company</h2>
+                <p class="dist-legend" aria-hidden="true"><span class="dl dl-top"><i></i>Top 25</span><span class="dl dl-flag"><i></i>Trap flag</span><span class="dl dl-rest"><i></i>The rest</span></p>
+            </div>
+            <div class="dist-plot" id="dist-plot" role="img" aria-label="Every company's composite score, one dot each"></div>
+        </section>
+
         <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
              per browser; reopened from the search palette. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
@@ -1842,6 +1854,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             </div>
             <div class="section-body" id="sec-top5-body">
                 <div class="top5-row" id="top5-row"><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div><div class="top5-card sk sk-card"></div></div>
+                <p class="t5-key"><i aria-hidden="true"></i>Each bar is a category score from 0 to 100; the tick marks 50, near the sector median.</p>
             </div>
         </section>
 
@@ -2543,16 +2556,18 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             size: ACCENT, investment: ACCENT
         }};
 
+        const catNames = {{ valuation:'Valuation', quality:'Quality', growth:'Growth', momentum:'Momentum', risk:'Risk', revisions:'Revisions', size:'Size', investment:'Investment' }};
         document.getElementById('top5-row').innerHTML = top5.map((h, i) => {{
-            // A profile read left to right: eight columns on one 0-100 scale, the value printed
-            // under each, a faint line at 50 (typical for the sector).
+            // A score fingerprint (ui-elevation, 2026-10-27): the eight categories as rows on one
+            // 0-100 scale, named in full, with a tick at 50 - near the sector median - drawn over
+            // every bar. The vertical columns it replaces needed 9.5px labels to fit.
             const cells = catKeys.map(c => {{
-                const val = h[c] || 0;
-                return `<div class="t5-col" title="${{catLabels[c]}} ${{fmt(val,'score')}}">
-                    <div class="t5-track"><div class="t5-fill${{val >= 70 ? ' hi' : ''}}" style="height:${{Math.max(2, val)}}%"></div></div>
-                    <span class="t5-v">${{Math.round(val)}}</span>
-                    <span class="t5-l">${{catLabels[c]}}</span>
-                </div>`;
+                const val = h[c];
+                const has = val !== null && val !== undefined;
+                return `<div class="fp-row" title="${{catNames[c]}} ${{has ? fmt(val,'score') : 'not scored'}}">` +
+                    `<span class="fp-l">${{catNames[c]}}</span>` +
+                    `<span class="fp-track"><i class="${{has && val >= 70 ? 'hi' : ''}}" style="width:${{has ? Math.max(1, Math.min(100, val)) : 0}}%"></i></span>` +
+                    `<span class="fp-v">${{has ? Math.round(val) : '&mdash;'}}</span></div>`;
             }}).join('');
 
             return `<div class="top5-card" role="button" tabindex="0" onclick="openStockDetail('${{escapeHtml(h.ticker)}}')" onkeydown="if(event.key==='Enter'||event.key===' '){{event.preventDefault();openStockDetail('${{escapeHtml(h.ticker)}}')}}">
@@ -2564,7 +2579,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
                     </div>
                     <div class="top5-score"><span class="top5-composite">${{fmt(h.composite,'score')}}</span><span class="top5-composite-label">Composite</span></div>
                 </div>
-                <div class="t5-profile" aria-label="Category scores">${{cells}}</div>
+                <div class="t5-fp" aria-label="Category scores, 0 to 100">${{cells}}</div>
             </div>`;
         }}).join('');
     }}
@@ -4385,6 +4400,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
 {_js_workings()}
 {_js_ux()}
 {_js_context()}
+{_js_page()}
 
     function fmtMetric(v, type) {{
         if (v === null || v === undefined) return '—';
@@ -4827,6 +4843,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         }}
         renderTop5();
         initHoldings();
+        renderPageViz();
         renderTrapChart();
         updateSectorDist();
         setupFilters();
@@ -10252,6 +10269,7 @@ def _js_context() -> str:
 
     function initContext() {
         contextMetas();
+        if (typeof safeTileViz === 'function') safeTileViz();
     }
     // Render a section's body the first time it opens: collapsed, it costs nothing.
     (function wrapContextSections() {
@@ -10778,6 +10796,435 @@ def _css_context() -> str:
         @media (min-width: 761px) { .m-nav-btn, .m-nav { display: none !important; } }
         @media print { .m-nav-btn, .m-nav { display: none !important; } }
 """
+
+
+def _js_page() -> str:
+    """The page's own pictures (ui-elevation, 2026-10-27, ``plan/ui-elevation.md``): the whole
+    ranking as one dot per company, and a small true chart on each summary tile that states numbers.
+
+    Display only. Every mark is a number the payload already publishes - a stock's ``Composite`` and
+    ``Rank``, the movers counts, the earnings dates, FRED's ten-year percentiles, the track record's
+    totals, the published trap rates - drawn, never recomputed into a new figure. Each picture is one
+    SVG of a few paths, built after first paint, so the page's 3,000-node budget is not spent on it.
+    A plain string, so braces are not doubled."""
+    return r"""
+    // =====================================================================
+    // PAGE PICTURES (ui-elevation, 2026-10-27) - display only, see _js_page
+    // =====================================================================
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    function svgEl(tag, attrs) {
+        const e = document.createElementNS(SVGNS, tag);
+        Object.keys(attrs || {}).forEach(k => e.setAttribute(k, attrs[k]));
+        return e;
+    }
+    function dotPath(cx, cy, r) {
+        return 'M' + (cx - r).toFixed(1) + ' ' + cy.toFixed(1) + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0';
+    }
+
+    // ---- the whole ranking, one dot per company --------------------------------------------------
+    // A unit histogram of the published composites: each dot is one company, stacked in its score
+    // bin. Blue is the top 25 by published rank, an amber ring a value- or growth-trap flag.
+    const DIST = { cols: null, pitch: 0, x0: 0, base: 0, w: 0, cur: null };
+    function renderDist() {
+        const host = document.getElementById('dist-plot');
+        const sec = document.getElementById('dist');
+        if (!host || !sec || typeof host.appendChild !== 'function' || typeof getComputedStyle !== 'function') return;
+        const rows = (D.table_data || []).filter(r => typeof r.Composite === 'number' && isFinite(r.Composite));
+        if (rows.length < 10) { sec.hidden = true; return; }
+        const cs = getComputedStyle(host);
+        const W = Math.floor(host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+        if (!(W > 0)) return;
+        DIST.w = W; DIST.pl = parseFloat(cs.paddingLeft) || 0; DIST.pt = parseFloat(cs.paddingTop) || 0;
+        const phone = W < 560;
+        const r = phone ? 2.6 : 4, pitch = phone ? 6 : 10;
+        const vals = rows.map(x => x.Composite);
+        const lo = Math.floor(Math.min.apply(null, vals) / 5) * 5, hi = Math.ceil(Math.max.apply(null, vals) / 5) * 5;
+        const ncol = Math.max(20, Math.floor(W / pitch));
+        const bw = (hi - lo) / ncol;
+        const cols = Array.from({ length: ncol }, () => []);
+        rows.slice().sort((a, b) => a.Composite - b.Composite).forEach(x => {
+            cols[Math.max(0, Math.min(ncol - 1, Math.floor((x.Composite - lo) / bw)))].push(x);
+        });
+        const tall = Math.max.apply(null, cols.map(c => c.length));
+        const padT = 30, padB = 28;
+        const x0 = (W - ncol * pitch) / 2, base = padT + tall * pitch;
+        const Hh = base + padB;
+        Object.assign(DIST, { cols: cols, pitch: pitch, x0: x0, base: base, lo: lo, bw: bw, r: r });
+        const xOf = v => x0 + (v - lo) / bw * pitch;
+        let pTop = '', pRest = '', pFlag = '';
+        cols.forEach((c, i) => c.forEach((x, k) => {
+            const cx = x0 + i * pitch + pitch / 2, cy = base - k * pitch - pitch / 2;
+            const flagged = x.Value_Trap_Flag || x.Growth_Trap_Flag;
+            if (x.Rank <= 25) pTop += dotPath(cx, cy, r);
+            else if (!flagged) pRest += dotPath(cx, cy, r);
+            if (flagged) pFlag += dotPath(cx, cy, r - 0.6);
+        }));
+        const svg = svgEl('svg', { width: W, height: Hh, viewBox: '0 0 ' + W + ' ' + Hh, 'class': 'dist-svg', 'aria-hidden': 'true' });
+        // the axis: a baseline and a tick every ten points, labelled
+        let ax = 'M' + x0.toFixed(1) + ' ' + (base + 4) + 'H' + (x0 + ncol * pitch).toFixed(1);
+        const ticks = [];
+        for (let v = Math.ceil(lo / 10) * 10; v <= hi; v += 10) { ax += 'M' + xOf(v).toFixed(1) + ' ' + (base + 4) + 'v4'; ticks.push(v); }
+        svg.appendChild(svgEl('path', { d: ax, 'class': 'dist-axis' }));
+        ticks.forEach(v => { const t = svgEl('text', { x: xOf(v).toFixed(1), y: base + 20, 'class': 'dist-tick', 'text-anchor': 'middle' }); t.textContent = v; svg.appendChild(t); });
+        // the median, the engine's own kpis.median_composite
+        const med = (D.kpis || {}).median_composite;
+        const first = rows.reduce((a, b) => (b.Rank < a.Rank ? b : a));
+        const fc = cols.findIndex(c => c.indexOf(first) !== -1);
+        const fx = fc === -1 ? null : x0 + fc * pitch + pitch / 2;
+        const right = fx !== null && fx > W - 120;
+        if (typeof med === 'number') {
+            const mx = xOf(med);
+            const medTxt = 'Median ' + med.toFixed(1);
+            // the median's label goes right of its line unless it would run into the #1's label
+            const firstLeft = fx === null ? Infinity : (right ? fx - 6 - 7 * (first.Ticker.length + 9) : fx);
+            const flip = mx + 6 + 6.4 * medTxt.length > firstLeft - 8;
+            svg.appendChild(svgEl('path', { d: 'M' + mx.toFixed(1) + ' ' + (padT - 8) + 'V' + (base + 2), 'class': 'dist-med' }));
+            const t = svgEl('text', { x: (flip ? mx - 6 : mx + 6).toFixed(1), y: padT - 10, 'class': 'dist-lab', 'text-anchor': flip ? 'end' : 'start' });
+            t.textContent = medTxt;
+            svg.appendChild(t);
+        }
+        svg.appendChild(svgEl('path', { d: pRest, 'class': 'dist-rest' }));
+        svg.appendChild(svgEl('path', { d: pTop, 'class': 'dist-top' }));
+        svg.appendChild(svgEl('path', { d: pFlag, 'class': 'dist-flag' }));
+        // the published #1, named where it sits
+        if (fc !== -1) {
+            const fk = cols[fc].indexOf(first);
+            const fy = base - fk * pitch - pitch;
+            svg.appendChild(svgEl('path', { d: 'M' + fx.toFixed(1) + ' ' + (fy - 3).toFixed(1) + 'V' + (padT - 6), 'class': 'dist-lead' }));
+            const t = svgEl('text', { x: (right ? fx - 6 : fx + 6).toFixed(1), y: padT - 10, 'class': 'dist-lab dist-lab-hi', 'text-anchor': right ? 'end' : 'start' });
+            t.textContent = '#1 ' + first.Ticker + ' ' + fmt(first.Composite, 'score');
+            svg.appendChild(t);
+        }
+        DIST.hl = svgEl('circle', { r: r + 2.2, cx: -20, cy: -20, 'class': 'dist-hl' });
+        svg.appendChild(DIST.hl);
+        host.innerHTML = '';
+        host.appendChild(svg);
+        DIST.tip = document.createElement('div');
+        DIST.tip.className = 'dist-tip';
+        DIST.tip.hidden = true;
+        host.appendChild(DIST.tip);
+        const n = rows.length;
+        const ttl = document.getElementById('dist-title');
+        if (ttl) ttl.textContent = n + ' companies, one dot each';
+        host.setAttribute('aria-label', n + ' companies by composite score, from ' + fmt(Math.min.apply(null, vals), 'score') +
+            ' to ' + fmt(Math.max.apply(null, vals), 'score') + (typeof med === 'number' ? ', median ' + med.toFixed(1) : '') +
+            '. The rankings table below lists every one.');
+        if (!DIST.wired) {
+            DIST.wired = true;
+            host.addEventListener('pointermove', distHover);
+            host.addEventListener('pointerleave', () => distShow(null));
+            host.addEventListener('click', e => { const x = distPick(e); if (x) openStockDetail(x.Ticker); });
+        }
+    }
+    function distPick(e) {
+        if (!DIST.cols) return null;
+        const box = DIST.tip.parentNode.getBoundingClientRect();
+        const x = e.clientX - box.left - DIST.pl, y = e.clientY - box.top - DIST.pt;
+        const c = Math.floor((x - DIST.x0) / DIST.pitch);
+        const col = DIST.cols[c];
+        if (!col || !col.length) return null;
+        const k = Math.floor((DIST.base - y) / DIST.pitch);
+        if (k < -2 || k > col.length + 1) return null;
+        return col[Math.max(0, Math.min(col.length - 1, k))];
+    }
+    function distHover(e) { distShow(distPick(e)); }
+    function distShow(x) {
+        if (!DIST.tip) return;
+        if (!x) { DIST.tip.hidden = true; DIST.hl.style.visibility = 'hidden'; DIST.cur = null; return; }
+        if (DIST.cur === x) return;
+        DIST.cur = x;
+        const c = DIST.cols.findIndex(col => col.indexOf(x) !== -1), k = DIST.cols[c].indexOf(x);
+        const cx = DIST.x0 + c * DIST.pitch + DIST.pitch / 2, cy = DIST.base - k * DIST.pitch - DIST.pitch / 2;
+        DIST.hl.style.visibility = 'visible';
+        DIST.hl.setAttribute('cx', cx.toFixed(1));
+        DIST.hl.setAttribute('cy', cy.toFixed(1));
+        const flags = [x.Value_Trap_Flag ? 'value-trap flag' : '', x.Growth_Trap_Flag ? 'growth-trap flag' : ''].filter(Boolean).join(', ');
+        DIST.tip.innerHTML = '<b>' + escapeHtml(x.Ticker) + '</b><span class="dt-co">' + escapeHtml(x.Company || '') + '</span>' +
+            '<span class="dt-n">#' + x.Rank + ' &middot; ' + fmt(x.Composite, 'score') + '</span>' +
+            (flags ? '<span class="dt-f">' + flags + '</span>' : '');
+        DIST.tip.hidden = false;
+        const tw = DIST.tip.offsetWidth, th = DIST.tip.offsetHeight;
+        DIST.tip.style.left = (DIST.pl + Math.max(0, Math.min(DIST.w - tw, cx - tw / 2))) + 'px';
+        DIST.tip.style.top = (DIST.pt + Math.max(-DIST.pt, cy - th - 12)) + 'px';
+    }
+
+    // ---- the summary tiles: a small true chart beside each headline number -----------------------
+    function tileViz(id, html, label) {
+        const sec = document.getElementById(id);
+        const head = sec && sec.querySelector && sec.querySelector(':scope > .section-header');
+        if (!head) return;
+        let v = head.querySelector('.tile-viz');
+        if (!html) { if (v) v.remove(); return; }
+        if (!v) { v = document.createElement('div'); v.className = 'tile-viz'; head.appendChild(v); }
+        v.setAttribute('role', 'img');
+        v.setAttribute('aria-label', label);
+        v.innerHTML = html;
+    }
+    function tvBars(items, opts) {
+        // a row of horizontal bars on one shared scale, value printed at the end
+        const vals = items.map(i => i.v);
+        const mn = Math.min(0, Math.min.apply(null, vals)), mx = Math.max(0, Math.max.apply(null, vals));
+        const span = (mx - mn) || 1;
+        return '<div class="tv-bars">' + items.map(i => {
+            const z = (0 - mn) / span * 100, w = Math.abs(i.v) / span * 100;
+            const left = i.v >= 0 ? z : z - w;
+            return '<span class="tvb-l">' + i.l + '</span><span class="tvb-t"><i class="' + (i.hi ? 'hi' : '') +
+                '" style="left:' + left.toFixed(1) + '%;width:' + Math.max(0.5, w).toFixed(1) + '%"></i></span><span class="tvb-v">' + i.t + '</span>';
+        }).join('') + '</div>';
+    }
+    function renderTileViz() {
+        const N = (D.kpis || {}).universe_size || (D.table_data || []).length || 0;
+        // What changed: the published movers counts as shares of the universe, up from the left in
+        // green and down from the right in red - direction of change is what those colours mean here
+        if (typeof H !== 'undefined' && H && H.available && H.movers && N) {
+            const k = H.movers.m1 ? 'm1' : 'prev', mv = H.movers[k];
+            if (mv) {
+                const u = mv.n_up / N * 100, d = mv.n_down / N * 100;
+                tileViz('sec-changed', '<div class="tv-split"><i class="up" style="width:' + u.toFixed(1) + '%"></i><i class="dn" style="width:' + d.toFixed(1) + '%"></i></div>' +
+                    '<div class="tv-cap"><span>' + mv.n_up + ' up</span><span>of ' + N + '</span><span>' + mv.n_down + ' down</span></div>',
+                    mv.n_up + ' of ' + N + ' stocks moved up materially and ' + mv.n_down + ' moved down');
+            }
+        }
+        // Reporting soon: how many report on each of the next fourteen days, the first seven solid
+        if (typeof reportingRows === 'function') {
+            const rows = reportingRows(14, 'all'), per = new Array(14).fill(0);
+            rows.forEach(x => { if (x.d >= 0 && x.d < 14) per[x.d]++; });
+            const mx = Math.max.apply(null, per) || 1;
+            const run = String((D.kpis || {}).run_timestamp || '').slice(0, 10);
+            const end = new Date(run + 'T00:00:00'); end.setDate(end.getDate() + 13);
+            const endIso = isNaN(end) ? '' : end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0');
+            if (rows.length) tileViz('sec-reporting', '<div class="tv-days">' + per.map((c, i) =>
+                    '<i class="' + (i < 7 ? 'wk1' : 'wk2') + '" style="height:' + (c ? Math.max(6, c / mx * 100) : 0).toFixed(1) + '%" title="' + c + '"></i>').join('') + '</div>' +
+                    '<div class="tv-cap"><span>' + escapeHtml(cDate(run)) + '</span><span>' + escapeHtml(cDate(endIso)) + '</span></div>',
+                    'Companies reporting on each of the next 14 days: ' + per.join(', '));
+        }
+        // Market backdrop: where each headline reading sits in its own ten-year range (FRED's pct_10y)
+        const M = D.market;
+        if (M && M.series) {
+            const S = M.series, items = [['T10Y3M', 'Curve'], ['VIXCLS', 'VIX'], ['CPIAUCSL', 'Inflation']]
+                .filter(p => S[p[0]] && S[p[0]].pct_10y !== null && S[p[0]].pct_10y !== undefined && isFinite(Number(S[p[0]].pct_10y)));
+            const ord = p => { const n = Math.round(Number(p)); const s = (n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'; return n + s; };
+            if (items.length) tileViz('sec-market', '<div class="tv-pct">' + items.map(p => {
+                    const v = Math.max(0, Math.min(100, Number(S[p[0]].pct_10y)));
+                    return '<span class="tvp-l">' + p[1] + '</span><span class="tvp-t"><i style="left:' + v.toFixed(1) + '%"></i></span><span class="tvp-v">' + ord(v) + '</span>';
+                }).join('') + '</div><div class="tv-cap"><span>Percentile of its own ten years</span></div>',
+                items.map(p => p[1] + ' at the ' + ord(S[p[0]].pct_10y) + ' percentile of ten years').join('; '));
+        }
+        // Track record: the three published totals on one scale
+        const T = D.track;
+        if (T && T.available && T.total && typeof T.total.top === 'number') {
+            const t = T.total, pc = v => (v >= 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + '%';
+            const items = [{ l: 'Top 25', v: t.top, t: pc(t.top), hi: true }];
+            if (typeof t.RSP === 'number') items.push({ l: 'Equal-weight', v: t.RSP, t: pc(t.RSP) });
+            if (typeof t.SPY === 'number') items.push({ l: 'S&amp;P 500', v: t.SPY, t: pc(t.SPY) });
+            tileViz('sec-track', tvBars(items), items.map(i => i.l.replace('&amp;', '&') + ' ' + i.t).join(', '));
+        }
+        // Factor analytics: the published value-trap rate of every sector, highest first
+        const vt = D.vt_by_sector || {}, secs = Object.keys(vt).sort((a, b) => vt[b].rate - vt[a].rate);
+        if (secs.length) {
+            const mx = Math.max.apply(null, secs.map(s => vt[s].rate)) || 1;
+            tileViz('sec-analytics', '<div class="tv-cols">' + secs.map((s, i) =>
+                    '<i class="' + (i === 0 ? 'hi' : '') + '" style="height:' + Math.max(4, vt[s].rate / mx * 100).toFixed(1) + '%" title="' + escapeHtml(s) + ' ' + Number(vt[s].rate).toFixed(1) + '%"></i>').join('') +
+                    '</div><div class="tv-cap"><span>Value-trap rate, each sector</span></div>',
+                secs.map(s => s + ' ' + Number(vt[s].rate).toFixed(1) + '%').join(', '));
+        }
+        // My holdings: where each saved name sits in the ranking, 1 to N
+        if (typeof holdings !== 'undefined' && holdings.length && N) {
+            const ranks = holdings.map(t => (D.table_data.find(x => x.Ticker === t) || {}).Rank).filter(v => typeof v === 'number');
+            if (ranks.length) tileViz('sec-holdings', '<div class="tv-strip">' + ranks.map(v =>
+                    '<i style="left:' + ((v - 1) / Math.max(1, N - 1) * 100).toFixed(1) + '%"></i>').join('') + '</div>' +
+                    '<div class="tv-cap"><span>#1</span><span>Where they rank</span><span>#' + N + '</span></div>',
+                'Your saved names rank ' + ranks.sort((a, b) => a - b).map(v => '#' + v).join(', ') + ' of ' + N);
+            else tileViz('sec-holdings', '');
+        } else tileViz('sec-holdings', '');
+    }
+
+    function renderPageViz() {
+        renderDist();
+        safeTileViz();
+        if (!DIST.resizeWired && typeof window.addEventListener === 'function') {
+            DIST.resizeWired = true;
+            window.addEventListener('resize', debounce(() => {
+                const host = document.getElementById('dist-plot');
+                if (!host || !host.clientWidth) return;
+                const cs = getComputedStyle(host);
+                if (Math.floor(host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) !== DIST.w) renderDist();
+            }, 150));
+        }
+    }
+    // A picture never stops the panel it decorates from rendering.
+    function safeTileViz() { try { renderTileViz(); } catch (e) { /* display only */ } }
+    (function wirePageViz() {
+        // the holdings tile follows the list as names are added and removed
+        if (typeof updateSectionMeta === 'function') {
+            const _usm = updateSectionMeta;
+            updateSectionMeta = function() { const out = _usm.apply(this, arguments); safeTileViz(); return out; };
+        }
+    })();
+"""
+
+
+def _css_page() -> str:
+    """The page's elevation layer (ui-elevation, 2026-10-27, ``plan/ui-elevation.md``): the display
+    serif on headlines, depth through a hairline of light, the score heat in the rankings, the
+    leaders' fingerprints, the distribution and the tile charts, and a compact phone list. Emitted
+    last, so at equal specificity it wins. Scoped to the page - nothing here reaches ``#stock-modal``.
+    Presentation only: no number, rank or sentence changes."""
+    return """
+        /* ---- EDITORIAL TYPE: the serif speaks for headlines only; figures, labels and controls stay Inter ---- */
+        .hero-title, .dist-title,
+        .dashboard-container > .section > .section-header .section-title,
+        .sec-grid .section-header .section-title {
+            font-family: var(--font-display); font-weight: 500; letter-spacing: -.015em; font-optical-sizing: auto; }
+        .hero-title { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; max-width: 20ch; }
+        .dashboard-container > .section > .section-header .section-title,
+        .dist-title { font-size: clamp(22px, 2.2vw, 28px) !important; line-height: 1.15; }
+        .sec-grid .section-header .section-title { font-size: 21px !important; line-height: 1.2; }
+        .sec-grid .collapsible-section:not(.collapsed) .section-header .section-title { font-size: clamp(22px, 2.2vw, 28px) !important; }
+        .holdings-count { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+        .hero-eyebrow { font-size: 12px; font-weight: 500; }
+        .hero-sub { color: var(--text-secondary); }
+        @media (max-width: 760px) { .hero-title { font-size: 36px; } }
+
+        /* ---- DEPTH THROUGH LIGHT: raised surfaces carry a 1px highlight on their top edge ---- */
+        .kpi-row, .top5-card, .sec-grid > .collapsible-section, .table-section, .filters-bar, .dist-plot { box-shadow: var(--hairline-hi); }
+        .kpi-row { background: linear-gradient(var(--bg-card), var(--bg-card)); }
+        .kpi-value { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+        .kpi-label { font-size: 11px; }
+
+        /* ---- THE WHOLE RANKING, ONE DOT PER COMPANY ---- */
+        .dist { margin: 4px 0 28px; }
+        .dist[hidden] { display: none; }
+        .dist-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; margin-bottom: 12px; }
+        .dist-title { margin: 0; color: var(--text-primary); }
+        .dist-legend { display: flex; gap: 18px; margin: 0; font-size: 12.5px; color: var(--text-muted); }
+        .dist-legend .dl { display: inline-flex; align-items: center; gap: 7px; }
+        .dist-legend .dl i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dl-top i { background: var(--accent); }
+        .dl-flag i { border: 1.5px solid var(--amber); box-sizing: border-box; }
+        .dl-rest i { background: #55544f; }
+        .dist-plot { position: relative; min-height: 150px; padding: 8px 20px 4px; border: 1px solid var(--border); border-radius: 14px;
+                     background: var(--bg-card); cursor: crosshair; touch-action: pan-y; }
+        .dist-svg { display: block; overflow: visible; }
+        .dist-rest { fill: #55544f; }
+        .dist-top { fill: var(--accent); }
+        .dist-flag { fill: none; stroke: var(--amber); stroke-width: 1.3; }
+        .dist-axis { fill: none; stroke: var(--border-bright); stroke-width: 1; }
+        .dist-med { fill: none; stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 2 3; }
+        .dist-lead { fill: none; stroke: var(--accent); stroke-width: 1; }
+        .dist-tick, .dist-lab { fill: var(--text-muted); font: 500 11px var(--font-body); font-variant-numeric: tabular-nums; }
+        .dist-lab-hi { fill: var(--text-primary); font-weight: 600; }
+        .dist-hl { fill: none; stroke: var(--text-primary); stroke-width: 1.5; pointer-events: none; visibility: hidden; }
+        .dist-tip { position: absolute; z-index: 3; display: grid; gap: 1px; padding: 8px 11px; min-width: 120px; max-width: 240px; pointer-events: none;
+                    background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; box-shadow: var(--shadow-overlay);
+                    font-size: 12.5px; line-height: 1.4; color: var(--text-secondary); }
+        .dist-tip[hidden] { display: none; }
+        .dist-tip b { color: var(--text-primary); font-weight: 600; font-size: 13.5px; }
+        .dist-tip .dt-co { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dist-tip .dt-n { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .dist-tip .dt-f { color: var(--amber); }
+        @media (max-width: 760px) {
+            .dist { margin: 20px 0 22px; }
+            .dist-plot { padding: 6px 10px 2px; }
+            .dist-legend { gap: 14px; font-size: 12px; }
+        }
+
+        /* ---- LEADING THE RANKING: each card a readable score fingerprint ---- */
+        .t5-fp { display: grid; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .fp-row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 24px; align-items: center; gap: 8px; }
+        .fp-l { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+        .fp-v { font-size: 12.5px; font-weight: 600; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+        .fp-track { position: relative; height: 6px; border-radius: 3px; background: var(--bg-elevated); }
+        .fp-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--accent) 58%, var(--bg-elevated)); }
+        .fp-track i.hi { background: var(--accent); }
+        /* the tick at 50 sits over the bar, so a score just above or below it reads as such */
+        .fp-track::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-muted); opacity: .8; z-index: 1; }
+        .top5-card { display: flex; flex-direction: column; }
+        .top5-company { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .top5-who { min-width: 0; }
+        .t5-key { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 12.5px; color: var(--text-muted); }
+        .t5-key i { position: relative; width: 22px; height: 6px; border-radius: 3px; background: var(--bg-elevated); flex: none; }
+        .t5-key i::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-muted); }
+
+        /* ---- THE SUMMARY TILES: a small true chart under each headline ---- */
+        .sec-grid .tile-viz { order: 5; flex: 1 0 100%; margin: 4px 0 2px; }
+        .sec-grid .collapsible-section:not(.collapsed) .tile-viz { display: none; }
+        .tv-cap { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .tv-split { position: relative; height: 8px; border-radius: 4px; background: var(--bg-elevated); overflow: hidden; }
+        .tv-split i { position: absolute; top: 0; bottom: 0; }
+        .tv-split .up { left: 0; background: var(--green); }
+        .tv-split .dn { right: 0; background: var(--red-strong); }
+        .tv-days, .tv-cols { display: flex; align-items: flex-end; gap: 3px; height: 34px; border-bottom: 1px solid var(--border-bright); }
+        .tv-days i, .tv-cols i { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; }
+        .tv-days .wk1 { background: var(--accent); }
+        .tv-days .wk2 { background: color-mix(in srgb, var(--accent) 42%, var(--bg-elevated)); }
+        .tv-cols i { background: #55544f; }
+        .tv-cols i.hi { background: var(--amber); }
+        .tv-pct, .tv-bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; }
+        .tvp-l, .tvb-l { font-size: 12px; color: var(--text-secondary); }
+        .tvp-v, .tvb-v { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; min-width: 40px; }
+        .tvp-t { position: relative; height: 6px; border-radius: 3px; background: var(--bg-elevated); }
+        .tvp-t i { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--text-primary); }
+        .tvb-t { position: relative; height: 8px; border-radius: 4px; background: var(--bg-elevated); }
+        .tvb-t i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: #6b6a64; }
+        .tvb-t i.hi { background: var(--accent); }
+        .tv-strip { position: relative; height: 14px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 28%, var(--bg-elevated)), var(--bg-elevated)); }
+        .tv-strip i { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text-primary); }
+        .sec-grid > .collapsible-section.collapsed { cursor: pointer; }
+        .sec-grid > .collapsible-section.collapsed .section-header { padding-bottom: 20px; }
+        /* the chevron says "opens"; on a tile it turns to point the way the tile opens */
+        .sec-grid > .collapsible-section.collapsed .section-chevron { transform: rotate(-90deg); transition: transform var(--t-fast) ease-out; }
+        .sec-grid > .collapsible-section.collapsed:hover .section-chevron { transform: rotate(-90deg) translateY(2px); }
+
+        /* ---- THE RANKINGS: score heat - magnitude in one hue behind ink that does not change ---- */
+        .data-table td.sc { background: rgba(57, 135, 229, calc(0.03 + 0.25 * var(--v, 0))); color: var(--text-primary); font-weight: 500;
+                            box-shadow: inset 0 -1px 0 var(--border); }
+        .data-table td.sc-na { background: none; color: var(--text-muted); }
+        .data-table tbody tr:hover td.sc { color: var(--text-primary); }
+        .data-table thead th { background: color-mix(in srgb, var(--bg-card) 92%, #fff); }
+        .data-table thead th[data-sort]:not(.sorted):hover::after { content: ' \\2195'; color: var(--text-muted); }
+        .data-table td.comp { font-size: 14.5px; }
+        .data-table th:nth-child(1) { width: 52px; }
+        .data-table th:nth-child(2) { width: 52px; }
+        .data-table th:nth-child(5) { width: 160px; }
+        .data-table th:nth-child(15) { width: 108px; }
+        .data-table .company { color: var(--text-primary); opacity: .86; }
+        .data-table tbody tr:hover .company { opacity: 1; }
+        .data-table .vt-cell .flag { margin-right: 3px; }
+        .filters-bar { padding: 14px 16px; }
+
+        /* ---- THE RANKINGS ON A PHONE: one compact card a row ----
+           Rank and its move share the first column; the name and composite the first line; the eight
+           scores, shaded by the same heat, the second. 78px a row against 96, so the list is ~9,000px
+           shorter, and nothing is dropped: the move no longer takes a line of its own. */
+        @media (max-width: 760px) {
+            .data-table { --row-h: 80px; }
+            .data-table tbody tr { grid-template-columns: 38px repeat(8, minmax(0, 1fr)); grid-template-rows: 36px 36px; column-gap: 3px;
+                                   padding: 4px 12px 4px 10px; }
+            .data-table td.rank { grid-column: 1; grid-row: 1; font-size: 13px; color: var(--text-muted); }
+            .data-table td.delta-cell { grid-column: 1; grid-row: 2; justify-content: flex-start; font-size: 11px; }
+            .data-table td.ticker { grid-column: 2 / span 2; grid-row: 1; font-size: 15px; }
+            .data-table td.company { grid-column: 4 / span 4; grid-row: 1; font-size: 12.5px; display: block; line-height: 36px;
+                                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .data-table td.comp { grid-column: 8 / span 2; grid-row: 1; font-size: 16px; }
+            .data-table td.sc { grid-row: 2; border-radius: 6px; font-size: 12.5px; line-height: 1.1; box-shadow: none; }
+            .data-table td.sc::before { font-size: 9.5px; font-weight: 500; letter-spacing: .03em; color: var(--text-secondary); opacity: .8; }
+            .data-table td.vt-cell { grid-column: 4 / span 4; grid-row: 1; justify-content: flex-end; pointer-events: none; }
+            .data-table tr:has(.vt-cell .flag) td.company { grid-column: 4 / span 2; }
+            .data-table tr:has(.vt-cell .flag) td.vt-cell { grid-column: 6 / span 2; }
+            .data-table .vt-cell .flag { padding: 0 6px; font-size: 10.5px; }
+        }
+
+        /* ---- THE VIEWS ---- */
+        /* Track record: the figures share one row where they fit, instead of five and an orphan */
+        @media (min-width: 761px) { .tr-kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
+        /* the footer as a colophon */
+        .dashboard-footer { padding: 32px 16px 40px; }
+        .footer-disclaimer { max-width: 68ch; line-height: 1.6; }
+        @media (prefers-reduced-motion: reduce) {
+            .sec-grid > .collapsible-section .section-chevron { transition: none; }
+        }
+    """
 
 
 def _load_methodology_html() -> str:
