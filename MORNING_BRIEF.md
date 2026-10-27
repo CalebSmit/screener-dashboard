@@ -1,4 +1,4 @@
-# Morning Brief - Tuesday 27 October 2026, 06:32
+# Morning Brief - Tuesday 27 October 2026, 13:38
 
 Written automatically after each run. Newest state only - the full
 history is in `NIGHTLY_LOG.md`.
@@ -23,69 +23,69 @@ history is in `NIGHTLY_LOG.md`.
 
 ## What changed in the repo
 
-- `a520fe1 log: correct the after-count (3,256 passed, not 3,250)`
-- `8950247 log: 2026-10-27 - flaky gate 1 fixed at the root, the data-run proposal refused on its own number, drilldowns re-verified`
-- `6f47700 brief: carry the data run's phase timing and the rate-limited count`
-- `a0fd9b2 research: decide the data-run timing proposal - item 1 REFUSED on the number it asked for`
-- `7593c90 test: the rerun scheduler's prefix tests no longer race worker startup`
-- `d6b7799 brief: data run 2026-10-27`
-- `7a4063a data: screener run 2026-10-27 - 498 scored, top: EXPE MU APA HST EG`
-- `eda0bb8 log: 2026-10-26 owner-run night - speed (parallel suite, parallel engine reruns, lab first paint, data-run timing) and the docs it made stale`
-- `d95032e research: rerun all 32 engine rows on today's code with --jobs 4 - provenance refresh, 0 statistics moved`
-- `079d568 plan: row 76 - nothing else in the suite saw the Beneish coefficient move (the investor-profile failure was a copied runs/ folder's mtimes)`
-- `cb870c3 rerun_experiments: --jobs N runs stale rows in worker processes, rows identical to serial`
-- `047bf4b plan: claims mutation audit 2026-10-26 - the two mechanical searches, rows 63-88`
-- `3ebc0f8 test: pin the points-add-up tolerance at rounding, both sides (drilldown.composite_chain, compare.composite_gap)`
-- `d9830c3 research: where the 02:00 data run's 27 minutes go, what shipped, and what to cut next`
-- `e4ec4cd tests: the one-observation snapshot tests stop rewriting the tracked IC history`
+- `bf6da57 page: rebuild index.html for the three new provenance sentences (payload byte-identical)`
+- `b573f36 log: the dead-badge hunt - four defects, one a false sentence on a top-25 stock, one a false claim on the public methodology page`
+- `e043051 provenance: the EV sentence states the limit that applied to this stock, not the other one`
+- `2b04e17 drilldown: the dead badges' last four - a false LTM sentence, a silent EV substitution, an unexplained beta, and a flag no run ever set`
+- `c148df2 docs: log and owner queue for the TradingAgents build`
+- `903c796 tests: two browser tests wait for the condition, not a fixed delay a loaded suite overran`
+- `e8baa51 contract: pin stock_detail[t].price_date, which the bot's swap ledger now reads; note: swap ledger done`
+- `0a7f45e header: the priority-plus fit counts a rounded 1px overflow as over`
+- `ccab5b3 drilldown: "The case against" - what the sheet already shows against a stock, collected (owner)`
+- `3e62cb3 evidence base: a holiday run enters at the next session's close, not the one its ranking was built from`
+- `952a184 research: what to take from TradingAgents - and a holiday look-ahead in the live evidence base`
+- `8063ee6 header: every section link whole or under More, at every width (owner)`
+- `06c54bd type: one typeface - headlines in Inter 600 tracked tight, the ticker's style; the display serif removed (owner)`
+- `8a33be0 docs: 2026-10-27 owner-run UI elevation - log, owner queue, plan status and residuals, design-system note, rebuild_page in rule 10`
+- `9658fb0 lab, research: the serif wordmark as the dashboard sets it; eyebrows in muted ink (accent is for what you can click)`
 
 ## The session's own account
 
-> 2026-10-27 (06:00 session) - PRODUCT. A flaky ship gate fixed at the root, the open proposal refused on the number it asked for, and the drilldowns re-checked against the engine
+> 2026-10-27 (13:00 midday session) - QUEUE. The eleven badges that lived in dead code: four said nothing, one of them a false sentence on a top-25 stock, and one a false claim on the public methodology page
 > 
-> **Health (rule 8, all five):** last code session ran? **yes** - the 2026-10-26 13:00 midday
-> session ends "Run complete: shipped to main", tag `good/2026-10-26-1340`. Data loop published?
-> **yes** - 2026-10-27 02:00, "Data loop complete", **HEALTH: PASS**, 498 scored, live at 02:20.
-> Evidence base at `1m` = **38 rows, newest 2026-09-25 (32 days ago, bound 40), 4 effective**.
-> Priority 0: `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.13, the Factor
-> Lab** (opened 2026-10-12, **age 15 days**) - not advanced today; the next non-retrospective
-> Friday is 2026-11-06 and nothing here competed for it.
-> **Tests:** before **1 failed, 3247 passed, 1 skipped** - the failure was *flaky, not mine*, and
-> became the session's first work (below). After: **3256 passed, 1 skipped** - 3,248 collected at
-> baseline plus the scheduler test split into two (+1) and 7 new brief tests, with the flake gone.
-> **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 sub-item 1 ("decide the OPEN proposals") was
-> waiting with one, 1 day open, so it came before the Tuesday focus as the prompt requires. The
-> Tuesday focus was then done in its verification half (drilldowns against the engine) and found
-> nothing broken. Nothing deferred for a loop or a gate.
+> **Health (rule 8, all five):** last code session ran? **yes** - 06:00 today, "Run complete:
+> shipped to main", tag `good/2026-10-27`; five owner-run passes merged after it. Data loop
+> published? **yes** - 02:00 today, "Data loop complete", **HEALTH: PASS**, 498 scored, live at
+> 02:20, claims gate 1,576 passed in 65 s `[parallel, -n auto]`. Evidence base at `1m` = **38 rows,
+> newest 2026-09-25 (32 days ago, bound 40), 4 effective**. Priority 0: `allow_auto_apply` **false**,
+> unchanged. Top open roadmap item: **0.13, the Factor Lab** (opened 2026-10-12, **age 15 days**) -
+> not advanced; the next non-retrospective Friday is 2026-11-06 and experiment 18 is a Friday's work.
+> **Tests:** before **3295 passed, 1 skipped**; after **3313 passed, 1 skipped** (+18, the new
+> module). `scripts/rehearse_publish.py` **PASSED**.
+> **Owner queue / rotation:** no proposal was waiting (`open_proposals()` returns `[]`). The 06:00
+> session's **Next** was the EDGAR daily-form-index build, whose own evidence bar is two weeks of
+> shadow runs - it cannot be finished end to end today, and the prompt asks for one item finished.
+> I took instead the item this morning's owner-run session flagged as available to a session
+> (`plan/ui-elevation.md` item 5), which is also what the 2026-10-15 session called **"the single
+> most valuable next thing"** and which had then sat for **12 days**. Nothing deferred for a loop or
+> a gate; nothing an earlier session decided today was reversed.
 > 
 > ### Did
 > 
-> **1. Gate 1 was flaky, and the flake was a test asserting a race.** The session's baseline came
-> back `1 failed, 3247 passed` on
-> `test_session_ends_clean.py::test_a_failed_worker_stops_the_run_with_the_serial_prefix_appended`,
-> with `assert ['older'] == ['older', 'baseline', 'e1', 'e2', 'e3']`. The same test then passed
-> alone, passed under `-n auto` in its own module, and the full suite passed twice more on the
-> identical tree. **A nondeterministic gate 1 is worse than a red one**: the runner re-runs all four
-> gates itself, so this could refuse a merge for a reason unconnected to the day's work, and would
-> look like a different fault each time.
+> **The defect hunt the 2026-10-15 session left open.** That session found
+> `generate_dashboard.renderFlagsWarnings` dead - nothing called it, and its container
+> `#modal-flags` was never written into the page, so that morning's quarterly-rejection badge could
+> never have appeared. It rehomed the two provenance sentences and left the **other eleven badges**
+> with the note that one session should check each against the live page and either rehome it or
+> delete it. This is that session.
 > 
-> The cause is not in the scheduler. `run_parallel`'s documented guarantee is that the ledger holds
-> **a** prefix of the serial order; the test asserted the **maximal** prefix, which additionally
-> requires workers 0 and 2 to reach their first row before worker 1 reaches its failing one - a race
-> between three Python interpreter startups, held off only by a 0.3 s sleep on two unrelated rows.
-> The parallel suite shipped 2026-10-26 puts an xdist worker on every core, which is exactly what
-> makes a process lose that race. **Reproduced 100%** by delaying the other workers' first rows, the
-> thing CPU contention actually does to startup: the prefix collapses to `['older']` and the failure
-> is byte-identical to the baseline's.
+> Measured on the 2026-10-27 published run, 498 stocks
+> (`research/measurements/2026-10-27-dead-badge-audit.py`, reproducible at any commit):
 > 
-> Fixed by removing the race rather than the assertion. The fake engine gains a done-marker per
-> finished row and a barrier that waits on them, so e4 cannot fail until **every row another worker
-> owns has finished** (c1 excluded - worker 1 runs it *after* e4, so waiting on it would deadlock
-> rather than order anything). The maximal-prefix assertion is now a fact of the run instead of a
-> hope, and **strictly stronger than before**: e5, e6, v1 and v2 are all demonstrably finished and
-> still withheld, which is the "nothing after it even if it finished" clause the old sleep could only
-> hope for. A second test pins the outcome that actually fired on the live machine - a short prefix -
-> with assertions that are universal invariants (a prefix, never a hole, nothing at or after the
+> | Badge | Stocks | Reaches the reader? |
+> |---|---|---|
+> | value trap | 46 | yes - table flag column, `summary`, "The case against" |
+> | growth trap | 66 | yes - same |
+> | Beneish | 43 | yes - `summary`, "The case against" |
+> | channel stuffing | 14 | yes - `summary`, "The case against" |
+> | stale financials | 28 | yes - Filing Age badge, `summary`, "The case against" |
+> | EPS basis mismatch | 100 | yes - provenance badge, data-quality KPIs |
+> | bank-like | 46 | yes - the ROE/ROIC column label, methodology page |
+> | **LTM 3-of-4 annualised** | **4** | **no - and the panel said the opposite** |
+> | **enterprise value substituted** | **18** | **no** |
+> | **beta overlap under 80%** | **1** | **no** |
+> | **financial-sector caveat** | **0** | **no - dead at source, with a false claim on the public page** |
+> 
 > ...
 
 ---
