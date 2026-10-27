@@ -8679,7 +8679,10 @@ def _js_ux() -> str:
         if (hi - lo < 10) { hi = Math.min(N, lo + 10); }
         // Draw at the sheet's real width so text is never scaled: full sheet on desktop, the screen on a phone.
         const W = Math.round(window.innerWidth <= 760 ? Math.max(280, window.innerWidth - 32) : Math.max(480, Math.min(880, window.innerWidth) - 48));
-        const Hh = W < 500 ? 150 : 176, L = 44, R = 52, T = 14, B = 26;
+        // Below 560px the band's label cannot share the axis row with the two dates (it overprinted
+        // both at 375px), so it takes a line of its own beneath them (2026-10-27).
+        const own = W < 560;
+        const Hh = (W < 500 ? 150 : 176) + (own ? 16 : 0), L = 44, R = 52, T = 14, B = 26 + (own ? 16 : 0);
         const iw = W - L - R, ih = Hh - T - B;
         const nx = Math.max(1, dates.length - 1);
         const X = i => L + (i / nx) * iw;
@@ -8699,7 +8702,7 @@ def _js_ux() -> str:
             const y1 = Y(Math.max(lo, last[1] - thr)), y2 = Y(Math.min(hi, last[1] + thr));
             band = '<rect x="' + L + '" y="' + y1.toFixed(1) + '" width="' + iw + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '" class="rc-band"/>' +
                    // on the axis row, between the two dates: inside the plot it sat on the line (2026-10-15)
-                   '<text x="' + ((L + W - R) / 2).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="middle" class="rc-band-label">shaded: &plusmn;' + thr + ' ranks, ordinary run-to-run variation</text>';
+                   '<text x="' + (own ? L : (L + W - R) / 2).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="' + (own ? 'start' : 'middle') + '" class="rc-band-label">shaded: &plusmn;' + thr + ' ranks, ordinary run-to-run variation</text>';
         }
         const lx = X(last[0]), ly = Y(last[1]);
         return '<figure class="rank-chart" data-lo="' + lo + '" data-hi="' + hi + '">' +
@@ -8709,8 +8712,8 @@ def _js_ux() -> str:
             '<path d="' + path + '" class="rc-line"/>' +
             '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4" class="rc-dot"/>' +
             '<text x="' + (lx + 8).toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" class="rc-last">#' + last[1] + '</text>' +
-            '<text x="' + L + '" y="' + (Hh - 6) + '" class="rc-xtick">' + escapeHtml(short(dates[pts[0][0]] || '')) + '</text>' +
-            '<text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="rc-xtick" text-anchor="end">' + escapeHtml(short(dates[last[0]] || '')) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - (own ? 22 : 6)) + '" class="rc-xtick">' + escapeHtml(short(dates[pts[0][0]] || '')) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - (own ? 22 : 6)) + '" class="rc-xtick" text-anchor="end">' + escapeHtml(short(dates[last[0]] || '')) + '</text>' +
             '<line class="rc-hover-line" x1="0" x2="0" y1="' + T + '" y2="' + (T + ih) + '" visibility="hidden"/>' +
             '<circle class="rc-hover-dot" r="3.5" cx="0" cy="0" visibility="hidden"/>' +
             '<rect class="rc-hit" x="' + L + '" y="' + T + '" width="' + iw + '" height="' + ih + '" data-pts=\'' + JSON.stringify(pts) + '\' data-geo="' + [L, T, iw, ih, nx, lo, hi, W].join(',') + '"/>' +
@@ -10949,7 +10952,7 @@ def _css_drilldown() -> str:
         #stock-modal .modal-ticker { grid-area: tk; margin: 0; font: 600 13px/1.3 var(--font-body); letter-spacing: .06em; color: var(--text-primary); }
         #stock-modal .modal-sector { grid-area: sec; margin: 0; font-size: 13px; line-height: 1.3; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         #stock-modal .modal-sector::before { content: '\\00b7'; margin-right: 12px; color: var(--text-muted); }
-        #stock-modal .modal-chips { grid-area: chips; justify-self: end; align-self: end; display: inline-flex; gap: 6px; margin-top: 14px; }
+        #stock-modal .modal-chips { grid-area: chips; justify-self: end; align-self: start; display: inline-flex; gap: 6px; margin-top: 16px; }
         #stock-modal .modal-chips:empty { display: none; }
         #stock-modal .modal-chips .flag { margin: 0; }
         #stock-modal .modal-company {
@@ -10962,18 +10965,18 @@ def _css_drilldown() -> str:
         #stock-modal .modal-close { grid-area: close; order: initial; }
 
         #stock-modal .modal-headline { display: flex; align-items: stretch; gap: 0; min-width: 0; }
+        /* a grid, not a wrapping flex row: a wrapping row sizes itself as if label, value and strip sat
+           on one line, which left a hole after each figure */
         #stock-modal .mh-item {
-            display: flex; flex-direction: row; flex-wrap: wrap; align-items: baseline; align-content: flex-start; column-gap: 6px;
-            padding: 0 22px; border-left: 1px solid var(--border); line-height: 1.15;
+            display: grid; grid-template-columns: auto 1fr; align-items: baseline; align-content: start; column-gap: 6px;
+            flex: none; padding: 0 22px; border-left: 1px solid var(--border); line-height: 1.15;
         }
         #stock-modal .mh-item:first-child { padding-left: 0; border-left: 0; }
-        #stock-modal .mh-item { flex: none; }
-        #stock-modal .mh-k { flex: 1 1 100%; white-space: nowrap; margin-bottom: 4px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+        #stock-modal .mh-k { grid-column: 1 / -1; white-space: nowrap; margin-bottom: 4px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
         #stock-modal .mh-item strong { font-size: 28px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
         #stock-modal .mh-of { display: inline; font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
         #stock-modal .mh-price strong { font-size: 20px; font-weight: 500; color: var(--text-secondary); }
-        #stock-modal .mh-price { align-content: flex-start; }
-        #stock-modal .cd { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        #stock-modal .cd { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; }
         #stock-modal .cd-svg { display: block; width: 136px; height: auto; overflow: visible; }
         #stock-modal .cd-svg rect { fill: var(--text-muted); opacity: .5; }
         #stock-modal .cd-svg rect.cd-on { fill: var(--accent); opacity: 1; }
@@ -11013,8 +11016,8 @@ def _css_drilldown() -> str:
         #stock-modal .is-compact .modal-headline { margin-top: 8px; }
         #stock-modal .is-compact .modal-sector { display: none; }
         #stock-modal .is-compact .modal-chips { margin-top: 8px; align-self: center; }
-        #stock-modal .is-compact .mh-k { flex: none; margin: 0 2px 0 0; font-size: 10.5px; }
-        #stock-modal .is-compact .mh-item { padding: 0 16px; }
+        #stock-modal .is-compact .mh-k { grid-column: auto; margin: 0 2px 0 0; font-size: 10.5px; }
+        #stock-modal .is-compact .mh-item { grid-template-columns: auto auto auto; padding: 0 16px; }
         #stock-modal .is-compact .mh-item:first-child { padding-left: 0; }
         #stock-modal .is-compact .mh-item strong { font-size: 16px; }
         #stock-modal .is-compact .mh-price strong { font-size: 15px; }
@@ -11107,6 +11110,12 @@ def _css_drilldown() -> str:
         }
         #stock-modal .cat-detail-header .cat-weight-badge { font-variant-numeric: tabular-nums; }
         #stock-modal .cat-detail-header:focus-visible { outline-offset: 6px; border-radius: 4px; }
+        /* the name and its weight on one line: eight closed cards were 83px each */
+        #stock-modal .cat-detail-section { padding: 12px 18px; }
+        #stock-modal .cat-detail-section:not(.collapsed) { padding-bottom: 18px; }
+        #stock-modal .cat-detail-header > div:first-child { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px; min-width: 0; }
+        #stock-modal .cat-detail-header .cat-weight-badge { margin-left: 0; font-size: 12px; }
+        #stock-modal .cat-detail-header > div:last-child { display: flex; align-items: center; gap: 10px; flex: none; }
 
         /* ---- Before you decide: one chart language. The accent is this stock; the references are
            ink and grey; strokes stay the same weight however wide the chart is drawn ---- */
@@ -11141,7 +11150,7 @@ def _css_drilldown() -> str:
             #stock-modal .modal-headline { order: initial; flex: none; }
             #stock-modal .mh-item { padding: 0 14px; }
             #stock-modal .mh-item strong { font-size: 22px; }
-            #stock-modal .mh-price { display: flex; }
+            #stock-modal .mh-price { display: grid; }
             #stock-modal .mh-price strong { font-size: 17px; }
             #stock-modal .mh-of { display: inline; font-size: 12px; }
             #stock-modal .cd-svg { width: 104px; }
@@ -11165,6 +11174,11 @@ def _css_drilldown() -> str:
             #stock-modal .modal-score-val { font-size: 24px; }
             #stock-modal #contrib-visual .contrib-row { grid-template-columns: minmax(0, 1fr) auto; }
             #stock-modal .ctx-card { padding: 14px 14px; }
+            /* price targets: five figures in a 2-column grid; the row of five wrapped into a ragged second line */
+            #stock-modal .pt-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+            #stock-modal .pt-card, #stock-modal .pt-card:first-child { border-left: 0; padding: 10px 0; border-top: 1px solid var(--border); }
+            #stock-modal .pt-card:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+            #stock-modal .pt-card-label { white-space: nowrap; }
         }
         @media (max-width: 360px) {
             #stock-modal .mh-item { padding: 0 10px; }
