@@ -136,6 +136,32 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
 
+## The page, fourth pass, 2026-10-27 (owner-run) - `plan/ui-elevation.md`, `tests/test_page_fourth_pass.py`
+
+Presentation only. What a later session must know before touching these:
+- **Phone rankings are paged**: below 760 px the table shows `PHONE_STEP` (50) rows of `tableState.filtered`,
+  then `#table-more` ("Show the next 50" / "Show all N"). `shownRows()` is the count the window renders and
+  `aria-rowcount` reports; `sortTable` resets it (so every filter, sort and Weighting change does);
+  `focusTableRow` extends it when the arrow keys walk past it. **`tableState.filtered` is still the full
+  list** - the sheet's stepping, deep links and the analytics links read it. Desktop is unchanged.
+- **The table is one tab stop** (roving tabindex, `rovingT` / `syncRoving` in `_js_table`): the focused row,
+  or the first rendered row when that one scrolled out of the window, has `tabindex=0`; the rest `-1`.
+- **Spacer rows span the shown columns** (`visibleCols`, recomputed per render and forcing a re-render when it
+  changes). Spanning all fifteen while Sector is hidden (< 1180 px) gave the fixed-layout table a phantom
+  column. **761-1300 px** carries tighter column widths; **<= 900 px** hides the company column (the ticker
+  cell's `title` names it).
+- **The dot picture is a keyboard slider** (`#dist-plot`, `role="slider"`, `tabindex=0`): `DIST.order` is the
+  dots left to right, `DIST.ki` the current one, `distKey` / `distSetAria` / `distText`. A pointer click sets
+  `DIST.ki` too. `.dist-foot` names the axis and, on keyboard focus only, the keys.
+- **Reporting soon on a phone** puts Last quarter and Insiders under the name (`.rp-m`, below 640 px).
+- **Side by side below 480 px** is a grid per row with the category name as a caption row (`--n` columns).
+- **Phone filters**: Weighting and Sort by span the row.
+- **Phone Menu pill** tucks (`.tuck`) while scrolling down; `hidden` still means "header in view".
+- **Track record tile**: `.kpi-caveat` under the sub-line when `D.track.excess.t` is below two (claim
+  `context.track_luck`).
+- **My holdings**: `.holding-remove` has an `aria-label` and a 32 / 44 px target.
+- Desktop table header "Trap flags" is now **"Flags"** (tooltip unchanged).
+
 ## The UI elevation, the page, 2026-10-27 (owner-run) - `plan/ui-elevation.md`
 
 Presentation only (payload byte-identical; `scripts/rebuild_page.py`). The page's own layer is
