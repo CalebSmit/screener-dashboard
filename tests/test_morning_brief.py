@@ -251,6 +251,55 @@ class TestTheNewestSession:
         assert dry.index("$SkipBrief = $true") < dry.index("exit 0")
 
 
+class TestRunTimingRow:
+    """The brief carries the data run's own phase timing (2026-10-27), because
+    `research/2026-10-26-data-run-timing.md` item 6 proposed watching the rate-limited count "on
+    every 02:00 run for a month" and the first run that could report it reported 39. A number
+    nobody is shown is a number nobody watches (CLAUDE.md rule 8)."""
+
+    LINE = ("[02:18:43] [INFO]     PHASE TIMING (s): total 1118 | universe 1 | fetch.probe 3 | "
+            "fetch.tickers 659 | fetch.retry 125 | fetch.sec_roe_history 5 | "
+            "context.sec_insider 88 | dashboard 24 | snapshot 136 | other 3")
+
+    def test_the_row_gives_the_total_and_the_three_slowest_phases(self, monkeypatch):
+        monkeypatch.setattr(wb, "_rate_limited", lambda: 0)
+        got = wb.run_timing([self.LINE])
+        assert got.startswith("**19 min** total")
+        assert "slowest `fetch.tickers` 659 s, `snapshot` 136 s, `fetch.retry` 125 s" in got
+        assert "total" not in got.split("slowest", 1)[1], "'total' is not one of the phases"
+
+    def test_a_throttled_run_is_called_out_and_a_clean_one_is_still_stated(self, monkeypatch):
+        monkeypatch.setattr(wb, "_rate_limited", lambda: 39)
+        assert wb.run_timing([self.LINE]).endswith("**39 tickers rate-limited**")
+        # stated even at zero - that is the reading the month of watching is looking for
+        monkeypatch.setattr(wb, "_rate_limited", lambda: 0)
+        assert wb.run_timing([self.LINE]).endswith("0 tickers rate-limited")
+
+    def test_a_run_that_recorded_no_count_simply_omits_it(self, monkeypatch):
+        monkeypatch.setattr(wb, "_rate_limited", lambda: None)
+        got = wb.run_timing([self.LINE])
+        assert "rate-limited" not in got and got.startswith("**19 min** total")
+
+    def test_no_line_means_no_row_rather_than_a_guess(self):
+        assert wb.run_timing(["[02:20:31] [INFO] === Data loop complete ==="]) == ""
+        assert wb.run_timing([]) == ""
+        # a malformed line with no total is also not guessed at
+        assert wb.run_timing(["PHASE TIMING (s): universe 1 | dashboard 24"]) == ""
+
+    def test_the_brief_adds_the_row_only_when_there_is_one(self):
+        src = (ROOT / "scripts" / "write_brief.py").read_text(encoding="utf-8")
+        assert "_timing = run_timing(tail(data_log))" in src and "if _timing:" in src
+
+    def test_the_prefix_is_the_one_the_run_actually_prints(self):
+        pt = (ROOT / "phase_timing.py").read_text(encoding="utf-8")
+        assert "PHASE TIMING (s): " in pt and wb.PHASE_LINE == "PHASE TIMING (s): "
+
+    def test_a_missing_count_never_takes_the_brief_down(self, monkeypatch):
+        """`_rate_limited` reads a run directory, which may be pruned or absent."""
+        monkeypatch.setattr(wb, "ROOT", ROOT / "no-such-dir")
+        assert wb._rate_limited() is None or isinstance(wb._rate_limited(), int)
+
+
 class TestFilingCheckRow:
     """The brief carries the data run's agreement with the SEC filings (2026-10-14), so the owner
     sees every morning how well the inputs matched the companies' own figures."""
