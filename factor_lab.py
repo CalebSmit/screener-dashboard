@@ -24,10 +24,12 @@ What this module is NOT, and must not become:
 
 Data: Kenneth R. French's Data Library (copyright Eugene F. Fama and Kenneth R. French). The
 raw files are downloaded to ``data/lab/french/`` (gitignored) and never committed; what is
-published in ``lab_data.js`` is the derived monthly series the page needs, with attribution.
+published in ``lab_data.js`` is the derived monthly series the page needs, with attribution. The
+heaviest series are published beside it, one file each (``lab_data_<key>.js``, ``LAZY_KEYS``), and
+the page loads one only when an experiment that reads it is opened.
 
     python factor_lab.py --fetch     # download the source files (network)
-    python factor_lab.py --build     # rebuild lab_data.js from them
+    python factor_lab.py --build     # rebuild lab_data.js and lab_data_<key>.js from them
     python factor_lab.py --report    # print the comparison with the paper
 """
 from __future__ import annotations
@@ -455,8 +457,10 @@ MISSING = -99.0                      # the library marks missing data -99.99 or 
 # 23 = the fourteenth experiment (a sort compared under both weightings, `also`) and the Investment group;
 # 24 = experiment 15, Jensen, Kelly & Pedersen's 153 factors (a new kind, replication) and its data's attribution;
 # 25 = size inside each profitability fifth (queue row 4b; a new kind, double) and the note's pre-registered rule;
-# 26 = Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution (merged 2026-10-20 night).
-ASSET_VERSION = 26
+# 26 = Piotroski on Open Source Asset Pricing's portfolios, and a second data attribution (merged 2026-10-20 night);
+# 27 = the heavy series moved to lab_data_<key>.js, loaded when an experiment opens (LAZY_KEYS) - the page
+#      builds their addresses with this same ?v=, read off its lab_data.js tag.
+ASSET_VERSION = 27
 
 # Trading-day windows the page offers for the volatility forecast. 126 is the paper's.
 VOL_WINDOWS = (21, 63, 126, 252)
@@ -3536,15 +3540,42 @@ def build_payload(raw_dir: Path = RAW_DIR, now: datetime | None = None, jkp_dir:
     }
 
 
+# The series the page's first screen - the overview and the menu - never reads. Each is written to
+# its own file, lab_data_<key>.js, which adds it to window.LAB_DATA, and lab.html loads it only when
+# an experiment that reads it is opened (PARTS there names which kind reads which). Measured
+# 2026-10-26 (plan/factor-lab.md, "The first paint"): with every series in lab_data.js the page
+# fetched 1.18 MB gzipped before the menu appeared - 6.4 s on a throttled phone, of which the 153
+# JKP factors were 0.71 MB. Content is unchanged by the split: load_published() puts it back
+# together, and tests/test_factor_lab.py checks the parts against the build.
+LAZY_KEYS = ("jkp", "sorts", "size", "double", "split", "quintiles")
+
+
+def part_path(key: str, out: Path = OUT) -> Path:
+    return out.with_name(f"lab_data_{key}.js")
+
+
+def _parse_js_object(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    return json.loads(text[text.index("{"):text.rindex("}") + 1])
+
+
 def write(payload: dict, out: Path = OUT) -> Path:
-    out.write_text("window.LAB_DATA = " + json.dumps(payload, separators=(",", ":")) + ";\n",
-                   encoding="utf-8")
+    def dump(o) -> str:
+        return json.dumps(o, separators=(",", ":"))
+    first = {k: v for k, v in payload.items() if k not in LAZY_KEYS}
+    out.write_text("window.LAB_DATA = " + dump(first) + ";\n", encoding="utf-8")
+    for key in LAZY_KEYS:
+        part_path(key, out).write_text(f"window.LAB_DATA.{key} = " + dump(payload[key]) + ";\n", encoding="utf-8")
     return out
 
 
 def load_published(path: Path = OUT) -> dict:
-    text = path.read_text(encoding="utf-8")
-    return json.loads(text[text.index("{"):text.rindex("}") + 1])
+    """The whole published payload: lab_data.js with each lab_data_<key>.js put back."""
+    data = _parse_js_object(path)
+    for key in LAZY_KEYS:
+        if key not in data and part_path(key, path).exists():
+            data[key] = _parse_js_object(part_path(key, path))
+    return data
 
 
 def report(payload: dict) -> str:
@@ -3577,7 +3608,8 @@ def main(argv: list[str] | None = None) -> int:
             print("fetched", p.name)
     if args.build:
         payload = build_payload()
-        print("wrote", write(payload).name, f"({OUT.stat().st_size / 1024:.0f} KB)")
+        for p in [write(payload)] + [part_path(k) for k in LAZY_KEYS]:
+            print("wrote", p.name, f"({p.stat().st_size / 1024:.0f} KB)")
         print(report(payload))
     elif args.report:
         print(report(load_published()))
