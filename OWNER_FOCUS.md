@@ -699,6 +699,21 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-27 (evening, round two) - "Keep finding improvements please!": DONE (owner-run).**
+  Four more passes on what nobody had measured. **Accessibility:** an axe-core audit of every
+  surface - dashboard serious findings 67 -> 0 (moderate 6,293 -> 0), lab and research page to zero,
+  bot dashboard to zero. **Speed on a phone:** scrolling the rankings no longer rebuilds every row
+  (reading-pace slow frames 183 -> 50 ms); the lab preloads its engine and starts an experiment's
+  data on press or hover. **Teaching:** the methodology page now opens with "If you read nothing
+  else", "How to use it", "What it cannot do" and a glossary; its lists render as lists; one wrong
+  sentence fixed (banks are compared with other financial companies, not with banks only); README
+  rewritten as a club's front door with seven stale statements corrected and its figures tested.
+  "Has it been tested?" now says in plain words that no edge has been shown. **Leftovers:** the
+  sector table on a phone, the Diagnostics chevron, the Delta column is now "Move", methodology
+  formulas wrap and its in-page links work. **Bot (screener-bot `e631973`):** REPORT.md opens with
+  "Real money: not decided yet" beside the luck band, and H4 is partly checkable. No number, rank,
+  weight or scored sentence changed. NIGHTLY_LOG.md 2026-10-27 (sixth owner pass).
+
 - **2026-10-27 (evening) - "Make as many improvements as possible before that next session":
   DONE (owner-run).** Four passes in parallel, each audited at phone and desktop widths before and
   after, all presentation and access - no number, rank, weight or scored sentence changed (payload

@@ -16235,3 +16235,49 @@ table on a phone, the Diagnostics chevron, the bare Delta header, an unscored ca
 say why (needs a per-category reason in the payload), and the lab overview's three long tables. The bot
 agent noted the draft go-live gate U1's worked example disagrees with its own formula (-20% at 1 year,
 not 2) - the owner should correct the example when he signs the gates.
+
+### Same day, sixth owner pass - round two (`good/2026-10-27-owner-6`)
+
+Owner: *"Keep finding improvements please!"* Four more agents, aimed at what nothing had measured
+yet: an automated accessibility audit, speed on a throttled phone, how the tool explains itself to
+a student, and the leftovers. **Payload byte-identical; no weight, metric, threshold or scored
+sentence moved; `METHODOLOGY_CHANGELOG.md` untouched.**
+
+- **Dashboard** (`tests/test_page_round_two.py`, 18): axe-core 4.10.2 over 20 states, serious
+  67 -> 0 after the coordinator underlined the guide's links (the agent was kept out of `#guide`),
+  moderate 6,293 -> 0 (a `<main>` landmark; `.dashboard-container > .section` no longer reaches the
+  sections - write `.page-main > .section`). Phone scrolling: `shiftWindow` keeps on-screen rows
+  instead of rebuilding ~37 per step - reading-pace p95 frame 183 -> 50 ms, layout objects over 40
+  steps 79,914 -> 17,968 (4x CPU). Sector table as cards on a phone; Diagnostics chevron; the Delta
+  header reads "Move"; methodology code blocks wrap (source text unchanged) and in-dialog links
+  scroll to their heading, with a test that every cross-reference has a target. Not done: the
+  ~530 ms relayout when Inter arrives (a font-loading decision), unscored-category reasons.
+- **Methodology, guide, README** (`tests/test_overview_reading_order.py` 15,
+  `tests/test_readme_front_door.py` 9; claims `overview.at_a_glance_flags`,
+  `overview.at_a_glance_tested`, `overview.glossary`; both modules joined the publish gate's
+  `MODULES`): the generated page opens with "If you read nothing else", "How to use it", "What it
+  cannot do" and "Words this page uses"; three lists that rendered as run-on paragraphs are lists;
+  the duplicate closing summary is gone; "a bank is compared with banks" corrected to "other
+  financial companies" (percentiles group by GICS sector). The history sentence is built from
+  `summary.json` and says "no better than chance" only while the interval holds zero. The
+  coordinator checked the at-a-glance bullets against `factor_engine.apply_value_trap_flags` /
+  `apply_growth_trap_flags` and corrected one: Compare holds up to four stocks (`COMPARE_MAX`), not
+  two. README: seven stale statements corrected (the 10-25% failure rate, a nonexistent `--top-n`,
+  the sheet count, and others), its figures tested against config and the engine.
+- **Lab and research page** (`tests/test_lab_reading_and_access.py` +5, `test_research_page` +3;
+  claim `research.plain_answer`): axe to zero on both (links by colour alone, landmarks); the three
+  overview tables readable on a phone (8,313 -> 5,615 px); a defect fixed - the phone category map's
+  "Not covered" text read as covered; `lab_data.js`/`lab_engine.js` preloaded and an experiment's part
+  fetched on press or hover (never on touch-down, so scrolling past "153 factors" downloads nothing).
+  "Has it been tested?" now says under "Not measurably." that the higher-ranked companies did not do
+  measurably better and no edge has been shown - printed only while every interval includes zero.
+  Left: "153 factors" takes 4.5-5 s to open on a phone (bytes; splitting the part by universe is a
+  lab-session change, written into `plan/factor-lab.md`).
+- **Bot** (screener-bot `e631973`, 644 passed, both rehearsals exit 0, CI green): axe 18 -> 0 over 72
+  states; skip link past the ladder; REPORT.md opens with "Real money: not decided yet" beside the
+  range luck alone gives; H4 reconciles the latest Alpaca mark (0.0000% today); a crash in
+  `report.health_rows` on a missing beta fixed. Nothing new written by a run; the per-mark positions
+  file and 3.6's after-tax line are designed in ROADMAP.md, not built.
+
+Gates on the combined tree: suite **3,452 passed, 1 skipped**; `rehearse_publish.py` PASSED; dry run
+OK; `node --check` both payloads and `lab_engine.js`; `rebuild_page.py --check` clean; tree clean.
