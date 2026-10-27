@@ -57,7 +57,7 @@ Day)**, and it escaped by luck - Friday is three days back, Tuesday one day forw
 not: **2026-11-26 (Thanksgiving, Thursday)** ties Wednesday against Friday and takes Wednesday;
 **2026-12-25 (Friday)** takes Thursday 12-24.
 
-**Proposal status: OPEN** - enter each snapshot at the first close **on or after** its run date (the
+**Proposal status: DONE 2026-10-27 (owner-run; owner: "make all changes necessary")** - `improvement_engine._entry_close`, `METHODOLOGY_CHANGELOG.md` 2026-10-27, `tests/test_evidence_integrity.py::TestEntryCloseOnAHoliday`. As proposed: enter each snapshot at the first close **on or after** its run date (the
 rule `_horizon_end_close` already applies to the end of a horizon, and `track_record.py` to entry), with
 a regression test on a Thanksgiving-shaped series, before 2026-11-26. It changes how a comparison is
 measured, not a weight, so it is recorded in `METHODOLOGY_CHANGELOG.md` (the 2026-10-16 horizon-end

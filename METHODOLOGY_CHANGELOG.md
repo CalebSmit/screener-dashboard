@@ -4846,3 +4846,40 @@ represents the company without certifying it. It needs its own note.
 session, as the routine requires).
 **Rollback:** set `share_classes.score_once_per_company: false` in `config.yaml` - the page's
 paragraph changes with it - or revert the commit; tag `good/2026-10-20`.
+
+
+## 2026-10-27 - Evidence-base correction: a holiday run's forward return started at the close its ranking was built from
+
+**Area:** improvement engine - forward-return entry price (`improvement_engine.compute_forward_returns`,
+new `_entry_close`). **Not a methodology change:** no weight, metric, threshold, gate,
+`allow_auto_apply` (still `false`) or effective-observation count changed. It changes what the
+evidence base will *contain*, which is why it is recorded here (the 2026-10-16 horizon-end entry is the
+precedent).
+
+**The defect (measured, not yet triggered).** Each snapshot's forward return started at
+`_nearest_price(prices, run_date)` - the nearest close **in either direction**, ties to the earlier.
+The data loop runs Monday to Friday, market holidays included, and a 02:00 run is built from the
+previous session's close. On a holiday whose previous close is at least as near as its next one, the
+entry was therefore the close the ranking was computed from - a price nobody could trade at after the
+ranking was published. In the committed history it has not happened: 65 snapshot dates, one on an NYSE
+holiday (2026-09-07, Labor Day), where Tuesday (one day) beat Friday (three). It would have happened on
+**2026-11-26** (Thanksgiving: Wednesday against Friday, a tie, so Wednesday) and **2026-12-25**
+(Thursday against Monday). Found by checking TradingAgents' rule that a decision is scored from the
+first close after it could be acted on (its #1518/#1539) against this engine:
+`research/2026-10-27-tradingagents-ideas.md` section 3.
+
+**Changed.** Entry is the **first close on or after the run date** (`_entry_close`, the same forward-only
+rule `_horizon_end_close` applies to a horizon's end and `track_record.py` applies to entry). For an
+ordinary weekday the run date's own close is at distance zero under both rules, so nothing changes.
+
+**Expected effect.** None on any recorded row (rows are measured once and never re-measured, and the
+only holiday row already used the next close). From 2026-11-26 on, a holiday run's 1w/1m/3m returns
+start one session later, at a price a reader could have traded.
+
+**Validated.** `tests/test_evidence_integrity.py::TestEntryCloseOnAHoliday` (3): a Good Friday-shaped
+series through the whole `compute_forward_returns` pass enters at Monday's close, not Thursday's;
+Thanksgiving enters on Friday where the old rule chose Wednesday; ordinary weekdays give the same entry
+under both rules.
+
+**Applied by:** owner-run session, 2026-10-27 (owner: "Yes make all changes necessary").
+**Rollback:** revert the commit; tag `good/2026-10-27-owner-3`.

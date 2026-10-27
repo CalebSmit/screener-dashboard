@@ -596,6 +596,48 @@ class TestHorizonEndClose:
         pd.testing.assert_series_equal(before["fwd_return_1m"], after["fwd_return_1m"])
 
 
+class TestEntryCloseOnAHoliday:
+    """A run made on a market holiday enters at the next session's close (2026-10-27).
+
+    The data loop runs Monday to Friday, holidays included, from the previous session's
+    close. The entry price was the nearest close in either direction, ties to the earlier,
+    so Thanksgiving's run entered at Wednesday's close - the one its ranking was built from,
+    before the ranking existed. ``research/2026-10-27-tradingagents-ideas.md`` section 3.
+    """
+
+    def _prices_without(self, holiday):
+        full = _fake_prices(start="2026-09-01", days=120)
+        return full.drop(pd.Timestamp(holiday))
+
+    def test_good_friday_enters_at_mondays_close_through_the_whole_pass(self, settable_price_fetch):
+        """2026-04-03 (Good Friday) ran at 02:00 from Thursday's close. The old rule entered at
+        Thursday 04-02 (one day back, against Monday three days forward)."""
+        prices = _fake_prices(start="2026-01-01", days=200).drop(pd.Timestamp("2026-04-03"))
+        settable_price_fetch["frame"] = prices
+        _write_snapshot("2026-04-03", "bbbbbbbbbbbb")
+        ie.compute_forward_returns("2026-04-17")
+        perf = pd.read_csv(ie.PERFORMANCE_HISTORY_PATH).set_index("ticker")
+        t = TICKERS[0]
+        end = prices.loc[prices.index >= "2026-04-10", t].iloc[0]
+        assert perf.loc[t, "fwd_return_1w"] == pytest.approx(end / prices.loc["2026-04-06", t] - 1)
+        assert perf.loc[t, "fwd_return_1w"] != pytest.approx(end / prices.loc["2026-04-02", t] - 1)
+
+    def test_thanksgiving_enters_on_friday_not_wednesday(self):
+        prices = self._prices_without("2026-11-26")[TICKERS[0]]
+        assert ie._entry_close(prices, pd.Timestamp("2026-11-26")) == prices.loc["2026-11-27"]
+        assert ie._nearest_price(prices, pd.Timestamp("2026-11-26")) == prices.loc["2026-11-25"]
+
+    def test_a_friday_holiday_enters_on_monday_not_thursday(self):
+        prices = self._prices_without("2026-12-25")[TICKERS[0]]
+        assert ie._entry_close(prices, pd.Timestamp("2026-12-25")) == prices.loc["2026-12-28"]
+        assert ie._nearest_price(prices, pd.Timestamp("2026-12-25")) == prices.loc["2026-12-24"]
+
+    def test_an_ordinary_weekday_is_unchanged(self):
+        prices = _fake_prices(start="2026-09-01", days=120)[TICKERS[0]]
+        for d in ("2026-10-27", "2026-09-08", "2026-11-02"):
+            assert ie._entry_close(prices, pd.Timestamp(d)) == ie._nearest_price(prices, pd.Timestamp(d))
+
+
 class TestPriceCacheCompleteness:
     def test_an_incomplete_window_is_not_cached(self, fake_yfinance):
         full = _fake_prices()
