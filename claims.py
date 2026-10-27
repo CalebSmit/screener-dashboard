@@ -527,6 +527,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_calculation_reproducibility.py::test_composite_and_points_reproduce_including_the_coverage_discount",
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
             "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
+            "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
         ),
     ),
     Claim(
@@ -1254,6 +1255,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_calculation_reproducibility.py::test_the_gap_lines_reconcile_for_every_pair_with_the_top_stock",
             "tests/test_dashboard_navigation.py::test_compare_lines_up_scores_and_reconciles_the_gap",
             "tests/test_calculation_reproducibility.py::test_composite_and_points_reproduce_including_the_coverage_discount",
+            "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
         ),
         # "Rounding aside" is part of the claim, not a caveat on it: points are published to
         # 2dp, so eight lines can differ from the gap by up to ~0.09 for an undiscounted pair.
