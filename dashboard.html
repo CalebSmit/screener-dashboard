@@ -3746,6 +3746,7 @@
             font-size: 23px; line-height: 1.15; color: var(--text-primary);
         }
         #stock-modal .about-title { font-family: var(--font-display); font-weight: 500; font-size: 19px; letter-spacing: -.01em; }
+        #stock-modal .about-text { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); max-width: 80ch; }
         #stock-modal .collapsible-header { padding: 22px 0 16px; }
         #stock-modal .collapsible-header:hover span:first-child { color: var(--text-primary); }
         #stock-modal .collapsible-header:hover .collapsible-chevron { background: var(--text-primary); }
@@ -8737,6 +8738,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const el = document.getElementById(a.getAttribute('href').slice(1));
                 if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= top) cur = a;
             });
+            // Scrolled to the end, the last sections can never reach the top line, so their tab never
+            // lit (Data stayed on Peers). At the bottom, the last section showing is the one being read.
+            if (body.scrollTop > 0 && body.scrollTop + body.clientHeight >= body.scrollHeight - 2) {
+                const shown = links.filter(a => { const el = document.getElementById(a.getAttribute('href').slice(1)); return el && el.offsetParent !== null && !a.hidden; });
+                if (shown.length) cur = shown[shown.length - 1];
+            }
             links.forEach(a => a.classList.toggle('active', a === cur));
         };
         if (!modalSpyBound) { body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); modalSpyBound = true; }
