@@ -335,7 +335,8 @@ runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test
   after it" row draws both values on its own scale (`slope()`). The hero carries the overview's three
   counts; titles are the display serif; charts gained an axis, year ticks and a point per line at the
   month being read; a lazily loaded experiment shows its title, paper and verdict at once with
-  placeholders under "Loading this experiment's data…"; previous / next sit at the foot of each.
+  placeholders under "Loading this experiment's data…"; previous / next sit at the foot of each; and
+  a link to one experiment (`lab.html#five-factors`) now opens on it rather than on the hero above.
   One test edit: the phone click in
   `test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own` opens `#picker` first and
   pins that it opens and closes.
