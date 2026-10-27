@@ -232,6 +232,26 @@ def test_a_hidden_coverage_discount_is_caught(cfg):
     assert any("composite" in p for t in hit for p in result["failures"][t])
 
 
+def test_points_that_miss_by_more_than_rounding_are_caught(cfg):
+    """Claims-mutation audit, 2026-10-26 (row 63). "The points add up, rounding aside" is held
+    by ``calc_trace.CONTRIB_SUM_TOL``, and the only test that read it compared against the
+    constant itself, so ``CONTRIB_SUM_TOL = 0.5`` - a build that would publish points ten times
+    further from the composite than rounding can explain - passed the whole suite. Eight
+    contributions rounded to 2dp can miss their total by at most 8 x 0.005 = 0.04: so a stock
+    whose points miss by 0.04 is accepted and one whose points miss by 0.06 is refused."""
+    payload = _as_payload(_scored(cfg), cfg)
+    t, s = next((t, s) for t, s in payload["stock_detail"].items()
+                if not s["cov"].get("disc") and s["composite"] is not None)
+    pre = calc_trace.composite_trace(payload["weights"], s)["pre_discount"]
+    cats = [c for c in CATS if s["contrib"].get(c) is not None]
+    s["contrib"][cats[0]] += pre - sum(s["contrib"][c] for c in cats)     # points sum exactly
+    for miss, refused in ((0.04, False), (0.06, True)):
+        s["contrib"][cats[0]] += miss
+        problems = calc_trace.verify_stock(payload["weights"], s)
+        assert any(p.startswith("points:") for p in problems) is refused, (miss, problems)
+        s["contrib"][cats[0]] -= miss
+
+
 def test_a_perturbed_weight_is_caught(cfg):
     payload = _as_payload(_scored(cfg), cfg)
     payload["weights"]["profiles"]["valuation"]["generic"]["earnings_yield"] += 5.0

@@ -107,6 +107,9 @@ class RunContext:
     def __init__(self, run_id: str | None = None):
         self.run_id = run_id or uuid.uuid4().hex[:12]
         self.start_time = datetime.now()
+        # Wall-clock seconds per phase of the run (provenance only; phase_timing.py).
+        from phase_timing import PhaseClock
+        self.phases = PhaseClock()
         self.run_dir = RUNS_DIR / self.run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -294,6 +297,23 @@ class RunContext:
         with open(path, "w") as f:
             json.dump(meta, f, indent=2, default=str)
         self.log.info("Run metadata saved", extra={"run_id": self.run_id})
+        return path
+
+    def update_metadata(self, extra: dict) -> Path:
+        """Add keys to an existing ``meta.json`` without touching any key already there.
+
+        For records only known after ``save_metadata`` ran - the phase timing, which runs to
+        the end of the pipeline. A key that is already present is never overwritten, so this
+        cannot move ``start_time`` / ``end_time``, which the health check and the generator
+        key on."""
+        path = self.run_dir / "meta.json"
+        with open(path) as f:
+            meta = json.load(f)
+        for k, v in extra.items():
+            if k not in meta:
+                meta[k] = v
+        with open(path, "w") as f:
+            json.dump(meta, f, indent=2, default=str)
         return path
 
 

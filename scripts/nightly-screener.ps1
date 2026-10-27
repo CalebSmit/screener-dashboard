@@ -653,7 +653,17 @@ try {
     Write-Log "HEAD is on '$head'"
 
     # Gate 1: tests
-    $t = Invoke-Native 'python' @('-m', 'pytest', 'tests/', 'test_screener.py', '-q')
+    #
+    # In parallel since 2026-10-26: scripts/run_tests.py adds `-n auto` when pytest-xdist is
+    # importable and runs the exact serial command when it is not (or when xdist itself could
+    # not run the suite - pytest exit 3/4), so a missing plugin can never fail this gate. The
+    # verdict is still pytest's exit code alone. If the helper itself is missing, the serial
+    # command below is the one this gate always ran.
+    $gate1Args = @('-m', 'pytest', 'tests/', 'test_screener.py', '-q')
+    if (Test-Path (Join-Path $RepoPath 'scripts\run_tests.py')) {
+        $gate1Args = @('scripts/run_tests.py', 'tests/', 'test_screener.py', '-q')
+    }
+    $t = Invoke-Native 'python' $gate1Args
     $tail = ($t.Output | Select-Object -Last 3) -join ' '
     if ($t.ExitCode -eq 0) { Write-Log "GATE 1 tests: PASS ($tail)" }
     else { Write-Log "GATE 1 tests: FAIL ($tail)" 'ERROR'; $gateFailures += 'tests' }

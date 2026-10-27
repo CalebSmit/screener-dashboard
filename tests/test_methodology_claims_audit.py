@@ -288,6 +288,37 @@ def test_a_sparse_category_is_switched_off_and_its_weight_shared_in_proportion(p
     assert not disabled2 and pct2 >= thr and c2["factor_weights"] == cfg["factor_weights"]
 
 
+def _frame_with_exact_coverage(cfg, cat: str, present: int, n: int = 1000) -> pd.DataFrame:
+    """Every weighted metric of ``cat`` holds a value for exactly ``present`` of ``n`` stocks."""
+    df = pd.DataFrame({"Ticker": [f"T{i}" for i in range(n)]})
+    for m in rs.weighted_category_metrics(cfg, cat):
+        v = np.arange(n, dtype=float)
+        v[present:] = np.nan
+        df[m] = v
+    return df
+
+
+@pytest.mark.parametrize("cat", ["revisions", "investment"])
+def test_the_auto_disable_bar_is_thirty_percent_and_thirty_itself_is_kept(page, cfg, cat):
+    """Claims-mutation audit, 2026-10-26 (``plan/claims-mutation-audit.md`` row 68).
+
+    The test above reads the bar from ``rs.CATEGORY_AUTO_DISABLE_PCT`` and builds both its page
+    sentence and its probes (20% and 45%) from it, so ``CATEGORY_AUTO_DISABLE_PCT = 40`` passed:
+    the page is generated from the same constant and 20/45 straddle 40 too. The register states
+    **30%**, so the figure is written here as a literal and probed on both sides of it - 29.9%
+    is switched off, exactly 30.0% is kept ("fewer than 30%") - through the function the run
+    calls, with its default threshold, for both categories the page names."""
+    assert "If fewer than 30% of the values the Revisions or Investment category's weighted metrics" in page
+    c = json.loads(json.dumps(cfg))
+    disabled, pct = rs.auto_disable_sparse_category(_frame_with_exact_coverage(c, cat, 299), c, cat)
+    assert pct == pytest.approx(29.9) and disabled, "29.9% coverage must switch the category off"
+    assert c["factor_weights"][cat] == 0
+    c = json.loads(json.dumps(cfg))
+    disabled, pct = rs.auto_disable_sparse_category(_frame_with_exact_coverage(c, cat, 300), c, cat)
+    assert pct == pytest.approx(30.0) and not disabled, "exactly 30% is not 'fewer than 30%'"
+    assert c["factor_weights"] == cfg["factor_weights"]
+
+
 # ---------------------------------------------------------------------------
 # Weight sensitivity (claim overview.weight_sensitivity)
 # ---------------------------------------------------------------------------
@@ -310,6 +341,26 @@ def test_weight_sensitivity_moves_each_weight_by_percentage_points(page, cfg):
         assert abs(r["perturbed_weight"] - r["original_weight"]) == pytest.approx(pts)
     assert {"+", "-"} <= set(res.loc[res["category"] == "size", "direction"])
     assert "perturbation_pct=SENSITIVITY_PERTURBATION_PTS" in inspect.getsource(rs.run_factor_engine)
+
+
+def test_weight_sensitivity_compares_the_top_twenty(page, cfg):
+    """Claims-mutation audit, 2026-10-26 (row 70). The test above builds its expected page text
+    and its call from ``rs.SENSITIVITY_TOP_N``, so ``SENSITIVITY_TOP_N = 25`` passed it. The
+    register says the **top 20**; it is a literal here, read off the page and off the set the
+    engine actually compares when called the way the run calls it."""
+    assert "top-20 ranking" in page and "two top-20 sets" in page
+    src = inspect.getsource(rs.run_factor_engine)
+    assert "top_n=SENSITIVITY_TOP_N" in src, "the run no longer passes the stated top-N"
+    rng = np.random.default_rng(11)
+    n = 60
+    df = pd.DataFrame({"Ticker": [f"T{i}" for i in range(n)]})
+    for cat in cfg["factor_weights"]:
+        df[f"{cat}_score"] = rng.uniform(0, 100, n)
+    df["Rank"] = np.arange(1, n + 1)
+    res = fe.run_weight_sensitivity(df, cfg, perturbation_pct=rs.SENSITIVITY_PERTURBATION_PTS,
+                                    top_n=rs.SENSITIVITY_TOP_N)
+    # changed is the symmetric difference, so |baseline| + |perturbed| = 2 x unchanged + changed
+    assert len(res) and ((2 * res["top_n_unchanged"] + res["top_n_changed"]) == 2 * 20).all()
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +483,32 @@ def test_the_validation_sheet_is_the_top_of_the_ranking_with_seven_flags_highlig
     assert not any(filled(r, "Beta Overlap %") for r in range(4, 4 + n)), "beta overlap is shown, not highlighted"
 
 
+def test_the_workbook_the_run_writes_holds_the_top_25_and_validates_the_top_10(page, tmp_path, monkeypatch):
+    """Claims-mutation audit, 2026-10-26 (rows 66-67). The two tests above take the row counts
+    from ``pc.DASHBOARD_TOP_N`` and ``pc.DATA_VALIDATION_TOP_N`` and the second passes its own
+    ``top_n`` to the sheet writer, so ``DASHBOARD_TOP_N = 20`` and ``DATA_VALIDATION_TOP_N = 12``
+    both passed every registered check while the page and the workbook moved together. The
+    register states **25** and **10**: they are literals here, both on the page and in the
+    workbook ``write_full_excel`` - the function the run calls - actually saves, with the row
+    after each block checked empty so a longer list fails as well as a shorter one."""
+    from openpyxl import load_workbook
+    assert "The top 25 stocks by composite, formatted for quick review" in page
+    assert "The top 10 stocks of the ranking (not the portfolio's holdings)" in page
+    # The portfolio sheet is not part of this claim and needs a portfolio; skip it.
+    monkeypatch.setattr(pc, "write_model_portfolio_sheet", lambda *a, **k: None)
+    out = tmp_path / "workbook.xlsx"
+    path = pc.write_full_excel(_scored_frame(), pd.DataFrame(), {}, {"output": {"excel_file": str(out)}})
+    assert Path(path) == out
+    wb = load_workbook(out)
+    ws = wb["ScreenerDashboard"]
+    assert [ws.cell(row=r, column=2).value for r in range(6, 31)] == [f"T{i:02d}" for i in range(25)]
+    assert ws.cell(row=31, column=2).value is None, "more than 25 rows on the dashboard sheet"
+    ws = wb["DataValidation"]
+    tick_col = _headers(ws, 3).index("Ticker") + 1
+    assert [ws.cell(row=r, column=tick_col).value for r in range(4, 14)] == [f"T{i:02d}" for i in range(10)]
+    assert ws.cell(row=14, column=tick_col).value is None, "more than 10 rows on the validation sheet"
+
+
 # ---------------------------------------------------------------------------
 # EPS basis flag and Limitation 2 (claim overview.eps_basis)
 # ---------------------------------------------------------------------------
@@ -455,6 +532,40 @@ def test_the_eps_flag_no_longer_removes_the_scored_growth_figure(page, payload):
         f, t = inp.get("forwardEps"), inp.get("trailingEps")
         if _num(f) and _num(t) and abs(t) > 0.01 and not 0.3 <= f / t <= 2.0:
             assert s["raw"].get("forward_eps_growth") is None
+
+
+def _feg_row(fwd: float, trail: float, twelve_month: bool) -> dict:
+    """One stock through ``compute_metrics``; ``twelve_month`` supplies the consensus inputs the
+    2026-10-09 construction needs (so the fallback is not used)."""
+    from datetime import timezone
+    from tests.test_metrics import _compute_one, _make_rec
+    extra = {}
+    if twelve_month:
+        end = datetime.now(timezone.utc) + timedelta(days=180)
+        extra = {"_fy1_eps_current": 5.0, "_fy2_eps_current": 6.0, "_next_fy_end": int(end.timestamp()),
+                 "_eps_quarters": json.dumps([[f"2026-0{i + 1}-30", 1.0, 1.0, 0.0] for i in range(4)])}
+    return _compute_one(_make_rec(forwardEps=fwd, trailingEps=trail, **extra))
+
+
+def test_the_engine_flags_outside_03_to_2x_and_drops_growth_only_on_the_fallback():
+    """Claims-mutation audit, 2026-10-26 (rows 71-73). The test above reads the committed
+    payload, so a change to ``compute_metrics`` could not fail it before the data loop's next
+    run: widening the fallback's ratio rule to 2.5x, the flag's bar to 2.5x, or applying the
+    rule to the twelve-month construction all passed gate 1. This runs the engine, with the
+    stated 0.3x and 2x as literals probed on both sides."""
+    trail = 5.0
+    # The flag: forward over GAAP trailing outside 0.3-2x, either side of each bar.
+    for fwd, flagged in ((10.1, True), (9.9, False), (1.45, True), (1.55, False)):
+        r = _feg_row(fwd, trail, twelve_month=False)
+        assert bool(r["_eps_basis_mismatch"]) is flagged, (fwd / trail, r["_eps_basis_mismatch"])
+        # The fallback construction still sets growth to NaN on an extreme ratio, and only then.
+        assert r["_feg_basis"] == "fy2_over_trailing"
+        assert bool(np.isnan(r["forward_eps_growth"])) is flagged, (fwd / trail, r["forward_eps_growth"])
+    # The twelve-month construction does not use that pair, so the flag does not remove it.
+    for fwd in (10.1, 1.45):
+        r = _feg_row(fwd, trail, twelve_month=True)
+        assert r["_eps_basis_mismatch"] and r["_feg_basis"] == "msci_12m"
+        assert np.isfinite(r["forward_eps_growth"]), "the flag removed a twelve-month growth figure"
 
 
 # ---------------------------------------------------------------------------

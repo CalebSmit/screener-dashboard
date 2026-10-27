@@ -1437,6 +1437,10 @@ def should_write_score_cache(args) -> bool:
 def run_factor_engine(cfg, args, ctx=None):
     """Run the complete factor scoring pipeline. Returns (scored_df, stats_dict)."""
     pipeline_log = _init_pipeline_logger()
+    # Wall-clock per phase, provenance only (phase_timing.py). A caller without a RunContext
+    # gets a private clock that nothing reads.
+    from phase_timing import PhaseClock
+    _clock = getattr(ctx, "phases", None) or PhaseClock()
 
     from factor_engine import (
         get_sp500_tickers, fetch_single_ticker, fetch_all_tickers,
@@ -1546,6 +1550,7 @@ def run_factor_engine(cfg, args, ctx=None):
             )
             stats["cache_status"] = "WARM"
 
+    _clock.lap("universe")
     if use_cache:
         print(f"  [CACHE HIT] Loading scores from {cached_path.name}")
         df = pd.read_parquet(str(cached_path))
@@ -1553,6 +1558,7 @@ def run_factor_engine(cfg, args, ctx=None):
         # Save to run directory so dashboard generation can find it
         if ctx is not None:
             ctx.save_artifact("05_final_scored", df)
+        _clock.lap("scores_cache_load")
         return df, stats
 
     # ---- Enable strict mode for _stmt_val() lookups ----
@@ -1595,6 +1601,7 @@ def run_factor_engine(cfg, args, ctx=None):
         print("  --allow-synthetic given: generating sector-realistic SAMPLE data.")
         print("  *** THIS OUTPUT IS FABRICATED. DO NOT PUBLISH IT. ***")
         USE_SAMPLE = True
+    _clock.lap("fetch.probe")
 
     skipped_tickers = []
 
@@ -1605,6 +1612,7 @@ def run_factor_engine(cfg, args, ctx=None):
     except Exception:
         risk_free_rate = 0.045
         print("  [RUN] Risk-free rate unavailable — using default 4.50%")
+    _clock.lap("fetch.risk_free")
 
     if USE_SAMPLE:
         df = _generate_sample_data(universe_df, risk_free_rate=risk_free_rate)
@@ -1627,6 +1635,7 @@ def run_factor_engine(cfg, args, ctx=None):
         if _rule.get("enabled"):
             stats["momentum_regime"] = market_panic_state(fetch_market_closes(), _rule)
             print(f"  Market state for the momentum rule: {stats['momentum_regime']['state']}")
+        _clock.lap("fetch.market")
 
         fetch_cfg = cfg.get("fetch", {})
         print(f"\nFetching data for {universe_size} tickers...")
@@ -1636,6 +1645,16 @@ def run_factor_engine(cfg, args, ctx=None):
             max_workers=fetch_cfg.get("max_workers", 3),
             inter_batch_delay=fetch_cfg.get("inter_batch_delay", 3.0),
         )
+        _clock.lap("fetch.tickers")
+        # What the pass would take with no batching, no delays and perfect use of the workers is
+        # the per-ticker fetch times summed and divided among the workers; the gap between that
+        # and the lap is batching (stragglers, inter-batch delays, rate-limit backoffs).
+        _clock.note("fetch.tickers", n=len(raw),
+                    workers=fetch_cfg.get("max_workers", 3),
+                    batch_size=fetch_cfg.get("batch_size", 30),
+                    inter_batch_delay=fetch_cfg.get("inter_batch_delay", 3.0),
+                    sum_ticker_seconds=round(sum(r.get("_fetch_time_ms", 0) or 0 for r in raw) / 1000, 1),
+                    rate_limited=sum(1 for r in raw if r.get("_rate_limited")))
 
         # ---- Retry pass: re-fetch failed tickers with conservative settings ----
         if fetch_cfg.get("retry_failed", True):
@@ -1658,6 +1677,8 @@ def run_factor_engine(cfg, args, ctx=None):
                     print(f"  Retry recovered {len(retry_ok)}/{len(failed)} tickers")
                 else:
                     print(f"  Retry pass: no additional tickers recovered")
+                _clock.note("fetch.retry", n=len(failed), cooldown=cooldown)
+        _clock.lap("fetch.retry")
 
         stats["tickers_api"] = len(raw)
 
@@ -1694,6 +1715,7 @@ def run_factor_engine(cfg, args, ctx=None):
                 print(f"  Earnings variability: 5 years of ROE for {_n_ev} of {len(raw)} stocks (SEC XBRL)")
         except Exception as e:  # noqa: BLE001 - a candidate metric must never stop a run
             print(f"  WARNING: earnings variability unavailable: {e}")
+        _clock.lap("fetch.sec_roe_history")
 
         # Valuation against the stock's own five-year history (display only, context): earnings
         # and free-cash-flow yield at each month-end from the SEC filings cache and one batched
@@ -1706,22 +1728,22 @@ def run_factor_engine(cfg, args, ctx=None):
                 print(f"  Context: valuation against its own 5-year history for {_n_vh} of {len(raw)} stocks")
             except Exception as e:  # noqa: BLE001 - context must never stop a run
                 print(f"  WARNING: valuation history unavailable: {e}")
+        _clock.lap("context.valuation_history")
 
         # Context layer (display only, plan/context-layer.md). Runs only now that the core data
         # is fetched: option chains and insider trades in their own paced, time-budgeted pass
         # (context_fetch.py), then each stock's sensitivity to the 10-year yield, computed here
         # because the daily returns it needs are not saved.
         if cfg.get("context", {}).get("enabled", True):
-            try:
-                import context_fetch
-                stats["context_pass"] = context_fetch.enrich(
-                    raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900),
-                    root=Path(__file__).resolve().parent)
-            except Exception as e:  # noqa: BLE001 - context must never stop a run
-                print(f"  WARNING: context pass unavailable: {e}")
             # Insider trades from the SEC's own Form 4 filings where an identity with a contact
             # email is configured (outside the repo - insider_activity.user_agent); each stock
-            # whose SEC record is fresh replaces the Yahoo rows the pass above fetched.
+            # whose SEC record is fresh replaces the Yahoo rows the pass below fetches.
+            # Fetched BEFORE that pass since 2026-10-26, and set on the records AFTER it as
+            # before: the pass then makes no Yahoo request for a stock whose rows would be
+            # overwritten (insider_from_sec) - on the 02:00 run that was all 503 of them, ~178 s
+            # of paced requests no published field kept (research/2026-10-26-data-run-timing.md).
+            # Same rows, same fields, same order on each record; only the requests changed.
+            _sec_insider, _sec_done = [], False
             try:
                 import json as _json
                 from datetime import date as _date
@@ -1731,17 +1753,29 @@ def run_factor_engine(cfg, args, ctx=None):
                     _cache = _ia.refresh([_r["Ticker"] for _r in raw if _r.get("Ticker") and "_error" not in _r],
                                          today=_today,
                                          budget_seconds=cfg.get("context", {}).get("sec_budget_seconds", 900))
-                    _n_sec = 0
                     for _r in raw:
                         _rows = _ia.sec_rows_for(_cache, _r.get("Ticker"), _today)
                         if _rows is not None:
-                            _r["_ctx_insider"] = _json.dumps(_rows, separators=(",", ":"))
-                            _r["_ctx_insider_src"] = "sec"
-                            _n_sec += 1
-                    stats["context_sec_insider"] = _n_sec
-                    print(f"  Context: insider trades from SEC Form 4 for {_n_sec} stocks; Yahoo's feed for the rest")
+                            _sec_insider.append((_r, _json.dumps(_rows, separators=(",", ":"))))
+                    _sec_done = True
             except Exception as e:  # noqa: BLE001 - context must never stop a run
                 print(f"  WARNING: SEC insider refresh unavailable: {e}")
+            _clock.lap("context.sec_insider")
+            try:
+                import context_fetch
+                stats["context_pass"] = context_fetch.enrich(
+                    raw, budget_seconds=cfg.get("context", {}).get("budget_seconds", 900),
+                    root=Path(__file__).resolve().parent,
+                    insider_from_sec=frozenset(_r.get("Ticker") for _r, _ in _sec_insider))
+            except Exception as e:  # noqa: BLE001 - context must never stop a run
+                print(f"  WARNING: context pass unavailable: {e}")
+            _clock.lap("context.options_pass")
+            for _r, _rows_json in _sec_insider:
+                _r["_ctx_insider"] = _rows_json
+                _r["_ctx_insider_src"] = "sec"
+            if _sec_done:
+                stats["context_sec_insider"] = len(_sec_insider)
+                print(f"  Context: insider trades from SEC Form 4 for {len(_sec_insider)} stocks; Yahoo's feed for the rest")
             try:
                 from market_context import yield_changes
                 from context_signals import rate_sensitivity
@@ -1755,6 +1789,7 @@ def run_factor_engine(cfg, args, ctx=None):
                 print(f"  Context: rate sensitivity for {_n_rate} stocks")
             except Exception as e:  # noqa: BLE001 - context must never stop a run
                 print(f"  WARNING: rate sensitivity unavailable: {e}")
+            _clock.lap("context.rate_sensitivity")
 
         # H5: Save raw API responses for reproducibility / debugging.
         # Exclude _daily_returns (large nested dict) to keep artifact lean.
@@ -1765,6 +1800,7 @@ def run_factor_engine(cfg, args, ctx=None):
                 raw_for_save.append(row)
             raw_df = pd.DataFrame(raw_for_save)
             ctx.save_artifact("00_raw_fetch", raw_df)
+        _clock.lap("artifact.raw_fetch")
 
         # Identify failures and log per-ticker timing
         fetch_times = []
@@ -1852,6 +1888,7 @@ def run_factor_engine(cfg, args, ctx=None):
         df = df[~low].copy()
         pipeline_log.info("Coverage filter: %d stocks excluded (< %d%% metric coverage), %d remaining",
                           n_coverage_dropped, cfg["data_quality"]["min_data_coverage_pct"], len(df))
+    _clock.lap("metrics")
 
     stats["fetch_time"] = round(time.time() - fetch_t0, 1)
     stats["tickers_failed"] = len(skipped_tickers)
@@ -1933,6 +1970,7 @@ def run_factor_engine(cfg, args, ctx=None):
     )
     _lo_frac = _tails[0] / 100.0
     _hi_frac = (100 - _tails[1]) / 100.0
+    _clock.lap("checks")
     score_t0 = time.time()
     print(f"Flagging outliers beyond the {_tails[0]}th / {_tails[1]}th percentiles "
           f"(values are reported, not clipped)...")
@@ -2062,6 +2100,7 @@ def run_factor_engine(cfg, args, ctx=None):
 
     stats["scoring_time"] = round(time.time() - score_t0, 1)
     stats["scored"] = len(df)
+    _clock.lap("scoring")
 
     # ---- Missing data stats ----
     # Every metric that carries weight (drift_alert_metrics). Until 2026-10-19 this was a
@@ -2194,6 +2233,7 @@ def run_factor_engine(cfg, args, ctx=None):
         if n_ltm > 0:
             print(f"  LTM partial annualization (3-of-4 quarters): {n_ltm} tickers flagged")
 
+    _clock.lap("diagnostics")
     # ---- Write Parquet cache (config-aware) ----
     if should_write_score_cache(args):
         print("Writing cache Parquet...")
@@ -2203,6 +2243,7 @@ def run_factor_engine(cfg, args, ctx=None):
             print(f"  WARNING: Failed to write Parquet cache: {e}")
     else:
         print("Not writing the score cache: a --tickers run scores a subset, not the universe.")
+    _clock.lap("score_cache_write")
 
     return df, stats
 
@@ -2894,6 +2935,7 @@ def main():
 
     # ---- 3. Factor engine ----
     df, fe_stats = run_factor_engine(cfg, args, ctx=ctx)
+    clock = ctx.phases
 
     # ---- 4. Portfolio construction ----
     port = None
@@ -2904,6 +2946,7 @@ def main():
         print(f"  Selected {port_stats['n_stocks']} stocks")
     else:
         print("\nSkipping portfolio construction (--no-portfolio)")
+    clock.lap("portfolio")
 
     # ---- 5. Write Excel ----
     # Extract correlation matrix and sensitivity analysis from stats
@@ -2918,6 +2961,7 @@ def main():
         df, port, port_stats if port_stats else {}, cfg, args.no_portfolio,
         sens_df=sens_df, corr_df=corr_df)
     print(f"  Written: {excel_path} ({n_sheets} sheets)")
+    clock.lap("excel")
 
     # ---- 6. Data quality log ----
     dq_path, dq_total = flush_dq_log()
@@ -2957,6 +3001,7 @@ def main():
         "methodology_version": methodology_version,
     })
     print(f"\n  Run artifacts saved to: runs/{ctx.run_id}/")
+    clock.lap("dq_log_and_meta")
 
     # ---- 11. Auto-regenerate SCREENER_OVERVIEW.md from live config ----
     try:
@@ -2964,6 +3009,7 @@ def main():
         print("  SCREENER_OVERVIEW.md regenerated from live config")
     except Exception as e:
         print(f"  WARNING: Overview generation failed: {e}")
+    clock.lap("overview")
 
     # ---- 11.5. Context layer (display only; plan/context-layer.md) ----
     # The market backdrop, the ranking's track record, and a dated log of every context signal
@@ -2981,6 +3027,7 @@ def main():
             print("  Context: market backdrop refreshed (FRED)")
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: market backdrop unavailable: {e}")
+        clock.lap("context.market_backdrop")
     if cfg.get("context", {}).get("enabled", True) and not _universe_run:
         print("  Context: subset run - track record, signal log and evaluation left as they were")
     elif cfg.get("context", {}).get("enabled", True):
@@ -2991,11 +3038,13 @@ def main():
             print(f"  Context: track record {'built' if tr_out.get('available') else 'unavailable'}")
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: track record unavailable: {e}")
+        clock.lap("context.track_record")
         try:
             import context_signals
             context_signals.write_context_log(ctx.run_dir, run_day)
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: context log not written: {e}")
+        clock.lap("context.signal_log")
         # The record each context signal is building (plan/context-layer.md item 5):
         # one-month ICs from the logs themselves, reporting only.
         try:
@@ -3005,6 +3054,7 @@ def main():
             print("  " + context_eval.summary_line(_ev))
         except Exception as e:  # noqa: BLE001
             print(f"  WARNING: context evaluation unavailable: {e}")
+        clock.lap("context.eval")
 
     # ---- 12. Generate interactive dashboard ----
     try:
@@ -3043,6 +3093,7 @@ def main():
             print(f"  Dashboard: {main_dash}")
     except Exception as e:
         print(f"  WARNING: Dashboard generation failed: {e}")
+    clock.lap("dashboard")
 
 
     # ---- 13. Improvement tracking snapshot ----
@@ -3064,6 +3115,15 @@ def main():
             print(f"  WARNING: Improvement tracking failed: {e}")
     else:
         print("  Improvement engine disabled (improvement.enabled=false) — snapshot skipped")
+    clock.lap("snapshot")
+
+    # ---- 14. Where the run's time went (provenance only; phase_timing.py) ----
+    # Last, so it is inside the 25-line tail scripts/data-run.ps1 copies into the loop's log.
+    try:
+        ctx.update_metadata(clock.as_meta())
+    except Exception as e:  # noqa: BLE001 - a timing record must never fail a run
+        print(f"  WARNING: phase timing not recorded in meta.json: {e}")
+    print("  " + clock.summary_line())
 
 
 if __name__ == "__main__":

@@ -226,8 +226,9 @@ improving.
 
 10. **Don't hand-edit generated files.** `dashboard.html`, `index.html`, and
    `dashboard_data.js` are outputs of `generate_dashboard.py`. Edit the
-   generator. `index.html` is what Pages serves. (`lab_data.js` is generated too, by
-   `factor_lab.py --build`; `lab.html` and `lab_engine.js` are source.)
+   generator. `index.html` is what Pages serves. (`lab_data.js` and its six on-demand parts
+   `lab_data_<key>.js` are generated too, by `factor_lab.py --build`; `lab.html` and
+   `lab_engine.js` are source.)
 
    **`research.html` is generated too** (2026-10-15) - by `research_page.py`, called from
    `python v2_experiments.py report`; `tests/test_research_page.py` fails if the committed page is
@@ -295,10 +296,20 @@ and a session that hands the runner a broken tree has wasted the day.
 
 | # | Gate | Command |
 |---|---|---|
-| 1 | Full suite passes, no new failures vs the baseline you took at session start | `python -m pytest tests/ test_screener.py -q` |
+| 1 | Full suite passes, no new failures vs the baseline you took at session start | `python scripts/run_tests.py tests/ test_screener.py -q` |
 | 2 | Pipeline wiring intact | `python run_screener.py --dry-run` |
 | 3 | Dashboard artifacts intact | `index.html` non-trivial and `dashboard_data.js` parses (`node --check`) |
 | 4 | No stray uncommitted files | `git status --porcelain` |
+
+**Gate 1 runs in parallel since 2026-10-26** (owner-run night): `scripts/run_tests.py` adds
+`-n auto` (pytest-xdist, pinned in `requirements.txt`) and runs the exact serial
+`python -m pytest tests/ test_screener.py -q` where xdist is not importable, or when xdist itself
+could not run the suite (pytest exit 3/4 - not a verdict). A failing test is never retried; the
+verdict is pytest's exit code. Measured on the combined tree that night: **3,248 passed, 1 skipped
+in 1:51 parallel against 6:09 serial** (7:19 at the start of the night). **A runner never needs a
+plugin to reach a verdict.** The `conftest.py` tripwire covers xdist: the controller snapshots
+before any worker starts, every worker checks against it, the controller restores.
+`tests/test_parallel_suite.py`.
 
 On success the runner tags the commit `good/YYYY-MM-DD`. That tag is the
 rollback point - see `ROLLBACK.md`.
@@ -368,7 +379,9 @@ including all eight `context.*` claims, so the loop publishing the page did not
 run evidence this project had already written down. `module_paths()` is now the
 curated `MODULES` **union every module any claim names**; a registered claim whose
 check this gate never runs is impossible by construction. Measured: 916 tests in
-92s, from 237 in 15s. The two browser modules are in it deliberately - they are
+92s, from 237 in 15s; **1,576 tests in 71s on 2026-10-26, run with `-n auto` where pytest-xdist
+is importable** (same modules, flags and exit codes; the serial command where it is not, or on
+pytest exit 3/4; the PASS line names the mode). The two browser modules are in it deliberately - they are
 the data loop's missing counterpart to `scripts/rehearse_publish.py` and check the
 page *as regenerated*; they skip loudly without Chromium, so they cannot jam it.
 `EXCLUDED` is the named, printed place for a check that genuinely cannot run
@@ -445,6 +458,13 @@ outcome.
   from (2026-10-24). One computation, read by `generate_dashboard` for `kpis` and by
   `scripts/write_signals.py`. **Never falls back to another run's raw fetch** - see settled
   row "bot"
+- `phase_timing.py` - wall-clock seconds per pipeline stage (2026-10-26), in each run's
+  `meta.json` (`phase_seconds`, `phase_detail`) and the run's last printed line, `PHASE TIMING
+  (s): ...`, which the data loop's log keeps - **read run time there, not from guesses.**
+  Provenance only; `tests/test_phase_timing.py` fails if a scoring or publishing module reads it.
+  The breakdown and the ranked list of what to cut next: `research/2026-10-26-data-run-timing.md`
+  (the Yahoo fetch is ~450 s, the SEC Form 4 refresh ~335-400 s; **leave fetch concurrency
+  alone** - no 02:00 run has been throttled, every throttle was a second full run within hours)
 
 ### Front-end
 - `generate_dashboard.py` - **source of truth**; writes `dashboard.html` + `dashboard_data.js`
@@ -467,7 +487,11 @@ outcome.
   screener cites on public data and lets the reader change the conditions. `factor_lab.py` is
   the reference implementation and builds `lab_data.js` (**generated**: `python factor_lab.py
   --build`); `lab_engine.js` is the same arithmetic for the browser and must reproduce the Python
-  (`tests/test_factor_lab.py`). `lab.html` is hand-written source. The library's own files live
+  (`tests/test_factor_lab.py`). The six heavy series are built as `lab_data_<key>.js`
+  (`factor_lab.LAZY_KEYS`) and `lab.html` loads one only when an experiment that reads it opens
+  (`PARTS`) - a new experiment kind that reads one needs a `PARTS` entry; `lab_data.js` has a
+  200 KB gzipped budget (`FIRST_PAINT_BUDGET_GZ`; phone-profile menu 6.3 s -> 0.95 s, 2026-10-26).
+  `lab.html` is hand-written source. The library's own files live
   in the gitignored `data/lab/`. **The lab never sets a screener parameter and no scoring module
   may import it**; a tolerance is never widened to turn an "outside" into a "within".
 - **Downstream consumer: `CalebSmit/screener-bot`** (separate private repo,
@@ -498,14 +522,20 @@ outcome.
   weaken a row.
 
 ### Tests
-- `tests/` (70+ modules) + `test_screener.py`. Run: `python -m pytest tests/ test_screener.py -q`
+- `tests/` (70+ modules) + `test_screener.py`. Run: `python scripts/run_tests.py tests/ test_screener.py -q`
+  (parallel where pytest-xdist is installed, else exactly `python -m pytest tests/ test_screener.py -q`).
+  In a fresh worktree copy the gitignored `runs/`, `cache/` and `data/` subfolders with **`cp -rp`**
+  - without `-p` the copy loses mtimes and "the newest run" becomes arbitrary; tests that need
+  `runs/` skip loudly (`MISSING DATA: ...`) when it is absent.
 - `conftest.py` at root is a **tripwire**: it restores published artifacts and fails the
   session if any test wrote one (isolation landed 2026-10-09; priority 8).
 
 ### Routine
 - `prompts/nightly.md`, `scripts/nightly-screener.ps1` (6:00 AM code loop); `prompts/continuation.md`
   (the one resume of a session that ended dirty); `scripts/wait_for.py` (foreground waits) and
-  `scripts/rerun_experiments.py` (resumable engine reruns)
+  `scripts/rerun_experiments.py` (resumable engine reruns; `--jobs 4` runs them in parallel worker
+  processes, rows identical to serial and appended in serial order - all 32 in ~18 min under load
+  on 2026-10-26 against ~47-63 serial, still longer than one 600 s call)
 - `scripts/data-run.ps1` (2:00 AM data loop); `scripts/write_signals.py` (the tradable
   ranking, after every gate) and `scripts/archive_run.py` (the published run's inputs,
   outside OneDrive, never pruned)

@@ -37,6 +37,12 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    of restarting; `--limit 4` (about 8 minutes) fits one foreground call, `--status` changes nothing.
    A full rerun is about 47 minutes - never start one in the background and end the reply, which is
    how 2026-10-18 and 2026-10-19 lost theirs (`research/2026-10-19-session-ended-on-a-background-job.md`).
+   **`--jobs 4` (2026-10-26) runs it in four worker processes**, rows reaching the ledger in the
+   serial order through the parent only, so a cut-off run still resumes. Measured on 10 ids: every
+   field identical to the serial run's except `run_at`; 754 s against 1,109 s serial on a heavily
+   loaded machine; ~2.0 GB per worker (`MAX_JOBS` 4). The full 32 extrapolate to ~27 minutes at
+   `--jobs 4` against ~63 serial under that load (the script's docstring has the arithmetic) - still
+   longer than one 600-second call, so it is waited on in the foreground like any other.
 4. **Never register a variation of a near-miss.** If size or momentum looked good, the next entry
    is not "size, but 70%". That is the forking path the rules exist to close. A new entry needs its
    own source.
@@ -239,7 +245,8 @@ weighting; the baseline's IC is ~0 in both eras; the design can see an IC differ
    do not compare must not sit in one table) and so is the rerun, but **budget ~45 minutes for it in
    any session that adds a control, an evaluation or an experiment**, and never start one you cannot
    finish: a half-done rerun leaves the ledger mixed and gate 1 red, and the ledger is append-only,
-   so it cannot be undone by deleting rows.
+   so it cannot be undone by deleting rows. (Since 2026-10-26 `--jobs 4` cuts that to an estimated
+   ~25-30 minutes; see rule 3 above.)
 
    **(d) The free extended-universe rebuild - the survivorship test.** SEC filings exist for
    departed members; prices are the gap. Build the months with the departed members whose last

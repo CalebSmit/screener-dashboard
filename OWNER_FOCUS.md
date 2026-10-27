@@ -266,6 +266,14 @@ Two things still outrank this file, and neither is negotiable:
      Also: three tests (`test_claims_register::test_confidence_metric_count_is_the_discount_coverage`,
      two in `test_investor_profiles`) fail with FileNotFoundError in a fresh worktree, which has no
      gitignored `runs/` - every agent tonight had to copy it in. Make them skip loudly when no run exists.
+     **All three parts DONE 2026-10-26 (owner-run night).** *Suite:* runs in parallel through
+     `scripts/run_tests.py` (pytest-xdist, with the exact serial command as the fallback) - **1:51
+     against 6:09 serial** on the merged tree, same 3,248 passed / 1 skipped; gate 1, the data loop's
+     claims gate and the prompts all use it. *Lab:* the six heavy series now load only when their
+     experiment opens - `lab_data.js` 1.18 MB -> 100 KB gzipped, a throttled phone reaches the menu
+     in **0.95 s instead of 6.3 s**, every figure byte-identical. *Fresh worktrees:* the three tests
+     skip with `MISSING DATA: ...` when `runs/` is absent; copy data in with `cp -rp` (plain `cp -r`
+     loses mtimes, which made `test_investor_profiles` pick the wrong run for two agents that night).
   Close this item when 1-6 are done or argued down in the log.
 
 - **2026-10-15 - A research engine: test the methodology the way automated research loops do, so it
@@ -387,6 +395,11 @@ Two things still outrank this file, and neither is negotiable:
   when the tree has someone's work in it, and for a day after a usage limit. Kept open so a
   later session can report whether the extra sessions are producing work of the same standard
   (the next retrospective should look), and so the owner can change the cadence here.
+  **Speed, 2026-10-26 (owner-run night):** each session's own clock is faster now - the suite in
+  ~1:50 instead of ~6-7 min (gate 1 and in-session runs), an engine rerun in ~18 min instead of
+  ~47-63 (`rerun_experiments.py --jobs 4`), the data loop's claims gate in ~71 s instead of ~165 s,
+  and ~4 min off the 02:00 run itself (two redundant download passes removed, proven
+  output-identical). Every stage of a run is now timed in its `meta.json`.
 
 Add items below. Anything under this heading is unclaimed work.
 

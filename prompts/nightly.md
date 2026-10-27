@@ -41,7 +41,9 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
 - **Research-engine reruns resume:** `python scripts/rerun_experiments.py` runs only the rows not
   yet current (`--status` to see them; `--limit 4`, about 8 minutes, fits one foreground call).
   The full rerun is about **47 minutes** (measured 2026-10-19: 1.7 min to build the baseline, 1.6
-  min per experiment). Commit the ledger and the report after every call.
+  min per experiment); `--jobs 4` runs it in four worker processes with identical rows (measured
+  2026-10-26: ~27 minutes estimated for all 32 against ~63 serial on a loaded machine), still waited
+  on in the foreground. Commit the ledger and the report after every call.
 - **Time budget: be finished - committed, pushed, clean - by {{DEADLINE}}** (local time). Task
   Scheduler stops this whole run four hours after it starts, gates and salvage included, and the
   runner needs about six minutes of that for the gates. Do not start a job you cannot finish and
@@ -129,11 +131,15 @@ salvage (`research/2026-10-19-session-ended-on-a-background-job.md`). So, as har
 Record these before touching anything, so nothing gets misattributed to you:
 
 ```
-python -m pytest tests/ test_screener.py -q
+python scripts/run_tests.py tests/ test_screener.py -q
 python run_screener.py --dry-run
 ```
 
-Note pass/fail counts and any pre-existing failures.
+Note pass/fail counts and any pre-existing failures. `scripts/run_tests.py` runs the suite in
+parallel (`-n auto`) where pytest-xdist is installed - about a third of the 6-7 minutes the
+serial run takes, which keeps one call well inside the Bash tool's 600 s ceiling - and runs the
+exact serial command, `python -m pytest tests/ test_screener.py -q`, where it is not. Its exit
+code is pytest's; the pass/skip counts are the same either way.
 
 ## 3. Work the focus
 
@@ -318,7 +324,8 @@ check the row reads correctly. Say in the log what you saw.
 
 All four must pass before you push to `main`:
 
-1. `python -m pytest tests/ test_screener.py -q` - no new failures vs baseline
+1. `python scripts/run_tests.py tests/ test_screener.py -q` - no new failures vs baseline
+   (the runner's gate 1 runs the same helper; serial where xdist is absent)
 2. `python run_screener.py --dry-run` - exits 0
 3. `index.html` still substantial, `dashboard_data.js` still parses
 4. `git status --porcelain` - nothing unexpected left behind

@@ -91,11 +91,18 @@ def _test_functions(path: Path) -> set[str]:
 
     Every other consumer of ``checked_by`` already takes ``ref.split("::")[0]`` for the
     module, so the longer form needs nothing from them; pytest selects it directly.
+
+    **Only selectable names** (tightened 2026-10-26, same audit). This used ``ast.walk``, so a
+    method's *bare* name counted as existing too - and five registrations
+    (``overview.share_classes`` x3, ``overview.effective_weights`` x2) named class methods that
+    way. ``pytest tests/test_share_classes.py::test_config_declares_one_line_per_known_pair``
+    reports "not found": the register named a check nobody could run by its reference, which
+    is how the mutation harness found it. A bare name now means a module-level function.
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    names = {n.name for n in ast.walk(tree)
+    names = {n.name for n in tree.body
              if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
-    for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+    for cls in (n for n in tree.body if isinstance(n, ast.ClassDef)):
         for n in cls.body:
             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 names.add(f"{cls.name}::{n.name}")
@@ -378,6 +385,11 @@ def test_confidence_metric_count_is_the_discount_coverage(payload, generated_ove
     import yaml
     from factor_engine import weighted_metric_sets
 
+    if not (ROOT / "runs").is_dir():
+        # Gitignored, so absent in a fresh clone or worktree (OWNER_FOCUS 2026-10-20 item 7).
+        # Only absence skips: a runs/ folder with no usable run still fails as before.
+        pytest.skip(f"MISSING DATA: {ROOT / 'runs'} is absent (gitignored) - this test reads the "
+                    "newest full run and cannot run without one")
     run = max((d for d in (ROOT / "runs").iterdir() if (d / "config.yaml").exists()
                and (d / "05_final_scored.parquet").exists()),
               key=lambda d: (d / "05_final_scored.parquet").stat().st_mtime)

@@ -480,8 +480,8 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="run_screener:build_screener_overview",
         checked_by=(
-            "tests/test_overview_claims.py::test_listed_weights_match_config_exactly",
-            "tests/test_weight_transparency.py::test_contributions_sum_to_the_composite",
+            "tests/test_overview_claims.py::TestRevisionsSectionMatchesConfig::test_listed_weights_match_config_exactly",
+            "tests/test_weight_transparency.py::TestPublishedPayloadAddsUp::test_contributions_sum_to_the_composite",
         ),
         caveat=(
             "True at category level. **Not** true at metric level: the drilldown "
@@ -527,6 +527,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_calculation_reproducibility.py::test_composite_and_points_reproduce_including_the_coverage_discount",
             "tests/test_dashboard_browser.py::test_composite_chain_sums_for_a_discounted_stock",
             "tests/test_claims_register.py::test_the_engine_applies_the_discount_the_page_states",
+            "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
         ),
     ),
     Claim(
@@ -734,6 +735,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_special_item_note.py::test_a_long_filing_tag_can_wrap",
             "tests/test_special_item_note.py::test_the_note_never_reaches_a_score",
             "tests/test_special_item_note.py::test_the_published_payload_agrees_with_the_filings",
+            "tests/test_special_item_note.py::test_the_threshold_is_the_registered_ten_percent",
         ),
     ),
     # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
@@ -810,7 +812,10 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_option_implied_claims.py::test_the_skew_row_prints_both_legs",
             "tests/test_option_implied_claims.py::test_a_skew_without_its_legs_is_not_published",
             "tests/test_option_implied_claims.py::test_a_skew_with_both_legs_is_published_whole",
-            "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",            "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
+            "tests/test_option_implied_claims.py::test_put_call_open_interest_is_not_published",
+            "tests/test_club_readiness.py::test_the_context_terms_are_glossed_on_first_use",
+            "tests/test_context_layer.py::test_skew_call_band_is_095_to_105_inclusive_and_nearest_one",
+            "tests/test_option_implied_claims.py::test_the_constants_are_the_papers",
         ),
         caveat=(
             "Fixed 2026-10-14, reading the paper (JFQA 45(3) p. 644-645, 649-654) rather "
@@ -1249,6 +1254,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_calculation_reproducibility.py::test_a_discounted_stocks_residual_is_its_coverage_discount",
             "tests/test_calculation_reproducibility.py::test_the_gap_lines_reconcile_for_every_pair_with_the_top_stock",
             "tests/test_dashboard_navigation.py::test_compare_lines_up_scores_and_reconciles_the_gap",
+            "tests/test_calculation_reproducibility.py::test_composite_and_points_reproduce_including_the_coverage_discount",
+            "tests/test_calculation_reproducibility.py::test_points_that_miss_by_more_than_rounding_are_caught",
         ),
         # "Rounding aside" is part of the claim, not a caveat on it: points are published to
         # 2dp, so eight lines can differ from the gap by up to ~0.09 for an undiscounted pair.
@@ -1272,6 +1279,8 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_club_readiness.py::test_the_largest_company_in_each_sector_scores_near_zero_on_size",
             "tests/test_club_readiness.py::test_the_median_the_key_quotes_is_the_engines",
             "tests/test_club_readiness.py::test_the_sheet_says_which_way_the_scores_run",
+            "tests/test_club_readiness.py::test_the_engine_gives_the_largest_company_in_a_sector_the_lowest_size_score",
+            "tests/test_club_readiness.py::test_the_median_composite_the_key_quotes_is_the_median_not_the_mean",
         ),
     ),
     Claim(
@@ -1302,6 +1311,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_metric_lineage.py::test_the_published_inputs_rebuild_the_published_value",
             "tests/test_metric_lineage.py::test_stocks_that_do_not_rebuild_are_flagged_not_hidden",
+            "tests/test_metric_lineage.py::test_the_engines_inputs_rebuild_its_values_on_the_fixture_universe",
         ),
         caveat=(
             "T2 covers the 24 metrics in metric_lineage.RECOMPUTE; series-based and provider-ratio "
@@ -1397,6 +1407,9 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_metric_lineage.py::test_piotroski_signals_add_up_to_the_score",
             "tests/test_metric_lineage.py::test_beneish_indices_rebuild_the_m_score",
+            "tests/test_metric_lineage.py::test_the_engines_beneish_indices_rebuild_its_m_score_with_the_published_weights",
+            "tests/test_metric_lineage.py::test_the_engines_piotroski_signals_add_up_to_its_score",
+            "tests/test_metrics.py::TestPiotroskiFScore::test_partial_data_not_inflated",
         ),
     ),
 
@@ -1520,9 +1533,10 @@ CLAIMS: tuple[Claim, ...] = (
         ),
         made_true_by="share_classes:designate",
         checked_by=(
-            "tests/test_share_classes.py::test_config_declares_one_line_per_known_pair",
-            "tests/test_share_classes.py::test_the_declaration_beats_this_run_s_volume",
-            "tests/test_share_classes.py::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
+            "tests/test_share_classes.py::TestDeclaration::test_config_declares_one_line_per_known_pair",
+            "tests/test_share_classes.py::TestDeclaration::test_score_once_is_on_and_the_margin_is_spdji_s",
+            "tests/test_share_classes.py::TestDesignation::test_the_declaration_beats_this_run_s_volume",
+            "tests/test_share_classes.py::TestPipelineWiring::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
             "tests/test_share_classes_page.py::test_the_page_names_the_declared_lines_and_only_those",
             "tests/test_share_classes_page.py::test_the_page_states_the_switching_margin_from_config",
         ),
@@ -1639,7 +1653,10 @@ CLAIMS: tuple[Claim, ...] = (
             "categories in proportion to their weights."
         ),
         made_true_by="run_screener:auto_disable_sparse_category",
-        checked_by=("tests/test_methodology_claims_audit.py::test_a_sparse_category_is_switched_off_and_its_weight_shared_in_proportion",),
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_a_sparse_category_is_switched_off_and_its_weight_shared_in_proportion",
+            "tests/test_methodology_claims_audit.py::test_the_auto_disable_bar_is_thirty_percent_and_thirty_itself_is_kept",
+        ),
         detect=r"Auto-disable \(category-level\):\*\* If fewer than \d+% of the values",
     ),
     Claim(
@@ -1651,7 +1668,10 @@ CLAIMS: tuple[Claim, ...] = (
             "top 20 by Jaccard similarity."
         ),
         made_true_by="factor_engine:run_weight_sensitivity",
-        checked_by=("tests/test_methodology_claims_audit.py::test_weight_sensitivity_moves_each_weight_by_percentage_points",),
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_weight_sensitivity_moves_each_weight_by_percentage_points",
+            "tests/test_methodology_claims_audit.py::test_weight_sensitivity_compares_the_top_twenty",
+        ),
         detect=r"moves each factor category weight up and down by [\d.]+ percentage points",
         caveat=("Fixed 2026-10-19. The page said each weight was 'perturbed by ±5%'; for Size's 5% "
                 "that reads as 4.75-5.25 where the run tries 0 and 10."),
@@ -1684,6 +1704,7 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_methodology_claims_audit.py::test_the_dashboard_sheet_holds_what_the_page_says",
             "tests/test_methodology_claims_audit.py::test_the_factor_scores_sheet_carries_no_raw_metrics",
             "tests/test_methodology_claims_audit.py::test_the_validation_sheet_is_the_top_of_the_ranking_with_seven_flags_highlighted",
+            "tests/test_methodology_claims_audit.py::test_the_workbook_the_run_writes_holds_the_top_25_and_validates_the_top_10",
         ),
         detect=r"The top \d+ stocks by composite, formatted for quick review",
         caveat=("Fixed 2026-10-19. The page described a dashboard sheet of the top 50 with all eight "
@@ -1702,7 +1723,10 @@ CLAIMS: tuple[Claim, ...] = (
             "inputs are missing, still sets growth to NaN on an extreme ratio."
         ),
         made_true_by="factor_engine:compute_metrics",
-        checked_by=("tests/test_methodology_claims_audit.py::test_the_eps_flag_no_longer_removes_the_scored_growth_figure",),
+        checked_by=(
+            "tests/test_methodology_claims_audit.py::test_the_eps_flag_no_longer_removes_the_scored_growth_figure",
+            "tests/test_methodology_claims_audit.py::test_the_engine_flags_outside_03_to_2x_and_drops_growth_only_on_the_fallback",
+        ),
         detect=r"Since 2026-10-09 the scored Forward EPS Growth does not use that pair",
         caveat=("Fixed 2026-10-19. The defensibility section and Limitation 2 still said the flag "
                 "marked a distorted growth score and that growth was set to NaN on it; on 2026-10-19 "
