@@ -1951,13 +1951,14 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             <p class="dist-foot"><span class="dist-x">Composite score, 0&ndash;100 &middot; higher ranks higher</span><span class="dist-kbd" aria-hidden="true">&larr; &rarr; move between companies &middot; Enter opens one</span></p>
         </section>
 
-        <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
-             per browser; reopened from the search palette. -->
+        <!-- First-visit guide: a first-time visitor's path in three steps - the ranking, one stock,
+             then comparing and following (round 2 docs pass, 2026-10-27). Dismissed once, per
+             browser; reopened from the search palette. Methodology opens on the same path. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50, and a higher score adds more to the composite on all eight, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> A weighted sum of the eight scores. The Weighting menu above the table re-ranks the list with a Value, Growth or Momentum tilt.</div></li>
-                <li><span class="guide-n">3</span><div><strong>Fully traceable.</strong> Open any stock to follow each score back to its inputs, formulas and sector peers.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Start with the ranking.</strong> S&amp;P 500 companies sorted by a composite score from 0 to 100, built from eight category scores. Each compares a company with its sector, where about 50 is the median, and higher always adds more, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
+                <li><span class="guide-n">2</span><div><strong>Open a stock.</strong> Select a row. Why it ranks here gives the reasons, and The workings shows each figure, its sector percentile, its weight and its points. A trap flag is a prompt to read on and changes neither the score nor the rank.</div></li>
+                <li><span class="guide-n">3</span><div><strong>Compare and follow.</strong> In a stock&rsquo;s sheet, Compare sets it beside another, and Holdings adds it to My holdings to follow run to run, saved in this browser. <a href="#" onclick="openMethodology();return false">Methodology</a> starts with a short summary and the screener&rsquo;s limits.</div></li>
             </ol>
             <div class="guide-foot">
                 <span></span>
