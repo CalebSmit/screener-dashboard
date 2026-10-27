@@ -703,7 +703,8 @@ Completed items, newest first.
   Owner: *"right now it looks okay, but it can look great. Be creative and look into absolutly
   everything."* All four tools, presentation only - every number, rank and sentence byte-identical
   (payload diffed against the live site). The direction and shared tokens are `plan/ui-elevation.md`:
-  a display serif for headlines, the data as the decoration, depth through light. Shipped: the
+  one typeface with a confident headline voice (a serif was tried and removed the same day at your
+  request - headlines now match the EXPE ticker), the data as the decoration, depth through light. Shipped: the
   dashboard's ranking drawn as one dot per company, leader score fingerprints, a small true chart on
   every home tile, heat-shaded scores, a compact phone list, and a real fix (Reporting soon cut ~100
   companies off at 5,000 px); the drilldown's masthead with its place among all 498, heat score

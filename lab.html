@@ -17,8 +17,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 /* Tokens are the dashboard's (plan/dashboard-design-system.md): neutrals carry the page,
    one accent carries interaction, colour otherwise appears only where it means something. */
@@ -32,9 +32,9 @@
     --radius: 8px;
     --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
-    /* plan/ui-elevation.md: the display serif is for page titles, section titles and hero statements
-       only - never a label, control, table or figure; the hairline is the top edge of a raised card */
-    --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    /* plan/ui-elevation.md: the headline voice (Inter 600, tracked tight) is for page titles, section
+       titles and hero statements; the hairline is the top edge of a raised card */
+    --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
     --rest: #6b6a64;                     /* a chart's other series and bars: 3:1 on the card, never the accent */
     --bar-h: 60px;
@@ -56,7 +56,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
                background: color-mix(in srgb, var(--bg-deep) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
                border-bottom: 1px solid var(--border); }
 .mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); text-decoration: none;
-        font-family: var(--font-display); font-size: 20px; font-weight: 500; letter-spacing: -.01em; font-optical-sizing: auto; }
+        font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -.022em; }
 /* the wordmark is set as the dashboard's is (plan/ui-elevation.md) */
 .mark:hover { text-decoration: none; }
 .bmk { width: 24px; height: 24px; flex: none; }
@@ -87,8 +87,8 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (min-width: 1080px) { .kpis { grid-template-columns: 1fr; margin-bottom: 22px; } .kpi { border-left: 0; border-top: 1px solid var(--border); }
     .kpi:first-child { border-top: 0; } }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
-h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
-     font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }
+h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display);
+     font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; font-weight: 600; letter-spacing: -.032em; text-wrap: balance; }
 .lede p { margin: 0 0 12px; font-size: 17px; line-height: 1.6; max-width: 62ch; }
 .lede p.fine { font-size: 13.5px; margin-top: 16px; }
 .fine { font-size: 13px; color: var(--text-muted); }
@@ -150,8 +150,8 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
         transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast); }
 .card:hover { border-color: var(--text-muted); background: var(--bg-card-hover); text-decoration: none; }
 .card:active { transform: translateY(1px); }
-.card strong { color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto; font-size: 21px; font-weight: 500;
-               line-height: 1.2; letter-spacing: -.01em; text-wrap: balance; }
+.card strong { color: var(--text-primary); font-family: var(--font-display); font-size: 21px; font-weight: 600;
+               line-height: 1.2; letter-spacing: -.022em; text-wrap: balance; }
 .card .cite { font-size: 13px; }
 .card .take { font-size: 14px; line-height: 1.55; }
 /* The verdict as a small true chart: one cell per figure the paper reports, filled where the rerun
@@ -190,16 +190,16 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
 .exp > section { padding: 24px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
 @media (min-width: 720px) { .exp > section { padding: 36px 40px; } }
-/* Section titles are the display serif; a sub-heading inside a section (no id) stays Inter. */
-h2 { margin: 8px 0 6px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
-     font-size: clamp(28px, 3vw, 38px); line-height: 1.1; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }
+/* Section titles take the headline voice; a sub-heading inside a section (no id) stays body-sized. */
+h2 { margin: 8px 0 6px; color: var(--text-primary); font-family: var(--font-display);
+     font-size: clamp(28px, 3vw, 38px); line-height: 1.1; font-weight: 600; letter-spacing: -.022em; text-wrap: balance; }
 h3 { margin: 0 0 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; }
-h3[id] { margin-bottom: 14px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(22px, 2.2vw, 26px);
-         line-height: 1.15; font-weight: 500; letter-spacing: -.01em; }
+h3[id] { margin-bottom: 14px; font-family: var(--font-display); font-size: clamp(22px, 2.2vw, 26px);
+         line-height: 1.15; font-weight: 600; letter-spacing: -.022em; }
 h3:not([id]) { margin-top: 32px !important; }
 .cite { margin: 0; font-size: 14px; color: var(--text-muted); }
-.claim { margin: 18px 0 0; max-width: 68ch; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto;
-         font-size: 19px; line-height: 1.5; font-weight: 400; }
+.claim { margin: 18px 0 0; max-width: 68ch; color: var(--text-primary); font-family: var(--font-display);
+         font-size: 19px; line-height: 1.5; font-weight: 400; letter-spacing: -.011em; }
 @media (max-width: 719px) { .claim { font-size: 18px; } }
 .verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 22px; padding: 16px 18px;
            border: 1px solid var(--border-bright); border-radius: 12px; background: var(--bg-elevated); box-shadow: var(--hairline-hi); font-size: 14px; }

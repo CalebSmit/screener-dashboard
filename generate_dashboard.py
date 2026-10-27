@@ -1749,8 +1749,8 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
     <!-- The web fonts never block first paint: preloaded, then swapped in when they arrive. With the
          font request stalled the page used to stay blank and the data script waited behind it
          (2026-10-16). The system-ui stack in --font-body shows until then, or for good. -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
     <!-- The data is ~1.3 MB gzipped. Preloaded here so it downloads at once, executed at the
          end of <body> so the shell paints first (LCP at 10 Mbit/s was 4.8 s, all of it waiting). -->
     <link rel="preload" href="./dashboard_data.js?v={version}" as="script">
@@ -5672,9 +5672,9 @@ def _css() -> str:
             --font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
-            /* display serif: page titles, section titles, hero statements only -
-               never a label, control, table or figure (plan/ui-elevation.md) */
-            --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+            /* the headline voice: Inter at 600 with tightened tracking, the ticker's own style - one
+               family across the page (owner, 2026-10-27; plan/ui-elevation.md) */
+            --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
             /* depth through light: the top edge of a raised card, no shadow */
             --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
         }
@@ -11094,18 +11094,18 @@ def _js_page() -> str:
 
 
 def _css_page() -> str:
-    """The page's elevation layer (ui-elevation, 2026-10-27, ``plan/ui-elevation.md``): the display
-    serif on headlines, depth through a hairline of light, the score heat in the rankings, the
+    """The page's elevation layer (ui-elevation, 2026-10-27, ``plan/ui-elevation.md``): one Inter
+    headline voice, depth through a hairline of light, the score heat in the rankings, the
     leaders' fingerprints, the distribution and the tile charts, and a compact phone list. Emitted
     last, so at equal specificity it wins. Scoped to the page - nothing here reaches ``#stock-modal``.
     Presentation only: no number, rank or sentence changes."""
     return """
-        /* ---- EDITORIAL TYPE: the serif speaks for headlines only; figures, labels and controls stay Inter ---- */
+        /* ---- HEADLINES: Inter 600, tracked tight - the leader cards' ticker style, at headline sizes ---- */
         .hero-title, .dist-title,
         .dashboard-container > .section > .section-header .section-title,
         .sec-grid .section-header .section-title {
-            font-family: var(--font-display); font-weight: 500; letter-spacing: -.015em; font-optical-sizing: auto; }
-        .hero-title { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; max-width: 20ch; }
+            font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em; }
+        .hero-title { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; max-width: 20ch; letter-spacing: -.032em; }
         .dashboard-container > .section > .section-header .section-title,
         .dist-title { font-size: clamp(22px, 2.2vw, 28px) !important; line-height: 1.15; }
         .sec-grid .section-header .section-title { font-size: 21px !important; line-height: 1.2; }
@@ -11116,15 +11116,15 @@ def _css_page() -> str:
         @media (max-width: 760px) { .hero-title { font-size: 36px; } }
 
         /* the guide's three statements read as the page's standfirst */
-        .guide-steps li strong { font-family: var(--font-display); font-weight: 500; font-size: 18px; letter-spacing: -.01em; margin-bottom: 6px; }
+        .guide-steps li strong { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -.022em; margin-bottom: 6px; }
         /* the wordmark and the dialogs' titles are headlines too */
         .dashboard-header .brand h1, .footer-name, #meth-title, #cmp-title {
-            font-family: var(--font-display); font-weight: 500; letter-spacing: -.01em; font-optical-sizing: auto; }
+            font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em; }
         .dashboard-header .brand h1 { font-size: 20px; }
         .footer-name { font-size: 17px; }
         #meth-title, #cmp-title { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.15; }
-        /* the methodology reads as a document: its section heads in the reading serif, its body in Inter */
-        .methodology-body h2 { font-family: var(--font-display); font-weight: 500; font-size: 24px; letter-spacing: -.01em; line-height: 1.2; }
+        /* the methodology reads as a document: its section heads in the headline voice */
+        .methodology-body h2 { font-family: var(--font-display); font-weight: 600; font-size: 24px; letter-spacing: -.022em; line-height: 1.2; }
         @media (max-width: 760px) { .dashboard-header .brand h1 { font-size: 18px; } }
 
         /* ---- DEPTH THROUGH LIGHT: raised surfaces carry a 1px highlight on their top edge ---- */
@@ -11282,8 +11282,8 @@ def _css_page() -> str:
             .sm-table th:first-child, .sm-table td.sm-sector { position: sticky; left: 0; z-index: 1; background: var(--bg-card);
                              max-width: 132px; overflow: hidden; text-overflow: ellipsis; }
         }
-        /* the header at laptop widths: the serif wordmark is wider than the Inter one it replaced, so the
-           search keeps its icon and shortcut a little sooner and "Diagnostics" is not clipped */
+        /* the header at laptop widths: nine nav items and the wordmark - the search keeps its icon and
+           shortcut a little sooner so "Diagnostics" is not clipped */
         @media (min-width: 761px) and (max-width: 1500px) { .cmdk-btn-text { display: none; } }
         /* An open section is as tall as its content. The collapse rule capped every open body at 5,000px with
            overflow hidden, which cut Reporting soon off a third of the way down its 7-day list (8,857px of
@@ -11483,7 +11483,7 @@ def _css_drilldown() -> str:
     return """
         /* =====================================================================
            THE STOCK SHEET (UI elevation, 2026-10-27)
-           A masthead with the company in the display serif and every figure in Inter; the
+           A masthead with the company in the headline voice and every figure tabular; the
            eight scores as a heat-washed fingerprint with the sector median marked; the reasons
            set like a page; the arithmetic like a receipt; charts in one language - the accent
            is this stock, ink and grey are the references.
@@ -11507,7 +11507,7 @@ def _css_drilldown() -> str:
         #stock-modal .modal-chips .flag { margin: 0; }
         #stock-modal .modal-company {
             grid-area: co; display: block; margin: 10px 0 0; color: var(--text-primary); min-width: 0;
-            font-family: var(--font-display); font-weight: 500; font-optical-sizing: auto; letter-spacing: -.015em;
+            font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em;
             font-size: clamp(28px, 2.5vw, 36px); line-height: 1.08; overflow-wrap: anywhere;
         }
         #stock-modal .modal-headline { grid-area: fig; margin-top: 16px; }
@@ -11600,12 +11600,12 @@ def _css_drilldown() -> str:
         #stock-modal .modal-score-card.is-na .modal-score-val { color: var(--text-muted); }
         #stock-modal .msr-note { margin-top: 4px; }
 
-        /* ---- section titles in the display serif ---- */
+        /* ---- section titles in the headline voice ---- */
         #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child {
-            font-family: var(--font-display); font-weight: 500; font-optical-sizing: auto; letter-spacing: -.015em;
+            font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em;
             font-size: 23px; line-height: 1.15; color: var(--text-primary);
         }
-        #stock-modal .about-title { font-family: var(--font-display); font-weight: 500; font-size: 19px; letter-spacing: -.01em; }
+        #stock-modal .about-title { font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: -.022em; }
         #stock-modal .about-text { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); max-width: 80ch; }
         #stock-modal .collapsible-header { padding: 22px 0 16px; }
         #stock-modal .collapsible-header:hover span:first-child { color: var(--text-primary); }
@@ -11620,8 +11620,8 @@ def _css_drilldown() -> str:
         #stock-modal .summary-fact { grid-column: 2; margin: 0 0 8px; max-width: 70ch; font-size: 14.5px; line-height: 1.62; color: var(--text-secondary); }
         #stock-modal .summary-body > p.summary-fact.summary-lead {
             grid-column: 1 / -1; max-width: 38em; margin: 0 0 22px;
-            font-family: var(--font-display); font-weight: 400; font-optical-sizing: auto; letter-spacing: -.01em;
-            font-size: 21px; line-height: 1.42; color: var(--text-primary);
+            font-family: var(--font-display); font-weight: 400; letter-spacing: -.011em;
+            font-size: 19px; line-height: 1.5; color: var(--text-primary);
         }
         #stock-modal .summary-group-label {
             grid-column: 1; align-self: start; margin: 6px 0 0; padding: 14px 20px 0 0; border-top: 1px solid var(--border);
@@ -11629,7 +11629,7 @@ def _css_drilldown() -> str:
         }
         #stock-modal .summary-group-label + .summary-fact { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--border); }
         #stock-modal .summary-fact .fig { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
-        #stock-modal .summary-lead .fig { font-family: var(--font-body); font-size: .9em; letter-spacing: -.01em; }
+        #stock-modal .summary-lead .fig { font-family: var(--font-body); letter-spacing: -.011em; }
         #stock-modal .summary-confidence, #stock-modal .summary-flags { font-size: 14px; }
         #stock-modal .summary-source { margin-top: 18px; font-size: 12px; color: var(--text-muted); max-width: 80ch; }
         #stock-modal .ctx-teaser-btn { box-shadow: var(--hairline-hi); border-color: var(--border-bright); padding: 12px 16px; }
@@ -11731,7 +11731,7 @@ def _css_drilldown() -> str:
             #stock-modal .is-compact .mh-price, #stock-modal .is-compact .mh-of { display: none; }
             #stock-modal .is-compact .modal-headline { margin-top: 4px; }
             #stock-modal .summary-body { display: block; }
-            #stock-modal .summary-body > p.summary-fact.summary-lead { font-size: 19px; line-height: 1.42; }
+            #stock-modal .summary-body > p.summary-fact.summary-lead { font-size: 17.5px; line-height: 1.5; }
             #stock-modal .summary-group-label { margin: 18px 0 8px; padding: 14px 0 0; }
             #stock-modal .summary-group-label + .summary-fact { margin-top: 0; padding-top: 0; border-top: 0; }
             #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child { font-size: 21px; }
