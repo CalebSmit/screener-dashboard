@@ -2147,6 +2147,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
                     rec["_ev_flag"] = (
                         f"API EV={ev/1e9:.1f}B vs computed={_ev_computed/1e9:.1f}B "
                         f"(ratio={_ev_ratio:.2f})")
+                    # The figure that was rejected, kept beside the one that replaced it so the
+                    # drilldown can state both (2026-10-27). Display only, like `_ev_used`: the
+                    # substitution has always happened and the rule has always been on the
+                    # methodology page, but until now no stock's page said it had fired here.
+                    rec["_ev_api"] = ev
                     ev = _ev_computed
 
         # The EV the scorer actually used (the API value unless it was missing or
@@ -3134,6 +3139,11 @@ def compute_metrics(raw_data: list, market_returns: pd.Series,
         # -- Data provenance summary --
         rec["_data_source"] = d.get("_data_source", "unknown")
         rec["_ltm_annualized"] = d.get("_ltm_annualized", False)
+        # Which flows are three quarters scaled by 4/3, when any are. Carried for the same
+        # reason as the roll-forward's labels below, and added 2026-10-27: the flag reached
+        # the payload without them, so the panel could not name the lines and instead said
+        # "the sum of the last four reported quarters", which for these stocks is not true.
+        rec["_ltm_annualized_labels"] = d.get("_ltm_annualized_labels", None)
         # Which flows are the last fiscal year rolled forward, when any are (2026-10-15).
         rec["_ltm_rolled"] = d.get("_ltm_rolled", False)
         rec["_ltm_rolled_labels"] = d.get("_ltm_rolled_labels", None)

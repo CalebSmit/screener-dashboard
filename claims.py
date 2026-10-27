@@ -592,6 +592,61 @@ CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
+        id="drilldown.ltm_annualized",
+        surface=DRILLDOWN,
+        asserts=(
+            "When a stock's twelve months is three quarters scaled by 4/3, the panel says so, names "
+            "the lines built that way, and says the scaling assumes the unpublished quarter was an "
+            "average one - and the lead sentence above it does not claim four quarters were summed."
+        ),
+        made_true_by="factor_engine:_stmt_val_ltm",
+        checked_by=(
+            "tests/test_dead_badges.py::test_the_annualised_stocks_get_their_own_sentence",
+            "tests/test_dead_badges.py::test_the_lead_does_not_claim_four_quarters_for_an_annualised_stock",
+        ),
+    ),
+    Claim(
+        id="drilldown.ev_substituted",
+        surface=DRILLDOWN,
+        asserts=(
+            "When the screener rejected the source's enterprise value for its own market value plus "
+            "debt less cash, the stock's panel says so, names the three metrics scored on the "
+            "substitute, states the tolerance that was exceeded, and prints both figures."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_dead_badges.py::test_a_substituted_enterprise_value_is_stated_with_both_figures",
+        ),
+    ),
+    Claim(
+        id="drilldown.beta_overlap",
+        surface=DRILLDOWN,
+        asserts=(
+            "When under 80% of a stock's trading days line up with the S&P 500's, the panel says beta "
+            "could not be measured, gives the overlap, and says the Risk weight is shared across the "
+            "measures that do have data."
+        ),
+        made_true_by="factor_engine:compute_metrics",
+        checked_by=(
+            "tests/test_dead_badges.py::test_an_unmeasurable_beta_says_why",
+        ),
+    ),
+    Claim(
+        id="overview.no_financial_sector_flag",
+        surface=OVERVIEW,
+        asserts=(
+            "The methodology page does not claim that financial-sector stocks receive a "
+            "Financial_Sector_Caveat flag: the column is absent from the scored output this pipeline "
+            "produces, so it reached 0 of 498 stocks, and the page says that rather than the claim."
+        ),
+        made_true_by="factor_engine:add_financial_sector_caveat",
+        checked_by=(
+            "tests/test_dead_badges.py::test_the_overview_does_not_claim_the_caveat_flag",
+            "tests/test_dead_badges.py::test_the_caveat_column_is_absent_from_the_scored_output",
+        ),
+        detect=r"There is no separate blanket flag for the sector",
+    ),
+    Claim(
         id="overview.ltm_rolled",
         surface=OVERVIEW,
         asserts=(
