@@ -47,7 +47,9 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bar::before { content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%);
                background: color-mix(in srgb, var(--bg-deep) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
                border-bottom: 1px solid var(--border); }
-.mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; }
+.mark { display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); text-decoration: none;
+        font-family: var(--font-display); font-size: 20px; font-weight: 500; letter-spacing: -.01em; font-optical-sizing: auto; }
+/* the wordmark is set as the dashboard's is (plan/ui-elevation.md) */
 .mark:hover { text-decoration: none; }
 .bmk { width: 24px; height: 24px; flex: none; }
 .bm-bg { fill: var(--bg-elevated); stroke: var(--border-bright); } .bm-1 { fill: var(--accent); opacity: .5; } .bm-2 { fill: var(--accent); opacity: .75; } .bm-3 { fill: var(--accent); }
@@ -58,7 +60,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 719px) { .bar { position: static; height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 4px; }
     .bar nav { margin-left: -12px; } .bar nav a { padding: 10px 12px; } }
 .lede { padding: 56px 0 8px; max-width: 70ch; }
-.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-text); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(36px, 4.6vw, 56px);
       line-height: 1.04; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }
 .lede p { font-size: 17px; line-height: 1.6; max-width: 62ch; }
