@@ -1531,6 +1531,7 @@ CLAIMS: tuple[Claim, ...] = (
         made_true_by="share_classes:designate",
         checked_by=(
             "tests/test_share_classes.py::TestDeclaration::test_config_declares_one_line_per_known_pair",
+            "tests/test_share_classes.py::TestDeclaration::test_score_once_is_on_and_the_margin_is_spdji_s",
             "tests/test_share_classes.py::TestDesignation::test_the_declaration_beats_this_run_s_volume",
             "tests/test_share_classes.py::TestPipelineWiring::test_run_screener_drops_the_secondary_lines_before_the_percentiles",
             "tests/test_share_classes_page.py::test_the_page_names_the_declared_lines_and_only_those",
