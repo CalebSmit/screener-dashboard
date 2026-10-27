@@ -183,7 +183,14 @@ def test_the_wider_tolerance_is_stated_for_a_financial(page):
                         "flags": {"ev_flag": True, "is_bank": True, "ev_api": 120e9},
                         "inp": {"ev_used": 80e9}})
     assert "more than 25% away" in bank and "more than 10% away" not in bank
+    assert "allowed 25% rather than the 10% used elsewhere" in bank
     assert "customer deposits" in bank
+    # and the deposits clause must not appear on a stock the 25% does not apply to: printing it
+    # on a utility's page explains a limit that is not its own (read on the page, 2026-10-27)
+    util = _prov(page, {"sector": "Utilities",
+                        "flags": {"ev_flag": True, "ev_api": 120e9}, "inp": {"ev_used": 80e9}})
+    assert "more than 10% away" in util
+    assert "customer deposits" not in util and "25%" not in util
 
 
 def test_a_stock_whose_enterprise_value_stood_says_nothing(page):

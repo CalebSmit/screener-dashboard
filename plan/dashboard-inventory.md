@@ -394,9 +394,19 @@ last. `tests/test_drilldown_presentation.py` (10, browser).
   a grabber is drawn); tabs and buttons are 40-44px on a touch screen; price targets sit in a
   2-column grid. Stepping between stocks fades the body for 160 ms (Web Animations, skipped under
   reduced motion).
-- Not changed: `renderFlagsWarnings()` writes to `#modal-flags`, which does not exist, so its trap /
-  Beneish / channel-stuffing badges have never rendered; the trap chips above cover the trap flags.
-  Wiring the rest would publish sentences with thresholds that are not in `claims.py`.
+- **`renderFlagsWarnings()` is gone, 2026-10-27** - it wrote to a `#modal-flags` that was never in
+  the page, so none of its eleven badges had ever rendered. Each was checked against the live page
+  and either found covered elsewhere or rehomed, then the function was deleted
+  (`research/measurements/2026-10-27-dead-badge-audit.py`, `tests/test_dead_badges.py`). Seven were
+  covered: value trap (46 stocks) and growth trap (66) by the table's flag column, `summary` and
+  "The case against"; Beneish (43) and channel stuffing (14) by the last two; stale financials (28)
+  by the Filing Age badge as well; EPS basis mismatch (100) by the provenance badge and the
+  data-quality KPIs; bank-like (46) by the ROE/ROIC column label. Three are now sentences in
+  **Data provenance**, which the drilldown does call - `#provenance-ltm-annualized` (4 stocks),
+  `#provenance-ev-substituted` (18), `#provenance-beta-overlap` (1). The eleventh, the
+  financial-sector caveat, was deleted from the payload: `Financial_Sector_Caveat` is set only by
+  `factor_engine`'s own legacy end-to-end path, so it published `false` for all 498 on every run.
+  Do not re-create a container-less badge sink; a badge that cannot render also cannot fail.
 
 ## The navigation layer (pass 2, 2026-10-07) - `_js_ux()` / `_css_ux()` in the generator
 

@@ -217,7 +217,7 @@ A Financials stock in a sub-industry on neither list defaults to the bank set �
 
 Bank-like stocks get an entirely different set of metric weights within the Valuation and Quality categories (see the tables in sections 1 and 2 above). Growth, Momentum, Risk, Revisions, Size, and Investment use the same generic weights for all stocks.
 
-All financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output, reminding the user that financial companies require additional scrutiny regardless of classification.
+There is no separate blanket flag for the sector beyond this. The sentence here claimed one until 2026-10-27 – "all financial-sector stocks receive a `Financial_Sector_Caveat` flag in the output" – and it was not true of any run this page has described: the column is written by `factor_engine.add_financial_sector_caveat`, which only that module's own legacy end-to-end path calls, so it is absent from the scored output the dashboard and the Excel sheet are built from and the flag reached **0 of 498** stocks. Its only reader was a dashboard function that was never called. Which set a stock is scored on is stated on its own page, and is the distinction that actually changes its score.
 
 ### A bank's Valuation and Quality scores are one reading, not two
 

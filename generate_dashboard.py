@@ -4778,10 +4778,17 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             const pair = (evApi !== null && evApi !== undefined && evUsed !== null && evUsed !== undefined)
                 ? ' Its figure was ' + fmtBig(evApi) + ' against the ' + fmtBig(evUsed) + ' used here.'
                 : '';
+            // The limit is 25% for financials and 10% for everyone else, so the sentence states
+            // the one that applied to *this* stock. The first draft printed "the wider limit
+            // applies to financial companies" on every one of them, which on a utility's page
+            // explains a limit that is not its own (read on the regenerated page, 2026-10-27).
+            const wide = fl.is_bank || s.sector === 'Financials';
             html += '<p class="provenance-line provenance-limit" id="provenance-ev-substituted"><strong>Enterprise value recomputed.</strong> The source&rsquo;s enterprise value for this company was more than ' +
-                (fl.is_bank || s.sector === 'Financials' ? '25%' : '10%') +
+                (wide ? '25%' : '10%') +
                 ' away from market value plus debt less cash, so the screener scored EV/EBITDA, EV/Sales and free-cash-flow yield on that sum instead.' + pair +
-                ' The wider limit applies to financial companies, whose debt includes customer deposits.</p>';
+                (wide
+                    ? ' Financial companies are allowed 25% rather than the 10% used elsewhere, because their debt includes customer deposits.'
+                    : '') + '</p>';
         }}
         // One stock on 2026-10-27 (FDXF, 42%). The metric row already says "no data"; this says
         // why, which is the difference between a gap and an unexplained gap.
