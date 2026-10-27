@@ -15985,3 +15985,12 @@ on their include lines and the adjacent new functions, resolved by keeping both 
   session may take: register the thresholds in `claims.py` and wire it, or delete the dead code.
 - Read the 02:00 run's first page built by this code: `PHASE TIMING`'s `dashboard` phase (24 s
   today) should not move materially with the new page functions.
+
+### Same day, second owner pass - one typeface (`good/2026-10-27-owner-2`)
+
+The owner looked at the live page on his phone: *"Please focus on the typography and consistent
+fonts. I like the font of the EXPE word ... I don't love how the title font looks."* The display
+serif (Newsreader) is removed from all three pages and from the font download; every headline that
+used it (18 rules) is Inter 600 tracked tight - the leader cards' ticker style - and the two long
+lead sentences are Inter 400. `plan/ui-elevation.md` and `plan/dashboard-design-system.md` now say
+**do not reintroduce a serif or a second display face.** Presentation only; payload byte-identical.

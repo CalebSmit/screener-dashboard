@@ -68,9 +68,10 @@ position, which is how Linear/Stripe-class tables do it.
 
 ## Typography
 
-**Extended 2026-10-27 (`plan/ui-elevation.md`):** a third family with one job - Newsreader,
-`--font-display`, for page titles, section titles and hero statements only. The table below still
-binds for everything else; three families *with roles* is the rule, not two.
+**2026-10-27 (`plan/ui-elevation.md`):** headlines have their own token, `--font-display`, but it
+is **Inter** - weight 600, tracked tight, the leader cards' ticker style. A display serif was tried
+the same day and removed at the owner's request ("I like the font of the EXPE word"); two
+families stays the rule.
 
 | Token | Value | Job |
 |---|---|---|
