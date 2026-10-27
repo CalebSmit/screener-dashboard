@@ -1398,6 +1398,10 @@
             padding: 16px 20px;
             margin: 14px 0 18px;
             overflow-x: auto;
+            /* formulas wrap rather than scroll sideways: a scrolling box with nothing focusable in it cannot
+               be read by keyboard (axe scrollable-region-focusable: 2 at 1280px, 6 at 375px, round two) */
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
         .methodology-body pre code {
             background: none;
@@ -3410,6 +3414,12 @@
         .sec-grid .collapsible-section:not(.collapsed) .sec-blurb { display: none; }
         .sec-grid .collapsible-section:not(.collapsed) .section-header { border-bottom: 1px solid var(--border); }
         .sec-grid .defensibility-header-left { flex: 1 1 0; min-width: 0; }
+        /* Diagnostics' header holds its title and three badges in one block, so a centred chevron sat beside
+           the badges, a line below the title, unlike every other tile (round two, 2026-10-27). It rides the
+           title's line: half the title's line box less half its own 18px. */
+        .sec-grid #sec-defensibility > .section-header { align-items: flex-start; }
+        .sec-grid #sec-defensibility > .section-header > .section-chevron { margin-top: calc((21px * 1.2 - 18px) / 2); }
+        .sec-grid #sec-defensibility:not(.collapsed) > .section-header > .section-chevron { margin-top: calc((clamp(22px, 2.2vw, 28px) * 1.15 - 18px) / 2); }
 
         /* ---- THE RANKINGS: the composite leads, the eight scores speak quietly ----
            A blue wash behind 4,000 cells competed with the one column that ranks. Each score's ink now
@@ -3456,10 +3466,10 @@
         /* a wide screen: the statement on the left, the four figures beside it as a 2x2, so the right half
            of the first screen is not empty and the leaders rise by the height of a row */
         @media (min-width: 1200px) {
-            .dashboard-container { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); column-gap: 56px; }
-            .dashboard-container > * { grid-column: 1 / -1; min-width: 0; }
-            .dashboard-container > .hero { grid-column: 1; grid-row: 2; }
-            .dashboard-container > .kpi-row { grid-column: 2; grid-row: 2; align-self: end; margin: 0 0 28px;
+            .dashboard-container, .page-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 540px); column-gap: 56px; }
+            .dashboard-container > *, .page-main > * { grid-column: 1 / -1; min-width: 0; }
+            .page-main > .hero { grid-column: 1; grid-row: 1; }
+            .page-main > .kpi-row { grid-column: 2; grid-row: 1; align-self: end; margin: 0 0 28px;
                 grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .kpi-row .kpi-card:nth-child(3) { border-left: 0; }
             .kpi-row .kpi-card:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
@@ -3554,8 +3564,11 @@
         .dq-kpi-card { border-radius: 14px; }
         /* links that fell back to the browser's dark-scheme violet (the track record's note, the insider
            filing dates in Before you decide) */
-        .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: none; }
-        .tr-caveats a:hover, #modal-context a:not([class]):hover { text-decoration: underline; text-underline-offset: 2px; }
+        /* A link inside a sentence is underlined, not told apart by hue alone: the accent against body ink
+           is 1.1-2.0:1, under the 3:1 WCAG 1.4.1 asks of colour alone (axe link-in-text-block, round two) */
+        .tr-caveats a, #modal-context a:not([class]) { color: var(--accent-text); text-decoration: underline;
+            text-decoration-color: color-mix(in srgb, var(--accent-text) 45%, transparent); text-underline-offset: 2px; }
+        .tr-caveats a:hover, #modal-context a:not([class]):hover { text-decoration-color: currentColor; }
         /* the composite card repeated the header's rank and composite word for word; the eight scores now
            open the sheet directly */
         #modal-score-row > .modal-score-card.composite { display: none; }
@@ -3600,14 +3613,16 @@
         .score-key dt b { color: var(--text-primary); font-weight: 600; margin-right: 6px; }
         .score-key dd { margin: 0; }
         .score-key .sk-hit { background: var(--bg-elevated); }
-        .score-key a { color: var(--accent); text-decoration: none; }
-        .score-key a:hover { text-decoration: underline; }
+        .score-key a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px;
+            text-decoration-color: color-mix(in srgb, var(--accent-text) 45%, transparent); }
+        .score-key a:hover { text-decoration-color: currentColor; }
         @media (max-width: 520px) {
             .score-key .sk-list > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
         }
         .kpi-more { display: block; margin-top: 6px; color: var(--accent); font-size: 12px; text-decoration: none; }
         .kpi-more:hover { text-decoration: underline; }
         .guide-steps a { color: var(--accent); text-decoration: none; white-space: nowrap; }
+        .guide-steps a { text-decoration: underline; text-underline-offset: 2px; }  /* in a sentence: not colour alone (axe link-in-text-block, 2026-10-27) */
         .guide-steps a:hover { text-decoration: underline; }
         .msr-note { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); }
         .pal-empty strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-weight: 600; }
@@ -3631,11 +3646,11 @@
 
         /* ---- HEADLINES: Inter 600, tracked tight - the leader cards' ticker style, at headline sizes ---- */
         .hero-title, .dist-title,
-        .dashboard-container > .section > .section-header .section-title,
+        .page-main > .section > .section-header .section-title,
         .sec-grid .section-header .section-title {
             font-family: var(--font-display); font-weight: 600; letter-spacing: -.022em; }
         .hero-title { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; max-width: 20ch; letter-spacing: -.032em; }
-        .dashboard-container > .section > .section-header .section-title,
+        .page-main > .section > .section-header .section-title,
         .dist-title { font-size: clamp(22px, 2.2vw, 28px) !important; line-height: 1.15; }
         .sec-grid .section-header .section-title { font-size: 21px !important; line-height: 1.2; }
         .sec-grid .collapsible-section:not(.collapsed) .section-header .section-title { font-size: clamp(22px, 2.2vw, 28px) !important; }
@@ -3757,7 +3772,9 @@
         .filters-bar .result-count { align-self: flex-end; line-height: 34px; }
         .data-table td.sc-na { background: none; color: var(--text-muted); }
         .data-table tbody tr:hover td.sc { color: var(--text-primary); }
-        .data-table thead th { background: color-mix(in srgb, var(--bg-card) 92%, #fff); }
+        /* the raised header is the raised-surface token: an 8% white lift (#2c2c2b) put the muted labels at
+           4.16:1, under AA; --bg-elevated keeps the lift and reads 4.7:1 (axe color-contrast, round two) */
+        .data-table thead th { background: var(--bg-elevated); }
         .data-table thead th[data-sort]:not(.sorted):hover::after { content: ' \2195'; color: var(--text-muted); }
         .data-table td.comp { font-size: 14.5px; }
         /* Widths, 2026-10-27 (fourth pass): at 1280px the company column was 162px - "Valero Energy Corpo...",
@@ -3765,7 +3782,10 @@
            flags column takes the width of its widest chip, the composite the width of its gauge, and the
            company name gets the rest. */
         .data-table th:nth-child(1) { width: 46px; }
-        .data-table th:nth-child(2) { width: 50px; }
+        .data-table th:nth-child(2) { width: 56px; }
+        /* the rank-change column says "Move", not a bare Delta (round two, 2026-10-27): a word a first-year
+           reader knows, kept narrow by tighter padding so the sort arrow still fits beside it */
+        #universe-table #th-rank-delta { padding-left: 4px; padding-right: 4px; letter-spacing: .03em; }
         .data-table th:nth-child(5) { width: 160px; }
         .data-table th:nth-child(6) { width: 100px; }
         .data-table th:nth-child(15) { width: 80px; }
@@ -3826,6 +3846,24 @@
                              mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
             .sm-table th:first-child, .sm-table td.sm-sector { position: sticky; left: 0; z-index: 1; background: var(--bg-card);
                              max-width: 132px; overflow: hidden; text-overflow: ellipsis; }
+            /* Round two, 2026-10-27: the sideways scroll showed two of nine score columns at a time, so no
+               sector could be read whole. Each sector is now a card: its name, stock count and composite on
+               the first line, the eight factor scores four to a line under it, every figure labelled. Same
+               numbers, same order, same shading; nothing scrolls. */
+            .sector-matrix { -webkit-mask-image: none; mask-image: none; overflow: visible; }
+            .sm-table, .sm-table tbody { display: block; width: 100%; }
+            .sm-table thead { display: none; }
+            .sm-table tbody tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 8px; row-gap: 8px;
+                                 padding: 12px 0; border-bottom: 1px solid var(--border); }
+            .sm-table tbody td { border-bottom: 0; padding: 0; min-width: 0; display: flex; flex-direction: column;
+                                 align-items: flex-start; text-align: left; font-size: 13px; line-height: 1.2; }
+            .sm-table tbody td::before { content: attr(data-l); font-size: 10px; font-weight: 500; letter-spacing: .04em;
+                                         text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+            .sm-table td.sm-sector { position: static; grid-column: 1 / span 2; grid-row: 1; max-width: none; background: none;
+                                     font-size: 14px; font-weight: 500; white-space: normal; justify-content: center; }
+            .sm-table td.sm-sector::before { content: none; }
+            .sm-table td.sm-n { grid-column: 3; grid-row: 1; }
+            .sm-table td.sm-comp { grid-column: 4; grid-row: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); }
         }
         /* the header at laptop widths: nine nav items and the wordmark - the search keeps its icon and
            shortcut a little sooner so "Diagnostics" is not clipped */
@@ -3845,6 +3883,7 @@
                          box-shadow: inset 0 -1px 0 var(--border); }
         }
         #correlation-heatmap { -webkit-mask-image: none; }
+        #correlation-heatmap:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
         @media (max-width: 760px) {
             #correlation-heatmap { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
                                    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
@@ -3944,7 +3983,7 @@
         @media (min-width: 761px) and (max-width: 1300px) {
             .data-table th:nth-child(1) { width: 38px; }
             .data-table th:nth-child(5) { width: 140px; }
-            .data-table th:nth-child(2) { width: 44px; }
+            .data-table th:nth-child(2) { width: 52px; }
             .data-table th:nth-child(3) { width: 64px; }
             .data-table th:nth-child(6) { width: 80px; }
             .data-table th:nth-child(n+7):nth-child(-n+14) { width: 52px; }
@@ -4450,6 +4489,10 @@
             </div>
         </header>
 
+        <!-- The page's one main landmark (round two, 2026-10-27): axe found every section outside a
+             landmark (landmark-one-main, region - 1,498 nodes with the sections open). The header,
+             the dialogs and the footer stay outside it. -->
+        <main id="main" class="page-main">
         <!-- Page title -->
         <section class="hero" aria-labelledby="hero-title">
             <div class="hero-text">
@@ -4486,13 +4529,14 @@
             <p class="dist-foot"><span class="dist-x">Composite score, 0&ndash;100 &middot; higher ranks higher</span><span class="dist-kbd" aria-hidden="true">&larr; &rarr; move between companies &middot; Enter opens one</span></p>
         </section>
 
-        <!-- First-visit guide: three sentences on how to read the page. Dismissed once,
-             per browser; reopened from the search palette. -->
+        <!-- First-visit guide: a first-time visitor's path in three steps - the ranking, one stock,
+             then comparing and following (round 2 docs pass, 2026-10-27). Dismissed once, per
+             browser; reopened from the search palette. Methodology opens on the same path. -->
         <section class="guide" id="guide" aria-label="How to read this screener">
             <ol class="guide-steps">
-                <li><span class="guide-n">1</span><div><strong>Eight scores.</strong> Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment, each 0&ndash;100 against sector peers. The sector median sits near 50, and a higher score adds more to the composite on all eight, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
-                <li><span class="guide-n">2</span><div><strong>One composite.</strong> A weighted sum of the eight scores. The Weighting menu above the table re-ranks the list with a Value, Growth or Momentum tilt.</div></li>
-                <li><span class="guide-n">3</span><div><strong>Fully traceable.</strong> Open any stock to follow each score back to its inputs, formulas and sector peers.</div></li>
+                <li><span class="guide-n">1</span><div><strong>Start with the ranking.</strong> S&amp;P 500 companies sorted by a composite score from 0 to 100, built from eight category scores. Each compares a company with its sector, where about 50 is the median, and higher always adds more, so a high Risk score means a calmer price. <a href="#score-key" onclick="openScoreKey();return false">What each column means</a></div></li>
+                <li><span class="guide-n">2</span><div><strong>Open a stock.</strong> Select a row. Why it ranks here gives the reasons, and The workings shows each figure, its sector percentile, its weight and its points. A trap flag is a prompt to read on and changes neither the score nor the rank.</div></li>
+                <li><span class="guide-n">3</span><div><strong>Compare and follow.</strong> In a stock&rsquo;s sheet, Compare sets it beside another, and Holdings adds it to My holdings to follow run to run, saved in this browser. <a href="#" onclick="openMethodology();return false">Methodology</a> starts with a short summary and the screener&rsquo;s limits.</div></li>
             </ol>
             <div class="guide-foot">
                 <span></span>
@@ -4673,7 +4717,7 @@
                     <div class="chart-container" style="flex:1">
                         <h3 class="chart-title">Are the factors independent?</h3>
                         <p class="chart-desc">Spearman rank correlations between the eight factor scores. Shading deepens with the correlation; pairs above 0.7 are outlined because they largely measure the same thing.</p>
-                        <div id="correlation-heatmap"></div>
+                        <div id="correlation-heatmap" role="region" aria-label="Factor correlations - scrolls sideways on a narrow screen" tabindex="0"></div>
                     </div>
                 </div>
             </div>
@@ -4755,7 +4799,7 @@
                         <dl class="sk-list">
                             <div><dt><b>Composite</b></dt><dd>The weighted sum of the eight scores, from 0 to 100, and the number the ranking sorts by.<span id="sk-median"></span> Open a stock to see its exact rank and how its points add up.</dd></div>
                             <div><dt><b>Val</b> Valuation</dt><dd>Higher means a lower price against cash flow, earnings and sales than its sector.</dd></div><div><dt><b>Qual</b> Quality</dt><dd>Higher means more profitable and financially sounder than its sector.</dd></div><div><dt><b>Grow</b> Growth</dt><dd>Higher means faster growth in sales and in expected earnings.</dd></div><div><dt><b>Mom</b> Momentum</dt><dd>Higher means a stronger price trend over the past year.</dd></div><div><dt><b>Risk</b></dt><dd>Higher means a calmer price: lower volatility, lower beta and smaller drawdowns. A high Risk score is low risk.</dd></div><div><dt><b>Rev</b> Revisions</dt><dd>Higher means analysts' expectations are improving.</dd></div><div><dt><b>Size</b></dt><dd>Higher means a smaller company than its sector peers. The largest company in each sector scores near 0.</dd></div><div><dt><b>Inv</b> Investment</dt><dd>Higher means slower growth in total assets.</dd></div>
-                            <div id="sk-delta-row"><dt><b>&#9650; &#9660;</b></dt><dd id="sk-delta">The change in rank since an earlier run.</dd></div>
+                            <div id="sk-delta-row"><dt><b>Move</b> &#9650; &#9660;</dt><dd id="sk-delta">The change in rank since an earlier run.</dd></div>
                             <div id="key-traps"><dt><b>Value trap</b></dt><dd>In the top 30% of Valuation scores and in the bottom 30% on at least two of Quality, Momentum and Revisions: priced low, with weaknesses that may explain the price.</dd></div>
                             <div><dt><b>Growth trap</b></dt><dd>In the top 30% of Growth scores, with Quality or Revisions in the bottom 35%.</dd></div>
                         </dl>
@@ -4767,7 +4811,7 @@
                     <table class="data-table" id="universe-table" aria-label="Full universe rankings" aria-describedby="universe-keys" aria-rowcount="-1">
                         <thead><tr>
                             <th data-sort="Rank">Rank</th>
-                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the run about a month earlier, the window What changed uses. Positive means the stock moved up the table.">&Delta;</th>
+                            <th data-sort="_rank_delta" id="th-rank-delta" title="Change in rank since the run about a month earlier, the window What changed uses. Positive means the stock moved up the table.">Move</th>
                             <th data-sort="Ticker">Ticker</th>
                             <th data-sort="Company">Company</th>
                             <th data-sort="Sector">Sector</th>
@@ -4792,6 +4836,7 @@
                 </div>
             </div>
         </section>
+        </main>
 
         <!-- Stock Detail Modal -->
         <div class="modal-overlay" id="stock-modal" style="display:none" onclick="if(event.target===this)closeModal()">
@@ -4979,9 +5024,69 @@
 <p><strong>What the screener measures, how it scores and ranks the S&amp;P 500, and why each choice was made.</strong></p>
 <hr />
 <h2>Overview</h2>
-<p>The screener scores every company in the S&amp;P 500 (about 500 stocks) on up to 31 financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.</p>
+<h3>If you read nothing else</h3>
+<ul>
+<li><strong>What it is.</strong> About 500 companies in the S&amp;P 500 each get 8 category scores – Valuation, Quality, Growth, Momentum, Risk, Revisions, Size and Investment – and one composite score from 0 to 100. The ranking sorts by the composite.</li>
+<li><strong>Every score compares a company with its own sector.</strong> A utility is measured against other utilities and a bank against other financial companies, and about 50 is the middle of the sector. On all 8, a higher score adds more to the composite: a high Risk score means a calmer price, and a high Size score a smaller company than its sector peers.</li>
+<li><strong>The composite is points out of 100, and it is not a percentile.</strong> A composite of 70 is 70 points, and it does not mean the stock beats 70% of the others.</li>
+<li><strong>A trap flag is a prompt to read the detail.</strong> A value trap scores high on Valuation but is weak on at least two of Quality, Momentum and Revisions; a growth trap scores high on Growth but is weak on Quality or Revisions. A flag changes neither the score nor the rank.</li>
+<li><strong>It has not been shown to predict returns.</strong> Rerun on 176 months of 2012-2026 history, rebuilt from the filings as they stood each month (the rebuild lacks the analyst inputs and the companies that have since left the index), the ranking did no better than chance at putting the next month's returns in order, and no alternative weighting tested beside it did better. Limitation 3 gives the numbers, and the <a href="https://calebsmit.github.io/screener-dashboard/research.html">"Has it been tested?"</a> page has the whole test. Treat the ranking as a structured place to start research, never as a forecast.</li>
+<li><strong>Every number can be checked.</strong> Open any stock on the dashboard and "The workings" rebuilds its score from the company's own figures: each metric's value, its sector percentile, the weight it carried and the points it added.</li>
+</ul>
+<h3>How to use it</h3>
+<ol>
+<li><strong>Start with the ranking.</strong> Its key, "What the columns mean", says which way each score runs.</li>
+<li><strong>Open a stock.</strong> "Why it ranks here" gives the reasons in a few sentences, and "The workings" shows the arithmetic behind each one.</li>
+<li><strong>Read the flags and the context.</strong> "Before you decide" shows the price trend, options, insider trades and the market backdrop beside the score. None of it enters the score.</li>
+<li><strong>Compare and follow.</strong> Compare puts up to four stocks side by side. My holdings keeps the names you follow, in your own browser, and shows where each ranks on every run.</li>
+<li><strong>Read the limits</strong> at the end of this page before leaning on any number.</li>
+</ol>
+<h3>What it cannot do</h3>
+<ul>
+<li><strong>Tell you what to own, or how much.</strong> The dashboard ranks and explains; it shows no portfolio and no position sizes (Limitation 10).</li>
+<li><strong>Promise a return.</strong> See the line on testing above, and Limitation 3.</li>
+<li><strong>Compare sectors with each other.</strong> A high Valuation score means low-priced for its sector. It says nothing about whether the sector itself is low-priced.</li>
+<li><strong>See past its data.</strong> Prices, statements and estimates come free from Yahoo Finance (Limitation 1), analysts' estimate history reaches back only 90 days (Limitation 5), and only S&amp;P 500 companies are ranked.</li>
+<li><strong>Rely on the recent record of its factors.</strong> Several of the published effects it leans on have earned little since 2014 (Limitation 11).</li>
+</ul>
+<h3>What it measures</h3>
+<p>The 8 category scores are built from up to 31 financial metrics.</p>
 <p>No stock is scored on all 31. Most use 27 general metrics; banks, insurers and credit companies draw on a separate set of 4 bank-specific ones in place of the general metrics that do not fit them, so a bank-like stock is scored on 24, and a financial company outside the bank set on 26 (it is never given the Beneish score). In all the screener computes 46 metrics: the 31 that carry weight (27 general and 4 bank-specific) and 15 candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.</p>
 <p>No single number describes a company well: a low price can reflect a declining business or high risk. Scoring valuation, quality, growth, momentum, risk, revisions, size, investment separately favours companies that are strong on several of them at once.</p>
+<h3>In seven steps</h3>
+<p>The screener answers one question: <strong>how does each S&amp;P 500 company compare with its sector peers on valuation, quality, growth, momentum, risk, revisions, size, investment, taken together?</strong></p>
+<p>It does this in seven steps:</p>
+<ol>
+<li>Pull financial data for about 500 stocks from Yahoo Finance.</li>
+<li>Compute up to 31 metrics across 8 categories (27 general and 4 bank-specific, by company type).</li>
+<li>Rank each metric within its sector, so a bank is compared with other financial companies and a utility with other utilities.</li>
+<li>Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.</li>
+<li>Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).</li>
+<li>For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).</li>
+<li>Report how stable the ranking is when the weights shift.</li>
+</ol>
+<p>Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.</p>
+<hr />
+<h2>Words this page uses</h2>
+<p>In the order the page builds them up.</p>
+<ul>
+<li><strong>Sector percentile</strong> – where a company's value on one metric places it among the companies in its own sector, from 0 to 100. It is turned round for metrics where lower is better, such as a price multiple or volatility, so a higher percentile always means better on that metric. This is what <em>sector-relative</em> means here; a sector with too few values to rank is ranked across the whole index instead (Step 3).</li>
+<li><strong>Category score</strong> – one of the 8 scores, from 0 to 100: the weighted average of the sector percentiles of that category's metrics (Step 4).</li>
+<li><strong>Composite</strong> – the weighted sum of the 8 category scores, from 0 to 100, and the number the ranking sorts by (Step 5).</li>
+<li><strong>Points</strong> – what one category adds to the composite: its score times its weight. A Valuation score of 60 at a 22% weight adds 13.2 points.</li>
+<li><strong>Rank</strong> – a stock's place when the composites are sorted from highest to lowest; 1 is the highest.</li>
+<li><strong>Coverage</strong> – the share of the metrics that carry weight in a stock's score for which it has a value. Low coverage trims the composite slightly, and very low coverage leaves a stock out of the ranking ("Data quality safeguards").</li>
+<li><strong>Trap flag</strong> – a warning that a stock's high score on one category comes with weak scores on others that may explain it: a value trap or a growth trap ("Value-trap detection", "Growth-trap detection"). It changes neither the score nor the rank.</li>
+<li><strong>Bank-like stock</strong> – a bank, insurer or other financial company whose liabilities, such as deposits or insurance float, are part of its business. It is scored on its own Valuation and Quality metrics ("Bank-specific scoring").</li>
+<li><strong>LTM and MRQ</strong> – the last twelve months (the four most recent quarters added together) and the most recent quarter (the latest balance sheet).</li>
+<li><strong>Enterprise value (EV)</strong> – the market value of the shares plus debt minus cash: roughly what the whole business would cost to buy.</li>
+<li><strong>Factor and premium</strong> – a factor is a trait many stocks share, such as being low-priced or profitable. Its premium is the extra return that stocks with the trait earned over stocks without it in a published study.</li>
+<li><strong>Backtest</strong> – running a method on past data as if it had been used at the time.</li>
+<li><strong>Look-ahead bias</strong> – a backtest using information that was not yet public on the date it stands for, which can make a method look better than it could have been.</li>
+<li><strong>Survivorship bias</strong> – a backtest that leaves out the companies that have since failed or left the index, which usually flatters it as well.</li>
+<li><strong>Rank correlation and IC</strong> – a rank correlation runs from −1 to +1: at +1 a ranking would have put the next period's returns in exact order, and at 0 it said nothing about them. The information coefficient (IC) is that correlation between a ranking and the returns that followed it.</li>
+<li><strong>Percentage point and basis point</strong> – a percentage point is the difference between two percentages (5% to 7% is 2 percentage points); a basis point is a hundredth of a percentage point.</li>
+</ul>
 <hr />
 <h2>Data sources</h2>
 <p>All data is pulled from <strong>Yahoo Finance</strong> via the <code>yfinance</code> Python library. For each stock, the screener fetches:</p>
@@ -5488,19 +5593,23 @@ research use by the owner.</p>
 <p>Results of the weight sensitivity analysis. For each factor category, the sheet shows what happens to the top-20 ranking when that category's weight is moved 5 percentage points up and down. Jaccard similarity measures how stable the ranking is – higher values (≥0.85) mean the ranking is robust to small weight changes. Color-coded: green (≥0.85), yellow (0.70–0.84), red (&lt;0.70).</p>
 <h3>Sheet 6: Factor Correlation (when available)</h3>
 <p>Spearman rank correlation matrix of the sector-relative percentiles of every metric in the registry, across the universe – metric against metric, not category against category. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate overlapping metrics. Useful for understanding the effective number of independent signals.</p>
-<p>Additional outputs:
-- <strong>Parquet cache</strong> (<code>cache/factor_scores_&lt;hash&gt;_&lt;date&gt;.parquet</code>) – the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.
-- <strong>Data quality log</strong> (<code>validation/data_quality_log.csv</code>) – every data issue encountered during the run.
-- <strong>Run artifacts</strong> (<code>runs/&lt;run_id&gt;/</code>) – raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via <code>RunContext</code>.</p>
+<p>Additional outputs:</p>
+<ul>
+<li><strong>Parquet cache</strong> (<code>cache/factor_scores_&lt;hash&gt;_&lt;date&gt;.parquet</code>) – the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.</li>
+<li><strong>Data quality log</strong> (<code>validation/data_quality_log.csv</code>) – every data issue encountered during the run.</li>
+<li><strong>Run artifacts</strong> (<code>runs/&lt;run_id&gt;/</code>) – raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via <code>RunContext</code>.</li>
+</ul>
 <hr />
 <h2>Factor-exposure diagnostics</h2>
 <p>A standalone script (<code>factor_exposure.py</code>) is available for analyzing how much of the portfolio's returns are explained by known academic risk factors. It runs a Fama-French 5-factor + Momentum (UMD) regression:</p>
 <pre><code>Portfolio_ExcessReturn ~ Mkt-RF + SMB + HML + RMW + CMA + UMD
 </code></pre>
-<p>This tells you:
-- <strong>Alpha</strong> – returns not explained by any known factor (genuine stock selection skill)
-- <strong>Factor betas</strong> – how much the portfolio tilts toward market risk, size, value, profitability, investment, and momentum
-- <strong>R-squared</strong> – what fraction of portfolio return variation is explained by the factors</p>
+<p>This tells you:</p>
+<ul>
+<li><strong>Alpha</strong> – returns not explained by any known factor (genuine stock selection skill)</li>
+<li><strong>Factor betas</strong> – how much the portfolio tilts toward market risk, size, value, profitability, investment, and momentum</li>
+<li><strong>R-squared</strong> – what fraction of portfolio return variation is explained by the factors</li>
+</ul>
 <p>Usage:</p>
 <pre><code class="language-bash">python factor_exposure.py
 python factor_exposure.py --start 2024-01-01 --end 2025-12-31
@@ -5636,6 +5745,7 @@ python factor_exposure.py --start 2024-01-01 --end 2025-12-31
 </table>
 <hr />
 <h2>Limitations</h2>
+<p>Read these before leaning on any number. If you read only three, read 3 (whether the ranking predicts returns), 10 (what the tool is for) and 11 (how the factors behind it have done lately).</p>
 <ol>
 <li><strong>Data source:</strong> All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade – individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.</li>
 </ol>
@@ -5691,18 +5801,6 @@ py run_screener.py --no-portfolio
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 </code></pre>
-<hr />
-<h2>Summary</h2>
-<p>The screener answers one question: <strong>how does each S&amp;P 500 company compare with its sector peers on valuation, quality, growth, momentum, risk, revisions, size, investment, taken together?</strong></p>
-<p>It does this in seven steps:
-1. Pull financial data for about 500 stocks from Yahoo Finance.
-2. Compute up to 31 metrics across 8 categories (27 general and 4 bank-specific, by company type).
-3. Rank each metric within its sector, so a bank is compared with banks.
-4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.
-5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
-6. For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).
-7. Report how stable the ranking is when the weights shift.</p>
-<p>Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.</p>
                 </template>
             </div>
         </div>
@@ -6092,12 +6190,14 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             cols.forEach(c => {
                 const d = (dist[c[0]] || {})[s];
                 const v = d ? d[stat] : null;
-                if (v === null || v === undefined) { h += '<td class="num sm sm-na">&mdash;</td>'; return; }
+                // data-l names the column on a phone, where each sector is a card (round two, 2026-10-27)
+                const cls = 'num sm' + (c[0] === 'Composite' ? ' sm-comp' : '');
+                if (v === null || v === undefined) { h += '<td class="' + cls + ' sm-na" data-l="' + c[1] + '">&mdash;</td>'; return; }
                 const [lo, hi] = span[c[0]];
                 const t = hi > lo ? (v - lo) / (hi - lo) : 0.5;
-                h += '<td class="num sm" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
+                h += '<td class="' + cls + '" data-l="' + c[1] + '" style="--t:' + t.toFixed(3) + '">' + v.toFixed(1) + '</td>';
             });
-            h += '<td class="num sm-n">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
+            h += '<td class="num sm-n" data-l="Stocks">' + (comp[s] ? comp[s].count : '') + '</td></tr>';
         });
         host.innerHTML = h + '</tbody></table>';
     }
@@ -6239,6 +6339,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
     // footer; the arrow keys, Page keys, Home and End already walk the rows (focusTableRow).
     let rovingT = null;
     let winCols = 0;
+    let winTotal = -1, winH = 0;
     function visibleCols(table) {
         const cells = table.tHead.rows[0].cells;
         let n = 0;
@@ -6534,6 +6635,38 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<button type="button" class="filter-clear" onclick="clearFilters()">Clear filters</button></div></td></tr>';
     }
 
+    // A scroll moves the window a few rows, so only the rows entering or leaving it change: rows that
+    // stay keep their DOM, and the browser styles and lays out the new ones only. Rebuilding all ~37
+    // rows on every scrolled row cost ~40 ms of style and ~55 ms of layout a frame on a 4x-throttled
+    // phone - every wheel step a long task, p95 frame 183 ms (round two, 2026-10-27,
+    // plan/ui-elevation.md). Returns false - and the caller rebuilds as before - whenever the DOM is
+    // not exactly the previous window, so a sort, a filter or a resize never takes this path.
+    function shiftWindow(tbody, prev, a, b, total, H, cols) {
+        if (prev.a < 0 || a >= prev.b || b <= prev.a) return false;
+        const rows = tableState.filtered;
+        const live = tbody.querySelectorAll(':scope > tr[data-t]');
+        if (live.length !== prev.b - prev.a) return false;
+        if (live.length && (live[0].dataset.t !== rows[prev.a].Ticker || live[live.length - 1].dataset.t !== rows[prev.b - 1].Ticker)) return false;
+        let top = tbody.firstElementChild, bot = tbody.lastElementChild;
+        if (!(top && top.classList.contains('vt-spacer'))) top = null;
+        if (!(bot && bot.classList.contains('vt-spacer') && bot !== top)) bot = null;
+        if ((prev.a > 0) !== !!top || (prev.b < total) !== !!bot) return false;
+        for (let i = prev.a; i < Math.min(a, prev.b); i++) live[i - prev.a].remove();
+        for (let i = Math.max(b, prev.a); i < prev.b; i++) live[i - prev.a].remove();
+        let head = '', tail = '';
+        for (let i = a; i < Math.min(prev.a, b); i++) head += universeRowHtml(rows[i], i);
+        for (let i = Math.max(prev.b, a); i < b; i++) tail += universeRowHtml(rows[i], i);
+        const spacer = (h) => '<tr class="vt-spacer" aria-hidden="true"><td colspan="' + cols + '" style="height:' + h + 'px"></td></tr>';
+        if (head) { if (top) top.insertAdjacentHTML('afterend', head); else tbody.insertAdjacentHTML('afterbegin', head); }
+        if (tail) { if (bot) bot.insertAdjacentHTML('beforebegin', tail); else tbody.insertAdjacentHTML('beforeend', tail); }
+        if (a > 0) { if (top) top.firstElementChild.style.height = (a * H) + 'px'; else tbody.insertAdjacentHTML('afterbegin', spacer(a * H)); }
+        else if (top) top.remove();
+        if (b < total) { if (bot) bot.firstElementChild.style.height = ((total - b) * H) + 'px'; else tbody.insertAdjacentHTML('beforeend', spacer((total - b) * H)); }
+        else if (bot) bot.remove();
+        syncRoving(tbody);
+        return true;
+    }
+
     function queueWindow() {
         if (winQueued) return;
         winQueued = true;
@@ -6555,15 +6688,20 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (total === 0) {
             tbody.innerHTML = emptyRowsHtml(cols);
             winRange = { a: 0, b: 0 };
+            winTotal = 0;
             return;
         }
         const H = rowHeight();
+        if (H !== winH) { winH = H; force = true; }
         const headH = table.tHead.offsetHeight;
         const above = Math.max(0, -(table.getBoundingClientRect().top + headH));
         const a = Math.max(0, Math.floor(above / H) - WIN_OVERSCAN);
         const b = Math.min(total, Math.floor((above + window.innerHeight) / H) + WIN_OVERSCAN + 1);
         if (!force && a === winRange.a && b === winRange.b) return;
+        const prev = winRange;
         winRange = { a: a, b: b };
+        if (!force && total === winTotal && shiftWindow(tbody, prev, a, b, total, H, cols)) return;
+        winTotal = total;
 
         const focused = document.activeElement && document.activeElement.closest
             ? document.activeElement.closest('#universe-tbody tr[data-t]') : null;
@@ -6621,7 +6759,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const parts = Object.keys(CL).filter(k => w[k] > 0).map(k => CL[k] + ' ' + (Math.round(w[k] * 100) / 100));
                 note.innerHTML = '<strong>Ranked with the ' + escapeHtml(meta.name) + ' weighting</strong> - ' + escapeHtml(parts.join(', ')) +
                     (P.regime && P.regime !== 'NORMAL' ? ' (momentum cut for the market&rsquo;s panic state, as the published ranking is this run)' : '') +
-                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the &Delta; column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\'filter-profile\').value=\'balanced\';setProfile(\'balanced\')">Back to published</button>';
+                    '. Same scores, different emphasis: this is how the order changes with what you value most. The published ranking, the Move column and every stock&rsquo;s sheet use the Balanced weighting. <button type="button" class="link-btn" onclick="document.getElementById(\'filter-profile\').value=\'balanced\';setProfile(\'balanced\')">Back to published</button>';
                 note.hidden = false;
             } else {
                 note.hidden = true;
@@ -7951,7 +8089,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 <th>D/E</th>
                 <th>Div Yield</th>
                 <th>FCF Yield</th>
-                <th class="peer-th-action"></th>
+                <th class="peer-th-action"><span class="sr-only">Open</span></th>
             </tr></thead><tbody>`;
 
         allRows.forEach(r => {
@@ -9032,7 +9170,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const ts = UX.compare.slice().sort((a, b) => D.stock_detail[a].rank - D.stock_detail[b].rank);
         const S = ts.map(t => D.stock_detail[t]);
         const best = vals => { const v = vals.filter(x => x !== null && x !== undefined); return v.length > 1 ? Math.max(...v) : null; };
-        const head = '<tr><th></th>' + ts.map((t, i) =>
+        const head = '<tr><th><span class="sr-only">Measure</span></th>' + ts.map((t, i) =>
             '<th><button type="button" class="cmp-head" onclick="closeCompare();openStockDetail(\'' + t + '\')">' +
             '<span class="cmp-t">' + escapeHtml(t) + '</span><span class="cmp-n">' + escapeHtml(S[i].company) + '</span>' +
             '<span class="cmp-sec">' + escapeHtml(S[i].sector) + '</span></button></th>').join('') + '</tr>';
@@ -11057,6 +11195,36 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const body = document.querySelector('#methodology-modal .methodology-body');
         const src = document.getElementById('methodology-src');
         if (body && src && !body.firstChild) body.appendChild(src.content.cloneNode(true));
+        if (body && !body.dataset.anchors) {
+            body.dataset.anchors = '1';
+            body.addEventListener('click', methodAnchorClick);
+        }
+    }
+
+    // The methodology's own cross-references - "[bank-specific scoring](#bank-specific-scoring)" - are
+    // written as the usual heading slugs, but the markdown renders without heading ids, so a click only
+    // changed the address bar (round two, 2026-10-27). A click on any in-page link is matched to the
+    // heading whose slug it names, whatever the headings are, and the dialog scrolls there.
+    function methodSlug(t) {
+        return String(t || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+            .replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+    function methodAnchorClick(e) {
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a || a.dataset.m) return;
+        let frag = a.getAttribute('href').slice(1);
+        try { frag = decodeURIComponent(frag); } catch (err) {}
+        const want = methodSlug(frag);
+        if (!want) return;
+        const body = e.currentTarget;
+        const el = [...body.querySelectorAll('h1, h2, h3, h4, h5, h6')].find(h => h.id === frag || methodSlug(h.textContent) === want);
+        if (!el) return;
+        e.preventDefault();
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+        // A reader who asked for less motion gets the jump at once (2026-10-27).
+        const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+        el.focus({ preventScroll: true });
     }
     function openMethodology() {
         hydrateMethodology();

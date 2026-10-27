@@ -39,6 +39,12 @@ body { margin: 0; background: var(--bg-deep); color: var(--text-secondary); font
        font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 a { color: var(--accent-text); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* a link inside a sentence is underlined as well as coloured (round two, 2026-10-27; axe link-in-text-block,
+   WCAG 1.4.1): the accent beside the body grey is 1.66:1 and beside the muted grey of the foot 1.12:1 */
+p a, li a, .foot > a, .src a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); }
+p a:hover, li a:hover, .foot > a:hover, .src a:hover { text-decoration-color: currentColor; }
+.toc a, .toc a:hover, .next-nav a { text-decoration: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px 72px; }
 @media (min-width: 720px) { .wrap { padding: 0 32px 96px; } }
@@ -77,6 +83,7 @@ strong { color: var(--text-primary); }
 .answer { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; max-width: none; }
 .answer li { padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }
 .answer li:first-child { font-size: 16px; line-height: 1.65; border-color: var(--border-bright); }
+.answer .plain { display: block; margin: 0 0 10px; color: var(--text-primary); }
 .answer li:first-child > strong:first-child { display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: clamp(24px, 2.6vw, 30px);
     font-weight: 600; line-height: 1.15; letter-spacing: -.022em; }
 @media (min-width: 720px) { .answer { grid-template-columns: 1fr 1fr; } .answer li:first-child { grid-column: 1 / -1; } }
@@ -214,28 +221,31 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
 </head>
 <body>
 <div class="wrap" id="top">
-  <div class="bar">
+  <header class="bar">
     <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
     <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html" aria-current="page">Has it been tested?</a><a href="lab.html">Factor Lab</a></nav>
-  </div>
+  </header>
 
-  <header class="lede">
+  <!-- one banner, one main, one footer (round two, 2026-10-27): every word of the page sat outside a
+       landmark, so a screen reader's "jump to main" found nothing (axe landmark-one-main, region) -->
+  <main>
+  <div class="lede">
     <div class="eyebrow">The screener, tested on its own history</div>
     <h1>Does the ranking predict returns?</h1>
     <p>Before trusting a ranking, ask whether it would have worked. This page tests the screener's weighting, and 27 alternatives from the investing literature, on fifteen years of S&amp;P&nbsp;500 history rebuilt from the financial statements companies had actually published at each date.</p>
-  </header>
+  </div>
 
   <ul class="answer">
-    <li><strong>Not measurably.</strong> The ranking's average monthly rank correlation with the next month's return was <span class="num">&minus;0.002</span> over 2012&ndash;2019 (95% interval <span class="num">&minus;0.022 to +0.018</span>) and <span class="num">0.000</span> over 2020&ndash;2026 (95% interval <span class="num">&minus;0.028 to +0.027</span>). Pooled over all <span class="num">176</span> months it was <span class="num">&minus;0.001</span> (95% interval <span class="num">&minus;0.018 to +0.015</span>). Every interval includes zero. The pooled record could reliably detect an average of about <span class="num">0.032</span> at a t-statistic of 3, and no smaller.
+    <li><strong>Not measurably.</strong><span class="plain"> In plain terms: the companies it ranked higher did not go on to do measurably better the next month than the companies it ranked lower &mdash; not in either period, and not over the whole record. No edge has been shown.</span> The ranking's average monthly rank correlation with the next month's return was <span class="num">&minus;0.002</span> over 2012&ndash;2019 (95% interval <span class="num">&minus;0.022 to +0.018</span>) and <span class="num">0.000</span> over 2020&ndash;2026 (95% interval <span class="num">&minus;0.028 to +0.027</span>). Pooled over all <span class="num">176</span> months it was <span class="num">&minus;0.001</span> (95% interval <span class="num">&minus;0.018 to +0.015</span>). Every interval includes zero. The pooled record could reliably detect an average of about <span class="num">0.032</span> at a t-statistic of 3, and no smaller.
   <figure class="fp" role="img" aria-label="Average monthly rank correlation with the next month&#x27;s return. 2012 to 2019: -0.002, 95% interval -0.022 to +0.018; 2020 to 2026: 0.000, 95% interval -0.028 to +0.027; All months, pooled: -0.001, 95% interval -0.018 to +0.015; the ranking fed today&#x27;s filings: +0.051 ahead of the real one.">
-    <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval</figcaption>
+    <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval. The scale runs from &minus;1 to +1; 0, the vertical line, is no relation at all.</figcaption>
     <div class="fp-sep"><span>The ranking</span></div>
-    <div class="fp-row fp-a"><div class="fp-name">2012&ndash;2019</div><div class="fp-track"><span class="fp-zero"></span><span class="fp-ci" style="left:31.83%;width:33.17%"></span><span class="fp-dot" style="left:48.43%"></span></div><div class="fp-val"><span class="num">&minus;0.002</span><span class="fp-iv num">&minus;0.022 to +0.018</span></div></div><div class="fp-row fp-a"><div class="fp-name">2020&ndash;2026</div><div class="fp-track"><span class="fp-zero"></span><span class="fp-ci" style="left:26.92%;width:45.67%"></span><span class="fp-dot" style="left:49.75%"></span></div><div class="fp-val"><span class="num">0.000</span><span class="fp-iv num">&minus;0.028 to +0.027</span></div></div><div class="fp-row fp-a"><div class="fp-name">All months, pooled<span><span class="num">176</span> months</span></div><div class="fp-track"><span class="fp-band" style="left:23.42%;width:53.17%"></span><span class="fp-zero"></span><span class="fp-ci" style="left:35.42%;width:27.25%"></span><span class="fp-dot" style="left:49.03%"></span></div><div class="fp-val"><span class="num">&minus;0.001</span><span class="fp-iv num">&minus;0.018 to +0.015</span></div></div><div class="fp-sep"><span>The check</span></div><div class="fp-row fp-c"><div class="fp-name">Fed today&rsquo;s filings<span>lead over the real ranking</span></div><div class="fp-track"><span class="fp-band" style="left:18.92%;width:62.17%"></span><span class="fp-zero"></span><span class="fp-dot" style="left:92.64%"></span></div><div class="fp-val"><span class="num">+0.051</span></div></div>
+    <div class="fp-row fp-a"><div class="fp-name">2012&ndash;2019</div><div class="fp-track"><span class="fp-zero"></span><span class="fp-ci" style="left:31.83%;width:33.17%"></span><span class="fp-dot" style="left:48.43%"></span></div><div class="fp-val"><span class="num">&minus;0.002</span><span class="fp-iv num">&minus;0.022 to +0.018</span></div></div><div class="fp-row fp-a"><div class="fp-name">2020&ndash;2026</div><div class="fp-track"><span class="fp-zero"></span><span class="fp-ci" style="left:26.92%;width:45.67%"></span><span class="fp-dot" style="left:49.75%"></span></div><div class="fp-val"><span class="num">0.000</span><span class="fp-iv num">&minus;0.028 to +0.027</span></div></div><div class="fp-row fp-a"><div class="fp-name">All months, pooled<span><span class="num">176</span> months</span></div><div class="fp-track"><span class="fp-band" style="left:23.42%;width:53.17%"></span><span class="fp-zero"></span><span class="fp-ci" style="left:35.42%;width:27.25%"></span><span class="fp-dot" style="left:49.03%"></span></div><div class="fp-val"><span class="num">&minus;0.001</span><span class="fp-iv num">&minus;0.018 to +0.015</span></div></div><div class="fp-sep"><span>The check: can this test see an edge at all?</span></div><div class="fp-row fp-c"><div class="fp-name">A ranking that cheats<span>given today&rsquo;s filings for every past month; its lead over the real one</span></div><div class="fp-track"><span class="fp-band" style="left:18.92%;width:62.17%"></span><span class="fp-zero"></span><span class="fp-dot" style="left:92.64%"></span></div><div class="fp-val"><span class="num">+0.051</span></div></div>
     <div class="fp-axis"><div></div><div class="fp-ticks"><span>&minus;0.06</span><span>&minus;0.03</span><span>0</span><span>+0.03</span><span>+0.06</span></div><div></div></div>
     <div class="legend">
       <span><i class="lg-dot"></i>average</span>
       <span><i class="lg-ci"></i>95% interval</span>
-      <span><i class="lg-dot2"></i>the check&rsquo;s lead</span>
+      <span><i class="lg-dot2"></i>the cheating ranking&rsquo;s lead</span>
       <span><i class="lg-band"></i>smallest the test could reliably detect</span>
       <span><i class="lg-zero"></i>no relation</span>
     </div>
@@ -338,12 +348,13 @@ section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
       <li>Large companies only, rebalanced monthly, with costs approximated and no taxes.</li>
     </ul>
   </section>
+  </main>
 
-  <div class="foot">
+  <footer class="foot">
     Generated from the screener's <a href="https://github.com/CalebSmit/screener-dashboard/tree/main/research/experiments">research log</a> (data version <span class="num">4a7a38dc3471</span>); the write-up, the registry of every prediction and every run are in the project's <a href="https://github.com/CalebSmit/screener-dashboard/blob/main/research/2026-10-15-research-engine-first-batch.md">public repository</a>.
     This is research on a screening method for study and teaching. It is not investment advice.
     <nav class="next-nav" aria-label="Where next"><a href="#top">Back to the answer</a><a href="lab.html">The Factor Lab: the research behind each category, rerun</a><a href="index.html">The rankings</a></nav>
-  </div>
+  </footer>
 </div>
 </body>
 </html>

@@ -12,6 +12,7 @@ Every assertion waits on a condition (8 s), never on a fixed sleep.
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -425,6 +426,145 @@ def test_on_a_phone_the_hero_figures_sit_beside_their_labels(browser):
             assert r["overlapY"] and r["vRight"] <= r["kLeft"], r            # the figure beside its label
             assert r["kWidth"] >= 150 and r["lines"] <= 3, r
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+
+# --------------------------------------------------------------------------- round two, 2026-10-27
+# plan/ui-elevation.md "round two": the overview's three tables on a phone, the page's landmarks and
+# underlined links (an axe-core audit, run by hand and not by this suite - no test may need the
+# network), and the two speed changes: the menu's files asked for from the head, and an experiment's
+# series asked for at the first sign that the reader is choosing it.
+def test_on_a_phone_the_three_overview_tables_read_as_rows_with_every_row_kept(browser):
+    """At 375 px the three tables after the cards were 8,313 px (Inter loaded). After the paper is a
+    row per result - its name across the width, its two figures under the two column heads, the
+    drift drawn beside them; the scorecard and the category map keep every category, its weight,
+    what the lab measured or covers and its experiments, and fold only the third column behind a
+    button named for it. Measured 5,615 px; the bound here holds with or without the web font."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        n_after = page.evaluate("LAB_DATA.after_the_paper.length")
+        rows = page.evaluate("""[...document.querySelectorAll('#t-after tbody tr')].map(tr => {
+            const c = [...tr.children].map(td => td.getBoundingClientRect()), t = tr.getBoundingClientRect();
+            return { full: c[0].width >= t.width - 1, sideBySide: Math.abs(c[1].top - c[2].top) < 1 && c[1].right <= c[2].left,
+                     under: c[1].top >= c[0].bottom - 1, drift: c[3].width > 0,
+                     hasDrift: !!tr.querySelector('svg.drift') }; })""")
+        assert len(rows) == n_after
+        for r in rows:
+            assert r["full"] and r["sideBySide"] and r["under"], r
+            assert r["drift"] or not r["hasDrift"], r
+        assert page.is_visible("#t-after thead th:nth-child(2)") and page.is_visible("#t-after thead th:nth-child(3)")
+        for tid, n, label in (("t-score", 8, "Left open"), ("t-map", 8, "Not covered")):
+            assert page.evaluate(f"[...document.querySelectorAll('#{tid} tbody tr')].filter(tr => tr.offsetHeight > 0).length") == n
+            assert page.evaluate(f"[...document.querySelectorAll('#{tid} .cat')].filter(e => e.offsetParent).length") == n
+            assert page.evaluate(f"[...document.querySelectorAll('#{tid} tbody td:nth-child(2)')].filter(e => e.offsetParent && e.textContent.trim()).length") == n
+            assert page.evaluate(f"[...document.querySelectorAll('#{tid} td.folds')].filter(e => e.offsetParent).length") == 0
+            btn = f"#{tid} tbody tr:nth-child(3) .row-more"
+            assert page.inner_text(btn) == label and page.get_attribute(btn, "aria-expanded") == "false"
+            cell = page.get_attribute(btn, "aria-controls")
+            box = page.evaluate(f"document.querySelector('{btn}').getBoundingClientRect().height")
+            assert box >= 44
+            page.click(btn)
+            page.wait_for_function(f"document.getElementById('{cell}').offsetParent !== null", timeout=WAIT)
+            assert page.get_attribute(btn, "aria-expanded") == "true"
+            assert page.evaluate(f"getComputedStyle(document.getElementById('{cell}'), '::before').content") == f'"{label}: "'
+            assert page.evaluate("window.LAB_STATE().id") == "overview"
+            page.click(btn)
+            page.wait_for_function(f"document.getElementById('{cell}').offsetParent === null", timeout=WAIT)
+        total = page.evaluate("['t-after', 't-score', 't-map'].reduce((a, id) => a + document.getElementById(id).offsetHeight, 0)")
+        assert total < 6000, total
+        assert page.evaluate("[...document.querySelectorAll('.tablewrap')].every(w => w.scrollWidth <= w.clientWidth)")
+        page.emulate_media(media="print")                       # on paper every cell is printed, no button
+        assert page.evaluate("[...document.querySelectorAll('td.folds')].every(e => e.offsetParent)")
+        assert page.evaluate("[...document.querySelectorAll('.row-more')].every(e => !e.offsetParent)")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_on_a_wide_screen_the_three_tables_are_unchanged_tables(browser):
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        _goto(page, "overview")
+        for tid in ("t-after", "t-score", "t-map"):
+            assert page.evaluate(f"getComputedStyle(document.getElementById('{tid}')).display") == "table"
+            assert page.is_visible(f"#{tid} thead")
+        assert page.evaluate("[...document.querySelectorAll('td.folds')].every(e => e.offsetParent)")
+        assert page.evaluate("[...document.querySelectorAll('.row-more')].every(e => !e.offsetParent)")
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_one_banner_one_main_and_links_inside_sentences_are_underlined(browser):
+    """axe-core 4.10.2 on the overview and three experiments, 375 and 1280 px, found the wordmark,
+    the introduction and the closing note outside every landmark, the figures an aside nested in the
+    banner, and links in the citations and the foot marked by colour alone (1.12:1 against the grey)."""
+    html = PAGE.read_text(encoding="utf-8")
+    body = html[html.index("<body>"):]
+    assert body.count("<header") == 1 and body.count("<main") == 1 and body.count("<footer") == 1
+    assert "<aside" not in body
+    assert body.index('<header class="bar"') < body.index("<main") < body.index("<h1>") \
+        < body.index('id="lab"') < body.index("</main>") < body.index('<footer id="foot"')
+    ctx, page, errors = _page(browser, width=1280)
+    try:
+        for scene in ("overview", "risk-managed-momentum"):
+            _goto(page, scene)
+            bare = page.evaluate("""[...document.querySelectorAll('p a, .cite a, .note a, dd a, li a')]
+                .filter(a => !a.closest('.next-nav, .pager, .tabs') && a.offsetParent)
+                .filter(a => !getComputedStyle(a).textDecorationLine.includes('underline')).map(a => a.textContent)""")
+            assert bare == [], (scene, bare)
+            outside = page.evaluate("""[...document.querySelectorAll('h1, h2, h3, p, table, .mark')]
+                .filter(e => !e.closest('main, header, footer, nav')).map(e => e.tagName + ' ' + e.textContent.slice(0, 40))""")
+            assert outside == [], (scene, outside)
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+def test_the_head_asks_for_the_menu_s_two_files_by_the_script_tags_own_urls():
+    html = PAGE.read_text(encoding="utf-8")
+    head = html[:html.index("</head>")]
+    pre = re.findall(r'<link rel="preload" href="([^"]+)" as="script">', head)
+    assert pre == re.findall(r'<script src="([^"]+)"', html) == ["lab_data.js?v=" + str(fl.ASSET_VERSION), "lab_engine.js?v=" + str(fl.ASSET_VERSION)]
+    assert head.index('as="script"') < head.index("<style>")
+
+
+def test_a_mouse_button_on_a_card_asks_for_its_series_before_the_click(browser):
+    """The series of an experiment whose data is not in lab_data.js is asked for when a mouse
+    button comes down on its card, so the press's own length is not spent waiting; a pointer that
+    merely passes over cards asks for nothing, and neither does a finger coming down - on a phone
+    that is as often a scroll as a tap, and a scroll past the 153 factors must not fetch them."""
+    ctx, page, errors = _page(browser)
+    try:
+        _goto(page, "overview")
+        assert page.evaluate("'size' in LAB_DATA") is False
+        # a pointer moved straight across a lazy card and away: no dwell, no request
+        other = page.query_selector(".card-a[href='#low-volatility']")
+        other.scroll_into_view_if_needed()
+        b = other.bounding_box()
+        page.mouse.move(b["x"] + 10, b["y"] + 10)
+        page.mouse.move(2, 2)
+        page.wait_for_timeout(400)                            # longer than the 150 ms dwell it never had
+        assert page.evaluate("'sorts' in LAB_DATA") is False
+        page.evaluate("""document.querySelector(".card-a[href='#replication-crisis']")
+            .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }))""")
+        page.wait_for_timeout(400)
+        assert page.evaluate("'jkp' in LAB_DATA") is False
+        assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_\"]').length") == 0
+        el = page.query_selector(".card-a[href='#size-effect']")
+        el.scroll_into_view_if_needed()
+        b = el.bounding_box()
+        page.mouse.move(b["x"] + 20, b["y"] + 12)
+        page.mouse.down()
+        page.wait_for_function("'size' in LAB_DATA", timeout=WAIT)      # arrived while the finger is still down
+        assert page.evaluate("window.LAB_STATE().id") == "overview"
+        page.mouse.up()
+        page.wait_for_function("window.LAB_STATE().id === 'size-effect' && document.querySelector('#ch-bars svg rect')", timeout=WAIT)
+        assert page.evaluate("document.querySelectorAll('script[src^=\"lab_data_size.js\"]').length") == 1
         assert errors == []
     finally:
         ctx.close()

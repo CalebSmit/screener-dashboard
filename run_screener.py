@@ -249,6 +249,43 @@ def _research_engine_sentence(path: Path | None = None) -> str:
             f"decision support, not a forecast.")
 
 
+DASHBOARD_URL = "https://calebsmit.github.io/screener-dashboard/"
+RESEARCH_PAGE_URL = DASHBOARD_URL + "research.html"
+
+
+def history_test_line(path: Path | None = None) -> str:
+    """The "If you read nothing else" line on whether the ranking predicts returns (claim
+    ``overview.at_a_glance_tested``, 2026-10-27).
+
+    A student reads this line and perhaps nothing else, so it may only say "no better than chance"
+    while the research engine's own published summary (``research/experiments/summary.json``, the
+    file Limitation 3 reads) still says so: the pooled 95% interval of the baseline's monthly rank
+    correlation contains zero **and** no pre-registered alternative cleared the bar. Otherwise it
+    states the pooled figure and its interval and leaves the verdict to Limitation 3. With no
+    summary at all it says only that the question is open."""
+    import json
+    path = path or Path(__file__).resolve().parent / "research" / "experiments" / "summary.json"
+    link = f'the ["Has it been tested?"]({RESEARCH_PAGE_URL}) page has the whole test'
+    try:
+        s = json.loads(path.read_text(encoding="utf-8"))
+        mean = float(s["baseline_ic"]["pooled"])
+        lo, hi = (float(x) for x in s["baseline_ic_ci95"]["pooled"])
+        months = int(s["months"]["pooled"])
+        better = int(s["better"])
+    except (OSError, KeyError, TypeError, ValueError):
+        return ("- **Whether it predicts returns has not been shown.** Limitation 3 says what has been "
+                f"tested so far, and {link}.")
+    if lo <= 0 <= hi and better == 0:
+        return (f"- **It has not been shown to predict returns.** Rerun on {months} months of 2012-2026 "
+                "history, rebuilt from the filings as they stood each month (the rebuild lacks the analyst "
+                "inputs and the companies that have since left the index), the ranking did no better than chance at putting the next month's returns in order, and "
+                "no alternative weighting tested beside it did better. Limitation 3 gives the numbers, and "
+                f"{link}. Treat the ranking as a structured place to start research, never as a forecast.")
+    return (f"- **Tested on {months} months of 2012-2026 history,** the ranking's average monthly rank "
+            f"correlation with the next month's return was {mean:+.3f} (95% interval {lo:+.3f} to "
+            f"{hi:+.3f}). Limitation 3 says what that does and does not show, and {link}.")
+
+
 def _pts(x: float) -> str:
     """A weight in points of its category's 100, to two decimals, trailing zeros dropped."""
     return f"{round(x, 2):.2f}".rstrip("0").rstrip(".")
@@ -701,6 +738,70 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
         f"unless the methodology version changed and the methodology changelog records the change."
     )
 
+    # --- the reading order a first-time reader needs (2026-10-27, CLAUDE.md priority 7) -----------
+    # The page opened on metric counts and reached "it has not been shown to predict returns" in
+    # Limitation 3, some 500 lines down. A student who reads one screen now meets what the tool is,
+    # how to use it and what it cannot do first, then the words the rest of the page relies on.
+    # Nothing here is a new rule: every sentence restates one stated in full further down, and the
+    # computational ones are registered (claims overview.at_a_glance_flags,
+    # overview.at_a_glance_tested, overview.glossary; tests/test_overview_reading_order.py).
+    _cats_text = ", ".join(factor_labels[f] for f in active_factors[:-1]) + \
+        f" and {factor_labels[active_factors[-1]]}" if len(active_factors) > 1 else \
+        ", ".join(factor_labels[f] for f in active_factors)
+    _pts_example_w = fw.get("valuation", 0)
+    _pts_example = 60 * _pts_example_w / 100
+    at_a_glance_text = f"""### If you read nothing else
+
+- **What it is.** About 500 companies in the S&P 500 each get {n_factors} category scores - {_cats_text} - and one composite score from 0 to 100. The ranking sorts by the composite.
+- **Every score compares a company with its own sector.** A utility is measured against other utilities and a bank against other financial companies, and about 50 is the middle of the sector. On all {n_factors}, a higher score adds more to the composite: a high Risk score means a calmer price, and a high Size score a smaller company than its sector peers.
+- **The composite is points out of 100, and it is not a percentile.** A composite of 70 is 70 points, and it does not mean the stock beats 70% of the others.
+- **A trap flag is a prompt to read the detail.** A value trap scores high on Valuation but is weak on at least two of Quality, Momentum and Revisions; a growth trap scores high on Growth but is weak on Quality or Revisions. A flag changes neither the score nor the rank.
+{history_test_line()}
+- **Every number can be checked.** Open any stock on the dashboard and "The workings" rebuilds its score from the company's own figures: each metric's value, its sector percentile, the weight it carried and the points it added.
+
+### How to use it
+
+1. **Start with the ranking.** Its key, "What the columns mean", says which way each score runs.
+2. **Open a stock.** "Why it ranks here" gives the reasons in a few sentences, and "The workings" shows the arithmetic behind each one.
+3. **Read the flags and the context.** "Before you decide" shows the price trend, options, insider trades and the market backdrop beside the score. None of it enters the score.
+4. **Compare and follow.** Compare puts up to four stocks side by side. My holdings keeps the names you follow, in your own browser, and shows where each ranks on every run.
+5. **Read the limits** at the end of this page before leaning on any number.
+
+### What it cannot do
+
+- **Tell you what to own, or how much.** The dashboard ranks and explains; it shows no portfolio and no position sizes (Limitation 10).
+- **Promise a return.** See the line on testing above, and Limitation 3.
+- **Compare sectors with each other.** A high Valuation score means low-priced for its sector. It says nothing about whether the sector itself is low-priced.
+- **See past its data.** Prices, statements and estimates come free from Yahoo Finance (Limitation 1), analysts' estimate history reaches back only 90 days (Limitation 5), and only S&P 500 companies are ranked.
+- **Rely on the recent record of its factors.** Several of the published effects it leans on have earned little since 2014 (Limitation 11).
+
+### What it measures
+"""
+
+    glossary_text = f"""## Words this page uses
+
+In the order the page builds them up.
+
+- **Sector percentile** - where a company's value on one metric places it among the companies in its own sector, from 0 to 100. It is turned round for metrics where lower is better, such as a price multiple or volatility, so a higher percentile always means better on that metric. This is what *sector-relative* means here; a sector with too few values to rank is ranked across the whole index instead (Step 3).
+- **Category score** - one of the {n_factors} scores, from 0 to 100: the weighted average of the sector percentiles of that category's metrics (Step 4).
+- **Composite** - the weighted sum of the {n_factors} category scores, from 0 to 100, and the number the ranking sorts by (Step 5).
+- **Points** - what one category adds to the composite: its score times its weight. A Valuation score of 60 at a {_pts_example_w}% weight adds {_pts_example:.1f} points.
+- **Rank** - a stock's place when the composites are sorted from highest to lowest; 1 is the highest.
+- **Coverage** - the share of the metrics that carry weight in a stock's score for which it has a value. Low coverage trims the composite slightly, and very low coverage leaves a stock out of the ranking ("Data quality safeguards").
+- **Trap flag** - a warning that a stock's high score on one category comes with weak scores on others that may explain it: a value trap or a growth trap ("Value-trap detection", "Growth-trap detection"). It changes neither the score nor the rank.
+- **Bank-like stock** - a bank, insurer or other financial company whose liabilities, such as deposits or insurance float, are part of its business. It is scored on its own Valuation and Quality metrics ("Bank-specific scoring").
+- **LTM and MRQ** - the last twelve months (the four most recent quarters added together) and the most recent quarter (the latest balance sheet).
+- **Enterprise value (EV)** - the market value of the shares plus debt minus cash: roughly what the whole business would cost to buy.
+- **Factor and premium** - a factor is a trait many stocks share, such as being low-priced or profitable. Its premium is the extra return that stocks with the trait earned over stocks without it in a published study.
+- **Backtest** - running a method on past data as if it had been used at the time.
+- **Look-ahead bias** - a backtest using information that was not yet public on the date it stands for, which can make a method look better than it could have been.
+- **Survivorship bias** - a backtest that leaves out the companies that have since failed or left the index, which usually flatters it as well.
+- **Rank correlation and IC** - a rank correlation runs from −1 to +1: at +1 a ranking would have put the next period's returns in exact order, and at 0 it said nothing about them. The information coefficient (IC) is that correlation between a ranking and the returns that followed it.
+- **Percentage point and basis point** - a percentage point is the difference between two percentages (5% to 7% is 2 percentage points); a basis point is a hundredth of a percentage point.
+
+---
+"""
+
     md = f"""# How the screener works
 
 **What the screener measures, how it scores and ranks the S&P 500, and why each choice was made.**
@@ -709,14 +810,32 @@ Currently **disabled**. The Piotroski F-Score weight is applied uniformly regard
 
 ## Overview
 
-The screener scores every company in the S&P 500 (about 500 stocks) on up to {n_total} financial metrics, combines them into a composite score from 0 to 100, and ranks the whole index.
+{at_a_glance_text}
+The {n_factors} category scores are built from up to {n_total} financial metrics.
 
 No stock is scored on all {n_total}. Most use {n_generic} general metrics; banks, insurers and credit companies draw on a separate set of {n_bank_only} bank-specific ones in place of the general metrics that do not fit them, so a bank-like stock is scored on {_n_bank}, and a financial company outside the bank set on {_n_fin} (it is never given the Beneish score). In all the screener computes {n_registry} metrics: the {n_total} that carry weight ({n_generic} general and {n_bank_only} bank-specific) and {n_candidate} candidates that are calculated but held at weight 0. A candidate gains weight only through a research note and a changelog entry; the improvement engine records evidence and proposes, but may not change a weight.
 
 No single number describes a company well: a low price can reflect a declining business or high risk. Scoring {', '.join(factor_labels[f] for f in active_factors).lower()} separately favours companies that are strong on several of them at once.
 
+### In seven steps
+
+The screener answers one question: **how does each S&P 500 company compare with its sector peers on {', '.join(factor_labels[f] for f in active_factors).lower()}, taken together?**
+
+It does this in seven steps:
+
+1. Pull financial data for about 500 stocks from Yahoo Finance.
+2. Compute up to {n_total} metrics across {n_factors} categories ({n_generic} general and {n_bank_only} bank-specific, by company type).
+3. Rank each metric within its sector, so a bank is compared with other financial companies and a utility with other utilities.
+4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.
+5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
+6. For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).
+7. Report how stable the ranking is when the weights shift.
+
+Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.
+
 ---
 
+{glossary_text}
 ## Data sources
 
 All data is pulled from **Yahoo Finance** via the `yfinance` Python library. For each stock, the screener fetches:
@@ -1074,6 +1193,7 @@ Results of the weight sensitivity analysis. For each factor category, the sheet 
 Spearman rank correlation matrix of the sector-relative percentiles of every metric in the registry, across the universe – metric against metric, not category against category. Highlights potential double-counting: correlations above 0.6 (orange) or 0.8 (red) indicate overlapping metrics. Useful for understanding the effective number of independent signals.
 
 Additional outputs:
+
 - **Parquet cache** (`cache/factor_scores_<hash>_<date>.parquet`) — the scored dataset (every column except the internal ones whose names begin with an underscore) for programmatic access, tagged with a config hash for reproducibility.
 - **Data quality log** (`validation/data_quality_log.csv`) — every data issue encountered during the run.
 - **Run artifacts** (`runs/<run_id>/`) — raw fetch data, scored data, and config snapshot for each run, enabling full reproducibility via `RunContext`.
@@ -1089,6 +1209,7 @@ Portfolio_ExcessReturn ~ Mkt-RF + SMB + HML + RMW + CMA + UMD
 ```
 
 This tells you:
+
 - **Alpha** — returns not explained by any known factor (genuine stock selection skill)
 - **Factor betas** — how much the portfolio tilts toward market risk, size, value, profitability, investment, and momentum
 - **R-squared** — what fraction of portfolio return variation is explained by the factors
@@ -1171,6 +1292,8 @@ The top {DATA_VALIDATION_TOP_N} stocks of the ranking (not the portfolio's holdi
 
 ## Limitations
 
+Read these before leaning on any number. If you read only three, read 3 (whether the ranking predicts returns), 10 (what the tool is for) and 11 (how the factors behind it have done lately).
+
 1. **Data source:** All data comes from Yahoo Finance (free, unofficial API). Occasional field name changes, rate limiting, or missing data are handled gracefully (the screener returns NaN and continues), but the data quality is not institutional-grade — individual fields go missing for individual companies, and the screener drops the affected metric rather than guessing at it.
 
    **Fetch reliability, measured:** the 18 scheduled runs from 2026-09-02 to 2026-09-25 report **0 fetch failures across 9,036 ticker-fetches**. This page previously put the failure rate at 10-25% of the universe per run, attributing it to HTTP 429 rate limiting. That figure dated from the project's launch period and nobody had re-checked it in the months since; *corrected 2026-09-25*. Rate limiting remains possible on a free API, which is why a run that fetches badly is **discarded before publication** rather than shipped: `scripts/check_run_health.py` refuses a run with price coverage below 90%, analyst-target coverage below 50%, or factor dispersion more than 20% below its trailing median.{input_gates_text} A number on this site has passed that gate.
@@ -1217,23 +1340,6 @@ py run_screener.py --no-portfolio
 # Run factor-exposure diagnostics on the latest portfolio
 py factor_exposure.py --start 2024-01-01 --end 2025-12-31
 ```
-
----
-
-## Summary
-
-The screener answers one question: **how does each S&P 500 company compare with its sector peers on {', '.join(factor_labels[f] for f in active_factors).lower()}, taken together?**
-
-It does this in seven steps:
-1. Pull financial data for about 500 stocks from Yahoo Finance.
-2. Compute up to {n_total} metrics across {n_factors} categories ({n_generic} general and {n_bank_only} bank-specific, by company type).
-3. Rank each metric within its sector, so a bank is compared with banks.
-4. Weight and combine the ranks into a 0-100 composite, with bank-specific weights for banks, insurers and other bank-like financials, and conditional Piotroski weighting.
-5. Flag possible value traps (low-priced and weak on two of three checks) and growth traps (fast growth with weak quality or revisions).
-6. For the model portfolio in the Excel workbook only, apply a liquidity filter (the ranking itself has none).
-7. Report how stable the ranking is when the weights shift.
-
-Every step is deterministic: the same inputs produce the same ranking, and each score traces back to them.
 """
     return _typeset_md(md)
 

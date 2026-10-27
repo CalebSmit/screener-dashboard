@@ -715,6 +715,23 @@ CLAIMS: tuple[Claim, ...] = (
         detect=None,
     ),
     Claim(
+        id="research.plain_answer",
+        surface=RESEARCH,
+        asserts=(
+            "The research page's headline says in plain words that the companies the ranking put "
+            "higher did not do measurably better the next month than those it put lower, in either "
+            "period or over the whole record, and that no edge has been shown - only when every "
+            "95% interval on the ranking's monthly rank correlation (each era and pooled) includes "
+            "zero, the same condition that prints 'Not measurably.'"
+        ),
+        made_true_by="research_page:plain_answer",
+        checked_by=(
+            "tests/test_research_page.py::test_the_plain_answer_is_given_only_while_every_interval_includes_zero",
+        ),
+        # absent by design the day an interval leaves zero, so no regex can be required of the page
+        detect=None,
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(
@@ -1916,6 +1933,51 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_forward_eps_growth.py::test_a_small_base_uses_the_one_dollar_floor",
         ),
         detect=r"Analyst surprise uses a \$[\d.]+ floor on estimated EPS",
+    ),
+
+    # --- the reading order a first-time reader meets (round 2 docs pass, 2026-10-27) -------------
+    Claim(
+        id="overview.at_a_glance_flags",
+        surface=OVERVIEW,
+        asserts=("'If you read nothing else' and the glossary say a trap flag changes neither the "
+                 "score nor the rank (the dashboard guide says the same): rank_stocks orders by "
+                 "Composite alone, and neither flag function writes Composite or Rank."),
+        made_true_by="factor_engine:rank_stocks",
+        checked_by=(
+            "tests/test_overview_reading_order.py::test_a_flag_changes_neither_the_score_nor_the_rank_in_the_engine",
+            "tests/test_club_readiness.py::test_a_flag_changes_neither_the_score_nor_the_rank",
+        ),
+        detect=r"A flag changes neither the score nor the rank",
+    ),
+    Claim(
+        id="overview.at_a_glance_tested",
+        surface=OVERVIEW,
+        asserts=("'If you read nothing else' says the ranking did no better than chance on 2012-2026 "
+                 "history only while the research engine's published summary has a pooled 95% "
+                 "interval containing zero and no alternative clearing its bar; otherwise it states "
+                 "the pooled figure and interval, and with no summary it says the question is open."),
+        made_true_by="run_screener:history_test_line",
+        checked_by=(
+            "tests/test_overview_reading_order.py::test_the_history_line_says_no_better_than_chance_only_when_the_summary_does",
+            "tests/test_overview_reading_order.py::test_the_published_summary_line_is_the_committed_summarys",
+        ),
+        detect=r"history, rebuilt from the filings as they stood each month",
+    ),
+    Claim(
+        id="overview.glossary",
+        surface=OVERVIEW,
+        asserts=("The glossary's computational definitions are the engine's: a sector percentile is "
+                 "ranked within the sector and turned round for lower-is-better metrics so higher is "
+                 "always better; a category score is the weighted average of its metrics' "
+                 "percentiles; a category's points are its score times its weight (the worked "
+                 "example is read from config); rank 1 is the highest composite."),
+        made_true_by="factor_engine:compute_sector_percentiles",
+        checked_by=(
+            "tests/test_overview_reading_order.py::test_the_glossary_percentile_is_sector_relative_and_higher_is_better",
+            "tests/test_overview_reading_order.py::test_the_glossary_category_score_is_the_weighted_average_of_percentiles",
+            "tests/test_overview_reading_order.py::test_the_glossary_points_example_and_rank_are_the_engines",
+        ),
+        detect=r"## Words this page uses",
     ),
 )
 
