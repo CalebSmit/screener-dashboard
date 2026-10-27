@@ -215,6 +215,29 @@ def test_skew_ignores_calls_outside_the_atm_band():
     assert _skew(calls, puts) == {}
 
 
+def test_skew_call_band_is_095_to_105_inclusive_and_nearest_one():
+    """Claims-mutation audit, 2026-10-26 (rows 74-75). The test above probes the call band at
+    0.78 and 1.08, far from both edges, so ``XZZ_CALL_LO = 0.90`` and ``XZZ_CALL_TARGET = 1.02``
+    passed every registered check - only a literal comparison of the constants, which the
+    register did not name, saw them. The paper's call leg is moneyness in [0.95, 1.05], nearest
+    1: probed here at each edge, a strike either side of it, and a pair where the nearest-to-1
+    and the nearest-to-1.02 strikes differ."""
+    calls, puts = _asym_chain()
+
+    def call_strike(strikes):
+        out = _skew(calls[calls["strike"].isin(strikes)], puts)
+        return out.get("_ctx_opt_skew_call_strike")
+
+    # extra strikes carry the ATM row's quote, so only their moneyness differs
+    calls = pd.concat([calls, calls.iloc[[4, 4, 4, 4]].assign(strike=[94, 99, 102, 106])]
+                      ).sort_values("strike").reset_index(drop=True)
+    assert call_strike([94]) is None, "0.94 is below the paper's 0.95"
+    assert call_strike([95]) == 95, "0.95 is inside the inclusive band"
+    assert call_strike([105]) == 105, "1.05 is inside the inclusive band"
+    assert call_strike([106]) is None, "1.06 is above the paper's 1.05"
+    assert call_strike([99, 102]) == 99, "0.99 is nearer 1 than 1.02 is"
+
+
 def test_skew_needs_both_legs_or_reports_nothing():
     calls, puts = _asym_chain()
     assert _skew(calls.iloc[0:0], puts) == {}

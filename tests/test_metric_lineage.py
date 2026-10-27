@@ -23,6 +23,7 @@ import math
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -281,6 +282,66 @@ def test_beneish_indices_rebuild_the_m_score(payload):
         assert abs(calc - m) < 2e-3, f"{t}: published {m}, indices give {calc:.4f}"
         n += 1
     assert n > 300
+
+
+def _engine_row(**fields) -> dict:
+    from tests.test_metrics import _compute_one, _make_rec
+    return _compute_one(_make_rec(**fields))
+
+
+def test_the_engines_beneish_indices_rebuild_its_m_score_with_the_published_weights():
+    """Claims-mutation audit, 2026-10-26 (row 76). The two tests above read the committed
+    payload, so a change to ``compute_metrics`` cannot fail them until the next data run: a
+    mistyped coefficient (``0.892 * sgi`` -> ``0.982 * sgi``) passed every test in the suite.
+    This runs the engine on one stock with every Beneish input present and rebuilds its M-score
+    from the indices it publishes, with Beneish's (1999) weights written as literals."""
+    r = _engine_row(
+        _beneish_net_receivables=14e9, _beneish_net_receivables_p=10e9,
+        _beneish_revenue=120e9, _beneish_revenue_p=100e9,
+        _beneish_cogs=78e9, _beneish_cogs_p=60e9,
+        _beneish_current_assets=30e9, _beneish_current_assets_p=28e9,
+        _beneish_ppe=40e9, _beneish_ppe_p=38e9,
+        _beneish_total_assets=100e9, _beneish_total_assets_p=90e9,
+        _beneish_depreciation=4e9, _beneish_depreciation_p=4.5e9,
+        _beneish_sga=15e9, _beneish_sga_p=11e9,
+        _beneish_lt_debt=25e9, _beneish_lt_debt_p=20e9,
+        _beneish_current_liab=18e9, _beneish_current_liab_p=16e9,
+        _beneish_net_income=9e9, _beneish_ocf=6e9,
+    )
+    vals, mask = r["_beneish_idx"].split("|")
+    vals = [float(x) for x in vals.split(",")]
+    assert mask == "11111111", "every index should come from reported figures here"
+    assert all(abs(v - 1.0) > 0.01 for v in vals[:7]) and abs(vals[7]) > 0.01, \
+        "an index at its neutral value cannot show its weight moving"
+    # DSRI, GMI, AQI, SGI, DEPI, SGAI, LVGI, TATA - BENEISH_INDEX_NAMES order
+    coef = (0.920, 0.528, 0.404, 0.892, 0.115, -0.172, -0.327, 4.679)
+    calc = -4.84 + sum(c * v for c, v in zip(coef, vals))
+    assert r["beneish_m_score"] == pytest.approx(calc, abs=2e-3)
+
+
+def test_the_engines_piotroski_signals_add_up_to_its_score():
+    """Claims-mutation audit, 2026-10-26 (row 77). Scaling the score to nine
+    (``round(f * 9 / n_testable)``, the normalisation the engine's own comment forbids) passed
+    both registered checks, which read the committed payload. Here the engine scores a stock
+    with two failed signals and one untestable one: the nine it lists, as a literal, and their
+    passes are its score; with five testable signals it has none."""
+    base = dict(
+        netIncome=10e9, netIncome_prior=9e9, operatingCashFlow=14e9,
+        totalAssets=80e9, totalAssets_prior=75e9,
+        longTermDebt=20e9, longTermDebt_prior=16e9,          # leverage up: signal 5 fails
+        currentAssets=np.nan, currentAssets_prior=np.nan,      # signal 6 untestable
+        currentLiabilities=15e9, currentLiabilities_prior=14e9,
+        sharesBS=1.05e9, sharesBS_prior=1.02e9,               # new shares: signal 7 fails
+        grossProfit=25e9, grossProfit_prior=22e9, totalRevenue=50e9, totalRevenue_prior=45e9,
+        _ni_a0=10e9, _ni_a1=9e9, _gp_a0=25e9, _gp_a1=22e9,
+        totalRevenue_annual=50e9, totalRevenue_annual_prior=45e9, _ta_a1=75e9, _ta_a2=74e9,
+    )
+    r = _engine_row(**base)
+    assert r["_pio_signals"] == "11110-011"
+    assert r["piotroski_f_score"] == 6 == r["_pio_signals"].count("1")
+    thin = dict(base, longTermDebt=np.nan, sharesBS=np.nan, _gp_a0=np.nan)   # 5 testable
+    r = _engine_row(**thin)
+    assert r["_pio_signals"].count("-") == 4 and np.isnan(r["piotroski_f_score"])
 
 
 # ---------------------------------------------------------------------------
