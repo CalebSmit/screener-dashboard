@@ -335,6 +335,65 @@ def overfitting_section(reg: list, latest: dict) -> str:
   </section>"""
 
 
+def headline_figure(summary: dict) -> str:
+    """The headline drawn (2026-10-27, plan/ui-elevation.md): the ranking's average monthly rank
+    correlation in each era and pooled, each with its 95% interval, and beside them the positive
+    control's lead with the smallest lead it could reliably detect - so the reader sees in one
+    glance that every interval straddles zero while the check that the test can see a signal sits
+    well clear of it. Every figure on it is one the page already prints, from the engine's summary;
+    nothing is computed here but the positions."""
+    ci = summary.get("baseline_ic_ci95") or {}
+    ic = summary.get("baseline_ic") or {}
+    if not ci:
+        return ""
+    rows, aria = [], []
+
+    def row(name: str, sub: str, mean: float, lo=None, hi=None, band=None, kind: str = "fp-a") -> str:
+        parts = []
+        if band is not None:
+            parts.append(f'<span class="fp-band" style="left:{_pos(-band):.2f}%;width:{_pos(band) - _pos(-band):.2f}%"></span>')
+        parts.append('<span class="fp-zero"></span>')
+        if lo is not None:
+            parts.append(f'<span class="fp-ci" style="left:{_pos(lo):.2f}%;width:{_pos(hi) - _pos(lo):.2f}%"></span>')
+        parts.append(f'<span class="fp-dot" style="left:{_pos(mean):.2f}%"></span>')
+        val = (f'<span class="num">{num(mean)}</span>'
+               + (f'<span class="fp-iv num">{num(lo)} to {num(hi)}</span>' if lo is not None else ""))
+        return (f'<div class="fp-row {kind}"><div class="fp-name">{name}' + (f'<span>{sub}</span>' if sub else "") + '</div>'
+                f'<div class="fp-track">{"".join(parts)}</div><div class="fp-val">{val}</div></div>')
+
+    for key, name in (("presample", "2012&ndash;2019"), ("all", "2020&ndash;2026"), ("pooled", "All months, pooled")):
+        if key not in ci or key not in ic:
+            continue
+        lo, hi = ci[key]
+        sub = "" if key != "pooled" else f'<span class="num">{summary["months"]["pooled"]}</span> months'
+        band = summary.get("pooled_detectable") if key == "pooled" else None
+        rows.append(row(name, sub, ic[key], lo, hi, band))
+        aria.append(f"{name.replace('&ndash;', ' to ')}: {num(ic[key])}, 95% interval {num(lo)} to {num(hi)}")
+    c = summary.get("control")
+    if c and c.get("ic_vs_baseline") is not None:
+        rows.append('<div class="fp-sep"><span>The check</span></div>')
+        rows.append(row("Fed today&rsquo;s filings", "lead over the real ranking", c["ic_vs_baseline"],
+                        band=c.get("detectable"), kind="fp-c"))
+        aria.append(f"the ranking fed today's filings: {num(c['ic_vs_baseline'])} ahead of the real one")
+    ticks = "".join(f"<span>{t}</span>" for t in (num(-LIM, 2), num(-LIM / 2, 2), "0", num(LIM / 2, 2), num(LIM, 2)))
+    label = html.escape("Average monthly rank correlation with the next month's return. " + "; ".join(aria)
+                        .replace("&minus;", "-")) + "."
+    return f"""
+  <figure class="fp" role="img" aria-label="{label}">
+    <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval</figcaption>
+    <div class="fp-sep"><span>The ranking</span></div>
+    {''.join(rows)}
+    <div class="fp-axis"><div></div><div class="fp-ticks">{ticks}</div><div></div></div>
+    <div class="legend">
+      <span><i class="lg-dot"></i>average</span>
+      <span><i class="lg-ci"></i>95% interval</span>
+      <span><i class="lg-dot2"></i>the check&rsquo;s lead</span>
+      <span><i class="lg-band"></i>smallest the test could reliably detect</span>
+      <span><i class="lg-zero"></i>no relation</span>
+    </div>
+  </figure>"""
+
+
 def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list) -> str:
     """The page, from the registry, the latest ledger row per id, the engine's page summary,
     the engine's ``detectable(se, n)`` and the registered evaluations."""
@@ -550,8 +609,8 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 /* Generated by research_page.py - do not edit. Tokens are the dashboard's and the lab's. */
 :root {{
@@ -561,43 +620,97 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
     --accent: #3987e5; --accent-text: #5598e7; --accent-glow: rgba(57,135,229,.12); --band: #252524;
     --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+    /* plan/ui-elevation.md: the display serif for page and section titles and hero statements only */
+    --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --hairline-hi: inset 0 1px 0 rgba(255,255,255,.04);
+    --bar-h: 60px; --t-fast: 140ms;
 }}
 * {{ box-sizing: border-box; }}
 html {{ -webkit-text-size-adjust: 100%; }}
 body {{ margin: 0; background: var(--bg-deep); color: var(--text-secondary); font-family: var(--font-body);
        font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }}
 a {{ color: var(--accent-text); text-decoration: none; }}
-a:hover {{ text-decoration: underline; }}
+a:hover {{ text-decoration: underline; text-underline-offset: 3px; }}
 :focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }}
 .wrap {{ max-width: 960px; margin: 0 auto; padding: 0 16px 72px; }}
 @media (min-width: 720px) {{ .wrap {{ padding: 0 32px 96px; }} }}
-.bar {{ display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }}
-.mark {{ display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-weight: 600; letter-spacing: -.01em; text-decoration: none; }}
+/* the site bar, as the dashboard's and the lab's: sticky, a full-bleed translucent band under a hairline */
+.bar {{ position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; height: var(--bar-h); }}
+.bar::before {{ content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%);
+               background: color-mix(in srgb, var(--bg-deep) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+               border-bottom: 1px solid var(--border); }}
+.mark {{ display: inline-flex; align-items: center; gap: 10px; color: var(--text-primary); font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-decoration: none; }}
+.mark:hover {{ text-decoration: none; }}
 .bmk {{ width: 24px; height: 24px; flex: none; }}
 .bm-bg {{ fill: var(--bg-elevated); stroke: var(--border-bright); }} .bm-1 {{ fill: var(--accent); opacity: .5; }} .bm-2 {{ fill: var(--accent); opacity: .75; }} .bm-3 {{ fill: var(--accent); }}
-.bar nav {{ display: flex; gap: 4px; font-size: 13.5px; flex-wrap: wrap; }}
-.bar nav a {{ color: var(--text-secondary); padding: 6px 10px; border-radius: 8px; }}
-.bar nav a:hover {{ color: var(--text-primary); background: var(--bg-card); }}
-.bar nav a[aria-current=page] {{ color: var(--text-primary); background: var(--bg-elevated); }}
-@media (max-width: 600px) {{ .bar {{ padding: 10px 0 8px; gap: 6px; }} .bar nav {{ margin-left: -10px; }} }}
-.lede {{ padding: 40px 0 4px; max-width: 68ch; }}
-.eyebrow {{ font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
-h1 {{ margin: 10px 0 14px; color: var(--text-primary); font-size: clamp(28px, 5vw, 40px); line-height: 1.12; font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }}
-h2 {{ margin: 0 0 10px; color: var(--text-primary); font-size: 21px; line-height: 1.25; letter-spacing: -.015em; text-wrap: balance; }}
+.bar nav {{ display: flex; gap: 2px; font-size: 13.5px; flex-wrap: wrap; }}
+.bar nav a {{ color: var(--text-secondary); padding: 7px 12px; border-radius: 999px; transition: color var(--t-fast), background var(--t-fast); }}
+.bar nav a:hover {{ color: var(--text-primary); background: var(--bg-card); text-decoration: none; }}
+.bar nav a[aria-current=page] {{ color: var(--text-primary); background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-bright); }}
+@media (max-width: 719px) {{ .bar {{ position: static; height: auto; min-height: 56px; flex-wrap: wrap; padding: 10px 0 8px; gap: 4px; }}
+    .bar nav {{ margin-left: -12px; }} .bar nav a {{ padding: 10px 12px; }} }}
+.lede {{ padding: 56px 0 8px; max-width: 70ch; }}
+.eyebrow {{ font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-text); }}
+h1 {{ margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(36px, 4.6vw, 56px);
+      line-height: 1.04; font-weight: 500; letter-spacing: -.015em; text-wrap: balance; }}
+.lede p {{ font-size: 17px; line-height: 1.6; max-width: 62ch; }}
+h2 {{ margin: 0 0 14px; color: var(--text-primary); font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.4vw, 30px);
+      line-height: 1.15; font-weight: 500; letter-spacing: -.01em; text-wrap: balance; }}
+h3 {{ color: var(--text-primary); font-size: 15px; font-weight: 600; margin: 28px 0 8px; }}
 p {{ margin: 0 0 12px; max-width: 68ch; }}
-section {{ margin-top: 40px; }}
+section {{ margin-top: 64px; padding-top: 40px; border-top: 1px solid var(--border); }}
+@media (max-width: 719px) {{ .lede {{ padding-top: 28px; }} .lede p {{ font-size: 16px; }} section {{ margin-top: 44px; padding-top: 28px; }} }}
 .fine {{ font-size: 13px; color: var(--text-muted); }}
 .num {{ font-family: var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .t {{ color: var(--text-muted); font-size: .85em; }}
 strong {{ color: var(--text-primary); }}
-.answer {{ display: grid; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; max-width: 76ch; }}
-.answer li {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
+.answer {{ display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; max-width: none; }}
+.answer li {{ padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }}
+.answer li:first-child {{ font-size: 16px; line-height: 1.65; border-color: var(--border-bright); }}
+.answer li:first-child strong:first-child {{ display: block; margin-bottom: 4px; font-family: var(--font-display); font-optical-sizing: auto; font-size: clamp(24px, 2.6vw, 30px);
+    font-weight: 500; line-height: 1.15; letter-spacing: -.01em; }}
+@media (min-width: 720px) {{ .answer {{ grid-template-columns: 1fr 1fr; }} .answer li:first-child {{ grid-column: 1 / -1; }} }}
 .terms {{ max-width: 76ch; margin: 12px 0 0; line-height: 1.55; }}
 .terms strong {{ color: var(--text-secondary); font-weight: 600; }}
-.steps {{ list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 8px; max-width: 76ch; }}
-.steps li {{ display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 10px; }}
-.steps li > .num {{ color: var(--accent-text); }}
-.chart {{ margin: 16px 0 8px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
+.steps {{ list-style: none; margin: 18px 0; padding: 0; display: grid; gap: 14px; max-width: 76ch; }}
+.steps li {{ display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; align-items: start; }}
+.steps li > .num {{ display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--border-bright); border-radius: 50%;
+    color: var(--text-primary); font-size: 13px; font-weight: 600; }}
+.chart {{ margin: 16px 0 8px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }}
+@media (hover: hover) {{ .dot-row:hover {{ background: rgba(255,255,255,.025); }} }}
+.dot-row {{ border-radius: 6px; }}
+/* the headline, drawn: the ranking's average with its 95% interval, era by era, and the positive control beside it */
+.fp {{ margin: 20px 0 0; padding: 22px 24px 18px; background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 14px; box-shadow: var(--hairline-hi); }}
+.fp figcaption {{ margin: 0 0 14px; font-size: 13.5px; color: var(--text-secondary); max-width: 70ch; }}
+.fp-row, .fp-axis {{ display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr) 11em; gap: 16px; align-items: center; }}
+.fp-row {{ padding-block: 8px; }}
+.fp-name {{ font-size: 14px; color: var(--text-primary); font-weight: 500; }}
+.fp-name > span {{ display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); }}
+.fp-track {{ position: relative; height: 26px; }}
+.fp-track > span {{ position: absolute; top: 50%; transform: translateY(-50%); }}
+.fp-band {{ height: 26px; background: var(--band); border-radius: 4px; }}
+.fp-zero {{ left: 50%; width: 1px; height: 34px; background: var(--text-muted); }}
+.fp-ci {{ height: 3px; border-radius: 2px; background: var(--accent); }}
+.fp-dot {{ width: 13px; height: 13px; margin-left: -6.5px; border-radius: 50%; background: var(--accent-text); box-shadow: 0 0 0 3px var(--bg-card); }}
+.fp-c .fp-dot {{ background: var(--text-primary); }}
+.fp-val {{ text-align: right; font-size: 15px; font-weight: 600; color: var(--text-primary); }}
+.fp-iv {{ display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); }}
+.fp-sep {{ margin: 10px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
+.fp-sep:not(:first-of-type) {{ margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }}
+.fp-axis {{ margin-top: 6px; }}
+.fp-ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }}
+.legend .lg-dot {{ width: 10px; height: 10px; border-radius: 50%; background: var(--accent-text); }}
+.legend .lg-dot2 {{ width: 10px; height: 10px; border-radius: 50%; background: var(--text-primary); }}
+.legend .lg-ci {{ width: 18px; height: 3px; border-radius: 2px; background: var(--accent); }}
+.legend .lg-band {{ width: 18px; height: 10px; border-radius: 2px; background: var(--band); box-shadow: inset 0 0 0 1px var(--border-bright); }}
+.legend .lg-zero {{ width: 1px; height: 12px; background: var(--text-muted); }}
+@media (max-width: 599px) {{
+  .fp {{ padding: 18px 16px 14px; }}
+  .fp-row, .fp-axis {{ grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }}
+  .fp-name {{ grid-column: 1; grid-row: 1; }} .fp-val {{ grid-column: 2; grid-row: 1; }}
+  .fp-track {{ grid-column: 1 / -1; }}
+  .fp-axis > div:first-child, .fp-axis > div:last-child {{ display: none; }} .fp-ticks {{ grid-column: 1 / -1; }}
+}}
 .dot-row, .axis {{ display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr) 7.5em; gap: 12px; align-items: center; }}
 .dot-row {{ padding-block: 3px; }}
 .dot-name {{ font-size: 13.5px; min-width: 0; overflow-wrap: anywhere; color: var(--text-secondary); }}
@@ -611,26 +724,32 @@ strong {{ color: var(--text-primary); }}
 .dot-val {{ font-size: 12.5px; text-align: right; }}
 .axis {{ margin-top: 6px; }}
 .ticks {{ display: flex; justify-content: space-between; font: 11.5px var(--font-body); font-variant-numeric: tabular-nums; color: var(--text-muted); }}
-.legend {{ display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--text-muted); margin-top: 10px; }}
+.legend {{ display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; color: var(--text-muted); margin-top: 14px; }}
 .legend i {{ display: inline-block; vertical-align: middle; margin-right: 6px; }}
 .tw {{ overflow-x: auto; margin: 12px 0; max-width: 100%; }}
 details {{ max-width: 100%; min-width: 0; }}
 table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
 th {{ text-align: left; vertical-align: bottom; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-bright); padding: 8px 12px 8px 0; }}
-td {{ border-bottom: 1px solid var(--border); padding: 9px 12px 9px 0; vertical-align: top; }}
+td {{ border-bottom: 1px solid var(--border); padding: 11px 12px 11px 0; vertical-align: top; font-variant-numeric: tabular-nums; }}
+td.num {{ color: var(--text-primary); }}
+@media (hover: hover) {{ tbody tr:hover td {{ background: rgba(255,255,255,.02); }} }}
 th.num, td.num {{ text-align: right; }}
 .src {{ font-size: 12px; color: var(--text-muted); }}
 td.per {{ white-space: nowrap; }}
 .bot th.num {{ white-space: normal; }}
 .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0; }}
-.stat {{ padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }}
-.stat .v {{ font: 600 26px/1.2 var(--font-body); letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }}
+.stat {{ padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }}
+.stat .v {{ font: 600 30px/1.15 var(--font-body); letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }}
 .stat .k {{ font-size: 13px; color: var(--text-muted); margin-top: 4px; }}
 .claims {{ display: grid; gap: 12px; grid-template-columns: 1fr; }}
 @media (min-width: 720px) {{ .claims {{ grid-template-columns: 1fr 1fr; }} }}
-.claim {{ padding: 16px 18px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 14px; }}
-.claim h3 {{ margin: 0 0 6px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }}
-details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; margin-top: 8px; }}
+.claim {{ padding: 18px 20px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 14px; box-shadow: var(--hairline-hi); }}
+.claim h3 {{ margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
+.claim p {{ margin: 0; }}
+details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; margin-top: 12px; padding: 6px 0; }}
+details summary:hover {{ color: var(--text-primary); }}
+ul {{ padding-left: 20px; max-width: 72ch; }} li::marker {{ color: var(--text-muted); }}
+code {{ font-family: var(--font-mono); font-size: .9em; }}
 .foot .num {{ white-space: normal; overflow-wrap: anywhere; }}
 .foot {{ margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }}
 @media (max-width: 599px) {{
@@ -660,6 +779,7 @@ details summary {{ cursor: pointer; color: var(--accent-text); font-size: 14px; 
     <li><strong>No alternative did better.</strong> {"None" if summary['better'] == 0 else summary['better']} of the {summary['alternatives']} alternative weightings cleared the bar set before the test, in either period.</li>
     <li>{control_li}</li>
   </ul>
+{headline_figure(summary)}
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
 
   <section>
