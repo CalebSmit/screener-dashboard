@@ -194,6 +194,45 @@ def test_the_median_the_key_quotes_is_the_engines(payload):
     assert abs(k["median_composite"] - pd.Series(comps).median()) < 0.06
 
 
+def test_the_engine_gives_the_largest_company_in_a_sector_the_lowest_size_score(cfg):
+    """Claims-mutation audit, 2026-10-26 (rows 78-79). Every registered check of
+    ``dashboard.score_key`` read the committed payload or the page's copy, so turning the Size
+    metric round - ``size_log_mcap = log(mc)``, or its direction ``True`` -> ``False`` - passed
+    them all and would have published a key saying the opposite of the scores beside it. This
+    runs the engine itself: twelve companies in one sector, metrics -> sector percentiles ->
+    category scores, and the larger the company the lower its Size score, the largest near 0."""
+    import copy
+    from tests.test_metrics import _make_rec
+    caps = [10e9 * (i + 1) for i in range(12)]
+    raw = [_make_rec(Ticker=f"S{i:02d}", marketCap=mc, sector="Industrials") for i, mc in enumerate(caps)]
+    df = factor_engine.compute_metrics(raw, pd.Series(dtype=float))
+    df["Sector"] = "Industrials"
+    df = factor_engine.compute_sector_percentiles(df)
+    df = factor_engine.compute_category_scores(df, copy.deepcopy(cfg))
+    size = df.set_index("Ticker")["size_score"]
+    order = [f"S{i:02d}" for i in range(12)]          # smallest to largest
+    assert list(size.loc[order]) == sorted(size, reverse=True), "Size does not fall as size rises"
+    assert size.loc["S11"] < 5, f"the largest company scores {size.loc['S11']:.1f} on Size"
+
+
+def test_the_median_composite_the_key_quotes_is_the_median_not_the_mean():
+    """Claims-mutation audit, 2026-10-26 (row 80). The key's "the median this run is" reads
+    ``kpis.median_composite``; the registered check compared that with the committed payload's
+    own table, so ``.median()`` -> ``.mean()`` in the generator passed it. Four composites whose
+    median (25) and mean (40) differ, through ``prepare_dashboard_data`` itself."""
+    df = pd.DataFrame({"Ticker": ["A", "B", "C", "D"], "Company": ["A", "B", "C", "D"],
+                       "Sector": ["Energy"] * 4, "Composite": [10.0, 20.0, 30.0, 100.0],
+                       "Rank": [4, 3, 2, 1], "Value_Trap_Flag": [False] * 4,
+                       "Growth_Trap_Flag": [False] * 4, "_current_price": [10.0] * 4})
+    for cat in ("valuation", "quality", "growth", "momentum", "risk", "revisions", "size", "investment"):
+        df[cat + "_score"] = 50.0
+    out = json.loads(gd.prepare_dashboard_data({
+        "df": df, "meta": {"run_date": "2026-10-26", "start_time": "2026-10-26T02:00:00"},
+        "weights": {}, "sens_df": None, "corr_df": None, "cfg": {},
+    }))
+    assert out["kpis"]["median_composite"] == 25.0
+
+
 def test_the_claims_are_registered():
     ids = {c.id for c in claims.CLAIMS}
     assert {"dashboard.score_key", "dashboard.trap_flag_key"} <= ids

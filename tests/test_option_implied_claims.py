@@ -63,7 +63,11 @@ def test_the_panel_states_the_papers_construction():
     assert "90% puts vs at the money" not in js
 
 
-def test_the_constants_are_the_papers_and_the_code_uses_them():
+def test_the_constants_are_the_papers():
+    """Literal pins only. Renamed 2026-10-26 from ``..._and_the_code_uses_them``: the body never
+    tested use, and a name that claims more than the body checks is how row 44 of
+    ``plan/claims-mutation-audit.md`` hid. That the code *uses* each band is tested on its
+    edges in ``tests/test_context_layer.py`` (``test_skew_*``)."""
     assert (cs.XZZ_PUT_LO, cs.XZZ_PUT_HI, cs.XZZ_PUT_TARGET) == (0.80, 0.95, 0.95)
     assert (cs.XZZ_CALL_LO, cs.XZZ_CALL_HI, cs.XZZ_CALL_TARGET) == (0.95, 1.05, 1.0)
     assert (cs.XZZ_DAYS_LO, cs.XZZ_DAYS_HI) == (10, 60)
