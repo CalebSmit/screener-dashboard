@@ -118,7 +118,7 @@ FIELD_CLASSES = {
         "currentAssets", "currentAssets_prior", "currentLiabilities", "currentLiabilities_prior",
         "cash_bs", "cash_sti_bs", "sharesBS", "sharesBS_prior", "operatingCashFlow", "capex",
         "dividendsPaid", "da_cf", "_data_source", "_ltm_annualized", "_stmt_date_financials",
-        "_quarterly_rejected", "_ltm_rolled", "_ltm_rolled_labels",
+        "_quarterly_rejected", "_ltm_rolled", "_ltm_rolled_labels", "_ltm_annualized_labels",
     ) + tuple(f"_beneish_{n}{s}" for n in BENEISH for s in ("", "_p")) + (
         "_beneish_net_income", "_beneish_ocf"),
     # fundamentals over a price: market_fields() at the caller's price
@@ -355,7 +355,8 @@ def statement_fields(facts: pd.DataFrame, ticker: str, as_of, filed: Filed | Non
         return {}
     q4 = q0 - YEAR
     r: dict = {"_data_source": "quarterly", "_ltm_annualized": False, "_ltm_rolled": False,
-               "_ltm_rolled_labels": None, "_stmt_date_financials": str(q0.date())}
+               "_ltm_rolled_labels": None, "_ltm_annualized_labels": None,
+               "_stmt_date_financials": str(q0.date())}
 
     def gp_ttm(end):
         v = F.ttm("gross_profit", end)
@@ -549,6 +550,7 @@ def record_as_of(base: dict, facts: pd.DataFrame, as_of, price: float, split: fl
     rec["_ltm_annualized"], rec["_data_source"] = False, "quarterly"
     # rebuilt from filings, so neither the 4/3 fabrication nor the roll-forward applies
     rec["_ltm_rolled"], rec["_ltm_rolled_labels"] = False, None
+    rec["_ltm_annualized_labels"] = None
     rec.update(stmt)
     rec.update(market_fields(stmt, facts, t, as_of, price, filed=F, split=split))
     rec["currentPrice"] = price

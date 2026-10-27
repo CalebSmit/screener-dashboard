@@ -244,11 +244,14 @@ def test_the_provenance_sentences_are_in_the_function_the_page_calls():
     assert "if (fl.q_rejected)" in prov and "if (fl.ltm_rolled)" in prov
     assert "renderProvenance(" in src.replace("function renderProvenance(", "", 1)
     assert "id=\"modal-provenance\"" in src or "'modal-provenance'" in src
-    # and nothing may be added to the dead one expecting it to show
-    dead = _generator_function("renderFlagsWarnings")
-    assert "fl.q_rejected" not in dead and "fl.ltm_rolled" not in dead
-    assert src.count("renderFlagsWarnings") == 1, (
-        "renderFlagsWarnings is now called - give it a container and re-check its badges")
+    # The dead function was deleted on 2026-10-27 once each of its eleven badges had been
+    # accounted for (`tests/test_dead_badges.py`). What this test still has to enforce is that
+    # nothing re-creates a container-less sink for a badge: the whole defect was that a badge
+    # written into one cannot fail visibly.
+    assert "function renderFlagsWarnings" not in src, (
+        "renderFlagsWarnings is back - it had no container, so anything in it is invisible; "
+        "put the badge in a function the drilldown calls (see tests/test_dead_badges.py)")
+    assert "getElementById('modal-flags')" not in src and 'id="modal-flags"' not in src
 
 
 def test_the_panel_does_not_contradict_itself_about_how_the_twelve_months_was_built():

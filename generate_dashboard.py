@@ -1288,7 +1288,13 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "vt_severity": _safe(row.get("Value_Trap_Severity")),
             "gt_severity": _safe(row.get("Growth_Trap_Severity")),
             "is_bank": bool(row.get("_is_bank_like")) if pd.notna(row.get("_is_bank_like")) else False,
-            "fin_caveat": bool(row.get("Financial_Sector_Caveat")) if pd.notna(row.get("Financial_Sector_Caveat")) else False,
+            # `fin_caveat` stood here until 2026-10-27 and was deleted rather than wired:
+            # `Financial_Sector_Caveat` is set by `factor_engine.add_financial_sector_caveat`,
+            # which only the module's own legacy end-to-end path calls, so the column is absent
+            # from `05_final_scored.parquet` and the field published False for all 498 stocks on
+            # every run. Its only reader was the dead `renderFlagsWarnings`. What it would have
+            # said - a Financials stock needing extra scrutiny - is `is_bank` above, which is
+            # live, drives the bank weight tables and is shown. See NIGHTLY_LOG.md 2026-10-27.
             "beneish_flag": bool(row.get("_beneish_flag")) if pd.notna(row.get("_beneish_flag")) else False,
             "channel_stuffing": bool(row.get("_channel_stuffing_flag")) if pd.notna(row.get("_channel_stuffing_flag")) else False,
             "recv_rev_divergence": _safe(row.get("_recv_rev_divergence")),
@@ -1296,8 +1302,18 @@ def prepare_dashboard_data(run_data: dict) -> str:
             "recv_g": _safe(row.get("_recv_growth")),
             "rev_g": _safe(row.get("_rev_growth_fy")),
             "ev_flag": bool(row.get("_ev_flag")) if pd.notna(row.get("_ev_flag")) else False,
+            # display-only: the source's own enterprise value, where the scorer rejected it for
+            # its own market cap + debt - cash (factor_engine, `_ev_flag`). Published so the
+            # provenance sentence can state both figures and a reader can check the rule fired
+            # (2026-10-27) - `ev_used`, in `inp`, is the one the three EV metrics were scored on.
+            "ev_api": _safe(row.get("_ev_api")),
             "beta_overlap_pct": _safe(row.get("_beta_overlap_pct")),
             "ltm_annualized": bool(row.get("_ltm_annualized")) if pd.notna(row.get("_ltm_annualized")) else False,
+            # display-only: which flows are three quarters scaled by 4/3, because the source
+            # published only three and the statements do not support the roll-forward below
+            # (factor_engine, `_ltm_partial`). Published 2026-10-27 - without it the panel could
+            # not say which lines, and said "the sum of the last four reported quarters" instead.
+            "ltm_annualized_labels": _str_list(row.get("_ltm_annualized_labels")),
             # display-only: which flows are the last fiscal year rolled forward, because the
             # source never published one of the four quarters (factor_engine._ltm_rollforward)
             "ltm_rolled": bool(row.get("_ltm_rolled")) if pd.notna(row.get("_ltm_rolled")) else False,
@@ -4197,97 +4213,23 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         setupPeerSearch();
     }}
 
-    function renderFlagsWarnings(s) {{
-        const container = document.getElementById('modal-flags');
-        if (!container) return;
-        const fl = s.flags;
-        if (!fl) {{ container.innerHTML = ''; return; }}
+    // `renderFlagsWarnings` stood here until 2026-10-27 and is deleted, not rehomed whole.
+    // Nothing called it and its container `#modal-flags` was never in the page, so none of its
+    // eleven badges had ever been seen (found 2026-10-15, when the quarterly-rejection badge was
+    // put in it; the hunt for the other ten is NIGHTLY_LOG.md 2026-10-27). Where each one's
+    // information actually reaches the reader, measured on the 2026-10-27 run:
+    //   value trap (46 stocks), growth trap (66)  - the table's flag column, `summary`, "The case against"
+    //   Beneish (43), channel stuffing (14)       - `summary`, "The case against"
+    //   stale financials (28)                     - the Filing Age badge above, `summary`, "The case against"
+    //   EPS basis mismatch (100)                  - the badge above, and the data-quality KPIs
+    //   bank-like (46)                            - the ROE/ROIC column label, and the methodology page
+    //   LTM 3-of-4 annualised (4)                 - `#provenance-ltm-annualized`, added below that day
+    //   enterprise value substituted (18)         - `#provenance-ev-substituted`, same
+    //   beta overlap under 80% (1)                - `#provenance-beta-overlap`, same
+    //   financial-sector caveat (0)               - deleted: never set on this pipeline, see `flags` above
+    // Do not re-create it. A badge with no container cannot fail visibly, which is why this
+    // survived for months; anything new goes in a function the drilldown calls.
 
-        const badges = [];
-
-        if (s.vt && fl.vt_severity !== null && fl.vt_severity > 0) {{
-            const sev = fl.vt_severity;
-            const cls = sev >= 70 ? 'flag-severe' : sev >= 40 ? 'flag-warn' : 'flag-mild';
-            badges.push(`<span class="flag-badge ${{cls}}">
-                <span class="flag-icon">\u26a0\ufe0f</span> Value Trap
-                <span class="flag-sev">${{sev.toFixed(0)}}/100</span>
-            </span>`);
-        }}
-
-        if (s.gt && fl.gt_severity !== null && fl.gt_severity > 0) {{
-            const sev = fl.gt_severity;
-            const cls = sev >= 70 ? 'flag-severe' : sev >= 40 ? 'flag-warn' : 'flag-mild';
-            badges.push(`<span class="flag-badge ${{cls}}">
-                <span class="flag-icon">\u26a0\ufe0f</span> Growth Trap
-                <span class="flag-sev">${{sev.toFixed(0)}}/100</span>
-            </span>`);
-        }}
-
-        if (fl.beneish_flag) {{
-            badges.push('<span class="flag-badge flag-severe">' +
-                '<span class="flag-icon">\u26d4</span> Earnings Manipulation Risk (Beneish)</span>');
-        }}
-
-        if (fl.channel_stuffing) {{
-            const detail = (fl.recv_g !== null && fl.recv_g !== undefined && fl.rev_g !== null && fl.rev_g !== undefined)
-                ? 'receivables ' + (fl.recv_g >= 0 ? '+' : '') + (fl.recv_g * 100).toFixed(0) + '% vs revenue ' + (fl.rev_g >= 0 ? '+' : '') + (fl.rev_g * 100).toFixed(0) + '% over the fiscal year'
-                : (fl.dsri ? 'receivables-to-revenue index ' + fl.dsri.toFixed(2) : '');
-            badges.push(`<span class="flag-badge flag-warn" title="Beneish's days-sales-in-receivables index is 1.465 or more: receivables rose that much faster than revenue over the last fiscal year. 1.465 was the average among companies later found to have manipulated earnings (Beneish 1999).">
-                <span class="flag-icon">\u26a0\ufe0f</span> Channel Stuffing Risk
-                ${{detail ? '<span class="flag-detail">(' + detail + ')</span>' : ''}}
-            </span>`);
-        }}
-
-        if (fl.ev_flag) {{
-            badges.push('<span class="flag-badge flag-warn">' +
-                '<span class="flag-icon">\u26a0\ufe0f</span> EV Data Discrepancy</span>');
-        }}
-
-        if (fl.stale_data) {{
-            const age = fl.stmt_age_days;
-            badges.push(`<span class="flag-badge flag-warn">
-                <span class="flag-icon">\u26a0\ufe0f</span> Stale Financials
-                ${{age !== null ? '<span class="flag-detail">(' + Math.round(age) + ' days old)</span>' : ''}}
-            </span>`);
-        }}
-
-        if (s.eps_mismatch) {{
-            badges.push('<span class="flag-badge flag-warn">' +
-                '<span class="flag-icon">\u26a0\ufe0f</span> EPS Basis Mismatch (GAAP vs Non-GAAP)</span>');
-        }}
-
-        if (fl.beta_overlap_pct !== null && fl.beta_overlap_pct < 80) {{
-            badges.push(`<span class="flag-badge flag-mild">
-                <span class="flag-icon">\u2139\ufe0f</span> Beta Overlap ${{fl.beta_overlap_pct.toFixed(0)}}%
-                <span class="flag-detail">(< 80% required)</span>
-            </span>`);
-        }}
-
-        if (fl.ltm_annualized) {{
-            badges.push('<span class="flag-badge flag-mild">' +
-                '<span class="flag-icon">\u2139\ufe0f</span> LTM Partially Annualized (3 of 4 quarters)</span>');
-        }}
-
-
-        if (fl.is_bank) {{
-            badges.push('<span class="flag-badge flag-info">' +
-                '<span class="flag-icon">\U0001f3e6</span> Bank-Like \u2014 uses P/B, ROE, ROA metrics</span>');
-        }}
-
-        if (fl.fin_caveat && !fl.is_bank) {{
-            badges.push('<span class="flag-badge flag-info">' +
-                '<span class="flag-icon">\u2139\ufe0f</span> Financial Sector \u2014 review with caution</span>');
-        }}
-
-        if (badges.length === 0) {{
-            container.innerHTML = '';
-            return;
-        }}
-
-        container.innerHTML = `<div class="flags-section">
-            <div class="flags-badges">${{badges.join('')}}</div>
-        </div>`;
-    }}
 
     // Explain, in words, any gap between the weights used above and the
     // headline weights on the Methodology page. A reader who checks the
@@ -4798,7 +4740,7 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
         // The general rule, unless this stock is one of the exceptions spelled out below it -
         // saying "the sum of the last four quarters" above a sentence explaining that it is not
         // would be a contradiction on the same panel (2026-10-15).
-        const ltmLead = (fl.ltm_rolled || fl.q_rejected)
+        const ltmLead = (fl.ltm_rolled || fl.q_rejected || fl.ltm_annualized)
             ? 'Income and cash-flow figures cover the last twelve months, built for this company as described below.'
             : 'Income and cash-flow figures are the sum of the last four reported quarters when the quarterly source is used, and the latest annual statement otherwise.';
         html += '<p class="provenance-line">' + ltmLead + ' Prices are the last close at the time of the run' + (D.kpis && D.kpis.run_timestamp ? ' (' + fmtD(String(D.kpis.run_timestamp).slice(0, 10)) + ')' : '') + '.</p>';
@@ -4812,6 +4754,47 @@ def generate_html(data_json: str = "", methodology_html: str = "", data_timestam
             html += '<p class="provenance-line provenance-limit" id="provenance-ltm-rolled"><strong>Twelve months rolled forward.</strong> The source had not published one of this company&rsquo;s four most recent quarters, so ' +
                 (rolledLines.length ? listed(rolledLines) + ' ' + (rolledLines.length === 1 ? 'is' : 'are') : 'these figures are') +
                 ' the last fiscal year plus the quarters since it, less the same quarters a year earlier - the construction the company uses in its own 10-Q.</p>';
+        }}
+        // The third way the twelve months can be built, and until 2026-10-27 the only one with
+        // no sentence: three quarters scaled by 4/3. Its badge sat in the dead
+        // `renderFlagsWarnings`, so the panel above said "the sum of the last four reported
+        // quarters" for CCL, EFX, TRV (rank 22) and V while the engine had done this instead.
+        // Weaker than the roll-forward, which is why it says so: 4/3 asserts the unpublished
+        // quarter equalled the average of the other three, where the roll-forward is an
+        // identity. The engine prefers the roll-forward and falls back here only where the
+        // statements do not support it (`_ltm_rollforward`, NIGHTLY_LOG.md 2026-10-15).
+        if (fl.ltm_annualized) {{
+            const annLines = (fl.ltm_annualized_labels || []).map(escapeHtml);
+            html += '<p class="provenance-line provenance-limit" id="provenance-ltm-annualized"><strong>Three quarters scaled to twelve months.</strong> The source published only three of this company&rsquo;s four most recent quarters, and its statements did not support rolling the last fiscal year forward, so ' +
+                (annLines.length ? listed(annLines) + ' ' + (annLines.length === 1 ? 'is' : 'are') : 'these figures are') +
+                ' the three quarters summed and scaled by 4/3. That assumes the quarter the source never published was an average one, so it is the weaker of the two routes - treat these figures as less precise than another company&rsquo;s.</p>';
+        }}
+        // 18 stocks on 2026-10-27. The rule has been on the methodology page since long before,
+        // but no stock's page said it had fired here - so a reader comparing the enterprise
+        // value in the workings with the provider's own figure would find them different with
+        // nothing on the page to explain it. Both figures are stated so the rule is checkable.
+        if (fl.ev_flag) {{
+            const evApi = fl.ev_api, evUsed = (s.inp || {{}}).ev_used;
+            const pair = (evApi !== null && evApi !== undefined && evUsed !== null && evUsed !== undefined)
+                ? ' Its figure was ' + fmtBig(evApi) + ' against the ' + fmtBig(evUsed) + ' used here.'
+                : '';
+            // The limit is 25% for financials and 10% for everyone else, so the sentence states
+            // the one that applied to *this* stock. The first draft printed "the wider limit
+            // applies to financial companies" on every one of them, which on a utility's page
+            // explains a limit that is not its own (read on the regenerated page, 2026-10-27).
+            const wide = fl.is_bank || s.sector === 'Financials';
+            html += '<p class="provenance-line provenance-limit" id="provenance-ev-substituted"><strong>Enterprise value recomputed.</strong> The source&rsquo;s enterprise value for this company was more than ' +
+                (wide ? '25%' : '10%') +
+                ' away from market value plus debt less cash, so the screener scored EV/EBITDA, EV/Sales and free-cash-flow yield on that sum instead.' + pair +
+                (wide
+                    ? ' Financial companies are allowed 25% rather than the 10% used elsewhere, because their debt includes customer deposits.'
+                    : '') + '</p>';
+        }}
+        // One stock on 2026-10-27 (FDXF, 42%). The metric row already says "no data"; this says
+        // why, which is the difference between a gap and an unexplained gap.
+        if (fl.beta_overlap_pct !== null && fl.beta_overlap_pct !== undefined && fl.beta_overlap_pct < 80) {{
+            html += '<p class="provenance-line provenance-limit" id="provenance-beta-overlap"><strong>Beta could not be measured.</strong> Only ' +
+                fl.beta_overlap_pct.toFixed(0) + '% of this company&rsquo;s trading days in the last year line up with the S&amp;P 500&rsquo;s, under the 80% the screener requires, so beta is left unscored and the Risk category&rsquo;s weight is shared across the measures that do have data.</p>';
         }}
         if (s.newer_filing && s.newer_filing.end) {{
             const nf = s.newer_filing;

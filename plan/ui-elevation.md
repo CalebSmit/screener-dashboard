@@ -110,9 +110,14 @@ and 1920 px. `tests/test_header_nav_fit.py` (9) opens the page at seven widths.
 3. Phone Side-by-side puts the third stock in a sideways scroll.
 4. The dot picture is not keyboard-focusable (the table stays the keyboard route; it has an
    `aria-label` summary).
-5. `renderFlagsWarnings()` writes to a `#modal-flags` element that does not exist, so its Beneish
-   and channel-stuffing badges have never rendered. Wiring it in would publish thresholds not
-   registered in `claims.py` - register them first, or delete the dead code.
+5. ~~`renderFlagsWarnings()` writes to a `#modal-flags` element that does not exist~~ **DONE
+   2026-10-27 (13:00 session).** All eleven badges audited against the live page: seven were
+   already covered elsewhere, three became Data-provenance sentences with registered claims
+   (`drilldown.ltm_annualized`, `drilldown.ev_substituted`, `drilldown.beta_overlap`), and the
+   eleventh was deleted because no run had ever set it - which also made a sentence on the public
+   methodology page false, corrected in the generator (`overview.no_financial_sector_flag`). The
+   dead function is gone. The item was right that thresholds had to be registered first; they are.
+   `tests/test_dead_badges.py` (18), `plan/dashboard-inventory.md`, NIGHTLY_LOG.md 2026-10-27.
 6. Bot: the "Against what you could hold instead" header wraps to four lines on a phone; the
    one-mark empty chart is a large dashed box; ladder labels are not keyboard-reachable; white on
    the map's full gain tile is 4.42:1 (the colour is locked in `DESIGN.md`).
