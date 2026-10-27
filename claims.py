@@ -715,6 +715,23 @@ CLAIMS: tuple[Claim, ...] = (
         detect=None,
     ),
     Claim(
+        id="research.plain_answer",
+        surface=RESEARCH,
+        asserts=(
+            "The research page's headline says in plain words that the companies the ranking put "
+            "higher did not do measurably better the next month than those it put lower, in either "
+            "period or over the whole record, and that no edge has been shown - only when every "
+            "95% interval on the ranking's monthly rank correlation (each era and pooled) includes "
+            "zero, the same condition that prints 'Not measurably.'"
+        ),
+        made_true_by="research_page:plain_answer",
+        checked_by=(
+            "tests/test_research_page.py::test_the_plain_answer_is_given_only_while_every_interval_includes_zero",
+        ),
+        # absent by design the day an interval leaves zero, so no regex can be required of the page
+        detect=None,
+    ),
+    Claim(
         id="drilldown.filing_check",
         surface=DRILLDOWN,
         asserts=(

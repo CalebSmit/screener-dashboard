@@ -114,6 +114,65 @@ and keyboard. Presentation and access only: no figure, sentence about a computat
 | Factor Lab, follow-up | phone overview cards fold to title + meter with "What it found" (cards 6,990 -> 3,894 px at 375); "%" on every bar chart's y axis; "Copy a link" confirms in a status region; the hero's figures as rows on a phone | `lab.html`; `tests/test_lab_reading_and_access.py` (18 in all) |
 | Has it been tested? | every section has an id; an "On this page" list read off the sections the generator emitted; the foot links back to the answer, the lab and the rankings; 44 px nav, contents and summary on a phone; print as ink on paper | `research_page.py` (`with_contents`); `tests/test_research_page.py` (+2) |
 
+### Same day, round two - the lab and the research page again: phone tables, an axe audit, phone speed
+
+Owner: *"Keep finding improvements please!"* Presentation, access and load order only: no figure, no
+`lab_data*.js`, no `lab_engine.js` (so `ASSET_VERSION` stays 27), no ledger, registry or `summary.json`.
+Scratch measurements in the gitignored `logs/round2-lab/` (a gzip-serving harness, Playwright, CDP).
+
+**Automated accessibility audit** - axe-core 4.10.2 injected by Playwright for the audit only (the pages
+and the suite never load it): the lab's overview and three experiments of different kinds
+(risk-managed momentum: line charts; size effect: a lazy part and bars; 153 factors: the 716 KB part)
+and the research page, each at 375 and 1280 px - ten audits.
+
+| | Before | After |
+|---|---|---|
+| Serious / critical | **1 rule on all ten** - `link-in-text-block`, 4-5 nodes a lab audit, 3 on research (links marked by colour alone: 1.12:1 against the muted grey, 1.66:1 against body text) | **0** |
+| Moderate | lab: `landmark-complementary-is-top-level` (the figures an `<aside>` inside the banner) and `region` (wordmark, closing note outside every landmark); research: `landmark-one-main` and `region` x14-23 (every word of the page outside a landmark) | **0** |
+| With WCAG 2.2 `target-size` enabled as well | - | **0** |
+
+**What changed**
+
+| # | Page | What was wrong | What it is now | Tested in |
+|---|---|---|---|---|
+| 1 | Lab | The overview's three tables after the cards were **8,313 px at 375 (Inter loaded)**; After the paper squeezed each result's name into a 110 px column four lines deep and hid its drawn drift on a phone | After the paper is a row per result: the name across the width, its two figures under the two column heads, the drift drawn beside them (its key stacked over the column). The scorecard and the category map keep every category, its weight, what the lab measured or covers and its experiments; only the third column folds, behind a 44 px button **named for that column** ("Left open", "Not covered"). Every row is shown; print shows every cell. **5,615 px; page 15,904 -> 13,206.** Desktop byte-for-byte the same layout | `test_lab_reading_and_access.py` (+2) |
+| 2 | Lab | On a phone the map's third column lost its header and had no label - "not covered" read as more of what the lab covers | "Not covered:" before it, as the scorecard's "Left open:" already had | same |
+| 3 | Lab | The display changes that make tables into rows drop table semantics in some browsers | the three tables carry explicit `table/rowgroup/row/columnheader/cell` roles | same |
+| 4 | Lab | axe above: no single main landmark, an aside nested in the banner, links marked by colour alone | `header.bar` (banner) / one `<main>` round the introduction and the lab (the old `main#lab` is `div#lab`) / `footer`; the figures a labelled `section`; links inside sentences, citations, notes underlined at 55% of their colour | +1 |
+| 5 | Lab | The menu's two files were discovered by the script tags 460 lines down | `<link rel="preload">` for both from the head, same URLs; a test keeps them equal to the tags. Menu on the phone profile (4x CPU, slow 4G, 375 px) median **1.67 -> 1.57 s** (n = 6 each, interleaved; machine shared, so +-0.2 s noise) | +1 |
+| 6 | Lab | An experiment's series was asked for only at the click | asked for at a **mouse button down** or 150 ms of hover or keyboard focus on its card or menu entry - never at a finger coming down (on a phone that starts a scroll as often as a tap, and a scroll past the 153 factors must not fetch 716 KB). A 100 ms mouse press: size effect **0.87 -> 0.67 s**, 153 factors **4.7 -> 4.5 s**; a phone tap unchanged (0.75 s), by design | +1 |
+| 7 | Research | The first screen answered "Not measurably." and went straight to "average monthly rank correlation ... 95% interval"; what a rank correlation is sat three cards down | a plain sentence under the headline - the companies it ranked higher did not do measurably better the next month than those it ranked lower, in either period or over the whole record; no edge has been shown - printed **only while every interval includes zero** (`research_page.plain_answer`, claim `research.plain_answer`); the chart's caption gives the scale's ends and its zero | `test_research_page.py` (+2) |
+| 8 | Research | The check on the headline chart was "Fed today's filings / lead over the real ranking" - meaningless until the bullet two cards on | "The check: can this test see an edge at all?" / "A ranking that cheats - given today's filings for every past month; its lead over the real one"; the legend says "the cheating ranking's lead" | same |
+| 9 | Research | axe above | banner / one main / footer; in-sentence links underlined | +1 |
+
+**Phone speed, measured** (Playwright, 375 px, CDP CPU 4x and Lighthouse's slow 4G, gzip as Pages
+serves it, cache off): time to a usable menu ~1.6 s, of which `lab_data.js` (100 KB gz) arriving is
+~1.0-1.3 s and the overview's first layout ~260-290 ms of main thread; opening an experiment whose
+part must load: size effect 0.75 s, the eight sorts 1.55 s, **153 factors 4.5-5.0 s (the worst
+offender)**; a re-run after changing a condition 25-100 ms on every experiment (17 measured, every
+control, median of three) - no re-run is slow. The 153 factors are slow because of bytes - 153 factors
+x 1,200 months x three universes, already integer basis points, ~1.3 bytes a number gzipped - and the
+page needs all three universes on opening, because it re-derives the paper's mega- and large-cap
+rates to check itself against the build. Splitting the part by universe would only defer a third.
+Not done; see "Seen, not fixed".
+
+Tried and **reverted**: `content-visibility: auto` on the three tables cut the overview's first layout
+290 -> 160 ms at 4x, but an element it skips has an empty `innerText`, which a test of the tables'
+text caught - a reader's copy or a tool's read of an off-screen table would come back empty too.
+Deferring `mark()`'s geometry read to the next frame saved nothing (it was the page's one layout, not
+a second one).
+
+**Seen, not fixed**
+
+- **153 factors on a phone: 4.5-5 s.** The real fix is a data-format change in `factor_lab.write`
+  (e.g. ship the "all" and "mega" universes first and check the large-cap figures when the third
+  arrives) - it moves `LAZY_KEYS`, the part files, the node reassembly test and `ASSET_VERSION`, and
+  the self-check would turn asynchronous. A lab session's job, not a presentation pass.
+- On a phone the scorecard and the category map list the same experiment links per category twice,
+  a section apart. Merging them is a content decision.
+- `tests/test_case_against.py::test_each_line_opens_the_section_that_shows_it` (dashboard, untouched
+  here) failed once under the parallel suite on a loaded machine and passed alone.
+
 ### Same day, night - the drilldown pass (owner-run)
 
 The stock sheet audited as a student would use it - EXPE (#1), JPM (bank), VICI (REIT), ED (utility),

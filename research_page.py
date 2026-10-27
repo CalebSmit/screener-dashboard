@@ -335,6 +335,20 @@ def overfitting_section(reg: list, latest: dict) -> str:
   </section>"""
 
 
+def plain_answer(all_zero: bool) -> str:
+    """The headline in a student's words (round two, 2026-10-27), before the statistics that support
+    it. Read as a club member would, the first screen answered "Not measurably." and went straight to
+    "average monthly rank correlation ... 95% interval"; the words that say what a rank correlation is
+    sat three cards further down. Said only when every interval includes zero - the same condition
+    that prints "Not measurably." - so it can never outlive the result it describes (claim
+    ``research.plain_answer``)."""
+    if not all_zero:
+        return ""
+    return ('<span class="plain"> In plain terms: the companies it ranked higher did not go on to do '
+            'measurably better the next month than the companies it ranked lower &mdash; not in either '
+            'period, and not over the whole record. No edge has been shown.</span>')
+
+
 def headline_figure(summary: dict) -> str:
     """The headline drawn (2026-10-27, plan/ui-elevation.md): the ranking's average monthly rank
     correlation in each era and pooled, each with its 95% interval, and beside them the positive
@@ -371,8 +385,10 @@ def headline_figure(summary: dict) -> str:
         aria.append(f"{name.replace('&ndash;', ' to ')}: {num(ic[key])}, 95% interval {num(lo)} to {num(hi)}")
     c = summary.get("control")
     if c and c.get("ic_vs_baseline") is not None:
-        rows.append('<div class="fp-sep"><span>The check</span></div>')
-        rows.append(row("Fed today&rsquo;s filings", "lead over the real ranking", c["ic_vs_baseline"],
+        # named for what it is (round two): "Fed today's filings" meant nothing until the bullet two
+        # cards on explained it, so the row says it is a ranking given information nobody had
+        rows.append('<div class="fp-sep"><span>The check: can this test see an edge at all?</span></div>')
+        rows.append(row("A ranking that cheats", "given today&rsquo;s filings for every past month; its lead over the real one", c["ic_vs_baseline"],
                         band=c.get("detectable"), kind="fp-c"))
         aria.append(f"the ranking fed today's filings: {num(c['ic_vs_baseline'])} ahead of the real one")
     ticks = "".join(f"<span>{t}</span>" for t in (num(-LIM, 2), num(-LIM / 2, 2), "0", num(LIM / 2, 2), num(LIM, 2)))
@@ -380,14 +396,14 @@ def headline_figure(summary: dict) -> str:
                         .replace("&minus;", "-")) + "."
     return f"""
   <figure class="fp" role="img" aria-label="{label}">
-    <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval</figcaption>
+    <figcaption><strong>The ranking&rsquo;s average monthly rank correlation</strong> with the next month&rsquo;s return, and its 95% interval. The scale runs from &minus;1 to +1; 0, the vertical line, is no relation at all.</figcaption>
     <div class="fp-sep"><span>The ranking</span></div>
     {''.join(rows)}
     <div class="fp-axis"><div></div><div class="fp-ticks">{ticks}</div><div></div></div>
     <div class="legend">
       <span><i class="lg-dot"></i>average</span>
       <span><i class="lg-ci"></i>95% interval</span>
-      <span><i class="lg-dot2"></i>the check&rsquo;s lead</span>
+      <span><i class="lg-dot2"></i>the cheating ranking&rsquo;s lead</span>
       <span><i class="lg-band"></i>smallest the test could reliably detect</span>
       <span><i class="lg-zero"></i>no relation</span>
     </div>
@@ -492,6 +508,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
                   + f'The pooled record could reliably detect an average of about '
                   f'<span class="num">{summary["pooled_detectable"]:.3f}</span> at a t-statistic of 3, and no smaller.')
     headline = ("<strong>Not measurably.</strong>" if all_zero else "<strong>Not reliably.</strong>") + \
+        plain_answer(all_zero) + \
         (f" The ranking's average monthly rank correlation with the next month's return was "
          f'<span class="num">{num(pre_ic)}</span> over 2012&ndash;2019'
          + (_interval("presample") if "presample" in ci else "")
@@ -688,6 +705,12 @@ body {{ margin: 0; background: var(--bg-deep); color: var(--text-secondary); fon
        font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }}
 a {{ color: var(--accent-text); text-decoration: none; }}
 a:hover {{ text-decoration: underline; text-underline-offset: 3px; }}
+/* a link inside a sentence is underlined as well as coloured (round two, 2026-10-27; axe link-in-text-block,
+   WCAG 1.4.1): the accent beside the body grey is 1.66:1 and beside the muted grey of the foot 1.12:1 */
+p a, li a, .foot > a, .src a {{ text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); }}
+p a:hover, li a:hover, .foot > a:hover, .src a:hover {{ text-decoration-color: currentColor; }}
+.toc a, .toc a:hover, .next-nav a {{ text-decoration: none; }}
 :focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }}
 .wrap {{ max-width: 960px; margin: 0 auto; padding: 0 16px 72px; }}
 @media (min-width: 720px) {{ .wrap {{ padding: 0 32px 96px; }} }}
@@ -726,6 +749,7 @@ strong {{ color: var(--text-primary); }}
 .answer {{ display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; max-width: none; }}
 .answer li {{ padding: 18px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--hairline-hi); }}
 .answer li:first-child {{ font-size: 16px; line-height: 1.65; border-color: var(--border-bright); }}
+.answer .plain {{ display: block; margin: 0 0 10px; color: var(--text-primary); }}
 .answer li:first-child > strong:first-child {{ display: block; margin-bottom: 4px; font-family: var(--font-display); font-size: clamp(24px, 2.6vw, 30px);
     font-weight: 600; line-height: 1.15; letter-spacing: -.022em; }}
 @media (min-width: 720px) {{ .answer {{ grid-template-columns: 1fr 1fr; }} .answer li:first-child {{ grid-column: 1 / -1; }} }}
@@ -863,16 +887,19 @@ section[id], #top {{ scroll-margin-top: calc(var(--bar-h) + 16px); }}
 </head>
 <body>
 <div class="wrap" id="top">
-  <div class="bar">
+  <header class="bar">
     <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
     <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html" aria-current="page">Has it been tested?</a><a href="lab.html">Factor Lab</a></nav>
-  </div>
+  </header>
 
-  <header class="lede">
+  <!-- one banner, one main, one footer (round two, 2026-10-27): every word of the page sat outside a
+       landmark, so a screen reader's "jump to main" found nothing (axe landmark-one-main, region) -->
+  <main>
+  <div class="lede">
     <div class="eyebrow">The screener, tested on its own history</div>
     <h1>Does the ranking predict returns?</h1>
     <p>Before trusting a ranking, ask whether it would have worked. This page tests the screener's weighting, and {summary['alternatives']} alternatives from the investing literature, on fifteen years of S&amp;P&nbsp;500 history rebuilt from the financial statements companies had actually published at each date.</p>
-  </header>
+  </div>
 
   <ul class="answer">
     <li>{headline}{headline_figure(summary)}</li>
@@ -942,12 +969,13 @@ section[id], #top {{ scroll-margin-top: calc(var(--bar-h) + 16px); }}
       <li>Large companies only, rebalanced monthly, with costs approximated and no taxes.</li>
     </ul>
   </section>
+  </main>
 
-  <div class="foot">
+  <footer class="foot">
     Generated from the screener's <a href="{REPO}/tree/main/research/experiments">research log</a> (data version <span class="num">{html.escape(str(summary.get('data_hash')))}</span>); the write-up, the registry of every prediction and every run are in the project's <a href="{REPO}/blob/main/research/2026-10-15-research-engine-first-batch.md">public repository</a>.
     This is research on a screening method for study and teaching. It is not investment advice.
     <nav class="next-nav" aria-label="Where next"><a href="#top">Back to the answer</a><a href="lab.html">The Factor Lab: the research behind each category, rerun</a><a href="index.html">The rankings</a></nav>
-  </div>
+  </footer>
 </div>
 </body>
 </html>

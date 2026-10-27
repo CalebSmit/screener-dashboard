@@ -282,8 +282,19 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   "%" on each tick, with a true minus. "Copy a link" confirms through a polite status region beside
   it, including when the clipboard cannot be reached. The hero's three figures are rows - figure, then
   its label beside it - instead of three 110 px columns. `tests/test_lab_reading_and_access.py` (18).
-- Still open: the overview's three tables (after the paper, scorecard, category map) are about
-  8,200 px on a phone between them.
+- ~~The overview's three tables on a phone~~ - done 2026-10-27, round two (`plan/ui-elevation.md`,
+  "round two"). With Inter loaded they were 8,313 px at 375; now 5,615 (page 15,904 -> 13,206). After
+  the paper is a row per result with its drift drawn (it had been hidden on a phone); the scorecard
+  and the category map keep every category's row, weight, measured/covered text and experiments, and
+  fold only the third column behind a 44 px button named for it ("Left open", "Not covered" - the map's
+  had lost its label on a phone). Every row shown; print shows every cell; desktop unchanged.
+- Also round two: one banner / one main / one footer and underlined in-sentence links (axe-core
+  4.10.2: 0 violations on the overview and three experiments at 375 and 1280, from one serious and two
+  moderate rules on every audit); the menu's two files preloaded from the head; an experiment's part
+  asked for at a mouse press, a 150 ms hover or keyboard focus on its card or menu entry - never a
+  finger coming down, which as often starts a scroll. `lab_engine.js` and every data file untouched.
+- Open: **153 factors on a phone take 4.5-5 s to open** (716 KB gz; the page needs all three universes
+  at once for its self-check). See "The first paint" below for what a fix would move.
 
 ## The first paint (measured 2026-10-26)
 
@@ -332,6 +343,18 @@ every experiment, at 1440 and 375 px, is identical before and after.
 `write()` produces, the parts run in node give back the whole payload, and in a browser the
 overview loads no part while each experiment, opened fresh, loads exactly its own.
 
+**Round two, 2026-10-27 (re-measured; same profile plus 375 px):** menu usable at a median 1.57 s
+(1.67 before the head preload; `lab_data.js` arrives at ~1.0-1.3 s, then ~260-290 ms of first layout
+at 4x CPU); size effect opens in 0.75 s from a tap; the eight sorts 1.55 s; **153 factors 4.5-5.0 s,
+still the worst**; a re-run after any condition change 25-100 ms on all seventeen experiments. What a
+fix for the 153 factors would move: `jkp` is 153 factors x 1,200 months x three universes (all, mega,
+large), already integer basis points and ~1.3 bytes a number gzipped, so it cannot shrink losslessly
+by much; the experiment's opening render reads "all" and "mega", and its self-check
+(`compareReplication`) all three. Shipping it as three parts would let the page draw from two and
+check the large-cap figures when the third arrives - a change to `LAZY_KEYS`, `write()`, the node
+reassembly test, `PARTS` and `ASSET_VERSION`, and to when the "disagrees with the build" warning can
+appear. Worth a lab session; it saves about a third of the wait.
+
 **Publish paths:** none change. The lab is built by sessions (`python factor_lab.py --build`) and
 merged with the code; `scripts/data-run.ps1` never builds or stages a lab file, and neither
 runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test_factor_lab.py`.
@@ -347,6 +370,13 @@ runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test
   experiments in parallel - at several times the usage.
 
 ## Progress (update each session)
+
+- **2026-10-27, round two (owner-run evening; `plan/ui-elevation.md` "round two") - presentation, access
+  and load order only; no figure, data file or `lab_engine.js` changed, `ASSET_VERSION` stays 27.** The
+  overview's three tables read as rows on a phone (8,313 -> 5,615 px), axe-core finds nothing on the
+  lab or the research page, the menu's files are preloaded, and a part is asked for at a mouse press,
+  hover or focus. `tests/test_lab_reading_and_access.py` (+5). Open: 153 factors take 4.5-5 s to open
+  on a phone.
 
 - **2026-10-27 (owner-run, UI pass - `plan/ui-elevation.md`) - presentation only; every figure and
   sentence unchanged, `lab_data*.js` and `lab_engine.js` untouched (so no `ASSET_VERSION` bump).**
