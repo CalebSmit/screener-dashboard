@@ -1750,9 +1750,12 @@ def test_a_chart_can_be_read_month_by_month_from_the_keyboard():
                 assert page.evaluate("document.querySelector('#ch-growth .cursor').style.visibility") == "visible"
                 page.focus("#c-from")                                             # leaving the chart clears it
                 assert page.inner_text(read) == "Point at the chart to read any month."
-            # the size chart's figures are in no table below, so its label carries them
+            # the size chart's figures are in no table below, so its label carries them. Since
+            # 2026-10-27 the bar charts are read as the line charts are, so the label is on the
+            # focusable chart itself, as it is for a line chart.
             _goto(page, "size-effect")
-            label = page.get_attribute("#ch-bars", "aria-label")
+            assert page.get_attribute("#ch-bars", "aria-label") is None
+            label = page.get_attribute("#ch-bars svg", "aria-label")
             means = page.evaluate("window.LAB_STATE().result.deciles.map(d => d.mean.toFixed(2))")
             assert all(m.replace("-", "−") in label for m in means)
             assert errors == []
