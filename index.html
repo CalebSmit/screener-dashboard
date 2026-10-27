@@ -3838,6 +3838,280 @@
             .sec-grid > .collapsible-section .section-chevron { transition: none; }
         }
     
+
+        /* =====================================================================
+           THE STOCK SHEET (UI elevation, 2026-10-27)
+           A masthead with the company in the display serif and every figure in Inter; the
+           eight scores as a heat-washed fingerprint with the sector median marked; the reasons
+           set like a page; the arithmetic like a receipt; charts in one language - the accent
+           is this stock, ink and grey are the references.
+           ===================================================================== */
+        #stock-modal .modal-content { background: var(--bg-primary); box-shadow: var(--shadow-overlay, none), var(--hairline-hi); }
+
+        /* ---- masthead ---- */
+        /* The identity block's children join the header's grid (display: contents), so the eyebrow,
+           the tools and the close share the top line and the name gets the full width under them */
+        #stock-modal .modal-header {
+            display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+            grid-template-areas: "tk sec . tools close" "co co co co co" "fig fig fig chips chips";
+            align-items: center; gap: 0 12px; padding: 18px 24px 16px;
+        }
+        #stock-modal .modal-header > div:first-child { display: contents; }
+        #stock-modal .modal-ticker { grid-area: tk; margin: 0; font: 600 13px/1.3 var(--font-body); letter-spacing: .06em; color: var(--text-primary); }
+        #stock-modal .modal-sector { grid-area: sec; margin: 0; font-size: 13px; line-height: 1.3; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        #stock-modal .modal-sector::before { content: '\00b7'; margin-right: 12px; color: var(--text-muted); }
+        #stock-modal .modal-chips { grid-area: chips; justify-self: end; align-self: start; display: inline-flex; gap: 6px; margin-top: 16px; }
+        #stock-modal .modal-chips:empty { display: none; }
+        #stock-modal .modal-chips .flag { margin: 0; }
+        #stock-modal .modal-company {
+            grid-area: co; display: block; margin: 10px 0 0; color: var(--text-primary); min-width: 0;
+            font-family: var(--font-display); font-weight: 500; font-optical-sizing: auto; letter-spacing: -.015em;
+            font-size: clamp(28px, 2.5vw, 36px); line-height: 1.08; overflow-wrap: anywhere;
+        }
+        #stock-modal .modal-headline { grid-area: fig; margin-top: 16px; }
+        #stock-modal .modal-tools { grid-area: tools; justify-self: end; order: initial; flex: none; }
+        #stock-modal .modal-close { grid-area: close; order: initial; }
+
+        #stock-modal .modal-headline { display: flex; align-items: stretch; gap: 0; min-width: 0; }
+        /* a grid, not a wrapping flex row: a wrapping row sizes itself as if label, value and strip sat
+           on one line, which left a hole after each figure */
+        #stock-modal .mh-item {
+            display: grid; grid-template-columns: auto 1fr; align-items: baseline; align-content: start; column-gap: 6px;
+            flex: none; padding: 0 22px; border-left: 1px solid var(--border); line-height: 1.15;
+        }
+        #stock-modal .mh-item:first-child { padding-left: 0; border-left: 0; }
+        #stock-modal .mh-k { grid-column: 1 / -1; white-space: nowrap; margin-bottom: 4px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+        #stock-modal .mh-item strong { font-size: 28px; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        #stock-modal .mh-of { display: inline; font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        #stock-modal .mh-price strong { font-size: 20px; font-weight: 500; color: var(--text-secondary); }
+        #stock-modal .cd { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        #stock-modal .cd-svg { display: block; width: 136px; height: auto; overflow: visible; }
+        #stock-modal .cd-svg rect { fill: var(--text-muted); opacity: .5; }
+        #stock-modal .cd-svg rect.cd-on { fill: var(--accent); opacity: 1; }
+        #stock-modal .cd-base { stroke: var(--border-bright); stroke-width: 1; }
+        #stock-modal .cd-med { stroke: var(--text-secondary); stroke-width: 1.5; }
+        #stock-modal .cd-m { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+        #stock-modal .cd-cap { font-size: 11px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+        #stock-modal .mt-btn { height: 32px; border-color: var(--border-bright); border-radius: var(--radius); }
+        #stock-modal .mt-btn:hover:not(:disabled) { background: var(--bg-elevated); }
+
+        /* ---- the tab strip: an underline that says where you are ---- */
+        #stock-modal .modal-nav {
+            gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--border);
+            scroll-snap-type: x proximity; scroll-padding: 0 24px;
+        }
+        #stock-modal .modal-nav a {
+            position: relative; padding: 11px 0 12px; border-radius: 0; background: none;
+            font-size: 13px; font-weight: 500; color: var(--text-muted); scroll-snap-align: start;
+        }
+        #stock-modal .modal-nav a:hover { background: none; color: var(--text-primary); }
+        #stock-modal .modal-nav a.active { background: none; color: var(--text-primary); }
+        #stock-modal .modal-nav a::after {
+            content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px 2px 0 0;
+            background: var(--accent); transform: scaleX(0); transition: transform var(--t-fast) ease-out;
+        }
+        #stock-modal .modal-nav a.active::after { transform: scaleX(1); }
+        #stock-modal .modal-nav a:focus-visible { outline-offset: 2px; border-radius: 4px; }
+
+        /* ---- compact header, once the reader is into the sheet: one line of identity and tools,
+           one of figures; the name moves up beside the ticker ---- */
+        #stock-modal .is-compact .modal-header {
+            grid-template-columns: auto minmax(0, max-content) auto minmax(0, 1fr) auto auto;
+            grid-template-areas: "tk co sec . tools close" "fig fig fig fig chips chips"; padding-top: 12px; padding-bottom: 10px;
+        }
+        #stock-modal .is-compact .modal-company { margin: 0; font-size: 18px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #stock-modal .is-compact .modal-headline { margin-top: 8px; }
+        #stock-modal .is-compact .modal-sector { display: none; }
+        #stock-modal .is-compact .modal-chips { margin-top: 8px; align-self: center; }
+        #stock-modal .is-compact .mh-k { grid-column: auto; margin: 0 2px 0 0; font-size: 10.5px; }
+        #stock-modal .is-compact .mh-item { grid-template-columns: auto auto auto; padding: 0 16px; }
+        #stock-modal .is-compact .mh-item:first-child { padding-left: 0; }
+        #stock-modal .is-compact .mh-item strong { font-size: 16px; }
+        #stock-modal .is-compact .mh-price strong { font-size: 15px; }
+        #stock-modal .is-compact .cd { display: none; }
+
+        /* ---- the eight scores: a fingerprint. The wash is the score's magnitude in the accent
+           (ui-elevation's heat token), the text stays ink, the tick on each bar is 50 - the sector
+           median the note beneath them names ---- */
+        #stock-modal .modal-score-row { gap: 8px; margin-bottom: 28px; }
+        #stock-modal .modal-score-card {
+            background: color-mix(in srgb, var(--accent) calc(3% + var(--v, 0) * 25%), var(--bg-primary));
+            border: 1px solid rgba(255, 255, 255, .06); box-shadow: var(--hairline-hi);
+            padding: 12px 14px 24px; transition: border-color var(--t-fast) ease-out;
+        }
+        #stock-modal .modal-score-card:not(.composite):hover { border-color: rgba(255, 255, 255, .22); }
+        #stock-modal .modal-score-label { color: var(--text-secondary); }
+        #stock-modal .modal-score-val { font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+        #stock-modal .modal-score-sub { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        #stock-modal .modal-score-card::after {
+            left: 14px; right: 14px; bottom: 11px; height: 3px;
+            background: linear-gradient(to right, var(--accent) calc(var(--v, 0) * 100%), rgba(255, 255, 255, .1) 0);
+        }
+        #stock-modal .modal-score-card:not(.composite)::before {
+            content: ''; position: absolute; left: calc(14px + (100% - 28px) * .5); bottom: 8px; width: 1px; height: 9px;
+            background: var(--text-secondary); opacity: .75;
+        }
+        /* a category with no score: no wash, no bar, no median tick - an outline, not a zero */
+        #stock-modal .modal-score-card.is-na { background: none; border-style: dashed; border-color: var(--border-bright); box-shadow: none; }
+        #stock-modal .modal-score-card.is-na::before, #stock-modal .modal-score-card.is-na::after { display: none; }
+        #stock-modal .modal-score-card.is-na .modal-score-val { color: var(--text-muted); }
+        #stock-modal .msr-note { margin-top: 4px; }
+
+        /* ---- section titles in the display serif ---- */
+        #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child {
+            font-family: var(--font-display); font-weight: 500; font-optical-sizing: auto; letter-spacing: -.015em;
+            font-size: 23px; line-height: 1.15; color: var(--text-primary);
+        }
+        #stock-modal .about-title { font-family: var(--font-display); font-weight: 500; font-size: 19px; letter-spacing: -.01em; }
+        #stock-modal .about-text { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); max-width: 80ch; }
+        #stock-modal .collapsible-header { padding: 22px 0 16px; }
+        #stock-modal .collapsible-header:hover span:first-child { color: var(--text-primary); }
+        #stock-modal .collapsible-header:hover .collapsible-chevron { background: var(--text-primary); }
+        #stock-modal .collapsible.collapsed .collapsible-header { padding: 18px 0; }
+        #stock-modal .collapsible.collapsed .collapsible-header span:first-child { font-size: 19px; color: var(--text-secondary); }
+        #stock-modal .collapsible.collapsed .collapsible-header:hover span:first-child { color: var(--text-primary); }
+
+        /* ---- Why it ranks here: a lead, then the reasons set like a page ---- */
+        #stock-modal .summary-head { margin-bottom: 14px; }
+        #stock-modal .summary-body { display: grid; grid-template-columns: 156px minmax(0, 1fr); column-gap: 0; }
+        #stock-modal .summary-fact { grid-column: 2; margin: 0 0 8px; max-width: 70ch; font-size: 14.5px; line-height: 1.62; color: var(--text-secondary); }
+        #stock-modal .summary-body > p.summary-fact.summary-lead {
+            grid-column: 1 / -1; max-width: 38em; margin: 0 0 22px;
+            font-family: var(--font-display); font-weight: 400; font-optical-sizing: auto; letter-spacing: -.01em;
+            font-size: 21px; line-height: 1.42; color: var(--text-primary);
+        }
+        #stock-modal .summary-group-label {
+            grid-column: 1; align-self: start; margin: 6px 0 0; padding: 14px 20px 0 0; border-top: 1px solid var(--border);
+            text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+        }
+        #stock-modal .summary-group-label + .summary-fact { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--border); }
+        #stock-modal .summary-fact .fig { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+        #stock-modal .summary-lead .fig { font-family: var(--font-body); font-size: .9em; letter-spacing: -.01em; }
+        #stock-modal .summary-confidence, #stock-modal .summary-flags { font-size: 14px; }
+        #stock-modal .summary-source { margin-top: 18px; font-size: 12px; color: var(--text-muted); max-width: 80ch; }
+        #stock-modal .ctx-teaser-btn { box-shadow: var(--hairline-hi); border-color: var(--border-bright); padding: 12px 16px; }
+
+        /* ---- How it adds up: the arithmetic as a receipt ---- */
+        #stock-modal #section-contribution .modal-chart-section { box-shadow: var(--hairline-hi); }
+        #stock-modal #contrib-visual .contrib-row { grid-template-columns: 148px minmax(0, 1fr) 92px; padding: 11px 8px; margin: 0 -8px; }
+        #stock-modal #contrib-visual .contrib-row + .contrib-row { box-shadow: inset 0 1px 0 var(--border); }
+        #stock-modal #contrib-visual .contrib-row-link:hover { box-shadow: none; }
+        #stock-modal #contrib-visual .contrib-cat-name { font-weight: 600; color: var(--text-primary); }
+        #stock-modal #contrib-visual .contrib-bar-track { height: 6px; background: rgba(255, 255, 255, .07); }
+        #stock-modal #contrib-visual .contrib-bar-fill { opacity: 1; }
+        #stock-modal #contrib-visual .contrib-bar-annotation { color: var(--text-muted); font-size: 12px; }
+        #stock-modal #contrib-visual .contrib-math strong { color: var(--text-primary); font-weight: 600; }
+        #stock-modal #contrib-visual .contrib-pts { font-size: 17px; font-weight: 600; color: var(--text-primary); letter-spacing: -.01em; }
+        #stock-modal #contrib-visual .contrib-pts-max { font-size: 12px; font-weight: 400; color: var(--text-muted); letter-spacing: 0; }
+        #stock-modal .contrib-total-row { margin-top: 10px; padding-top: 18px; border-top: 3px double var(--border-bright); }
+        #stock-modal .contrib-total-track { height: 10px; border-radius: 3px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+        #stock-modal .ct-stack { display: flex; height: 100%; }
+        #stock-modal .ct-seg { height: 100%; flex: none; background: var(--accent); box-shadow: inset -2px 0 0 var(--bg-card); }
+        #stock-modal .ct-seg:nth-child(even) { background: color-mix(in srgb, var(--accent) 62%, var(--bg-card)); }
+        #stock-modal .contrib-total-bar-area { margin-bottom: 14px; }
+        #stock-modal #contrib-total .chain-line { font-variant-numeric: tabular-nums; }
+        #stock-modal .contrib-total-label { margin-top: 6px; font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+        #stock-modal .contrib-total-label strong { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin-left: 4px; }
+
+        /* ---- The workings: one card per category, the score washed like its tile ---- */
+        #stock-modal .cat-detail-section { border-radius: var(--radius); box-shadow: var(--hairline-hi); padding: 14px 18px; margin-bottom: 8px; }
+        #stock-modal .cat-detail-header h3 { font-size: 15px; }
+        #stock-modal .cat-detail-header .cat-score-badge {
+            border-radius: var(--radius-pill); border-color: rgba(255, 255, 255, .06); font-variant-numeric: tabular-nums;
+            background: color-mix(in srgb, var(--accent) calc(3% + var(--v, 0) * 25%), var(--bg-card));
+        }
+        #stock-modal .cat-detail-header .cat-weight-badge { font-variant-numeric: tabular-nums; }
+        #stock-modal .cat-detail-header:focus-visible { outline-offset: 6px; border-radius: 4px; }
+        /* the name and its weight on one line: eight closed cards were 83px each */
+        #stock-modal .cat-detail-section { padding: 12px 18px; }
+        #stock-modal .cat-detail-section:not(.collapsed) { padding-bottom: 18px; }
+        #stock-modal .cat-detail-header > div:first-child { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px; min-width: 0; }
+        #stock-modal .cat-detail-header .cat-weight-badge { margin-left: 0; font-size: 12px; }
+        #stock-modal .cat-detail-header > div:last-child { display: flex; align-items: center; gap: 10px; flex: none; }
+
+        /* ---- Before you decide: one chart language. The accent is this stock; the references are
+           ink and grey; strokes stay the same weight however wide the chart is drawn ---- */
+        #stock-modal .ctx-card { box-shadow: var(--hairline-hi); padding: 16px 18px; }
+        #stock-modal .ctx-grid { gap: 10px; }
+        #stock-modal .pc-svg path { vector-effect: non-scaling-stroke; }
+        #stock-modal .pc-c { stroke: var(--accent); stroke-width: 1.75; stroke-linecap: round; }
+        #stock-modal .pc-dot { fill: var(--accent); stroke: var(--bg-card); stroke-width: 2; }
+        #stock-modal .pc-s50 { stroke: var(--text-secondary); stroke-width: 1.25; stroke-dasharray: 4 3; opacity: .85; }
+        #stock-modal .pc-s200 { stroke: var(--text-muted); stroke-width: 1.25; opacity: .9; }
+        #stock-modal .vh-med { stroke: var(--text-secondary); stroke-width: 1; opacity: .7; }
+        #stock-modal .pc-x { font-size: 11px; font-variant-numeric: tabular-nums; }
+        #stock-modal .pc-k-c { background: var(--accent); height: 2px; }
+        #stock-modal .pc-k-50 { background: repeating-linear-gradient(90deg, var(--text-secondary) 0 4px, transparent 4px 7px); }
+        #stock-modal .pc-k-200 { background: var(--text-muted); }
+
+        /* ---- the lower blocks ---- */
+        #stock-modal .snapshot-group { margin-bottom: 22px; }
+        #stock-modal .snapshot-group:last-child { margin-bottom: 0; }
+        #stock-modal .snapshot-group-label { margin-bottom: 2px; font-size: 11px; letter-spacing: .06em; }
+        #stock-modal .rank-chart-head { font-size: 13.5px; }
+        #stock-modal .pt-card-value { letter-spacing: -.01em; }
+
+        /* ---- phone: full-screen, one-handed ---- */
+        @media (max-width: 760px) {
+            #stock-modal .modal-header {
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                grid-template-areas: "tk sec close" "co co co" "fig fig fig" "chips chips chips" "tools tools tools";
+                padding: 14px 16px 12px;
+            }
+            #stock-modal .modal-chips { justify-self: start; margin-top: 12px; }
+            #stock-modal .modal-tools { margin-top: 14px; }
+            #stock-modal .modal-headline { margin-top: 14px; }
+            #stock-modal .modal-company { font-size: 26px; margin-top: 6px; }
+            /* the grabber: a downward drag on the header closes the sheet (sheetDrag) */
+            #stock-modal .modal-content { position: relative; }
+            #stock-modal .modal-content::before {
+                content: ''; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+                border-radius: 2px; background: var(--border-bright); z-index: 1; pointer-events: none;
+            }
+            #stock-modal .modal-header { touch-action: pan-x; }
+            #stock-modal .modal-headline { order: initial; flex: none; }
+            #stock-modal .mh-item { padding: 0 14px; }
+            #stock-modal .mh-item strong { font-size: 22px; }
+            #stock-modal .mh-price { display: grid; }
+            #stock-modal .mh-price strong { font-size: 17px; }
+            #stock-modal .mh-of { display: inline; font-size: 12px; }
+            #stock-modal .cd-svg { width: 104px; }
+            #stock-modal .cd-cap { display: none; }
+            #stock-modal .modal-tools { justify-self: stretch; display: flex; gap: 6px; }
+            #stock-modal .modal-close { width: 40px; height: 40px; }
+            #stock-modal .modal-nav { gap: 20px; padding: 0 16px; scroll-padding: 0 16px; }
+            #stock-modal .modal-nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0; font-size: 13.5px; }
+            #stock-modal .is-compact .modal-header { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tk sec close" "fig fig fig"; padding: 8px 16px 10px; }
+            #stock-modal .is-compact .modal-company, #stock-modal .is-compact .modal-tools, #stock-modal .is-compact .modal-chips { display: none; }
+            #stock-modal .is-compact .modal-ticker { font-size: 15px; }
+            #stock-modal .is-compact .modal-sector { display: block; }
+            #stock-modal .is-compact .mh-price, #stock-modal .is-compact .mh-of { display: none; }
+            #stock-modal .is-compact .modal-headline { margin-top: 4px; }
+            #stock-modal .summary-body { display: block; }
+            #stock-modal .summary-body > p.summary-fact.summary-lead { font-size: 19px; line-height: 1.42; }
+            #stock-modal .summary-group-label { margin: 18px 0 8px; padding: 14px 0 0; }
+            #stock-modal .summary-group-label + .summary-fact { margin-top: 0; padding-top: 0; border-top: 0; }
+            #stock-modal .summary-title, #stock-modal .collapsible-header span:first-child { font-size: 21px; }
+            #stock-modal .collapsible.collapsed .collapsible-header span:first-child { font-size: 18px; }
+            #stock-modal .modal-score-val { font-size: 24px; }
+            #stock-modal #contrib-visual .contrib-row { grid-template-columns: minmax(0, 1fr) auto; }
+            #stock-modal .ctx-card { padding: 14px 14px; }
+            /* price targets: five figures in a 2-column grid; the row of five wrapped into a ragged second line */
+            #stock-modal .pt-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+            #stock-modal .pt-card, #stock-modal .pt-card:first-child { border-left: 0; padding: 10px 0; border-top: 1px solid var(--border); }
+            #stock-modal .pt-card:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+            #stock-modal .pt-card-label { white-space: nowrap; }
+        }
+        @media (max-width: 360px) {
+            #stock-modal .mh-item { padding: 0 10px; }
+            #stock-modal .mh-item strong { font-size: 19px; }
+            #stock-modal .cd-svg { width: 84px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #stock-modal .modal-nav a::after { transition: none; }
+        }
+
     </style>
 </head>
 <body>
@@ -4215,6 +4489,7 @@
                         <h2 class="modal-ticker" id="modal-ticker"></h2>
                         <span class="modal-company" id="modal-company"></span>
                         <span class="modal-sector" id="modal-sector"></span>
+                        <span class="modal-chips" id="modal-chips"></span>
                     </div>
                     <div class="modal-headline" id="modal-headline"></div>
                     <div class="modal-tools" role="toolbar" aria-label="Stock tools">
@@ -6842,16 +7117,19 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         });
         facts = lead.concat.apply(lead, order.map(function(g) { return byGroup[g]; }));
         let lastGroup = '';
+        // Presentation only (2026-10-27): each group label spans its sentences in a two-column
+        // layout on wide screens, and the figures in a sentence are set in ink. figEmph() wraps
+        // characters already in the escaped sentence; it never adds, drops or changes one.
         body.innerHTML = facts.map(function(f) {
             const kind = String(f.k || '').replace(/[^a-z_]/g, '');
             const group = GROUPS[kind] || '';
             let label = '';
             if (group && group !== lastGroup) {
-                label = '<div class="summary-group-label">' + group + '</div>';
+                label = '<div class="summary-group-label" style="grid-row: span ' + byGroup[group].length + '">' + group + '</div>';
                 lastGroup = group;
             }
-            return label + '<p class="summary-fact summary-' + kind + '">' +
-                   escapeHtml(f.t || '') + '</p>';
+            return label + '<p class="summary-fact summary-' + kind + (group ? '' : ' summary-lead') + '">' +
+                   figEmph(escapeHtml(f.t || '')) + '</p>';
         }).join('');
     }
 
@@ -6905,8 +7183,13 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         document.getElementById('modal-sector').textContent = s.sector;
         const hl = document.getElementById('modal-headline');
         const px = (typeof s.price === 'number' && isFinite(s.price)) ? `<span class="mh-item mh-price"><span class="mh-k">Last price</span><strong>$${s.price.toFixed(2)}</strong></span>` : '';
-        if (hl) hl.innerHTML = px + `<span class="mh-item"><span class="mh-k">Rank</span><strong>#${s.rank}</strong><span class="mh-of">of ${D.kpis.universe_size}</span></span>` +
-            `<span class="mh-item"><span class="mh-k">Composite</span><strong>${fmt(s.composite,'score')}</strong></span>`;
+        // The masthead (UI elevation, 2026-10-27): rank and composite first, the composite drawn
+        // where it sits among every published composite (display only), the price as context.
+        if (hl) hl.innerHTML = `<span class="mh-item mh-rank"><span class="mh-k">Rank</span><strong>#${s.rank}</strong><span class="mh-of">of ${D.kpis.universe_size}</span></span>` +
+            `<span class="mh-item mh-comp"><span class="mh-k">Composite</span><strong>${fmt(s.composite,'score')}</strong>${compDistHtml(s.composite)}</span>` + px;
+        const chips = document.getElementById('modal-chips');
+        if (chips) chips.innerHTML = (s.vt ? '<span class="flag" title="Flagged as a possible value trap - see Read with care">Value trap</span>' : '') +
+            (s.gt ? '<span class="flag" title="Flagged as a possible growth trap - see Read with care">Growth trap</span>' : '');
 
         renderSummary(s);
         renderAbout(s);
@@ -6927,7 +7210,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             // out of the most it could add, which is its weight. It was "18.9 pts (22% wt)".
             const ptsText = weight === null ? 'Not scored: no data' : fmt(contrib,'score') + ' of ' + fmtWeight(weight).replace('%', '') + ' points';
             const sv = (score === null || score === undefined) ? 0 : Math.max(0, Math.min(100, score)) / 100;
-            scoreHtml += `<div class="modal-score-card" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" title="Show how this score is built">
+            scoreHtml += `<div class="modal-score-card${weight === null ? ' is-na' : ''}" style="--v:${sv.toFixed(3)}" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="modal-score-label">${CAT_LABELS[c]}</div>
                 <div class="modal-score-val">${fmt(score,'score')}</div>
                 <div class="modal-score-sub">${ptsText}</div>
@@ -7484,7 +7767,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 else { qualLabel = 'Very Weak'; qualClass = 'qual-vweak'; }
             }
 
-            html += `<div class="contrib-row contrib-row-link" onclick="openWorkings('${c}')" title="Show how this score is built">
+            html += `<div class="contrib-row contrib-row-link" onclick="openWorkings('${c}')" role="button" tabindex="0" title="Show how this score is built">
                 <div class="contrib-label">
                     <span class="contrib-cat-dot" style="background:${CAT_COLORS[c]}"></span>
                     <span class="contrib-cat-name">${CAT_LABELS[c]}</span>
@@ -7518,7 +7801,6 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         const disc = cov && cov.disc ? cov.disc : 0;
         const cd = (D.weights || {}).coverage_discount || null;
         const composite = (s.composite !== null && s.composite !== undefined) ? s.composite : runningTotal;
-        const totalPct = Math.max(0, Math.min(100, composite)).toFixed(0);
         let chain = `<div class="chain-line"><span>Category points add up to</span><strong>${runningTotal.toFixed(1)}</strong></div>`;
         if (disc > 0) {
             const covPct = cov.of ? (cov.n / cov.of * 100).toFixed(0) : '?';
@@ -7526,8 +7808,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         }
         document.getElementById('contrib-total').innerHTML = `
             <div class="contrib-total-bar-area">
-                <div class="contrib-total-track">
-                    <div class="contrib-total-fill" style="width:${totalPct}%"></div>
+                <div class="contrib-total-track" role="img" aria-label="Each category's points on a 0 to 100 scale, one segment per category">
+                    <div class="ct-stack">${cats.map(c => (s.contrib[c] > 0) ? `<i class="ct-seg" style="width:${s.contrib[c].toFixed(2)}%" title="${CAT_LABELS[c]}: ${s.contrib[c].toFixed(1)} points"></i>` : '').join('')}</div>
                 </div>
             </div>
             ${chain}
@@ -7666,8 +7948,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 if (wk.notUsed.length) body += notUsedHtml(cat, wk);
             }
 
-            out += `<div class="cat-detail-section collapsed" data-cat="${cat}" id="cat-detail-${cat}">
-                <div class="cat-detail-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            out += `<div class="cat-detail-section collapsed" data-cat="${cat}" id="cat-detail-${cat}" style="--v:${scored ? (Math.max(0, Math.min(100, catScore)) / 100).toFixed(3) : 0}">
+                <div class="cat-detail-header" onclick="this.parentElement.classList.toggle('collapsed')" role="button" tabindex="0">
                     <div><h3>${CAT_LABELS[cat]}</h3><span class="cat-weight-badge">${badge}</span></div>
                     <div><span class="cat-score-badge">Score ${fmt(catScore,'score')}</span><span class="wk-chevron" aria-hidden="true">&#9662;</span></div>
                 </div>
@@ -8520,7 +8802,10 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
         if (hi - lo < 10) { hi = Math.min(N, lo + 10); }
         // Draw at the sheet's real width so text is never scaled: full sheet on desktop, the screen on a phone.
         const W = Math.round(window.innerWidth <= 760 ? Math.max(280, window.innerWidth - 32) : Math.max(480, Math.min(880, window.innerWidth) - 48));
-        const Hh = W < 500 ? 150 : 176, L = 44, R = 52, T = 14, B = 26;
+        // Below 560px the band's label cannot share the axis row with the two dates (it overprinted
+        // both at 375px), so it takes a line of its own beneath them (2026-10-27).
+        const own = W < 560;
+        const Hh = (W < 500 ? 150 : 176) + (own ? 16 : 0), L = 44, R = 52, T = 14, B = 26 + (own ? 16 : 0);
         const iw = W - L - R, ih = Hh - T - B;
         const nx = Math.max(1, dates.length - 1);
         const X = i => L + (i / nx) * iw;
@@ -8540,7 +8825,7 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const y1 = Y(Math.max(lo, last[1] - thr)), y2 = Y(Math.min(hi, last[1] + thr));
             band = '<rect x="' + L + '" y="' + y1.toFixed(1) + '" width="' + iw + '" height="' + Math.max(0, y2 - y1).toFixed(1) + '" class="rc-band"/>' +
                    // on the axis row, between the two dates: inside the plot it sat on the line (2026-10-15)
-                   '<text x="' + ((L + W - R) / 2).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="middle" class="rc-band-label">shaded: &plusmn;' + thr + ' ranks, ordinary run-to-run variation</text>';
+                   '<text x="' + (own ? L : (L + W - R) / 2).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="' + (own ? 'start' : 'middle') + '" class="rc-band-label">shaded: &plusmn;' + thr + ' ranks, ordinary run-to-run variation</text>';
         }
         const lx = X(last[0]), ly = Y(last[1]);
         return '<figure class="rank-chart" data-lo="' + lo + '" data-hi="' + hi + '">' +
@@ -8550,8 +8835,8 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             '<path d="' + path + '" class="rc-line"/>' +
             '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4" class="rc-dot"/>' +
             '<text x="' + (lx + 8).toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" class="rc-last">#' + last[1] + '</text>' +
-            '<text x="' + L + '" y="' + (Hh - 6) + '" class="rc-xtick">' + escapeHtml(short(dates[pts[0][0]] || '')) + '</text>' +
-            '<text x="' + (W - R) + '" y="' + (Hh - 6) + '" class="rc-xtick" text-anchor="end">' + escapeHtml(short(dates[last[0]] || '')) + '</text>' +
+            '<text x="' + L + '" y="' + (Hh - (own ? 22 : 6)) + '" class="rc-xtick">' + escapeHtml(short(dates[pts[0][0]] || '')) + '</text>' +
+            '<text x="' + (W - R) + '" y="' + (Hh - (own ? 22 : 6)) + '" class="rc-xtick" text-anchor="end">' + escapeHtml(short(dates[last[0]] || '')) + '</text>' +
             '<line class="rc-hover-line" x1="0" x2="0" y1="' + T + '" y2="' + (T + ih) + '" visibility="hidden"/>' +
             '<circle class="rc-hover-dot" r="3.5" cx="0" cy="0" visibility="hidden"/>' +
             '<rect class="rc-hit" x="' + L + '" y="' + T + '" width="' + iw + '" height="' + ih + '" data-pts=\'' + JSON.stringify(pts) + '\' data-geo="' + [L, T, iw, ih, nx, lo, hi, W].join(',') + '"/>' +
@@ -8695,6 +8980,12 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
                 const el = document.getElementById(a.getAttribute('href').slice(1));
                 if (el && el.offsetParent !== null && el.getBoundingClientRect().top <= top) cur = a;
             });
+            // Scrolled to the end, the last sections can never reach the top line, so their tab never
+            // lit (Data stayed on Peers). At the bottom, the last section showing is the one being read.
+            if (body.scrollTop > 0 && body.scrollTop + body.clientHeight >= body.scrollHeight - 2) {
+                const shown = links.filter(a => { const el = document.getElementById(a.getAttribute('href').slice(1)); return el && el.offsetParent !== null && !a.hidden; });
+                if (shown.length) cur = shown[shown.length - 1];
+            }
             links.forEach(a => a.classList.toggle('active', a === cur));
         };
         if (!modalSpyBound) { body.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true }); modalSpyBound = true; }
@@ -9768,6 +10059,155 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             updateSectionMeta = function() { const out = _usm.apply(this, arguments); safeTileViz(); return out; };
         }
     })();
+
+
+    // =====================================================================
+    // THE STOCK SHEET (UI elevation, 2026-10-27)
+    // =====================================================================
+    // Every published composite, binned once per page. Read from stock_detail - the same
+    // numbers the sheet prints - and never from the table, whose composite a weighting
+    // profile can swap.
+    function compDist() {
+        if (compDist.c !== undefined) return compDist.c;
+        const v = Object.keys(D.stock_detail || {}).map(t => D.stock_detail[t].composite)
+            .filter(x => typeof x === 'number' && isFinite(x));
+        if (v.length < 10) return (compDist.c = null);
+        const lo = Math.floor(Math.min.apply(null, v) / 5) * 5;
+        const hi = Math.max(lo + 5, Math.ceil(Math.max.apply(null, v) / 5) * 5);
+        const nb = 40, w = (hi - lo) / nb, bins = new Array(nb).fill(0);
+        v.forEach(x => { bins[Math.max(0, Math.min(nb - 1, Math.floor((x - lo) / w)))]++; });
+        return (compDist.c = { lo: lo, hi: hi, nb: nb, w: w, bins: bins, max: Math.max.apply(null, bins), n: v.length });
+    }
+    // A strip of every composite with this one marked: one SVG, ~40 rects.
+    function compDistHtml(score) {
+        const d = compDist();
+        if (!d || typeof score !== 'number' || !isFinite(score)) return '';
+        const W = 160, H = 22, bw = W / d.nb;
+        const X = x => ((Math.max(d.lo, Math.min(d.hi, x)) - d.lo) / (d.hi - d.lo) * W).toFixed(1);
+        const on = Math.max(0, Math.min(d.nb - 1, Math.floor((score - d.lo) / d.w)));
+        let bars = '';
+        d.bins.forEach((c, i) => {
+            if (!c) return;
+            const h = 1.5 + c / d.max * (H - 5);
+            bars += '<rect x="' + (i * bw + 0.5).toFixed(1) + '" y="' + (H - 1 - h).toFixed(1) + '" width="' + Math.max(1, bw - 1).toFixed(1) +
+                    '" height="' + h.toFixed(1) + '"' + (i === on ? ' class="cd-on"' : '') + '/>';
+        });
+        const med = (D.kpis || {}).median_composite;
+        const hasMed = typeof med === 'number' && isFinite(med);
+        const label = 'Composite ' + fmt(score, 'score') + ' among the ' + d.n + ' published composites' + (hasMed ? '; the median is ' + fmt(med, 'score') : '');
+        return '<span class="cd" title="' + escapeHtml(label) + '"><svg class="cd-svg" viewBox="0 0 ' + W + ' ' + (H + 4) + '" role="img" aria-label="' + escapeHtml(label) + '">' +
+            bars + '<path class="cd-base" d="M0 ' + (H - 0.5) + 'H' + W + '"/>' +
+            (hasMed ? '<path class="cd-med" d="M' + X(med) + ' ' + H + 'v4"/>' : '') +
+            '<path class="cd-m" d="M' + X(score) + ' 0V' + H + '"/></svg>' +
+            (hasMed ? '<span class="cd-cap" aria-hidden="true">median ' + fmt(med, 'score') + '</span>' : '') + '</span>';
+    }
+
+    // The figures in an already-escaped sentence, set in ink: a number carrying a decimal point,
+    // a percent or dollar sign, or an ordinal. It wraps characters and never adds, drops or
+    // changes one - the sentence's text is exactly what stock_summary.py published. Digits
+    // inside an entity (&#39;) are never touched: the character before a match may not be & or #.
+    const FIG_RE = /(^|[^\w&#.$])([+\-−]?\$?\d[\d,]*(?:\.\d+)?(?:%|st\b|nd\b|rd\b|th\b)?)/g;
+    function figEmph(html) {
+        return String(html).replace(FIG_RE, function(m, pre, num) {
+            return (/[.%$]/.test(num) || /\d(st|nd|rd|th)$/.test(num)) ? pre + '<span class="fig">' + num + '</span>' : m;
+        });
+    }
+
+    // A step between stocks answers with a short fade of the body; opening and closing keep
+    // their own (the sheet's 160 ms entrance, an instant close). No forced layout.
+    (function wrapSheetStep() {
+        const prev = openStockDetail;
+        const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+        openStockDetail = function() {
+            const was = sheetOpen();
+            const out = prev.apply(this, arguments);
+            const body = document.querySelector('#stock-modal .modal-body');
+            if (was && body && body.animate && !reduce.matches) {
+                body.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+            }
+            return out;
+        };
+    })();
+
+    // The header folds to one line once the reader is into the sheet, and opens again at the
+    // top. Two thresholds, so it cannot flicker at the boundary, and never on a sheet too
+    // short to scroll past the difference.
+    (function sheetCompact() {
+        const sheet = document.querySelector('#stock-modal .modal-content');
+        const body = document.querySelector('#stock-modal .modal-body');
+        if (!sheet || !body) return;
+        let on = false, queued = false;
+        const update = () => {
+            queued = false;
+            const y = body.scrollTop;
+            const room = body.scrollHeight - body.clientHeight;
+            const next = on ? y > 8 : (y > 140 && room > 420);
+            if (next !== on) { on = next; sheet.classList.toggle('is-compact', on); }
+        };
+        body.addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    })();
+
+    // The tab strip follows the reader: the lit tab is kept in view when the strip is wider
+    // than the sheet (every phone). Scrolls the strip only, never the sheet.
+    (function tabFollow() {
+        const nav = document.querySelector('#stock-modal .modal-nav');
+        if (!nav || typeof MutationObserver === 'undefined') return;
+        const reduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+        let queued = false;
+        new MutationObserver(() => {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(() => {
+                queued = false;
+                const a = nav.querySelector('a.active');
+                if (!a || nav.scrollWidth <= nav.clientWidth + 1) return;
+                const nr = nav.getBoundingClientRect(), ar = a.getBoundingClientRect();
+                if (ar.left >= nr.left + 12 && ar.right <= nr.right - 36) return;
+                const left = nav.scrollLeft + (ar.left - nr.left) - 16;
+                nav.scrollTo({ left: Math.max(0, left), behavior: reduce.matches ? 'auto' : 'smooth' });
+            });
+        }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    })();
+
+    // On a phone the sheet is a bottom sheet, and a downward drag on its header closes it the way a
+    // native sheet does: from the header only (the body scrolls), never from a control, downward
+    // only, and past 96px; anything shorter springs back. The grabber drawn above the header says so.
+    (function sheetDrag() {
+        const sheet = document.querySelector('#stock-modal .modal-content');
+        const head = document.querySelector('#stock-modal .modal-header');
+        if (!sheet || !head) return;
+        let y0 = null, dy = 0;
+        head.addEventListener('touchstart', e => {
+            if (window.innerWidth > 760 || e.touches.length !== 1 || (e.target.closest && e.target.closest('button, a, input'))) return;
+            y0 = e.touches[0].clientY; dy = 0;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+        head.addEventListener('touchmove', e => {
+            if (y0 === null) return;
+            dy = Math.max(0, e.touches[0].clientY - y0);
+            sheet.style.transform = dy ? 'translateY(' + dy + 'px)' : '';
+        }, { passive: true });
+        const end = () => {
+            if (y0 === null) return;
+            y0 = null;
+            if (dy > 96) { sheet.style.transition = ''; sheet.style.transform = ''; closeModal(); return; }
+            sheet.style.transition = 'transform 160ms ease-out';
+            sheet.style.transform = '';
+            setTimeout(() => { sheet.style.transition = ''; }, 180);
+        };
+        head.addEventListener('touchend', end);
+        head.addEventListener('touchcancel', end);
+    })();
+
+    // Score tiles, the rows of How it adds up and the workings' category headers act as
+    // buttons; Enter and Space work them the way they work a button.
+    document.addEventListener('keydown', e => {
+        if ((e.key !== 'Enter' && e.key !== ' ') || e.metaKey || e.ctrlKey || e.altKey) return;
+        const el = e.target;
+        if (!el || !el.matches || !el.matches('#stock-modal .modal-score-card[role="button"], #stock-modal .contrib-row-link[role="button"], #stock-modal .cat-detail-header[role="button"]')) return;
+        e.preventDefault();
+        el.click();
+    });
 
 
     function fmtMetric(v, type) {
