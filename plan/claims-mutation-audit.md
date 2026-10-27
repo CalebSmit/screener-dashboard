@@ -203,16 +203,105 @@ it is the second time the audit has found one: the first was 0.11's `context.exp
   to the data loop's publish gate. Either teach the register `Class::method`, or write
   module-level tests for claims (done here).
 
+## Results, 2026-10-26 (owner-run night): the two mechanical searches
+
+Items 5 and 6 of the list below, done as searches rather than claim by claim. **45 mutations
+across 25 claims. 24 caught; 10 real gaps (nothing in the claim's registered tests or their
+modules saw them); 11 gaps in the register; and one register defect that stopped three registered
+checks being run at all.** Every gap now fails a registered check: each new test was shown to
+pass on the unmutated tree and fail under its mutation, and every mutation was re-run after the
+fix and required to come back `CAUGHT` (the 2026-10-25 rule).
+
+**Item 6, the row-59 shape.** An AST walk over `tests/` (not grep: it resolves each module
+alias and `from m import X`, imports the module and keeps only attributes that are numbers)
+listed every comparison or `approx(rel=/abs=)` in a *registered* test that reads a numeric
+constant from the code under test: 20 assertions, 21 distinct constants once uses outside an
+assertion are counted. Run over every test, it found 63, and 11 more constants that a registered
+claim states. Each of the 32 constants was then mutated and the claim's `checked_by` run.
+**5 real gaps, 4 gaps in the register, 23 caught.** The search over-reports by design: most
+constants it finds are also pinned by a literal or a behavioural probe elsewhere in the
+register, which only the mutation can tell. So the scan is not committed as a test-of-tests -
+a rule "never compare against the module's constant" would fail on assertions that are
+legitimate *beside* a literal pin (the capex reconciliation test checks the decomposition at the
+code's own tolerance, correctly, and row 59's literal test sits next to it), and an allowlist
+for those would be the next thing to drift. The question it raises has to be answered by a
+mutation each time.
+
+**Item 5, payload-only checks.** The same walk followed each registered test through the
+module-level helpers and fixtures it reaches and marked it if any of them reads
+`dashboard_data.js` / `dashboard_context.js`. **Six claims had no other kind of check:**
+`compare.composite_gap`, `dashboard.score_key`, `drilldown.inputs_rebuild`,
+`drilldown.piotroski_beneish_parts`, `overview.eps_basis` and `overview.data_source`. Five were
+real (12 mutations, rows 71-73 and 76-84: 5 gaps, 7 gaps in the register); `overview.data_source` was not - its one check also
+reads `factor_engine`'s source for the values the fetch writes, and renaming one fails gate 1
+(row 88). Every new check runs the engine or the generator on fixtures, needs no network and
+no run directory, and writes only to `tmp_path`, because registering it puts it in the data
+loop's publish gate.
+
+| # | Claim | Mutation (file) | Registered checks | Now |
+|---|---|---|---|---|
+| 63 | `drilldown.composite_chain`, `compare.composite_gap` | points-add-up tolerance `CONTRIB_SUM_TOL` 0.05 -> 0.5 (calc_trace) | **gap** - nothing in the suite; its one reader compared with the constant | fixed: `test_points_that_miss_by_more_than_rounding_are_caught` (0.04 accepted, 0.06 refused: eight 2dp roundings miss by at most 0.04) |
+| 64 | `context.price_trend` | `SMA_LONG` 200 -> 150; `SMA_SHORT` 50 -> 40; `SLOPE_LAG` 20 -> 21; `VOL_SHORT` 20 -> 21; `VOL_LONG` 63 -> 60 (context_signals) | caught, all five | - |
+| 65 | `context.put_skew` | `XZZ_PUT_TARGET` 0.95 -> 0.90; `XZZ_PUT_LO` 0.80 -> 0.85; `XZZ_PUT_HI` 0.95 -> 0.96; `XZZ_CALL_HI` 1.05 -> 1.10; `XZZ_DAYS_LO` 10 -> 7; `XZZ_DAYS_HI` 60 -> 90 | caught, all six | - |
+| 66 | `overview.workbook_sheets` | `DASHBOARD_TOP_N` 25 -> 20 (portfolio_constructor) | **gap** - page text and row count both built from the constant | fixed: `test_the_workbook_the_run_writes_holds_the_top_25_and_validates_the_top_10` |
+| 67 | same | `DATA_VALIDATION_TOP_N` 10 -> 12 | **gap** - the test passed its own `top_n` to the sheet writer | fixed: same test, through `write_full_excel` into `tmp_path`; `write_full_excel` passing a literal `top_n=12` is caught too (run after the fix only) |
+| 68 | `overview.auto_disable` | `CATEGORY_AUTO_DISABLE_PCT` 30 -> 40 (run_screener) | **gap** - probes at 20% and 45% straddle 40 too | fixed: `test_the_auto_disable_bar_is_thirty_percent_and_thirty_itself_is_kept` (29.9% off, 30.0% kept, both categories); `pct >= threshold` -> `>` is now caught as well (not measured before the fix) |
+| 69 | `overview.weight_sensitivity` | `SENSITIVITY_PERTURBATION_PTS` 5 -> 10 | caught | - |
+| 70 | same | `SENSITIVITY_TOP_N` 20 -> 25 | **gap** | fixed: `test_weight_sensitivity_compares_the_top_twenty` |
+| 71 | `overview.eps_basis` | fallback's ratio rule 2.0x -> 2.5x (factor_engine) | **gap** - its one check reads the payload | fixed: `test_the_engine_flags_outside_03_to_2x_and_drops_growth_only_on_the_fallback` |
+| 72 | same | the ratio rule applied to the twelve-month construction as well | **gap** | fixed: same test |
+| 73 | same | the EPS-basis flag's bar 2.0x -> 2.5x | **gap** | fixed: same test |
+| 74 | `context.put_skew` | `XZZ_CALL_LO` 0.95 -> 0.90 | **gap in the register** - only `test_option_implied_claims.py::test_the_constants_are_the_papers_and_the_code_uses_them`, a literal comparison that tests no use | fixed: `test_skew_call_band_is_095_to_105_inclusive_and_nearest_one`; the literal test renamed `test_the_constants_are_the_papers` (rule below) and registered |
+| 75 | same | `XZZ_CALL_TARGET` 1.0 -> 1.02 | **gap in the register** - the same literal test and `test_skew_picks_the_nearest_eligible_strike_after_filtering` | fixed: same test; the inclusive call band made exclusive is now caught too |
+| 76 | `drilldown.piotroski_beneish_parts` | Beneish's SGI coefficient 0.892 -> 0.982 (factor_engine) | **gap** - both checks read the payload; across all of `tests/` only `test_investor_profiles.py::test_each_profile_is_what_the_preset_would_publish` went red, indirectly, by comparing a rerun with the committed payload | fixed: `test_the_engines_beneish_indices_rebuild_its_m_score_with_the_published_weights` |
+| 77 | same | Piotroski score scaled to nine, `round(f * 9 / n_testable)` | **gap in the register** - `test_metrics.py::TestPiotroskiFScore::test_partial_data_not_inflated` | fixed: `test_the_engines_piotroski_signals_add_up_to_its_score`; `test_partial_data_not_inflated` registered |
+| 78 | `dashboard.score_key` | `size_log_mcap = log(mc)`, the sign dropped | **gap in the register** - `test_metrics.py::TestSizeLogMcap` | fixed: `test_the_engine_gives_the_largest_company_in_a_sector_the_lowest_size_score` |
+| 79 | same | Size's direction `True` -> `False` (`METRIC_DIR`) | **gap in the register** - only the golden-file snapshot saw it | fixed: same test |
+| 80 | same | `kpis.median_composite` from `.median()` -> `.mean()` (generate_dashboard) | **gap** - no other test reads `median_composite` | fixed: `test_the_median_composite_the_key_quotes_is_the_median_not_the_mean` |
+| 81 | `drilldown.inputs_rebuild` | earnings yield over enterprise value, not market cap (compute_metrics) | **gap in the register** - `TestEarningsYield` (test_metrics); in `test_metric_lineage.py` only the new test fails | fixed: `test_the_engines_inputs_rebuild_its_values_on_the_fixture_universe` (22 metrics on the ten-stock fixture) |
+| 82 | same | accruals with the sign turned | **gap in the register** - `TestAccruals` | fixed: same test |
+| 83 | same | asset growth over this year's assets | **gap in the register** - `TestAssetGrowth` | fixed: same test |
+| 84 | `compare.composite_gap` | contributions not renormalised over the categories present (`w / 100`, `compute_factor_contributions`) | **gap in the register** - `test_composite_and_points_reproduce_including_the_coverage_discount`, registered only for `drilldown.composite_chain` | registered |
+| 85 | `drilldown.special_item_note` | `SPECIAL_ITEM_SHARE_MIN` 0.10 -> 0.15 (sec_crosscheck) | **gap in the register** - `test_the_threshold_is_the_registered_ten_percent` was unregistered and the registered payload test skips without the SEC cache (row 57's catch exists only where the cache does) | registered |
+| 86 | `overview.share_classes` | `CHALLENGE_MARGIN` 0.20 -> 0.25 (share_classes), and `challenge_margin` 0.20 -> 0.25 (config.yaml) | **could not be run**: three registrations named class methods by their bare name, which pytest cannot select; then **gap in the register** - `TestDeclaration::test_score_once_is_on_and_the_margin_is_spdji_s` | names fixed (and `overview.effective_weights`' two), the register tightened, the test registered; both mutations caught |
+| 87 | re-probed at the constant | `ROIC_OPERATING_CASH_SHARE`, `ROIC_EXCESS_CASH_CAP`, `ROIC_IC_FLOOR_SHARE`; `SECTOR_MIN_PEERS` 10 -> 8; `run_overview.TOP_N` 25 -> 20; `LEASE_SHARE_MIN`, `LEASE_RECONCILE_TOL`; `THIN_ANALYST_COUNT` 5 -> 6; `MIN_INPUT_CHURN` 2 -> 3; `MCAP_TOLERANCE` 0.15 -> 0.20; `HLZ_T` 3.0 -> 2.5 | caught, all eleven | - |
+| 88 | `overview.data_source` | `_data_source` "annual" -> "yearly" (factor_engine) | caught - not a gap; the payload scan's flag was a false positive | - |
+
+### What the 2026-10-26 gaps have in common
+
+- **The page and the probe built from one constant (66-68, 70).** Every one of these tests did
+  the work - real behaviour, often both sides of the bar - but derived its expected page text
+  *and* its probes from the constant: `thr = rs.CATEGORY_AUTO_DISABLE_PCT`, then "fewer than
+  {thr}%" on the page and coverage 20% and 45% around it. The generator reads the same constant,
+  so a moved constant moves the page, the code and the test together and all three agree. The
+  public page stays *consistent* - which is why this shape survives review - but the methodology
+  changes with no failing test and no changelog entry (rule 3), and the register's own sentence
+  goes false. Writing the number once as a literal fixes all three.
+- **A test that passes its own argument (67).** `write_data_validation_sheet(wb, df, top_n=n)`
+  checks the sheet writer with the count the test chose; the run calls it from `write_full_excel`
+  with whatever that function passes. Go in through the function the run calls.
+- **Payload-only checks hide engine changes until the morning (71-73, 76, 80).** Same lesson as
+  rows 35-37, now measured as a class: six claims, five real, 13 mutations, none seen at gate 1.
+- **The register naming tests it cannot run (86).** `_test_functions` collected names with
+  `ast.walk`, so a method's bare name "existed"; five registrations used that form and
+  `pytest file::bare_name` reports "not found". The data loop's gate runs whole modules, so
+  nothing went unprotected - but the register's promise that a named check can be run by its
+  reference was false, and the mutation harness is the first thing that took it literally. The
+  existence check now accepts only selectable names (proved: restoring one bare name fails
+  `test_every_checked_by_test_exists`).
+
 ## Next claims (for the nightly sessions)
 
 Take them in order; one session can do four to six. Record each in the table above with
 the date, and move this list down.
 
-**The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62). What is left of
-it, and what the two passes have added to it:
+**The 2026-10-20 list's items 1-8 and 12 are done** (2026-10-25, rows 39-62), **and the two
+mechanical searches are done** (2026-10-26, rows 63-88; item 1's bands and window were covered
+there, rows 65 and 74-75). What is left:
 
-1. `context.put_skew` - the 0.80-0.95 and 0.95-1.05 bands, "nearest 0.95", the 10-60 day
-   window flag.
+1. `context.put_skew` - what is left of it: the *put* leg's "nearest 0.95" with two eligible
+   puts either side of 0.95 (row 65 moved the target to 0.90, which the 0.90-strike fixture
+   happens to sit on), and the 10-60 day flag *at* 10 and 60 (`<=` -> `<`).
 2. `context.sahm` - 3-month average minus the prior-12-month low of the 3-month average; the
    0.50 trigger (`>=` -> `>`).
 3. `context.track_turnover` - half the sum of absolute weight changes; the break-even
@@ -221,16 +310,17 @@ it, and what the two passes have added to it:
    surface on 2026-10-25 (claim `research.positive_control`); its sentences quote intervals,
    t-statistics and a detectable-difference figure, which is exactly the shape rows 26 and 59
    show is easiest to get wrong - a tolerance or a divisor that no test pins independently.
-5. **Re-probe every claim whose only check reads the committed payload.** Rows 35-37 found three;
-   row 57 is a fourth that is *caught* only by a payload-reading test
-   (`test_the_published_payload_agrees_with_the_filings`), which means a wrong constant merges
-   green and first shows up when the data loop refuses to publish the next morning. Grep
-   `checked_by` for the claims whose checks all read `dashboard_data.js` and give each one a test
-   that runs the function.
-6. **Grep for the row-59 shape across the suite, not claim by claim.** Any assertion of the form
-   `approx(..., rel=<module>.<CONST>)` or `== <module>.<CONST>` where `<CONST>` is the number the
-   claim states is unable to see that number move. This is a mechanical search and probably
-   catches more than four more hand-picked mutations would.
+   (Row 87 moved `HLZ_T` and was caught; the intervals and the detectable difference were not
+   probed.)
+5. **The partly-payload claims.** Item 5's scan also lists 21 claims whose checks *mix* payload
+   reads with other tests. A claim is safe only if a non-payload check pins the specific number
+   - the 2026-10-26 pass did not go through them. Re-run the scan (below) and mutate the numbers
+   whose only reader is a payload test.
+
+The two scans are not tracked (see "Method" on why harness code stays out of the repo); both
+are about 100 lines - an `ast` walk over `tests/` that resolves `import m as x` / `from m import
+X`, imports the module and keeps numeric attributes, and a closure over each registered test's
+module-level helpers and fixtures looking for the payload file names.
 
 Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metric_coverage`
 (mean of weighted coverage), `drilldown.newer_filing` ("a quarter or more"),
@@ -257,3 +347,15 @@ Reserves: `overview.metric_alerts` (the missing-share bar), `drilldown.avg_metri
   pass re-ran its own mutations after fixing them and two came back
   `GAP-IN-REGISTER` for exactly this reason - re-run the mutation after the fix, and require
   `CAUGHT`, not merely a red test somewhere.
+- **Build the expected text and the probe from the literal, not from the constant** (added
+  2026-10-26, rows 66-70). Reading the constant into both the page sentence the test expects and
+  the inputs it probes with means a moved constant moves page, code and test together. It is the
+  row-59 rule one step removed - the constant is not in the `approx`, it is upstream of it.
+- **Call the function the run calls, with the arguments the run uses** (row 67). A test that
+  passes its own `top_n` to a helper checks the helper, not the run.
+- **A registered check must be selectable by its reference** (row 86). `checked_by` entries are
+  `file::function` or `file::Class::method`, never a method's bare name;
+  `test_every_checked_by_test_exists` enforces it.
+- **The mutation harness reverts with `git checkout -- <file>`, which reverts to the last
+  commit.** Commit, or copy aside, any uncommitted work in a file before mutating it - the
+  2026-10-26 pass lost an uncommitted `claims.py` edit that way and restored it from a copy.
