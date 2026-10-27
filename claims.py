@@ -1309,6 +1309,7 @@ CLAIMS: tuple[Claim, ...] = (
         checked_by=(
             "tests/test_metric_lineage.py::test_the_published_inputs_rebuild_the_published_value",
             "tests/test_metric_lineage.py::test_stocks_that_do_not_rebuild_are_flagged_not_hidden",
+            "tests/test_metric_lineage.py::test_the_engines_inputs_rebuild_its_values_on_the_fixture_universe",
         ),
         caveat=(
             "T2 covers the 24 metrics in metric_lineage.RECOMPUTE; series-based and provider-ratio "

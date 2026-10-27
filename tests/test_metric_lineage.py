@@ -240,6 +240,44 @@ def test_stocks_that_do_not_rebuild_are_flagged_not_hidden(payload):
     assert flagged >= 0
 
 
+def test_the_engines_inputs_rebuild_its_values_on_the_fixture_universe():
+    """Claims-mutation audit, 2026-10-26 (rows 81-83). Both registered checks of
+    ``drilldown.inputs_rebuild`` read the committed payload, whose values the *previous* run's
+    engine computed - so a formula changed in ``compute_metrics`` (earnings yield over enterprise
+    value, accruals with the sign turned, asset growth over this year's assets) passes gate 1
+    and is first refused by the data loop's build the next morning. This runs the engine on the
+    ten-stock fixture, publishes each stock's inputs the way the generator does (the fetched
+    record under ``_in_`` plus the engine's own keys, ``_stock_inputs``) and requires the
+    formula shown on the page to give the scored value wherever its inputs are there."""
+    import factor_engine as fe
+    import generate_dashboard as gd
+    import pandas as pd
+    fixtures = ROOT / "tests" / "fixtures"
+    recs = json.loads((fixtures / "mock_ticker_data.json").read_text(encoding="utf-8"))
+    mr = json.loads((fixtures / "mock_market_returns.json").read_text(encoding="utf-8"))
+    df = fe.compute_metrics(recs, pd.Series(mr["returns"], index=pd.to_datetime(mr["dates"])))
+    by_ticker = {r["Ticker"]: r for r in recs}
+    checked, wrong = set(), []
+    for _, row in df.iterrows():
+        d = row.to_dict()
+        d.update({"_in_" + k: v for k, v in by_ticker[d["Ticker"]].items() if k in ml.INPUT_KEYS})
+        inp = gd._stock_inputs(d)
+        for m, fn in ml.RECOMPUTE.items():
+            v = d.get(m)
+            if v is None or (isinstance(v, float) and math.isnan(v)):
+                continue
+            calc = fn(inp)
+            if calc is None:
+                continue          # inputs not in this fixture (series-based metrics)
+            checked.add(m)
+            if abs(calc - v) > _tol(calc):
+                wrong.append((d["Ticker"], m, v, calc))
+    assert not wrong, f"the page's formula does not give the scored value: {wrong[:6]}"
+    assert len(checked) >= 20, f"only {len(checked)} metrics exercised: {sorted(checked)}"
+    for m in ("earnings_yield", "accruals", "asset_growth", "roic", "fcf_yield", "ev_ebitda"):
+        assert m in checked, m
+
+
 def test_lineage_check_summary_matches_the_stocks(payload):
     chk = payload["lineage_check"]
     for m in ml.RECOMPUTE:
