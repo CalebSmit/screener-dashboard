@@ -39,6 +39,11 @@ def test_the_regime_a_run_used_can_be_read_back_from_its_weights():
 def test_the_published_run_is_the_balanced_preset_under_its_regime():
     """The run's own weights are the Balanced preset with the regime applied - the anchor that
     makes the other profiles comparable with it."""
+    if not (ROOT / "runs").is_dir():
+        # Gitignored, so absent in a fresh clone or worktree (OWNER_FOCUS 2026-10-20 item 7).
+        # Only absence skips: a runs/ folder with no usable run still fails as before.
+        pytest.skip(f"MISSING DATA: {ROOT / 'runs'} is absent (gitignored) - this test reads the "
+                    "newest full run and cannot run without one")
     w = json.loads((max((d for d in (ROOT / "runs").iterdir() if (d / "effective_weights.json").exists()),
                         key=lambda d: (d / "effective_weights.json").stat().st_mtime) / "effective_weights.json").read_text())
     if not w.get("base_factor_weights"):
@@ -59,6 +64,11 @@ def test_each_profile_is_what_the_preset_would_publish():
     if not P:
         pytest.skip("payload predates investor profiles")
     import yaml
+    if not (ROOT / "runs").is_dir():
+        # Gitignored, so absent in a fresh clone or worktree (OWNER_FOCUS 2026-10-20 item 7).
+        # Only absence skips: a runs/ folder with no usable run still fails as before.
+        pytest.skip(f"MISSING DATA: {ROOT / 'runs'} is absent (gitignored) - this test reads the "
+                    "newest full run and cannot run without one")
     run = max((x for x in (ROOT / "runs").iterdir() if (x / "05_final_scored.parquet").exists()),
               key=lambda x: (x / "05_final_scored.parquet").stat().st_mtime)
     df = pd.read_parquet(run / "05_final_scored.parquet")
