@@ -274,10 +274,16 @@ The lab is also a lens for the work the nightly sessions already do. Three stand
   key to the meters on the overview, a link from each verdict to "What it means for the screener",
   a way on at the foot, a `<noscript>` note, and a print stylesheet. `tests/test_lab_reading_and_access.py`.
   `lab_engine.js` and the data were not touched, so `ASSET_VERSION` did not move.
-- Still open: the overview is ~19,000 px on a phone (seventeen full cards in one column) - a compact
-  phone card, or the index as the overview's first screen, is the next thing worth trying; the bar
-  charts' axes carry no unit on the axis itself (the title says "%"); "Copy a link" announces its
-  "Link copied" only by changing its own label.
+- ~~The overview on a phone, axis units, "Copy a link" confirmation, the cramped hero~~ - done
+  2026-10-27 (follow-up pass). On a phone each card is its title and verdict meter, the whole card a
+  link, with the authors, the no-effect line and the takeaway under "What it found"; every experiment
+  is still listed. Measured at 375 px: cards 6,990 -> 3,894 px, overview 17,699 -> 14,625 px (the rest
+  is the after-the-paper, scorecard and category tables, left whole). Every bar chart's y axis carries
+  "%" on each tick, with a true minus. "Copy a link" confirms through a polite status region beside
+  it, including when the clipboard cannot be reached. The hero's three figures are rows - figure, then
+  its label beside it - instead of three 110 px columns. `tests/test_lab_reading_and_access.py` (18).
+- Still open: the overview's three tables (after the paper, scorecard, category map) are about
+  8,200 px on a phone between them.
 
 ## The first paint (measured 2026-10-26)
 
