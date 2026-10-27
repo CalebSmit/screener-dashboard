@@ -114,6 +114,35 @@ and keyboard. Presentation and access only: no figure, sentence about a computat
 | Factor Lab, follow-up | phone overview cards fold to title + meter with "What it found" (cards 6,990 -> 3,894 px at 375); "%" on every bar chart's y axis; "Copy a link" confirms in a status region; the hero's figures as rows on a phone | `lab.html`; `tests/test_lab_reading_and_access.py` (18 in all) |
 | Has it been tested? | every section has an id; an "On this page" list read off the sections the generator emitted; the foot links back to the answer, the lab and the rankings; 44 px nav, contents and summary on a phone; print as ink on paper | `research_page.py` (`with_contents`); `tests/test_research_page.py` (+2) |
 
+### Same day, night - the drilldown pass (owner-run)
+
+The stock sheet audited as a student would use it - EXPE (#1), JPM (bank), VICI (REIT), ED (utility),
+FDXF (three categories unscored), WMB (#490) - at 375 and 1280 px, by keyboard and by heading. Eight
+changes, all presentation; payload byte-identical; `tests/test_drilldown_reading.py` (49). What was
+wrong, and what it is now (detail in `plan/dashboard-inventory.md`, "The drilldown pass"):
+
+1. **Only one heading in the sheet** (the ticker). Eleven section titles and the eight workings
+   categories are now real `h3`/`h4`, a button inside a heading; the dialog is named ticker + company.
+2. **A tab only scrolled.** It now moves focus to the section it names; the lit tab is `aria-current`.
+3. **Ten tabs did not fit an 880 px sheet** - Peers and Data sat past the edge unannounced. Arrows at
+   the edge (mouse) and a fade (touch).
+4. **Next / Previous threw focus to Close**, so a second Enter closed the sheet; and a screen reader
+   heard only "2 of 498". Focus stays on the control; a status line names the stock and its rank.
+5. **No plain-English meaning for 38 metrics** ("EV/EBITDA", "Beneish M-Score", "12-1M Return"). Each
+   metric card opens with "What it measures" (definitional only - tested: no digit, no computing verb,
+   no advice term), and each category with the score key's own "A higher ... score means" line.
+6. **The research under each context reading** opened only by clicking a paragraph - no keyboard, no
+   cue. A "Read the research" button now, kept in step with the paragraph's own click.
+7. **On a phone the workings' figures had no labels** ("2.51 ● 27 60%" - which is the percentile?).
+   "27 pctile · 60% weight · 16.30 pts", drawn by CSS; Calculation is a 44 px target.
+8. **Printing with a sheet open printed the page behind it.** It now prints the sheet - every section
+   open, light ink, no controls - and puts the sheet back afterwards (Ctrl+P or the toolbar's icon).
+
+Seen and not changed: an unscored category tile says "Not scored: no data" without naming the reason
+(a new listing or a price series the run rejected) - the reason is not in the payload per category, so
+saying it needs a payload field; the "Strong / Weak" words in How it adds up read "Very Weak" for a low
+Risk score, which is a volatile price, not a weak company - worth a wording decision by the owner.
+
 ### Left for a later pass (owner-run; nightly sessions do not take design work)
 
 1. Phone Reporting soon hides the "Last quarter" and "Insiders" columns - decide whether phone
