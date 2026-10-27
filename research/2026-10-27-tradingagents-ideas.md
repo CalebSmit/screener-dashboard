@@ -57,7 +57,7 @@ Day)**, and it escaped by luck - Friday is three days back, Tuesday one day forw
 not: **2026-11-26 (Thanksgiving, Thursday)** ties Wednesday against Friday and takes Wednesday;
 **2026-12-25 (Friday)** takes Thursday 12-24.
 
-**Proposal status: OPEN** - enter each snapshot at the first close **on or after** its run date (the
+**Proposal status: DONE 2026-10-27 (owner-run; owner: "make all changes necessary")** - `improvement_engine._entry_close`, `METHODOLOGY_CHANGELOG.md` 2026-10-27, `tests/test_evidence_integrity.py::TestEntryCloseOnAHoliday`. As proposed: enter each snapshot at the first close **on or after** its run date (the
 rule `_horizon_end_close` already applies to the end of a horizon, and `track_record.py` to entry), with
 a regression test on a Thanksgiving-shaped series, before 2026-11-26. It changes how a comparison is
 measured, not a weight, so it is recorded in `METHODOLOGY_CHANGELOG.md` (the 2026-10-16 horizon-end
@@ -79,7 +79,7 @@ cost). Summed, it is the value of turnover itself. Novy-Marx & Velikov (2016, *A
 and Their Trading Costs*) is the reason it matters: cost-mitigating buffers help exactly when the
 marginal swap is worth less than its cost.
 
-**Proposal status: OPEN** - a `swaps.csv` in the bot's journal written at each rebalance, settled by
+**Proposal status: DONE 2026-10-27 (owner-run)** - screener-bot ROADMAP 3.10, `bot/swaps.py`, merged as `17c03fe`, CI green. Built as one long-short package per rebalance (equal-weighted names bought minus names sold, no pairing), entry at the first close after the order, prices filed by each run in `journal/closes.csv` from the page's `price_date` (pinned here by `tests/test_bot_payload_contract.py`), withheld under 26 non-overlapping settled rebalances like Sharpe. Proposed as: a `swaps.csv` in the bot's journal written at each rebalance, settled by
 later runs, shown on the dashboard's tear sheet with the same "not decided under N observations" rule
 as Sharpe (ROADMAP 3.1). Bot repo, owner-run (screener nightlies do not work there). It is a
 measurement, never an input to what the bot trades.
@@ -91,7 +91,11 @@ deciding, read the strongest case **against** as carefully as the case for. The 
 "Why it ranks here" (the case for) and pieces of the case against scattered across "Read with care",
 "Before you decide", the trap flags, input churn and the filing check.
 
-**Proposal status: OPEN** - one "The case against" block at the top of the drilldown that only
+**Proposal status: DECIDED 2026-10-27** - accepted by the owner ("Yes make all changes necessary") and
+built the same day: claim `drilldown.case_against`, `tests/test_case_against.py`, described in
+`plan/dashboard-inventory.md`. "The review window" was read as Reporting soon's 14 days (the configured
+review cadence is quarterly, which would hold nearly every report), and "analyst targets below the price"
+as the mean target below it (the summary's own sentence). The proposal as written: one "The case against" block at the top of the drilldown that only
 **collects** what the page already publishes for that stock: its weakest weighted categories, any trap
 or caveat flag, insider net selling, price below its 200-day average, an earnings date inside the
 review window, analyst targets below the price, and inputs that disagree with the company's filing.

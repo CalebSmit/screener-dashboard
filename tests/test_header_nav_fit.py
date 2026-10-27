@@ -95,7 +95,12 @@ def test_the_bar_refits_when_the_window_is_resized(browser):
     try:
         assert page.evaluate(STATE)["menu"] == []
         page.set_viewport_size({"width": 1024, "height": 900})
-        page.wait_for_timeout(300)
+        # the refit runs on the next frame after the resize is observed; wait for it rather than a
+        # fixed 300 ms, which a loaded parallel suite overran (2026-10-27)
+        try:
+            page.wait_for_function("document.querySelectorAll('#nav-more-menu a').length > 0", timeout=8000)
+        except Exception:  # noqa: BLE001 - the assertions below report what was seen
+            pass
         s = page.evaluate(STATE)
         assert s["clipped"] == [] and s["menu"], f"after resizing to 1024px: {s}"
         assert s["shown"] + s["menu"] == s["all"]

@@ -699,6 +699,13 @@ and the inputs the 11 history-based metrics need kept at fetch.)*
 
 Completed items, newest first.
 
+- **2026-10-27 - Ideas from TradingAgents: DONE (owner-run).** Owner: *"look into this repo to see if
+  you can steal any ideas from it"*, then *"Yes make all changes necessary."* The review is
+  `research/2026-10-27-tradingagents-ideas.md` (its own results are not evidence; no AI opinion enters
+  a score or a trade). Built from it: the evidence base's holiday entry fix (a run on a market holiday
+  no longer starts at the close its ranking was built from), "The case against" in every stock's sheet,
+  and the bot's swap ledger (what each rebalance's trades were worth, ROADMAP 3.10).
+
 - **2026-10-27 - "A full in depth UI/UX update to all the tools": first pass DONE (owner-run).**
   Owner: *"right now it looks okay, but it can look great. Be creative and look into absolutly
   everything."* All four tools, presentation only - every number, rank and sentence byte-identical

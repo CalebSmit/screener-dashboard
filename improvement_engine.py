@@ -545,8 +545,9 @@ def compute_forward_returns(current_date: str) -> pd.DataFrame | None:
             if ticker_prices.empty:
                 continue
 
-            # Find price at scoring date (nearest available)
-            base_price = _nearest_price(ticker_prices, snap_dt)
+            # Entry: the first close on or after the run date - a price someone could
+            # trade at after the ranking was published (2026-10-27, _entry_close)
+            base_price = _entry_close(ticker_prices, snap_dt)
             if base_price is None or base_price <= 0:
                 continue
 
@@ -718,6 +719,24 @@ def _horizon_end_close(prices: pd.Series, target_dt: pd.Timestamp) -> float | No
     if (after.index[0] - target_dt).days > HORIZON_END_FORWARD_DAYS:
         return None
     return float(after.iloc[0])
+
+
+def _entry_close(prices: pd.Series, run_dt: pd.Timestamp) -> float | None:
+    """A snapshot's entry price: the first close on or after its run date.
+
+    The 02:00 run is built from the previous session's close and published before the
+    next open, so the first close a reader could trade at is the run date's own - or,
+    when the run date is a market holiday, the next session's. The nearest-close rule
+    this replaces looked in both directions and broke ties to the earlier close, so a
+    holiday run whose previous close was at least as near as its next one entered at
+    the close its ranking was computed from: Thanksgiving (Wednesday against Friday) and
+    a Friday holiday such as 2026-12-25 (Thursday against Monday). Labor Day 2026-09-07
+    escaped only because Tuesday was nearer than Friday. Found 2026-10-27 checking
+    TradingAgents' "first close after the decision" rule (its #1518/#1539) against this
+    engine: ``research/2026-10-27-tradingagents-ideas.md`` section 3. Weekday runs are
+    unchanged - their own close is at distance zero under both rules.
+    """
+    return _horizon_end_close(prices, run_dt)
 
 
 def _nearest_price(prices: pd.Series, target_dt: pd.Timestamp) -> float | None:

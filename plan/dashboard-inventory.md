@@ -334,6 +334,23 @@ second kind of **"Worth knowing"** note (2026-10-15, `ranking_audit.stock_notes`
 (46 stocks, HST and WDC in the top 50), sustainable growth when equity is under 10% of assets and the
 measure is at its cap (EXPE). Claim `drilldown.ranking_audit`.
 
+**The case against** (2026-10-27, owner-approved proposal in `research/2026-10-27-tradingagents-ideas.md`
+section 5; claim `drilldown.case_against`, `tests/test_case_against.py`). A block straight after "Why it
+ranks here" and its Before-you-decide teaser, before About, with its own tab ("The case against", between
+Why it ranks here and How it adds up). It **only collects** what the sheet already publishes, built in the
+browser by `caseItems` / `renderCaseAgainst` (`_js_drilldown`) from `stock_detail[t]` and, once
+`dashboard_context.js` lands, `ctx` - so the payload is unchanged. Lines, each opening its section: the two
+weakest weighted categories (score and "N of W points" as the score tiles print them, plus the score
+row's own gloss for Risk / Size / Investment), and verbatim the summary's flags, target (mean target below
+the price), earnings (report 0-14 days after the run - Reporting soon's longer window), confidence (an
+unscored category, stale filings or the EPS disagreement) and change + input-churn sentences; the close
+against its 200-day average when below it (the Trend card's figure); officers' and directors'
+open-market sales over 90 days when there were no purchases or the sales were larger (the Insider card's
+figures); filing-check fields beyond its 2%; and Data provenance's newer-filing sentence. A check that ran
+clean is named under "Checked, nothing to list", one with no data under "Not available"; before the
+context file arrives the block says the trend and insider lines are loading. Amber rule = caveat colour.
+No new figure, threshold or verdict; every line goes through `advice_terms_in` and `FORBIDDEN` in the test.
+
 **A metric row can carry a note about this stock's own filings** (2026-10-15). Under the generic
 "Worth knowing" caveat, a quieter block headed "In this company's filings" renders
 `stock_detail[t].cavs[metric]` - prose built at run time, never derived in JS. Today one metric

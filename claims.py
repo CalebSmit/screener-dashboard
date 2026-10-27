@@ -738,6 +738,38 @@ CLAIMS: tuple[Claim, ...] = (
             "tests/test_special_item_note.py::test_the_threshold_is_the_registered_ten_percent",
         ),
     ),
+    Claim(
+        id="drilldown.case_against",
+        surface=DRILLDOWN,
+        asserts=(
+            "'The case against' (owner, 2026-10-27; research/2026-10-27-tradingagents-ideas.md "
+            "section 5) only collects what the sheet already publishes for the stock, in the format "
+            "the sheet prints it: its two lowest-scoring weighted categories with the score and the "
+            "'N of W points' the score tiles show (W the weight actually multiplied by); the "
+            "summary's own flags sentence when it carries a value-trap, growth-trap, Beneish or "
+            "channel-stuffing flag; the summary's own target sentence when the mean analyst target "
+            "is below the last price; the last close against the 200-day average when it is below "
+            "it (the Trend card's figure and trend word); officers' and directors' open-market sales "
+            "over 90 days when there were no open-market purchases or the sales were larger, with "
+            "the people count and pre-set-plan share the Insider card shows; the summary's own "
+            "earnings sentence when the report is 0-14 days after the run (Reporting soon's longer "
+            "window); the summary's own confidence sentence when a category is unscored, the filings "
+            "are stale or the EPS disagree; the summary's change and input-churn sentences when it "
+            "has the churn caveat; the filing check's fields that differ by more than its 2%; and "
+            "Data provenance's newer-filing sentence. A check that ran and found nothing is named as "
+            "such, and one with no data as not available. It adds no figure, no threshold and no "
+            "verdict, and never enters a score."
+        ),
+        made_true_by="generate_dashboard:_js_drilldown",
+        checked_by=(
+            "tests/test_case_against.py::test_every_line_is_the_payloads_own_fact_for_every_stock",
+            "tests/test_case_against.py::test_each_check_is_listed_cleared_or_unavailable",
+            "tests/test_case_against.py::test_no_line_is_advice_or_a_forbidden_claim",
+            "tests/test_case_against.py::test_the_cut_offs_are_the_ones_the_page_already_states",
+            "tests/test_case_against.py::test_context_lines_wait_for_the_context_file",
+            "tests/test_case_against.py::test_each_line_opens_the_section_that_shows_it",
+        ),
+    ),
     # --- the context layer (2026-10-08, plan/context-layer.md): shown, never scored ---
     Claim(
         id="context.expected_move",

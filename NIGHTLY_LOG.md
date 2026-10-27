@@ -16016,3 +16016,22 @@ snapshot at the nearest close in either direction, so a holiday run enters at th
 built from. Labor Day escaped by luck; **2026-11-26 and 2026-12-25 will not**. Three OPEN proposals in
 the note: that fix (before Thanksgiving), a swap ledger for the bot, and a "case against" block in the
 drilldown. No code changed.
+
+### Same day, owner: "Yes make all changes necessary" - the three TradingAgents proposals built (`good/2026-10-27-owner-4`)
+
+- **Evidence base, holiday entry** (`improvement_engine._entry_close`): a run on a market holiday now
+  enters at the first close on or after its date, not the close its ranking was built from. No
+  recorded row changes; Thanksgiving and 2026-12-25 would have been the first affected.
+  `METHODOLOGY_CHANGELOG.md` 2026-10-27; `tests/test_evidence_integrity.py::TestEntryCloseOnAHoliday`.
+- **"The case against"** in every drilldown (its own tab, after "Why it ranks here"): only what the
+  sheet already shows against the stock - weakest categories, flags, analyst mean below price, below
+  the 200-day average, insider net selling, earnings within 14 days, read-with-care caveats, recent
+  move, filing-check differences, newer filings - each line opening its section; checks that ran clean
+  are named. Claim `drilldown.case_against`; `tests/test_case_against.py` checks all 498 stocks against
+  the payload. Payload byte-identical.
+- **Bot swap ledger** (screener-bot ROADMAP 3.10, `17c03fe`, CI green): per rebalance, names bought
+  minus names sold over 5/21/63 sessions from the first close after the order, net of cost, withheld
+  under 26 non-overlapping rebalances. Measurement only. `stock_detail[t].price_date` now pinned by
+  `tests/test_bot_payload_contract.py`.
+- **Two flaky browser tests fixed** (fixed waits a loaded parallel suite overran; the rehearsal failed
+  once on one). Assertions unchanged. Suite **3295 passed, 1 skipped**; rehearsal PASSED.
