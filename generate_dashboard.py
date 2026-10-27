@@ -10917,6 +10917,36 @@ def _js_drilldown() -> str:
         }).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
     })();
 
+    // On a phone the sheet is a bottom sheet, and a downward drag on its header closes it the way a
+    // native sheet does: from the header only (the body scrolls), never from a control, downward
+    // only, and past 96px; anything shorter springs back. The grabber drawn above the header says so.
+    (function sheetDrag() {
+        const sheet = document.querySelector('#stock-modal .modal-content');
+        const head = document.querySelector('#stock-modal .modal-header');
+        if (!sheet || !head) return;
+        let y0 = null, dy = 0;
+        head.addEventListener('touchstart', e => {
+            if (window.innerWidth > 760 || e.touches.length !== 1 || (e.target.closest && e.target.closest('button, a, input'))) return;
+            y0 = e.touches[0].clientY; dy = 0;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+        head.addEventListener('touchmove', e => {
+            if (y0 === null) return;
+            dy = Math.max(0, e.touches[0].clientY - y0);
+            sheet.style.transform = dy ? 'translateY(' + dy + 'px)' : '';
+        }, { passive: true });
+        const end = () => {
+            if (y0 === null) return;
+            y0 = null;
+            if (dy > 96) { sheet.style.transition = ''; sheet.style.transform = ''; closeModal(); return; }
+            sheet.style.transition = 'transform 160ms ease-out';
+            sheet.style.transform = '';
+            setTimeout(() => { sheet.style.transition = ''; }, 180);
+        };
+        head.addEventListener('touchend', end);
+        head.addEventListener('touchcancel', end);
+    })();
+
     // Score tiles, the rows of How it adds up and the workings' category headers act as
     // buttons; Enter and Space work them the way they work a button.
     document.addEventListener('keydown', e => {
@@ -11140,6 +11170,9 @@ def _css_drilldown() -> str:
         #stock-modal .pc-k-200 { background: var(--text-muted); }
 
         /* ---- the lower blocks ---- */
+        #stock-modal .snapshot-group { margin-bottom: 22px; }
+        #stock-modal .snapshot-group:last-child { margin-bottom: 0; }
+        #stock-modal .snapshot-group-label { margin-bottom: 2px; font-size: 11px; letter-spacing: .06em; }
         #stock-modal .rank-chart-head { font-size: 13.5px; }
         #stock-modal .pt-card-value { letter-spacing: -.01em; }
 
@@ -11154,6 +11187,13 @@ def _css_drilldown() -> str:
             #stock-modal .modal-tools { margin-top: 14px; }
             #stock-modal .modal-headline { margin-top: 14px; }
             #stock-modal .modal-company { font-size: 26px; margin-top: 6px; }
+            /* the grabber: a downward drag on the header closes the sheet (sheetDrag) */
+            #stock-modal .modal-content { position: relative; }
+            #stock-modal .modal-content::before {
+                content: ''; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+                border-radius: 2px; background: var(--border-bright); z-index: 1; pointer-events: none;
+            }
+            #stock-modal .modal-header { touch-action: pan-x; }
             #stock-modal .modal-headline { order: initial; flex: none; }
             #stock-modal .mh-item { padding: 0 14px; }
             #stock-modal .mh-item strong { font-size: 22px; }

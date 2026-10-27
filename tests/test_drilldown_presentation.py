@@ -185,6 +185,31 @@ def test_enter_works_the_cards_a_click_works(browser):
         ctx.close()
 
 
+def test_phone_sheet_closes_on_a_long_drag_down_and_springs_back_on_a_short_one(browser):
+    ctx, page, _ = _open(browser, 375, 812, touch=True)
+    drag = """dy => {
+        const head = document.querySelector('#stock-modal .modal-company');
+        const r = head.getBoundingClientRect(), x = r.left + 10, y = r.top + 5;
+        const t = (yy) => new Touch({ identifier: 1, target: head, clientX: x, clientY: yy });
+        head.dispatchEvent(new TouchEvent('touchstart', { touches: [t(y)], bubbles: true }));
+        head.dispatchEvent(new TouchEvent('touchmove', { touches: [t(y + dy)], bubbles: true }));
+        const mid = document.querySelector('#stock-modal .modal-content').style.transform;
+        head.dispatchEvent(new TouchEvent('touchend', { touches: [], bubbles: true }));
+        return mid;
+    }"""
+    try:
+        _sheet(page, "EXPE")
+        assert page.evaluate(drag, 40) == "translateY(40px)"
+        page.wait_for_timeout(250)
+        assert page.is_visible("#stock-modal .modal-content")
+        assert page.evaluate("document.querySelector('#stock-modal .modal-content').style.transform") == ""
+        page.evaluate(drag, 140)
+        page.wait_for_timeout(100)
+        assert not page.is_visible("#stock-modal .modal-content")
+    finally:
+        ctx.close()
+
+
 @pytest.mark.parametrize("ticker", ["EXPE", "JPM"])
 def test_phone_sheet_fits_and_its_controls_are_thumb_sized(browser, ticker):
     ctx, page, _ = _open(browser, 375, 812, touch=True)
