@@ -136,6 +136,29 @@ Presentation only (payload byte-identical). What a session must know before touc
 - **Lab menu**: experiments grouped by `group` (a field on each `factor_lab.EXPERIMENTS` record): Momentum,
   Value, Quality, Risk, Across the factors. A new experiment needs a `group`.
 
+## The page, round two, 2026-10-27 (owner-run) - `plan/ui-elevation.md` "Round two", `tests/test_page_round_two.py`
+
+Presentation only (payload byte-identical). What a later session must know before touching these:
+- **`<main id="main" class="page-main">`** wraps the hero through the rankings; the header, the dialogs, the
+  Menu pill, the compare tray and the footer stay outside it. The >= 1200 px two-column grid lives on
+  `.page-main` (hero and KPIs in its row 1); a rule written as `.dashboard-container > .section` no longer
+  reaches the sections - write `.page-main > .section`.
+- **The rankings window shifts** (`shiftWindow` in `_js_table`): a scroll keeps the rows that stay and adds or
+  removes only the edges; `renderWindow(true)` - every sort, filter, profile, resize, row-height or
+  column-count change - still rebuilds. `winTotal` / `winH` / `winCols` force the rebuild when they change.
+  A row's DOM node now survives scrolling, so never hang per-render state on a row element.
+- **Rankings header** background is `--bg-elevated` (AA for muted labels); the rank-change column is headed
+  **"Move"** (`#th-rank-delta`, 56 / 52 px, 4 px padding) and the score key's row reads "Move ▲ ▼".
+- **Links inside sentences are underlined** (`.tr-caveats a`, `.score-key a`, `#modal-context a:not([class])`).
+- **Methodology formulas wrap** (`.methodology-body pre { white-space: pre-wrap }`) - nothing in the dialog
+  scrolls sideways; the source text is unchanged. **In-page links in the methodology** go to their heading
+  (`methodAnchorClick` / `methodSlug`, bound once in `hydrateMethodology`; TOC links carry `data-m` and are
+  left to `goToMethod`).
+- **`#correlation-heatmap`** is a named, focusable region (it scrolls on a phone).
+- **Phone sector table** (`#sector-matrix`, <= 760 px): one card a sector via CSS grid; every cell carries
+  `data-l` (column name), the composite cell `.sm-comp`. Desktop is a table as before.
+- **Diagnostics tile**: its chevron is pinned to the title's line (`#sec-defensibility > .section-header`).
+
 ## The page, fourth pass, 2026-10-27 (owner-run) - `plan/ui-elevation.md`, `tests/test_page_fourth_pass.py`
 
 Presentation only. What a later session must know before touching these:
