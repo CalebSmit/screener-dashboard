@@ -10183,7 +10183,9 @@ py factor_exposure.py --start 2024-01-01 --end 2025-12-31
             const all = links();
             all.forEach(a => a.classList.remove('nav-hidden'));
             wrap.hidden = true;
-            const over = () => nav.scrollWidth > nav.clientWidth + 1;
+            // strict: scrollWidth is rounded, so a link 1.5px past the bar read as 199 against 198 and
+            // a "+ 1" allowance left it clipped (768px with the fallback face, 2026-10-27)
+            const over = () => nav.scrollWidth > nav.clientWidth;
             if (over()) {
                 wrap.hidden = false;
                 for (let i = all.length - 1; i >= 0 && over(); i--) all[i].classList.add('nav-hidden');
