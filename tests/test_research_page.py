@@ -339,3 +339,69 @@ def test_on_a_phone_its_controls_are_44_px_and_on_paper_it_is_ink():
             assert errors == []
         finally:
             browser.close()
+
+
+# --------------------------------------------------------------------------- round two (2026-10-27)
+def test_the_plain_answer_is_given_only_while_every_interval_includes_zero():
+    """Claim ``research.plain_answer``: the student's-words line under the headline says no edge has
+    been shown, so it may appear only while every interval (each era and pooled) includes zero - and
+    must go, with "Not measurably.", the day one does not."""
+    reg, latest = X.load_registry(), _latest()
+    summary = X.summary_for_page(reg, latest)
+    ci = summary["baseline_ic_ci95"]
+    every_zero = all(lo <= 0 <= hi for lo, hi in ci.values())
+    page = rp.build(reg, latest, summary, X.detectable, X.load_evaluations())
+    assert ("In plain terms:" in page) == every_zero == ("<strong>Not measurably.</strong>" in page)
+    if every_zero:                                    # the line sits under the headline, before the statistics
+        assert page.index("<strong>Not measurably.</strong>") < page.index("In plain terms:") \
+            < page.index("The ranking's average monthly rank correlation")
+    moved = copy.deepcopy(summary)
+    moved["baseline_ic_ci95"]["pooled"] = [0.004, 0.03]
+    built = rp.build(reg, latest, moved, X.detectable, X.load_evaluations())
+    assert "In plain terms:" not in built and "No edge has been shown" not in built
+    assert "<strong>Not reliably.</strong>" in built
+    assert rp.plain_answer(True) and rp.plain_answer(False) == ""
+    assert advice_terms_in(re.sub(r"<[^>]+>", " ", rp.plain_answer(True))) == []
+
+
+def test_the_check_on_the_headline_chart_says_what_it_is():
+    """'Fed today's filings / lead over the real ranking' meant nothing until two cards later; the
+    row names a ranking that cheats, and the caption gives the scale's ends and its zero."""
+    page = _rebuilt()
+    fig = page[page.index('<figure class="fp"'):page.index("</figure>")]
+    if "fp-c" in fig:
+        assert "A ranking that cheats" in fig and "today&rsquo;s filings for every past month" in fig
+        assert "Fed today&rsquo;s filings" not in fig
+    assert "runs from &minus;1 to +1" in fig and "no relation" in fig
+
+
+def test_one_banner_one_main_one_footer_and_links_in_sentences_are_underlined():
+    """axe (round two): no main landmark, every word outside a landmark, and links told from their
+    sentence by colour alone (1.12:1 against the foot's grey)."""
+    page = _rebuilt()
+    body = page[page.index("<body>"):]
+    assert body.count("<main") == 1 and body.count('<header class="bar"') == 1 and body.count("<footer") == 1
+    assert body.index('<header class="bar"') < body.index("<main") < body.index('id="how-tested"') \
+        < body.index("</main>") < body.index('<footer class="foot"')
+    assert body.count("<header") == 1                 # the banner is the only one
+    import pytest
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        try:
+            page = browser.new_page(viewport={"width": 1280, "height": 900})
+            page.goto(rp.PAGE.as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_selector("main", timeout=8000)
+            bare = page.evaluate("""[...document.querySelectorAll('p a, li a, .foot > a')]
+                .filter(a => !a.closest('.toc, .next-nav'))
+                .filter(a => !getComputedStyle(a).textDecorationLine.includes('underline')).map(a => a.textContent)""")
+            assert bare == []
+            assert page.evaluate("document.querySelectorAll('p a, .foot > a').length") >= 3
+            outside = page.evaluate("""[...document.querySelectorAll('h1, h2, p, .answer')]
+                .filter(e => !e.closest('main, header, footer, nav')).map(e => e.tagName + ' ' + e.textContent.slice(0, 40))""")
+            assert outside == []
+        finally:
+            browser.close()

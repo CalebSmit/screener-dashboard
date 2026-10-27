@@ -15,6 +15,11 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<!-- The two files the menu waits for, asked for from the first bytes of the page rather than from
+     the script tags 460 lines down (round two, 2026-10-27; plan/factor-lab.md "The first paint").
+     Same URLs as the tags, version included - tests/test_lab_reading_and_access.py keeps them equal. -->
+<link rel="preload" href="lab_data.js?v=27" as="script">
+<link rel="preload" href="lab_engine.js?v=27" as="script">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -46,6 +51,13 @@ body { margin: 0; background: var(--bg-deep); color: var(--text-secondary); font
        font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11'; }
 a { color: var(--accent-text); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* A link inside a sentence is underlined as well as coloured (round two, 2026-10-27; axe
+   link-in-text-block, WCAG 1.4.1): the accent against the muted grey of the citations and the foot
+   is 1.12:1, so colour alone did not mark it for a reader who cannot tell the two apart. */
+p a, .cite a, .note a, dd a, li a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); }
+p a:hover, .cite a:hover, .note a:hover, dd a:hover, li a:hover { text-decoration-color: currentColor; }
+.next-nav a, .pager a, .tabs a { text-decoration: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 72px; }
 @media (min-width: 720px) { .wrap { padding: 0 32px 96px; } }
@@ -208,9 +220,35 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
 #t-map td, #t-score td { vertical-align: top; text-align: left; font-size: 14px; color: var(--text-secondary); }
 #t-map th, #t-score th { text-align: left; }
 #t-map td:first-child, #t-score td:first-child { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+.row-more { display: none; }
 @media (max-width: 599px) { #t-map, #t-map tbody, #t-map tr, #t-map td, #t-score, #t-score tbody, #t-score tr, #t-score td { display: block; } #t-map thead, #t-score thead { display: none; }
     #t-map tr, #t-score tr { padding: 12px 0; border-bottom: 1px solid var(--border); } #t-map td, #t-score td { border: 0; padding: 2px 0; }
-    #t-score td:nth-child(3) { margin-top: 8px; } #t-score td:nth-child(3)::before { content: 'Left open: '; color: var(--text-primary); font-weight: 600; } }
+    #t-score td:nth-child(3), #t-map td:nth-child(3) { margin-top: 8px; } #t-score td:nth-child(3)::before { content: 'Left open: '; color: var(--text-primary); font-weight: 600; }
+    /* the map's third column had no label once its header went (round two): its text ran on as if it
+       were more of what the lab covers */
+    #t-map td:nth-child(3)::before { content: 'Not covered: '; color: var(--text-primary); font-weight: 600; }
+    /* a category's name, weight and bar on the left, the fold's button on the right of the same lines */
+    #t-score td:first-child, #t-map td:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; white-space: normal; }
+    #t-score td:first-child > span, #t-map td:first-child > span { grid-column: 1; }
+    .row-more { grid-column: 2; grid-row: 1 / span 3; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px 0 8px;
+                appearance: none; background: none; border: 0; color: var(--accent-text); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .row-more::after { content: ''; width: 7px; height: 7px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+                       transform: rotate(45deg); transition: transform var(--t-fast), margin var(--t-fast); }
+    .row-more[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: 3px; }
+    #t-map .row-more { grid-row: 1; }
+    #t-score tr:not(.open) td.folds, #t-map tr:not(.open) td.folds { display: none; }
+    #t-score tr, #t-map tr { padding: 8px 0 10px; }
+    /* After the paper as rows (round two): the result's name across the width, its two figures under
+       it in the header's two columns, and the drawn drift - hidden on a phone until now - beside them */
+    #t-after, #t-after thead, #t-after tbody { display: block; }
+    #t-after tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 72px; column-gap: 10px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    #t-after thead tr { padding: 0 0 6px; }
+    #t-after th, #t-after td { display: block; border: 0; padding: 0 !important; text-align: left; }
+    #t-after thead th:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    #t-after td:first-child { grid-column: 1 / -1; margin-bottom: 4px; font-weight: 500; }
+    #t-after .dcol { display: block; width: auto; align-self: center; }
+    #t-after thead .dcol { align-self: end; } #t-after .key-mini { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; } #t-after .k-sep { display: none; } }
+@media print { .row-more { display: none !important; } td.folds { display: block !important; } }
 .exp > section { padding: 24px 18px; border-top: 1px solid var(--border); }
 .exp > section:first-child { border-top: 0; }
 @media (min-width: 720px) { .exp > section { padding: 36px 40px; } }
@@ -434,12 +472,16 @@ h2[tabindex="-1"]:focus { outline: none; }
 </head>
 <body>
 <div class="wrap">
-    <div class="bar">
+    <header class="bar">
         <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
         <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html">Has it been tested?</a><a href="lab.html" aria-current="page">Factor Lab</a></nav>
-    </div>
+    </header>
 
-    <header class="hero">
+    <!-- one main landmark around the introduction and the lab (round two, 2026-10-27): the wordmark, the
+         introduction and the closing note had sat outside every landmark, and the figures were an aside
+         nested inside the banner -->
+    <main id="content">
+    <div class="hero">
         <div class="lede">
         <div class="eyebrow">Research you can rerun</div>
         <h1>The research behind the screener, rerun.</h1>
@@ -447,8 +489,8 @@ h2[tabindex="-1"]:focus { outline: none; }
         <p>Then it hands you the controls. Change the period or the settings and the result is recalculated in your browser.</p>
         <p class="fine">A teaching tool, not investment advice. These are paper portfolios that hold some stocks and short others, with no trading costs.</p>
         </div>
-        <aside class="kpis" id="kpis" aria-label="The lab so far" hidden></aside>
-    </header>
+        <section class="kpis" id="kpis" aria-label="The lab so far" hidden></section>
+    </div>
 
     <div class="lab-grid" id="lab-grid">
         <div class="index" id="index">
@@ -456,11 +498,12 @@ h2[tabindex="-1"]:focus { outline: none; }
             <nav class="tabs" id="tabs" aria-label="Experiments"></nav>
         </div>
         <div class="lab-main">
-            <main id="lab"><p class="fine">Loading the experiment…</p><noscript><p class="warn">The Factor Lab reruns each study in your browser, so it needs JavaScript. <a href="research.html">Has it been tested?</a> is the same project's research as a plain page.</p></noscript></main>
+            <div id="lab"><p class="fine">Loading the experiment…</p><noscript><p class="warn">The Factor Lab reruns each study in your browser, so it needs JavaScript. <a href="research.html">Has it been tested?</a> is the same project's research as a plain page.</p></noscript></div>
             <nav class="pager" id="pager" aria-label="Step through the experiments" hidden></nav>
             <p class="next">Experiments are added one at a time, each held to the same four parts: the claim, the conditions, the difference from the paper, and what is still unverified. Some of the studies the screener cites cannot be rerun on free data; those will be listed here too, with what it would take.</p>
         </div>
     </div>
+    </main>
 
     <footer id="foot"></footer>
 </div>
@@ -1397,6 +1440,12 @@ h2[tabindex="-1"]:focus { outline: none; }
             <span class="take">${esc(x.takeaway)}</span></div>
             <button type="button" class="card-more" aria-expanded="false" aria-controls="cb-${esc(x.id)}">What it found</button></article>`;
         const link = id => `<a href="#${esc(id)}" title="${esc(byId[id].x.title)}">${byId[id].n}. ${esc(byId[id].x.tab || byId[id].x.title)}</a>`;
+        // On a phone the scorecard and the category map were 5,100 px of prose between them (round two,
+        // 2026-10-27). Each category keeps its row, its weight, what the lab measured and the experiments
+        // behind it; only the third column - what is left open, what is not covered - folds behind a
+        // button that carries that column's own name, so the fold is labelled with what it holds. Wider
+        // screens, and print, show every cell as before; the button exists only on a phone.
+        const more = (id, label) => `<button type="button" class="row-more" aria-expanded="false" aria-controls="${id}">${label}</button>`;
         // In the paper's sample and since, drawn on the row's own scale: the paper's years in grey, the
         // years since in the accent, zero marked - so "weaker afterwards" reads as the dot moving in.
         const slope = r => { const a = r.inside.value, b = r.after.value;
@@ -1421,24 +1470,24 @@ h2[tabindex="-1"]:focus { outline: none; }
         <section aria-labelledby="o-after">
             <h3 id="o-after">In the paper's sample, and after it</h3>
             <p style="margin:0 0 12px;max-width:72ch">${afterLine}</p>
-            <div class="tablewrap"><table id="t-after"><thead><tr><th scope="col">Result</th><th scope="col">In the paper's sample</th><th scope="col">Since</th><th scope="col" class="dcol"><span class="key-mini"><i class="ka"></i>in · <i class="kb"></i>since</span></th></tr></thead><tbody>
-            ${D.after_the_paper.map(r => `<tr><td><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td>${afterCell(r, r.inside)}</td><td>${afterCell(r, r.after)}</td><td class="dcol">${slope(r)}</td></tr>`).join('')}
+            <div class="tablewrap"><table id="t-after" role="table"><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Result</th><th scope="col" role="columnheader">In the paper's sample</th><th scope="col" role="columnheader">Since</th><th scope="col" class="dcol" role="columnheader"><span class="key-mini"><span class="sr-only">Drawn: </span><span><i class="ka"></i>in</span><span class="k-sep"> · </span><span><i class="kb"></i>since</span></span></th></tr></thead><tbody role="rowgroup">
+            ${D.after_the_paper.map(r => `<tr role="row"><td role="cell"><a href="#${esc(r.experiment)}">${esc(r.label)}</a></td><td role="cell">${afterCell(r, r.inside)}</td><td role="cell">${afterCell(r, r.after)}</td><td class="dcol" role="cell">${slope(r)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Since” runs from the month after each paper's sample to the latest month in the data. The figure in brackets is the t-statistic where one applies; beyond about 2 either way is the usual bar. Short periods prove little: read the months beside each figure.</p>
         </section>
         <section aria-labelledby="o-score">
             <h3 id="o-score">What this means for the screener's weights</h3>
             <p style="margin:0 0 12px;max-width:72ch">The lab does not set the screener's weights, and none has changed because of it. A weight changes only through a written argument from published research and from how practitioners build screens, recorded in the methodology's changelog. The lab's part is to check that research: does it rerun, has it held since, and does it hold among large companies, which are all the screener ranks. This is where each category stands.</p>
-            <div class="tablewrap"><table id="t-score"><thead><tr><th scope="col">Category</th><th scope="col">Measured in the lab</th><th scope="col">What that leaves open</th></tr></thead><tbody>
-            ${D.scorecard.map(c => `<tr><td>${esc(c.category)}<span class="where">${c.weight}% of the score</span><span class="wbar" aria-hidden="true"><i style="width:${Math.min(100, c.weight / 25 * 100).toFixed(1)}%"></i></span></td><td>${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.open)}</td></tr>`).join('')}
+            <div class="tablewrap"><table id="t-score" role="table"><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Measured in the lab</th><th scope="col" role="columnheader">What that leaves open</th></tr></thead><tbody role="rowgroup">
+            ${D.scorecard.map((c, k) => `<tr role="row"><td role="cell"><span class="cat">${esc(c.category)}</span><span class="where">${c.weight}% of the score</span><span class="wbar" aria-hidden="true"><i style="width:${Math.min(100, c.weight / 25 * 100).toFixed(1)}%"></i></span>${more('sc-' + k, 'Left open')}</td><td role="cell">${esc(c.measured)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td role="cell" class="folds" id="sc-${k}">${esc(c.open)}</td></tr>`).join('')}
             </tbody></table></div>
             <p class="note">“Big companies” are the larger half of New York Stock Exchange companies by market value. The factors are measured on value-weighted portfolios that go long one group and short another; the screener ranks companies and shorts nothing, so these are evidence about the traits, not a forecast of its results.</p>
         </section>
         <section aria-labelledby="o-map">
             <h3 id="o-map">What stands behind each part of the screener's score</h3>
             <p style="margin:0 0 12px;max-width:72ch">The screener scores every company in eight categories. This is what the lab can put behind each one today, and what it cannot.</p>
-            <div class="tablewrap"><table id="t-map"><thead><tr><th scope="col">Category</th><th scope="col">Rerun in the lab</th><th scope="col">Not covered</th></tr></thead><tbody>
-            ${D.category_map.map(c => `<tr><td>${esc(c.category)}</td><td>${esc(c.has)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td>${esc(c.gap)}</td></tr>`).join('')}
+            <div class="tablewrap"><table id="t-map" role="table"><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Category</th><th scope="col" role="columnheader">Rerun in the lab</th><th scope="col" role="columnheader">Not covered</th></tr></thead><tbody role="rowgroup">
+            ${D.category_map.map((c, k) => `<tr role="row"><td role="cell"><span class="cat">${esc(c.category)}</span>${more('mp-' + k, 'Not covered')}</td><td role="cell">${esc(c.has)}${c.experiments.length ? '<span class="where">' + c.experiments.map(link).join(' · ') + '</span>' : ''}</td><td role="cell" class="folds" id="mp-${k}">${esc(c.gap)}</td></tr>`).join('')}
             </tbody></table></div>
         </section>
         <section aria-labelledby="o-how">
@@ -1453,6 +1502,9 @@ h2[tabindex="-1"]:focus { outline: none; }
         mount.querySelectorAll('.card-more').forEach(b => b.addEventListener('click', () => {
             const open = b.getAttribute('aria-expanded') !== 'true';
             b.setAttribute('aria-expanded', String(open)); b.closest('.card').classList.toggle('open', open); }));
+        mount.querySelectorAll('.row-more').forEach(b => b.addEventListener('click', () => {
+            const open = b.getAttribute('aria-expanded') !== 'true';
+            b.setAttribute('aria-expanded', String(open)); b.closest('tr').classList.toggle('open', open); }));
         return { id: 'overview', settings: () => ({}), result: () => null, redraw: () => {} };
     }
 
@@ -1656,6 +1708,25 @@ h2[tabindex="-1"]:focus { outline: none; }
         }));
     }
     const missing = X => (PARTS[X.kind] ? PARTS[X.kind](X) : []).filter(k => !(k in D));
+    // A reader who has started to choose an experiment - a mouse button down on its card or menu entry, a
+    // pointer resting on it, the keyboard on it - has its series asked for then, not at the click
+    // (round two, 2026-10-27). Only that experiment's own part, only on that sign of intent, so a
+    // reader who never goes near the 153 factors still never downloads them; part() shares the one
+    // request with the click that follows. Every figure is the same file's.
+    let hover = 0;
+    const intent = e => {
+        const a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+        if (!a) return;
+        const X = D.experiments.find(x => x.id === a.getAttribute('href').slice(1).split('?')[0]);
+        // a finger coming down is as often the start of a scroll as of a tap, so on a touch screen
+        // only the tap itself (the click) asks - a reader scrolling past the 153 factors must not fetch them
+        if (!X || !missing(X).length || (e.type === 'pointerdown' && e.pointerType === 'touch')) return;
+        const go = () => missing(X).forEach(k => part(k).catch(() => {}));
+        clearTimeout(hover);
+        if (e.type === 'pointerdown') go(); else hover = setTimeout(go, 150);     // a pass across the cards, or Tab past them, is not a choice
+    };
+    ['pointerdown', 'focusin', 'mouseover'].forEach(t => document.addEventListener(t, intent, { passive: true }));
+    ['mouseout', 'focusout'].forEach(t => document.addEventListener(t, () => clearTimeout(hover), { passive: true }));
     let showing = 0;                                     // a later show() supersedes one still loading
     const tabs = document.getElementById('tabs');
     // The experiments grouped by what they test, so the menu reads as a map rather than a wall of
