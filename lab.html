@@ -135,8 +135,8 @@ h1 { margin: 12px 0 20px; color: var(--text-primary); font-family: var(--font-di
              scrollbar-width: thin; scrollbar-color: var(--border-bright) transparent; }
     .index::before, .picker { display: none; }
     .tabs, .tabs.open { display: block; position: static; width: auto; max-height: none; overflow: visible; padding: 0; border: 0; background: none; box-shadow: none; }
-    .tabs a { min-height: 34px; padding: 6px 8px; font-size: 13.5px; }
-    .tabs .tg-l { margin: 18px 8px 4px; }
+    .tabs a { min-height: 32px; padding: 5px 8px; font-size: 13.5px; }
+    .tabs .tg-l { margin: 14px 8px 2px; }
 }
 .exp { border: 1px solid var(--border); border-radius: 16px; background: var(--bg-card); box-shadow: var(--hairline-hi); }
 /* on a phone the experiment runs edge to edge: a card inside a card inside a margin left a 270px column */
@@ -504,7 +504,8 @@ h3[id^="x-"], h3[id^="o-"] { scroll-margin-top: 80px; }
         return '$' + v.toFixed(2);
     }
     function draw(el, months, series, opt) {
-        const W = Math.max(280, el.clientWidth || 600), H = opt.height, L = 46, R = 10, T = 8, B = 22;
+        // a phone gets a shorter frame: the full height on a 343px column made every line chart a tall strip
+        const W = Math.max(280, el.clientWidth || 600), H = W < 520 ? Math.round(opt.height * .8) : opt.height, L = 46, R = 10, T = 8, B = 22;
         const n = months.length, x = i => L + (n > 1 ? i / (n - 1) : 0) * (W - L - R);
         let lo = Infinity, hi = -Infinity;
         series.forEach(s => s.v.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));

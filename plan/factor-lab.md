@@ -324,6 +324,22 @@ runner's payload gate names `lab_data.js` - the lab's parse check is `tests/test
 
 ## Progress (update each session)
 
+- **2026-10-27 (owner-run, UI pass - `plan/ui-elevation.md`) - presentation only; every figure and
+  sentence unchanged, `lab_data*.js` and `lab_engine.js` untouched (so no `ASSET_VERSION` bump).**
+  The four wrapped rows of pill chips became one **experiment index**: a sticky numbered column beside
+  the experiment at 1080 px and wider, and a single picker (`#picker`) that opens the same `#tabs`
+  list on a phone or tablet (Escape, a tap outside or a choice closes it). Every **verdict is drawn**:
+  one cell per figure, filled where it lands within tolerance, amber outline where not, a tick at the
+  no-effect baseline (`meter()`, on the cards and in each experiment's verdict box); each "Against the
+  paper" row draws its difference on its tolerance band (`gauge()`); each "In the paper's sample, and
+  after it" row draws both values on its own scale (`slope()`). The hero carries the overview's three
+  counts; titles are the display serif; charts gained an axis, year ticks and a point per line at the
+  month being read; a lazily loaded experiment shows its title, paper and verdict at once with
+  placeholders under "Loading this experiment's data…"; previous / next sit at the foot of each.
+  One test edit: the phone click in
+  `test_the_overview_loads_no_heavy_series_and_each_experiment_only_its_own` opens `#picker` first and
+  pins that it opens and closes.
+
 - **2026-10-26 (night, owner-run agent) - the first paint, measured and fixed.** OWNER_FOCUS
   2026-10-20 item 7. 1.18 MB gzipped stood between a phone and the menu (6.2-6.4 s on Lighthouse's
   mobile profile); the six heaviest series moved to `lab_data_<key>.js`, loaded per experiment, and
