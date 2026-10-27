@@ -79,7 +79,7 @@ cost). Summed, it is the value of turnover itself. Novy-Marx & Velikov (2016, *A
 and Their Trading Costs*) is the reason it matters: cost-mitigating buffers help exactly when the
 marginal swap is worth less than its cost.
 
-**Proposal status: OPEN** - a `swaps.csv` in the bot's journal written at each rebalance, settled by
+**Proposal status: DONE 2026-10-27 (owner-run)** - screener-bot ROADMAP 3.10, `bot/swaps.py`, merged as `17c03fe`, CI green. Built as one long-short package per rebalance (equal-weighted names bought minus names sold, no pairing), entry at the first close after the order, prices filed by each run in `journal/closes.csv` from the page's `price_date` (pinned here by `tests/test_bot_payload_contract.py`), withheld under 26 non-overlapping settled rebalances like Sharpe. Proposed as: a `swaps.csv` in the bot's journal written at each rebalance, settled by
 later runs, shown on the dashboard's tear sheet with the same "not decided under N observations" rule
 as Sharpe (ROADMAP 3.1). Bot repo, owner-run (screener nightlies do not work there). It is a
 measurement, never an input to what the bot trades.

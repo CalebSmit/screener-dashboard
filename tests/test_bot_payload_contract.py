@@ -100,6 +100,23 @@ def test_stock_detail_carries_the_price_the_sim_trades_at(payload):
         assert payload["stock_detail"][t]["price"] == pytest.approx(price)
 
 
+def test_stock_detail_names_the_session_its_price_is_from():
+    """screener-bot's swap ledger (ROADMAP 3.10, 2026-10-27) files each stock's ``price`` under
+    ``stock_detail[t].price_date`` - and only under it - to measure what each rebalance's trades
+    were worth. A missing or renamed field would not stop a trade; it would silently stop the
+    ledger settling (the bot's run log says why). Published as the ISO date string, or None."""
+    df = _frame()
+    df["_price_date"] = ["2026-10-08", "2026-10-08", None]
+    detail = json.loads(g.prepare_dashboard_data({
+        "df": df,
+        "meta": {"run_date": "2026-10-09", "start_time": "2026-10-09T02:00:00"},
+        "weights": {}, "sens_df": None, "corr_df": None, "cfg": {},
+    }))["stock_detail"]
+    assert detail["AAA"]["price_date"] == "2026-10-08"
+    assert detail["BRK-B"]["price_date"] == "2026-10-08"
+    assert detail["CCC"]["price_date"] is None
+
+
 # Optional, display-only fields the bot also reads (2026-10-15, screener-bot
 # `signals.caveats_from`): its page and report show them beside each holding. A missing one
 # gives the bot no note, never a refusal - so a rename here would not stop a trade, it would
