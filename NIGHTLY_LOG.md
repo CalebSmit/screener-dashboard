@@ -15763,8 +15763,8 @@ Priority 0: `allow_auto_apply` **false**, unchanged. Top open roadmap item: **0.
 Lab** (opened 2026-10-12, **age 15 days**) - not advanced today; the next non-retrospective
 Friday is 2026-11-06 and nothing here competed for it.
 **Tests:** before **1 failed, 3247 passed, 1 skipped** - the failure was *flaky, not mine*, and
-became the session's first work (below). After: **3250 passed, 1 skipped** (+2 new scheduler
-tests, +7 brief tests, −1 flake).
+became the session's first work (below). After: **3256 passed, 1 skipped** - 3,248 collected at
+baseline plus the scheduler test split into two (+1) and 7 new brief tests, with the flake gone.
 **Owner queue / rotation:** `OWNER_FOCUS.md` item 1 sub-item 1 ("decide the OPEN proposals") was
 waiting with one, 1 day open, so it came before the Tuesday focus as the prompt requires. The
 Tuesday focus was then done in its verification half (drilldowns against the engine) and found
