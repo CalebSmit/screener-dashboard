@@ -168,6 +168,32 @@ code { font-family: var(--font-mono); font-size: .9em; }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: 0s !important; } }
 .foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
 .src { overflow-wrap: anywhere; }
+/* second pass, 2026-10-27 (plan/ui-elevation.md): a contents list under the answer, every section
+   addressable, a way on at the foot, 44 px controls on a phone, and a page that prints as ink on paper */
+section[id], #top { scroll-margin-top: calc(var(--bar-h) + 16px); }
+.toc { margin: 28px 0 0; padding: 16px 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); box-shadow: var(--hairline-hi); }
+.toc h2 { margin: 0 0 8px; font-family: var(--font-body); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.toc ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px 24px; max-width: none; counter-reset: toc; }
+@media (min-width: 720px) { .toc ol { grid-template-columns: 1fr 1fr; } }
+.toc li { counter-increment: toc; }
+.toc a { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; color: var(--text-secondary); font-size: 14px; line-height: 1.4; }
+.toc a::before { content: counter(toc); flex: none; width: 1.4em; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.toc a:hover { color: var(--text-primary); }
+.next-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; }
+@media (max-width: 719px) {
+  .bar nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; }
+  .toc a { min-height: 44px; padding: 10px 0; } .next-nav a { display: inline-flex; align-items: center; min-height: 44px; }
+  details summary { display: flex; align-items: center; min-height: 44px; padding: 0; }
+}
+@media print {
+  :root { color-scheme: light; --bg-deep: #fff; --bg-card: #fff; --bg-elevated: #f4f4f2; --border: #d8d8d4; --border-bright: #b9b9b4; --band: #e7e7e3;
+          --text-primary: #111; --text-secondary: #333; --text-muted: #555; --accent: #1f5fae; --accent-text: #1f5fae; }
+  body { background: #fff; font-size: 12px; }
+  .bar, .toc, .next-nav { display: none !important; }
+  .answer li, .fp, .chart, .stat, .claim { box-shadow: none; break-inside: avoid; }
+  section { break-inside: avoid-page; margin-top: 28px; padding-top: 16px; }
+  a { color: inherit; }
+}
 @media (max-width: 599px) {
   table.alts thead, table.bot thead { display: none; }
   table.alts, table.alts tbody, table.alts tr, table.bot, table.bot tbody, table.bot tr { display: block; }
@@ -187,7 +213,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="top">
   <div class="bar">
     <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
     <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html" aria-current="page">Has it been tested?</a><a href="lab.html">Factor Lab</a></nav>
@@ -218,8 +244,9 @@ code { font-family: var(--font-mono); font-size: .9em; }
     <li><strong>The test can see a signal when there is one.</strong> Fed the filings as they stand today for every past month &mdash; information nobody had at the time &mdash; the same test puts that ranking <span class="num">+0.051</span> of rank correlation a month ahead of the real one over <span class="num">80</span> months (t <span class="num">+5.6</span>), against the <span class="num">+0.037</span> it could reliably detect. So the flat results above are a finding about the ranking, not a test that cannot see anything.</li>
   </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
+  <nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ol><li><a href="#how-tested">How it was tested</a></li><li><a href="#alternatives">Each alternative against the current weighting, 2012&ndash;2019</a></li><li><a href="#best-backtest">If you had kept the best backtest</a></li><li><a href="#trading-rule">What a simple trading rule on the ranking would have done</a></li><li><a href="#how-long">How long would it take to prove an edge?</a></li><li><a href="#what-it-means">What this means</a></li><li><a href="#limits">Limits of the test</a></li></ol></nav>
 
-  <section>
+  <section id="how-tested">
     <h2>How it was tested</h2>
     <p>Test enough ideas on one history and some look excellent by luck. The test was set up to prevent that:</p>
     <ol class="steps">
@@ -230,7 +257,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     </ol>
   </section>
 
-  <section>
+  <section id="alternatives">
     <h2>Each alternative against the current weighting, 2012&ndash;2019</h2>
     <p class="fine">Difference in average monthly rank correlation. The shaded band is the smallest difference the test could reliably detect (80% of the time). The two short marks either side of zero are the pass bar: a difference counts only if it reaches beyond them, a t-statistic of <span class="num">3.21</span> over these 96 months, in the same direction as 2020&ndash;2026. A dot inside the marks did not pass; it may still be a real difference smaller than the band. Rows marked &dagger; had their 2020&ndash;2026 result on file before they were registered; this chart is their blind test.</p>
     <div class="chart" role="figure" aria-label="Each alternative's difference from the current weighting, with its interval and the detectable band">
@@ -252,7 +279,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     </details>
   </section>
 
-  <section>
+  <section id="best-backtest">
     <h2>If you had kept the best backtest</h2>
     <p>A common way to choose a strategy is to backtest many and keep the winner. That rewards luck as well as skill. Bailey, Borwein, L&oacute;pez de Prado &amp; Zhu (2017) measure how much: split the history into equal blocks of months, and for every way of picking half of them (<span class="num">12,870</span> ways here, from 16 blocks), take the weighting that did best on that half and see where it ranks on the other half. The <strong>probability of backtest overfitting</strong> (PBO) is the share of those trials in which the winner lands in the bottom half. Luck alone gives about 0.5; a weighting that is genuinely better pushes it toward 0. This uses the current weighting and the 27 alternatives above, each scored month by month against the current one on the stocks both ranked, and reruns nothing.</p>
     <div class="stats"><div class="stat"><div class="v">0.20</div><div class="k">chance the best-looking weighting landed in the bottom half, 2012&ndash;2026</div></div><div class="stat"><div class="v">0.73</div><div class="k">the same over 2020&ndash;2026 alone</div></div><div class="stat"><div class="v">0.60</div><div class="k">every year, with Size alone dropped from the set</div></div></div>
@@ -260,7 +287,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     <p>Over 2020&ndash;2026 alone the PBO was <span class="num">0.73</span>, worse than a coin toss, and the winner beat the current weighting out of sample in <span class="num">34%</span> of trials. Drop Size alone from the set and the PBO over every year is <span class="num">0.60</span>, worse than a coin toss.</p>
     <p>So a low reading over the whole history did not survive either check. Keeping the best of many backtests would mostly have picked whatever the history happened to reward, which is why the screener's weights come from published research and every test here is registered before it runs.</p>
   </section>
-  <section>
+  <section id="trading-rule">
     <h2>What a simple trading rule on the ranking would have done</h2>
     <p>A rule that holds the top 25, keeps each until it falls past rank 40, skip names flagged as value or growth traps, at most 6 in a sector, 5 basis points of cost a side, rebalanced monthly. It is compared with the equal-weighted average return of the stocks the test could score each month. Those are the members still listed today: <span class="num">57%</span> of each month's members in 2012, rising to <span class="num">97%</span> in 2026, so the average leans toward the companies that survived.</p>
     <div class="tw"><table class="bot">
@@ -284,7 +311,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     </figure>
     <p><strong>The prediction half failed.</strong> The stop cut both the worst month and the deepest fall in 2020 &ndash; mid-2023, and made at least one of them worse in 2012&ndash;2019 and mid-2023 &ndash; 2026. Turnover rose as predicted, to 1.4x / 1.8x / 1.8x the unstopped rule's. The stop closed <span class="num">470</span> positions across the periods shown. A stop exits into a fall and holds cash until the next monthly rebalance, so it trades the falls it escapes for the rebounds it misses, and the periods above disagree about whether that is a good trade. One stop level was tested, 10%, fixed before the test ran and never searched over &mdash; a level chosen by what this history happened to reward would tell you nothing.</p>
   </section>
-  <section>
+  <section id="how-long">
     <h2>How long would it take to prove an edge?</h2>
     <div class="stats">
       <div class="stat"><div class="v">48</div><div class="k">months of record to show a monthly correlation of 0.05 at the usual 5% level</div></div>
@@ -294,7 +321,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     <p>The ranking's monthly correlation swings by about <span class="num">0.12</span> from one month to the next, so any monthly ranking of large companies needs years of record before a realistic edge can be told apart from luck. That applies to this screener's live track record too. Here, the smallest difference the test could reliably see was about <span class="num">0.037</span> over 2012&ndash;2019 and <span class="num">0.062</span> over the held-out months.</p>
   </section>
 
-  <section>
+  <section id="what-it-means">
     <h2>What this means</h2>
     <div class="claims">
       <div class="claim"><h3>Supported</h3><p>Every factor the screener uses has a published source, and the <a href="lab.html">Factor Lab</a> reruns the studies behind its categories on public data. Every score on the dashboard can be rebuilt from its inputs. The testing is pre-registered and every run is kept.</p></div>
@@ -303,7 +330,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
     <p style="margin-top:14px">So the screener is a structured, checkable way to look at a company across eight dimensions. It is not a forecast.</p>
   </section>
 
-  <section>
+  <section id="limits">
     <h2>Limits of the test</h2>
     <ul>
       <li>It cannot include the analyst-based inputs (estimate revisions and forward earnings growth, about a sixth of the live weighting): no free history of them exists.</li>
@@ -315,6 +342,7 @@ code { font-family: var(--font-mono); font-size: .9em; }
   <div class="foot">
     Generated from the screener's <a href="https://github.com/CalebSmit/screener-dashboard/tree/main/research/experiments">research log</a> (data version <span class="num">4a7a38dc3471</span>); the write-up, the registry of every prediction and every run are in the project's <a href="https://github.com/CalebSmit/screener-dashboard/blob/main/research/2026-10-15-research-engine-first-batch.md">public repository</a>.
     This is research on a screening method for study and teaching. It is not investment advice.
+    <nav class="next-nav" aria-label="Where next"><a href="#top">Back to the answer</a><a href="lab.html">The Factor Lab: the research behind each category, rerun</a><a href="index.html">The rankings</a></nav>
   </div>
 </div>
 </body>

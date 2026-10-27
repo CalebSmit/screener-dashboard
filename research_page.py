@@ -325,7 +325,7 @@ def overfitting_section(reg: list, latest: dict) -> str:
           "backtests would mostly have picked whatever the history happened to reward, which is why the "
           "screener's weights come from published research and every test here is registered before it runs.")
     return f"""
-  <section>
+  <section id="best-backtest">
     <h2>If you had kept the best backtest</h2>
     <p>A common way to choose a strategy is to backtest many and keep the winner. That rewards luck as well as skill. Bailey, Borwein, L&oacute;pez de Prado &amp; Zhu (2017) measure how much: split the history into equal blocks of months, and for every way of picking half of them (<span class="num">{a['splits']:,}</span> ways here, from {a['blocks']} blocks), take the weighting that did best on that half and see where it ranks on the other half. The <strong>probability of backtest overfitting</strong> (PBO) is the share of those trials in which the winner lands in the bottom half. Luck alone gives about 0.5; a weighting that is genuinely better pushes it toward 0. This uses the current weighting and the {a['configurations'] - 1} alternatives above, each scored month by month against the current one on the stocks both ranked, and reruns nothing.</p>
     <div class="stats">{stats}</div>
@@ -435,6 +435,19 @@ def excess_figure(b: dict, s: dict | None, periods: list, t_critical, stop_pct=N
       <div class="fp-axis"><div></div><div class="fp-ticks">{ticks}</div><div></div></div>
       <div class="legend"><span><i class="lg-dot"></i>the rule</span>{'<span><i class="lg-dot2"></i>with the stop</span>' if s else ''}<span><i class="lg-ci"></i>95% interval</span><span><i class="lg-zero"></i>the average scored stock</span></div>
     </figure>"""
+
+
+def with_contents(page: str) -> str:
+    """The page's contents list (2026-10-27), read off the sections the page actually has, so it can
+    never name one that is not there or miss one that is: each ``<section id>`` and its ``<h2>``, in
+    order. The research page is long - thirteen thousand pixels on a phone - and until then a reader
+    could reach its fifth section only by scrolling past the first four."""
+    import re
+    found = re.findall(r'<section id="([a-z-]+)">\s*<h2>(.*?)</h2>', page)
+    items = "".join(f'<li><a href="#{i}">{t}</a></li>' for i, t in found)
+    nav = (f'<nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ol>{items}</ol></nav>'
+           if found else "")
+    return page.replace("<!--contents-->", nav, 1)
 
 
 def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list) -> str:
@@ -624,7 +637,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
     {excess_figure(b, s, periods, X.t_critical, sev['rule']['stop_loss_pct'])}
     {stop_verdict(b, s, periods)}"""
         bot_html = f"""
-  <section>
+  <section id="trading-rule">
     <h2>What a simple trading rule on the ranking would have done</h2>
     <p>A rule that holds the top {rule['target_count']}, keeps each until it falls past rank {rule['sell_rank']}, skip names flagged as value or growth traps, at most {rule['max_per_sector']} in a sector, {rule['cost_bps']} basis points of cost a side, rebalanced monthly. It is compared with the equal-weighted average return of the stocks the test could score each month.{cov_line}</p>
     <div class="tw"><table class="bot">
@@ -634,7 +647,7 @@ def build(reg: list, latest: dict, summary: dict, detectable, evaluations: list)
     <p>{bot_sentence(b, periods, X.p_value)} Read any live record of the ranking next to an equal-weight fund.</p>{stop_html or excess_figure(b, None, periods, X.t_critical)}
   </section>"""
 
-    return f"""<!DOCTYPE html>
+    return with_contents(f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -804,6 +817,32 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
 @media (prefers-reduced-motion: reduce) {{ * {{ transition-duration: 0s !important; }} }}
 .foot {{ margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }}
 .src {{ overflow-wrap: anywhere; }}
+/* second pass, 2026-10-27 (plan/ui-elevation.md): a contents list under the answer, every section
+   addressable, a way on at the foot, 44 px controls on a phone, and a page that prints as ink on paper */
+section[id], #top {{ scroll-margin-top: calc(var(--bar-h) + 16px); }}
+.toc {{ margin: 28px 0 0; padding: 16px 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); box-shadow: var(--hairline-hi); }}
+.toc h2 {{ margin: 0 0 8px; font-family: var(--font-body); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }}
+.toc ol {{ margin: 0; padding: 0; list-style: none; display: grid; gap: 2px 24px; max-width: none; counter-reset: toc; }}
+@media (min-width: 720px) {{ .toc ol {{ grid-template-columns: 1fr 1fr; }} }}
+.toc li {{ counter-increment: toc; }}
+.toc a {{ display: flex; align-items: baseline; gap: 10px; padding: 6px 0; color: var(--text-secondary); font-size: 14px; line-height: 1.4; }}
+.toc a::before {{ content: counter(toc); flex: none; width: 1.4em; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }}
+.toc a:hover {{ color: var(--text-primary); }}
+.next-nav {{ display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; }}
+@media (max-width: 719px) {{
+  .bar nav a {{ display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; }}
+  .toc a {{ min-height: 44px; padding: 10px 0; }} .next-nav a {{ display: inline-flex; align-items: center; min-height: 44px; }}
+  details summary {{ display: flex; align-items: center; min-height: 44px; padding: 0; }}
+}}
+@media print {{
+  :root {{ color-scheme: light; --bg-deep: #fff; --bg-card: #fff; --bg-elevated: #f4f4f2; --border: #d8d8d4; --border-bright: #b9b9b4; --band: #e7e7e3;
+          --text-primary: #111; --text-secondary: #333; --text-muted: #555; --accent: #1f5fae; --accent-text: #1f5fae; }}
+  body {{ background: #fff; font-size: 12px; }}
+  .bar, .toc, .next-nav {{ display: none !important; }}
+  .answer li, .fp, .chart, .stat, .claim {{ box-shadow: none; break-inside: avoid; }}
+  section {{ break-inside: avoid-page; margin-top: 28px; padding-top: 16px; }}
+  a {{ color: inherit; }}
+}}
 @media (max-width: 599px) {{
   table.alts thead, table.bot thead {{ display: none; }}
   table.alts, table.alts tbody, table.alts tr, table.bot, table.bot tbody, table.bot tr {{ display: block; }}
@@ -823,7 +862,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="top">
   <div class="bar">
     <a class="mark" href="index.html" aria-label="Multi-Factor Screener, the rankings"><svg class="bmk" viewBox="0 0 32 32" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" rx="8" class="bm-bg"/><rect x="7" y="17" width="4" height="8" rx="1.5" class="bm-1"/><rect x="14" y="12" width="4" height="13" rx="1.5" class="bm-2"/><rect x="21" y="7" width="4" height="18" rx="1.5" class="bm-3"/></svg>Multi-Factor Screener</a>
     <nav aria-label="Site"><a href="index.html">Rankings</a><a href="research.html" aria-current="page">Has it been tested?</a><a href="lab.html">Factor Lab</a></nav>
@@ -841,8 +880,9 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     <li>{control_li}</li>
   </ul>
   <p class="fine terms"><strong>Reading the numbers.</strong> A rank correlation runs from &minus;1 to +1: at +1 the ranking would have put every stock's next-month return in exact order, and at 0 it said nothing about them. A t-statistic is a result divided by its own standard error, so the further it is from 0, the less likely chance alone produced the result. A basis point is a hundredth of a percentage point.</p>
+  <!--contents-->
 
-  <section>
+  <section id="how-tested">
     <h2>How it was tested</h2>
     <p>Test enough ideas on one history and some look excellent by luck. The test was set up to prevent that:</p>
     <ol class="steps">
@@ -853,7 +893,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     </ol>
   </section>
 
-  <section>
+  <section id="alternatives">
     <h2>Each alternative against the current weighting, 2012&ndash;2019</h2>
     <p class="fine">Difference in average monthly rank correlation. The shaded band is the smallest difference the test could reliably detect (80% of the time). The two short marks either side of zero are the pass bar: a difference counts only if it reaches beyond them, a t-statistic of <span class="num">{bar_p:.2f}</span> over these {mid_p.get('n')} months, in the same direction as 2020&ndash;2026. A dot inside the marks did not pass; it may still be a real difference smaller than the band.{" Rows marked " + KNOWN_MARK + " had their 2020&ndash;2026 result on file before they were registered; this chart is their blind test." if known else ""}</p>
     <div class="chart" role="figure" aria-label="Each alternative's difference from the current weighting, with its interval and the detectable band">
@@ -875,7 +915,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     </details>
   </section>
 {overfit_html}{bot_html}
-  <section>
+  <section id="how-long">
     <h2>How long would it take to prove an edge?</h2>
     <div class="stats">
       <div class="stat"><div class="v">{months_needed(0.05, ic_sd, 1.96)}</div><div class="k">months of record to show a monthly correlation of 0.05 at the usual 5% level</div></div>
@@ -885,7 +925,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     <p>The ranking's monthly correlation swings by about <span class="num">{ic_sd:.2f}</span> from one month to the next, so any monthly ranking of large companies needs years of record before a realistic edge can be told apart from luck. That applies to this screener's live track record too. Here, the smallest difference the test could reliably see was about <span class="num">{mde_p:.3f}</span> over 2012&ndash;2019 and <span class="num">{mde_h:.3f}</span> over the held-out months.</p>
   </section>
 
-  <section>
+  <section id="what-it-means">
     <h2>What this means</h2>
     <div class="claims">
       <div class="claim"><h3>Supported</h3><p>Every factor the screener uses has a published source, and the <a href="lab.html">Factor Lab</a> reruns the studies behind its categories on public data. Every score on the dashboard can be rebuilt from its inputs. The testing is pre-registered and every run is kept.</p></div>
@@ -894,7 +934,7 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
     <p style="margin-top:14px">So the screener is a structured, checkable way to look at a company across eight dimensions. It is not a forecast.</p>
   </section>
 
-  <section>
+  <section id="limits">
     <h2>Limits of the test</h2>
     <ul>
       <li>It cannot include the analyst-based inputs (estimate revisions and forward earnings growth, about a sixth of the live weighting): no free history of them exists.</li>
@@ -906,8 +946,9 @@ code {{ font-family: var(--font-mono); font-size: .9em; }}
   <div class="foot">
     Generated from the screener's <a href="{REPO}/tree/main/research/experiments">research log</a> (data version <span class="num">{html.escape(str(summary.get('data_hash')))}</span>); the write-up, the registry of every prediction and every run are in the project's <a href="{REPO}/blob/main/research/2026-10-15-research-engine-first-batch.md">public repository</a>.
     This is research on a screening method for study and teaching. It is not investment advice.
+    <nav class="next-nav" aria-label="Where next"><a href="#top">Back to the answer</a><a href="lab.html">The Factor Lab: the research behind each category, rerun</a><a href="index.html">The rankings</a></nav>
   </div>
 </div>
 </body>
 </html>
-"""
+""")

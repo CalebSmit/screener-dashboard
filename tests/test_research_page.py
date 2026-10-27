@@ -292,3 +292,50 @@ def test_within_sector_screens_are_labelled_so_on_the_page_with_their_note():
     for name in ("12-1 month return alone (within sector)", "Size alone (within sector)",
                  "Low volatility alone (within sector)", "Nearness to the 52-week high (within sector)"):
         assert name in page
+
+
+# --------------------------------------------------------------------------- reading it (2026-10-27)
+def test_the_contents_list_names_every_section_in_order_and_nothing_else():
+    """Thirteen thousand pixels on a phone, and until 2026-10-27 its fifth section could be reached
+    only by scrolling past the first four. The list is read off the generator's own sections."""
+    page = _rebuilt()
+    sections = re.findall(r'<section id="([a-z-]+)">\s*<h2>(.*?)</h2>', page)
+    start = page.index('<nav class="toc"')
+    toc = page[start:page.index("</nav>", start)]
+    assert re.findall(r'<a href="#([a-z-]+)">(.*?)</a>', toc) == sections
+    assert len(sections) >= 5 and page.count("<section") == len(sections)    # every section is addressable
+    assert page.index('class="fine terms"') < start < page.index('id="how-tested"')
+    foot = page[page.index('<nav class="next-nav"'):]
+    assert 'href="#top"' in foot and 'href="lab.html"' in foot and 'href="index.html"' in foot
+    assert 'id="top"' in page
+
+
+def test_on_a_phone_its_controls_are_44_px_and_on_paper_it_is_ink():
+    import pytest
+    sync_api = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with sync_api.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch()
+        except Exception as exc:  # noqa: BLE001
+            pytest.skip(f"no usable chromium: {exc}")
+        try:
+            page = browser.new_page(viewport={"width": 375, "height": 812})
+            errors: list[str] = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(rp.PAGE.as_uri(), wait_until="load", timeout=60000)
+            page.wait_for_selector(".toc a", timeout=8000)
+            short = page.evaluate("""[...document.querySelectorAll('.bar nav a, .toc a, details summary, .next-nav a')]
+                .map(e => [e.textContent.trim().slice(0, 30), e.getBoundingClientRect().height]).filter(x => x[1] < 43.5)""")
+            assert short == []
+            assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
+            page.click(".toc a[href='#limits']")                        # a contents link lands on its section
+            page.wait_for_function("location.hash === '#limits'", timeout=8000)
+            page.wait_for_function("Math.abs(document.getElementById('limits').getBoundingClientRect().top) < 200", timeout=8000)
+            page.emulate_media(media="print")
+            assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(255, 255, 255)"
+            assert page.evaluate("getComputedStyle(document.querySelector('h1')).color") == "rgb(17, 17, 17)"
+            for sel in (".bar", ".toc", ".next-nav"):
+                assert page.evaluate(f"getComputedStyle(document.querySelector({sel!r})).display") == "none", sel
+            assert errors == []
+        finally:
+            browser.close()
